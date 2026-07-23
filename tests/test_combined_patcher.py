@@ -100,6 +100,16 @@ class CombinedPatcherTests(unittest.TestCase):
             "🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟",
         )
 
+    def test_supplied_picture_assets_are_used(self) -> None:
+        self.assertEqual(gui.FISH_PICTURE_PATH, ROOT / "assets" / "fish.png")
+        self.assertEqual(gui.PLANT_PICTURE_PATH, ROOT / "assets" / "plant.png")
+        self.assertTrue(gui.FISH_PICTURE_PATH.is_file())
+        self.assertTrue(gui.PLANT_PICTURE_PATH.is_file())
+        source = (ROOT / "src" / "tycoon_fix_patcher_gui.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn('text="🐟🪴"', source)
+
 
 if __name__ == "__main__":
     unittest.main()

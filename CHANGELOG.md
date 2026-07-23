@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.2
+
+- Replaced the text emoji banner with the two exact fish and potted-plant
+  pictures supplied by Lorsieab2.
+- Removed the pictures' dark square backgrounds and preserved transparent PNG
+  assets in the GUI and release package.
+
 ## v1.0.1
 
 - Added the requested `🐟🪴` picture-style emoji banner.

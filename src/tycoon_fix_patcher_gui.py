@@ -25,6 +25,8 @@ APP_NAME = "Fish & Plant Tycoon Fix Patcher"
 CREATOR_DESCRIPTION = "🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟"
 ROOT = Path(__file__).resolve().parents[1]
 SETTINGS_PATH = ROOT / "patcher_local_settings.json"
+FISH_PICTURE_PATH = ROOT / "assets" / "fish.png"
+PLANT_PICTURE_PATH = ROOT / "assets" / "plant.png"
 RELEASES_URL = (
     "https://github.com/Lorsieab2/Fish-and-Plant-Tycoon-Fix-Patcher/releases"
 )
@@ -66,9 +68,12 @@ class App(tk.Tk):
 
         heading = ttk.Frame(outer)
         heading.pack(fill="x")
-        ttk.Label(
-            heading, text="🐟🪴", font=("Segoe UI Emoji", 30)
-        ).pack(side="left", padx=(0, 12))
+        self.fish_picture = tk.PhotoImage(file=str(FISH_PICTURE_PATH))
+        self.plant_picture = tk.PhotoImage(file=str(PLANT_PICTURE_PATH))
+        ttk.Label(heading, image=self.fish_picture).pack(side="left")
+        ttk.Label(heading, image=self.plant_picture).pack(
+            side="left", padx=(4, 12)
+        )
         ttk.Label(
             heading, text=APP_NAME, font=("Segoe UI", 18, "bold")
         ).pack(side="left")

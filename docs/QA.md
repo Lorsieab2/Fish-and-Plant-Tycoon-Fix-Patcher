@@ -1,4 +1,4 @@
-# v1.0.1 QA
+# v1.0.2 QA
 
 - Python syntax compilation: passed.
 - Combined unit tests: passed.
@@ -17,4 +17,7 @@
   `D1F83E3E3CAFE177452E2F8B6AF4B68CACED783B77A304370389375DB611D6F9`.
 - Restored release ZIP CRC/content check: passed.
 - Release package contains no EXE: passed.
-- Requested `🐟🪴` GUI banner and exact creator description: present.
+- Exact creator description: present.
+- Supplied fish and potted-plant artwork: packaged as separate transparent PNG
+  files and loaded by the GUI instead of text emoji.
+- Transparent image alpha/corner checks: passed for both PNG files.

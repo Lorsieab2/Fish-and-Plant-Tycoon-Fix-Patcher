@@ -1,6 +1,6 @@
 # Fish & Plant Tycoon Fix Patcher
 
-## 🐟🪴
+<img src="assets/fish.png" alt="Fish" width="96"> <img src="assets/plant.png" alt="Potted plant" width="96">
 
 🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟
 

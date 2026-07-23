@@ -1,6 +1,5 @@
 FISH & PLANT TYCOON FIX PATCHER
 
-🐟🪴
 🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟
 
 1. Close Fish Tycoon, Plant Tycoon, and any trainer before patching.
