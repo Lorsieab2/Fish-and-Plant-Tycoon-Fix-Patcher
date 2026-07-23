@@ -1,0 +1,395 @@
+{
+  "manifest_version": 3,
+  "id": "fish-tycoon-pc-fixes-v7",
+  "name": "Fish Tycoon Fix Patcher",
+  "version": "v1.2.4",
+  "description": "Repairs Crimson Comet curing, fixes Unknown Chemical uses, and lets the exact supported supplies stack in slots 2-4.",
+  "patched_sha256": "E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A",
+  "patched_sha256_by_settings": {
+    "crimson_comet_20_percent_cure": "33C8C9469E8E9F7DD460C4A9B9A3A897D2A9505C1E2627988046D8CED097AD9B",
+    "unknown_chemical_three_uses": "C57055BF50567BEF767B77295ED070465F104A5A0B1E38342A45E27FF971C82D",
+    "universal_supply_slots": "5978BF336DE7D7833094AC2660883E83BCC639565E524EBD546305766C869CA6",
+    "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "016B88C90B578472BB0CD8D1CA29906ADCE0540657FDBF72C43EC9E0AA9DFADB",
+    "crimson_comet_20_percent_cure,universal_supply_slots": "C235A450F6C514289F8E2DE659E0D60622E2F111D29F45A85C5874C79A4AE697",
+    "universal_supply_slots,unknown_chemical_three_uses": "4D23F8582F5C50FD72D327CA3FEF4EFC24084CCD14E84F27F0811ED772B8D2FF",
+    "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A"
+  },
+  "target": {
+    "exe_name": "Fish Tycoon.exe",
+    "size": 385024,
+    "sha256": "9F15F13537AD0978D1E3AA2F94A64992FB7D968648BF265810087BDC88EDBDCD",
+    "pe_timestamp": "0x536BDE35",
+    "machine": "0x014C",
+    "optional_magic": "0x010B",
+    "image_base": "0x00400000",
+    "resource_section": {
+      "name": ".rsrc",
+      "offset": "0x5C000",
+      "size": 8192,
+      "sha256": "6ED9B0589DF08027301CAD95FE01FD0D34C253FD2A276EC90FD306BE868FB8BC"
+    }
+  },
+  "output": {
+    "default_folder_name": "Fish Tycoon - Fixed",
+    "exe_name": "Fish Tycoon.exe"
+  },
+  "settings": [
+    {
+      "id": "crimson_comet_20_percent_cure",
+      "name": "Crimson Comet 20% curing fix",
+      "description": "Rolls 0..99 once for each eligible diseased fish; 0..19 enters the original cure and counter block.",
+      "category": "main",
+      "default": true
+    },
+    {
+      "id": "unknown_chemical_three_uses",
+      "name": "Unknown Chemical: 3 uses",
+      "description": "Each purchase adds three uses instead of one and the English store description says 'Contains 3 doses.'.",
+      "category": "main",
+      "default": true
+    },
+    {
+      "id": "universal_supply_slots",
+      "name": "Universal supply slots 2-4",
+      "description": "Keeps the normal Buy confirmation, then lets the eight supported medicines, chemicals, and egg types stack in any supply slot. Matching stack first, then empty slot 2-4, then replacement prompts.",
+      "category": "main",
+      "default": true
+    }
+  ],
+  "patches": [
+    {
+      "id": "redirect_crimson_comet_random_call",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x204CE",
+      "expected": "E8 6D 2D FE FF",
+      "replacement": "E8 3E 19 FE FF",
+      "requires": [
+        "crimson_comet_20_percent_cure"
+      ],
+      "note": "Redirects the broken Random(0) call to the 20% wrapper."
+    },
+    {
+      "id": "install_crimson_comet_20_percent_wrapper",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1E11",
+      "expected": "CC CC CC CC CC CC CC CC CC CC CC CC CC CC",
+      "replacement": "6A 64 E8 28 14 00 00 59 3C 14 0F 92 C0 C3",
+      "requires": [
+        "crimson_comet_20_percent_cure"
+      ],
+      "note": "Calls the original RNG once with 100 and succeeds for rolls 0..19."
+    },
+    {
+      "id": "unknown_chemical_remove_runtime_count_reset_chemical_only",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x210B7",
+      "expected": "C7 80 F8 02 00 00 01 00 00 00",
+      "replacement": "90 90 90 90 90 90 90 90 90 90",
+      "requires": [
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Preserves the purchased three-use count so each use decrements normally.",
+      "excludes": [
+        "universal_supply_slots"
+      ]
+    },
+    {
+      "id": "unknown_chemical_remove_runtime_count_reset_slots_only",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x210B7",
+      "expected": "C7 80 F8 02 00 00 01 00 00 00",
+      "replacement": "90 90 90 90 90 90 90 90 90 90",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Preserves stacked one-dose purchases so each use decrements normally.",
+      "excludes": [
+        "unknown_chemical_three_uses"
+      ]
+    },
+    {
+      "id": "unknown_chemical_remove_runtime_count_reset_both",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x210B7",
+      "expected": "C7 80 F8 02 00 00 01 00 00 00",
+      "replacement": "90 90 90 90 90 90 90 90 90 90",
+      "requires": [
+        "unknown_chemical_three_uses",
+        "universal_supply_slots"
+      ],
+      "note": "Preserves stacked three-dose purchases so each use decrements normally."
+    },
+    {
+      "id": "unknown_chemical_store_description_three_doses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x458C9",
+      "expected": "43 6F 6E 74 61 69 6E 73 20 6F 6E 65 20 64 6F 73 65 2E",
+      "replacement": "43 6F 6E 74 61 69 6E 73 20 33 20 64 6F 73 65 73 2E 00",
+      "requires": [
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Changes the English store description to 'Contains 3 doses.'."
+    },
+    {
+      "id": "extend_text_virtual_size_for_slots_payload",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1F8",
+      "expected": "9F E2 03 00",
+      "replacement": "00 F0 03 00",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Maps the existing zero-filled end of .text that contains the slot payload."
+    },
+    {
+      "id": "install_universal_slots_payload_unknown_one",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x3F2A0",
+      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "replacement": "83 FF 07 0F 87 4C 02 00 00 6A 01 68 EC 00 00 00 8D 4C 24 1C E8 E7 2E FE FF C7 84 24 8C 00 00 00 01 00 00 00 8B 46 20 6A 00 50 8D 4C 24 1C E8 2D 2A FC FF 8B D8 C7 84 24 8C 00 00 00 FF FF FF FF 8D 4C 24 14 E8 57 31 FE FF 85 DB 0F 84 05 00 00 00 E9 2F 8F FE FF 8B 4E 10 83 B9 E0 02 00 00 00 0F 84 0C 00 00 00 39 B9 D4 02 00 00 0F 84 54 01 00 00 83 B9 FC 02 00 00 00 0F 84 0C 00 00 00 39 B9 F0 02 00 00 0F 84 4B 01 00 00 83 B9 18 03 00 00 00 0F 84 0C 00 00 00 39 B9 0C 03 00 00 0F 84 42 01 00 00 83 B9 E0 02 00 00 00 0F 84 F7 00 00 00 83 B9 FC 02 00 00 00 0F 84 F4 00 00 00 83 B9 18 03 00 00 00 0F 84 F1 00 00 00 6A 01 68 EF 00 00 00 8D 4C 24 1C E8 25 2E FE FF C7 84 24 8C 00 00 00 01 00 00 00 8B 46 20 6A 00 50 8D 4C 24 1C E8 6B 29 FC FF 8B D8 C7 84 24 8C 00 00 00 FF FF FF FF 8D 4C 24 14 E8 95 30 FE FF 85 DB 0F 84 95 00 00 00 6A 01 68 EE 00 00 00 8D 4C 24 1C E8 DD 2D FE FF C7 84 24 8C 00 00 00 01 00 00 00 8B 46 20 6A 00 50 8D 4C 24 1C E8 23 29 FC FF 8B D8 C7 84 24 8C 00 00 00 FF FF FF FF 8D 4C 24 14 E8 4D 30 FE FF 85 DB 0F 84 57 00 00 00 6A 01 68 ED 00 00 00 8D 4C 24 1C E8 95 2D FE FF C7 84 24 8C 00 00 00 01 00 00 00 8B 46 20 6A 00 50 8D 4C 24 1C E8 DB 28 FC FF 8B D8 C7 84 24 8C 00 00 00 FF FF FF FF 8D 4C 24 14 E8 05 30 FE FF 85 DB 0F 84 19 00 00 00 E9 DD 8D FE FF BB 01 00 00 00 E9 48 00 00 00 BB 02 00 00 00 E9 3E 00 00 00 BB 03 00 00 00 E9 34 00 00 00 BB 01 00 00 00 8B 81 DC 02 00 00 E9 1B 00 00 00 BB 02 00 00 00 8B 81 F8 02 00 00 E9 0B 00 00 00 BB 03 00 00 00 8B 81 14 03 00 00 89 44 24 10 E9 08 00 00 00 C7 44 24 10 00 00 00 00 8B 04 FD 04 F5 43 00 8B 14 FD 08 F5 43 00 52 50 57 53 8B CE E8 85 80 FE FF 8B 4E 10 6B D3 1C 8D 8C 11 C0 02 00 00 8B 44 24 10 83 FF 04 0F 82 0E 00 00 00 0F 84 10 00 00 00 83 C0 01 E9 0B 00 00 00 83 C0 03 E9 03 00 00 00 83 C0 01 89 01 E9 30 8D FE FF 83 FF 19 0F 87 D8 8C FE FF E9 39 8C FE FF 90 A7 00 00 00 AD 00 00 00 A8 00 00 00 AE 00 00 00 A9 00 00 00 AF 00 00 00 7A 00 00 00 7B 00 00 00 AA 00 00 00 B0 00 00 00 79 00 00 00 79 00 00 00 AB 00 00 00 AB 00 00 00 AC 00 00 00 AC 00 00 00 90 90 90 90 90 90 90 90 90 90 90 90 53 56 57 55 8B F1 8B 5E 1C 83 FB 01 0F 8C 7C 00 00 00 83 FB 03 0F 8F 73 00 00 00 8B 46 34 6B D3 1C 8B 94 10 B8 02 00 00 83 FA 01 0F 8E 17 00 00 00 83 FA 04 0F 8E 18 00 00 00 83 FA 07 0F 8E 19 00 00 00 E9 46 00 00 00 BF 01 00 00 00 E9 0F 00 00 00 BF 02 00 00 00 E9 05 00 00 00 BF 03 00 00 00 3B DF 0F 84 25 00 00 00 E8 29 00 00 00 89 7E 1C 8B 44 24 18 8B 54 24 14 50 52 8B CE E8 46 00 00 00 E8 10 00 00 00 5D 5F 5E 5B C2 08 00 5D 5F 5E 5B E9 31 00 00 00 8B 46 34 6B D3 1C 8D 94 10 B8 02 00 00 6B EF 1C 8D AC 28 B8 02 00 00 B9 07 00 00 00 8B 02 87 45 00 89 02 83 C2 04 83 C5 04 49 0F 85 EC FF FF FF C3 83 EC 20 53 8B 5C 24 2C E9 53 15 FE FF 90 90 90 90 90 90 90 90 90 90 90 8B 56 34 83 AA 14 03 00 00 01 0F 8F 20 00 00 00 33 C0 89 82 0C 03 00 00 89 82 10 03 00 00 89 82 14 03 00 00 89 82 18 03 00 00 89 82 1C 03 00 00 C3",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Installs exact-item stacking and use routing; Unknown Chemical purchases add one use.",
+      "excludes": [
+        "unknown_chemical_three_uses"
+      ]
+    },
+    {
+      "id": "install_universal_slots_payload_unknown_three",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x3F2A0",
+      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "replacement": "83 FF 07 0F 87 4C 02 00 00 6A 01 68 EC 00 00 00 8D 4C 24 1C E8 E7 2E FE FF C7 84 24 8C 00 00 00 01 00 00 00 8B 46 20 6A 00 50 8D 4C 24 1C E8 2D 2A FC FF 8B D8 C7 84 24 8C 00 00 00 FF FF FF FF 8D 4C 24 14 E8 57 31 FE FF 85 DB 0F 84 05 00 00 00 E9 2F 8F FE FF 8B 4E 10 83 B9 E0 02 00 00 00 0F 84 0C 00 00 00 39 B9 D4 02 00 00 0F 84 54 01 00 00 83 B9 FC 02 00 00 00 0F 84 0C 00 00 00 39 B9 F0 02 00 00 0F 84 4B 01 00 00 83 B9 18 03 00 00 00 0F 84 0C 00 00 00 39 B9 0C 03 00 00 0F 84 42 01 00 00 83 B9 E0 02 00 00 00 0F 84 F7 00 00 00 83 B9 FC 02 00 00 00 0F 84 F4 00 00 00 83 B9 18 03 00 00 00 0F 84 F1 00 00 00 6A 01 68 EF 00 00 00 8D 4C 24 1C E8 25 2E FE FF C7 84 24 8C 00 00 00 01 00 00 00 8B 46 20 6A 00 50 8D 4C 24 1C E8 6B 29 FC FF 8B D8 C7 84 24 8C 00 00 00 FF FF FF FF 8D 4C 24 14 E8 95 30 FE FF 85 DB 0F 84 95 00 00 00 6A 01 68 EE 00 00 00 8D 4C 24 1C E8 DD 2D FE FF C7 84 24 8C 00 00 00 01 00 00 00 8B 46 20 6A 00 50 8D 4C 24 1C E8 23 29 FC FF 8B D8 C7 84 24 8C 00 00 00 FF FF FF FF 8D 4C 24 14 E8 4D 30 FE FF 85 DB 0F 84 57 00 00 00 6A 01 68 ED 00 00 00 8D 4C 24 1C E8 95 2D FE FF C7 84 24 8C 00 00 00 01 00 00 00 8B 46 20 6A 00 50 8D 4C 24 1C E8 DB 28 FC FF 8B D8 C7 84 24 8C 00 00 00 FF FF FF FF 8D 4C 24 14 E8 05 30 FE FF 85 DB 0F 84 19 00 00 00 E9 DD 8D FE FF BB 01 00 00 00 E9 48 00 00 00 BB 02 00 00 00 E9 3E 00 00 00 BB 03 00 00 00 E9 34 00 00 00 BB 01 00 00 00 8B 81 DC 02 00 00 E9 1B 00 00 00 BB 02 00 00 00 8B 81 F8 02 00 00 E9 0B 00 00 00 BB 03 00 00 00 8B 81 14 03 00 00 89 44 24 10 E9 08 00 00 00 C7 44 24 10 00 00 00 00 8B 04 FD 04 F5 43 00 8B 14 FD 08 F5 43 00 52 50 57 53 8B CE E8 85 80 FE FF 8B 4E 10 6B D3 1C 8D 8C 11 C0 02 00 00 8B 44 24 10 83 FF 04 0F 82 0E 00 00 00 0F 84 10 00 00 00 83 C0 01 E9 0B 00 00 00 83 C0 03 E9 03 00 00 00 83 C0 03 89 01 E9 30 8D FE FF 83 FF 19 0F 87 D8 8C FE FF E9 39 8C FE FF 90 A7 00 00 00 AD 00 00 00 A8 00 00 00 AE 00 00 00 A9 00 00 00 AF 00 00 00 7A 00 00 00 7B 00 00 00 AA 00 00 00 B0 00 00 00 79 00 00 00 79 00 00 00 AB 00 00 00 AB 00 00 00 AC 00 00 00 AC 00 00 00 90 90 90 90 90 90 90 90 90 90 90 90 53 56 57 55 8B F1 8B 5E 1C 83 FB 01 0F 8C 7C 00 00 00 83 FB 03 0F 8F 73 00 00 00 8B 46 34 6B D3 1C 8B 94 10 B8 02 00 00 83 FA 01 0F 8E 17 00 00 00 83 FA 04 0F 8E 18 00 00 00 83 FA 07 0F 8E 19 00 00 00 E9 46 00 00 00 BF 01 00 00 00 E9 0F 00 00 00 BF 02 00 00 00 E9 05 00 00 00 BF 03 00 00 00 3B DF 0F 84 25 00 00 00 E8 29 00 00 00 89 7E 1C 8B 44 24 18 8B 54 24 14 50 52 8B CE E8 46 00 00 00 E8 10 00 00 00 5D 5F 5E 5B C2 08 00 5D 5F 5E 5B E9 31 00 00 00 8B 46 34 6B D3 1C 8D 94 10 B8 02 00 00 6B EF 1C 8D AC 28 B8 02 00 00 B9 07 00 00 00 8B 02 87 45 00 89 02 83 C2 04 83 C5 04 49 0F 85 EC FF FF FF C3 83 EC 20 53 8B 5C 24 2C E9 53 15 FE FF 90 90 90 90 90 90 90 90 90 90 90 8B 56 34 83 AA 14 03 00 00 01 0F 8F 20 00 00 00 33 C0 89 82 0C 03 00 00 89 82 10 03 00 00 89 82 14 03 00 00 89 82 18 03 00 00 89 82 1C 03 00 00 C3",
+      "requires": [
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Installs exact-item stacking and use routing; Unknown Chemical purchases add three uses."
+    },
+    {
+      "id": "redirect_store_purchase_for_universal_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x28133",
+      "expected": "83 FF 19 0F 87 9A 00 00 00",
+      "replacement": "E9 68 71 01 00 90 90 90 90",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Preserves the original Buy confirmation, then routes the exact eight supported items through matching-stack, empty-slot, and replacement logic."
+    },
+    {
+      "id": "redirect_item_use_for_universal_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x20B70",
+      "expected": "83 EC 20 53 8B 5C 24 2C",
+      "replacement": "E9 DB E9 01 00 90 90 90",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Routes supported items through their original handler regardless of physical slot."
+    },
+    {
+      "id": "stack_common_egg_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x213A7",
+      "expected": "89 A9 14 03 00 00 8B 56 34 89 AA 10 03 00 00 8B 46 34 89 A8 18 03 00 00 8B 4E 34 89 A9 1C 03 00 00 8B 56 34 89 AA 0C 03 00 00",
+      "replacement": "E8 84 E2 01 00 E9 20 00 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Calls the shared one-use common egg decrement and then jumps to the original hatch continuation."
+    },
+    {
+      "id": "stack_unusual_egg_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x21476",
+      "expected": "89 AA 14 03 00 00 8B 46 34 89 A8 10 03 00 00 8B 4E 34 89 A9 18 03 00 00 8B 56 34 89 AA 1C 03 00 00 8B 46 34 89 A8 0C 03 00 00",
+      "replacement": "E8 B5 E1 01 00 E9 20 00 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Calls the shared one-use unusual egg decrement and then jumps to the original hatch continuation."
+    },
+    {
+      "id": "stack_rare_egg_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x21549",
+      "expected": "89 AA 14 03 00 00 8B 46 34 89 A8 10 03 00 00 8B 4E 34 89 A9 18 03 00 00 8B 56 34 89 AA 1C 03 00 00 8B 46 34 89 A8 0C 03 00 00",
+      "replacement": "E8 E2 E0 01 00 E9 20 00 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Calls the shared one-use rare egg decrement and then jumps to the original hatch continuation."
+    },
+    {
+      "id": "generic_replacement_prompt_slot2_de",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x43ED4",
+      "expected": "4D 65 64 69 6B 61 6D 65 6E 74 20 69 6E 20 52 65 67 61 6C 20 32 20 65 72 73 65 74 7A 65 6E 3F 00",
+      "replacement": "41 72 74 69 6B 65 6C 20 69 6E 20 53 6C 6F 74 20 32 20 65 72 73 65 74 7A 65 6E 3F 00 00 00 00 00",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Makes the replacement prompt accurate for every supported item."
+    },
+    {
+      "id": "generic_replacement_prompt_slot2_en",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x43EF4",
+      "expected": "52 65 70 6C 61 63 65 20 6D 65 64 69 63 61 74 69 6F 6E 20 69 6E 20 73 6C 6F 74 20 23 32 3F 00 00",
+      "replacement": "52 65 70 6C 61 63 65 20 69 74 65 6D 20 69 6E 20 73 6C 6F 74 20 23 32 3F 00 00 00 00 00 00 00 00",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Makes the replacement prompt accurate for every supported item."
+    },
+    {
+      "id": "generic_replacement_prompt_slot3_de",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x43F14",
+      "expected": "43 68 65 6D 69 6B 61 6C 69 65 20 69 6E 20 52 65 67 61 6C 20 33 20 65 72 73 65 74 7A 65 6E 3F 00",
+      "replacement": "41 72 74 69 6B 65 6C 20 69 6E 20 53 6C 6F 74 20 33 20 65 72 73 65 74 7A 65 6E 3F 00 00 00 00 00",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Makes the replacement prompt accurate for every supported item."
+    },
+    {
+      "id": "generic_replacement_prompt_slot3_en",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x43F34",
+      "expected": "52 65 70 6C 61 63 65 20 63 68 65 6D 69 63 61 6C 20 69 6E 20 73 6C 6F 74 20 23 33 3F 00 00 00 00",
+      "replacement": "52 65 70 6C 61 63 65 20 69 74 65 6D 20 69 6E 20 73 6C 6F 74 20 23 33 3F 00 00 00 00 00 00 00 00",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Makes the replacement prompt accurate for every supported item."
+    },
+    {
+      "id": "generic_replacement_prompt_slot4_de",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x43F54",
+      "expected": "45 69 65 72 20 69 6E 20 52 65 67 61 6C 20 34 20 65 72 73 65 74 7A 65 6E 3F 00 00 00",
+      "replacement": "41 72 74 69 6B 65 6C 20 69 6E 20 53 6C 6F 74 20 34 20 65 72 73 65 74 7A 65 6E 3F 00",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Makes the replacement prompt accurate for every supported item."
+    },
+    {
+      "id": "generic_replacement_prompt_slot4_en",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x43F70",
+      "expected": "52 65 70 6C 61 63 65 20 65 67 67 73 20 69 6E 20 73 6C 6F 74 20 23 34 3F 00 00 00 00",
+      "replacement": "52 65 70 6C 61 63 65 20 69 74 65 6D 20 69 6E 20 73 6C 6F 74 20 23 34 3F 00 00 00 00",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Makes the replacement prompt accurate for every supported item."
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "52 B4 06 00",
+      "requires": [
+        "crimson_comet_20_percent_cure"
+      ],
+      "note": "Sets the correct PE checksum 0x0006B452 for this exact setting combination.",
+      "excludes": [
+        "unknown_chemical_three_uses",
+        "universal_supply_slots"
+      ]
+    },
+    {
+      "id": "update_pe_checksum_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "A2 DB 06 00",
+      "requires": [
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Sets the correct PE checksum 0x0006DBA2 for this exact setting combination.",
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "universal_supply_slots"
+      ]
+    },
+    {
+      "id": "update_pe_checksum_universal_supply_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "DC 76 06 00",
+      "requires": [
+        "universal_supply_slots"
+      ],
+      "note": "Sets the correct PE checksum 0x000676DC for this exact setting combination.",
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "unknown_chemical_three_uses"
+      ]
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "45 86 06 00",
+      "requires": [
+        "crimson_comet_20_percent_cure",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Sets the correct PE checksum 0x00068645 for this exact setting combination.",
+      "excludes": [
+        "universal_supply_slots"
+      ]
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "7F 21 06 00",
+      "requires": [
+        "crimson_comet_20_percent_cure",
+        "universal_supply_slots"
+      ],
+      "note": "Sets the correct PE checksum 0x0006217F for this exact setting combination.",
+      "excludes": [
+        "unknown_chemical_three_uses"
+      ]
+    },
+    {
+      "id": "update_pe_checksum_universal_supply_slots_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "80 38 06 00",
+      "requires": [
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Sets the correct PE checksum 0x00063880 for this exact setting combination.",
+      "excludes": [
+        "crimson_comet_20_percent_cure"
+      ]
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "23 E3 05 00",
+      "requires": [
+        "crimson_comet_20_percent_cure",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Sets the correct PE checksum 0x0005E323 for this exact setting combination."
+    }
+  ]
+}

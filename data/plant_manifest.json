@@ -1,0 +1,74 @@
+{
+  "manifest_version": 3,
+  "id": "plant-tycoon-pc-fixes-v1",
+  "name": "Plant Tycoon Fix Patcher",
+  "version": "v1.0.0",
+  "description": "Prevents the supported classic Windows Plant Tycoon build from killing plants through its old-age random-death branch.",
+  "patched_sha256": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046",
+  "patched_sha256_by_settings": {
+    "no_old_age_plant_deaths": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046"
+  },
+  "target": {
+    "exe_name": "Plant Tycoon.exe",
+    "size": 700416,
+    "sha256": "D1F83E3E3CAFE177452E2F8B6AF4B68CACED783B77A304370389375DB611D6F9",
+    "pe_timestamp": "0x539741F2",
+    "machine": "0x014C",
+    "optional_magic": "0x010B",
+    "image_base": "0x00400000",
+    "resource_section": {
+      "name": ".rsrc",
+      "offset": "0x95000",
+      "size": 90112,
+      "sha256": "BC946BA462454D1686AFF85FB1BCBAE84956D68FDC71AABBC3E65620CD2AA434"
+    }
+  },
+  "output": {
+    "default_folder_name": "Plant Tycoon - Fixed",
+    "exe_name": "Plant Tycoon.exe"
+  },
+  "settings": [
+    {
+      "id": "no_old_age_plant_deaths",
+      "name": "No old-age plant deaths",
+      "description": "Keeps the original age check and Random(1000) call, but changes its death range from 0..9 to empty, making that branch exactly 0%.",
+      "category": "main",
+      "default": true
+    }
+  ],
+  "patches": [
+    {
+      "id": "disable_old_age_death_roll",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x2E23B",
+      "expected": "09",
+      "replacement": "FF",
+      "requires": [
+        "no_old_age_plant_deaths"
+      ],
+      "note": "Changes cmp eax,9 to cmp eax,-1 after Random(1000). Every possible roll 0..999 then skips the old-age health-zero write."
+    },
+    {
+      "id": "update_pe_checksum_no_old_age_plant_deaths",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x150",
+      "expected": "BF 01 0B 00",
+      "replacement": "C0 F7 0A 00",
+      "requires": [
+        "no_old_age_plant_deaths"
+      ],
+      "note": "Sets the correct PE checksum 0x000AF7C0 for this exact output."
+    }
+  ],
+  "verification": {
+    "old_age_threshold_internal_units": 1720,
+    "rng_call": "Random(1000)",
+    "original_death_rolls": "0..9",
+    "original_probability": "1% per eligible update",
+    "patched_death_rolls": "none",
+    "patched_probability": "0%",
+    "old_age_block_va": "0x0042E219",
+    "patched_immediate_va": "0x0042E23B",
+    "health_zero_write_va": "0x0042E241"
+  }
+}

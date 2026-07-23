@@ -1,0 +1,13 @@
+# Changelog
+
+## v1.0.0
+
+- Combined the current Fish Tycoon Fix Patcher v1.2.4 and Plant Tycoon Fix
+  Patcher v1.0.0 engines and manifests.
+- Added One Game and Both Games workflows modeled on the Virtual Villagers Fun
+  Patcher.
+- Added remembered, auto-filled vanilla/modded paths and clickable folder
+  links.
+- Preserved exact-build validation, guarded patches, pinned hashes, backups,
+  restore, full-folder copying, readback verification, and original icon
+  resources.

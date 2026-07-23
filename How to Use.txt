@@ -1,0 +1,31 @@
+FISH & PLANT TYCOON FIX PATCHER
+
+1. Close Fish Tycoon, Plant Tycoon, and any trainer before patching.
+2. Double-click "Launch Fish and Plant Tycoon Fix Patcher.bat".
+3. Choose "One Game" or "Both Games".
+4. Select each vanilla folder containing the exact original game EXE.
+5. Leave the fixes you want checked.
+6. Use Dry Run to validate without writing files.
+7. Click Create Fixed Copy or Patch Both.
+
+The patcher creates separate "Fish Tycoon - Fixed" and/or
+"Plant Tycoon - Fixed" folders. It remembers your vanilla and modded folder
+paths. The blue underlined paths open those folders in File Explorer.
+
+The original game folders are never replaced. Exact unsupported or already
+modified EXEs are refused. The package contains no game executable or game
+asset.
+
+To restore the original EXE inside a modded folder, choose One Game, select its
+timestamped backup folder and modded output folder, then click
+"Restore Output EXE from Backup".
+
+Fish Tycoon options:
+- Crimson Comet 20% curing fix
+- Unknown Chemical: 3 uses
+- Universal supply slots 2-4
+
+Plant Tycoon option:
+- No old-age plant deaths
+
+Have fun! -Lorsieab2 :)

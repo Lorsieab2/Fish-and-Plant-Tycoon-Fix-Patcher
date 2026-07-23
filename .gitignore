@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+build/
+dist/
+patcher_local_settings.json
+reference/private/
+outputs/*
+!outputs/.gitkeep
