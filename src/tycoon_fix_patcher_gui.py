@@ -23,6 +23,7 @@ from tycoon_fix_patcher import (
 
 APP_NAME = "Fish & Plant Tycoon Fix Patcher"
 CREATOR_DESCRIPTION = "🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟"
+CREATOR_TEXT = "Created with Codex AI. Made with love by Lorsieab2 :)"
 ROOT = Path(__file__).resolve().parents[1]
 SETTINGS_PATH = ROOT / "patcher_local_settings.json"
 FISH_PICTURE_PATH = ROOT / "assets" / "fish.png"
@@ -36,6 +37,7 @@ class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title(APP_NAME)
+        self._load_brand_images()
         self.geometry("1000x880")
         self.minsize(860, 720)
         self.busy = False
@@ -62,26 +64,52 @@ class App(tk.Tk):
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._close)
 
+    def _load_brand_images(self) -> None:
+        self.fish_picture = tk.PhotoImage(file=str(FISH_PICTURE_PATH))
+        self.plant_picture = tk.PhotoImage(file=str(PLANT_PICTURE_PATH))
+        self.fish_heading = self.fish_picture.subsample(4, 4)
+        self.plant_heading = self.plant_picture.subsample(4, 4)
+        self.fish_emoji = self.fish_picture.subsample(8, 8)
+        self.plant_emoji = self.plant_picture.subsample(8, 8)
+
+        # A native title bar accepts one square icon, so compose both supplied
+        # pictures into that icon without modifying either source PNG.
+        self.window_fish = self.fish_picture.subsample(12, 12)
+        self.window_plant = self.plant_picture.subsample(12, 12)
+        self.window_icon = tk.PhotoImage(width=32, height=32)
+        self.window_icon.tk.call(
+            str(self.window_icon), "copy", str(self.window_plant), "-to", 1, 9
+        )
+        self.window_icon.tk.call(
+            str(self.window_icon), "copy", str(self.window_fish), "-to", 16, 9
+        )
+        self.iconphoto(True, self.window_icon)
+
+    def _creator_line(
+        self, parent: tk.Widget, *, small: bool = False
+    ) -> ttk.Frame:
+        line = ttk.Frame(parent)
+        ttk.Label(line, image=self.plant_emoji).pack(side="left")
+        ttk.Label(
+            line,
+            text=CREATOR_TEXT,
+            font=("Segoe UI", 9 if small else 10, "bold" if not small else "normal"),
+        ).pack(side="left", padx=3)
+        ttk.Label(line, image=self.fish_emoji).pack(side="left")
+        return line
+
     def _build_ui(self) -> None:
         outer = ttk.Frame(self, padding=18)
         outer.pack(fill="both", expand=True)
 
         heading = ttk.Frame(outer)
         heading.pack(fill="x")
-        self.fish_picture = tk.PhotoImage(file=str(FISH_PICTURE_PATH))
-        self.plant_picture = tk.PhotoImage(file=str(PLANT_PICTURE_PATH))
-        ttk.Label(heading, image=self.fish_picture).pack(side="left")
-        ttk.Label(heading, image=self.plant_picture).pack(
-            side="left", padx=(4, 12)
-        )
+        ttk.Label(heading, image=self.plant_heading).pack(side="left")
         ttk.Label(
             heading, text=APP_NAME, font=("Segoe UI", 18, "bold")
-        ).pack(side="left")
-        ttk.Label(
-            outer,
-            text=CREATOR_DESCRIPTION,
-            font=("Segoe UI Emoji", 10, "bold"),
-        ).pack(anchor="w", pady=(2, 4))
+        ).pack(side="left", padx=8)
+        ttk.Label(heading, image=self.fish_heading).pack(side="left")
+        self._creator_line(outer).pack(anchor="w", pady=(2, 4))
         ttk.Label(
             outer,
             text=(
@@ -116,12 +144,7 @@ class App(tk.Tk):
         self.log = tk.Text(status, height=10, wrap="word", font=("Consolas", 9))
         self.log.pack(fill="both", expand=True, pady=(8, 0))
 
-        ttk.Label(
-            outer,
-            text=CREATOR_DESCRIPTION,
-            font=("Segoe UI Emoji", 9),
-            foreground="#555555",
-        ).pack(anchor="w", pady=(8, 0))
+        self._creator_line(outer, small=True).pack(anchor="w", pady=(8, 0))
 
     def _build_one_tab(self, tab: ttk.Frame) -> None:
         select = ttk.LabelFrame(tab, text="Game", padding=10)

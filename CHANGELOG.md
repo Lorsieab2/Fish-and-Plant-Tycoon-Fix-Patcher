@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.3
+
+- Replaced both picture assets with the final transparent PNGs supplied by
+  Lorsieab2.
+- Added emoji-sized plant and fish pictures around the creator sentence.
+- Surrounded the main patcher title with the plant and fish pictures.
+- Added a paired plant-and-fish application icon to the native window title
+  bar.
+
 ## v1.0.2
 
 - Replaced the text emoji banner with the two exact fish and potted-plant

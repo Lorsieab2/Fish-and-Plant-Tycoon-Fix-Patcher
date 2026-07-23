@@ -1,4 +1,4 @@
-# v1.0.2 QA
+# v1.0.3 QA
 
 - Python syntax compilation: passed.
 - Combined unit tests: passed.
@@ -21,3 +21,6 @@
 - Supplied fish and potted-plant artwork: packaged as separate transparent PNG
   files and loaded by the GUI instead of text emoji.
 - Transparent image alpha/corner checks: passed for both PNG files.
+- Creator line uses emoji-sized supplied PNGs instead of text emoji: passed.
+- Main heading is surrounded by the supplied plant and fish PNGs: passed.
+- Native title-bar icon contains both supplied pictures: passed.

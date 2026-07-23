@@ -99,6 +99,10 @@ class CombinedPatcherTests(unittest.TestCase):
             gui.CREATOR_DESCRIPTION,
             "🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟",
         )
+        self.assertEqual(
+            gui.CREATOR_TEXT,
+            "Created with Codex AI. Made with love by Lorsieab2 :)",
+        )
 
     def test_supplied_picture_assets_are_used(self) -> None:
         self.assertEqual(gui.FISH_PICTURE_PATH, ROOT / "assets" / "fish.png")
@@ -109,6 +113,9 @@ class CombinedPatcherTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertNotIn('text="🐟🪴"', source)
+        self.assertIn("self.iconphoto(True, self.window_icon)", source)
+        self.assertIn("image=self.plant_heading", source)
+        self.assertIn("image=self.fish_heading", source)
 
 
 if __name__ == "__main__":
