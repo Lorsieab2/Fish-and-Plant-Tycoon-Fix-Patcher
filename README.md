@@ -1,5 +1,9 @@
 # Fish & Plant Tycoon Fix Patcher
 
+## 🐟🪴
+
+🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟
+
 An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.

@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.1
+
+- Added the requested `🐟🪴` picture-style emoji banner.
+- Added the exact creator description:
+  `🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟`
+
 ## v1.0.0
 
 - Combined the current Fish Tycoon Fix Patcher v1.2.4 and Plant Tycoon Fix

@@ -1,5 +1,8 @@
 FISH & PLANT TYCOON FIX PATCHER
 
+🐟🪴
+🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟
+
 1. Close Fish Tycoon, Plant Tycoon, and any trainer before patching.
 2. Double-click "Launch Fish and Plant Tycoon Fix Patcher.bat".
 3. Choose "One Game" or "Both Games".

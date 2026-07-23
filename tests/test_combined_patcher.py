@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import fish_patcher
 import plant_patcher
 import tycoon_fix_patcher as combined
+import tycoon_fix_patcher_gui as gui
 
 
 class CombinedPatcherTests(unittest.TestCase):
@@ -92,6 +93,12 @@ class CombinedPatcherTests(unittest.TestCase):
 
     def test_restore_interface_is_exposed(self) -> None:
         self.assertTrue(callable(combined.restore_game))
+
+    def test_requested_creator_description_is_exact(self) -> None:
+        self.assertEqual(
+            gui.CREATOR_DESCRIPTION,
+            "🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟",
+        )
 
 
 if __name__ == "__main__":
