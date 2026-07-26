@@ -16,6 +16,7 @@ from tycoon_fix_patcher import (
     GAMES,
     capture_run,
     default_output_dir,
+    find_game_in_parent,
     output_dir_at,
     patch_settings,
     restore_game,
@@ -229,13 +230,22 @@ class App(tk.Tk):
             panel.pack(fill="x", pady=5)
             self._build_game_panel(panel, game_id, compact=True)
 
-        actions = ttk.Frame(tab)
-        actions.pack(fill="x", pady=(10, 0))
+        finders = ttk.Frame(tab)
+        finders.pack(fill="x", pady=(10, 0))
+        for game_id, spec in GAMES.items():
+            ttk.Button(
+                finders,
+                text=f"Find {spec.title} in Parent Folder...",
+                command=lambda value=game_id: self._find_one(value),
+            ).pack(side="left", padx=(0, 8))
         ttk.Button(
-            actions,
+            finders,
             text="Find Both in Parent Folder...",
             command=self._find_both,
         ).pack(side="left")
+
+        actions = ttk.Frame(tab)
+        actions.pack(fill="x", pady=(10, 0))
         ttk.Button(
             actions,
             text="Validate Both",
@@ -409,13 +419,9 @@ class App(tk.Tk):
         )
         if not chosen:
             return
-        root = Path(chosen)
-        children = [path for path in root.iterdir() if path.is_dir()]
         problems = []
         for game_id, spec in GAMES.items():
-            candidates = [root / spec.exe_name]
-            candidates.extend(child / spec.exe_name for child in children)
-            matches = [path for path in candidates if path.is_file()]
+            matches = find_game_in_parent(game_id, chosen)
             if len(matches) == 1:
                 vanilla = matches[0].parent
                 self.path_vars[game_id]["vanilla"].set(str(vanilla))
@@ -435,6 +441,49 @@ class App(tk.Tk):
             messagebox.showwarning(APP_NAME, "\n".join(problems))
         else:
             self.status_var.set("Found both exact executable filenames. Ready to validate.")
+
+    def _find_one(self, game_id: str) -> None:
+        spec = GAMES[game_id]
+        current = self.path_vars[game_id]["vanilla"].get().strip()
+        initial = (
+            str(Path(current).parent)
+            if current and Path(current).parent.is_dir()
+            else str(Path.home())
+        )
+        chosen = filedialog.askdirectory(
+            title=f"Choose the parent folder containing {spec.title}",
+            initialdir=initial,
+        )
+        if not chosen:
+            return
+        matches = find_game_in_parent(game_id, chosen)
+        if not matches:
+            messagebox.showwarning(
+                APP_NAME,
+                f"Could not find {spec.vanilla_exe_name} in that folder "
+                "or its immediate subfolders.",
+            )
+            return
+        if len(matches) > 1:
+            messagebox.showwarning(
+                APP_NAME,
+                f"Found more than one {spec.vanilla_exe_name}. "
+                "Please choose the exact vanilla game folder instead.",
+            )
+            return
+        vanilla = matches[0].parent
+        self.path_vars[game_id]["vanilla"].set(str(vanilla))
+        self.path_vars[game_id]["output"].set(
+            str(
+                output_dir_at(game_id, self.output_parent.get().strip())
+                if self.output_parent.get().strip()
+                else default_output_dir(game_id, vanilla)
+            )
+        )
+        self._save_settings()
+        self.status_var.set(
+            f"Found the exact {spec.vanilla_exe_name}. Ready to validate."
+        )
 
     def _selected_settings(self, game_id: str) -> list[str]:
         return sorted(

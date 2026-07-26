@@ -90,6 +90,21 @@ def output_dir_at(game_id: str, parent_dir: str | Path) -> Path:
     return Path(parent_dir).expanduser() / spec.modded_folder_name
 
 
+def find_game_in_parent(game_id: str, parent_dir: str | Path) -> list[Path]:
+    """Find exact vanilla EXE matches in a parent or its immediate children."""
+    spec = game_spec(game_id)
+    root = Path(parent_dir).expanduser()
+    if not root.is_dir():
+        return []
+    candidates = [root / spec.vanilla_exe_name]
+    candidates.extend(
+        child / spec.vanilla_exe_name
+        for child in root.iterdir()
+        if child.is_dir()
+    )
+    return [candidate for candidate in candidates if candidate.is_file()]
+
+
 def _namespace(
     game_id: str,
     vanilla_dir: str | Path,

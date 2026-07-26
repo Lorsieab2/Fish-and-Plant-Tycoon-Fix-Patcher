@@ -6,6 +6,8 @@ FISH & PLANT TYCOON FIX PATCHER
 2. Double-click "Launch Fish and Plant Tycoon Fix Patcher.bat".
 3. Choose "One Game" or "Both Games".
 4. Select each vanilla folder containing the exact original game EXE.
+   On the Both Games tab, you can use either game-specific
+   "Find [Game] in Parent Folder..." button or "Find Both in Parent Folder...".
 5. Leave the fixes you want checked.
 6. Use Dry Run to validate without writing files.
 7. Choose where the modified game folders should be saved.

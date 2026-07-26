@@ -48,6 +48,27 @@ class CombinedPatcherTests(unittest.TestCase):
             "C:/My Modified Games/Plant Tycoon - Modded",
         )
 
+    def test_find_game_in_parent_checks_root_and_immediate_children(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            fish_dir = root / "Installed Fish"
+            fish_dir.mkdir()
+            fish_exe = fish_dir / "Fish Tycoon.exe"
+            fish_exe.write_bytes(b"fish")
+            nested = fish_dir / "Too Deep"
+            nested.mkdir()
+            (nested / "Fish Tycoon.exe").write_bytes(b"ignored")
+            self.assertEqual(
+                combined.find_game_in_parent("fish", root),
+                [fish_exe],
+            )
+
+    def test_find_game_in_parent_requires_exact_vanilla_name(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            (root / "Fish Tycoon - Modded.exe").write_bytes(b"modded")
+            self.assertEqual(combined.find_game_in_parent("fish", root), [])
+
     def test_manifests_pin_exact_modded_executable_names(self) -> None:
         self.assertEqual(
             combined.load_manifest("fish")["output"]["exe_name"],

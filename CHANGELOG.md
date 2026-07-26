@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.5
+
+- Added separate `Find Fish Tycoon in Parent Folder...` and
+  `Find Plant Tycoon in Parent Folder...` buttons to the Both Games tab,
+  alongside the existing combined finder.
+- The finder accepts one exact vanilla executable in the selected folder or
+  one of its immediate subfolders and refuses missing or ambiguous matches.
+
 ## v1.0.4
 
 - Renamed generated game folders to exactly `Fish Tycoon - Modded` and
