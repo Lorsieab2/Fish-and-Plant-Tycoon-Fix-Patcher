@@ -8,11 +8,14 @@ FISH & PLANT TYCOON FIX PATCHER
 4. Select each vanilla folder containing the exact original game EXE.
 5. Leave the fixes you want checked.
 6. Use Dry Run to validate without writing files.
-7. Click Create Fixed Copy or Patch Both.
+7. Choose where the modified game folders should be saved.
+8. Click Create Modded Copy or Patch Both.
 
-The patcher creates separate "Fish Tycoon - Fixed" and/or
-"Plant Tycoon - Fixed" folders. It remembers your vanilla and modded folder
-paths. The blue underlined paths open those folders in File Explorer.
+The patcher creates only "Fish Tycoon - Modded" and/or
+"Plant Tycoon - Modded" beneath the chosen location. Their executables use
+those exact names plus ".exe", keeping their saves in the matching - Modded
+save locations. The patcher remembers the chosen paths. The blue underlined
+paths open those folders in File Explorer.
 
 The original game folders are never replaced. Exact unsupported or already
 modified EXEs are refused. The package contains no game executable or game

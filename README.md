@@ -33,8 +33,11 @@ Villagers Fun Patcher.
 The GUI remembers separate vanilla and modded paths for both games. Every blue
 underlined path is a direct File Explorer link to that folder.
 
-The patcher creates complete separate output folders named `Fish Tycoon -
-Fixed` and `Plant Tycoon - Fixed`. Original folders are not replaced.
+Choose one parent location in the GUI. The patcher creates complete separate
+output folders named `Fish Tycoon - Modded` and `Plant Tycoon - Modded`.
+Their executables are named `Fish Tycoon - Modded.exe` and
+`Plant Tycoon - Modded.exe`, so the two modified games use only their matching
+`- Modded` save locations. Original folders and executables are not replaced.
 The **One Game** tab also retains each original patcher's verified
 restore-from-backup operation.
 

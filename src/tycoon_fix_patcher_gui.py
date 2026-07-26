@@ -16,6 +16,7 @@ from tycoon_fix_patcher import (
     GAMES,
     capture_run,
     default_output_dir,
+    output_dir_at,
     patch_settings,
     restore_game,
 )
@@ -42,6 +43,7 @@ class App(tk.Tk):
         self.minsize(860, 720)
         self.busy = False
         self.game_choice = tk.StringVar(value="fish")
+        self.output_parent = tk.StringVar()
         self.path_vars = {
             game_id: {
                 "vanilla": tk.StringVar(),
@@ -113,10 +115,29 @@ class App(tk.Tk):
         ttk.Label(
             outer,
             text=(
-                "Creates verified fixed copies in separate folders. "
+                "Creates verified modded copies in separate save-isolated folders. "
                 "The selected vanilla folders are never replaced."
             ),
         ).pack(anchor="w")
+        destination = ttk.LabelFrame(
+            outer, text="Where to save the modified game folders", padding=8
+        )
+        destination.pack(fill="x", pady=(8, 4))
+        ttk.Entry(destination, textvariable=self.output_parent).pack(
+            side="left", fill="x", expand=True
+        )
+        ttk.Button(
+            destination,
+            text="Choose Location...",
+            command=self._browse_output_parent,
+        ).pack(side="left", padx=(8, 0))
+        ttk.Label(
+            destination,
+            text=(
+                "Creates only “Fish Tycoon - Modded” and/or "
+                "“Plant Tycoon - Modded” here."
+            ),
+        ).pack(side="bottom", anchor="w", pady=(5, 0))
         update = tk.Label(
             outer,
             text="Check for updates",
@@ -171,7 +192,7 @@ class App(tk.Tk):
         ).pack(side="left", padx=8)
         self.one_apply = tk.Button(
             actions,
-            text="Create Fixed Copy",
+            text="Create Modded Copy",
             command=lambda: self._start(False, False),
             bg="#07852f",
             fg="white",
@@ -256,7 +277,7 @@ class App(tk.Tk):
         self._path_row(
             paths,
             2,
-            "Modded output folder",
+            f"Modified folder ({spec.modded_folder_name})",
             variables["output"],
             lambda: self._browse_output(game_id),
         )
@@ -331,22 +352,44 @@ class App(tk.Tk):
         )
         variables["vanilla"].set(chosen)
         if not variables["output"].get().strip() or variables["output"].get().strip() == previous_default:
-            variables["output"].set(str(default_output_dir(game_id, chosen)))
+            variables["output"].set(
+                str(
+                    output_dir_at(game_id, self.output_parent.get().strip())
+                    if self.output_parent.get().strip()
+                    else default_output_dir(game_id, chosen)
+                )
+            )
         self._save_settings()
 
     def _browse_output(self, game_id: str) -> None:
         spec = GAMES[game_id]
         current = self.path_vars[game_id]["output"].get().strip()
         chosen = filedialog.askdirectory(
-            title=f"Choose the parent location for {spec.fixed_folder_name}",
+            title=f"Choose where to create {spec.modded_folder_name}",
             initialdir=current or str(Path.home()),
         )
         if not chosen:
             return
         candidate = Path(chosen)
-        if candidate.name.casefold() != spec.fixed_folder_name.casefold():
-            candidate /= spec.fixed_folder_name
+        if candidate.name.casefold() != spec.modded_folder_name.casefold():
+            candidate /= spec.modded_folder_name
         self.path_vars[game_id]["output"].set(str(candidate))
+        self.output_parent.set(str(candidate.parent))
+        self._save_settings()
+
+    def _browse_output_parent(self) -> None:
+        current = self.output_parent.get().strip()
+        chosen = filedialog.askdirectory(
+            title="Choose where to save the modified Fish and Plant Tycoon folders",
+            initialdir=current or str(Path.home()),
+        )
+        if not chosen:
+            return
+        self.output_parent.set(chosen)
+        for game_id in GAMES:
+            self.path_vars[game_id]["output"].set(
+                str(output_dir_at(game_id, chosen))
+            )
         self._save_settings()
 
     def _browse_backup(self, game_id: str) -> None:
@@ -377,7 +420,11 @@ class App(tk.Tk):
                 vanilla = matches[0].parent
                 self.path_vars[game_id]["vanilla"].set(str(vanilla))
                 self.path_vars[game_id]["output"].set(
-                    str(default_output_dir(game_id, vanilla))
+                    str(
+                        output_dir_at(game_id, self.output_parent.get().strip())
+                        if self.output_parent.get().strip()
+                        else default_output_dir(game_id, vanilla)
+                    )
                 )
             elif not matches:
                 problems.append(f"Not found: {spec.exe_name}")
@@ -408,7 +455,17 @@ class App(tk.Tk):
                     f"Choose the {GAMES[game_id].title} vanilla game folder."
                 )
             if not output:
-                output = str(default_output_dir(game_id, vanilla))
+                if self.output_parent.get().strip():
+                    output = str(
+                        output_dir_at(game_id, self.output_parent.get().strip())
+                    )
+                else:
+                    output = str(default_output_dir(game_id, vanilla))
+                variables["output"].set(output)
+            elif Path(output).name.casefold() != GAMES[
+                game_id
+            ].modded_folder_name.casefold():
+                output = str(output_dir_at(game_id, output))
                 variables["output"].set(output)
             configs[game_id] = {
                 "vanilla_dir": vanilla,
@@ -429,7 +486,7 @@ class App(tk.Tk):
         label = (
             ("Both-games dry run" if dry_run else "Patch both games")
             if both
-            else ("Dry run" if dry_run else "Create fixed copy")
+            else ("Dry run" if dry_run else "Create modded copy")
         )
         self.busy = True
         self.one_apply.configure(state="disabled")
@@ -532,7 +589,7 @@ class App(tk.Tk):
         body = ttk.Frame(win, padding=14)
         body.pack(fill="both", expand=True)
         ttk.Label(
-            body, text="Fixed game folder(s) created successfully!", font=("Segoe UI", 15, "bold")
+            body, text="Modded game folder(s) created successfully!", font=("Segoe UI", 15, "bold")
         ).pack(anchor="w")
         ttk.Label(
             body, text="Click any path below to open it in File Explorer."
@@ -583,12 +640,20 @@ class App(tk.Tk):
         selected = data.get("selected_game")
         if selected in GAMES:
             self.game_choice.set(selected)
+        self.output_parent.set(str(data.get("output_parent", "")))
         game_data = data.get("games", {})
         for game_id in GAMES:
             saved = game_data.get(game_id, {}) if isinstance(game_data, dict) else {}
             if isinstance(saved, dict):
                 self.path_vars[game_id]["vanilla"].set(str(saved.get("vanilla", "")))
-                self.path_vars[game_id]["output"].set(str(saved.get("output", "")))
+                saved_output = str(saved.get("output", ""))
+                if saved_output and Path(saved_output).name.casefold() == (
+                    f"{GAMES[game_id].title} - Fixed".casefold()
+                ):
+                    saved_output = str(
+                        Path(saved_output).parent / GAMES[game_id].modded_folder_name
+                    )
+                self.path_vars[game_id]["output"].set(saved_output)
                 self.path_vars[game_id]["backup"].set(str(saved.get("backup", "")))
                 enabled = saved.get("enabled")
                 if isinstance(enabled, list):
@@ -598,6 +663,7 @@ class App(tk.Tk):
     def _save_settings(self) -> None:
         data = {
             "selected_game": self.game_choice.get(),
+            "output_parent": self.output_parent.get().strip(),
             "games": {
                 game_id: {
                     "vanilla": self.path_vars[game_id]["vanilla"].get().strip(),

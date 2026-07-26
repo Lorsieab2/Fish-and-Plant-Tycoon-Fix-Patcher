@@ -27,10 +27,16 @@ class CombinedPatchError(RuntimeError):
 class GameSpec:
     id: str
     title: str
-    exe_name: str
-    fixed_folder_name: str
+    vanilla_exe_name: str
+    modded_exe_name: str
+    modded_folder_name: str
     manifest_path: Path
     engine: ModuleType
+
+    @property
+    def exe_name(self) -> str:
+        """Compatibility alias for the exact vanilla executable name."""
+        return self.vanilla_exe_name
 
 
 GAMES = {
@@ -38,7 +44,8 @@ GAMES = {
         "fish",
         "Fish Tycoon",
         "Fish Tycoon.exe",
-        "Fish Tycoon - Fixed",
+        "Fish Tycoon - Modded.exe",
+        "Fish Tycoon - Modded",
         ROOT / "data" / "fish_manifest.json",
         fish_patcher,
     ),
@@ -46,7 +53,8 @@ GAMES = {
         "plant",
         "Plant Tycoon",
         "Plant Tycoon.exe",
-        "Plant Tycoon - Fixed",
+        "Plant Tycoon - Modded.exe",
+        "Plant Tycoon - Modded",
         ROOT / "data" / "plant_manifest.json",
         plant_patcher,
     ),
@@ -73,7 +81,13 @@ def patch_settings(game_id: str) -> dict[str, dict]:
 def default_output_dir(game_id: str, vanilla_dir: str | Path) -> Path:
     spec = game_spec(game_id)
     vanilla = Path(vanilla_dir).expanduser()
-    return vanilla.parent / spec.fixed_folder_name
+    return vanilla.parent / spec.modded_folder_name
+
+
+def output_dir_at(game_id: str, parent_dir: str | Path) -> Path:
+    """Return the exact per-game modded folder beneath a chosen location."""
+    spec = game_spec(game_id)
+    return Path(parent_dir).expanduser() / spec.modded_folder_name
 
 
 def _namespace(

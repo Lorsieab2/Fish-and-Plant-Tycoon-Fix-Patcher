@@ -3,7 +3,9 @@ from __future__ import annotations
 from argparse import Namespace
 from pathlib import Path
 import sys
+import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,12 +22,76 @@ class CombinedPatcherTests(unittest.TestCase):
         self.assertEqual(list(combined.GAMES), ["fish", "plant"])
         self.assertEqual(combined.GAMES["fish"].exe_name, "Fish Tycoon.exe")
         self.assertEqual(combined.GAMES["plant"].exe_name, "Plant Tycoon.exe")
+        self.assertEqual(
+            combined.GAMES["fish"].modded_exe_name,
+            "Fish Tycoon - Modded.exe",
+        )
+        self.assertEqual(
+            combined.GAMES["plant"].modded_exe_name,
+            "Plant Tycoon - Modded.exe",
+        )
 
     def test_default_output_folders_are_separate_siblings(self) -> None:
         fish = combined.default_output_dir("fish", Path("C:/Games/Fish Tycoon"))
         plant = combined.default_output_dir("plant", Path("C:/Games/Plant Tycoon"))
-        self.assertEqual(fish.as_posix(), "C:/Games/Fish Tycoon - Fixed")
-        self.assertEqual(plant.as_posix(), "C:/Games/Plant Tycoon - Fixed")
+        self.assertEqual(fish.as_posix(), "C:/Games/Fish Tycoon - Modded")
+        self.assertEqual(plant.as_posix(), "C:/Games/Plant Tycoon - Modded")
+
+    def test_chosen_parent_creates_only_exact_modded_folder_names(self) -> None:
+        parent = Path("C:/My Modified Games")
+        self.assertEqual(
+            combined.output_dir_at("fish", parent).as_posix(),
+            "C:/My Modified Games/Fish Tycoon - Modded",
+        )
+        self.assertEqual(
+            combined.output_dir_at("plant", parent).as_posix(),
+            "C:/My Modified Games/Plant Tycoon - Modded",
+        )
+
+    def test_manifests_pin_exact_modded_executable_names(self) -> None:
+        self.assertEqual(
+            combined.load_manifest("fish")["output"]["exe_name"],
+            "Fish Tycoon - Modded.exe",
+        )
+        self.assertEqual(
+            combined.load_manifest("plant")["output"]["exe_name"],
+            "Plant Tycoon - Modded.exe",
+        )
+
+    def test_apply_removes_vanilla_exe_name_from_modded_folder(self) -> None:
+        for game_id, engine in (
+            ("fish", fish_patcher),
+            ("plant", plant_patcher),
+        ):
+            spec = combined.GAMES[game_id]
+            with self.subTest(game=game_id), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                vanilla = root / spec.title
+                output = root / spec.modded_folder_name
+                vanilla.mkdir()
+                source = vanilla / spec.vanilla_exe_name
+                source.write_bytes(b"test executable")
+                (vanilla / "support.dat").write_bytes(b"support")
+                args = Namespace(
+                    game_dir=str(vanilla),
+                    manifest=str(spec.manifest_path),
+                    output_dir=str(output),
+                    dry_run=False,
+                    enable=[],
+                    disable=None,
+                    disable_all=True,
+                )
+                identity = {
+                    "path": str(source),
+                    "sha256": engine.sha256_file(source),
+                }
+                with mock.patch.object(
+                    engine, "validate_original_executable", return_value=identity
+                ):
+                    self.assertEqual(engine.apply_manifest(args), 0)
+                self.assertFalse((output / spec.vanilla_exe_name).exists())
+                self.assertTrue((output / spec.modded_exe_name).is_file())
+                self.assertEqual((output / "support.dat").read_bytes(), b"support")
 
     def test_current_manifest_versions_and_default_settings(self) -> None:
         fish = combined.load_manifest("fish")

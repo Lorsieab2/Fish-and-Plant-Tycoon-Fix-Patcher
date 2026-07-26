@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.4
+
+- Renamed generated game folders to exactly `Fish Tycoon - Modded` and
+  `Plant Tycoon - Modded`.
+- Renamed generated executables to exactly `Fish Tycoon - Modded.exe` and
+  `Plant Tycoon - Modded.exe` so each modified game uses its matching isolated
+  save location.
+- Added a remembered GUI option for choosing the parent location where the
+  modified game folders are created.
+- Removed the vanilla executable filename from each generated modded folder.
+
 ## v1.0.3
 
 - Replaced both picture assets with the final transparent PNGs supplied by

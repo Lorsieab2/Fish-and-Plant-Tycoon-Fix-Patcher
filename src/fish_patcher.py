@@ -246,7 +246,7 @@ def resolve_paths(args: argparse.Namespace, manifest: dict[str, Any]) -> tuple[P
     exe_name = str(target.get("exe_name", "Fish Tycoon.exe"))
     exe = game_dir / exe_name
     output_cfg = manifest.get("output", {})
-    default_folder = str(output_cfg.get("default_folder_name", "Fish Tycoon - Fixed"))
+    default_folder = str(output_cfg.get("default_folder_name", "Fish Tycoon - Modded"))
     output_dir = (
         Path(args.output_dir).expanduser().resolve()
         if getattr(args, "output_dir", None)
@@ -287,6 +287,9 @@ def apply_manifest(args: argparse.Namespace) -> int:
     manifest_path = Path(args.manifest).expanduser().resolve()
     manifest = read_json(manifest_path)
     game_dir, vanilla_exe, output_dir = resolve_paths(args, manifest)
+    output_exe_name = str(
+        manifest.get("output", {}).get("exe_name", "Fish Tycoon - Modded.exe")
+    )
     identity = validate_original_executable(vanilla_exe, manifest)
     enabled = enabled_settings(manifest, args)
     patches = active_patch_records(manifest, enabled)
@@ -309,6 +312,7 @@ def apply_manifest(args: argparse.Namespace) -> int:
         "manifest_version": manifest.get("version"),
         "vanilla_game_dir": str(game_dir),
         "output_dir": str(output_dir),
+        "output_exe_name": output_exe_name,
         "target": identity,
         "enabled_settings": sorted(enabled),
         "patches": patch_summary,
@@ -337,7 +341,8 @@ def apply_manifest(args: argparse.Namespace) -> int:
         "manifest_id": manifest.get("id"),
         "original_game_dir": str(game_dir),
         "output_dir": str(output_dir),
-        "exe_name": vanilla_exe.name,
+        "source_exe_name": vanilla_exe.name,
+        "output_exe_name": output_exe_name,
         "original_sha256": identity["sha256"],
         "backup_exe": backup_exe.name,
     }
@@ -347,12 +352,15 @@ def apply_manifest(args: argparse.Namespace) -> int:
     try:
         shutil.rmtree(staging)
         shutil.copytree(game_dir, staging, ignore=excluded_output_files)
-        staged_exe = staging / vanilla_exe.name
+        copied_vanilla_exe = staging / vanilla_exe.name
+        if copied_vanilla_exe.is_file() and copied_vanilla_exe.name != output_exe_name:
+            copied_vanilla_exe.unlink()
+        staged_exe = staging / output_exe_name
         staged_exe.write_bytes(patched)
         if sha256_file(staged_exe) != patched_hash:
             raise PatchError("Staged executable failed its post-write SHA-256 check.")
         report["backup_dir"] = str(backup_dir)
-        report["output_exe"] = str(output_dir / vanilla_exe.name)
+        report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".fish_tycoon_bug_fix_output.json", {
             "manifest_id": manifest.get("id"),
             "manifest_version": manifest.get("version"),
@@ -372,7 +380,7 @@ def apply_manifest(args: argparse.Namespace) -> int:
         os.replace(staging, output_dir)
         report["base_game_icon_resources_preserved"] = True
         report["windows_shell_icon_refresh_requested"] = notify_windows_shell_file_changed(
-            output_dir / vanilla_exe.name
+            output_dir / output_exe_name
         )
         write_json(output_dir / "FishTycoonBugFixPatchLog.json", report)
     except Exception:
@@ -381,7 +389,7 @@ def apply_manifest(args: argparse.Namespace) -> int:
         raise
 
     print(json.dumps(report, indent=2))
-    print(f"PATCH PASS: created separate fixed game folder: {output_dir}")
+    print(f"PATCH PASS: created separate modded game folder: {output_dir}")
     args.last_apply_summary = report
     return 0
 
@@ -390,8 +398,13 @@ def restore_backup(args: argparse.Namespace) -> int:
     backup_dir = Path(args.backup_dir).expanduser().resolve()
     manifest_path = backup_dir / "fish_tycoon_patch_backup_manifest.json"
     backup = read_json(manifest_path)
-    exe_name = str(backup.get("exe_name", "Fish Tycoon.exe"))
-    backup_exe = backup_dir / str(backup.get("backup_exe", exe_name))
+    source_exe_name = str(
+        backup.get("source_exe_name", backup.get("exe_name", "Fish Tycoon.exe"))
+    )
+    output_exe_name = str(
+        backup.get("output_exe_name", backup.get("exe_name", "Fish Tycoon - Modded.exe"))
+    )
+    backup_exe = backup_dir / str(backup.get("backup_exe", source_exe_name))
     expected_hash = str(backup.get("original_sha256", "")).upper()
     if not backup_exe.is_file() or sha256_file(backup_exe) != expected_hash:
         raise PatchError("Backup executable is missing or failed its SHA-256 check.")
@@ -402,8 +415,8 @@ def restore_backup(args: argparse.Namespace) -> int:
     )
     if not output_dir.is_dir():
         raise PatchError(f"Restore output folder does not exist: {output_dir}")
-    target = output_dir / exe_name
-    temp = output_dir / f".{exe_name}.restore.tmp"
+    target = output_dir / output_exe_name
+    temp = output_dir / f".{output_exe_name}.restore.tmp"
     shutil.copy2(backup_exe, temp)
     os.replace(temp, target)
     if sha256_file(target) != expected_hash:
