@@ -34,6 +34,10 @@ into the original category slot, calls the unmodified original handler through
 a trampoline, swaps the records back, and restores the physical selected slot.
 This retains the original item effects without duplicating them.
 
+The optional Golden Seahorse repurchase setting targets store item index `18`.
+It uses two small wrappers around the store-selection and purchase-handler
+ownership gates; other one-time store items retain their original branches.
+
 The original handler ends with `ret 8`, including the Common, Unusual, and Rare
 Egg paths. Its internal invocation therefore removes the wrapper's duplicated
 coordinate arguments. After swapping the modified record back, the wrapper

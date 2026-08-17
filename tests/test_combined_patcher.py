@@ -125,6 +125,7 @@ class CombinedPatcherTests(unittest.TestCase):
                 "crimson_comet_20_percent_cure",
                 "unknown_chemical_three_uses",
                 "universal_supply_slots",
+                "golden_seahorse_repurchase",
             ],
         )
         self.assertEqual(

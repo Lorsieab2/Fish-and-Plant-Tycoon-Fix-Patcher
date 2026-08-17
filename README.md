@@ -16,6 +16,7 @@ Villagers Fun Patcher.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and
   egg types.
+- Optional Golden Seahorse repurchase after it has already been owned.
 
 ### Plant Tycoon
 

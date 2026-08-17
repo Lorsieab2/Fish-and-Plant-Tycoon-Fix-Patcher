@@ -4,7 +4,7 @@
   "name": "Fish Tycoon Fix Patcher",
   "version": "v1.2.4",
   "description": "Repairs Crimson Comet curing, fixes Unknown Chemical uses, and lets the exact supported supplies stack in slots 2-4.",
-  "patched_sha256": "E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A",
+  "patched_sha256": "36049004DEAEAFF30E45BC67C180066139EF002B6E4724E375D7D71565BD0113",
   "patched_sha256_by_settings": {
     "crimson_comet_20_percent_cure": "33C8C9469E8E9F7DD460C4A9B9A3A897D2A9505C1E2627988046D8CED097AD9B",
     "unknown_chemical_three_uses": "C57055BF50567BEF767B77295ED070465F104A5A0B1E38342A45E27FF971C82D",
@@ -12,7 +12,15 @@
     "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "016B88C90B578472BB0CD8D1CA29906ADCE0540657FDBF72C43EC9E0AA9DFADB",
     "crimson_comet_20_percent_cure,universal_supply_slots": "C235A450F6C514289F8E2DE659E0D60622E2F111D29F45A85C5874C79A4AE697",
     "universal_supply_slots,unknown_chemical_three_uses": "4D23F8582F5C50FD72D327CA3FEF4EFC24084CCD14E84F27F0811ED772B8D2FF",
-    "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A"
+    "golden_seahorse_repurchase": "08D6FD33E98BC915926E432653ED05F84B6F98E213FD6D11EDAF15CDB956F08C",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase": "E12C93177B892BB56C62AAB835EA332F24D028DECB39C60B17A0D9504BE07794",
+    "golden_seahorse_repurchase,unknown_chemical_three_uses": "63CA214C3A6E286A31ADC99414E18D60B87518A700CD5200DA06C19DEAFEFF67",
+    "golden_seahorse_repurchase,universal_supply_slots": "F597B92E22340A6E61E187502827780800584F923700BD963D4ECF39EC23283A",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "1167A295DBFB53A7AA23AE8668FECB1B7FF9DB9DC5F16F30C0C2C8D158306D7F",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "07D8128D815EF61570E16EB79FD4C2EDF80E9049CEEEFB3978C09A79BFF4C016",
+    "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "266616B413358257C81DF0DC861124A7F35F4A188E5E5D1D5B04ACF651D4DCDF",
+    "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "36049004DEAEAFF30E45BC67C180066139EF002B6E4724E375D7D71565BD0113"
   },
   "target": {
     "exe_name": "Fish Tycoon.exe",
@@ -54,9 +62,86 @@
       "description": "Keeps the normal Buy confirmation, then lets the eight supported medicines, chemicals, and egg types stack in any supply slot. Matching stack first, then empty slot 2-4, then replacement prompts.",
       "category": "main",
       "default": true
+    },
+    {
+      "id": "golden_seahorse_repurchase",
+      "name": "Golden Seahorse: allow repurchase",
+      "description": "Allows the Golden Seahorse store item (item index 18) to be purchased again after it is already owned.",
+      "category": "main",
+      "default": false
     }
   ],
   "patches": [
+    {
+      "id": "extend_text_virtual_size_for_golden_seahorse_repurchase",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1F8",
+      "expected": "9F E2 03 00",
+      "replacement": "00 00 04 00",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "excludes": [
+        "universal_supply_slots"
+      ],
+      "note": "Maps the zero-filled end of .text containing the targeted repurchase wrapper."
+    },
+    {
+      "id": "extend_text_virtual_size_for_golden_seahorse_repurchase_with_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1F8",
+      "expected": "9F E2 03 00",
+      "replacement": "00 00 04 00",
+      "requires": [
+        "golden_seahorse_repurchase",
+        "universal_supply_slots"
+      ],
+      "note": "Extends the same mapped text range when combined with the slots payload."
+    },
+    {
+      "id": "install_golden_seahorse_store_selection_wrapper",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x3F800",
+      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "replacement": "83 F8 12 0F 84 A9 8A FE FF 85 F6 0F 85 D5 8A FE FF 8D 7C 80 1E E9 9D 8A FE FF",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "For store item index 18 only, bypasses the already-owned dialog gate before purchase confirmation."
+    },
+    {
+      "id": "redirect_golden_seahorse_store_selection",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x282B0",
+      "expected": "75 34 8D 7C 80 1E",
+      "replacement": "E9 4A 75 01 00 90",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "Routes the owned-item check through the item-index-18 wrapper."
+    },
+    {
+      "id": "install_golden_seahorse_purchase_wrapper",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x3F820",
+      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "replacement": "83 FF 12 75 05 E9 AC 89 FE FF 83 7C 08 7C 00 75 07 B8 EB 00 00 00 EB 13",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "For store item index 18 only, skips the already-owned branch in the purchase handler while preserving all other item checks."
+    },
+    {
+      "id": "redirect_golden_seahorse_purchase_handler",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x281BE",
+      "expected": "83 7C 08 7C 00",
+      "replacement": "E9 5D 76 01 00",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "Routes the one-time purchase ownership check through the targeted wrapper."
+    },
     {
       "id": "redirect_crimson_comet_random_call",
       "file_path": "Fish Tycoon.exe",
@@ -138,6 +223,9 @@
       "replacement": "00 F0 03 00",
       "requires": [
         "universal_supply_slots"
+      ],
+      "excludes": [
+        "golden_seahorse_repurchase"
       ],
       "note": "Maps the existing zero-filled end of .text that contains the slot payload."
     },
