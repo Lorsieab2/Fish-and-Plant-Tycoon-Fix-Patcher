@@ -52,7 +52,7 @@
 - Preserved exact-build validation, guarded patches, pinned hashes, backups,
   restore, full-folder copying, readback verification, and original icon
   resources.
-## Unreleased
+## v1.0.6
 
 - Added an opt-in Golden Seahorse repurchase setting targeting store item
   index 18 and its two already-owned purchase gates.
