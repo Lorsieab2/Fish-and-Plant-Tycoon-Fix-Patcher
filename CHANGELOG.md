@@ -1,5 +1,47 @@
 # Changelog
 
+## v1.0.11
+
+Golden Seahorse repurchase now works. It had four defects, not one.
+
+- It targeted store item index 18, which is the Diver Ornament. The Golden
+  Seahorse is index 11. Counting the 24-byte store name records from VA
+  0x004578B4 gives 26 items, matching the `cmp edi, 0x19` bound on both store
+  switches, with indices 0-7 the eight consumables the slots feature targets.
+- The store-selection redirect resolved to VA 0x43F7FF, one byte before its
+  wrapper at 0x43F800, landing on padding. Both it and the wrapper's internal
+  branches are rebuilt against the correct addresses.
+- The purchase-side hook at VA 0x004281BE was on the switch arm for the three
+  research items, which the seahorse never reaches, and its wrapper ran off its
+  own end into padding, crashing the game on any research item. Both patches
+  are removed; those items are byte-identical to vanilla again.
+- The section VirtualSize overlap was fixed in v1.0.9.
+
+The setting now skips the single ownership gate at VA 0x004282B0 for item 11
+only, and leaves every other item on its original path. It stays off by
+default, as before. The three-setting build without it is byte-identical to the
+output recorded in QA.md for v1.0.3.
+
+Fish manifest is v1.2.6; every pinned hash and PE checksum regenerated.
+
+Every other patch was audited the same way and all of them check out:
+
+- Crimson Comet: the wrapper's `setb al` leaves the upper bytes of EAX zero
+  because the roll is under 100, so the caller's `test eax, eax` reads it
+  correctly. 20 percent confirmed.
+- Unknown Chemical: the NOPped store is standalone, and EAX is reloaded before
+  its next use, so removing it disturbs no register flow.
+- Universal slots: every branch inside the 961-byte payload lands on an
+  instruction boundary of the payload, and all 14 addresses it branches out to
+  are genuine instruction boundaries in the original code.
+- Plant old-age deaths: `jg` is a signed compare and the operand sign-extends,
+  so 0xFF really is -1 and every roll 0-999 skips the branch.
+
+Also fixed: output folders are now recognized by manifest family rather than by
+exact id, so revising the manifest no longer makes the patcher refuse to
+replace a folder an earlier release created. That break shipped in v1.0.10.
+
+
 ## v1.0.10
 
 - Every patch now carries an accurate technical note: the address it changes,

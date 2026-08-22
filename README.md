@@ -31,7 +31,9 @@ never needs the internet.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and
   egg types.
-- Golden Seahorse repurchase: **does not work, leave it off.** See
+- Golden Seahorse repurchase, optional and off by default. Lets the Golden
+  Seahorse be bought again once owned. It shipped broken in v1.0.6 and was
+  repaired in v1.0.11; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
 
 ### Plant Tycoon

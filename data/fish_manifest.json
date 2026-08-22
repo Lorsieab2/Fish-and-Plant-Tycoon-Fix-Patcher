@@ -1,26 +1,26 @@
 {
   "manifest_version": 3,
-  "id": "fish-tycoon-pc-fixes-v8",
+  "id": "fish-tycoon-pc-fixes-v9",
   "name": "Fish Tycoon Fix Patcher",
-  "version": "v1.2.5",
+  "version": "v1.2.6",
   "description": "Repairs Crimson Comet curing, fixes Unknown Chemical uses, and lets the exact supported supplies stack in slots 2-4.",
-  "patched_sha256": "3731E1DE18C0F7C407FCCDB2FBD5DCE28C1D842772250C6CBCBB14FBE9BB2B07",
+  "patched_sha256": "B32E8DA9CBC8427FCFCC7F6F5DF982EAB0F080E6E44223256AE4C43829BC242E",
   "patched_sha256_by_settings": {
     "crimson_comet_20_percent_cure": "33C8C9469E8E9F7DD460C4A9B9A3A897D2A9505C1E2627988046D8CED097AD9B",
     "unknown_chemical_three_uses": "C57055BF50567BEF767B77295ED070465F104A5A0B1E38342A45E27FF971C82D",
     "universal_supply_slots": "5978BF336DE7D7833094AC2660883E83BCC639565E524EBD546305766C869CA6",
-    "golden_seahorse_repurchase": "BC230B85184067299D533889CA077D80A38601660BDC210E00C995BA1B40F928",
+    "golden_seahorse_repurchase": "B4A427F6CCD5419681CF1400CA32C9B27AD15372C460FEB6F248F2FAF5D9EFFE",
     "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "016B88C90B578472BB0CD8D1CA29906ADCE0540657FDBF72C43EC9E0AA9DFADB",
     "crimson_comet_20_percent_cure,universal_supply_slots": "C235A450F6C514289F8E2DE659E0D60622E2F111D29F45A85C5874C79A4AE697",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase": "E1253212F3A6683D268B2EC3C956D46979E8793839B558CD8B63E670C73854DA",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase": "E096653654A0206DDB5AB443DBB65382C8885110EC95E17B4F98AA11EC503107",
     "universal_supply_slots,unknown_chemical_three_uses": "4D23F8582F5C50FD72D327CA3FEF4EFC24084CCD14E84F27F0811ED772B8D2FF",
-    "golden_seahorse_repurchase,unknown_chemical_three_uses": "AAB628AAD5427578A68F084DCE7CCD45AC92EA9256FA53352D30869969C7A677",
-    "golden_seahorse_repurchase,universal_supply_slots": "AC4DFBA1853FB97F04F484C84C93CF1C67377315870E8C87F16A65D5F8DB1119",
+    "golden_seahorse_repurchase,unknown_chemical_three_uses": "F3C1A116699B4A7A6456D777A7DB944C4EACFE67452B3EAE29F8B5363BD2940F",
+    "golden_seahorse_repurchase,universal_supply_slots": "C38B899BDA24D575F3B71A81D9D1BA49FDDB2A6F61787DB780C18FF4703FA2BF",
     "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "E6A2FF44C26F315FA1A4148BD576958E47120E25E4A0EBD31903A06D399262FB",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "8943FBD1DBA849C3575597A1B666B7026EBA7D19E39534802814D3A37E2A61E5",
-    "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "106DA55ED06F9F3F5FEC0043779BF1A9EB62EC11F4F6B4DB67D66291AE5A74AD",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "3731E1DE18C0F7C407FCCDB2FBD5DCE28C1D842772250C6CBCBB14FBE9BB2B07"
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "3E4437D9C88B90E56494E53DF8DF33E54856B3179615D035DBE18CDD6E91F314",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "91333AEE539A3C78461971FE17842D5E42EAD947E163918E2D58A4FAFD5E63A0",
+    "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "7479E92119CEB411F62573A965373894CB8269515F2EB1F6B4BC854D3737B72A",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "B32E8DA9CBC8427FCFCC7F6F5DF982EAB0F080E6E44223256AE4C43829BC242E"
   },
   "target": {
     "exe_name": "Fish Tycoon.exe",
@@ -108,7 +108,7 @@
     {
       "id": "golden_seahorse_repurchase",
       "name": "Golden Seahorse: allow repurchase",
-      "description": "DOES NOT WORK - leave this off. Intended to let the Golden Seahorse (store item index 18) be bought again once owned, by wrapping the two already-owned gates. As shipped in v1.0.6 to v1.0.8 it produced an executable Windows refused to start, and the code it installs is itself defective: the store-selection jump lands one byte before its wrapper, on padding. Enabling it will crash the game. Kept visible only so the defect is on the record; see docs/golden-seahorse-defects.md.",
+      "description": "Lets the Golden Seahorse be bought again after you already own it. Selecting an owned store item normally hits the check at VA 0x4282B0, which shows the 'you already own this' message and stops. For store item 11, the Golden Seahorse, that check is skipped so the purchase continues as if the item were unowned; every other item keeps the original behaviour exactly. Nothing else needs changing: the seahorse's purchase-completion path at VA 0x42800E has no ownership check of its own. Touches 3 places: the gate at VA 0x4282B0, a 26-byte wrapper at VA 0x43F800, and the .text VirtualSize so that wrapper is mapped.",
       "category": "main",
       "default": false
     }
@@ -145,44 +145,22 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x3F800",
       "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
-      "replacement": "83 F8 12 0F 84 A9 8A FE FF 85 F6 0F 85 D5 8A FE FF 8D 7C 80 1E E9 9D 8A FE FF",
+      "replacement": "83 F8 0B 0F 84 08 00 00 00 85 F6 0F 85 D5 8A FE FF 8D 7C 80 1E E9 9C 8A FE FF",
       "requires": [
         "golden_seahorse_repurchase"
       ],
-      "note": "26 bytes at VA 0x43F800, meant to bypass the already-owned gate for store item index 18 only. DEFECTIVE: never reached, because of the redirect above, and its internal branch targets do not agree with any single base address - its je resolves to VA 0x4282B2, which the redirect itself overwrites. See docs/golden-seahorse-defects.md."
+      "note": "26 bytes at VA 0x43F800, written into verified zero padding. For store item 11 (the Golden Seahorse) it skips the ownership test and continues as if the item were not owned; every other item runs the original 'test esi,esi / jne 0x4282E6' unchanged. It then performs the 'lea edi,[eax+eax*4+0x1E]' the redirect displaced and resumes at VA 0x4282B6."
     },
     {
       "id": "redirect_golden_seahorse_store_selection",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x282B0",
       "expected": "75 34 8D 7C 80 1E",
-      "replacement": "E9 4A 75 01 00 90",
+      "replacement": "E9 4B 75 01 00 90",
       "requires": [
         "golden_seahorse_repurchase"
       ],
-      "note": "VA 0x4282B0. Replaces 'jnz +0x34 / lea edi,[eax+eax*4+0x1E]' with a jump meant for the wrapper at VA 0x43F800. DEFECTIVE: the rel32 resolves to VA 0x43F7FF, one byte before the wrapper, landing on zero padding that decodes as 'add byte ptr [ebx+0x0F12F883], al'. See docs/golden-seahorse-defects.md."
-    },
-    {
-      "id": "install_golden_seahorse_purchase_wrapper",
-      "file_path": "Fish Tycoon.exe",
-      "offset": "0x3F820",
-      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
-      "replacement": "83 FF 12 75 05 E9 AC 89 FE FF 83 7C 08 7C 00 75 07 B8 EB 00 00 00 EB 13",
-      "requires": [
-        "golden_seahorse_repurchase"
-      ],
-      "note": "24 bytes at VA 0x43F820, meant to skip the already-owned branch for store item index 18 while preserving the check for every other item. DEFECTIVE: its trailing 'jmp +0x13' resolves to VA 0x43F84B, which is unwritten zero padding. See docs/golden-seahorse-defects.md."
-    },
-    {
-      "id": "redirect_golden_seahorse_purchase_handler",
-      "file_path": "Fish Tycoon.exe",
-      "offset": "0x281BE",
-      "expected": "83 7C 08 7C 00",
-      "replacement": "E9 5D 76 01 00",
-      "requires": [
-        "golden_seahorse_repurchase"
-      ],
-      "note": "VA 0x4281BE. Replaces the 5-byte ownership comparison with a jump to VA 0x43F820. This redirect does land correctly on its wrapper."
+      "note": "VA 0x4282B0. Replaces the already-owned gate 'jne 0x4282E6' and the 'lea edi,[eax+eax*4+0x1E]' that follows it with a jump to the wrapper at VA 0x43F800, plus one NOP. This is the only ownership gate on the Golden Seahorse's path: its purchase-completion arm at VA 0x42800E has no such check."
     },
     {
       "id": "redirect_crimson_comet_random_call",
@@ -471,7 +449,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "56 48 06 00",
+      "replacement": "3E 20 06 00",
       "requires": [
         "golden_seahorse_repurchase"
       ],
@@ -519,7 +497,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "F9 F2 05 00",
+      "replacement": "E0 CA 06 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase"
@@ -551,7 +529,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "49 1A 06 00",
+      "replacement": "31 F2 05 00",
       "requires": [
         "golden_seahorse_repurchase",
         "unknown_chemical_three_uses"
@@ -567,7 +545,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "21 A8 06 00",
+      "replacement": "09 80 06 00",
       "requires": [
         "golden_seahorse_repurchase",
         "universal_supply_slots"
@@ -599,7 +577,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "EB C4 06 00",
+      "replacement": "D3 9C 06 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase",
@@ -615,7 +593,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "C4 52 06 00",
+      "replacement": "AC 2A 06 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase",
@@ -631,7 +609,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "C5 69 06 00",
+      "replacement": "AD 41 06 00",
       "requires": [
         "golden_seahorse_repurchase",
         "universal_supply_slots",
@@ -647,7 +625,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "68 14 06 00",
+      "replacement": "50 EC 05 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase",

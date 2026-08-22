@@ -8,6 +8,7 @@ import ctypes
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import struct
@@ -326,6 +327,16 @@ def resolve_paths(args: argparse.Namespace, manifest: dict[str, Any]) -> tuple[P
     return game_dir, exe, output_dir
 
 
+def output_family(identifier: Any) -> str:
+    """Drop the trailing -v<N> revision from a manifest id.
+
+    Output folders are recognized by family, not by exact id. Every manifest
+    revision bump would otherwise orphan the folders written by the previous
+    release, and the patcher would refuse to replace them.
+    """
+    return re.sub(r"-v\d+$", "", str(identifier or ""))
+
+
 def recognized_output(path: Path, manifest: dict[str, Any]) -> bool:
     marker = path / ".plant_tycoon_fix_output.json"
     if not marker.is_file():
@@ -334,7 +345,8 @@ def recognized_output(path: Path, manifest: dict[str, Any]) -> bool:
         value = read_json(marker)
     except PatchError:
         return False
-    return value.get("manifest_id") == manifest.get("id")
+    family = output_family(manifest.get("id"))
+    return bool(family) and output_family(value.get("manifest_id")) == family
 
 
 def notify_windows_shell_file_changed(path: Path) -> bool:
