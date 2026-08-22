@@ -13,6 +13,8 @@
   they describe.
 - Patch notes appear in the run log: passed.
 - GUI finder buttons fill both path fields and lock while busy: passed.
+- Release packaging guards: removing the defects document from the ZIP file
+  list makes both link tests fail, and restoring it makes them pass.
 - Three-patch Fish build (no Golden Seahorse) reproduces SHA-256
   E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A, the output
   recorded in this log for v1.0.3.

@@ -22,6 +22,7 @@ FILES = [
     "data/plant_manifest.json",
     "docs/fish-tycoon-technical-details.md",
     "docs/plant-tycoon-technical-details.md",
+    "docs/golden-seahorse-defects.md",
     "docs/QA.md",
     "src/fish_patcher.py",
     "src/plant_patcher.py",

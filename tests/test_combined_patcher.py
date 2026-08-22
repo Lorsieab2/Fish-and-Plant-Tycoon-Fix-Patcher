@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from argparse import Namespace
 import itertools
+import re
 from pathlib import Path
 import sys
 import tempfile
@@ -347,6 +348,44 @@ class SectionLayoutTests(unittest.TestCase):
                 f"{engine.settings_key(enabled) or 'none'} has "
                 f"{len(checksum_patches)} checksum patches, expected {expected}",
             )
+
+
+class ReleasePackagingTests(unittest.TestCase):
+    """The ZIP is what players actually get, so what it references must be in it."""
+
+    def _release_files(self) -> set[str]:
+        source = (ROOT / "scripts" / "build_release.py").read_text(encoding="utf-8")
+        block = source.split("FILES = [", 1)[1].split("]", 1)[0]
+        return set(re.findall(r'"([^"]+)"', block))
+
+    def test_every_packaged_file_exists(self) -> None:
+        for relative in self._release_files():
+            self.assertTrue((ROOT / relative).is_file(), f"missing: {relative}")
+
+    def test_readme_doc_links_are_packaged(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        packaged = self._release_files()
+        for link in set(re.findall(r"\]\((docs/[^)#]+)\)", readme)):
+            self.assertIn(link, packaged, f"README links {link}, which the ZIP omits")
+
+    def test_documents_named_in_patch_notes_are_packaged(self) -> None:
+        packaged = self._release_files()
+        for game_id in combined.GAMES:
+            manifest = combined.load_manifest(game_id)
+            for patch in manifest["patches"]:
+                for named in re.findall(r"docs/[A-Za-z0-9._-]+\.md", str(patch.get("note", ""))):
+                    self.assertIn(
+                        named,
+                        packaged,
+                        f"{patch['id']} points at {named}, which the ZIP omits",
+                    )
+
+    def test_release_version_matches_the_changelog(self) -> None:
+        source = (ROOT / "scripts" / "build_release.py").read_text(encoding="utf-8")
+        version = re.search(r'VERSION = "([^"]+)"', source).group(1)
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        newest = re.search(r"^## (v[\d.]+)", changelog, re.M).group(1)
+        self.assertEqual(version, newest, "build_release VERSION and the newest CHANGELOG entry disagree")
 
 
 if __name__ == "__main__":

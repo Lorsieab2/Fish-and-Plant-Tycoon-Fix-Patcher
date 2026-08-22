@@ -14,6 +14,9 @@
 - Removed the install-location scanning added in v1.0.7. Finding games is back
   to choosing the parent folder that holds them, the way the Virtual Villagers
   patcher does it: Find Both in Parent Folder, or one button per game.
+- The release ZIP now contains docs/golden-seahorse-defects.md, which the
+  README and several patch notes link to, and tests check that every document
+  referenced from the README or a patch note is actually packaged.
 
 
 ## v1.0.9
