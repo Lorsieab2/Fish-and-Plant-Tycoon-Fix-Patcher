@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.0.11
+
+Golden Seahorse repurchase now works. It had four defects, not one.
+
+- It targeted store item index 18, which is the Diver Ornament. The Golden
+  Seahorse is index 11. Counting the 24-byte store name records from VA
+  0x004578B4 gives 26 items, matching the `cmp edi, 0x19` bound on both store
+  switches, with indices 0-7 the eight consumables the slots feature targets.
+- The store-selection redirect resolved to VA 0x43F7FF, one byte before its
+  wrapper at 0x43F800, landing on padding. Both it and the wrapper's internal
+  branches are rebuilt against the correct addresses.
+- The purchase-side hook at VA 0x004281BE was on the switch arm for the three
+  research items, which the seahorse never reaches, and its wrapper ran off its
+  own end into padding, crashing the game on any research item. Both patches
+  are removed; those items are byte-identical to vanilla again.
+- The section VirtualSize overlap was fixed in v1.0.9.
+
+The setting now skips the single ownership gate at VA 0x004282B0 for item 11
+only, and leaves every other item on its original path. It stays off by
+default, as before. The three-setting build without it is byte-identical to the
+output recorded in QA.md for v1.0.3.
+
+Fish manifest is v1.2.6; every pinned hash and PE checksum regenerated.
+
+
 ## v1.0.10
 
 - Every patch now carries an accurate technical note: the address it changes,

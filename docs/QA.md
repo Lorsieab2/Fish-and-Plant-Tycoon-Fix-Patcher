@@ -1,5 +1,21 @@
 # QA
 
+## v1.0.11
+
+- Combined unit tests: 24 passed.
+- Store item index for the Golden Seahorse derived independently from the name
+  table and cross-checked against both store switches: index 11.
+- All 16 setting combinations: no section overruns another, every PE checksum
+  matches its bytes, every pinned hash matches.
+- Patched redirect resolves to VA 0x43F800 exactly; the wrapper disassembles to
+  the intended six instructions.
+- With Golden Seahorse off, the wrapper region is untouched zero padding, and
+  VA 0x004281BE is byte-identical to vanilla.
+- Three-setting build without Golden Seahorse still reproduces SHA-256
+  E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A.
+- In-game confirmation of the repurchase: pending.
+
+
 ## v1.0.10
 
 - Combined unit tests: 20 passed (the 10 scanning tests were removed with the

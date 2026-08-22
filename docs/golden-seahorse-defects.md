@@ -1,83 +1,96 @@
-# Golden Seahorse repurchase: defects found
+# Golden Seahorse repurchase: defects found, and the fix
 
-The optional `golden_seahorse_repurchase` setting shipped in v1.0.6. It is
-defective in three separate ways, two of which are fatal at runtime. It should
-stay off until the wrappers are re-derived.
+The optional `golden_seahorse_repurchase` setting shipped in v1.0.6 with four
+defects. All are fixed as of v1.0.11 and the setting now works. This is the
+record of what was wrong.
 
-Addresses below use VA = 0x400000 + file offset, which holds for every section
-in this build.
+Addresses use VA = 0x400000 + file offset, which holds for every section in
+this build.
 
-## 1. Section VirtualSize overlapped .rdata (fixed in v1.0.9)
+## 1. It targeted the wrong item
+
+The patches acted on store item index **18**. The Golden Seahorse is index
+**11**; index 18 is the Diver Ornament.
+
+The store name records begin at VA 0x004578B4 with 24-byte entries starting at
+`Ick Treatment`. Counting from there:
+
+| index | item | index | item |
+|---|---|---|---|
+| 0-7 | the eight stackable consumables | 11 | **Golden Seahorse** |
+| 8 | Aeration System | 18 | Diver Ornament |
+| 9 | Temperature Regulator | 22 | Second Tank |
+| 10 | Cleaning Snail | 23-25 | the three research items |
+
+That count of 26 matches the `cmp edi, 0x19` bound on both store switches, and
+indices 0-7 are exactly the eight consumables the universal slots feature
+targets — which is how the project's own technical notes describe them.
+
+## 2. The section VirtualSize overlapped .rdata
 
 Both `extend_text_virtual_size_for_golden_seahorse_repurchase*` patches wrote
-`.text` VirtualSize as `0x00040000`. That is the section's raw *end offset*, not
+`.text` VirtualSize as `0x00040000`, the section's raw *end offset* rather than
 a size. `.text` starts at RVA 0x1000, so the section claimed RVA
-0x1000-0x41000 while `.rdata` begins at RVA 0x40000 — an overlap of 0x1000.
+0x1000-0x41000 while `.rdata` begins at 0x40000.
 
-Windows rejects an image whose sections overlap, with **"This app can't run on
-your PC"** and nothing more. Every one of the 8 setting combinations that
-enabled Golden Seahorse produced an executable that could not start.
+Windows rejects an image whose sections overlap, reporting only **"This app
+can't run on your PC"**. All eight setting combinations that enabled Golden
+Seahorse produced an executable that could not start. Fixed in v1.0.9 by using
+`0x3F000`, the value the slots patch already used.
 
-The slots-only variant of the same patch already used the correct `0x0003F000`,
-and `docs/fish-tycoon-technical-details.md` documents 0x3F000 as the intended
-value. Corrected to 0x3F000 in v1.0.9.
-
-## 2. The store-selection redirect misses its wrapper by one byte
-
-`redirect_golden_seahorse_store_selection` replaces six bytes at VA 0x4282B0
-(`jnz +0x34` / `lea edi,[eax+eax*4+0x1E]`) with `E9 4A 75 01 00 90`.
+## 3. The store-selection redirect missed its wrapper by one byte
 
 ```
 jmp at VA 0x4282B0, next instruction 0x4282B5, rel32 +0x1754A
-0x4282B5 + 0x1754A = 0x43F7FF
+0x4282B5 + 0x1754A = 0x43F7FF          the wrapper is at 0x43F800
 ```
 
-The wrapper is installed at **VA 0x43F800**. The jump lands one byte earlier, on
-zero padding, where execution decodes as:
+It landed on zero padding, decoding as
+`add byte ptr [ebx+0x0F12F883], al` — a wild memory read. The wrapper's own
+`je` also pointed at VA 0x4282B2, inside the six bytes the redirect itself
+overwrites.
 
-```
-00 83 f8 12 0f 84    add byte ptr [ebx+0x0F12F883], al
-```
+## 4. The purchase-side hook was on an unrelated code path
 
-That reads a wild address and faults. The correct rel32 is `+0x1754B`.
+VA 0x4281BE is the switch arm for the three research items, indices 23-25. The
+Golden Seahorse dispatches to 0x42816B instead, so its `cmp edi, 0x12` could
+never match there. Worse, the wrapper installed at VA 0x43F820 ran off its own
+end: both exits after the original comparison landed in unwritten padding, so
+enabling the setting crashed the game on any research item.
 
-## 3. Internal branch targets do not agree with any base address
+## The fix
 
-Decoding the 26 wrapper bytes at the address they are installed at, VA
-0x43F800:
+The seahorse has exactly one ownership gate, in the store selection routine at
+VA 0x004282A0:
 
-| instruction | resolves to | correct? |
-|---|---|---|
-| `je` | 0x4282B2 | no — the redirect overwrites 0x4282B0-0x4282B5 |
-| `jne` | 0x4282E6 | yes — matches the original `jnz +0x34` target |
-| `jmp` | 0x4282B7 | no — the resume point is 0x4282B6 |
+    0x004282AD  test esi, esi            ; owned entry for the selected item
+    0x004282B0  jne  0x004282E6          ; owned -> message 0x1D, return
+    0x004282B2  lea  edi, [eax+eax*4+0x1E]
+    0x004282B6  cmp  dword [edx+edi*4], 3
 
-Decoding the same bytes at 0x43F7FF, the address the redirect actually jumps
-to, moves every target down by one: the `jmp` becomes correct (0x4282B6) and
-the `jne` becomes wrong (0x4282E5).
+Six bytes at 0x004282B0 become `jmp 0x0043F800` plus a NOP. The 26-byte wrapper
+there is:
 
-So the bytes cannot be correct at either address. The `je` is wrong in both
-cases: it points into the six bytes the redirect itself replaces, which is
-where the original `lea edi,[eax+eax*4+0x1E]` used to live. The wrapper carries
-its own copy of that `lea`, so the `je` was presumably meant to target that
-copy.
+    0x0043F800  cmp  eax, 0xB            ; the Golden Seahorse?
+    0x0043F803  je   0x0043F811          ; yes -> continue as if unowned
+    0x0043F809  test esi, esi            ; no  -> the original test
+    0x0043F80B  jne  0x004282E6          ;        and the original branch
+    0x0043F811  lea  edi, [eax+eax*4+0x1E]
+    0x0043F815  jmp  0x004282B6
 
-The purchase-side wrapper at VA 0x43F820 has a similar loose end: its trailing
-`jmp +0x13` resolves to VA 0x43F84B, which is unwritten zero padding. Its
-redirect, `redirect_golden_seahorse_purchase_handler` at VA 0x4281BE, does land
-correctly on VA 0x43F820.
+Every other item follows the original path exactly. The seahorse's
+purchase-completion arm at VA 0x0042800E has no ownership check, so no second
+patch is needed, and the two patches aimed at 0x004281BE are removed — the
+research items are byte-identical to vanilla again.
 
-## What has and has not been done
+## Verification
 
-Fixed in v1.0.9: defect 1, the VirtualSize overlap. That was the reported
-"This app can't run on your PC" failure, and the fix is verified across all 16
-setting combinations.
-
-Not fixed: defects 2 and 3. Repairing them means re-deriving what the two
-wrappers are supposed to do at each branch, which needs the disassembly context
-the feature was written from. Patching the rel32 values by inspection alone
-would be guessing at intent, and a wrong guess crashes the game in the store.
-
-Until then the setting is documented as non-working in the patcher itself and
-defaults to off. The other three Fish Tycoon settings are unaffected; their
-combined build matches the SHA-256 recorded in `docs/QA.md` for v1.0.3.
+- All 16 setting combinations: no section overruns another, PE checksums match
+  their bytes, pinned hashes match.
+- The redirect resolves to 0x43F800 exactly, and the wrapper disassembles to
+  the six instructions above.
+- With the setting off, the wrapper region is untouched zero padding.
+- The three-setting build without Golden Seahorse is byte-identical to the
+  output recorded in `QA.md` for v1.0.3, so this work disturbed nothing else.
+- In-game confirmation that an owned Golden Seahorse can be bought again:
+  pending.

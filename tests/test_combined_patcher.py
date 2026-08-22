@@ -119,7 +119,7 @@ class CombinedPatcherTests(unittest.TestCase):
     def test_current_manifest_versions_and_default_settings(self) -> None:
         fish = combined.load_manifest("fish")
         plant = combined.load_manifest("plant")
-        self.assertEqual(fish["version"], "v1.2.5")
+        self.assertEqual(fish["version"], "v1.2.6")
         self.assertEqual(plant["version"], "v1.0.0")
         self.assertEqual(
             list(combined.patch_settings("fish")),
