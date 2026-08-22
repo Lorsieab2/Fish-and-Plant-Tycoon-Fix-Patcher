@@ -18,6 +18,9 @@
   controls, so they work on both tabs, and every action button is now locked
   while a scan, patch, or restore is running.
 - The window body now scrolls, so nothing is squeezed on a shorter screen.
+- The search revisits a folder reached again from a nearer root, so a game in
+  the default Steam library is still found after its Program Files ancestor was
+  walked first.
 - README: documented the requirements, the game search, the output-folder
   naming under its own heading, and how to run the tests.
 

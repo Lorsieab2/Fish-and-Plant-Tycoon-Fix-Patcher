@@ -248,6 +248,19 @@ class AutodetectTests(unittest.TestCase):
                 len(combined.scan_for_games([root], max_depth=6).found("fish")), 1
             )
 
+    def test_nested_root_is_searched_again_from_its_own_depth(self) -> None:
+        # The Steam library root sits under Program Files, which is scanned
+        # first.  Reaching it through the longer route must not use up the
+        # depth budget the explicit root is entitled to.
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            common = root / "Program Files (x86)" / "Steam" / "steamapps" / "common"
+            game = self._install(common, "Fish Tycoon", "Fish Tycoon.exe")
+            result = combined.scan_for_games(
+                [root / "Program Files (x86)", common]
+            )
+            self.assertEqual(result.found("fish"), [game])
+
     def test_scan_reports_an_incomplete_walk(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

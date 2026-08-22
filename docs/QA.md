@@ -3,7 +3,9 @@
 ## v1.0.7
 
 - Python syntax compilation: passed.
-- Combined unit tests: 24 passed, including 9 new game-search and GUI cases.
+- Combined unit tests: 25 passed, including 10 new game-search and GUI cases.
+- Nested search root below an already-walked ancestor (default Steam library):
+  found, after the depth-tracking fix from the Codex review.
 - Game search matches only the exact vanilla executable names: passed.
 - Game search skips existing `- Modded` folders: passed.
 - Game search depth limit, folder budget, progress callback, and missing-root

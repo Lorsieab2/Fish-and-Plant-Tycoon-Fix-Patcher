@@ -253,7 +253,11 @@ def scan_for_games(
         spec.vanilla_exe_name.casefold(): game_id for game_id, spec in GAMES.items()
     }
     found: dict[str, list[Path]] = {game_id: [] for game_id in GAMES}
-    seen_dirs: set[str] = set()
+    # Depth each folder was last listed at.  A folder reached again from a
+    # nearer root, such as the explicit Steam library path below its own
+    # Program Files ancestor, is listed again so its remaining depth is not
+    # inherited from the longer route.
+    seen_dirs: dict[str, int] = {}
     visited = 0
 
     deadline = time.monotonic() + time_budget if time_budget > 0 else None
@@ -267,9 +271,9 @@ def scan_for_games(
             break
         directory, depth = stack.pop()
         key = str(directory).casefold()
-        if key in seen_dirs:
+        if seen_dirs.get(key, max_depth + 1) <= depth:
             continue
-        seen_dirs.add(key)
+        seen_dirs[key] = depth
         visited += 1
         if on_progress is not None:
             on_progress(directory)
