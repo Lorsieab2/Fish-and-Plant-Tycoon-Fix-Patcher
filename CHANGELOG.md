@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.8
+
+- Autodetect no longer searches Steam or GOG library folders. Only the free
+  Windows downloads from LDW's own site are supported, and no other
+  distribution has been checked against the pinned executable identities.
+- Documented that supported rule in the README and How to Use, replacing the
+  v1.0.7 wording that listed storefront paths among the searched locations and
+  so implied those copies would work.
+- Noted that autodetect only fills in a path, and that whatever it finds still
+  has to pass the exact identity check.
+
 ## v1.0.7
 
 - Added an `Autodetect Games` button that searches the usual Windows install

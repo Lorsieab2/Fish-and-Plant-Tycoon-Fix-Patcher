@@ -249,17 +249,25 @@ class AutodetectTests(unittest.TestCase):
             )
 
     def test_nested_root_is_searched_again_from_its_own_depth(self) -> None:
-        # The Steam library root sits under Program Files, which is scanned
-        # first.  Reaching it through the longer route must not use up the
-        # depth budget the explicit root is entitled to.
+        # When one search root sits inside another, reaching the inner one
+        # through the longer route must not use up the depth budget it is
+        # entitled to as a root in its own right.
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
-            common = root / "Program Files (x86)" / "Steam" / "steamapps" / "common"
-            game = self._install(common, "Fish Tycoon", "Fish Tycoon.exe")
-            result = combined.scan_for_games(
-                [root / "Program Files (x86)", common]
-            )
+            outer = root / "Program Files (x86)"
+            inner = outer / "Publisher" / "Library" / "Installed"
+            game = self._install(inner, "Fish Tycoon", "Fish Tycoon.exe")
+            result = combined.scan_for_games([outer, inner])
             self.assertEqual(result.found("fish"), [game])
+
+    def test_storefront_library_folders_are_not_searched(self) -> None:
+        # Only the free LDW downloads are supported, so no storefront library
+        # path should be advertised as a place the patcher looks.
+        roots = " ".join(str(root).casefold() for root in combined.candidate_search_roots())
+        for name in ("steam", "steamapps", "gog", "epic", "origin"):
+            self.assertNotIn(name, roots)
+        source = (ROOT / "src" / "tycoon_fix_patcher.py").read_text(encoding="utf-8")
+        self.assertNotIn("steamapps", source)
 
     def test_scan_reports_an_incomplete_walk(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

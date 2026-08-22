@@ -1,5 +1,15 @@
 # QA
 
+## v1.0.8
+
+- Combined unit tests: 26 passed.
+- No storefront library path appears in the search roots or the patcher source:
+  passed.
+- Nested search root below an already-walked ancestor, now written against a
+  generic layout: passed.
+- Search roots reduced to the locations an LDW download or installer uses:
+  passed.
+
 ## v1.0.7
 
 - Python syntax compilation: passed.

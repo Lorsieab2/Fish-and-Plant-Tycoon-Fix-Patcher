@@ -8,6 +8,14 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
+## Supported copies
+
+Only the free Windows downloads from LDW's own site, <https://ldw.com>, are
+supported. Every LDW PC game is free there, so there is no reason to source the
+games anywhere else. Each engine is pinned to one exact executable identity, and
+builds from any other distribution have not been checked against those pins, so
+the patcher will refuse them rather than guess.
+
 ## Requirements
 
 Windows, and Python 3 with Tkinter (the standard python.org installer includes
@@ -46,13 +54,17 @@ underlined path is a direct File Explorer link to that folder.
 
 ### Finding your games
 
-**Autodetect Games** searches your usual Windows install locations, such as
-Downloads, Documents, Desktop, both Program Files folders, and the common Steam
-and GOG library paths, for the exact `Fish Tycoon.exe` and `Plant Tycoon.exe`,
-and fills in the vanilla and modded folder fields for whatever it finds. It
-skips Windows system folders and any folder ending in `- Modded`, so a copy the
-patcher created earlier is never offered back as a vanilla source. If one game
-turns up in more than one place, the patcher asks which install to use.
+**Autodetect Games** searches where an LDW download or its installer normally
+lands — Downloads, Documents, Desktop, and both Program Files folders — for the
+exact `Fish Tycoon.exe` and `Plant Tycoon.exe`, and fills in the vanilla and
+modded folder fields for whatever it finds. Storefront library folders are not
+searched, for the reason above. It skips Windows system folders and any folder
+ending in `- Modded`, so a copy the patcher created earlier is never offered
+back as a vanilla source. If one game turns up in more than one place, the
+patcher asks which install to use.
+
+Autodetect only fills in a path. Whatever it finds still has to pass the exact
+identity check below before anything is written.
 
 If the game lives somewhere unusual, **Scan a Folder...** runs the same search,
 deeper, in one folder or drive you choose. The per-game **Find [Game]...**

@@ -173,6 +173,11 @@ def _drive_roots() -> list[Path]:
 def candidate_search_roots() -> list[Path]:
     """Return the likely install locations, most specific first.
 
+    Only the places an LDW download or its installer normally lands are
+    searched.  Storefront library folders are deliberately not listed: the
+    supported builds are the free Windows downloads from LDW's own site, and no
+    other distribution has been checked against the pinned identities.
+
     Whole drives are deliberately excluded.  The list stays small enough that a
     scan finishes in a couple of seconds on a normal machine.
     """
@@ -190,11 +195,6 @@ def candidate_search_roots() -> list[Path]:
                 drive / "Program Files (x86)",
                 drive / "Program Files",
                 drive / "Games",
-                drive / "GOG Games",
-                drive / "Program Files (x86)" / "Steam" / "steamapps" / "common",
-                drive / "Program Files" / "Steam" / "steamapps" / "common",
-                drive / "SteamLibrary" / "steamapps" / "common",
-                drive / "Steam" / "steamapps" / "common",
             ]
         )
     # Cloud-synced folders answer slowly, so they are searched last.
@@ -254,9 +254,9 @@ def scan_for_games(
     }
     found: dict[str, list[Path]] = {game_id: [] for game_id in GAMES}
     # Depth each folder was last listed at.  A folder reached again from a
-    # nearer root, such as the explicit Steam library path below its own
-    # Program Files ancestor, is listed again so its remaining depth is not
-    # inherited from the longer route.
+    # nearer root, which happens whenever one search root sits inside another,
+    # is listed again so its remaining depth is not inherited from the longer
+    # route.
     seen_dirs: dict[str, int] = {}
     visited = 0
 
