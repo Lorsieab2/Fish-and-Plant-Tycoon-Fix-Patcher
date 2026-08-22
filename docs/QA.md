@@ -1,4 +1,20 @@
-# v1.0.3 QA
+# QA
+
+## v1.0.7
+
+- Python syntax compilation: passed.
+- Combined unit tests: 24 passed, including 9 new game-search and GUI cases.
+- Game search matches only the exact vanilla executable names: passed.
+- Game search skips existing `- Modded` folders: passed.
+- Game search depth limit, folder budget, progress callback, and missing-root
+  handling: passed.
+- Threaded autodetect through the real GUI against a synthetic install tree:
+  both folder fields filled in, action buttons locked and released: passed.
+- Patch preset buttons (Defaults, Enable All, Disable All): passed.
+- Scrollable window body: scroll region exceeds the window height: passed.
+- Patch engines, manifests, and pinned hashes: unchanged.
+
+## v1.0.3
 
 - Python syntax compilation: passed.
 - Combined unit tests: passed.

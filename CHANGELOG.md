@@ -17,6 +17,9 @@
 - Moved the per-game `Find [Game]...` buttons up beside the new autodetect
   controls, so they work on both tabs, and every action button is now locked
   while a scan, patch, or restore is running.
+- The window body now scrolls, so nothing is squeezed on a shorter screen.
+- README: documented the requirements, the game search, the output-folder
+  naming under its own heading, and how to run the tests.
 
 ## v1.0.5
 

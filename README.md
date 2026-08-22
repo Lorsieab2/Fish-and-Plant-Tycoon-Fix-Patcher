@@ -8,6 +8,13 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
+## Requirements
+
+Windows, and Python 3 with Tkinter (the standard python.org installer includes
+it). The launcher uses `py -3` when the Python launcher is present and falls
+back to `python`. Nothing else is installed or downloaded, and the patcher
+never needs the internet.
+
 ## Included fixes
 
 ### Fish Tycoon
@@ -48,11 +55,14 @@ patcher created earlier is never offered back as a vanilla source. If one game
 turns up in more than one place, the patcher asks which install to use.
 
 If the game lives somewhere unusual, **Scan a Folder...** runs the same search,
-deeper, in one folder or drive you choose. The per-game
-**Find [Game]...** buttons still accept an exact parent folder. The search only
-reads folder listings, runs on a background thread with live progress, and
-stops at a folder and time budget so a slow or cloud-synced location cannot
-hang the patcher.
+deeper, in one folder or drive you choose. The per-game **Find [Game]...**
+buttons still accept an exact parent folder, and the **Both Games** tab keeps
+**Autodetect Both Games** and **Find Both in Parent Folder...** beside its
+patch actions. The search only reads folder listings, runs on a background
+thread with live progress, and stops at a folder and time budget so a slow or
+cloud-synced location cannot hang the patcher.
+
+### Where the modded copies go
 
 Choose one parent location in the GUI. The patcher creates complete separate
 output folders named `Fish Tycoon - Modded` and `Plant Tycoon - Modded`.
@@ -74,3 +84,13 @@ output folder is written.
 
 No game executable, save, or original game asset is included in this
 repository or release.
+
+## Tests
+
+```
+python tests/test_combined_patcher.py
+```
+
+The suite covers the exact executable identities, the pinned output hashes, the
+game search, and the GUI wiring. It uses synthetic fixtures only, so it needs
+no copy of either game.
