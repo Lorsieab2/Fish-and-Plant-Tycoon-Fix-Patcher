@@ -13,16 +13,13 @@ import webbrowser
 
 from tycoon_fix_patcher import (
     CombinedPatchError,
-    DEFAULT_SCAN_DEPTH,
     GAMES,
-    ScanResult,
     capture_run,
     default_output_dir,
     find_game_in_parent,
     output_dir_at,
     patch_settings,
     restore_game,
-    scan_for_games,
 )
 
 
@@ -68,13 +65,11 @@ class App(tk.Tk):
         )
         self.detect_status_var = tk.StringVar(
             value=(
-                "Autodetect searches your usual install locations for the exact "
-                "Fish Tycoon.exe and Plant Tycoon.exe."
+                "Choose the folder that holds the game folders, and the patcher "
+                "finds the exact Fish Tycoon.exe and Plant Tycoon.exe inside it."
             )
         )
         self.busy_controls: list[tk.Widget] = []
-        self._scan_folder = ""
-        self._scan_poll = None
         self._load_settings()
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._close)
@@ -223,8 +218,8 @@ class App(tk.Tk):
         row.pack(fill="x")
         self.detect_button = tk.Button(
             row,
-            text="Autodetect Games",
-            command=self._start_autodetect,
+            text="Find Both in Parent Folder...",
+            command=self._find_both,
             bg="#12508f",
             fg="white",
             activebackground="#0e4074",
@@ -235,20 +230,13 @@ class App(tk.Tk):
         )
         self.detect_button.pack(side="left")
         self.busy_controls.append(self.detect_button)
-        self.scan_folder_button = ttk.Button(
-            row,
-            text="Scan a Folder...",
-            command=self._start_folder_scan,
-        )
-        self.scan_folder_button.pack(side="left", padx=8)
-        self.busy_controls.append(self.scan_folder_button)
         for game_id, spec in GAMES.items():
             button = ttk.Button(
                 row,
                 text=f"Find {spec.title}...",
                 command=lambda value=game_id: self._find_one(value),
             )
-            button.pack(side="left", padx=(0, 8))
+            button.pack(side="left", padx=(8, 0))
             self.busy_controls.append(button)
         ttk.Label(
             box,
@@ -271,150 +259,6 @@ class App(tk.Tk):
                 continue
             live.append(widget)
         self.busy_controls = live
-
-    def _start_autodetect(self) -> None:
-        self._run_scan(None, DEFAULT_SCAN_DEPTH, "your usual install locations")
-
-    def _start_folder_scan(self) -> None:
-        chosen = filedialog.askdirectory(
-            title="Choose a folder to search for Fish Tycoon and Plant Tycoon",
-            initialdir=str(Path.home()),
-        )
-        if not chosen:
-            return
-        self._run_scan([chosen], DEFAULT_SCAN_DEPTH + 2, chosen)
-
-    def _run_scan(
-        self, roots: list[str] | None, max_depth: int, description: str
-    ) -> None:
-        if self.busy:
-            return
-        self._set_busy(True)
-        self._scan_folder = ""
-        self.detect_status_var.set(f"Searching {description}...")
-        self.log.insert("end", f"\n=== Autodetect games ({description}) ===\n")
-        self.log.see("end")
-        self._poll_scan_progress()
-
-        def record(path: Path) -> None:
-            # Runs on the worker thread, so it only stores a string for the poll.
-            self._scan_folder = str(path)
-
-        def worker() -> None:
-            try:
-                result = scan_for_games(roots, max_depth=max_depth, on_progress=record)
-                self.after(0, lambda: self._finish_scan(result, ""))
-            except Exception as exc:
-                self.after(0, lambda value=str(exc): self._finish_scan(None, value))
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    def _poll_scan_progress(self) -> None:
-        if not self.busy:
-            self._scan_poll = None
-            return
-        current = self._scan_folder
-        if current:
-            self.detect_status_var.set(f"Searching: {current}")
-        self._scan_poll = self.after(200, self._poll_scan_progress)
-
-    def _finish_scan(self, result: ScanResult | None, error: str) -> None:
-        if self._scan_poll is not None:
-            self.after_cancel(self._scan_poll)
-            self._scan_poll = None
-        self._set_busy(False)
-        if error or result is None:
-            self.detect_status_var.set("Autodetect failed.")
-            self.log.insert("end", f"Autodetect failed: {error}\n")
-            self.log.see("end")
-            messagebox.showerror(APP_NAME, error or "Autodetect failed.")
-            return
-
-        applied: list[str] = []
-        missing: list[str] = []
-        for game_id, spec in GAMES.items():
-            matches = result.found(game_id)
-            if not matches:
-                missing.append(spec.title)
-                self.log.insert("end", f"{spec.title}: not found\n")
-                continue
-            for match in matches:
-                self.log.insert("end", f"{spec.title}: found {match}\n")
-            chosen = matches[0] if len(matches) == 1 else self._choose_match(game_id, matches)
-            if chosen is None:
-                missing.append(spec.title)
-                continue
-            self._apply_detected(game_id, chosen)
-            applied.append(spec.title)
-        self._save_settings()
-        self.log.see("end")
-
-        if len(applied) == 1:
-            for game_id, spec in GAMES.items():
-                if spec.title == applied[0]:
-                    self.game_choice.set(game_id)
-                    self._rebuild_one_game()
-                    break
-
-        cut_short = (
-            " The search stopped early, so use Scan a Folder... if a game is missing."
-            if not result.complete
-            else ""
-        )
-        if applied:
-            found_text = f"Filled in: {', '.join(applied)}."
-            if missing:
-                found_text += f" Not filled in: {', '.join(missing)}."
-            self.detect_status_var.set(found_text + cut_short)
-            self.status_var.set(
-                "Autodetect filled in the game folders. Ready to validate."
-            )
-            return
-        self.detect_status_var.set(
-            "No installed Fish Tycoon or Plant Tycoon folder was found." + cut_short
-        )
-        messagebox.showinfo(
-            APP_NAME,
-            f"Autodetect searched {result.folders_scanned} folders and did not find "
-            "Fish Tycoon.exe or Plant Tycoon.exe.\n\n"
-            "Use Scan a Folder... and choose the drive or folder the game is "
-            "installed in.",
-        )
-
-    def _choose_match(self, game_id: str, matches: list[Path]) -> Path | None:
-        """Ask which install to use when one game was found more than once."""
-        spec = GAMES[game_id]
-        win = tk.Toplevel(self)
-        win.title(f"Choose the {spec.title} folder")
-        win.transient(self)
-        win.grab_set()
-        body = ttk.Frame(win, padding=14)
-        body.pack(fill="both", expand=True)
-        ttk.Label(
-            body,
-            text=f"{len(matches)} copies of {spec.vanilla_exe_name} were found.",
-            font=("Segoe UI", 11, "bold"),
-        ).pack(anchor="w")
-        ttk.Label(body, text="Choose the one to patch:").pack(anchor="w", pady=(2, 8))
-        selection = tk.StringVar(value=str(matches[0]))
-        for match in matches:
-            ttk.Radiobutton(
-                body, text=str(match), value=str(match), variable=selection
-            ).pack(anchor="w", pady=1)
-        picked: dict[str, Path | None] = {"value": None}
-
-        def use() -> None:
-            picked["value"] = Path(selection.get())
-            win.destroy()
-
-        buttons = ttk.Frame(body)
-        buttons.pack(anchor="e", pady=(12, 0))
-        ttk.Button(buttons, text="Skip This Game", command=win.destroy).pack(
-            side="left", padx=(0, 8)
-        )
-        ttk.Button(buttons, text="Use This Folder", command=use).pack(side="left")
-        self.wait_window(win)
-        return picked["value"]
 
     def _apply_detected(self, game_id: str, vanilla: Path) -> None:
         variables = self.path_vars[game_id]
@@ -508,13 +352,6 @@ class App(tk.Tk):
 
         finders = ttk.Frame(tab)
         finders.pack(fill="x", pady=(10, 0))
-        both_detect = ttk.Button(
-            finders,
-            text="Autodetect Both Games",
-            command=self._start_autodetect,
-        )
-        both_detect.pack(side="left", padx=(0, 8))
-        self.busy_controls.append(both_detect)
         find_both = ttk.Button(
             finders,
             text="Find Both in Parent Folder...",
@@ -710,18 +547,12 @@ class App(tk.Tk):
         if not chosen:
             return
         problems = []
+        found: list[str] = []
         for game_id, spec in GAMES.items():
             matches = find_game_in_parent(game_id, chosen)
             if len(matches) == 1:
-                vanilla = matches[0].parent
-                self.path_vars[game_id]["vanilla"].set(str(vanilla))
-                self.path_vars[game_id]["output"].set(
-                    str(
-                        output_dir_at(game_id, self.output_parent.get().strip())
-                        if self.output_parent.get().strip()
-                        else default_output_dir(game_id, vanilla)
-                    )
-                )
+                self._apply_detected(game_id, matches[0].parent)
+                found.append(spec.title)
             elif not matches:
                 problems.append(f"Not found: {spec.exe_name}")
             else:
@@ -761,16 +592,9 @@ class App(tk.Tk):
                 "Please choose the exact vanilla game folder instead.",
             )
             return
-        vanilla = matches[0].parent
-        self.path_vars[game_id]["vanilla"].set(str(vanilla))
-        self.path_vars[game_id]["output"].set(
-            str(
-                output_dir_at(game_id, self.output_parent.get().strip())
-                if self.output_parent.get().strip()
-                else default_output_dir(game_id, vanilla)
-            )
-        )
+        self._apply_detected(game_id, matches[0].parent)
         self._save_settings()
+        self.detect_status_var.set(f"Filled in: {spec.title}.")
         self.status_var.set(
             f"Found the exact {spec.vanilla_exe_name}. Ready to validate."
         )
