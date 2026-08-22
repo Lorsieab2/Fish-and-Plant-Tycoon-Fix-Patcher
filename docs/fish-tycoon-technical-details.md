@@ -1,4 +1,4 @@
-# Fish Tycoon Fix Patcher v1.2.4: technical details
+# Fish Tycoon Fix Patcher v1.2.5: technical details
 
 ## Crimson Comet curing
 
@@ -60,10 +60,20 @@ record only at zero. Other item cases are not added to the supported set.
 The payload occupies verified zero padding beginning at file `0x3F2A0` / VA
 `0x0043F2A0`. The first `.text` section VirtualSize is extended from `0x3E29F`
 to `0x3F000`; raw size, file size, section layout, and SizeOfImage do not change.
+
+`0x3F000` is the largest value this field may take. `.text` begins at RVA
+`0x1000`, so `0x1000 + 0x3F000` is `0x40000`, exactly where `.rdata` begins.
+A larger value makes the two sections overlap, and Windows then refuses to load
+the image at all, reporting only "This app can't run on your PC". v1.0.6
+through v1.0.8 wrote `0x40000` here on any setting combination that enabled
+Golden Seahorse — the section's raw end offset rather than a size — so all
+eight of those combinations produced an executable that could not start. See
+`golden-seahorse-defects.md`.
 English and German slot prompts are changed to generic item-replacement text.
 
-The manifest stores exact expected/replacement bytes, all seven nonempty
-setting hashes, and mutually exclusive PE checksum records. The patcher rejects
+The manifest stores exact expected/replacement bytes, a pinned output hash for
+all fifteen nonempty setting combinations, and one mutually exclusive PE
+checksum record per combination. The patcher rejects
 any executable identity or byte sequence that does not match. It also pins the
 original `.rsrc` section's size and SHA-256; the independent verifier requires
 that section—including the base game application icon—to remain byte-identical.
