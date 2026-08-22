@@ -297,6 +297,9 @@ def apply_patch_bytes(data: bytes, patches: list[dict[str, Any]]) -> tuple[bytes
                 "id": patch_id,
                 "offset": f"0x{offset:X}",
                 "length": len(expected),
+                # Carried into the patch log so the record of a run explains
+                # what each change actually does.
+                "note": str(patch.get("note", "")),
                 "expected": expected.hex(" ").upper(),
                 "replacement": replacement.hex(" ").upper(),
             }

@@ -8,7 +8,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUTS = ROOT / "outputs"
-VERSION = "v1.0.9"
+VERSION = "v1.0.10"
 NAME = f"Fish-and-Plant-Tycoon-Fix-Patcher-{VERSION}.zip"
 FILES = [
     "LICENSE",
@@ -22,6 +22,7 @@ FILES = [
     "data/plant_manifest.json",
     "docs/fish-tycoon-technical-details.md",
     "docs/plant-tycoon-technical-details.md",
+    "docs/golden-seahorse-defects.md",
     "docs/QA.md",
     "src/fish_patcher.py",
     "src/plant_patcher.py",

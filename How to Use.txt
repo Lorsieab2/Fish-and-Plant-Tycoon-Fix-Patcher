@@ -7,10 +7,9 @@ FISH & PLANT TYCOON FIX PATCHER
    refused, not patched.
 1. Close Fish Tycoon, Plant Tycoon, and any trainer before patching.
 2. Double-click "Launch Fish and Plant Tycoon Fix Patcher.bat".
-3. Click "Autodetect Games" to find your installed games automatically.
-   If a game is installed somewhere unusual, click "Scan a Folder..." and
-   pick the folder or drive it is in, or use the "Find [Game]..." button
-   to point at its parent folder. You can also fill in the folders yourself.
+3. Click "Find Both in Parent Folder..." and choose the folder your game
+   folders sit in. Use "Find Fish Tycoon..." or "Find Plant Tycoon..." for
+   one game. You can also fill in the folders yourself.
 4. Choose "One Game" or "Both Games".
 5. Leave the fixes you want checked. "Defaults", "Enable All", and
    "Disable All" set the whole list for that game at once.
@@ -32,10 +31,13 @@ To restore the original EXE inside a modded folder, choose One Game, select its
 timestamped backup folder and modded output folder, then click
 "Restore Output EXE from Backup".
 
+Each option in the patcher describes exactly what it changes and where.
+
 Fish Tycoon options:
 - Crimson Comet 20% curing fix
 - Unknown Chemical: 3 uses
 - Universal supply slots 2-4
+- Golden Seahorse repurchase - DOES NOT WORK, leave it off
 
 Plant Tycoon option:
 - No old-age plant deaths

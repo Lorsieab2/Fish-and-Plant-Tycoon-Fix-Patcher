@@ -87,28 +87,28 @@
     {
       "id": "crimson_comet_20_percent_cure",
       "name": "Crimson Comet 20% curing fix",
-      "description": "Rolls 0..99 once for each eligible diseased fish; 0..19 enters the original cure and counter block.",
+      "description": "Repairs the cure roll, which the base game can never pass. The original code calls its random helper with an upper bound of 0, so no roll can come back under the threshold and a Crimson Comet never cures anything. The call is redirected to a wrapper that rolls 0-99 once per eligible diseased fish and cures on 0-19, a flat 20 percent. The disease clear and the cure counter behind it are the original code, unchanged. Touches 2 places: VA 0x4204CE and a 14-byte wrapper at VA 0x401E11.",
       "category": "main",
       "default": true
     },
     {
       "id": "unknown_chemical_three_uses",
       "name": "Unknown Chemical: 3 uses",
-      "description": "Each purchase adds three uses instead of one and the English store description says 'Contains 3 doses.'.",
+      "description": "Makes one Unknown Chemical purchase last three uses instead of one. The base game rewrites the remaining count to 1 every time the item is used, so simply raising the purchase amount would be undone on first use; that 10-byte write at VA 0x4210B7 is replaced with NOPs so the purchased count survives and decrements normally. The English store text is corrected to 'Contains 3 doses.' to match. Touches 2 places.",
       "category": "main",
       "default": true
     },
     {
       "id": "universal_supply_slots",
       "name": "Universal supply slots 2-4",
-      "description": "Keeps the normal Buy confirmation, then lets the eight supported medicines, chemicals, and egg types stack in any supply slot. Matching stack first, then empty slot 2-4, then replacement prompts.",
+      "description": "Lets the eight supported medicines, chemicals, and egg types share supply slots 2-4 instead of each being locked to its own slot. Buying an item first looks for a matching stack in slots 2-4, then the first empty slot, and only then asks to replace something. The normal Buy confirmation still appears and cancelling changes nothing. Using an item swaps its record into the slot the original handler expects and swaps it back, so effects still run exactly once. Adds a 961-byte routine at the end of .text (VA 0x43F2A0) and rewrites the slot prompts to say 'item' in English and German. Touches 14 places.",
       "category": "main",
       "default": true
     },
     {
       "id": "golden_seahorse_repurchase",
       "name": "Golden Seahorse: allow repurchase",
-      "description": "Allows the Golden Seahorse store item (item index 18) to be purchased again after it is already owned.",
+      "description": "DOES NOT WORK - leave this off. Intended to let the Golden Seahorse (store item index 18) be bought again once owned, by wrapping the two already-owned gates. As shipped in v1.0.6 to v1.0.8 it produced an executable Windows refused to start, and the code it installs is itself defective: the store-selection jump lands one byte before its wrapper, on padding. Enabling it will crash the game. Kept visible only so the defect is on the record; see docs/golden-seahorse-defects.md.",
       "category": "main",
       "default": false
     }
@@ -126,7 +126,7 @@
       "excludes": [
         "universal_supply_slots"
       ],
-      "note": "Maps the zero-filled end of .text holding the added code. 0x3F000 is the largest value that keeps .text (VA 0x1000) from overrunning .rdata (VA 0x40000)."
+      "note": "Same field and value as the slots variant, applied when Golden Seahorse is on and universal slots is off, so the wrappers at VA 0x43F800-0x43F837 are mapped. Shipped as 0x40000 in v1.0.6-v1.0.8, which overlapped .rdata and made Windows reject the executable outright."
     },
     {
       "id": "extend_text_virtual_size_for_golden_seahorse_repurchase_with_slots",
@@ -138,7 +138,7 @@
         "golden_seahorse_repurchase",
         "universal_supply_slots"
       ],
-      "note": "Maps the zero-filled end of .text holding the added code. 0x3F000 is the largest value that keeps .text (VA 0x1000) from overrunning .rdata (VA 0x40000)."
+      "note": "Same field and value again, applied when Golden Seahorse and universal slots are both on, covering the payload at 0x43F2A0 and the wrappers at 0x43F800 together. Shipped as 0x40000 in v1.0.6-v1.0.8 with the same loader-fatal overlap."
     },
     {
       "id": "install_golden_seahorse_store_selection_wrapper",
@@ -149,7 +149,7 @@
       "requires": [
         "golden_seahorse_repurchase"
       ],
-      "note": "For store item index 18 only, bypasses the already-owned dialog gate before purchase confirmation."
+      "note": "26 bytes at VA 0x43F800, meant to bypass the already-owned gate for store item index 18 only. DEFECTIVE: never reached, because of the redirect above, and its internal branch targets do not agree with any single base address - its je resolves to VA 0x4282B2, which the redirect itself overwrites. See docs/golden-seahorse-defects.md."
     },
     {
       "id": "redirect_golden_seahorse_store_selection",
@@ -160,7 +160,7 @@
       "requires": [
         "golden_seahorse_repurchase"
       ],
-      "note": "Routes the owned-item check through the item-index-18 wrapper."
+      "note": "VA 0x4282B0. Replaces 'jnz +0x34 / lea edi,[eax+eax*4+0x1E]' with a jump meant for the wrapper at VA 0x43F800. DEFECTIVE: the rel32 resolves to VA 0x43F7FF, one byte before the wrapper, landing on zero padding that decodes as 'add byte ptr [ebx+0x0F12F883], al'. See docs/golden-seahorse-defects.md."
     },
     {
       "id": "install_golden_seahorse_purchase_wrapper",
@@ -171,7 +171,7 @@
       "requires": [
         "golden_seahorse_repurchase"
       ],
-      "note": "For store item index 18 only, skips the already-owned branch in the purchase handler while preserving all other item checks."
+      "note": "24 bytes at VA 0x43F820, meant to skip the already-owned branch for store item index 18 while preserving the check for every other item. DEFECTIVE: its trailing 'jmp +0x13' resolves to VA 0x43F84B, which is unwritten zero padding. See docs/golden-seahorse-defects.md."
     },
     {
       "id": "redirect_golden_seahorse_purchase_handler",
@@ -182,7 +182,7 @@
       "requires": [
         "golden_seahorse_repurchase"
       ],
-      "note": "Routes the one-time purchase ownership check through the targeted wrapper."
+      "note": "VA 0x4281BE. Replaces the 5-byte ownership comparison with a jump to VA 0x43F820. This redirect does land correctly on its wrapper."
     },
     {
       "id": "redirect_crimson_comet_random_call",
@@ -193,7 +193,7 @@
       "requires": [
         "crimson_comet_20_percent_cure"
       ],
-      "note": "Redirects the broken Random(0) call to the 20% wrapper."
+      "note": "VA 0x4204CE. The base game calls its exclusive-upper-bound RNG helper at VA 0x403240 with 0, so the roll can never fall below any threshold and the cure never fires. The 5-byte call is retargeted to the wrapper at VA 0x401E11."
     },
     {
       "id": "install_crimson_comet_20_percent_wrapper",
@@ -204,7 +204,7 @@
       "requires": [
         "crimson_comet_20_percent_cure"
       ],
-      "note": "Calls the original RNG once with 100 and succeeds for rolls 0..19."
+      "note": "VA 0x401E11, written into 0xCC alignment padding. Assembles to: push 100; call the same RNG helper at 0x403240; pop ecx; cmp al,20; setb al; ret. It returns true for rolls 0-19 out of 0-99, a 20 percent cure chance per eligible diseased fish. The original (11,11) scanner, disease clear, and counter increment are left untouched."
     },
     {
       "id": "unknown_chemical_remove_runtime_count_reset_chemical_only",
@@ -215,7 +215,7 @@
       "requires": [
         "unknown_chemical_three_uses"
       ],
-      "note": "Preserves the purchased three-use count so each use decrements normally.",
+      "note": "VA 0x4210B7. Replaces the 10-byte instruction 'mov dword ptr [eax+0x2F8], 1' with ten NOPs. That instruction rewrote the active chemical count to 1 on every use, which would reset a three-use purchase the first time it was used. Removing it preserves the count the purchase path established. The matching decrement at VA 0x421305 stays in place.",
       "excludes": [
         "universal_supply_slots"
       ]
@@ -229,7 +229,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Preserves stacked one-dose purchases so each use decrements normally.",
+      "note": "The same ten-NOP replacement at VA 0x4210B7, selected when universal slots is on without the three-use setting, so stacked one-dose purchases decrement normally instead of being reset to 1 on each use.",
       "excludes": [
         "unknown_chemical_three_uses"
       ]
@@ -244,7 +244,7 @@
         "unknown_chemical_three_uses",
         "universal_supply_slots"
       ],
-      "note": "Preserves stacked three-dose purchases so each use decrements normally."
+      "note": "The same ten-NOP replacement at VA 0x4210B7, selected when both settings are on, so stacked three-dose purchases decrement normally."
     },
     {
       "id": "unknown_chemical_store_description_three_doses",
@@ -255,7 +255,7 @@
       "requires": [
         "unknown_chemical_three_uses"
       ],
-      "note": "Changes the English store description to 'Contains 3 doses.'."
+      "note": "English store description string in .rdata at file 0x458C9. 'Contains one dose.' becomes 'Contains 3 doses.', matching what the three-use setting actually grants. Same byte length, null-padded."
     },
     {
       "id": "extend_text_virtual_size_for_slots_payload",
@@ -269,7 +269,7 @@
       "excludes": [
         "golden_seahorse_repurchase"
       ],
-      "note": "Maps the existing zero-filled end of .text that contains the slot payload."
+      "note": "PE section table, .text VirtualSize (file 0x1F8). Raises it from 0x3E29F to 0x3F000 so the slots payload at VA 0x43F2A0-0x43F660 falls inside mapped memory. 0x3F000 is the largest legal value: .text starts at RVA 0x1000, so 0x1000+0x3F000 = 0x40000, exactly where .rdata begins. Anything larger overlaps .rdata and Windows refuses to load the image. Raw size, file size, and SizeOfImage are unchanged."
     },
     {
       "id": "install_universal_slots_payload_unknown_one",
@@ -280,7 +280,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Installs exact-item stacking and use routing; Unknown Chemical purchases add one use.",
+      "note": "961-byte payload at VA 0x43F2A0-0x43F660, written into verified zero padding at the end of .text. It holds the store-purchase routine (search slots 2-4 for a matching stack, then the first empty slot, then the replacement prompt), the item-use trampoline at VA 0x43F550 that swaps a 28-byte slot record into the slot the original handler expects and back again, and the shared egg decrement routine at VA 0x43F630. This variant adds one use per Unknown Chemical purchase.",
       "excludes": [
         "unknown_chemical_three_uses"
       ]
@@ -295,7 +295,7 @@
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
-      "note": "Installs exact-item stacking and use routing; Unknown Chemical purchases add three uses."
+      "note": "The same 961-byte payload at VA 0x43F2A0-0x43F660, selected when the Unknown Chemical three-use setting is also on. Identical except that an Unknown Chemical purchase adds three uses to the stack instead of one."
     },
     {
       "id": "redirect_store_purchase_for_universal_slots",
@@ -306,7 +306,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Preserves the original Buy confirmation, then routes the exact eight supported items through matching-stack, empty-slot, and replacement logic."
+      "note": "VA 0x428133. Replaces 'cmp edi,0x19 / ja +0x9A', the gate that accepted only store indices 0-7 for slot placement, with a 5-byte jump to the payload at VA 0x43F2A0 plus four NOPs. The payload still shows the original localized Buy confirmation (string ID 0xEC) and cancels with no change unless the player answers Yes."
     },
     {
       "id": "redirect_item_use_for_universal_slots",
@@ -317,7 +317,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Routes supported items through their original handler regardless of physical slot."
+      "note": "VA 0x420B70. Replaces the item-use handler's 8-byte prologue with a jump to the trampoline at VA 0x43F550 plus NOPs. The trampoline swaps the chosen slot record into the slot the original handler expects, calls that unmodified handler, then swaps the records back, so item effects run exactly once and are not duplicated."
     },
     {
       "id": "stack_common_egg_uses",
@@ -328,7 +328,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Calls the shared one-use common egg decrement and then jumps to the original hatch continuation."
+      "note": "VA 0x4213A7. The original 42-byte block cleared the entire egg record on hatch. It becomes 'call 0x43F630' (the shared decrement, which removes one use and clears the record only at zero) followed by a jump to the original hatch continuation at VA 0x4213D1, then NOPs. Using call rather than jmp is deliberate: the shared routine ends in ret and needs a matching pushed return address. v1.2.0-v1.2.3 used jmp here and crashed with EIP 0x00000003."
     },
     {
       "id": "stack_unusual_egg_uses",
@@ -339,7 +339,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Calls the shared one-use unusual egg decrement and then jumps to the original hatch continuation."
+      "note": "VA 0x421476. The same replacement for the unusual egg path, continuing at VA 0x4214A0."
     },
     {
       "id": "stack_rare_egg_uses",
@@ -350,7 +350,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Calls the shared one-use rare egg decrement and then jumps to the original hatch continuation."
+      "note": "VA 0x421549. The same replacement for the rare egg path, continuing at VA 0x421573."
     },
     {
       "id": "generic_replacement_prompt_slot2_de",
@@ -361,7 +361,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Makes the replacement prompt accurate for every supported item."
+      "note": "German prompt in .rdata at file 0x43ED4. 'Medikament in Regal 2 ersetzen?' becomes 'Artikel in Slot 2 ersetzen?', since slot 2 can now hold any supported item rather than only medication."
     },
     {
       "id": "generic_replacement_prompt_slot2_en",
@@ -372,7 +372,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Makes the replacement prompt accurate for every supported item."
+      "note": "English prompt at file 0x43EF4. 'Replace medication in slot #2?' becomes 'Replace item in slot #2?'."
     },
     {
       "id": "generic_replacement_prompt_slot3_de",
@@ -383,7 +383,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Makes the replacement prompt accurate for every supported item."
+      "note": "German prompt at file 0x43F14. 'Chemikalie in Regal 3 ersetzen?' becomes 'Artikel in Slot 3 ersetzen?'."
     },
     {
       "id": "generic_replacement_prompt_slot3_en",
@@ -394,7 +394,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Makes the replacement prompt accurate for every supported item."
+      "note": "English prompt at file 0x43F34. 'Replace chemical in slot #3?' becomes 'Replace item in slot #3?'."
     },
     {
       "id": "generic_replacement_prompt_slot4_de",
@@ -405,7 +405,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Makes the replacement prompt accurate for every supported item."
+      "note": "German prompt at file 0x43F54. 'Eier in Regal 4 ersetzen?' becomes 'Artikel in Slot 4 ersetzen?'."
     },
     {
       "id": "generic_replacement_prompt_slot4_en",
@@ -416,7 +416,7 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Makes the replacement prompt accurate for every supported item."
+      "note": "English prompt at file 0x43F70. 'Replace eggs in slot #4?' becomes 'Replace item in slot #4?'."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure",
@@ -432,7 +432,7 @@
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
-      "note": "Sets the correct PE checksum 0x0006B452 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_unknown_chemical_three_uses",
@@ -448,7 +448,7 @@
         "golden_seahorse_repurchase",
         "universal_supply_slots"
       ],
-      "note": "Sets the correct PE checksum 0x0006DBA2 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_universal_supply_slots",
@@ -464,7 +464,7 @@
         "golden_seahorse_repurchase",
         "unknown_chemical_three_uses"
       ],
-      "note": "Sets the correct PE checksum 0x000676DC for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (universal_supply_slots). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase",
@@ -480,7 +480,7 @@
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
-      "note": "Sets the correct PE checksum 0x00064856 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (golden_seahorse_repurchase). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_unknown_chemical_three_uses",
@@ -496,7 +496,7 @@
         "golden_seahorse_repurchase",
         "universal_supply_slots"
       ],
-      "note": "Sets the correct PE checksum 0x00068645 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots",
@@ -512,7 +512,7 @@
         "golden_seahorse_repurchase",
         "unknown_chemical_three_uses"
       ],
-      "note": "Sets the correct PE checksum 0x0006217F for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_universal_supply_slots). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase",
@@ -528,7 +528,7 @@
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
-      "note": "Sets the correct PE checksum 0x0005F2F9 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_universal_supply_slots_unknown_chemical_three_uses",
@@ -544,7 +544,7 @@
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase"
       ],
-      "note": "Sets the correct PE checksum 0x00063880 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (universal_supply_slots_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase_unknown_chemical_three_uses",
@@ -560,7 +560,7 @@
         "crimson_comet_20_percent_cure",
         "universal_supply_slots"
       ],
-      "note": "Sets the correct PE checksum 0x00061A49 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (golden_seahorse_repurchase_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase_universal_supply_slots",
@@ -576,7 +576,7 @@
         "crimson_comet_20_percent_cure",
         "unknown_chemical_three_uses"
       ],
-      "note": "Sets the correct PE checksum 0x0006A821 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (golden_seahorse_repurchase_universal_supply_slots). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses",
@@ -592,7 +592,7 @@
       "excludes": [
         "golden_seahorse_repurchase"
       ],
-      "note": "Sets the correct PE checksum 0x0005E323 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_unknown_chemical_three_uses",
@@ -608,7 +608,7 @@
       "excludes": [
         "universal_supply_slots"
       ],
-      "note": "Sets the correct PE checksum 0x0006C4EB for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots",
@@ -624,7 +624,7 @@
       "excludes": [
         "unknown_chemical_three_uses"
       ],
-      "note": "Sets the correct PE checksum 0x000652C4 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses",
@@ -640,7 +640,7 @@
       "excludes": [
         "crimson_comet_20_percent_cure"
       ],
-      "note": "Sets the correct PE checksum 0x000669C5 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses",
@@ -655,7 +655,7 @@
         "unknown_chemical_three_uses"
       ],
       "excludes": [],
-      "note": "Sets the correct PE checksum 0x00061468 for this exact setting combination."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     }
   ]
 }
