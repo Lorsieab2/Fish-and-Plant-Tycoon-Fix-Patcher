@@ -2,6 +2,9 @@ FISH & PLANT TYCOON FIX PATCHER
 
 🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟
 
+0. Use the free Windows downloads from LDW's own site, https://ldw.com.
+   Those are the only supported copies. Builds from anywhere else are
+   refused, not patched.
 1. Close Fish Tycoon, Plant Tycoon, and any trainer before patching.
 2. Double-click "Launch Fish and Plant Tycoon Fix Patcher.bat".
 3. Click "Autodetect Games" to find your installed games automatically.

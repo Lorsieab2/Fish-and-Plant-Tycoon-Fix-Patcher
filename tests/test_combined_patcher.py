@@ -249,17 +249,25 @@ class AutodetectTests(unittest.TestCase):
             )
 
     def test_nested_root_is_searched_again_from_its_own_depth(self) -> None:
-        # The Steam library root sits under Program Files, which is scanned
-        # first.  Reaching it through the longer route must not use up the
-        # depth budget the explicit root is entitled to.
+        # When one search root sits inside another, reaching the inner one
+        # through the longer route must not use up the depth budget it is
+        # entitled to as a root in its own right.
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
-            common = root / "Program Files (x86)" / "Steam" / "steamapps" / "common"
-            game = self._install(common, "Fish Tycoon", "Fish Tycoon.exe")
-            result = combined.scan_for_games(
-                [root / "Program Files (x86)", common]
-            )
+            outer = root / "Program Files (x86)"
+            inner = outer / "Publisher" / "Library" / "Installed"
+            game = self._install(inner, "Fish Tycoon", "Fish Tycoon.exe")
+            result = combined.scan_for_games([outer, inner])
             self.assertEqual(result.found("fish"), [game])
+
+    def test_storefront_library_folders_are_not_searched(self) -> None:
+        # Only the free LDW downloads are supported, so no storefront library
+        # path should be advertised as a place the patcher looks.
+        roots = " ".join(str(root).casefold() for root in combined.candidate_search_roots())
+        for name in ("steam", "steamapps", "gog", "epic", "origin"):
+            self.assertNotIn(name, roots)
+        source = (ROOT / "src" / "tycoon_fix_patcher.py").read_text(encoding="utf-8")
+        self.assertNotIn("steamapps", source)
 
     def test_scan_reports_an_incomplete_walk(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -286,6 +294,21 @@ class AutodetectTests(unittest.TestCase):
         roots = combined.candidate_search_roots()
         self.assertTrue(all(root.is_dir() for root in roots))
         self.assertTrue(all(root.parent != root for root in roots))
+
+    def test_unsupported_build_is_refused_with_the_supported_source(self) -> None:
+        # A copy from anywhere else reaches the identity check and must be told
+        # where the supported download lives, not just shown a hash mismatch.
+        for module, manifest_name, exe_name in (
+            (fish_patcher, "fish_manifest.json", "Fish Tycoon.exe"),
+            (plant_patcher, "plant_manifest.json", "Plant Tycoon.exe"),
+        ):
+            manifest = module.read_json(ROOT / "data" / manifest_name)
+            with tempfile.TemporaryDirectory() as raw:
+                exe = Path(raw) / exe_name
+                exe.write_bytes(b"a build this patcher does not support")
+                with self.assertRaises(module.PatchError) as caught:
+                    module.validate_original_executable(exe, manifest)
+            self.assertIn("ldw.com", str(caught.exception))
 
     def test_gui_exposes_the_autodetect_and_preset_controls(self) -> None:
         for name in (
