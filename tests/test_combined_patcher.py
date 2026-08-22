@@ -295,6 +295,21 @@ class AutodetectTests(unittest.TestCase):
         self.assertTrue(all(root.is_dir() for root in roots))
         self.assertTrue(all(root.parent != root for root in roots))
 
+    def test_unsupported_build_is_refused_with_the_supported_source(self) -> None:
+        # A copy from anywhere else reaches the identity check and must be told
+        # where the supported download lives, not just shown a hash mismatch.
+        for module, manifest_name, exe_name in (
+            (fish_patcher, "fish_manifest.json", "Fish Tycoon.exe"),
+            (plant_patcher, "plant_manifest.json", "Plant Tycoon.exe"),
+        ):
+            manifest = module.read_json(ROOT / "data" / manifest_name)
+            with tempfile.TemporaryDirectory() as raw:
+                exe = Path(raw) / exe_name
+                exe.write_bytes(b"a build this patcher does not support")
+                with self.assertRaises(module.PatchError) as caught:
+                    module.validate_original_executable(exe, manifest)
+            self.assertIn("ldw.com", str(caught.exception))
+
     def test_gui_exposes_the_autodetect_and_preset_controls(self) -> None:
         for name in (
             "_build_detect_box",

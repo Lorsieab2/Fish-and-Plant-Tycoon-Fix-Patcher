@@ -10,6 +10,9 @@
   so implied those copies would work.
 - Noted that autodetect only fills in a path, and that whatever it finds still
   has to pass the exact identity check.
+- An unsupported executable is now refused with the supported download source
+  instead of a bare size or hash mismatch, so a copy from elsewhere — wherever
+  it was found — says what to do about it.
 
 ## v1.0.7
 

@@ -16,6 +16,15 @@ from typing import Any
 from datetime import datetime, timezone
 
 
+# Shown whenever an executable fails the exact identity check, so the
+# player is told which copy of the game is supported instead of being
+# left with a bare hash mismatch.
+SUPPORTED_SOURCE_HINT = (
+    "This patcher supports only the free Windows download from "
+    "https://ldw.com. Copies from other sources are not supported."
+)
+
+
 class PatchError(RuntimeError):
     pass
 
@@ -136,13 +145,17 @@ def validate_original_executable(exe: Path, manifest: dict[str, Any]) -> dict[st
     data = exe.read_bytes()
     expected_size = parse_int(target.get("size"), "target.size")
     if len(data) != expected_size:
-        raise PatchError(f"Unsupported Plant Tycoon.exe size: {len(data)}; expected {expected_size}.")
+        raise PatchError(
+            f"Unsupported Plant Tycoon.exe size: {len(data)}; expected {expected_size}.\n"
+            f"{SUPPORTED_SOURCE_HINT}"
+        )
     actual_hash = sha256_bytes(data)
     expected_hash = str(target.get("sha256", "")).upper()
     if actual_hash != expected_hash:
         raise PatchError(
             "Unsupported Plant Tycoon.exe SHA-256.\n"
-            f"Actual:   {actual_hash}\nExpected: {expected_hash}"
+            f"Actual:   {actual_hash}\nExpected: {expected_hash}\n"
+            f"{SUPPORTED_SOURCE_HINT}"
         )
     identity = pe_identity(data)
     checks = {

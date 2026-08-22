@@ -2,7 +2,9 @@
 
 ## v1.0.8
 
-- Combined unit tests: 26 passed.
+- Combined unit tests: 27 passed.
+- Unsupported build refused by both engines with the ldw.com source named in
+  the error: passed.
 - No storefront library path appears in the search roots or the patcher source:
   passed.
 - Nested search root below an already-walked ancestor, now written against a
