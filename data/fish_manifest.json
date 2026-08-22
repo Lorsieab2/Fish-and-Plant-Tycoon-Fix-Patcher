@@ -1,26 +1,26 @@
 {
   "manifest_version": 3,
-  "id": "fish-tycoon-pc-fixes-v7",
+  "id": "fish-tycoon-pc-fixes-v8",
   "name": "Fish Tycoon Fix Patcher",
-  "version": "v1.2.4",
+  "version": "v1.2.5",
   "description": "Repairs Crimson Comet curing, fixes Unknown Chemical uses, and lets the exact supported supplies stack in slots 2-4.",
-  "patched_sha256": "36049004DEAEAFF30E45BC67C180066139EF002B6E4724E375D7D71565BD0113",
+  "patched_sha256": "3731E1DE18C0F7C407FCCDB2FBD5DCE28C1D842772250C6CBCBB14FBE9BB2B07",
   "patched_sha256_by_settings": {
     "crimson_comet_20_percent_cure": "33C8C9469E8E9F7DD460C4A9B9A3A897D2A9505C1E2627988046D8CED097AD9B",
     "unknown_chemical_three_uses": "C57055BF50567BEF767B77295ED070465F104A5A0B1E38342A45E27FF971C82D",
     "universal_supply_slots": "5978BF336DE7D7833094AC2660883E83BCC639565E524EBD546305766C869CA6",
+    "golden_seahorse_repurchase": "BC230B85184067299D533889CA077D80A38601660BDC210E00C995BA1B40F928",
     "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "016B88C90B578472BB0CD8D1CA29906ADCE0540657FDBF72C43EC9E0AA9DFADB",
     "crimson_comet_20_percent_cure,universal_supply_slots": "C235A450F6C514289F8E2DE659E0D60622E2F111D29F45A85C5874C79A4AE697",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase": "E1253212F3A6683D268B2EC3C956D46979E8793839B558CD8B63E670C73854DA",
     "universal_supply_slots,unknown_chemical_three_uses": "4D23F8582F5C50FD72D327CA3FEF4EFC24084CCD14E84F27F0811ED772B8D2FF",
-    "golden_seahorse_repurchase": "08D6FD33E98BC915926E432653ED05F84B6F98E213FD6D11EDAF15CDB956F08C",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase": "E12C93177B892BB56C62AAB835EA332F24D028DECB39C60B17A0D9504BE07794",
-    "golden_seahorse_repurchase,unknown_chemical_three_uses": "63CA214C3A6E286A31ADC99414E18D60B87518A700CD5200DA06C19DEAFEFF67",
-    "golden_seahorse_repurchase,universal_supply_slots": "F597B92E22340A6E61E187502827780800584F923700BD963D4ECF39EC23283A",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "1167A295DBFB53A7AA23AE8668FECB1B7FF9DB9DC5F16F30C0C2C8D158306D7F",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "07D8128D815EF61570E16EB79FD4C2EDF80E9049CEEEFB3978C09A79BFF4C016",
-    "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "266616B413358257C81DF0DC861124A7F35F4A188E5E5D1D5B04ACF651D4DCDF",
+    "golden_seahorse_repurchase,unknown_chemical_three_uses": "AAB628AAD5427578A68F084DCE7CCD45AC92EA9256FA53352D30869969C7A677",
+    "golden_seahorse_repurchase,universal_supply_slots": "AC4DFBA1853FB97F04F484C84C93CF1C67377315870E8C87F16A65D5F8DB1119",
     "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "36049004DEAEAFF30E45BC67C180066139EF002B6E4724E375D7D71565BD0113"
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "E6A2FF44C26F315FA1A4148BD576958E47120E25E4A0EBD31903A06D399262FB",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "8943FBD1DBA849C3575597A1B666B7026EBA7D19E39534802814D3A37E2A61E5",
+    "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "106DA55ED06F9F3F5FEC0043779BF1A9EB62EC11F4F6B4DB67D66291AE5A74AD",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "3731E1DE18C0F7C407FCCDB2FBD5DCE28C1D842772250C6CBCBB14FBE9BB2B07"
   },
   "target": {
     "exe_name": "Fish Tycoon.exe",
@@ -35,7 +35,49 @@
       "offset": "0x5C000",
       "size": 8192,
       "sha256": "6ED9B0589DF08027301CAD95FE01FD0D34C253FD2A276EC90FD306BE868FB8BC"
-    }
+    },
+    "section_layout": [
+      {
+        "name": ".text",
+        "header_offset": "0x1F0",
+        "virtual_size": "0x3E29F",
+        "virtual_address": "0x1000",
+        "raw_size": "0x3F000",
+        "raw_offset": "0x1000"
+      },
+      {
+        "name": ".rdata",
+        "header_offset": "0x218",
+        "virtual_size": "0x13276",
+        "virtual_address": "0x40000",
+        "raw_size": "0x14000",
+        "raw_offset": "0x40000"
+      },
+      {
+        "name": ".data",
+        "header_offset": "0x240",
+        "virtual_size": "0x8FC4",
+        "virtual_address": "0x54000",
+        "raw_size": "0x7000",
+        "raw_offset": "0x54000"
+      },
+      {
+        "name": ".shr",
+        "header_offset": "0x268",
+        "virtual_size": "0x4",
+        "virtual_address": "0x5D000",
+        "raw_size": "0x1000",
+        "raw_offset": "0x5B000"
+      },
+      {
+        "name": ".rsrc",
+        "header_offset": "0x290",
+        "virtual_size": "0x1430",
+        "virtual_address": "0x5E000",
+        "raw_size": "0x2000",
+        "raw_offset": "0x5C000"
+      }
+    ]
   },
   "output": {
     "default_folder_name": "Fish Tycoon - Modded",
@@ -77,26 +119,26 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x1F8",
       "expected": "9F E2 03 00",
-      "replacement": "00 00 04 00",
+      "replacement": "00 F0 03 00",
       "requires": [
         "golden_seahorse_repurchase"
       ],
       "excludes": [
         "universal_supply_slots"
       ],
-      "note": "Maps the zero-filled end of .text containing the targeted repurchase wrapper."
+      "note": "Maps the zero-filled end of .text holding the added code. 0x3F000 is the largest value that keeps .text (VA 0x1000) from overrunning .rdata (VA 0x40000)."
     },
     {
       "id": "extend_text_virtual_size_for_golden_seahorse_repurchase_with_slots",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x1F8",
       "expected": "9F E2 03 00",
-      "replacement": "00 00 04 00",
+      "replacement": "00 F0 03 00",
       "requires": [
         "golden_seahorse_repurchase",
         "universal_supply_slots"
       ],
-      "note": "Extends the same mapped text range when combined with the slots payload."
+      "note": "Maps the zero-filled end of .text holding the added code. 0x3F000 is the largest value that keeps .text (VA 0x1000) from overrunning .rdata (VA 0x40000)."
     },
     {
       "id": "install_golden_seahorse_store_selection_wrapper",
@@ -385,11 +427,12 @@
       "requires": [
         "crimson_comet_20_percent_cure"
       ],
-      "note": "Sets the correct PE checksum 0x0006B452 for this exact setting combination.",
       "excludes": [
-        "unknown_chemical_three_uses",
-        "universal_supply_slots"
-      ]
+        "golden_seahorse_repurchase",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Sets the correct PE checksum 0x0006B452 for this exact setting combination."
     },
     {
       "id": "update_pe_checksum_unknown_chemical_three_uses",
@@ -400,11 +443,12 @@
       "requires": [
         "unknown_chemical_three_uses"
       ],
-      "note": "Sets the correct PE checksum 0x0006DBA2 for this exact setting combination.",
       "excludes": [
         "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
         "universal_supply_slots"
-      ]
+      ],
+      "note": "Sets the correct PE checksum 0x0006DBA2 for this exact setting combination."
     },
     {
       "id": "update_pe_checksum_universal_supply_slots",
@@ -415,11 +459,28 @@
       "requires": [
         "universal_supply_slots"
       ],
-      "note": "Sets the correct PE checksum 0x000676DC for this exact setting combination.",
       "excludes": [
         "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
         "unknown_chemical_three_uses"
-      ]
+      ],
+      "note": "Sets the correct PE checksum 0x000676DC for this exact setting combination."
+    },
+    {
+      "id": "update_pe_checksum_golden_seahorse_repurchase",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "56 48 06 00",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Sets the correct PE checksum 0x00064856 for this exact setting combination."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_unknown_chemical_three_uses",
@@ -431,10 +492,11 @@
         "crimson_comet_20_percent_cure",
         "unknown_chemical_three_uses"
       ],
-      "note": "Sets the correct PE checksum 0x00068645 for this exact setting combination.",
       "excludes": [
+        "golden_seahorse_repurchase",
         "universal_supply_slots"
-      ]
+      ],
+      "note": "Sets the correct PE checksum 0x00068645 for this exact setting combination."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots",
@@ -446,10 +508,27 @@
         "crimson_comet_20_percent_cure",
         "universal_supply_slots"
       ],
-      "note": "Sets the correct PE checksum 0x0006217F for this exact setting combination.",
       "excludes": [
+        "golden_seahorse_repurchase",
         "unknown_chemical_three_uses"
-      ]
+      ],
+      "note": "Sets the correct PE checksum 0x0006217F for this exact setting combination."
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "F9 F2 05 00",
+      "requires": [
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase"
+      ],
+      "excludes": [
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Sets the correct PE checksum 0x0005F2F9 for this exact setting combination."
     },
     {
       "id": "update_pe_checksum_universal_supply_slots_unknown_chemical_three_uses",
@@ -461,10 +540,43 @@
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
-      "note": "Sets the correct PE checksum 0x00063880 for this exact setting combination.",
       "excludes": [
-        "crimson_comet_20_percent_cure"
-      ]
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase"
+      ],
+      "note": "Sets the correct PE checksum 0x00063880 for this exact setting combination."
+    },
+    {
+      "id": "update_pe_checksum_golden_seahorse_repurchase_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "49 1A 06 00",
+      "requires": [
+        "golden_seahorse_repurchase",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "universal_supply_slots"
+      ],
+      "note": "Sets the correct PE checksum 0x00061A49 for this exact setting combination."
+    },
+    {
+      "id": "update_pe_checksum_golden_seahorse_repurchase_universal_supply_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "21 A8 06 00",
+      "requires": [
+        "golden_seahorse_repurchase",
+        "universal_supply_slots"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Sets the correct PE checksum 0x0006A821 for this exact setting combination."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses",
@@ -477,7 +589,73 @@
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
+      "excludes": [
+        "golden_seahorse_repurchase"
+      ],
       "note": "Sets the correct PE checksum 0x0005E323 for this exact setting combination."
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "EB C4 06 00",
+      "requires": [
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "universal_supply_slots"
+      ],
+      "note": "Sets the correct PE checksum 0x0006C4EB for this exact setting combination."
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "C4 52 06 00",
+      "requires": [
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "universal_supply_slots"
+      ],
+      "excludes": [
+        "unknown_chemical_three_uses"
+      ],
+      "note": "Sets the correct PE checksum 0x000652C4 for this exact setting combination."
+    },
+    {
+      "id": "update_pe_checksum_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "C5 69 06 00",
+      "requires": [
+        "golden_seahorse_repurchase",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure"
+      ],
+      "note": "Sets the correct PE checksum 0x000669C5 for this exact setting combination."
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "68 14 06 00",
+      "requires": [
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [],
+      "note": "Sets the correct PE checksum 0x00061468 for this exact setting combination."
     }
   ]
 }

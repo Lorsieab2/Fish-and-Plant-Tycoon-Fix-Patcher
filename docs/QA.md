@@ -1,5 +1,18 @@
 # QA
 
+## v1.0.9
+
+- Combined unit tests: 30 passed.
+- All 16 Fish setting combinations rebuilt from the exact stock executable:
+  no section overruns the next, every PE checksum matches its bytes, and every
+  pinned hash matches: passed.
+- Reintroducing the 0x40000 VirtualSize made the new layout test fail with
+  ".text ends at 0x41000, past .rdata at 0x40000": passed (the guard works).
+- Plant Tycoon, both combinations: unaffected, layout clean.
+- A no-setting run still reproduces the vanilla bytes exactly: passed.
+- Player confirmation that the rebuilt all-patches Fish Tycoon launches:
+  PENDING.
+
 ## v1.0.8
 
 - Combined unit tests: 27 passed.

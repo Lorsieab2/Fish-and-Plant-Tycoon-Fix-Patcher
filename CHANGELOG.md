@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.0.9
+
+Fixes Fish Tycoon builds that Windows refused to start with "This app can't
+run on your PC".
+
+- The two Golden Seahorse patches set the `.text` section's VirtualSize to
+  0x40000, the section's raw end offset, rather than a size. That pushed
+  `.text` to RVA 0x41000, past `.rdata` at 0x40000, and the Windows loader
+  rejects an image whose sections overlap. Corrected to 0x3F000, the value the
+  slots patch already used and the largest that clears `.rdata`.
+- Every combination that enabled Golden Seahorse was affected: 8 of the 16.
+  Combinations without it were unaffected, and Plant Tycoon was never
+  affected.
+- No PE checksum patch covered the Golden Seahorse combinations, so those
+  builds kept a checksum computed for different bytes. There is now exactly one
+  checksum patch per combination, each recomputed.
+- Recorded the target's PE section layout in the manifest, and added tests that
+  walk every setting combination to check no section overruns the next one and
+  that each combination has exactly one checksum patch. These run offline and
+  need no copy of the game.
+- Regenerated every pinned output hash. Fish manifest is now v1.2.5.
+
 ## v1.0.8
 
 - Autodetect no longer searches Steam or GOG library folders. Only the free
