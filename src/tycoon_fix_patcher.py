@@ -8,7 +8,9 @@ import contextlib
 from dataclasses import dataclass
 import io
 import json
+import os
 from pathlib import Path
+import time
 from types import ModuleType
 from typing import Iterable
 
@@ -103,6 +105,201 @@ def find_game_in_parent(game_id: str, parent_dir: str | Path) -> list[Path]:
         if child.is_dir()
     )
     return [candidate for candidate in candidates if candidate.is_file()]
+
+
+# --- Automatic game discovery -------------------------------------------------
+#
+# The scan only ever reads directory listings.  It never opens or writes a game
+# file, so an interrupted scan cannot leave anything behind.
+
+SKIPPED_DIR_NAMES = {
+    "$recycle.bin",
+    "appdata",
+    "application data",
+    "config.msi",
+    "node_modules",
+    "onedrivetemp",
+    "perflogs",
+    "programdata",
+    "recovery",
+    "system volume information",
+    "temp",
+    "tmp",
+    "windows",
+    "winsxs",
+    ".git",
+}
+
+# Folders that hold a finished modded copy are skipped so a previous run of the
+# patcher can never be offered back as a vanilla source.
+MODDED_FOLDER_SUFFIX = "- modded"
+
+@dataclass(frozen=True)
+class ScanResult:
+    """Outcome of one automatic search for installed games."""
+
+    matches: dict[str, list[Path]]
+    folders_scanned: int
+    complete: bool
+
+    def found(self, game_id: str) -> list[Path]:
+        return self.matches.get(game_id, [])
+
+    @property
+    def any_found(self) -> bool:
+        return any(self.matches.values())
+
+
+DEFAULT_SCAN_DEPTH = 3
+DEFAULT_SCAN_LIMIT = 12000
+DEFAULT_SCAN_SECONDS = 45.0
+
+
+def _drive_roots() -> list[Path]:
+    roots: list[Path] = []
+    if os.name == "nt":
+        for letter in "CDEFGHIJKLMNOPQRSTUVWXYZ":
+            candidate = Path(f"{letter}:/")
+            try:
+                if candidate.is_dir():
+                    roots.append(candidate)
+            except OSError:
+                continue
+    else:
+        roots.append(Path("/"))
+    return roots
+
+
+def candidate_search_roots() -> list[Path]:
+    """Return the likely install locations, most specific first.
+
+    Whole drives are deliberately excluded.  The list stays small enough that a
+    scan finishes in a couple of seconds on a normal machine.
+    """
+    home = Path.home()
+    roots: list[Path] = [
+        home / "Downloads",
+        home / "Desktop",
+        home / "Documents",
+        home / "Games",
+        home / "AppData" / "Local" / "Programs",
+    ]
+    for drive in _drive_roots():
+        roots.extend(
+            [
+                drive / "Program Files (x86)",
+                drive / "Program Files",
+                drive / "Games",
+                drive / "GOG Games",
+                drive / "Program Files (x86)" / "Steam" / "steamapps" / "common",
+                drive / "Program Files" / "Steam" / "steamapps" / "common",
+                drive / "SteamLibrary" / "steamapps" / "common",
+                drive / "Steam" / "steamapps" / "common",
+            ]
+        )
+    # Cloud-synced folders answer slowly, so they are searched last.
+    roots.extend(
+        [
+            home / "OneDrive" / "Desktop",
+            home / "OneDrive" / "Documents",
+            home / "OneDrive" / "Downloads",
+        ]
+    )
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for root in roots:
+        key = str(root).casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            if root.is_dir():
+                unique.append(root)
+        except OSError:
+            continue
+    return unique
+
+
+def _is_skipped_dir(directory: Path) -> bool:
+    name = directory.name.casefold()
+    if name in SKIPPED_DIR_NAMES or name.startswith("$"):
+        return True
+    return name.endswith(MODDED_FOLDER_SUFFIX)
+
+
+def scan_for_games(
+    roots: Iterable[str | Path] | None = None,
+    *,
+    max_depth: int = DEFAULT_SCAN_DEPTH,
+    scan_limit: int = DEFAULT_SCAN_LIMIT,
+    time_budget: float = DEFAULT_SCAN_SECONDS,
+    on_progress=None,
+) -> ScanResult:
+    """Search likely locations for the exact vanilla executable of each game.
+
+    Returns one deduplicated, sorted list of vanilla game folders per game id,
+    plus whether the walk finished instead of hitting one of its budgets.
+    ``on_progress`` is called with each folder about to be listed so a GUI can
+    show what the scan is doing without the scan knowing anything about Tk.
+    The folder budget and the time budget both stop the walk early, so a huge
+    or slow (cloud-synced, network) location can never hang the patcher.
+    """
+    search_roots = (
+        [Path(root).expanduser() for root in roots]
+        if roots is not None
+        else candidate_search_roots()
+    )
+    wanted = {
+        spec.vanilla_exe_name.casefold(): game_id for game_id, spec in GAMES.items()
+    }
+    found: dict[str, list[Path]] = {game_id: [] for game_id in GAMES}
+    seen_dirs: set[str] = set()
+    visited = 0
+
+    deadline = time.monotonic() + time_budget if time_budget > 0 else None
+    complete = True
+    stack: list[tuple[Path, int]] = [(root, 0) for root in reversed(search_roots)]
+    while stack:
+        if visited >= scan_limit or (
+            deadline is not None and time.monotonic() > deadline
+        ):
+            complete = False
+            break
+        directory, depth = stack.pop()
+        key = str(directory).casefold()
+        if key in seen_dirs:
+            continue
+        seen_dirs.add(key)
+        visited += 1
+        if on_progress is not None:
+            on_progress(directory)
+        try:
+            entries = list(directory.iterdir())
+        except (OSError, PermissionError):
+            continue
+        for entry in entries:
+            try:
+                if entry.is_dir():
+                    if depth + 1 <= max_depth and not _is_skipped_dir(entry):
+                        stack.append((entry, depth + 1))
+                    continue
+                game_id = wanted.get(entry.name.casefold())
+                if game_id and entry.name == GAMES[game_id].vanilla_exe_name:
+                    found[game_id].append(entry.parent)
+            except OSError:
+                continue
+
+    return ScanResult(
+        matches={
+            game_id: sorted(
+                {str(path): path for path in matches}.values(),
+                key=lambda path: str(path).casefold(),
+            )
+            for game_id, matches in found.items()
+        },
+        folders_scanned=visited,
+        complete=complete,
+    )
 
 
 def _namespace(
