@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from argparse import Namespace
+import itertools
 from pathlib import Path
 import sys
 import tempfile
@@ -117,7 +118,7 @@ class CombinedPatcherTests(unittest.TestCase):
     def test_current_manifest_versions_and_default_settings(self) -> None:
         fish = combined.load_manifest("fish")
         plant = combined.load_manifest("plant")
-        self.assertEqual(fish["version"], "v1.2.4")
+        self.assertEqual(fish["version"], "v1.2.5")
         self.assertEqual(plant["version"], "v1.0.0")
         self.assertEqual(
             list(combined.patch_settings("fish")),
@@ -335,6 +336,92 @@ class AutodetectTests(unittest.TestCase):
         # The page is taller than the window, so the body must stay scrollable.
         self.assertIn("self.content_canvas", source)
         self.assertIn('self.bind_all("<MouseWheel>", self._scroll_content)', source)
+
+
+class SectionLayoutTests(unittest.TestCase):
+    """Guards the PE section layout every setting combination produces.
+
+    A patch that grows a section's VirtualSize past the next section's
+    VirtualAddress makes an image the Windows loader refuses outright, with
+    "This app can't run on your PC" and no other clue. These checks run against
+    the layout recorded in the manifest, so they need no copy of the game.
+    """
+
+    def _layout(self, game_id: str) -> list[dict]:
+        target = combined.load_manifest(game_id)["target"]
+        return target.get("section_layout", [])
+
+    def _combinations(self, game_id: str):
+        ids = sorted(combined.patch_settings(game_id))
+        for size in range(len(ids) + 1):
+            for combo in itertools.combinations(ids, size):
+                yield set(combo)
+
+    def test_fish_records_its_section_layout(self) -> None:
+        layout = self._layout("fish")
+        self.assertTrue(layout, "fish manifest must record target.section_layout")
+        self.assertEqual(
+            [section["name"] for section in layout],
+            [".text", ".rdata", ".data", ".shr", ".rsrc"],
+        )
+
+    def test_no_setting_combination_overruns_the_next_section(self) -> None:
+        for game_id in combined.GAMES:
+            layout = self._layout(game_id)
+            if not layout:
+                continue
+            engine = combined.GAMES[game_id].engine
+            manifest = combined.load_manifest(game_id)
+            # File offset of each section's VirtualSize field.
+            size_fields = {
+                int(section["header_offset"], 0) + 8: section["name"]
+                for section in layout
+            }
+            for enabled in self._combinations(game_id):
+                sizes = {
+                    section["name"]: int(section["virtual_size"], 0)
+                    for section in layout
+                }
+                for patch in engine.active_patch_records(manifest, enabled):
+                    offset = int(str(patch["offset"]), 0)
+                    name = size_fields.get(offset)
+                    if name is None:
+                        continue
+                    raw = bytes.fromhex("".join(str(patch["replacement"]).split()))
+                    self.assertEqual(len(raw), 4, f"{patch['id']} must write 4 bytes")
+                    sizes[name] = int.from_bytes(raw, "little")
+                ordered = sorted(
+                    layout, key=lambda section: int(section["virtual_address"], 0)
+                )
+                for current, following in zip(ordered, ordered[1:]):
+                    end = int(current["virtual_address"], 0) + sizes[current["name"]]
+                    start = int(following["virtual_address"], 0)
+                    self.assertLessEqual(
+                        end,
+                        start,
+                        f"{game_id} [{combined.GAMES[game_id].engine.settings_key(enabled) or 'none'}]: "
+                        f"{current['name']} ends at 0x{end:X}, past {following['name']} "
+                        f"at 0x{start:X}",
+                    )
+
+    def test_every_combination_has_exactly_one_checksum_patch(self) -> None:
+        # Two patches writing the same offset would be rejected at apply time,
+        # and none at all leaves a stale checksum from the vanilla build.
+        manifest = combined.load_manifest("fish")
+        engine = combined.GAMES["fish"].engine
+        for enabled in self._combinations("fish"):
+            checksum_patches = [
+                patch
+                for patch in engine.active_patch_records(manifest, enabled)
+                if str(patch["id"]).startswith("update_pe_checksum")
+            ]
+            expected = 0 if not enabled else 1
+            self.assertEqual(
+                len(checksum_patches),
+                expected,
+                f"{engine.settings_key(enabled) or 'none'} has "
+                f"{len(checksum_patches)} checksum patches, expected {expected}",
+            )
 
 
 if __name__ == "__main__":
