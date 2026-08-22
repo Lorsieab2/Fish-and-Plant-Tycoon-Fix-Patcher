@@ -24,6 +24,23 @@ output recorded in QA.md for v1.0.3.
 
 Fish manifest is v1.2.6; every pinned hash and PE checksum regenerated.
 
+Every other patch was audited the same way and all of them check out:
+
+- Crimson Comet: the wrapper's `setb al` leaves the upper bytes of EAX zero
+  because the roll is under 100, so the caller's `test eax, eax` reads it
+  correctly. 20 percent confirmed.
+- Unknown Chemical: the NOPped store is standalone, and EAX is reloaded before
+  its next use, so removing it disturbs no register flow.
+- Universal slots: every branch inside the 961-byte payload lands on an
+  instruction boundary of the payload, and all 14 addresses it branches out to
+  are genuine instruction boundaries in the original code.
+- Plant old-age deaths: `jg` is a signed compare and the operand sign-extends,
+  so 0xFF really is -1 and every roll 0-999 skips the branch.
+
+Also fixed: output folders are now recognized by manifest family rather than by
+exact id, so revising the manifest no longer makes the patcher refuse to
+replace a folder an earlier release created. That break shipped in v1.0.10.
+
 
 ## v1.0.10
 

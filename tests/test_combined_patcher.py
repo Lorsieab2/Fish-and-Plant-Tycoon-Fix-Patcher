@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from argparse import Namespace
 import itertools
+import json
 import re
 from pathlib import Path
 import sys
@@ -386,6 +387,55 @@ class ReleasePackagingTests(unittest.TestCase):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         newest = re.search(r"^## (v[\d.]+)", changelog, re.M).group(1)
         self.assertEqual(version, newest, "build_release VERSION and the newest CHANGELOG entry disagree")
+
+
+class OutputRecognitionTests(unittest.TestCase):
+    """Upgrading in place must keep working when the manifest id is revised."""
+
+    CASES = (
+        ("fish", fish_patcher, ".fish_tycoon_bug_fix_output.json",
+         ["fish-tycoon-pc-fixes-v7", "fish-tycoon-pc-fixes-v8", "fish-tycoon-pc-fixes-v9"]),
+        ("plant", plant_patcher, ".plant_tycoon_fix_output.json",
+         ["plant-tycoon-pc-fixes-v1"]),
+    )
+
+    def test_previous_manifest_revisions_are_still_recognized(self) -> None:
+        for game_id, engine, marker_name, shipped_ids in self.CASES:
+            manifest = combined.load_manifest(game_id)
+            for shipped in shipped_ids + [str(manifest["id"])]:
+                with tempfile.TemporaryDirectory() as raw:
+                    out = Path(raw)
+                    (out / marker_name).write_text(
+                        json.dumps({"manifest_id": shipped}), encoding="utf-8"
+                    )
+                    self.assertTrue(
+                        engine.recognized_output(out, manifest),
+                        f"{game_id} refuses to upgrade a folder written by {shipped}",
+                    )
+
+    def test_current_id_is_in_the_same_family_as_what_shipped(self) -> None:
+        for game_id, engine, _marker, shipped_ids in self.CASES:
+            manifest = combined.load_manifest(game_id)
+            current = engine.output_family(manifest["id"])
+            for shipped in shipped_ids:
+                self.assertEqual(engine.output_family(shipped), current)
+
+    def test_a_foreign_or_missing_marker_is_refused(self) -> None:
+        manifest = combined.load_manifest("fish")
+        for marker in (
+            {"manifest_id": "plant-tycoon-pc-fixes-v1"},
+            {"manifest_id": "something-else-v1"},
+            {"manifest_id": ""},
+            {},
+        ):
+            with tempfile.TemporaryDirectory() as raw:
+                out = Path(raw)
+                (out / ".fish_tycoon_bug_fix_output.json").write_text(
+                    json.dumps(marker), encoding="utf-8"
+                )
+                self.assertFalse(fish_patcher.recognized_output(out, manifest), marker)
+        with tempfile.TemporaryDirectory() as raw:
+            self.assertFalse(fish_patcher.recognized_output(Path(raw), manifest))
 
 
 if __name__ == "__main__":

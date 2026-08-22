@@ -13,6 +13,14 @@
   VA 0x004281BE is byte-identical to vanilla.
 - Three-setting build without Golden Seahorse still reproduces SHA-256
   E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A.
+- Control-flow audit of every patch that installs code: each branch inside an
+  installed region lands on a boundary of that region, and all 14 external
+  targets are boundaries in the original code (0x422440 and 0x427540 are
+  function entries preceded by 0xCC padding).
+- Crimson Comet, Unknown Chemical and the Plant old-age patch verified by
+  disassembly, including the signedness of the Plant compare.
+- Upgrading over a folder written by an earlier manifest revision now succeeds;
+  a foreign, empty or missing marker is still refused.
 - In-game confirmation of the repurchase: pending.
 
 
