@@ -31,7 +31,8 @@ never needs the internet.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and
   egg types.
-- Optional Golden Seahorse repurchase after it has already been owned.
+- Golden Seahorse repurchase: **does not work, leave it off.** See
+  [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
 
 ### Plant Tycoon
 
@@ -42,8 +43,8 @@ never needs the internet.
 
 1. Extract the release ZIP.
 2. Double-click `Launch Fish and Plant Tycoon Fix Patcher.bat`.
-3. Click **Autodetect Games**, or select the vanilla folder for each game
-   yourself.
+3. Click **Find Both in Parent Folder...** and pick the folder your game
+   folders sit in, or select each vanilla folder yourself.
 4. Select **One Game** or **Both Games**.
 5. Choose the fixes you want, using **Defaults**, **Enable All**, or
    **Disable All** if it is quicker.
@@ -54,25 +55,16 @@ underlined path is a direct File Explorer link to that folder.
 
 ### Finding your games
 
-**Autodetect Games** searches where an LDW download or its installer normally
-lands — Downloads, Documents, Desktop, and both Program Files folders — for the
-exact `Fish Tycoon.exe` and `Plant Tycoon.exe`, and fills in the vanilla and
-modded folder fields for whatever it finds. Storefront library folders are not
-searched, for the reason above. It skips Windows system folders and any folder
-ending in `- Modded`, so a copy the patcher created earlier is never offered
-back as a vanilla source. If one game turns up in more than one place, the
-patcher asks which install to use.
+Point the patcher at the folder that holds your game folders and it fills in
+the rest. **Find Both in Parent Folder...** looks for the exact
+`Fish Tycoon.exe` and `Plant Tycoon.exe` in that folder and its immediate
+subfolders, and fills in the vanilla and modded folder fields for both games.
+**Find Fish Tycoon...** and **Find Plant Tycoon...** do the same for one game.
+An exact match is required: a missing or ambiguous result is reported rather
+than guessed at.
 
-Autodetect only fills in a path. Whatever it finds still has to pass the exact
+This only fills in a path. Whatever it finds still has to pass the exact
 identity check below before anything is written.
-
-If the game lives somewhere unusual, **Scan a Folder...** runs the same search,
-deeper, in one folder or drive you choose. The per-game **Find [Game]...**
-buttons still accept an exact parent folder, and the **Both Games** tab keeps
-**Autodetect Both Games** and **Find Both in Parent Folder...** beside its
-patch actions. The search only reads folder listings, runs on a background
-thread with live progress, and stops at a folder and time budget so a slow or
-cloud-synced location cannot hang the patcher.
 
 ### Where the modded copies go
 
@@ -96,6 +88,14 @@ output folder is written.
 
 No game executable, save, or original game asset is included in this
 repository or release.
+
+## What each patch does
+
+Every setting in the GUI lists the addresses it touches and what it changes,
+and every individual byte change carries a note explaining it. Those notes are
+written into the patch log next to each change, so a completed run records not
+just what bytes moved but why. `docs/fish-tycoon-technical-details.md` and
+`docs/plant-tycoon-technical-details.md` go further into the disassembly.
 
 ## Tests
 

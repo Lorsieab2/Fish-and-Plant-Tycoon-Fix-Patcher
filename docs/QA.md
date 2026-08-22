@@ -1,5 +1,23 @@
 # QA
 
+## v1.0.10
+
+- Combined unit tests: 20 passed (the 10 scanning tests were removed with the
+  scanning code).
+- Every jump and call installed by every Fish patch traced to its target: all
+  land on their intended wrapper except the two Golden Seahorse defects
+  recorded in docs/golden-seahorse-defects.md.
+- Crimson Comet wrapper decoded and confirmed: push 100, call the RNG helper at
+  VA 0x403240, cure on rolls 0-19.
+- All 43 patch notes and all 5 setting descriptions checked against the bytes
+  they describe.
+- Patch notes appear in the run log: passed.
+- GUI finder buttons fill both path fields and lock while busy: passed.
+- Three-patch Fish build (no Golden Seahorse) reproduces SHA-256
+  E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A, the output
+  recorded in this log for v1.0.3.
+
+
 ## v1.0.9
 
 - Combined unit tests: 30 passed.

@@ -31,7 +31,7 @@
     {
       "id": "no_old_age_plant_deaths",
       "name": "No old-age plant deaths",
-      "description": "Keeps the original age check and Random(1000) call, but changes its death range from 0..9 to empty, making that branch exactly 0%.",
+      "description": "Stops plants dying of old age. Once a plant passes the age threshold the base game rolls Random(1000) on each update and kills it on 0-9, a 1 percent chance every time. The age check and the roll both stay exactly as they were; only the comparison operand changes, at VA 0x42E23B, so no roll in 0-999 can enter the branch that zeroes the plant's health. The chance becomes exactly 0, not merely small. Touches 1 byte.",
       "category": "main",
       "default": true
     }
@@ -46,7 +46,7 @@
       "requires": [
         "no_old_age_plant_deaths"
       ],
-      "note": "Changes cmp eax,9 to cmp eax,-1 after Random(1000). Every possible roll 0..999 then skips the old-age health-zero write."
+      "note": "VA 0x42E23B, one byte. The old-age branch rolls Random(1000) and kills the plant when the result is 0-9, a 1 percent chance per eligible update. The comparison operand changes from 9 to 0xFF, which as a signed compare leaves the range empty, so every roll 0-999 skips the health-zero write. The age check at VA 0x42E219 and the RNG call itself are untouched."
     },
     {
       "id": "update_pe_checksum_no_old_age_plant_deaths",
@@ -57,7 +57,7 @@
       "requires": [
         "no_old_age_plant_deaths"
       ],
-      "note": "Sets the correct PE checksum 0x000AF7C0 for this exact output."
+      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (no_old_age_plant_deaths). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
     }
   ],
   "verification": {

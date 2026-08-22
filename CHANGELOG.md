@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.0.10
+
+- Every patch now carries an accurate technical note: the address it changes,
+  the instruction or string before and after, and why. The notes are written
+  into the patch log beside each change, so a run records what it did and not
+  just which bytes moved.
+- Rewrote the setting descriptions the patcher shows, so each one states what
+  it repairs, how, and how many places it touches.
+- Documented three defects in the Golden Seahorse repurchase setting, two of
+  them still unfixed, in docs/golden-seahorse-defects.md. The setting is
+  labelled as non-working in the patcher and stays off by default.
+- Removed the install-location scanning added in v1.0.7. Finding games is back
+  to choosing the parent folder that holds them, the way the Virtual Villagers
+  patcher does it: Find Both in Parent Folder, or one button per game.
+
+
 ## v1.0.9
 
 Fixes Fish Tycoon builds that Windows refused to start with "This app can't

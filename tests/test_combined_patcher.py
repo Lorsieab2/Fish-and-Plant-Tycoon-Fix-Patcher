@@ -207,94 +207,22 @@ class CombinedPatcherTests(unittest.TestCase):
         self.assertIn("image=self.fish_heading", source)
 
 
-class AutodetectTests(unittest.TestCase):
+class FinderAndRefusalTests(unittest.TestCase):
     def _install(self, root: Path, folder: str, exe: str) -> Path:
         directory = root / folder
         directory.mkdir(parents=True, exist_ok=True)
         (directory / exe).write_bytes(b"exe")
         return directory
 
-    def test_scan_finds_both_exact_executables(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            fish = self._install(root, "Games/Fish Tycoon", "Fish Tycoon.exe")
-            plant = self._install(root, "Plant Tycoon", "Plant Tycoon.exe")
-            result = combined.scan_for_games([root])
-            self.assertTrue(result.complete)
-            self.assertTrue(result.any_found)
-            self.assertEqual(result.found("fish"), [fish])
-            self.assertEqual(result.found("plant"), [plant])
 
-    def test_scan_ignores_previously_created_modded_folders(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            self._install(root, "Fish Tycoon - Modded", "Fish Tycoon.exe")
-            result = combined.scan_for_games([root])
-            self.assertEqual(result.found("fish"), [])
 
-    def test_scan_requires_the_exact_vanilla_executable_name(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            self._install(root, "Fish Tycoon", "FishTycoon.exe")
-            self._install(root, "Plant Tycoon", "Plant Tycoon Setup.exe")
-            result = combined.scan_for_games([root])
-            self.assertFalse(result.any_found)
 
-    def test_scan_respects_the_depth_limit(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            self._install(root, "a/b/c/d/Fish Tycoon", "Fish Tycoon.exe")
-            self.assertEqual(combined.scan_for_games([root], max_depth=2).found("fish"), [])
-            self.assertEqual(
-                len(combined.scan_for_games([root], max_depth=6).found("fish")), 1
-            )
 
-    def test_nested_root_is_searched_again_from_its_own_depth(self) -> None:
-        # When one search root sits inside another, reaching the inner one
-        # through the longer route must not use up the depth budget it is
-        # entitled to as a root in its own right.
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            outer = root / "Program Files (x86)"
-            inner = outer / "Publisher" / "Library" / "Installed"
-            game = self._install(inner, "Fish Tycoon", "Fish Tycoon.exe")
-            result = combined.scan_for_games([outer, inner])
-            self.assertEqual(result.found("fish"), [game])
 
-    def test_storefront_library_folders_are_not_searched(self) -> None:
-        # Only the free LDW downloads are supported, so no storefront library
-        # path should be advertised as a place the patcher looks.
-        roots = " ".join(str(root).casefold() for root in combined.candidate_search_roots())
-        for name in ("steam", "steamapps", "gog", "epic", "origin"):
-            self.assertNotIn(name, roots)
-        source = (ROOT / "src" / "tycoon_fix_patcher.py").read_text(encoding="utf-8")
-        self.assertNotIn("steamapps", source)
 
-    def test_scan_reports_an_incomplete_walk(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            for index in range(6):
-                self._install(root, f"folder{index}", "readme.txt")
-            result = combined.scan_for_games([root], scan_limit=2)
-            self.assertFalse(result.complete)
 
-    def test_scan_reports_progress_for_each_folder(self) -> None:
-        seen: list[Path] = []
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            self._install(root, "Fish Tycoon", "Fish Tycoon.exe")
-            combined.scan_for_games([root], on_progress=seen.append)
-        self.assertIn(root, seen)
 
-    def test_scan_survives_a_missing_root(self) -> None:
-        result = combined.scan_for_games([Path("C:/no such folder anywhere 12345")])
-        self.assertFalse(result.any_found)
-        self.assertTrue(result.complete)
 
-    def test_candidate_roots_exist_and_exclude_whole_drives(self) -> None:
-        roots = combined.candidate_search_roots()
-        self.assertTrue(all(root.is_dir() for root in roots))
-        self.assertTrue(all(root.parent != root for root in roots))
 
     def test_unsupported_build_is_refused_with_the_supported_source(self) -> None:
         # A copy from anywhere else reaches the identity check and must be told
@@ -311,14 +239,11 @@ class AutodetectTests(unittest.TestCase):
                     module.validate_original_executable(exe, manifest)
             self.assertIn("ldw.com", str(caught.exception))
 
-    def test_gui_exposes_the_autodetect_and_preset_controls(self) -> None:
+    def test_gui_exposes_the_finder_and_preset_controls(self) -> None:
         for name in (
             "_build_detect_box",
-            "_start_autodetect",
-            "_start_folder_scan",
-            "_run_scan",
-            "_finish_scan",
-            "_choose_match",
+            "_find_one",
+            "_find_both",
             "_apply_detected",
             "_set_all_patches",
             "_reset_patches_to_defaults",
@@ -328,8 +253,8 @@ class AutodetectTests(unittest.TestCase):
         source = (ROOT / "src" / "tycoon_fix_patcher_gui.py").read_text(
             encoding="utf-8"
         )
-        self.assertIn('text="Autodetect Games"', source)
-        self.assertIn('text="Scan a Folder..."', source)
+        self.assertIn('text="Find Both in Parent Folder..."', source)
+        self.assertNotIn("scan_for_games", source)
         self.assertIn('("Enable All", ', source)
         self.assertIn('("Disable All", ', source)
         self.assertIn('("Defaults", ', source)
