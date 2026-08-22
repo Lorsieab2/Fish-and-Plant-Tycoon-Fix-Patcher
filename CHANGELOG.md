@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.0.7
+
+- Added an `Autodetect Games` button that searches the usual Windows install
+  locations for the exact `Fish Tycoon.exe` and `Plant Tycoon.exe` and fills in
+  the vanilla and modded folder fields for whatever it finds.
+- Added a `Scan a Folder...` button that runs the same search, deeper, in one
+  folder or drive you choose.
+- The search skips Windows system folders and any existing `- Modded` folder,
+  runs on a background thread with live progress, and stops at a folder and
+  time budget so a slow or cloud-synced location cannot hang the patcher.
+- When one game is found in more than one place, the patcher asks which install
+  to use instead of guessing.
+- Added `Defaults`, `Enable All`, and `Disable All` buttons to each game's
+  patch list.
+- Moved the per-game `Find [Game]...` buttons up beside the new autodetect
+  controls, so they work on both tabs, and every action button is now locked
+  while a scan, patch, or restore is running.
+- The window body now scrolls, so nothing is squeezed on a shorter screen.
+- The search revisits a folder reached again from a nearer root, so a game in
+  the default Steam library is still found after its Program Files ancestor was
+  walked first.
+- README: documented the requirements, the game search, the output-folder
+  naming under its own heading, and how to run the tests.
+
 ## v1.0.5
 
 - Added separate `Find Fish Tycoon in Parent Folder...` and
@@ -52,7 +76,7 @@
 - Preserved exact-build validation, guarded patches, pinned hashes, backups,
   restore, full-folder copying, readback verification, and original icon
   resources.
-## v1.0.6
+## v1.0.7
 
 - Added an opt-in Golden Seahorse repurchase setting targeting store item
   index 18 and its two already-owned purchase gates.

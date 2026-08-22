@@ -13,13 +13,16 @@ import webbrowser
 
 from tycoon_fix_patcher import (
     CombinedPatchError,
+    DEFAULT_SCAN_DEPTH,
     GAMES,
+    ScanResult,
     capture_run,
     default_output_dir,
     find_game_in_parent,
     output_dir_at,
     patch_settings,
     restore_game,
+    scan_for_games,
 )
 
 
@@ -41,7 +44,7 @@ class App(tk.Tk):
         self.title(APP_NAME)
         self._load_brand_images()
         self.geometry("1000x880")
-        self.minsize(860, 720)
+        self.minsize(860, 620)
         self.busy = False
         self.game_choice = tk.StringVar(value="fish")
         self.output_parent = tk.StringVar()
@@ -63,6 +66,15 @@ class App(tk.Tk):
         self.status_var = tk.StringVar(
             value="Choose one game or both games. Close the games before patching."
         )
+        self.detect_status_var = tk.StringVar(
+            value=(
+                "Autodetect searches your usual install locations for the exact "
+                "Fish Tycoon.exe and Plant Tycoon.exe."
+            )
+        )
+        self.busy_controls: list[tk.Widget] = []
+        self._scan_folder = ""
+        self._scan_poll = None
         self._load_settings()
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._close)
@@ -102,8 +114,30 @@ class App(tk.Tk):
         return line
 
     def _build_ui(self) -> None:
-        outer = ttk.Frame(self, padding=18)
-        outer.pack(fill="both", expand=True)
+        # The page is taller than most screens, so the whole body scrolls.
+        viewport = ttk.Frame(self)
+        viewport.pack(fill="both", expand=True)
+        style = ttk.Style(self)
+        self.content_canvas = tk.Canvas(
+            viewport,
+            background=style.lookup("TFrame", "background"),
+            borderwidth=0,
+            highlightthickness=0,
+        )
+        scrollbar = ttk.Scrollbar(
+            viewport, orient="vertical", command=self.content_canvas.yview
+        )
+        self.content_canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        self.content_canvas.pack(side="left", fill="both", expand=True)
+
+        outer = ttk.Frame(self.content_canvas, padding=18)
+        self.content_window = self.content_canvas.create_window(
+            (0, 0), window=outer, anchor="nw"
+        )
+        outer.bind("<Configure>", self._content_resized)
+        self.content_canvas.bind("<Configure>", self._viewport_resized)
+        self.bind_all("<MouseWheel>", self._scroll_content)
 
         heading = ttk.Frame(outer)
         heading.pack(fill="x")
@@ -120,6 +154,7 @@ class App(tk.Tk):
                 "The selected vanilla folders are never replaced."
             ),
         ).pack(anchor="w")
+        self._build_detect_box(outer)
         destination = ttk.LabelFrame(
             outer, text="Where to save the modified game folders", padding=8
         )
@@ -168,6 +203,244 @@ class App(tk.Tk):
 
         self._creator_line(outer, small=True).pack(anchor="w", pady=(8, 0))
 
+    def _content_resized(self, _event: tk.Event) -> None:
+        self.content_canvas.configure(scrollregion=self.content_canvas.bbox("all"))
+
+    def _viewport_resized(self, event: tk.Event) -> None:
+        self.content_canvas.itemconfigure(self.content_window, width=event.width)
+
+    def _scroll_content(self, event: tk.Event) -> str | None:
+        bounds = self.content_canvas.bbox("all")
+        if not bounds or bounds[3] <= self.content_canvas.winfo_height():
+            return None
+        self.content_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
+        return "break"
+
+    def _build_detect_box(self, outer: tk.Widget) -> None:
+        box = ttk.LabelFrame(outer, text="Find your installed games", padding=8)
+        box.pack(fill="x", pady=(8, 0))
+        row = ttk.Frame(box)
+        row.pack(fill="x")
+        self.detect_button = tk.Button(
+            row,
+            text="Autodetect Games",
+            command=self._start_autodetect,
+            bg="#12508f",
+            fg="white",
+            activebackground="#0e4074",
+            activeforeground="white",
+            font=("Segoe UI", 10, "bold"),
+            padx=14,
+            pady=5,
+        )
+        self.detect_button.pack(side="left")
+        self.busy_controls.append(self.detect_button)
+        self.scan_folder_button = ttk.Button(
+            row,
+            text="Scan a Folder...",
+            command=self._start_folder_scan,
+        )
+        self.scan_folder_button.pack(side="left", padx=8)
+        self.busy_controls.append(self.scan_folder_button)
+        for game_id, spec in GAMES.items():
+            button = ttk.Button(
+                row,
+                text=f"Find {spec.title}...",
+                command=lambda value=game_id: self._find_one(value),
+            )
+            button.pack(side="left", padx=(0, 8))
+            self.busy_controls.append(button)
+        ttk.Label(
+            box,
+            textvariable=self.detect_status_var,
+            wraplength=920,
+            justify="left",
+        ).pack(anchor="w", pady=(6, 0))
+
+    def _set_busy(self, busy: bool) -> None:
+        """Lock every action while one runs, dropping rebuilt panel widgets."""
+        self.busy = busy
+        state = "disabled" if busy else "normal"
+        live = []
+        for widget in self.busy_controls:
+            try:
+                if not widget.winfo_exists():
+                    continue
+                widget.configure(state=state)
+            except tk.TclError:
+                continue
+            live.append(widget)
+        self.busy_controls = live
+
+    def _start_autodetect(self) -> None:
+        self._run_scan(None, DEFAULT_SCAN_DEPTH, "your usual install locations")
+
+    def _start_folder_scan(self) -> None:
+        chosen = filedialog.askdirectory(
+            title="Choose a folder to search for Fish Tycoon and Plant Tycoon",
+            initialdir=str(Path.home()),
+        )
+        if not chosen:
+            return
+        self._run_scan([chosen], DEFAULT_SCAN_DEPTH + 2, chosen)
+
+    def _run_scan(
+        self, roots: list[str] | None, max_depth: int, description: str
+    ) -> None:
+        if self.busy:
+            return
+        self._set_busy(True)
+        self._scan_folder = ""
+        self.detect_status_var.set(f"Searching {description}...")
+        self.log.insert("end", f"\n=== Autodetect games ({description}) ===\n")
+        self.log.see("end")
+        self._poll_scan_progress()
+
+        def record(path: Path) -> None:
+            # Runs on the worker thread, so it only stores a string for the poll.
+            self._scan_folder = str(path)
+
+        def worker() -> None:
+            try:
+                result = scan_for_games(roots, max_depth=max_depth, on_progress=record)
+                self.after(0, lambda: self._finish_scan(result, ""))
+            except Exception as exc:
+                self.after(0, lambda value=str(exc): self._finish_scan(None, value))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _poll_scan_progress(self) -> None:
+        if not self.busy:
+            self._scan_poll = None
+            return
+        current = self._scan_folder
+        if current:
+            self.detect_status_var.set(f"Searching: {current}")
+        self._scan_poll = self.after(200, self._poll_scan_progress)
+
+    def _finish_scan(self, result: ScanResult | None, error: str) -> None:
+        if self._scan_poll is not None:
+            self.after_cancel(self._scan_poll)
+            self._scan_poll = None
+        self._set_busy(False)
+        if error or result is None:
+            self.detect_status_var.set("Autodetect failed.")
+            self.log.insert("end", f"Autodetect failed: {error}\n")
+            self.log.see("end")
+            messagebox.showerror(APP_NAME, error or "Autodetect failed.")
+            return
+
+        applied: list[str] = []
+        missing: list[str] = []
+        for game_id, spec in GAMES.items():
+            matches = result.found(game_id)
+            if not matches:
+                missing.append(spec.title)
+                self.log.insert("end", f"{spec.title}: not found\n")
+                continue
+            for match in matches:
+                self.log.insert("end", f"{spec.title}: found {match}\n")
+            chosen = matches[0] if len(matches) == 1 else self._choose_match(game_id, matches)
+            if chosen is None:
+                missing.append(spec.title)
+                continue
+            self._apply_detected(game_id, chosen)
+            applied.append(spec.title)
+        self._save_settings()
+        self.log.see("end")
+
+        if len(applied) == 1:
+            for game_id, spec in GAMES.items():
+                if spec.title == applied[0]:
+                    self.game_choice.set(game_id)
+                    self._rebuild_one_game()
+                    break
+
+        cut_short = (
+            " The search stopped early, so use Scan a Folder... if a game is missing."
+            if not result.complete
+            else ""
+        )
+        if applied:
+            found_text = f"Filled in: {', '.join(applied)}."
+            if missing:
+                found_text += f" Not filled in: {', '.join(missing)}."
+            self.detect_status_var.set(found_text + cut_short)
+            self.status_var.set(
+                "Autodetect filled in the game folders. Ready to validate."
+            )
+            return
+        self.detect_status_var.set(
+            "No installed Fish Tycoon or Plant Tycoon folder was found." + cut_short
+        )
+        messagebox.showinfo(
+            APP_NAME,
+            f"Autodetect searched {result.folders_scanned} folders and did not find "
+            "Fish Tycoon.exe or Plant Tycoon.exe.\n\n"
+            "Use Scan a Folder... and choose the drive or folder the game is "
+            "installed in.",
+        )
+
+    def _choose_match(self, game_id: str, matches: list[Path]) -> Path | None:
+        """Ask which install to use when one game was found more than once."""
+        spec = GAMES[game_id]
+        win = tk.Toplevel(self)
+        win.title(f"Choose the {spec.title} folder")
+        win.transient(self)
+        win.grab_set()
+        body = ttk.Frame(win, padding=14)
+        body.pack(fill="both", expand=True)
+        ttk.Label(
+            body,
+            text=f"{len(matches)} copies of {spec.vanilla_exe_name} were found.",
+            font=("Segoe UI", 11, "bold"),
+        ).pack(anchor="w")
+        ttk.Label(body, text="Choose the one to patch:").pack(anchor="w", pady=(2, 8))
+        selection = tk.StringVar(value=str(matches[0]))
+        for match in matches:
+            ttk.Radiobutton(
+                body, text=str(match), value=str(match), variable=selection
+            ).pack(anchor="w", pady=1)
+        picked: dict[str, Path | None] = {"value": None}
+
+        def use() -> None:
+            picked["value"] = Path(selection.get())
+            win.destroy()
+
+        buttons = ttk.Frame(body)
+        buttons.pack(anchor="e", pady=(12, 0))
+        ttk.Button(buttons, text="Skip This Game", command=win.destroy).pack(
+            side="left", padx=(0, 8)
+        )
+        ttk.Button(buttons, text="Use This Folder", command=use).pack(side="left")
+        self.wait_window(win)
+        return picked["value"]
+
+    def _apply_detected(self, game_id: str, vanilla: Path) -> None:
+        variables = self.path_vars[game_id]
+        variables["vanilla"].set(str(vanilla))
+        parent = self.output_parent.get().strip()
+        variables["output"].set(
+            str(
+                output_dir_at(game_id, parent)
+                if parent
+                else default_output_dir(game_id, vanilla)
+            )
+        )
+
+    def _set_all_patches(self, game_id: str, enabled: bool) -> None:
+        for variable in self.patch_vars[game_id].values():
+            variable.set(enabled)
+        self._save_settings()
+        word = "enabled" if enabled else "disabled"
+        self.status_var.set(f"{GAMES[game_id].title}: all patches {word}.")
+
+    def _reset_patches_to_defaults(self, game_id: str) -> None:
+        for setting_id, setting in patch_settings(game_id).items():
+            self.patch_vars[game_id][setting_id].set(bool(setting.get("default", False)))
+        self._save_settings()
+        self.status_var.set(f"{GAMES[game_id].title}: patches reset to the defaults.")
+
     def _build_one_tab(self, tab: ttk.Frame) -> None:
         select = ttk.LabelFrame(tab, text="Game", padding=10)
         select.pack(fill="x")
@@ -204,11 +477,14 @@ class App(tk.Tk):
             pady=5,
         )
         self.one_apply.pack(side="left")
-        ttk.Button(
+        self.busy_controls.append(self.one_apply)
+        restore = ttk.Button(
             actions,
             text="Restore Output EXE from Backup",
             command=self._start_restore,
-        ).pack(side="left", padx=8)
+        )
+        restore.pack(side="left", padx=8)
+        self.busy_controls.append(restore)
 
     def _rebuild_one_game(self) -> None:
         if not hasattr(self, "one_game_body"):
@@ -232,17 +508,20 @@ class App(tk.Tk):
 
         finders = ttk.Frame(tab)
         finders.pack(fill="x", pady=(10, 0))
-        for game_id, spec in GAMES.items():
-            ttk.Button(
-                finders,
-                text=f"Find {spec.title} in Parent Folder...",
-                command=lambda value=game_id: self._find_one(value),
-            ).pack(side="left", padx=(0, 8))
-        ttk.Button(
+        both_detect = ttk.Button(
+            finders,
+            text="Autodetect Both Games",
+            command=self._start_autodetect,
+        )
+        both_detect.pack(side="left", padx=(0, 8))
+        self.busy_controls.append(both_detect)
+        find_both = ttk.Button(
             finders,
             text="Find Both in Parent Folder...",
             command=self._find_both,
-        ).pack(side="left")
+        )
+        find_both.pack(side="left")
+        self.busy_controls.append(find_both)
 
         actions = ttk.Frame(tab)
         actions.pack(fill="x", pady=(10, 0))
@@ -269,6 +548,7 @@ class App(tk.Tk):
             pady=5,
         )
         self.both_apply.pack(side="left", padx=8)
+        self.busy_controls.append(self.both_apply)
 
     def _build_game_panel(
         self, parent: tk.Widget, game_id: str, *, compact: bool = False
@@ -302,20 +582,30 @@ class App(tk.Tk):
 
         patches = ttk.LabelFrame(parent, text=f"{spec.title} patches", padding=8)
         patches.pack(fill="x", pady=(8, 0))
+        presets = ttk.Frame(patches)
+        presets.grid(row=0, column=0, sticky="w", pady=(0, 6))
+        for text, command in (
+            ("Defaults", lambda: self._reset_patches_to_defaults(game_id)),
+            ("Enable All", lambda: self._set_all_patches(game_id, True)),
+            ("Disable All", lambda: self._set_all_patches(game_id, False)),
+        ):
+            button = ttk.Button(presets, text=text, command=command)
+            button.pack(side="left", padx=(0, 6))
+            self.busy_controls.append(button)
         for row, (setting_id, setting) in enumerate(patch_settings(game_id).items()):
             ttk.Checkbutton(
                 patches,
                 text=str(setting.get("name", setting_id)),
                 variable=self.patch_vars[game_id][setting_id],
                 command=self._save_settings,
-            ).grid(row=row * 2, column=0, sticky="w")
+            ).grid(row=row * 2 + 1, column=0, sticky="w")
             if not compact:
                 ttk.Label(
                     patches,
                     text=str(setting.get("description", "")),
                     wraplength=820,
                     foreground="#444444",
-                ).grid(row=row * 2 + 1, column=0, sticky="w", padx=(24, 0), pady=(0, 4))
+                ).grid(row=row * 2 + 2, column=0, sticky="w", padx=(24, 0), pady=(0, 4))
 
     def _path_row(
         self,
@@ -537,9 +827,7 @@ class App(tk.Tk):
             if both
             else ("Dry run" if dry_run else "Create modded copy")
         )
-        self.busy = True
-        self.one_apply.configure(state="disabled")
-        self.both_apply.configure(state="disabled")
+        self._set_busy(True)
         self.status_var.set(f"{label} in progress...")
         self.log.insert("end", f"\n=== {label} ===\n")
 
@@ -569,9 +857,7 @@ class App(tk.Tk):
             )
             return
         self._save_settings()
-        self.busy = True
-        self.one_apply.configure(state="disabled")
-        self.both_apply.configure(state="disabled")
+        self._set_busy(True)
         self.status_var.set("Restore in progress...")
         self.log.insert("end", "\n=== Restore output EXE from backup ===\n")
 
@@ -587,9 +873,7 @@ class App(tk.Tk):
         threading.Thread(target=worker, daemon=True).start()
 
     def _finish_restore(self, text: str, error: str) -> None:
-        self.busy = False
-        self.one_apply.configure(state="normal")
-        self.both_apply.configure(state="normal")
+        self._set_busy(False)
         if text:
             self.log.insert("end", text)
             self.log.see("end")
@@ -610,9 +894,7 @@ class App(tk.Tk):
         error: str,
         dry_run: bool,
     ) -> None:
-        self.busy = False
-        self.one_apply.configure(state="normal")
-        self.both_apply.configure(state="normal")
+        self._set_busy(False)
         if text:
             self.log.insert("end", text)
             self.log.see("end")
