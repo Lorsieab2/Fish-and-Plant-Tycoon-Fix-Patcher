@@ -8,7 +8,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUTS = ROOT / "outputs"
-VERSION = "v1.0.11"
+VERSION = "v1.0.12"
 NAME = f"Fish-and-Plant-Tycoon-Fix-Patcher-{VERSION}.zip"
 FILES = [
     "LICENSE",

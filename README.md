@@ -73,10 +73,36 @@ identity check below before anything is written.
 Choose one parent location in the GUI. The patcher creates complete separate
 output folders named `Fish Tycoon - Modded` and `Plant Tycoon - Modded`.
 Their executables are named `Fish Tycoon - Modded.exe` and
-`Plant Tycoon - Modded.exe`, so the two modified games use only their matching
-`- Modded` save locations. Original folders and executables are not replaced.
+`Plant Tycoon - Modded.exe`. Original folders and executables are not replaced.
 The **One Game** tab also retains each original patcher's verified
 restore-from-backup operation.
+
+### Where your saves go
+
+Both games build their save path as
+`Documents\LDW\<game name>\<exe name><slot>.ldw`. The folder is the game's own
+fixed name, and only the file names come from the executable, through the
+`%s%d.ldw` format string each build carries.
+
+So a modded copy shares the folder with your original game and writes its own
+files beside them:
+
+```
+Documents\LDW\Fish Tycoon\
+    Fish Tycoon0.ldw            <- original: settings
+    Fish Tycoon1.ldw .. 5.ldw   <- original: save slots 1-5
+    Fish Tycoon - Modded0.ldw   <- modded: settings
+    Fish Tycoon - Modded1.ldw   <- modded: save slots
+```
+
+Your original saves are never touched, and the two builds cannot overwrite each
+other. Two things follow that are easy to be surprised by:
+
+- Slot `0` holds settings rather than a save, and it is per-executable too, so a
+  modded copy starts with fresh settings instead of inheriting the ones from
+  your original game.
+- Renaming a modded executable changes which `.ldw` files it uses. Rename it and
+  its saves appear to vanish; they are still there under the old name.
 
 ## Safety
 
