@@ -22,6 +22,8 @@ Each is wrapped so store item 11 takes the normal buy path and every other item
 keeps its original behaviour. Verified in game: the price shows, the purchase
 charges, and the seahorse appears in the first free tank.
 
+The setting is now on by default, alongside the other three fixes.
+
 Everything shipped for this setting before v1.0.12 was wrong. It targeted item
 18, the Diver Ornament; its jump landed one byte before its own wrapper; and
 its second hook sat on the research items' code path. Those are recorded in

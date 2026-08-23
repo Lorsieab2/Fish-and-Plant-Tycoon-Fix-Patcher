@@ -108,9 +108,9 @@
     {
       "id": "golden_seahorse_repurchase",
       "name": "Buy Multiple Golden Seahorses",
-      "description": "Lets you buy the Golden Seahorse again after you already own one, as many times as you like, so you can keep more than one. The base game blocks this in three separate places, all of which key off the ownership dword at state + index*20 + 0x78: the store click handler refuses at VA 0x4282CA, the purchase routine returns before charging at VA 0x427B66, and the panel shows 'This is in your inventory.' instead of the price at VA 0x42735C. Each is wrapped so store item 11, the Golden Seahorse, takes the normal buy path while every other item keeps its original behaviour exactly. Touches 7 places.",
+      "description": "Allows purchasing of multiple Golden Seahorses, in case you trash or lose it somehow. The base game blocks a second purchase in three separate places, all keyed off the ownership dword at state + index*20 + 0x78: the store click handler refuses at VA 0x4282CA, the purchase routine returns before charging at VA 0x427B66, and the panel shows 'This is in your inventory.' instead of the price at VA 0x42735C. Each is wrapped so store item 11, the Golden Seahorse, takes the normal buy path while every other item keeps its original behaviour exactly. Touches 7 places.",
       "category": "main",
-      "default": false
+      "default": true
     }
   ],
   "patches": [

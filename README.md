@@ -31,9 +31,9 @@ never needs the internet.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and
   egg types.
-- Buy Multiple Golden Seahorses, optional and off by default. Lets you buy the
-  Golden Seahorse again once you own one, so you can keep more than one. It
-  shipped broken from v1.0.6 and was fixed in v1.0.12; see
+- Buy Multiple Golden Seahorses. Allows purchasing of multiple Golden
+  Seahorses, in case you trash or lose it somehow. It shipped broken from
+  v1.0.6 and was fixed in v1.0.12; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
 
 ### Plant Tycoon
