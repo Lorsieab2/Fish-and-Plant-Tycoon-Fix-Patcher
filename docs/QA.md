@@ -1,5 +1,19 @@
 # QA
 
+## v1.0.14
+
+- Combined unit tests: 34 passed, including five covering the new detail view.
+- Expanding every disclosure in the running GUI grows the scroll region from
+  1480 to 3303 pixels with no errors, and collapsing restores it.
+- Detail coverage checked against the manifest: the set of offsets shown for a
+  setting equals the set it installs, checksum records excluded.
+- Virtual addresses spot-checked against the documented ones: plant 0x42E23B,
+  fish 0x4204CE and 0x401E11.
+- Each location is listed once: Unknown Chemical shows 3, universal slots 14,
+  matching their distinct offsets rather than their manifest entry counts.
+- Breaking the grouping makes the new guards fail; restoring it passes.
+
+
 ## v1.0.13
 
 - Combined unit tests: 29 passed, including two new drift guards.

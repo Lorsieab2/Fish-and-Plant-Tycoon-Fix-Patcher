@@ -105,6 +105,138 @@ def find_game_in_parent(game_id: str, parent_dir: str | Path) -> list[Path]:
     return [candidate for candidate in candidates if candidate.is_file()]
 
 
+# --- Per-patch technical detail ----------------------------------------------
+
+
+@dataclass(frozen=True)
+class PatchDetail:
+    """One byte-level change, described for a reader rather than a machine."""
+
+    id: str
+    file_offset: int
+    virtual_address: int | None
+    length: int
+    note: str
+
+    @property
+    def where(self) -> str:
+        if self.virtual_address is None:
+            return f"file 0x{self.file_offset:X}"
+        return f"VA 0x{self.virtual_address:X} (file 0x{self.file_offset:X})"
+
+
+def _image_base(manifest: dict) -> int | None:
+    target = manifest.get("target")
+    if not isinstance(target, dict):
+        return None
+    try:
+        return int(str(target.get("image_base")), 0)
+    except (TypeError, ValueError):
+        return None
+
+
+def file_offset_to_va(manifest: dict, offset: int) -> int | None:
+    """Map a file offset to a virtual address using the recorded section layout.
+
+    Falls back to image base + offset, which holds for these two builds because
+    every section's raw offset equals its RVA. Returns None if neither the
+    layout nor an image base is recorded, rather than inventing an address.
+    """
+    base = _image_base(manifest)
+    if base is None:
+        return None
+    layout = (manifest.get("target") or {}).get("section_layout")
+    if isinstance(layout, list):
+        for section in layout:
+            try:
+                raw = int(str(section["raw_offset"]), 0)
+                size = int(str(section["raw_size"]), 0)
+                rva = int(str(section["virtual_address"]), 0)
+            except (KeyError, TypeError, ValueError):
+                continue
+            if raw <= offset < raw + size:
+                return base + rva + (offset - raw)
+    return base + offset
+
+
+def setting_patch_details(game_id: str, setting_id: str) -> list[PatchDetail]:
+    """Every byte-level change a single setting is responsible for.
+
+    A patch is attributed to a setting when that setting appears in its
+    `requires`. Entries are grouped by the location they change, because a
+    location is what a reader thinks of as one change: several manifest patches
+    can write the same place, differing only in which other settings are also
+    enabled, and listing each of those separately would overstate how much the
+    setting does. Where such variants exist the note says so. The PE checksum
+    records are excluded; they are bookkeeping, not behaviour, and there is one
+    per setting combination.
+    """
+    manifest = load_manifest(game_id)
+    patches = manifest.get("patches")
+    if not isinstance(patches, list):
+        return []
+
+    grouped: dict[int, list[dict]] = {}
+    for patch in patches:
+        if not isinstance(patch, dict):
+            continue
+        if str(patch.get("id", "")).startswith("update_pe_checksum"):
+            continue
+        if setting_id not in (patch.get("requires") or []):
+            continue
+        try:
+            offset = int(str(patch.get("offset")), 0)
+        except (TypeError, ValueError):
+            continue
+        grouped.setdefault(offset, []).append(patch)
+
+    details: list[PatchDetail] = []
+    for offset in sorted(grouped):
+        variants = grouped[offset]
+        first = variants[0]
+        note = str(first.get("note", "")).strip()
+        replacements = {"".join(str(v.get("replacement", "")).split()) for v in variants}
+        if len(variants) > 1:
+            if len(replacements) > 1:
+                note += (
+                    f" One of {len(variants)} variants for this location; which bytes are "
+                    "written depends on the other settings you enable."
+                )
+            else:
+                note += (
+                    f" The manifest carries {len(variants)} entries for this location so the "
+                    "change applies under each combination of the other settings; the bytes "
+                    "written are the same."
+                )
+        details.append(
+            PatchDetail(
+                id=str(first.get("id", "")),
+                file_offset=offset,
+                virtual_address=file_offset_to_va(manifest, offset),
+                length=len("".join(str(first.get("expected", "")).split())) // 2,
+                note=note.strip(),
+            )
+        )
+    return details
+
+
+def setting_checksum_note(game_id: str) -> str:
+    """One line covering the checksum records, which are otherwise noise."""
+    manifest = load_manifest(game_id)
+    count = sum(
+        1
+        for patch in manifest.get("patches", [])
+        if isinstance(patch, dict) and str(patch.get("id", "")).startswith("update_pe_checksum")
+    )
+    if not count:
+        return ""
+    return (
+        f"Plus one of {count} PE checksum records, chosen to match whichever "
+        "combination of settings you enable, so the executable stays internally "
+        "consistent."
+    )
+
+
 def _namespace(
     game_id: str,
     vanilla_dir: str | Path,

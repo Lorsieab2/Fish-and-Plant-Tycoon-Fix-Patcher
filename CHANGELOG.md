@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.0.14
+
+The patcher now shows what each setting actually changes, not just what it is
+for. No patch data, manifest or executable output changed.
+
+- Every setting gained a **Technical details** disclosure listing each byte-level
+  change it installs: the virtual address, the file offset, the size, and the
+  note explaining what that change does and why. Collapsed by default, so the
+  window stays readable for players and the detail is one click away for anyone
+  who wants it.
+- The PE checksum records are summarised in one line rather than listed
+  individually; there is one per setting combination and they are bookkeeping
+  rather than behaviour.
+- Entries are grouped by the location they change, so several manifest entries
+  writing the same place appear once, with a note saying variants exist.
+- Tests assert every setting has detail, every change carries a note, the
+  virtual addresses match the known layout, and nothing a setting installs is
+  missing from what the reader sees.
+
+
 ## v1.0.13
 
 Quality pass. No patch data, manifest or executable output changed.

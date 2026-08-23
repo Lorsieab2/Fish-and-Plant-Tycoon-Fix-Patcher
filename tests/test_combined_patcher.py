@@ -467,5 +467,90 @@ class OutputRecognitionTests(unittest.TestCase):
             self.assertFalse(fish_patcher.recognized_output(Path(raw), manifest))
 
 
+class PatchDetailTests(unittest.TestCase):
+    """The per-patch detail the GUI shows must be complete and truthful."""
+
+    def test_every_setting_has_detail_and_every_change_is_explained(self) -> None:
+        for game_id in combined.GAMES:
+            for setting_id in combined.patch_settings(game_id):
+                details = combined.setting_patch_details(game_id, setting_id)
+                self.assertTrue(details, f"{game_id}/{setting_id} has no detail")
+                for detail in details:
+                    self.assertTrue(
+                        detail.note, f"{detail.id} has no note to show the reader"
+                    )
+                    self.assertGreater(detail.length, 0, detail.id)
+
+    def test_virtual_addresses_match_the_known_layout(self) -> None:
+        # VA = image base + file offset holds for both builds, and these two are
+        # quoted throughout the docs, so they pin the mapping.
+        plant = combined.setting_patch_details("plant", "no_old_age_plant_deaths")
+        self.assertEqual([d.virtual_address for d in plant], [0x42E23B])
+        fish = {
+            d.file_offset: d.virtual_address
+            for d in combined.setting_patch_details("fish", "crimson_comet_20_percent_cure")
+        }
+        self.assertEqual(fish[0x204CE], 0x4204CE)
+        self.assertEqual(fish[0x1E11], 0x401E11)
+
+    def test_each_location_is_listed_once(self) -> None:
+        # A reader counts changes by location. Several manifest entries can
+        # write the same place, differing only in which other settings are on;
+        # listing each separately overstates what the setting does.
+        for game_id in combined.GAMES:
+            for setting_id in combined.patch_settings(game_id):
+                offsets = [
+                    d.file_offset
+                    for d in combined.setting_patch_details(game_id, setting_id)
+                ]
+                self.assertEqual(
+                    len(offsets),
+                    len(set(offsets)),
+                    f"{game_id}/{setting_id} lists a location more than once",
+                )
+
+    def test_shared_locations_say_that_variants_exist(self) -> None:
+        # The Unknown Chemical count reset is written by more than one manifest
+        # entry at 0x210B7; the reader should be told rather than shown a bare
+        # duplicate or a silently dropped variant.
+        detail = next(
+            d
+            for d in combined.setting_patch_details("fish", "unknown_chemical_three_uses")
+            if d.file_offset == 0x210B7
+        )
+        self.assertIn("entries for this location", detail.note)
+
+    def test_checksum_records_are_not_listed_as_changes(self) -> None:
+        for game_id in combined.GAMES:
+            for setting_id in combined.patch_settings(game_id):
+                for detail in combined.setting_patch_details(game_id, setting_id):
+                    self.assertNotIn("checksum", detail.id)
+        self.assertIn("checksum", combined.setting_checksum_note("fish").lower())
+
+    def test_detail_covers_every_behavioural_patch_of_a_setting(self) -> None:
+        # Nothing a setting installs may be missing from what the reader sees.
+        for game_id in combined.GAMES:
+            manifest = combined.load_manifest(game_id)
+            for setting_id in combined.patch_settings(game_id):
+                installed = {
+                    int(str(p["offset"]), 0)
+                    for p in manifest["patches"]
+                    if setting_id in (p.get("requires") or [])
+                    and not str(p["id"]).startswith("update_pe_checksum")
+                }
+                shown = {d.file_offset for d in combined.setting_patch_details(game_id, setting_id)}
+                self.assertEqual(
+                    installed,
+                    shown,
+                    f"{game_id}/{setting_id}: detail omits {sorted(installed - shown)}",
+                )
+
+    def test_gui_renders_the_detail_behind_a_disclosure(self) -> None:
+        source = (ROOT / "src" / "tycoon_fix_patcher_gui.py").read_text(encoding="utf-8")
+        self.assertIn("_technical_details", source)
+        self.assertIn("setting_patch_details", source)
+        self.assertIn("Technical details", source)
+
+
 if __name__ == "__main__":
     unittest.main()
