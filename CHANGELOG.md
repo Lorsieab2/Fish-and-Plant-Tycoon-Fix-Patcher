@@ -29,6 +29,17 @@ Everything shipped for this setting before v1.0.12 was wrong. It targeted item
 its second hook sat on the research items' code path. Those are recorded in
 docs/golden-seahorse-defects.md.
 
+### Other
+
+- Plant Tycoon's old-age setting now spells out the routine: a plant's age
+  starts at 0, becomes eligible once it passes 1720.0 internal age units (the
+  double at VA 0x4695E0), and from then every update rolls Random(1000) and
+  kills on 0-9, a 1% chance per eligible update that keeps recurring for the
+  rest of the plant's life. The patch makes that range empty, so the chance is
+  exactly 0. Plants still die of neglect and disease.
+- Credited Claude AI's contribution in the patcher and in the repository
+  description.
+
 ### Documentation
 
 - Corrected the save-location claim. The docs said each modded build used its

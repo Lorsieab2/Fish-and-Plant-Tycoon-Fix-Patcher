@@ -188,11 +188,11 @@ class CombinedPatcherTests(unittest.TestCase):
     def test_requested_creator_description_is_exact(self) -> None:
         self.assertEqual(
             gui.CREATOR_DESCRIPTION,
-            "🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟",
+            "🪴 Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :) 🐟",
         )
         self.assertEqual(
             gui.CREATOR_TEXT,
-            "Created with Codex AI. Made with love by Lorsieab2 :)",
+            "Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :)",
         )
 
     def test_supplied_picture_assets_are_used(self) -> None:

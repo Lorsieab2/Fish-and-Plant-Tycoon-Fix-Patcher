@@ -1,6 +1,6 @@
 FISH & PLANT TYCOON FIX PATCHER
 
-🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟
+🪴 Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :) 🐟
 
 0. Use the free Windows downloads from LDW's own site, https://ldw.com.
    Those are the only supported copies. Builds from anywhere else are

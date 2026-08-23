@@ -2,7 +2,7 @@
 
 <img src="assets/fish.png" alt="Fish" width="96"> <img src="assets/plant.png" alt="Potted plant" width="96">
 
-🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟
+🪴 Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :) 🐟
 
 An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
