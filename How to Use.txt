@@ -48,7 +48,7 @@ Fish Tycoon options:
 - Crimson Comet 20% curing fix
 - Unknown Chemical: 3 uses
 - Universal supply slots 2-4
-- Golden Seahorse repurchase (optional, off by default)
+- Buy Multiple Golden Seahorses (optional, off by default)
 
 Plant Tycoon option:
 - No old-age plant deaths

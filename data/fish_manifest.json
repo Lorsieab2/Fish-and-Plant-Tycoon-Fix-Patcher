@@ -1,26 +1,26 @@
 {
   "manifest_version": 3,
-  "id": "fish-tycoon-pc-fixes-v9",
+  "id": "fish-tycoon-pc-fixes-v13",
   "name": "Fish Tycoon Fix Patcher",
-  "version": "v1.2.6",
+  "version": "v1.2.10",
   "description": "Repairs Crimson Comet curing, fixes Unknown Chemical uses, and lets the exact supported supplies stack in slots 2-4.",
-  "patched_sha256": "B32E8DA9CBC8427FCFCC7F6F5DF982EAB0F080E6E44223256AE4C43829BC242E",
+  "patched_sha256": "F6BBAF9C770AE11642828BBB4EEDE085727A3F22A30D349476C92C3263C7D321",
   "patched_sha256_by_settings": {
     "crimson_comet_20_percent_cure": "33C8C9469E8E9F7DD460C4A9B9A3A897D2A9505C1E2627988046D8CED097AD9B",
     "unknown_chemical_three_uses": "C57055BF50567BEF767B77295ED070465F104A5A0B1E38342A45E27FF971C82D",
     "universal_supply_slots": "5978BF336DE7D7833094AC2660883E83BCC639565E524EBD546305766C869CA6",
-    "golden_seahorse_repurchase": "B4A427F6CCD5419681CF1400CA32C9B27AD15372C460FEB6F248F2FAF5D9EFFE",
+    "golden_seahorse_repurchase": "4BC47B727CF9EB7E97592B0C13BE94F9EE76B98F9F5A9CEBEC2EAF649B1185EB",
     "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "016B88C90B578472BB0CD8D1CA29906ADCE0540657FDBF72C43EC9E0AA9DFADB",
     "crimson_comet_20_percent_cure,universal_supply_slots": "C235A450F6C514289F8E2DE659E0D60622E2F111D29F45A85C5874C79A4AE697",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase": "E096653654A0206DDB5AB443DBB65382C8885110EC95E17B4F98AA11EC503107",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase": "344E5B1F51DCE5282BF49368597D4074895CBCBF836F9BC1B80C17C740AB709D",
     "universal_supply_slots,unknown_chemical_three_uses": "4D23F8582F5C50FD72D327CA3FEF4EFC24084CCD14E84F27F0811ED772B8D2FF",
-    "golden_seahorse_repurchase,unknown_chemical_three_uses": "F3C1A116699B4A7A6456D777A7DB944C4EACFE67452B3EAE29F8B5363BD2940F",
-    "golden_seahorse_repurchase,universal_supply_slots": "C38B899BDA24D575F3B71A81D9D1BA49FDDB2A6F61787DB780C18FF4703FA2BF",
+    "golden_seahorse_repurchase,unknown_chemical_three_uses": "2D89026DD9249A3C5D432AF6C62C151C68E08031B1914078A9DE60D7B1E825B1",
+    "golden_seahorse_repurchase,universal_supply_slots": "6099F0DABAD2D4E1271AB7321E5F9F2C6235841CF849A86FC18123C231EFCE6B",
     "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "3E4437D9C88B90E56494E53DF8DF33E54856B3179615D035DBE18CDD6E91F314",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "91333AEE539A3C78461971FE17842D5E42EAD947E163918E2D58A4FAFD5E63A0",
-    "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "7479E92119CEB411F62573A965373894CB8269515F2EB1F6B4BC854D3737B72A",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "B32E8DA9CBC8427FCFCC7F6F5DF982EAB0F080E6E44223256AE4C43829BC242E"
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "BA2D26C12DF2BCE399531AF129CFE7832EAC3997D91BB9067EFEDA90E92C6BCA",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "2F7749A07EF79210235FB94DCE55177384D66EAAE2046DCDC77F88D17E254163",
+    "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "6969E235F29172749BBCD80486E9A79CF79B9B95B8F0822C5FB350BDB87D6ADD",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "F6BBAF9C770AE11642828BBB4EEDE085727A3F22A30D349476C92C3263C7D321"
   },
   "target": {
     "exe_name": "Fish Tycoon.exe",
@@ -107,8 +107,8 @@
     },
     {
       "id": "golden_seahorse_repurchase",
-      "name": "Golden Seahorse: allow repurchase",
-      "description": "Lets the Golden Seahorse be bought again after you already own it. Selecting an owned store item normally hits the check at VA 0x4282B0, which shows the 'you already own this' message and stops. For store item 11, the Golden Seahorse, that check is skipped so the purchase continues as if the item were unowned; every other item keeps the original behaviour exactly. Nothing else needs changing: the seahorse's purchase-completion path at VA 0x42800E has no ownership check of its own. Touches 3 places: the gate at VA 0x4282B0, a 26-byte wrapper at VA 0x43F800, and the .text VirtualSize so that wrapper is mapped.",
+      "name": "Buy Multiple Golden Seahorses",
+      "description": "Lets you buy the Golden Seahorse again after you already own one, as many times as you like, so you can keep more than one. The base game blocks this in three separate places, all of which key off the ownership dword at state + index*20 + 0x78: the store click handler refuses at VA 0x4282CA, the purchase routine returns before charging at VA 0x427B66, and the panel shows 'This is in your inventory.' instead of the price at VA 0x42735C. Each is wrapped so store item 11, the Golden Seahorse, takes the normal buy path while every other item keeps its original behaviour exactly. Touches 7 places.",
       "category": "main",
       "default": false
     }
@@ -139,28 +139,6 @@
         "universal_supply_slots"
       ],
       "note": "Same field and value again, applied when Golden Seahorse and universal slots are both on, covering the payload at 0x43F2A0 and the wrappers at 0x43F800 together. Shipped as 0x40000 in v1.0.6-v1.0.8 with the same loader-fatal overlap."
-    },
-    {
-      "id": "install_golden_seahorse_store_selection_wrapper",
-      "file_path": "Fish Tycoon.exe",
-      "offset": "0x3F800",
-      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
-      "replacement": "83 F8 0B 0F 84 08 00 00 00 85 F6 0F 85 D5 8A FE FF 8D 7C 80 1E E9 9C 8A FE FF",
-      "requires": [
-        "golden_seahorse_repurchase"
-      ],
-      "note": "26 bytes at VA 0x43F800, written into verified zero padding. For store item 11 (the Golden Seahorse) it skips the ownership test and continues as if the item were not owned; every other item runs the original 'test esi,esi / jne 0x4282E6' unchanged. It then performs the 'lea edi,[eax+eax*4+0x1E]' the redirect displaced and resumes at VA 0x4282B6."
-    },
-    {
-      "id": "redirect_golden_seahorse_store_selection",
-      "file_path": "Fish Tycoon.exe",
-      "offset": "0x282B0",
-      "expected": "75 34 8D 7C 80 1E",
-      "replacement": "E9 4B 75 01 00 90",
-      "requires": [
-        "golden_seahorse_repurchase"
-      ],
-      "note": "VA 0x4282B0. Replaces the already-owned gate 'jne 0x4282E6' and the 'lea edi,[eax+eax*4+0x1E]' that follows it with a jump to the wrapper at VA 0x43F800, plus one NOP. This is the only ownership gate on the Golden Seahorse's path: its purchase-completion arm at VA 0x42800E has no such check."
     },
     {
       "id": "redirect_crimson_comet_random_call",
@@ -397,6 +375,72 @@
       "note": "English prompt at file 0x43F70. 'Replace eggs in slot #4?' becomes 'Replace item in slot #4?'."
     },
     {
+      "id": "redirect_golden_seahorse_store_blocker",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x282b2",
+      "expected": "8D 7C 80 1E 83 3C BA 03 7D 26",
+      "replacement": "E9 49 75 01 00 90 90 90 90 90",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "VA 0x4282B2 in the store click handler. Replaces the 10 bytes holding 'lea edi,[eax+eax*4+0x1E]', 'cmp dword [edx+edi*4],3' and its 'jge' with a jump to the wrapper at VA 0x43F800 plus NOPs. Confirmed by a runtime watch on the ownership dword (state + index*20 + 0x78): this handler is what runs when Buy is clicked."
+    },
+    {
+      "id": "install_golden_seahorse_store_blocker_wrapper",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x3f800",
+      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "replacement": "83 F8 0B 0F 84 CB 8A FE FF 8D 7C 80 1E 83 3C BA 03 0F 8D CB 8A FE FF E9 A0 8A FE FF",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "Wrapper at VA 0x43F800. For store item 11, the Golden Seahorse, it jumps to VA 0x4282D4, the point that leads to 'push eax / call 0x428080', the purchase itself. This skips the equality test at VA 0x4282CA which compares the ownership dword against the +0x7C field and, when they differ, routes to the refusal. Every other item runs the original instructions and rejoins at VA 0x4282BC unchanged."
+    },
+    {
+      "id": "redirect_golden_seahorse_purchase_gate",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x27b66",
+      "expected": "39 04 2A 7E 0D",
+      "replacement": "E9 B5 7C 01 00",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "VA 0x427B66 in the purchase-completion routine. The original 'cmp dword [edx+ebp], eax' and its 'jle' return early when the ownership dword (index*20 + 0x78) is above zero, so an owned item is never charged for and never granted. Redirected to the wrapper at VA 0x43F820."
+    },
+    {
+      "id": "install_golden_seahorse_purchase_gate_wrapper",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x3f820",
+      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "replacement": "83 F9 0B 0F 84 4F 83 FE FF 39 04 2A 0F 8E 46 83 FE FF E9 34 83 FE FF",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "Wrapper at VA 0x43F820. For store item 11 it jumps to VA 0x427B78, the body that deducts the price and grants the item. Every other item runs the original comparison and branch, so an owned permanent item still returns early exactly as before."
+    },
+    {
+      "id": "redirect_golden_seahorse_inventory_label",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x2735c",
+      "expected": "0F 84 16 01 00 00",
+      "replacement": "E9 DF 84 01 00 90",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "VA 0x42735C in the store panel redraw. The original 'je 0x427478' sends unowned items to the price line while owned ones fall through to the 'This is in your inventory.' text. Redirected to the wrapper at VA 0x43F840."
+    },
+    {
+      "id": "install_golden_seahorse_inventory_label_wrapper",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x3f840",
+      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "replacement": "0F 84 32 7C FE FF 83 7F 10 0B 0F 84 54 7C FE FF E9 0D 7B FE FF",
+      "requires": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "Wrapper at VA 0x43F840. Runs the original branch first so the ownership flags are untouched, then for store item 11 jumps to VA 0x4274A4 so the panel shows the price rather than the inventory notice. Every other item falls through to VA 0x427362 exactly as before."
+    },
+    {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
@@ -410,7 +454,7 @@
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure)."
     },
     {
       "id": "update_pe_checksum_unknown_chemical_three_uses",
@@ -426,7 +470,7 @@
         "golden_seahorse_repurchase",
         "universal_supply_slots"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_universal_supply_slots",
@@ -442,14 +486,14 @@
         "golden_seahorse_repurchase",
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (universal_supply_slots). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (universal_supply_slots)."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "3E 20 06 00",
+      "replacement": "30 37 06 00",
       "requires": [
         "golden_seahorse_repurchase"
       ],
@@ -458,7 +502,7 @@
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (golden_seahorse_repurchase). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase)."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_unknown_chemical_three_uses",
@@ -474,7 +518,7 @@
         "golden_seahorse_repurchase",
         "universal_supply_slots"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots",
@@ -490,14 +534,14 @@
         "golden_seahorse_repurchase",
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_universal_supply_slots). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_universal_supply_slots)."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "E0 CA 06 00",
+      "replacement": "D3 E1 05 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase"
@@ -506,7 +550,7 @@
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase)."
     },
     {
       "id": "update_pe_checksum_universal_supply_slots_unknown_chemical_three_uses",
@@ -522,14 +566,14 @@
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (universal_supply_slots_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (universal_supply_slots_unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase_unknown_chemical_three_uses",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "31 F2 05 00",
+      "replacement": "23 09 06 00",
       "requires": [
         "golden_seahorse_repurchase",
         "unknown_chemical_three_uses"
@@ -538,14 +582,14 @@
         "crimson_comet_20_percent_cure",
         "universal_supply_slots"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (golden_seahorse_repurchase_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase_unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase_universal_supply_slots",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "09 80 06 00",
+      "replacement": "FB 96 06 00",
       "requires": [
         "golden_seahorse_repurchase",
         "universal_supply_slots"
@@ -554,7 +598,7 @@
         "crimson_comet_20_percent_cure",
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (golden_seahorse_repurchase_universal_supply_slots). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase_universal_supply_slots)."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses",
@@ -570,14 +614,14 @@
       "excludes": [
         "golden_seahorse_repurchase"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_unknown_chemical_three_uses",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "D3 9C 06 00",
+      "replacement": "C5 B3 06 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase",
@@ -586,14 +630,14 @@
       "excludes": [
         "universal_supply_slots"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "AC 2A 06 00",
+      "replacement": "9E 41 06 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase",
@@ -602,14 +646,14 @@
       "excludes": [
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots)."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "AD 41 06 00",
+      "replacement": "9F 58 06 00",
       "requires": [
         "golden_seahorse_repurchase",
         "universal_supply_slots",
@@ -618,14 +662,14 @@
       "excludes": [
         "crimson_comet_20_percent_cure"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "50 EC 05 00",
+      "replacement": "42 03 06 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase",
@@ -633,7 +677,7 @@
         "unknown_chemical_three_uses"
       ],
       "excludes": [],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses)."
     }
   ]
 }
