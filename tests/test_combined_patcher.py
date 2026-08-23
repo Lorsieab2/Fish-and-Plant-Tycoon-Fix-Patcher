@@ -391,10 +391,15 @@ class ReleasePackagingTests(unittest.TestCase):
             encoding="utf-8"
         ).splitlines()[0]
         version = str(combined.load_manifest("fish")["version"])
-        self.assertIn(
+        # Compare the whole version token, not a substring: "v1.2.10" occurs
+        # inside "v1.2.100", so a containment check would accept a drifted
+        # heading, which is the very thing this guard exists to catch.
+        found = re.search(r"v\d+(?:\.\d+)*", heading)
+        self.assertIsNotNone(found, f"no version token in heading {heading!r}")
+        self.assertEqual(
+            found.group(0),
             version,
-            heading,
-            f"technical details heading {heading!r} does not name manifest {version}",
+            f"technical details heading names {found.group(0)}, manifest is {version}",
         )
 
     def test_no_shipped_doc_calls_a_working_setting_broken(self) -> None:
