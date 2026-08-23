@@ -493,6 +493,33 @@ class PatchDetailTests(unittest.TestCase):
         self.assertEqual(fish[0x204CE], 0x4204CE)
         self.assertEqual(fish[0x1E11], 0x401E11)
 
+    def test_each_location_is_listed_once(self) -> None:
+        # A reader counts changes by location. Several manifest entries can
+        # write the same place, differing only in which other settings are on;
+        # listing each separately overstates what the setting does.
+        for game_id in combined.GAMES:
+            for setting_id in combined.patch_settings(game_id):
+                offsets = [
+                    d.file_offset
+                    for d in combined.setting_patch_details(game_id, setting_id)
+                ]
+                self.assertEqual(
+                    len(offsets),
+                    len(set(offsets)),
+                    f"{game_id}/{setting_id} lists a location more than once",
+                )
+
+    def test_shared_locations_say_that_variants_exist(self) -> None:
+        # The Unknown Chemical count reset is written by more than one manifest
+        # entry at 0x210B7; the reader should be told rather than shown a bare
+        # duplicate or a silently dropped variant.
+        detail = next(
+            d
+            for d in combined.setting_patch_details("fish", "unknown_chemical_three_uses")
+            if d.file_offset == 0x210B7
+        )
+        self.assertIn("entries for this location", detail.note)
+
     def test_checksum_records_are_not_listed_as_changes(self) -> None:
         for game_id in combined.GAMES:
             for setting_id in combined.patch_settings(game_id):

@@ -163,46 +163,60 @@ def setting_patch_details(game_id: str, setting_id: str) -> list[PatchDetail]:
     """Every byte-level change a single setting is responsible for.
 
     A patch is attributed to a setting when that setting appears in its
-    `requires`. Variants that differ only by which other settings are also on
-    are collapsed, so the reader sees each distinct change once. The PE
-    checksum records are excluded; they are bookkeeping, not behaviour, and
-    there is one per setting combination.
+    `requires`. Entries are grouped by the location they change, because a
+    location is what a reader thinks of as one change: several manifest patches
+    can write the same place, differing only in which other settings are also
+    enabled, and listing each of those separately would overstate how much the
+    setting does. Where such variants exist the note says so. The PE checksum
+    records are excluded; they are bookkeeping, not behaviour, and there is one
+    per setting combination.
     """
     manifest = load_manifest(game_id)
     patches = manifest.get("patches")
     if not isinstance(patches, list):
         return []
-    details: list[PatchDetail] = []
-    seen: set[tuple[int, str]] = set()
+
+    grouped: dict[int, list[dict]] = {}
     for patch in patches:
         if not isinstance(patch, dict):
             continue
-        identifier = str(patch.get("id", ""))
-        if identifier.startswith("update_pe_checksum"):
+        if str(patch.get("id", "")).startswith("update_pe_checksum"):
             continue
-        requires = patch.get("requires") or []
-        if setting_id not in requires:
+        if setting_id not in (patch.get("requires") or []):
             continue
         try:
             offset = int(str(patch.get("offset")), 0)
         except (TypeError, ValueError):
             continue
-        expected = "".join(str(patch.get("expected", "")).split())
-        length = len(expected) // 2
-        key = (offset, identifier.rsplit("_for_", 1)[0])
-        if key in seen:
-            continue
-        seen.add(key)
+        grouped.setdefault(offset, []).append(patch)
+
+    details: list[PatchDetail] = []
+    for offset in sorted(grouped):
+        variants = grouped[offset]
+        first = variants[0]
+        note = str(first.get("note", "")).strip()
+        replacements = {"".join(str(v.get("replacement", "")).split()) for v in variants}
+        if len(variants) > 1:
+            if len(replacements) > 1:
+                note += (
+                    f" One of {len(variants)} variants for this location; which bytes are "
+                    "written depends on the other settings you enable."
+                )
+            else:
+                note += (
+                    f" The manifest carries {len(variants)} entries for this location so the "
+                    "change applies under each combination of the other settings; the bytes "
+                    "written are the same."
+                )
         details.append(
             PatchDetail(
-                id=identifier,
+                id=str(first.get("id", "")),
                 file_offset=offset,
                 virtual_address=file_offset_to_va(manifest, offset),
-                length=length,
-                note=str(patch.get("note", "")).strip(),
+                length=len("".join(str(first.get("expected", "")).split())) // 2,
+                note=note.strip(),
             )
         )
-    details.sort(key=lambda item: item.file_offset)
     return details
 
 

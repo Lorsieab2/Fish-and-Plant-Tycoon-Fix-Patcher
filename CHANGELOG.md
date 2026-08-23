@@ -13,6 +13,8 @@ for. No patch data, manifest or executable output changed.
 - The PE checksum records are summarised in one line rather than listed
   individually; there is one per setting combination and they are bookkeeping
   rather than behaviour.
+- Entries are grouped by the location they change, so several manifest entries
+  writing the same place appear once, with a note saying variants exist.
 - Tests assert every setting has detail, every change carries a note, the
   virtual addresses match the known layout, and nothing a setting installs is
   missing from what the reader sees.

@@ -9,6 +9,9 @@
   setting equals the set it installs, checksum records excluded.
 - Virtual addresses spot-checked against the documented ones: plant 0x42E23B,
   fish 0x4204CE and 0x401E11.
+- Each location is listed once: Unknown Chemical shows 3, universal slots 14,
+  matching their distinct offsets rather than their manifest entry counts.
+- Breaking the grouping makes the new guards fail; restoring it passes.
 
 
 ## v1.0.13
