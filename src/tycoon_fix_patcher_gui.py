@@ -20,6 +20,8 @@ from tycoon_fix_patcher import (
     output_dir_at,
     patch_settings,
     restore_game,
+    setting_checksum_note,
+    setting_patch_details,
 )
 
 
@@ -429,20 +431,91 @@ class App(tk.Tk):
             button = ttk.Button(presets, text=text, command=command)
             button.pack(side="left", padx=(0, 6))
             self.busy_controls.append(button)
-        for row, (setting_id, setting) in enumerate(patch_settings(game_id).items()):
+        body = ttk.Frame(patches)
+        body.grid(row=1, column=0, sticky="ew")
+        patches.columnconfigure(0, weight=1)
+        for setting_id, setting in patch_settings(game_id).items():
+            entry = ttk.Frame(body)
+            entry.pack(fill="x", anchor="w", pady=(0, 6))
             ttk.Checkbutton(
-                patches,
+                entry,
                 text=str(setting.get("name", setting_id)),
                 variable=self.patch_vars[game_id][setting_id],
                 command=self._save_settings,
-            ).grid(row=row * 2 + 1, column=0, sticky="w")
-            if not compact:
+            ).pack(anchor="w")
+            if compact:
+                continue
+            ttk.Label(
+                entry,
+                text=str(setting.get("description", "")),
+                wraplength=820,
+                foreground="#444444",
+                justify="left",
+            ).pack(anchor="w", padx=(24, 0))
+            self._technical_details(entry, game_id, setting_id)
+
+    def _technical_details(
+        self, parent: tk.Widget, game_id: str, setting_id: str
+    ) -> None:
+        """A collapsed list of every byte this setting changes, and why.
+
+        Kept behind a disclosure so the window stays readable for players while
+        the detail is one click away for anyone who wants it.
+        """
+        details = setting_patch_details(game_id, setting_id)
+        if not details:
+            return
+        holder = ttk.Frame(parent)
+        holder.pack(fill="x", anchor="w", padx=(24, 0), pady=(2, 0))
+        content = ttk.Frame(holder)
+        label = f"Technical details — {len(details)} change" + ("s" if len(details) != 1 else "")
+        link = tk.Label(
+            holder,
+            text=f"▸ {label}",
+            fg="#0057c2",
+            cursor="hand2",
+            font=("Segoe UI", 9, "underline"),
+        )
+        link.pack(anchor="w")
+
+        for detail in details:
+            ttk.Label(
+                content,
+                text=f"{detail.where}  ·  {detail.length} bytes",
+                font=("Consolas", 9, "bold"),
+                foreground="#12508f",
+            ).pack(anchor="w", pady=(4, 0))
+            if detail.note:
                 ttk.Label(
-                    patches,
-                    text=str(setting.get("description", "")),
-                    wraplength=820,
-                    foreground="#444444",
-                ).grid(row=row * 2 + 2, column=0, sticky="w", padx=(24, 0), pady=(0, 4))
+                    content,
+                    text=detail.note,
+                    wraplength=760,
+                    justify="left",
+                    foreground="#333333",
+                ).pack(anchor="w", padx=(14, 0))
+        checksum = setting_checksum_note(game_id)
+        if checksum:
+            ttk.Label(
+                content,
+                text=checksum,
+                wraplength=760,
+                justify="left",
+                foreground="#666666",
+            ).pack(anchor="w", pady=(6, 0))
+
+        shown = tk.BooleanVar(value=False)
+
+        def toggle(_event: tk.Event | None = None) -> None:
+            if shown.get():
+                content.pack_forget()
+                link.configure(text=f"▸ {label}")
+            else:
+                content.pack(fill="x", anchor="w", pady=(2, 4))
+                link.configure(text=f"▾ {label}")
+            shown.set(not shown.get())
+            self.after_idle(self._content_resized, None)
+
+        link.bind("<Button-1>", toggle)
 
     def _path_row(
         self,

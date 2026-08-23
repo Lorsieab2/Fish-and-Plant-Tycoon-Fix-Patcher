@@ -105,6 +105,124 @@ def find_game_in_parent(game_id: str, parent_dir: str | Path) -> list[Path]:
     return [candidate for candidate in candidates if candidate.is_file()]
 
 
+# --- Per-patch technical detail ----------------------------------------------
+
+
+@dataclass(frozen=True)
+class PatchDetail:
+    """One byte-level change, described for a reader rather than a machine."""
+
+    id: str
+    file_offset: int
+    virtual_address: int | None
+    length: int
+    note: str
+
+    @property
+    def where(self) -> str:
+        if self.virtual_address is None:
+            return f"file 0x{self.file_offset:X}"
+        return f"VA 0x{self.virtual_address:X} (file 0x{self.file_offset:X})"
+
+
+def _image_base(manifest: dict) -> int | None:
+    target = manifest.get("target")
+    if not isinstance(target, dict):
+        return None
+    try:
+        return int(str(target.get("image_base")), 0)
+    except (TypeError, ValueError):
+        return None
+
+
+def file_offset_to_va(manifest: dict, offset: int) -> int | None:
+    """Map a file offset to a virtual address using the recorded section layout.
+
+    Falls back to image base + offset, which holds for these two builds because
+    every section's raw offset equals its RVA. Returns None if neither the
+    layout nor an image base is recorded, rather than inventing an address.
+    """
+    base = _image_base(manifest)
+    if base is None:
+        return None
+    layout = (manifest.get("target") or {}).get("section_layout")
+    if isinstance(layout, list):
+        for section in layout:
+            try:
+                raw = int(str(section["raw_offset"]), 0)
+                size = int(str(section["raw_size"]), 0)
+                rva = int(str(section["virtual_address"]), 0)
+            except (KeyError, TypeError, ValueError):
+                continue
+            if raw <= offset < raw + size:
+                return base + rva + (offset - raw)
+    return base + offset
+
+
+def setting_patch_details(game_id: str, setting_id: str) -> list[PatchDetail]:
+    """Every byte-level change a single setting is responsible for.
+
+    A patch is attributed to a setting when that setting appears in its
+    `requires`. Variants that differ only by which other settings are also on
+    are collapsed, so the reader sees each distinct change once. The PE
+    checksum records are excluded; they are bookkeeping, not behaviour, and
+    there is one per setting combination.
+    """
+    manifest = load_manifest(game_id)
+    patches = manifest.get("patches")
+    if not isinstance(patches, list):
+        return []
+    details: list[PatchDetail] = []
+    seen: set[tuple[int, str]] = set()
+    for patch in patches:
+        if not isinstance(patch, dict):
+            continue
+        identifier = str(patch.get("id", ""))
+        if identifier.startswith("update_pe_checksum"):
+            continue
+        requires = patch.get("requires") or []
+        if setting_id not in requires:
+            continue
+        try:
+            offset = int(str(patch.get("offset")), 0)
+        except (TypeError, ValueError):
+            continue
+        expected = "".join(str(patch.get("expected", "")).split())
+        length = len(expected) // 2
+        key = (offset, identifier.rsplit("_for_", 1)[0])
+        if key in seen:
+            continue
+        seen.add(key)
+        details.append(
+            PatchDetail(
+                id=identifier,
+                file_offset=offset,
+                virtual_address=file_offset_to_va(manifest, offset),
+                length=length,
+                note=str(patch.get("note", "")).strip(),
+            )
+        )
+    details.sort(key=lambda item: item.file_offset)
+    return details
+
+
+def setting_checksum_note(game_id: str) -> str:
+    """One line covering the checksum records, which are otherwise noise."""
+    manifest = load_manifest(game_id)
+    count = sum(
+        1
+        for patch in manifest.get("patches", [])
+        if isinstance(patch, dict) and str(patch.get("id", "")).startswith("update_pe_checksum")
+    )
+    if not count:
+        return ""
+    return (
+        f"Plus one of {count} PE checksum records, chosen to match whichever "
+        "combination of settings you enable, so the executable stays internally "
+        "consistent."
+    )
+
+
 def _namespace(
     game_id: str,
     vanilla_dir: str | Path,

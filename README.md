@@ -119,8 +119,10 @@ repository or release.
 
 ## What each patch does
 
-Every setting in the GUI lists the addresses it touches and what it changes,
-and every individual byte change carries a note explaining it. Those notes are
+Every setting in the GUI has a **Technical details** disclosure listing each
+byte-level change it installs — virtual address, file offset, size, and what
+that change does. It is collapsed by default. Every individual byte change also
+carries the same note in the patch log. Those notes are
 written into the patch log next to each change, so a completed run records not
 just what bytes moved but why. `docs/fish-tycoon-technical-details.md` and
 `docs/plant-tycoon-technical-details.md` go further into the disassembly.
