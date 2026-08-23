@@ -1,4 +1,4 @@
-# Fish Tycoon Fix Patcher v1.2.6: technical details
+# Fish Tycoon Fix Patcher v1.2.10: technical details
 
 ## Crimson Comet curing
 

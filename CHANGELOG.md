@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.0.13
+
+Quality pass. No patch data, manifest or executable output changed.
+
+- The packaged Fish technical details still carried a v1.2.6 heading while the
+  manifest had moved to v1.2.10, so a reader of the release ZIP was told they
+  were looking at a version that no longer exists. Corrected, and tests now
+  fail if that heading stops naming the manifest version, or if a shipped doc
+  describes a working setting as non-functional.
+- Removed the orphaned v1.0.8 tag, left behind when that release was deleted.
+
+
 ## v1.0.12
 
 ### Buy Multiple Golden Seahorses

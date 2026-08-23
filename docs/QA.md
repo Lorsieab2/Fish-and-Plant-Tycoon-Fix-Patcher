@@ -1,5 +1,17 @@
 # QA
 
+## v1.0.13
+
+- Combined unit tests: 29 passed, including two new drift guards.
+- Reverting the technical-details heading to v1.2.6 makes the new guard fail;
+  restoring it passes.
+- Audited every bot finding across all nine pull requests: 7 findings, all
+  answered on their threads and all fixed in code.
+- Version consistency across build_release, CHANGELOG, QA and both manifests:
+  passed.
+- Every tag now has a release behind it.
+
+
 ## v1.0.12
 
 - Combined unit tests: 27 passed.
