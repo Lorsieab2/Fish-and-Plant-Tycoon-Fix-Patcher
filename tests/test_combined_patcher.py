@@ -381,6 +381,30 @@ class ReleasePackagingTests(unittest.TestCase):
                         f"{patch['id']} points at {named}, which the ZIP omits",
                     )
 
+    def test_technical_doc_version_matches_the_manifest(self) -> None:
+        """A version in a shipped doc must not drift from the manifest it describes.
+
+        The doc goes out in the release ZIP, so a stale heading tells a reader
+        they are looking at an implementation that no longer exists.
+        """
+        heading = (ROOT / "docs" / "fish-tycoon-technical-details.md").read_text(
+            encoding="utf-8"
+        ).splitlines()[0]
+        version = str(combined.load_manifest("fish")["version"])
+        self.assertIn(
+            version,
+            heading,
+            f"technical details heading {heading!r} does not name manifest {version}",
+        )
+
+    def test_no_shipped_doc_calls_a_working_setting_broken(self) -> None:
+        # Guards against the reverse drift: a setting that now works still being
+        # described as non-functional in the packaged docs.
+        for name in ("README.md", "How to Use.txt"):
+            text = (ROOT / name).read_text(encoding="utf-8")
+            self.assertNotIn("DOES NOT WORK", text)
+            self.assertNotIn("does not work, leave it off", text.lower())
+
     def test_release_version_matches_the_changelog(self) -> None:
         source = (ROOT / "scripts" / "build_release.py").read_text(encoding="utf-8")
         version = re.search(r'VERSION = "([^"]+)"', source).group(1)
