@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.0.12
+
+Documentation only. No patch data, manifest or executable output changed.
+
+- Corrected the save-location claim. The docs said each modded build used its
+  own "- Modded save location", which reads as a separate folder. It does not:
+  both games build the path as `Documents\LDW\<game name>\<exe name><slot>.ldw`,
+  where the folder is the game's own fixed name and only the file names come
+  from the executable, through the `%s%d.ldw` format string in each build. A
+  modded copy writes its files beside the original ones in the same folder.
+- Documented that slot 0 is the settings file rather than a save, and that it
+  follows the executable name too, so a modded copy starts with fresh settings
+  instead of inheriting the original game's.
+- Documented that renaming a modded executable changes which .ldw files it
+  reads, so its saves appear to vanish until it is named back.
+
+
 ## v1.0.11
 
 Golden Seahorse repurchase now works. It had four defects, not one.

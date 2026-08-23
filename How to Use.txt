@@ -19,9 +19,20 @@ FISH & PLANT TYCOON FIX PATCHER
 
 The patcher creates only "Fish Tycoon - Modded" and/or
 "Plant Tycoon - Modded" beneath the chosen location. Their executables use
-those exact names plus ".exe", keeping their saves in the matching - Modded
-save locations. The patcher remembers the chosen paths. The blue underlined
-paths open those folders in File Explorer.
+those exact names plus ".exe". The patcher remembers the chosen paths. The
+blue underlined paths open those folders in File Explorer.
+
+About your saves: both games save to
+Documents\LDW\(game name)\(exe name)(slot).ldw. The folder is the game's own
+name, and the file names come from the executable. A modded copy therefore
+writes its own files next to your original ones in the same folder, for
+example "Fish Tycoon - Modded1.ldw" beside "Fish Tycoon1.ldw". Your original
+saves are never touched and the two cannot overwrite each other.
+
+Slot 0 is the settings file, not a save, and it follows the executable name
+too, so a modded copy starts with fresh settings. If you rename a modded
+executable its saves will seem to disappear - they are still there under the
+old name.
 
 The original game folders are never replaced. Exact unsupported or already
 modified EXEs are refused. The package contains no game executable or game

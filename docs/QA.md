@@ -1,5 +1,17 @@
 # QA
 
+## v1.0.12
+
+- Save path traced in both executables: the folder comes from a fixed
+  game-name string (Fish VA 0x4422E8, Plant VA 0x467D74) returned by a plain
+  getter, and the file name from `%s%d.ldw` (Fish VA 0x44047C, Plant VA
+  0x4654BC) fed by the executable basename.
+- Layout confirmed against a real installation on disk: Fish Tycoon saves sit
+  in Documents/LDW/Fish Tycoon/ as Fish Tycoon0.ldw through Fish Tycoon2.ldw.
+- Combined unit tests: 27 passed.
+- No manifest, patch data or output hash changed in this release.
+
+
 ## v1.0.11
 
 - Combined unit tests: 24 passed.
