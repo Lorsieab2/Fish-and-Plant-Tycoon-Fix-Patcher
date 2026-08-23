@@ -1,11 +1,45 @@
-# Golden Seahorse repurchase: defects found, and the fix
+# Golden Seahorse: the defects, and how it was finally fixed
 
-The optional `golden_seahorse_repurchase` setting shipped in v1.0.6 with four
-defects. All are fixed as of v1.0.11 and the setting now works. This is the
-record of what was wrong.
+The setting shipped broken in v1.0.6 and stayed broken until v1.0.12. This is
+the record of what was wrong and what actually fixed it.
 
 Addresses use VA = 0x400000 + file offset, which holds for every section in
 this build.
+
+## What actually blocks a second purchase
+
+Ownership lives in one dword per item at `state + index*20 + 0x78`. Three
+separate places read it, and all three had to be handled:
+
+| VA | What it does | Symptom when it fires |
+|---|---|---|
+| 0x4282CA | compares the ownership dword against the `+0x7C` field | Buy is refused outright |
+| 0x427B66 | returns before the price is deducted | prompt appears, nothing charged or granted |
+| 0x42735C | selects the panel text | shows "This is in your inventory." not the price |
+
+Each is now wrapped so store item 11, the Golden Seahorse, takes the normal buy
+path while every other item runs the original instructions unchanged.
+
+The middle one is the reason a half-fix looked like progress: patching only the
+store handler produced a confirm prompt that charged nothing, because the
+purchase routine checks ownership a second time.
+
+## How it was found
+
+Static reading failed three times, each time landing on a plausible gate that
+turned out not to be on the seahorse's path. What settled it was a runtime
+watch. With the ownership address computed from live values, "find out what
+accesses this address" named the instructions directly: 0x00427358 firing
+continuously as the panel redrew, and 0x004282B6 and 0x004282CA firing once
+each on the click.
+
+The lesson worth keeping: the blocking check is not an ownership *test* but an
+equality comparison between two fields, which is why searching the
+disassembly for ownership tests kept missing it. The field's `+0x78`
+displacement is also folded into a scaled index (`lea edx,[eax+eax*4+0x1E]`
+then `[eax+edx*4]`), so it never appears as a literal `0x78` in the listing.
+
+## Earlier defects, all superseded
 
 ## 1. It targeted the wrong item
 

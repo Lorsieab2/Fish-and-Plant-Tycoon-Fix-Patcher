@@ -31,7 +31,7 @@
     {
       "id": "no_old_age_plant_deaths",
       "name": "No old-age plant deaths",
-      "description": "Stops plants dying of old age. Once a plant passes the age threshold the base game rolls Random(1000) on each update and kills it on 0-9, a 1 percent chance every time. The age check and the roll both stay exactly as they were; only the comparison operand changes, at VA 0x42E23B, so no roll in 0-999 can enter the branch that zeroes the plant's health. The chance becomes exactly 0, not merely small. Touches 1 byte.",
+      "description": "Stops plants dying of old age. A plant's age starts at 0 when it is created and counts up in the game's internal age units. Once it passes 1720.0, the threshold held as a double at VA 0x4695E0 and compared at VA 0x42E21F, the plant becomes eligible to die: every update from then on calls Random(1000) at VA 0x42E231 and kills the plant when the roll lands in 0-9. That is a 1 in 100 chance, 1%, on each eligible update, and it keeps rolling for the rest of the plant's life, so a long-lived plant faces it repeatedly. Younger plants are never eligible and are unaffected either way. The patch changes one byte, the comparison operand at VA 0x42E23B, from 9 to -1. Because the branch is a signed compare, no roll in 0-999 can fall in range, so the chance becomes exactly 0 rather than merely small. The age check and the random call both still run untouched; only the death branch is now unreachable. Plants still die of neglect, disease and everything else. Touches 1 byte.",
       "category": "main",
       "default": true
     }

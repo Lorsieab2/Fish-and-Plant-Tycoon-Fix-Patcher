@@ -34,32 +34,35 @@ into the original category slot, calls the unmodified original handler through
 a trampoline, swaps the records back, and restores the physical selected slot.
 This retains the original item effects without duplicating them.
 
-The optional Golden Seahorse repurchase setting targets store item index `11`.
-Counting the store name records at VA `0x004578B4`, which carry 24-byte entries
-beginning at `Ick Treatment`, places the Golden Seahorse at index 11; index 18
-is the Diver Ornament. The count of 26 items matches the `cmp edi, 0x19` bound
-on both store switches, and indices 0-7 are exactly the eight stackable
-consumables the universal slots feature targets.
+The Buy Multiple Golden Seahorses setting targets store item index `11`, and is
+on by default. Counting the store item records at VA `0x00457EF0`, which are
+0x34 bytes each with the index at `+0x10`, places the Golden Seahorse at index
+11; index 18 is the Diver Ornament.
 
-The only ownership gate on that item's path is in the store selection routine
-at VA `0x004282A0`:
+Ownership is one dword per item at `state + index*20 + 0x78`. Three separate
+places read it, and a working patch has to handle all three:
 
-    0x004282AD  test esi, esi            ; owned entry for the selected item
-    0x004282B0  jne  0x004282E6          ; owned -> message 0x1D, return
-    0x004282B2  lea  edi, [eax+eax*4+0x1E]
-    0x004282B6  cmp  dword [edx+edi*4], 3
+| VA | What it does | Symptom if left alone |
+|---|---|---|
+| `0x004282CA` | compares the ownership dword against the `+0x7C` field | Buy is refused outright |
+| `0x00427B66` | returns before the price is deducted | prompt appears, nothing charged or granted |
+| `0x0042735C` | selects the panel text | shows "This is in your inventory." not the price |
 
-Six bytes at `0x004282B0` become a jump to a 26-byte wrapper at VA
-`0x0043F800`, which compares the index against 11, skips the ownership test for
-that one item, performs the displaced `lea`, and resumes at `0x004282B6`. Every
-other item runs the original `test`/`jne` pair unchanged. The seahorse's
-purchase-completion arm at VA `0x0042800E` has no ownership check, so no second
-patch is needed.
+Each is redirected to a wrapper that checks the item index and, for item 11
+only, rejoins the normal buy path: `0x004282D4` for the click handler,
+`0x00427B78` for the purchase body, and `0x004274A4` for the panel. Every other
+item runs the original instructions and rejoins where it always did, so owned
+permanent items still refuse exactly as before.
 
-v1.0.6 through v1.0.10 also hooked VA `0x004281BE`. That is the arm for the
-three research items, indices 23-25, which the seahorse never reaches; the
-wrapper installed there ran off its own end into padding. Those two patches are
-removed. See `golden-seahorse-defects.md`.
+The label wrapper runs the original branch first, before its own comparison, so
+the flags from the ownership compare are still intact when it executes.
+
+Note the displacement never appears literally in a listing: `+0x78` is folded
+into a scaled index, as `lea edx,[eax+eax*4+0x1E]` followed by `[eax+edx*4]`.
+Searching the disassembly for `0x78` will not find these sites. The blocking
+check is also not an ownership test but an equality comparison between two
+fields, which is why three earlier attempts patched the wrong gates. See
+`golden-seahorse-defects.md`.
 
 The original handler ends with `ret 8`, including the Common, Unusual, and Rare
 Egg paths. Its internal invocation therefore removes the wrapper's duplicated

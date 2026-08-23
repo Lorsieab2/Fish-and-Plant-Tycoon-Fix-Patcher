@@ -2,7 +2,7 @@
 
 <img src="assets/fish.png" alt="Fish" width="96"> <img src="assets/plant.png" alt="Potted plant" width="96">
 
-🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟
+🪴 Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :) 🐟
 
 An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
@@ -31,9 +31,9 @@ never needs the internet.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and
   egg types.
-- Golden Seahorse repurchase, optional and off by default. Lets the Golden
-  Seahorse be bought again once owned. It shipped broken in v1.0.6 and was
-  repaired in v1.0.11; see
+- Buy Multiple Golden Seahorses. Allows purchasing of multiple Golden
+  Seahorses, in case you trash or lose it somehow. It shipped broken from
+  v1.0.6 and was fixed in v1.0.12; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
 
 ### Plant Tycoon

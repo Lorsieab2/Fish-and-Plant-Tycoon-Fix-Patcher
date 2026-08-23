@@ -120,7 +120,7 @@ class CombinedPatcherTests(unittest.TestCase):
     def test_current_manifest_versions_and_default_settings(self) -> None:
         fish = combined.load_manifest("fish")
         plant = combined.load_manifest("plant")
-        self.assertEqual(fish["version"], "v1.2.6")
+        self.assertEqual(fish["version"], "v1.2.10")
         self.assertEqual(plant["version"], "v1.0.0")
         self.assertEqual(
             list(combined.patch_settings("fish")),
@@ -188,11 +188,11 @@ class CombinedPatcherTests(unittest.TestCase):
     def test_requested_creator_description_is_exact(self) -> None:
         self.assertEqual(
             gui.CREATOR_DESCRIPTION,
-            "🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟",
+            "🪴 Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :) 🐟",
         )
         self.assertEqual(
             gui.CREATOR_TEXT,
-            "Created with Codex AI. Made with love by Lorsieab2 :)",
+            "Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :)",
         )
 
     def test_supplied_picture_assets_are_used(self) -> None:
@@ -394,7 +394,7 @@ class OutputRecognitionTests(unittest.TestCase):
 
     CASES = (
         ("fish", fish_patcher, ".fish_tycoon_bug_fix_output.json",
-         ["fish-tycoon-pc-fixes-v7", "fish-tycoon-pc-fixes-v8", "fish-tycoon-pc-fixes-v9"]),
+         ["fish-tycoon-pc-fixes-v7", "fish-tycoon-pc-fixes-v8", "fish-tycoon-pc-fixes-v9", "fish-tycoon-pc-fixes-v10", "fish-tycoon-pc-fixes-v11", "fish-tycoon-pc-fixes-v12", "fish-tycoon-pc-fixes-v13"]),
         ("plant", plant_patcher, ".plant_tycoon_fix_output.json",
          ["plant-tycoon-pc-fixes-v1"]),
     )

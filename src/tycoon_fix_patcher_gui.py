@@ -24,8 +24,8 @@ from tycoon_fix_patcher import (
 
 
 APP_NAME = "Fish & Plant Tycoon Fix Patcher"
-CREATOR_DESCRIPTION = "🪴 Created with Codex AI. Made with love by Lorsieab2 :) 🐟"
-CREATOR_TEXT = "Created with Codex AI. Made with love by Lorsieab2 :)"
+CREATOR_DESCRIPTION = "🪴 Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :) 🐟"
+CREATOR_TEXT = "Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :)"
 ROOT = Path(__file__).resolve().parents[1]
 SETTINGS_PATH = ROOT / "patcher_local_settings.json"
 FISH_PICTURE_PATH = ROOT / "assets" / "fish.png"

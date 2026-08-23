@@ -2,15 +2,20 @@
 
 ## v1.0.12
 
-- Save path traced in both executables: the folder comes from a fixed
-  game-name string (Fish VA 0x4422E8, Plant VA 0x467D74) returned by a plain
-  getter, and the file name from `%s%d.ldw` (Fish VA 0x44047C, Plant VA
-  0x4654BC) fed by the executable basename.
-- Layout confirmed against a real installation on disk: Fish Tycoon saves sit
-  in Documents/LDW/Fish Tycoon/ as Fish Tycoon0.ldw through Fish Tycoon2.ldw.
 - Combined unit tests: 27 passed.
-- No manifest, patch data or output hash changed in this release.
-
+- Golden Seahorse verified in game on the exact stock build: the store panel
+  shows the price, the purchase charges, and the seahorse appears in the first
+  free tank.
+- Ownership address derived from live values and confirmed three ways: Fish
+  Food Research at state + 23*20 + 0x78, Environment and Advertising Research
+  at the next two slots, and Money at state + 0x38C matching the disassembly.
+- All 16 setting combinations: no section overruns another, every PE checksum
+  matches its bytes, every pinned hash matches.
+- With the setting off, all three wrapper regions are untouched zero padding.
+- Three-setting build without the seahorse still reproduces SHA-256
+  E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A.
+- Save path traced in both executables and confirmed against a real
+  installation: Documents/LDW/<game name>/<exe name><slot>.ldw.
 
 ## v1.0.11
 

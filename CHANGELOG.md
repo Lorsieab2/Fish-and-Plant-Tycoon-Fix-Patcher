@@ -2,7 +2,45 @@
 
 ## v1.0.12
 
-Documentation only. No patch data, manifest or executable output changed.
+### Buy Multiple Golden Seahorses
+
+The Golden Seahorse setting works, and is renamed from "allow repurchase" to
+"Buy Multiple Golden Seahorses" to say what it actually does. Its display name
+changed; its id did not, so saved selections still resolve.
+
+The base game blocks a second purchase in three separate places, all keyed off
+the ownership dword at `state + index*20 + 0x78`:
+
+- the store click handler compares that dword against the `+0x7C` field at VA
+  0x4282CA and refuses when they differ
+- the purchase routine returns at VA 0x427B66 before the code that deducts the
+  price, so a confirm prompt appears but nothing is charged or granted
+- the panel redraw shows "This is in your inventory." instead of the price at
+  VA 0x42735C
+
+Each is wrapped so store item 11 takes the normal buy path and every other item
+keeps its original behaviour. Verified in game: the price shows, the purchase
+charges, and the seahorse appears in the first free tank.
+
+The setting is now on by default, alongside the other three fixes.
+
+Everything shipped for this setting before v1.0.12 was wrong. It targeted item
+18, the Diver Ornament; its jump landed one byte before its own wrapper; and
+its second hook sat on the research items' code path. Those are recorded in
+docs/golden-seahorse-defects.md.
+
+### Other
+
+- Plant Tycoon's old-age setting now spells out the routine: a plant's age
+  starts at 0, becomes eligible once it passes 1720.0 internal age units (the
+  double at VA 0x4695E0), and from then every update rolls Random(1000) and
+  kills on 0-9, a 1% chance per eligible update that keeps recurring for the
+  rest of the plant's life. The patch makes that range empty, so the chance is
+  exactly 0. Plants still die of neglect and disease.
+- Credited Claude AI's contribution in the patcher and in the repository
+  description.
+
+### Documentation
 
 - Corrected the save-location claim. The docs said each modded build used its
   own "- Modded save location", which reads as a separate folder. It does not:
