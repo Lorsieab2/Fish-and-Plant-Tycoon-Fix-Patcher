@@ -126,5 +126,6 @@ research items are byte-identical to vanilla again.
 - With the setting off, the wrapper region is untouched zero padding.
 - The three-setting build without Golden Seahorse is byte-identical to the
   output recorded in `QA.md` for v1.0.3, so this work disturbed nothing else.
-- In-game confirmation that an owned Golden Seahorse can be bought again:
-  pending.
+- In-game confirmation that an owned Golden Seahorse can be bought again is
+  recorded in `QA.md` under v1.0.12: the price shows, the purchase charges,
+  and the seahorse appears in the first free tank.
