@@ -8,7 +8,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUTS = ROOT / "outputs"
-VERSION = "v1.0.14"
+VERSION = "v1.0.15"
 NAME = f"Fish-and-Plant-Tycoon-Fix-Patcher-{VERSION}.zip"
 FILES = [
     "LICENSE",
@@ -31,7 +31,20 @@ FILES = [
 ]
 
 
+def bundled_asset_files() -> list[str]:
+    """Every pinned asset file, as a repo-relative path, for the release ZIP."""
+    manifest = json.loads((ROOT / "data" / "plant_manifest.json").read_text(encoding="utf-8"))
+    result = []
+    for setting in manifest["settings"]:
+        merge = setting.get("asset_merge")
+        if isinstance(merge, dict):
+            result.extend(f"{merge['source']}/{entry['path']}" for entry in merge["files"])
+    return result
+
+
 def main() -> int:
+    global FILES
+    FILES = FILES + bundled_asset_files()
     OUTPUTS.mkdir(exist_ok=True)
     target = OUTPUTS / NAME
     temp = OUTPUTS / (NAME + ".tmp")

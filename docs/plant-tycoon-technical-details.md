@@ -55,3 +55,19 @@ The PE checksum field at file offset `0x150` changes from `0x000B01BF` to
 This patch prevents only this explicitly identified old-age health-zero write.
 It does not prevent health loss or death from other mechanics. Visible long-term
 gameplay behavior still requires player confirmation.
+
+## Add Missing Assets to LDW Version
+
+This setting does not touch the executable. After the vanilla folder is copied
+to the staging folder, each file under `assets/plant_tycoon_steam/` is merged
+in at the same relative path:
+
+- if the game has no file at that path, the bundled file is copied and
+  re-hashed after writing;
+- if the game has a byte-identical file, it is ignored;
+- if the game has a different file, the game's file is kept.
+
+Nothing is ever replaced. Every bundled file is pinned by size and SHA-256 in
+`data/plant_manifest.json`, and all of them are verified before any output is
+written, including on a dry run. Because the executable is unchanged, the
+setting is left out of the key that selects the pinned executable hash.

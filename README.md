@@ -40,6 +40,11 @@ never needs the internet.
 
 - No old-age plant deaths. The original age check and `Random(1000)` call remain;
   the eligible death range is empty.
+- Add Missing Assets to LDW Version. Adds sounds and images the LDW download is
+  missing, using the Steam version's files. The merge is only additive: a file
+  is copied into the modded folder only where the game lacks it, a game file is
+  never replaced, and a bundled file identical to the game's own is ignored.
+  Turn it off and patch again to get a folder without them.
 
 ## Use
 
@@ -114,8 +119,11 @@ files are read back, and the original icon resources remain intact.
 When both games are selected, both inputs are dry-run validated before either
 output folder is written.
 
-No game executable, save, or original game asset is included in this
-repository or release.
+No game executable or save is included in this repository or release. The one
+exception to shipping game files is `assets/plant_tycoon_steam/`: the sounds and
+images the LDW release of Plant Tycoon is missing, taken from the Steam version.
+LDW no longer updates the games, so there is no other way for the LDW version to
+get them. Each is pinned by size and SHA-256 and refused if it does not match.
 
 ## What each patch does
 

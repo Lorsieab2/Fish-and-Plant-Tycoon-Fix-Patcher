@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "id": "plant-tycoon-pc-fixes-v1",
+  "id": "plant-tycoon-pc-fixes-v2",
   "name": "Plant Tycoon Fix Patcher",
-  "version": "v1.0.0",
-  "description": "Prevents the supported classic Windows Plant Tycoon build from killing plants through its old-age random-death branch.",
+  "version": "v1.1.0",
+  "description": "Fixes the supported classic Windows Plant Tycoon build: stops the old-age random-death branch and restores sounds and images the LDW release is missing.",
   "patched_sha256": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046",
   "patched_sha256_by_settings": {
     "no_old_age_plant_deaths": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046"
@@ -34,6 +34,1598 @@
       "description": "Stops plants dying of old age. A plant's age starts at 0 when it is created and counts up in the game's internal age units. Once it passes 1720.0, the threshold held as a double at VA 0x4695E0 and compared at VA 0x42E21F, the plant becomes eligible to die: every update from then on calls Random(1000) at VA 0x42E231 and kills the plant when the roll lands in 0-9. That is a 1 in 100 chance, 1%, on each eligible update, and it keeps rolling for the rest of the plant's life, so a long-lived plant faces it repeatedly. Younger plants are never eligible and are unaffected either way. The patch changes one byte, the comparison operand at VA 0x42E23B, from 9 to -1. Because the branch is a signed compare, no roll in 0-999 can fall in range, so the chance becomes exactly 0 rather than merely small. The age check and the random call both still run untouched; only the death branch is now unreachable. Plants still die of neglect, disease and everything else. Touches 1 byte.",
       "category": "main",
       "default": true
+    },
+    {
+      "id": "add_missing_ldw_assets",
+      "name": "Add Missing Assets to LDW Version",
+      "description": "Adds sounds and images the LDW download is missing, taken from the Steam version of the game and bundled with this patcher. The merge is only additive: files are copied into the modded game folder only where the game does not already have them. A game file is never replaced, and a bundled file identical to the game's own is ignored. Turning this off and patching again produces a folder without them. The executable is not changed.",
+      "category": "main",
+      "default": true,
+      "asset_merge": {
+        "source": "assets/plant_tycoon_steam",
+        "files": [
+          {
+            "path": "Images/addlSeedBox.png",
+            "size": 91862,
+            "sha256": "807966E9E0889A8ECC984C97B7889BCB0E9BB7BB30011BA86692F66883A683D9"
+          },
+          {
+            "path": "Images/Ananas.png",
+            "size": 63969,
+            "sha256": "7FEE7CC0A92235BE2D6C81C316F6C920FAFA974F6866A63AE105267FE3D57443"
+          },
+          {
+            "path": "Images/Ananas_dead.png",
+            "size": 78482,
+            "sha256": "3ECD1E3B53F701D6731326238826AD751F6C4E951B9F7D44AF258EB11643463E"
+          },
+          {
+            "path": "Images/Ananas_mask.png",
+            "size": 29858,
+            "sha256": "32AF68516C9C6122380EC40B387445B7162DF722EACEB544287BA1B3C6F896F4"
+          },
+          {
+            "path": "Images/arrangementBG01.jpg",
+            "size": 855356,
+            "sha256": "3F529C1AC27D300B6447F89AF5EF2A4889FDB8E2B590A304441A776A41F8F2EB"
+          },
+          {
+            "path": "Images/arrangementBG02.jpg",
+            "size": 546172,
+            "sha256": "080D2F9DAC3852BB920D6B3A117616314666891C16F40BF1D2E49652A10C664E"
+          },
+          {
+            "path": "Images/arrangementBG03.jpg",
+            "size": 589197,
+            "sha256": "E43417C6589D66807E088455910A70964375ECA828D184DA0FC2C699D81FB5E9"
+          },
+          {
+            "path": "Images/arrowdown_strip.png",
+            "size": 11323,
+            "sha256": "CD5E13F89FBE6527C40EA8BAA4B371E4241461F36B3B781F3CA3C71C6C85C43B"
+          },
+          {
+            "path": "Images/arrowglow.png",
+            "size": 5731,
+            "sha256": "0641BB904815BF07A4DDE8E03189061862F35939FA2EDCBB3E3A990DF5B951AE"
+          },
+          {
+            "path": "Images/arrowglowdown.png",
+            "size": 5820,
+            "sha256": "35F03F9FD3870183B7FDEB7E930CE7F2B57AEBCA40E198420164781AB8F2D30E"
+          },
+          {
+            "path": "Images/arrowleftglow.png",
+            "size": 6859,
+            "sha256": "38DAA88E7CADB883C0037420C0142549A02103EAB9D7EF31B558B5EE90BCB677"
+          },
+          {
+            "path": "Images/arrowrightglow.png",
+            "size": 6846,
+            "sha256": "40AC7699AB8C26307DCA774B2E5CB63360C98108CE0EFC643004D96CC40B734A"
+          },
+          {
+            "path": "Images/arrowup_strip.png",
+            "size": 11297,
+            "sha256": "D3F24A7C86CA055641DF2A279BBB4B912676A71415B6B33AA03816BF62A68F39"
+          },
+          {
+            "path": "Images/ball-cactus_Grid.png",
+            "size": 22811,
+            "sha256": "04044F24131D2CEB942DAA376ACD8C7B329D1A9732AFB7AE755DFAF5AF48908D"
+          },
+          {
+            "path": "Images/ball-cactus_Grid_dead.png",
+            "size": 23968,
+            "sha256": "0EB283D90186B2302F30EC3519B112D46B585346A3A49B7DCE26DD57AFCF2AA1"
+          },
+          {
+            "path": "Images/ball-cactus_Grid_mask.png",
+            "size": 7318,
+            "sha256": "4757232E4417C24C3BF0C1713796D74CB11BBA367602D92BC14874B322F86106"
+          },
+          {
+            "path": "Images/Bamboo Tree.png",
+            "size": 17263,
+            "sha256": "D7520714D790281DA2CA0CCC2EFF7FFE11AFAF31F1EC57E3FB5B031044E8857D"
+          },
+          {
+            "path": "Images/Bamboo Tree_dead.png",
+            "size": 18061,
+            "sha256": "085AA9818A8FAB637970A50CC58A762238D8FFF15D3EA9A322B0EBEBE03C0E29"
+          },
+          {
+            "path": "Images/Bamboo Tree_mask.png",
+            "size": 8302,
+            "sha256": "4DEB1E46FEC511406F56FAB87420C73F1E13C103875C472F717DB64DE2836999"
+          },
+          {
+            "path": "Images/BambooMeterFrame1.png",
+            "size": 14155,
+            "sha256": "459439EDF7191A03733D3092E08EAC018562869AA7C5FB1627454B2816785899"
+          },
+          {
+            "path": "Images/Banana Plant.png",
+            "size": 23651,
+            "sha256": "25BEAB9C47F66D9357C72B2FD27A06103CAB4B6013FC96721AC74403ACE86A83"
+          },
+          {
+            "path": "Images/Banana Plant_dead.png",
+            "size": 30618,
+            "sha256": "2400E116D65922D83981992D20A177EDE630B37B436DD0E70462E9B2D538D829"
+          },
+          {
+            "path": "Images/Banana Plant_mask.png",
+            "size": 9836,
+            "sha256": "21DFDD8AB024F3550A836F6B907142134521BEC13A27F80FE641C2D345788848"
+          },
+          {
+            "path": "Images/Banana Tree.png",
+            "size": 12531,
+            "sha256": "42F46F158B20216EC98AD402DAD2DC3E62641D7148F286F2498206A0EFE46FFD"
+          },
+          {
+            "path": "Images/Banana Tree_dead.png",
+            "size": 16737,
+            "sha256": "6ED8C473D32BCF0D25D0D3E75307ADB827D43F4D5E05B7A2E6E6EDE2425A5B34"
+          },
+          {
+            "path": "Images/Banana Tree_mask.png",
+            "size": 5445,
+            "sha256": "151BB5891D8A568A6B371DD3D9DB575D9F4F7A676982D20BBDA1A24C7B3C2C98"
+          },
+          {
+            "path": "Images/barrelBase1.png",
+            "size": 15010,
+            "sha256": "C6C34E8AB3B1D851C20A5D0FFA1F24084CF0DAC8441015184972D75615F26A20"
+          },
+          {
+            "path": "Images/barrelBush1.png",
+            "size": 17477,
+            "sha256": "0A0FA0027A92E42A8BCB00CBA5CDC7FB02AB3FE555819419A181A67FCBCC49A5"
+          },
+          {
+            "path": "Images/bench1.png",
+            "size": 7119,
+            "sha256": "009A878A33DDAB541BDC7673EAAF1E4C2BF97CAEF9B8081F7CC0F2F948A08532"
+          },
+          {
+            "path": "Images/BGPlantTables1.png",
+            "size": 33402,
+            "sha256": "6E7FE187C58696BC70057080C1F38F40B6F8061831FF344210E9081F09FF30A5"
+          },
+          {
+            "path": "Images/birdhouse1.png",
+            "size": 7120,
+            "sha256": "A531E3C2812AB10CB14A3C7F0A565E56A7B638D3EEE6268CC7850FEB75CA3CEF"
+          },
+          {
+            "path": "Images/birdhStrip1.png",
+            "size": 4006,
+            "sha256": "8EE9AAF2D6AD776D722A9F461D9310CFB92ECCABCF1CBCA9213697DF0F144164"
+          },
+          {
+            "path": "Images/blurry_sparkle.png",
+            "size": 5964,
+            "sha256": "792A1477A555A1D8311C60E4E6589FCE3ECE302EE02DB8D392C8C0F9EECDD46F"
+          },
+          {
+            "path": "Images/Bonsai.png",
+            "size": 102704,
+            "sha256": "BF9D7D4251BB2F16E9BCCF344785380389D94F99E3DA3C25323CB103A306C8D0"
+          },
+          {
+            "path": "Images/Bonsai_dead.png",
+            "size": 119298,
+            "sha256": "E5B3E5EE3731059856C36FA3A6FDFA2FBD81FE670AFB5D349DE7EB4F8A8FB5C5"
+          },
+          {
+            "path": "Images/Bonsai_mask.png",
+            "size": 37601,
+            "sha256": "4BC3AF320C671DC1C9B9ED1944F8DEE35E80E7639B5BD285DC7690A5A10C9940"
+          },
+          {
+            "path": "Images/Bop.png",
+            "size": 7013,
+            "sha256": "9BF7B4AC5F4EF15A0C184DC72012BCB93BF0008C6DD9E273C2ADA3303C4D4374"
+          },
+          {
+            "path": "Images/Bop_dead.png",
+            "size": 11105,
+            "sha256": "1208337C1518BAB8320FC0A32B7A1CF6B5A444BDA18A24B25CD31F6D736A5098"
+          },
+          {
+            "path": "Images/Bop_mask.png",
+            "size": 4445,
+            "sha256": "9ED94F46D6A57BAE538A2588E8AE6B7E7A5865DBED26F6E189F46000BDAA4FEB"
+          },
+          {
+            "path": "Images/bug-case.png",
+            "size": 5719,
+            "sha256": "DA4725F89891FF317F9A45982CD81635A1414E2C224EDD3D1FE599994C34E9A1"
+          },
+          {
+            "path": "Images/bugZapper1.png",
+            "size": 10296,
+            "sha256": "E0A543AECEDF5667E269042AC28EF8B6A89A7471363749B6095787BD1086CE13"
+          },
+          {
+            "path": "Images/bushDetailE.png",
+            "size": 14063,
+            "sha256": "2DCB43F644B7FA11BEF8238064433CCD227A1916A75C81FD5F3DD6D35CC51605"
+          },
+          {
+            "path": "Images/bushDetailE2.png",
+            "size": 16257,
+            "sha256": "8D849A130004944BA84EC1F4C5EB24155B58A452F3E7909F11713D9AC12FE533"
+          },
+          {
+            "path": "Images/bushRt.png",
+            "size": 11928,
+            "sha256": "8452DFA560C7BD057A7D6B20B78CA9458A95DC7A7FA394BB5F51093CD13EC2BA"
+          },
+          {
+            "path": "Images/bushRt2.png",
+            "size": 15929,
+            "sha256": "8262FDE16C1A263E6923083EFD701C91E60CD5B065B1831F4EFD31258F0606E6"
+          },
+          {
+            "path": "Images/buybutton.png",
+            "size": 1819,
+            "sha256": "F5C2BDB8C484F23ECECD36A7E6FBB322EB632ACCDDE64638B15D827B219ECAFB"
+          },
+          {
+            "path": "Images/Cactus 1 parts.png",
+            "size": 12894,
+            "sha256": "90BF774A54866DDDC9378A8888D3C4BF7AED768F859580BFDF67717ABAF12265"
+          },
+          {
+            "path": "Images/Cactus 1 parts_dead.png",
+            "size": 19198,
+            "sha256": "3470DCE6C7A6C5F421807F2785578718D6B33A57759A3DDEB8742F7572ACD73E"
+          },
+          {
+            "path": "Images/Cactus 1 parts_mask.png",
+            "size": 6322,
+            "sha256": "B1234764EE79163185B4D47C6BE3730FCE82D24D57B1A6C6FF154B6AB4DB3518"
+          },
+          {
+            "path": "Images/Caladium.png",
+            "size": 23046,
+            "sha256": "664B0A6781C327D9D959D35D87DAF8183778BD80F544489EFD30D474E86679E0"
+          },
+          {
+            "path": "Images/Caladium_dead.png",
+            "size": 29991,
+            "sha256": "BAF9C80E348FCE8C526D9B76F974B18299809BE315AFD19D1AC950D14CC4D68B"
+          },
+          {
+            "path": "Images/Caladium_mask.png",
+            "size": 11416,
+            "sha256": "9FA455A9FB7A6DAB745AA9200F7FDC0877F0450AEC9DD977E4569D45C1F08FF8"
+          },
+          {
+            "path": "Images/cashReg1.png",
+            "size": 10572,
+            "sha256": "0D47AAE744F08F9ACD80B49FD21E42D25A2F62F980E0E25031E36BB524C6AEC8"
+          },
+          {
+            "path": "Images/cashReg2.png",
+            "size": 23252,
+            "sha256": "326DA2BC400EC8BA56BFA017B60171CBE5C4F0C71182785E4846062885A22AE5"
+          },
+          {
+            "path": "Images/change_button.png",
+            "size": 12396,
+            "sha256": "1C9DE5AC14006FD04CBC85279C41BB8E9ADBE1EE532BBB5B77A7AE612AE8D23D"
+          },
+          {
+            "path": "Images/CheckboxStrip.png",
+            "size": 5454,
+            "sha256": "269DEAF8714192478136179DF69A0501C3CF22E74880A3F815127C80709E8158"
+          },
+          {
+            "path": "Images/CHECKMARK.png",
+            "size": 2213,
+            "sha256": "B9C3BE13814CA256B7FC4099CB8790EF7F0BD5777C0744D84EC5151E8291A036"
+          },
+          {
+            "path": "Images/Chemicals_Grid.png",
+            "size": 55299,
+            "sha256": "0CFF0E9E686FA77AC093BA77025EC2F57FFD1588CEE4904FEF82BD90CA07D681"
+          },
+          {
+            "path": "Images/cherub1.png",
+            "size": 7460,
+            "sha256": "8F7913146EDB9EFE9B987F08A2CD88A0591D9FC941DF48217E72F12CC28BDA27"
+          },
+          {
+            "path": "Images/collection_jars.png",
+            "size": 219295,
+            "sha256": "1C24864FA6D8501A2353E7FEE5409B8D232A512DC1B9CB79C28C301743E8293B"
+          },
+          {
+            "path": "Images/collectionLeafGrid.png",
+            "size": 155942,
+            "sha256": "19A89FB52A91D2F70907B7CF59F8089F96A39532021FE7C406D508AD399A1598"
+          },
+          {
+            "path": "Images/collections_bg.jpg",
+            "size": 201319,
+            "sha256": "133D0E166DB4EB09843998B810514BAF910F25BB6FD7F95F592DB04DFD663967"
+          },
+          {
+            "path": "Images/Cowboy Cactus.png",
+            "size": 24890,
+            "sha256": "F9B8C8FC7132DB8DF1E17A538C71763C9FDA92CA09E20BD485656AD4687BA77F"
+          },
+          {
+            "path": "Images/Cowboy Cactus_dead.png",
+            "size": 26107,
+            "sha256": "03088777273D55A8241F3A5F0C149F5E64E5E1313B0C89247E085F82BFDC2824"
+          },
+          {
+            "path": "Images/Cowboy Cactus_mask.png",
+            "size": 7172,
+            "sha256": "F25108ED3DF092B17F94F18D5CB641CA85EAA6E95FC84C76768D0406FF88594D"
+          },
+          {
+            "path": "Images/credits.jpg",
+            "size": 197443,
+            "sha256": "049BA39CCBAE96F3AA68A3F4F997FAB975411E23E0E791895292B5D0DBEB8490"
+          },
+          {
+            "path": "Images/Dieffenbachia.png",
+            "size": 24546,
+            "sha256": "C50E60BA09021FF863280CC95F19070FD1A714CF5C3FF14BB9E0D7F39D7091F5"
+          },
+          {
+            "path": "Images/Dieffenbachia_dead.png",
+            "size": 29719,
+            "sha256": "E3708FD87D3BFE230EEF48EF03D8C7A452563B7836166CFA7BB3B9D4D766AF02"
+          },
+          {
+            "path": "Images/Dieffenbachia_mask.png",
+            "size": 7740,
+            "sha256": "1B82A652D3F9E27969944D7C98C70231C4F6FE9B9F398E56ECE4186BE6E6D3F2"
+          },
+          {
+            "path": "Images/duststrip.png",
+            "size": 437,
+            "sha256": "FE23C59F31EE8535A64970B28583BE1592448B6E85C19818D90E04DA90C068D4"
+          },
+          {
+            "path": "Images/EBushTable1.png",
+            "size": 13348,
+            "sha256": "A1A306CD225E28DD9FB7CA83220008AFC567C14DDAA7A2A62FFC63FEC68A73CA"
+          },
+          {
+            "path": "Images/empty_button.png",
+            "size": 3428,
+            "sha256": "08431F4766D5484C0B700B12354E8FE488298B0147BF08568165209AF3E78DA6"
+          },
+          {
+            "path": "Images/fallingdirt_Grid.png",
+            "size": 19029,
+            "sha256": "11B2F4F4665BE87A4A01AF983CB390056ED6E9D84F99FDFE2B1A588D7CCF2F2A"
+          },
+          {
+            "path": "Images/fallingfood_Grid.png",
+            "size": 15412,
+            "sha256": "E9A006ABBCBDC85AE6242DFD92CFEC5F59990E4A0ECA09F7A82977BF8437AF1E"
+          },
+          {
+            "path": "Images/fallingwater_Grid.png",
+            "size": 16006,
+            "sha256": "2087A6E4248E87794DF08B531F17DAA273D30EFFCB05E396D587EBD5986E478C"
+          },
+          {
+            "path": "Images/female_actions00.png",
+            "size": 230415,
+            "sha256": "6EA07088F7ADB8188A007DC4BD6DA6DCE7DF8FC6E133FC3FC98845ED06D5932D"
+          },
+          {
+            "path": "Images/female_bodies00.png",
+            "size": 412811,
+            "sha256": "1DBBB8679ECF0BD99243C76C52A6371260C752F1485AF88E89E5F1C8D4F8B53D"
+          },
+          {
+            "path": "Images/female_bodies10.png",
+            "size": 355824,
+            "sha256": "E2632BB83FE645710C0D168ADF297BEAB6921B7A2BC07984003369F64AE54EA8"
+          },
+          {
+            "path": "Images/female_heads.png",
+            "size": 352126,
+            "sha256": "D7A4F09B0D685BC2127B663A2EAA5998ED6F2A52B63EABE69DDFB5226A37B22B"
+          },
+          {
+            "path": "Images/female_heads_old.png",
+            "size": 361112,
+            "sha256": "45D8B88F349327578A4E2F72A80D7C9362C04280FBFC282F1D128948C2A629E9"
+          },
+          {
+            "path": "Images/fence1.png",
+            "size": 11546,
+            "sha256": "C93AC6253840FC1B159781D2759D4F3C07870E8FCABA741C40E4B878D5E085CE"
+          },
+          {
+            "path": "Images/fence1BG.png",
+            "size": 11634,
+            "sha256": "9C57E3566F761501745C9CB7BD39984DF152E28368461F4CAFBCA8E5771479A5"
+          },
+          {
+            "path": "Images/fence2.png",
+            "size": 51848,
+            "sha256": "1D61564FE6D609E6D1EB2E600F0EE79222D356BD516969D578D84093C54A0E2F"
+          },
+          {
+            "path": "Images/fence3.png",
+            "size": 20475,
+            "sha256": "7E3975A28571D263FF236DD096F1C7A3B8B62BFD5A2DBB013F845BCD8294010A"
+          },
+          {
+            "path": "Images/fence3BG.png",
+            "size": 19718,
+            "sha256": "DC1DE9EAC32C69147CA1C3786BC444A3810BBC39EEA1FDB7F076C36D967C4527"
+          },
+          {
+            "path": "Images/Fern.png",
+            "size": 68929,
+            "sha256": "BA91C574CCBE717807DEB47C56E3712CE23BF1E93081A0650B78EC7A6BE5467A"
+          },
+          {
+            "path": "Images/Fern_dead.png",
+            "size": 55266,
+            "sha256": "06F41072F61FD7ED7CFD1AEF3A3C4738EE58A2DBA14B47B65BBFB90EFE0A718F"
+          },
+          {
+            "path": "Images/Fern_mask.png",
+            "size": 37634,
+            "sha256": "BD85DAEE3F09380FCFB7445B5CAE677FD9FD77FE29DF2249EBE8C10060E570B6"
+          },
+          {
+            "path": "Images/FGPlantTables1.png",
+            "size": 53823,
+            "sha256": "687F6DBFD7E8C3E512293022AE4C34B766C08F290063DE2B4EECB74B609BBFD4"
+          },
+          {
+            "path": "Images/flies_Grid.png",
+            "size": 2787,
+            "sha256": "06608C7B0DC8CA31E0830999700A69F0F0270311E76A5617544DDF6636A53296"
+          },
+          {
+            "path": "Images/flower1_Grid.png",
+            "size": 17116,
+            "sha256": "C7EC035803A542187307A46ABF5E25558890FD448A04E59F4B8B88B6472B165E"
+          },
+          {
+            "path": "Images/flower1_Grid_dead.png",
+            "size": 114864,
+            "sha256": "EB12E06C1C9A777BAB760638BFD153F53EC73768A4CE6696A5CA41072DC937C5"
+          },
+          {
+            "path": "Images/flower1_Grid_mask.png",
+            "size": 10550,
+            "sha256": "A0F877DE38B88D71BDC1AEF5DD59498B60DC5A9E1808E4E661906996B6722F72"
+          },
+          {
+            "path": "Images/Flowers56x56_Grid.png",
+            "size": 101093,
+            "sha256": "04D9265FC85C66EF027D107FB6F9F8803EA65BB42D0A0010360831A4CB0D0C2D"
+          },
+          {
+            "path": "Images/Flowers56x56_Grid_mask.png",
+            "size": 34294,
+            "sha256": "875C423B1ABEFE7BE77F79850443CA6F9F4BD2C2FDDD676FC19CFE0F7E74797A"
+          },
+          {
+            "path": "Images/flowers64x64_Grid.png",
+            "size": 120229,
+            "sha256": "91480A728E7199DF3BB7CDEA095D280673F1222367FE6F26C5403A5164A330A1"
+          },
+          {
+            "path": "Images/Flowers64x64_Grid_mask.png",
+            "size": 35783,
+            "sha256": "6C26F392A9DFA53E916BB7BC7E11CDFB5FD52C1F71F5436AED51414EF4613F05"
+          },
+          {
+            "path": "Images/foam.png",
+            "size": 23386,
+            "sha256": "2B997C492570D5E65FFACEE2DF85B0C1FE3CB66F29CCE07B029EB0D6E6C1ADB9"
+          },
+          {
+            "path": "Images/font_triplex_sanslightlin_bold_16pt.png",
+            "size": 14355,
+            "sha256": "1FDCB73FB3E2E9BF858EE7B6AB34AAE08E116FFF4199055B10A7DBE467E4539A"
+          },
+          {
+            "path": "Images/fountain1.png",
+            "size": 20607,
+            "sha256": "6AFFC387C46638A9561CD808FCFC5354360081B78DA57E80F5AFA8A9BC2AE32C"
+          },
+          {
+            "path": "Images/fountainBGOverlay.png",
+            "size": 33509,
+            "sha256": "95D4AD55159F33AA55C510ADF50E9598463621FB95676F1DAF968A80B8C73F28"
+          },
+          {
+            "path": "Images/Fruit_Grid.png",
+            "size": 40380,
+            "sha256": "785C233E3D49D43D15D1A40A6B4DFEE937B53A5E70EDA198C95993229671432E"
+          },
+          {
+            "path": "Images/Fruit_Grid_mask.png",
+            "size": 9548,
+            "sha256": "20FCC4841B2F5EA10A79FE131194B1EB722E4D5EBB6CFC72896F8BB30457341F"
+          },
+          {
+            "path": "Images/gamewin_bg.jpg",
+            "size": 539526,
+            "sha256": "DE474BD5A0455A5E6A379D5C7EDEBBE7045F28280C1FD82B584560E797F9F3E6"
+          },
+          {
+            "path": "Images/gate1.png",
+            "size": 6140,
+            "sha256": "0E3796BD1F82E808BFC199298B6A9F32D5D8BFC9AF418CCCD26151E055ACBE14"
+          },
+          {
+            "path": "Images/gate2.png",
+            "size": 11578,
+            "sha256": "7D9BC2D1A5E68C20EC03682A58ED65F25EFC859D20D6E8E61BAAFAD388EFAEF0"
+          },
+          {
+            "path": "Images/gate3.png",
+            "size": 12997,
+            "sha256": "AD2978D6694C869D882E79D96DD05E49F2852F760E5C9043E97B0A8A8C1B4EA4"
+          },
+          {
+            "path": "Images/gate3BG.png",
+            "size": 3144,
+            "sha256": "23A54BCEB4018F60520BDC060B83AD74BE106E6C2829C56DDD258F515BA26E89"
+          },
+          {
+            "path": "Images/goldpot.png",
+            "size": 7421,
+            "sha256": "B6D72ED4EA71FDC4D11C09E1653A276A3CA2A8D2F812E95806B0709388A86D94"
+          },
+          {
+            "path": "Images/GrassKnoll.png",
+            "size": 23754,
+            "sha256": "99FDB16B18E7EC459F728EF7BB690190ABB848B6A631DD2138E5FDF6C9C5CF8D"
+          },
+          {
+            "path": "Images/GreenDlgTileGrid.png",
+            "size": 76144,
+            "sha256": "A92E7468639ACF2EDD1DA814790515EA989EF84AAC768EC440834875A90D697A"
+          },
+          {
+            "path": "Images/greenhouse1.png",
+            "size": 64681,
+            "sha256": "3ED6C117363FB91DE9B7E0B9DA5FF2DD92756339B0951E1581A566D54E67627A"
+          },
+          {
+            "path": "Images/greenhouse2.png",
+            "size": 61708,
+            "sha256": "AC1A17B3E202EE3B784E53920B2DE486AA8E7EC07DD24F4BEE5F4A7C0C437C00"
+          },
+          {
+            "path": "Images/hand.png",
+            "size": 4840,
+            "sha256": "EAF68D38EF9EC79748F3D723677204B56AF5AA1819BD129B54B64A6FAC844D13"
+          },
+          {
+            "path": "Images/hand_open.png",
+            "size": 5052,
+            "sha256": "86B791CF62A09AE02A90894911B9760DFF670B495DEABF57860DEBFA7F1A6021"
+          },
+          {
+            "path": "Images/healthMeter.png",
+            "size": 5035,
+            "sha256": "FFD7F15581469862CE12C278BE0F6B4365B31BB930F3294AFCB6BB111A6C2754"
+          },
+          {
+            "path": "Images/help1.jpg",
+            "size": 131373,
+            "sha256": "39B22646692E8941AAF932057BD7BFB538D598618954D7BC2D731D52E27E563B"
+          },
+          {
+            "path": "Images/help2.jpg",
+            "size": 150414,
+            "sha256": "7EEAD3C4C28D278FBEAB0984E7C613B3B8D419A353DFD1F6D4D7C7ECF7C193C2"
+          },
+          {
+            "path": "Images/help3.jpg",
+            "size": 136152,
+            "sha256": "383ED1D1E8FA223E41CB945ECC38CF756B21DBB30629FAA714CF459AB92D30F2"
+          },
+          {
+            "path": "Images/help4.jpg",
+            "size": 153052,
+            "sha256": "A1F6B69AEE9B2E5D79FED8DCE030ECD2D656B4B4CEFC8C0473CDAF444CC43FF6"
+          },
+          {
+            "path": "Images/help5.jpg",
+            "size": 151879,
+            "sha256": "C6014E1FCABDF13EFE7758A23C1DAD70CD7AE17F6099F2980F0C8F116B8D0E41"
+          },
+          {
+            "path": "Images/help6.jpg",
+            "size": 138354,
+            "sha256": "FB634D649E59155A5E847A72D48BB4529A3466ABCDE6BDFECE5A9BDA48C18248"
+          },
+          {
+            "path": "Images/help_button.png",
+            "size": 10805,
+            "sha256": "E5BD36C99EEE761091BAF58A3918A320CEDEB689DCEB735E2CC8C9CF3CAE340A"
+          },
+          {
+            "path": "Images/hose.png",
+            "size": 118360,
+            "sha256": "7A52E4D042AE1418C10387DD02768C19F70CB89D8382C6452333BA974BD03689"
+          },
+          {
+            "path": "Images/idea_grid.png",
+            "size": 32760,
+            "sha256": "33E34F07EDA35F6170AB01E2AB218705AA26DDD7D3E21BF22F476D83F33D4340"
+          },
+          {
+            "path": "Images/ivy_Grid.png",
+            "size": 22592,
+            "sha256": "44D56C532AC3C982EB118F6B7CF10F29D7FCD6DA0F88059803E4CCBF90F68005"
+          },
+          {
+            "path": "Images/ivy_Grid_dead.png",
+            "size": 95923,
+            "sha256": "593E40820149662D53F831938A10899D6B0286ED56A65B190F30956585E561CB"
+          },
+          {
+            "path": "Images/ivy_Grid_mask.png",
+            "size": 10125,
+            "sha256": "04AFFD00D6599AEBAE04C7E32312C96D3233BE5260C17CECE6B0B1477BF17D05"
+          },
+          {
+            "path": "Images/ldw_logo.png",
+            "size": 13545,
+            "sha256": "F84F928CFE304B1F7CA60506F58C458DBE7EF0AC83C58748291C482C38FA8A95"
+          },
+          {
+            "path": "Images/ldwarialbold.png",
+            "size": 12270,
+            "sha256": "6859F38FF99479004AAA20D798EF7D2E40BED68AC29464975D0D4FC94C8DE619"
+          },
+          {
+            "path": "Images/leftarrow.png",
+            "size": 13936,
+            "sha256": "4789335EC0D208F90703637818C9CA230AE4028CEF7AABA61B494A512A5435D5"
+          },
+          {
+            "path": "Images/Lemon Grass.png",
+            "size": 21246,
+            "sha256": "CA249247F6DAB3D6C55465D2E466EADF9C693A72F8C1F3DC5A1D535933DC9659"
+          },
+          {
+            "path": "Images/Lemon Grass_dead.png",
+            "size": 27855,
+            "sha256": "D65DC9B02A06D61E64532D76FC9050436B7478E21813300BF10F7DA87A67BEFD"
+          },
+          {
+            "path": "Images/Lemon Grass_mask.png",
+            "size": 13272,
+            "sha256": "71EF27EE975F5D5E0AF5AD79C0AB69762A6A9201A7631B17EA337B24D66DF64F"
+          },
+          {
+            "path": "Images/Lemon Tree.png",
+            "size": 44372,
+            "sha256": "33825E9392473C141F27C87D3CD0F669A3CD9E395D7B7D315ED2E76E2288A73A"
+          },
+          {
+            "path": "Images/Lemon Tree_dead.png",
+            "size": 52745,
+            "sha256": "06190D3C58DACB5DA42C01CCA90A865FB474E2E9FCEBABF91EB9583E77D9AA57"
+          },
+          {
+            "path": "Images/Lemon Tree_mask.png",
+            "size": 23265,
+            "sha256": "608262C6D59BA296739B25471B6BBC6A69A001A11E42F6880300FB94B9767057"
+          },
+          {
+            "path": "Images/lightbeam.png",
+            "size": 22994,
+            "sha256": "BD2BA41C53DD4D66228CB706F6EC0717338BE20D8EA18F1D4BB0E0B55C6C20D1"
+          },
+          {
+            "path": "Images/lit_button.png",
+            "size": 11119,
+            "sha256": "564331FE739B920EFABA686998C3A1A642B97688D1969674E2BF470D915D98FA"
+          },
+          {
+            "path": "Images/LoadColor.png",
+            "size": 228,
+            "sha256": "3DDB3C2F5783FBE46F4FC2B44BA7E5DA8FE4519E241ABA6A75E263B6D0054F9A"
+          },
+          {
+            "path": "Images/loading.jpg",
+            "size": 40687,
+            "sha256": "D152A1FD9C6AC749F8E652B43E7363DFE7F4621F49A3258643526C1A78D3AD87"
+          },
+          {
+            "path": "Images/logo1.gif",
+            "size": 2704,
+            "sha256": "2B7784E6298183078245EF269B3F3FE40EA73B5BF0DD4B896F49471909F5C3C7"
+          },
+          {
+            "path": "Images/logo1.png",
+            "size": 60866,
+            "sha256": "EE8A79990550A46474524F5EF499A8531CC15298ABAE8D85D96B7636BFB6443A"
+          },
+          {
+            "path": "Images/main_bg.png",
+            "size": 690477,
+            "sha256": "5965CD6EA97D2F96943031EE63879638887A545A44409E0A5A56EF2250696B92"
+          },
+          {
+            "path": "Images/main_wide_button.png",
+            "size": 10921,
+            "sha256": "0CB693C08A84C963057622A353C4932DC32DA180B0D60737EBB619138DFDA98F"
+          },
+          {
+            "path": "Images/male_actions00.png",
+            "size": 222231,
+            "sha256": "E0320CE024000EB3BB0A5BFF9D870E56BC8DACB96841C452024455C256E9D57C"
+          },
+          {
+            "path": "Images/male_Bodies00.png",
+            "size": 383799,
+            "sha256": "9B4EEACFC880669220F5CCDA9194E1FA0D7A4CE8749F0C85C3704F069D1F44F5"
+          },
+          {
+            "path": "Images/male_Bodies10.png",
+            "size": 362134,
+            "sha256": "7911C1F3D678A0247DF489F9B1F98CA0EC5632836EEAC8B5800E408183752FA1"
+          },
+          {
+            "path": "Images/male_heads.png",
+            "size": 154569,
+            "sha256": "BC05B4753FBD62E3D003964A9C137D66376ABD1F9C4DDD89792A041A21E25014"
+          },
+          {
+            "path": "Images/male_heads_old.png",
+            "size": 315154,
+            "sha256": "54400892BA8AFA4CFEA7D7D8620C87FA016DD0AB5D3D9581B014D025C047504D"
+          },
+          {
+            "path": "Images/Menu_BG.jpg",
+            "size": 223353,
+            "sha256": "F85BC9CE46751552ACD736C4DA7E0CDE6797DFCB50D3DDD9A51B512E67D4700E"
+          },
+          {
+            "path": "Images/net.png",
+            "size": 19614,
+            "sha256": "A0F5618630B4C529D4EA89C4E6B53D9E872DEAE7EBCC61D920960587AEA9CD86"
+          },
+          {
+            "path": "Images/Nursery_BG.jpg",
+            "size": 168728,
+            "sha256": "E7BB9E4FF59FB2E9EE749EEFDDCCF70E20B04546CE8A9E431D4DEC4692E1D665"
+          },
+          {
+            "path": "Images/Nurseryborder.png",
+            "size": 233304,
+            "sha256": "945D67486CD9650442EFC451A698486CBE06B42A08B23842489DD5FA934F9EE2"
+          },
+          {
+            "path": "Images/nurseryUI.png",
+            "size": 84683,
+            "sha256": "3D4B78798B93C77EBC5B0787BD23742BD1EE5C4CEF2192BDB0B63A811B694C09"
+          },
+          {
+            "path": "Images/Oak Tree.png",
+            "size": 78039,
+            "sha256": "8A8ECD1BC69242D4D8CBB5C01D3032F3C0674F51E30CAC51834184238F4173A1"
+          },
+          {
+            "path": "Images/Oak Tree_dead.png",
+            "size": 75769,
+            "sha256": "3BCAD887620A5DBD2DCB9B2E42511221191BEFC57B7503F38F11E6A5C25276EF"
+          },
+          {
+            "path": "Images/Oak Tree_mask.png",
+            "size": 24882,
+            "sha256": "90C7273A688963F08DB7A3C6B610EDC3E106AC0F3D1C982126D4EE1E0ABF4D14"
+          },
+          {
+            "path": "Images/options_button.png",
+            "size": 14311,
+            "sha256": "0E2971090C95AE718B56AD62DB06675ACEA778EEEAE39D6A1EB85087D82FA688"
+          },
+          {
+            "path": "Images/OrangeDlgTileGrid.png",
+            "size": 76144,
+            "sha256": "A92E7468639ACF2EDD1DA814790515EA989EF84AAC768EC440834875A90D697A"
+          },
+          {
+            "path": "Images/Orchid.png",
+            "size": 29345,
+            "sha256": "6EE1AA6F6D56C723601B002AE043955888216D52F3586B5A1BA8155ACB713CE4"
+          },
+          {
+            "path": "Images/Orchid_dead.png",
+            "size": 27755,
+            "sha256": "6554AA37A13F7525849D4F0DB29E2F546ABCAD4EAC4FB3383A1AE425F28837CE"
+          },
+          {
+            "path": "Images/Orchid_mask.png",
+            "size": 11775,
+            "sha256": "6CEA795EAD6B3E71C08DF3B811C10F38C09E82993037B6F2F885FFE8A05E41F1"
+          },
+          {
+            "path": "Images/Ornaments_Grid.png",
+            "size": 64468,
+            "sha256": "7C64802052E15D3C7123AD7B0A6E83FCD80895B09E19F28225073DDACA2664A2"
+          },
+          {
+            "path": "Images/owl1.png",
+            "size": 7634,
+            "sha256": "ED68C621B2D215F6B2B00D1D5D6844EA9931CB7959B0DB7D5988EF858695D9D7"
+          },
+          {
+            "path": "Images/paddington_tt_18.png",
+            "size": 12951,
+            "sha256": "DA8CD717EB3C397167900F9F79CC0F0A447C28502097324080E76A13749B9B5A"
+          },
+          {
+            "path": "Images/peep_shadow1.png",
+            "size": 3935,
+            "sha256": "9A3592700D6244AB28410B98B7FB3F5C9C64F13C2C882EB7C53023FF27250B6E"
+          },
+          {
+            "path": "Images/PhotoMsg.png",
+            "size": 6515,
+            "sha256": "D759F69D47F3CC1449F2784118A2FE563FE38FEEDBD686E1054295BB9D4308A2"
+          },
+          {
+            "path": "Images/Pitcher Plant.png",
+            "size": 10150,
+            "sha256": "ECB596CA09BB654644CDDAEEF30E47D76BDAB215CF3E1920FE426393F9D8AF63"
+          },
+          {
+            "path": "Images/Pitcher Plant_dead.png",
+            "size": 15183,
+            "sha256": "3689FAB9DEFEDE0EF9755F430F4278D740D59C318D5042412883478F1E60F5E5"
+          },
+          {
+            "path": "Images/Pitcher Plant_mask.png",
+            "size": 4402,
+            "sha256": "DDCFEF0653A5E382F9598FA7DFF84AC0F910FE8FE3D91683AC2D821265BEF976"
+          },
+          {
+            "path": "Images/plant_focus.png",
+            "size": 3136,
+            "sha256": "48C33D3038357C2E422F3AA34C3D0C90C73A9C17DEC9FAC599DE4403B9568FDF"
+          },
+          {
+            "path": "Images/play_button.png",
+            "size": 10667,
+            "sha256": "5146645F09EE70AB458384A6B59B65CFFBC59575B0EEBF869EC7587AF54D4DDD"
+          },
+          {
+            "path": "Images/playername_button.png",
+            "size": 11165,
+            "sha256": "4E0AF7AB9BB7DF3936D21F78A2773F78C5E37768F64928723C9A9B7A6AEF29A2"
+          },
+          {
+            "path": "Images/PointyBushE1.png",
+            "size": 15881,
+            "sha256": "D39B8CCDEFA9F1DB3FA1A3C68F05D7B3AB56E2013B4D949C9B9D7FE15A8C3707"
+          },
+          {
+            "path": "Images/pollen_clump.png",
+            "size": 1131,
+            "sha256": "1B3171B7F2FF05E31AB58ABFB82D02323CB4A6F7ED901D110BA154D3089C122E"
+          },
+          {
+            "path": "Images/pot.png",
+            "size": 68826,
+            "sha256": "5F43FB14C7E9554817BA7F11E7BCCE7AF7F09862B06824572F643C1C6F37DB8B"
+          },
+          {
+            "path": "Images/pricetag.png",
+            "size": 7556,
+            "sha256": "81D8709DE6DE3C9C1927C3731FE530ED3E9C512254CE99CAC8ED9E7B09A425AE"
+          },
+          {
+            "path": "Images/PTfontbig.png",
+            "size": 19463,
+            "sha256": "984025A3E9E3D35A2BC5263E6A50F8C5A5B10BFEDD0D95E8CC7F0F3F694CD7E5"
+          },
+          {
+            "path": "Images/PTfontsmall.png",
+            "size": 12613,
+            "sha256": "BB164652BFB73BB7F9CDB4E8BE1E5DC4E20762FBB435B1887002DE6751DFB9B2"
+          },
+          {
+            "path": "Images/PTwinbuy.gif",
+            "size": 80976,
+            "sha256": "FC3D291247014E382A87B260B2978EC798ABC3029A4CD19D82A825A77C502651"
+          },
+          {
+            "path": "Images/purplePTButton.png",
+            "size": 23745,
+            "sha256": "7B691D552FCE692BDF936ED008C261AD6292497FBE745CAD4783B109BE6DEC05"
+          },
+          {
+            "path": "Images/quit_button.png",
+            "size": 10512,
+            "sha256": "B58970B6C62997D30A8F966BF51E7E46B5C9B334920A0A6CC04DAF28F2DA54B0"
+          },
+          {
+            "path": "Images/radioblank.png",
+            "size": 4380,
+            "sha256": "54AEF91674629474B63D80CEE1BE4EC8CC013FDC9856D6CB8F2B480B457623FE"
+          },
+          {
+            "path": "Images/radioselected.png",
+            "size": 5267,
+            "sha256": "3CCA58F2DFB53D5AD1EFFD387FC8CC3E2D57208B24B5A656CCA8574F7E5200FA"
+          },
+          {
+            "path": "Images/Ridged Cactus.png",
+            "size": 15933,
+            "sha256": "CAF8BAE6847402A2C3343C0848D29685958A8EA9134B57DE553F15B5B96324F1"
+          },
+          {
+            "path": "Images/Ridged Cactus_dead.png",
+            "size": 17543,
+            "sha256": "66D648D10B85BC63AEFC3017B99ECAF021B3F12D86ADA85F701739F144E6E807"
+          },
+          {
+            "path": "Images/Ridged Cactus_mask.png",
+            "size": 5516,
+            "sha256": "C387C7F4215348651D2A4F538B4835A68025A717D1F26E386B5DA8C6D9189A94"
+          },
+          {
+            "path": "Images/rightarrow.png",
+            "size": 13735,
+            "sha256": "FF3A76A6F56064244BBAF011D1CB9D5B5523F36A81613DC296E4D46F99BDEAE3"
+          },
+          {
+            "path": "Images/scissors.png",
+            "size": 12777,
+            "sha256": "F929E2BC8BA8A19ACE523E05F913BA1E6008B0A3334189702C2B76A2D13A9A6E"
+          },
+          {
+            "path": "Images/seed_Grid.png",
+            "size": 202385,
+            "sha256": "9AA1C1E941FAA00FCD37470F22D917D4D31435AF50E5B0CF162AD9E425EBB231"
+          },
+          {
+            "path": "Images/SeedBox_BG.jpg",
+            "size": 282901,
+            "sha256": "B67256F3557C1A5748D6C91669904A06E5D6B7C5F54A5362D83B8BAAD9FA713E"
+          },
+          {
+            "path": "Images/sell_button.png",
+            "size": 13444,
+            "sha256": "769EE6725CD40007C20F2FEE97536AB70BE7371512512C5CCB193B3F9D2B56B2"
+          },
+          {
+            "path": "Images/shadowsmall.png",
+            "size": 992,
+            "sha256": "E3F72A09B2CD21432E67D1769521AFE865B49A6B76338355490883831D5C3054"
+          },
+          {
+            "path": "Images/sharp_sparkle.png",
+            "size": 6510,
+            "sha256": "E76D40306C90413DEF1B7F7C5190898714B0FB1EDD4D7CD4E329CC60C0DDDD9C"
+          },
+          {
+            "path": "Images/sign1.png",
+            "size": 9704,
+            "sha256": "78E63E2ABBC819A34A25CCC6A065AC92CE2B9034B97B2745BF0F690590B1E1F4"
+          },
+          {
+            "path": "Images/sign2.png",
+            "size": 15156,
+            "sha256": "44E2A7D0D02C65D421BD2D01B2EA8A92D1E9E78F04001EFD99433FF09CB1A15B"
+          },
+          {
+            "path": "Images/singleTable1.png",
+            "size": 8640,
+            "sha256": "DB100CEA02BBB9814EF58951FDFF01AB7AD778741E7CDAF11F80159D9CCA93DF"
+          },
+          {
+            "path": "Images/sliderhandle.png",
+            "size": 2242,
+            "sha256": "341FE0E59F8EED5D9FFDCDD4D7591814022816FAC8D7E14EBB9FED5BCCF2BB4B"
+          },
+          {
+            "path": "Images/small_bugs.png",
+            "size": 306185,
+            "sha256": "FEC6347A260D47EDBAAFBFAFF790C1D40E49B85F104D2178E3DFB071DD3A7A1F"
+          },
+          {
+            "path": "Images/small_logo.png",
+            "size": 16841,
+            "sha256": "A994D7EAD5929FCA8A54DD98DBBC47F0B519D74501850761C57E06255E782C52"
+          },
+          {
+            "path": "Images/snapshot_button.png",
+            "size": 9666,
+            "sha256": "A58CDD7DD8C6C1B2339E69C589C635420F4C8B06D0C22C465C44FFE4CC4E5280"
+          },
+          {
+            "path": "Images/soil.png",
+            "size": 26529,
+            "sha256": "4DED388289AA3263ABD4A89A5E3F8E50B3B436DC36D8CD5C46C09028CF4EF9EB"
+          },
+          {
+            "path": "Images/soilbag_Grid.png",
+            "size": 19587,
+            "sha256": "1035992AE9EE6E9DF2AD3A479F53A972E5599502BF28CEEB2DAFB72AAC19B2E7"
+          },
+          {
+            "path": "Images/soldsign.png",
+            "size": 13681,
+            "sha256": "4C616A31338DD4F32375D2B6C9639FFD7804BCDE76E98C1D312DCC1A0EF6A62A"
+          },
+          {
+            "path": "Images/sparklestrip.png",
+            "size": 5422,
+            "sha256": "3A88F53A73EFDB26BEA109799489381FAED91D24A4C212116F49063D80CD4140"
+          },
+          {
+            "path": "Images/sparklestrip2.png",
+            "size": 2014,
+            "sha256": "1742652D8B99F7F57ADEA03C31B99ABD62FA1F357A05BCD93E88EA350E3E42C6"
+          },
+          {
+            "path": "Images/spiderweb.png",
+            "size": 7683,
+            "sha256": "D54527F7F323EBEF8C6340CC62D66A7373CF077D1F5E49F5DBD5EF2333F57D35"
+          },
+          {
+            "path": "Images/spikeyNEBush1.png",
+            "size": 9066,
+            "sha256": "8F40844B5B99C90E4D890B64E8D0958B0BD8315157FFD172AD6425EB7712E4B6"
+          },
+          {
+            "path": "Images/SPLASH_BG.jpg",
+            "size": 54585,
+            "sha256": "61B7FD07477F109B7D3A0E3E22A45664709BD44BAFEED3438F63C7899F9C5B92"
+          },
+          {
+            "path": "Images/spray_Grid.png",
+            "size": 46048,
+            "sha256": "BF679C2C3C6FE2110288E8D13011049E8B6DBB054FCF728C47EC0DBD605B50CF"
+          },
+          {
+            "path": "Images/spray_Grid_blue.png",
+            "size": 46479,
+            "sha256": "6F19569A9CE7B36C95D30BF66A257C4F5BE62F07BA3AF95858AB9FE20D74CE11"
+          },
+          {
+            "path": "Images/spray_Grid_purple.png",
+            "size": 45796,
+            "sha256": "052D2485D37FAF59F47A674AF61009B5845F14CF9379B10D3716799CBE20872B"
+          },
+          {
+            "path": "Images/spray_Grid_red.png",
+            "size": 46738,
+            "sha256": "50B06EC4D991877026AC76143D45411F503DBC4DD28E566C33FC6541CABCCA52"
+          },
+          {
+            "path": "Images/spray_Grid_yellow.png",
+            "size": 47313,
+            "sha256": "48C85F333A16928E0157C88C4DF1285A4FC19684FCB85A3067B2467C12E69611"
+          },
+          {
+            "path": "Images/startover_button.png",
+            "size": 17048,
+            "sha256": "DF8FD9EB572BDDE644A558DA685D5446DE47E4CAF98B8EDBB8C2CB6FC99D6E7F"
+          },
+          {
+            "path": "Images/Store_BG.jpg",
+            "size": 192290,
+            "sha256": "4E50E8DE062A29125A56D4A33849C5C46EBCF86042F2F33203E1586B95328FC4"
+          },
+          {
+            "path": "Images/story1_bg.jpg",
+            "size": 238303,
+            "sha256": "7B4422CFA623491C237D028634B27BC8086A9ADACD0596121536FAD2754EE0E8"
+          },
+          {
+            "path": "Images/story2_bg.jpg",
+            "size": 196585,
+            "sha256": "1437E22842B46CE4F0769853FA3CB88E32CCEB8C3BDB22E35DEDC77A7E3FCACD"
+          },
+          {
+            "path": "Images/stylesheet.css",
+            "size": 6201,
+            "sha256": "C366A2D78D52CF9F6677FAB6A6DBE935FC3CCB920EA0796351AD5F844AF84586"
+          },
+          {
+            "path": "Images/sundial1.png",
+            "size": 14301,
+            "sha256": "78896ED9D207FD08075BD9CDDDD2B10F5D8F41E1ED0E532B6004B7EEE8A15E47"
+          },
+          {
+            "path": "Images/Test Plant Parts.jpg",
+            "size": 12444,
+            "sha256": "7BA8AE8B69F63DD43EDDD2CE87FF161C629BB38E377D24391DD0F19F7D68B5DF"
+          },
+          {
+            "path": "Images/Test Plant Parts.png",
+            "size": 15080,
+            "sha256": "647AFB8142911AF01B7579BF3CB8ABF306D1CC39F780842AEEE4F8DB2599A2DB"
+          },
+          {
+            "path": "Images/Test Plant Parts_dead.png",
+            "size": 16731,
+            "sha256": "E96C28DE60028499F49770EA7197B304F8C4B4A6F3969296EC243567F934E613"
+          },
+          {
+            "path": "Images/Test Plant Parts_mask.png",
+            "size": 8452,
+            "sha256": "32B185F14F544D517705D6A2FF80534C4FB61A683E3879BD0E04A207AA74AD23"
+          },
+          {
+            "path": "Images/thought_bubble_low.png",
+            "size": 717,
+            "sha256": "5F243FCE7327A471D09EC03F60406A0F06879638F57956817ABA1B7B77469CE5"
+          },
+          {
+            "path": "Images/thoughtBubLeft.png",
+            "size": 956,
+            "sha256": "0D45C4E9E6301F4404F40B26B5536EBA997C5793C076EF9D72D86C941005536D"
+          },
+          {
+            "path": "Images/thoughtBubRight.png",
+            "size": 933,
+            "sha256": "1CC13FCE1E931817F8A5AC290811BF9BCAD5D57881E8BD6FD0B9EBB14CF36A2F"
+          },
+          {
+            "path": "Images/Tiger Fern.png",
+            "size": 10202,
+            "sha256": "64DD0EA52DCE7DBFDC3F2A5FE8C9EC33A66ED0FC086134A53670C380C3D0A7AA"
+          },
+          {
+            "path": "Images/Tiger Fern_dead.png",
+            "size": 14978,
+            "sha256": "7770BA56E84B99C64E85868B258FAA5D26C07184298138576170BEB8551CE2EF"
+          },
+          {
+            "path": "Images/Tiger Fern_mask.png",
+            "size": 3855,
+            "sha256": "554606F6EDD1D5883EF4C6BB779B00C5AA38025E6302A24C653D051C5EC69EA7"
+          },
+          {
+            "path": "Images/Tools_Grid.png",
+            "size": 57528,
+            "sha256": "99BB50C4C4056127771DC681EFCDE5695739F85F5F96EA313C088E83084B166C"
+          },
+          {
+            "path": "Images/trashbin.png",
+            "size": 17370,
+            "sha256": "EB98F4F0DB018AF9FCF96B0B6333437040EB4FE806C092B17A896A3884A9E66B"
+          },
+          {
+            "path": "Images/turtle1.png",
+            "size": 6377,
+            "sha256": "C82784673C457C104D51A7AA7E6E3D94FD97BD126C37138438358455F750C281"
+          },
+          {
+            "path": "Images/turtleSquirtStrip.png",
+            "size": 2501,
+            "sha256": "EA96AD23D12206AEF4535899EE92E51F023D441C66C0596D4D7371645F930CCC"
+          },
+          {
+            "path": "Images/unknown.png",
+            "size": 8001,
+            "sha256": "50F720D964DB19C050F85791DCF516A38E2EFD168EF67D39441C1E185D4EC2AE"
+          },
+          {
+            "path": "Images/waterBarrel1.png",
+            "size": 25321,
+            "sha256": "D6696122AB47837CDC2EA837F7F4893EBB76ED03E36136D0D75C0AABE40C24DE"
+          },
+          {
+            "path": "Images/waterbucket_Grid.png",
+            "size": 21534,
+            "sha256": "AADA3B9CF75D47BB82545C11C30C444011FC016465DDCF4F5400B9624338681A"
+          },
+          {
+            "path": "Images/waterfallanimb.png",
+            "size": 14834,
+            "sha256": "F4FE2C4C8A607667D97F198821D3155BCB0D7037BE55839BDBE1EEEBF58BEDF8"
+          },
+          {
+            "path": "Images/waterMeter.png",
+            "size": 5848,
+            "sha256": "9C9102201357F777D1A4C20CB63BF04E491A0BB5CB73BF9E1F2BE2DA8C33F465"
+          },
+          {
+            "path": "Images/waterspray.png",
+            "size": 117519,
+            "sha256": "D1CE0C7C3523BEA761309B05E8CBB69B4B84B18450610A75E0F82EFFB70E395A"
+          },
+          {
+            "path": "Images/weathervane1.png",
+            "size": 16520,
+            "sha256": "8966BFE4BDE502F3BD2E9974D194D49C09679D769DD4E7B37A448C2752D96D6F"
+          },
+          {
+            "path": "Images/wheelbarrow.png",
+            "size": 10289,
+            "sha256": "7255754A8B61C53CF399FEE8033DD4B91CF9BDE402424B614F3986782587D6AB"
+          },
+          {
+            "path": "Images/widePTButton.png",
+            "size": 18388,
+            "sha256": "8D236CEB323DB9061CB510A41BE779D1CF0DD816F77AD6ECA3BA071C3FB02D63"
+          },
+          {
+            "path": "Images/widePTButton02.png",
+            "size": 20006,
+            "sha256": "E52E693F8772E4A23F158D27BDF6095581389C7B721B8A76D4288F6B01854DAB"
+          },
+          {
+            "path": "Images/WideSlider2.png",
+            "size": 9997,
+            "sha256": "E2EDF625E44C1DA009BC072A0CAE149EF17A5E698408474577031BD80BBA7DB4"
+          },
+          {
+            "path": "Images/Willow Tree.png",
+            "size": 37246,
+            "sha256": "33EEF1F2DCD2E224421A84E60837CBE99512D7DDB827D0CB8F5D5B5E385E7696"
+          },
+          {
+            "path": "Images/Willow Tree_dead.png",
+            "size": 42502,
+            "sha256": "F8A72FEECB4B233F74055492FC0D57D2F8D3C73A41A9C36402BB38E24A91FA6D"
+          },
+          {
+            "path": "Images/Willow Tree_mask.png",
+            "size": 21786,
+            "sha256": "2749623F72B2435D3C2EC37E06E3D82410CA9184F7EBD31699BF548E04FF8490"
+          },
+          {
+            "path": "Images/wVaneBushW1.png",
+            "size": 12096,
+            "sha256": "1C8FF8218FD51449B009723878BC4DBF45966E3E62D13EAAF66989E0CB05405C"
+          },
+          {
+            "path": "Images/yellow_sparkle.png",
+            "size": 6357,
+            "sha256": "9CA5ACB1003E315C5B69A7D3A15DEF8A282D7C398BCA13E814616E92622681FD"
+          },
+          {
+            "path": "Sounds/birds.ogg",
+            "size": 105079,
+            "sha256": "9C075456D2AC199CD222901961B119A87BC5474AF2A8DE00923A74D0F3DCC233"
+          },
+          {
+            "path": "Sounds/birds2.ogg",
+            "size": 119027,
+            "sha256": "8493FB1590E873B347C85768D893CFC8C42EB4E12DA1F6E239087E4308967F14"
+          },
+          {
+            "path": "Sounds/buddhist_bell.ogg",
+            "size": 77502,
+            "sha256": "B6868C648D61617D0CB7340C28A7D7BCB590F1F6B673DB8F3B1BFC2C7875E890"
+          },
+          {
+            "path": "Sounds/bug_move.ogg",
+            "size": 41454,
+            "sha256": "BD50DD497C7D0D06EE9A9CA5F39B7D853DB19F7C46818FFFB0A886AD340CF33F"
+          },
+          {
+            "path": "Sounds/bug_spray.ogg",
+            "size": 30975,
+            "sha256": "7DFD15F6DB279BA2E47F90AF344638341382628E79531E0DB787EA4E27F67353"
+          },
+          {
+            "path": "Sounds/bug_zapper.ogg",
+            "size": 11080,
+            "sha256": "601E1702746F57D2F8121905F3E2FF7B167C937511807441A6CD5349C81572A9"
+          },
+          {
+            "path": "Sounds/butterfly.ogg",
+            "size": 38452,
+            "sha256": "FBDE0693B2244A92B5B6F1E52377265961051627DFB4627265C245C38092E73C"
+          },
+          {
+            "path": "Sounds/cash_register.ogg",
+            "size": 19783,
+            "sha256": "8C4330F6884714AF53018CC732543D5B353B8CDD56835FBD2F00F0E8299F928D"
+          },
+          {
+            "path": "Sounds/catch_a_bug.ogg",
+            "size": 9011,
+            "sha256": "4663C55D0B8B1FF5DC84F9B9D2303B6E1F1F21111D153CF6629A27729FD1332A"
+          },
+          {
+            "path": "Sounds/chime3b.ogg",
+            "size": 31630,
+            "sha256": "506D3434A81063ED60A85F2D611DF428119E45B1F19CA073E63840615D40CF8B"
+          },
+          {
+            "path": "Sounds/chime3bX.ogg",
+            "size": 27454,
+            "sha256": "2CE13ACD6B03F14DF1F01135F1028697F42348D98489DD1F48AAE4ED8A54930E"
+          },
+          {
+            "path": "Sounds/chimes1.ogg",
+            "size": 143216,
+            "sha256": "8582B3017F1ECF0F5BF4BA555B10D1B15274B4A31DC201DEDFA72F7108550C93"
+          },
+          {
+            "path": "Sounds/chimes2.ogg",
+            "size": 88300,
+            "sha256": "2843D738089B9328B11D68CDF7DEF9C0273AB10C3C3C27E94930DE7CDE9BAFC1"
+          },
+          {
+            "path": "Sounds/chimeslow2.ogg",
+            "size": 160845,
+            "sha256": "4FFD1B273B8CFC1A95A602753268A4D1C5CEB49418D291CFCC8860441FB19CC4"
+          },
+          {
+            "path": "Sounds/chimesmysterious.ogg",
+            "size": 122840,
+            "sha256": "CD777680996483ABF2BCC864AD16420AF71770588D11BCD2A8D16C453C8A0355"
+          },
+          {
+            "path": "Sounds/chimestiny2.ogg",
+            "size": 127913,
+            "sha256": "62145147F76EFD094E6CAFD26290E7FD2C3A3CA56A7494CD5CB5B4E70FC1690C"
+          },
+          {
+            "path": "Sounds/click_1.ogg",
+            "size": 13115,
+            "sha256": "1741F1034C79172C1638D697DADE6F4D5BF11D5AB7395728D7E6876297967471"
+          },
+          {
+            "path": "Sounds/click_2.ogg",
+            "size": 15670,
+            "sha256": "9E64120353E949B7DC3AE6C37DCCD2555BB9BB1FADC244E8856D022F85AFF3F6"
+          },
+          {
+            "path": "Sounds/click_3.ogg",
+            "size": 15753,
+            "sha256": "89A22995B9293C795FA0CF624B3A997F194A54515FA119E39A82EB50D121C2D0"
+          },
+          {
+            "path": "Sounds/close_trash_bin.ogg",
+            "size": 17599,
+            "sha256": "C7105E0B792B2BD9A458458D9AA6AAC0B5CEA0647183E60C9E73DE65E3D23976"
+          },
+          {
+            "path": "Sounds/coin.ogg",
+            "size": 12911,
+            "sha256": "359795CDA4A8DC0218DF9F8389259742741BE38ACE266D903964D4CF85A50E06"
+          },
+          {
+            "path": "Sounds/cricket_loop.ogg",
+            "size": 272952,
+            "sha256": "B9D01CB746F6E49B88B54A00BD907D832EBB34FB38FE847807B03DE6F4B5F4DF"
+          },
+          {
+            "path": "Sounds/cross_breed_chime_1.ogg",
+            "size": 49762,
+            "sha256": "EACCA6D35C92A24AB06E9A61B8FAADB38A4971AFA341785C96D08BD4819A3BCE"
+          },
+          {
+            "path": "Sounds/cross_breed_chime_3.ogg",
+            "size": 69705,
+            "sha256": "0CD076A2DAF4A0240EA11C070346B7F852222D4C511D06279238FEFCC6610FD8"
+          },
+          {
+            "path": "Sounds/cross_breed_harp_2.ogg",
+            "size": 100300,
+            "sha256": "11DB41FB4D62184A0D6B21A93BBFB93F99E565FCBF013E3A41B583DF60D5D96C"
+          },
+          {
+            "path": "Sounds/crowd_murmur.ogg",
+            "size": 205034,
+            "sha256": "1E8FFF6673648F8E170CB2978FF416EC24F364BCCEB78366623D6E76D3175A0B"
+          },
+          {
+            "path": "Sounds/dirt_1.ogg",
+            "size": 10073,
+            "sha256": "DF3922DD4F0D55144C647B0BD6E9449F8CA0A51619D302879EA305F4617664E1"
+          },
+          {
+            "path": "Sounds/dirt_2.ogg",
+            "size": 17823,
+            "sha256": "2C7AA419C6A8ADE332391A13E06F5DAC1A7413984E0909037E4F04C9D30AC60E"
+          },
+          {
+            "path": "Sounds/dirtcrunch2.wav",
+            "size": 6092,
+            "sha256": "B4D9C87C2CC7C813D02704D6A1812DE3EECED6815DB7759D12C49401CA7DDA74"
+          },
+          {
+            "path": "Sounds/footsteps.ogg",
+            "size": 102139,
+            "sha256": "017A23F42EDC9BBCFC1EFCE741E37E3AD03311A4A22142D03F5E3858C9BD9BBB"
+          },
+          {
+            "path": "Sounds/fountain_loop.ogg",
+            "size": 258371,
+            "sha256": "D79C21CFA90666D6C8170EBE271BC2ACC5270B6560A0E0A6833F78A6A814AB5C"
+          },
+          {
+            "path": "Sounds/gate_close.ogg",
+            "size": 32087,
+            "sha256": "A79072E665DD89FAC455E9023D42C9EE84315C1B2BD78A9037B55283B50D182D"
+          },
+          {
+            "path": "Sounds/gate_opening.ogg",
+            "size": 31221,
+            "sha256": "DDD186F25C38B7507A2F91AE90D39842194A75FDDE981668B5A4A4521F9A3343"
+          },
+          {
+            "path": "Sounds/gentle_fountain_loop.ogg",
+            "size": 247273,
+            "sha256": "D35143FAB0EDE9024FEC1E2C7D6037BC150A048E5192A1CAE993772E05C3BF27"
+          },
+          {
+            "path": "Sounds/insect_buzz.ogg",
+            "size": 34157,
+            "sha256": "394A892A43B1EF0A866899EB3522638709BFF965BDCC581002EC3B4C0905132C"
+          },
+          {
+            "path": "Sounds/ladybug_flies.ogg",
+            "size": 41733,
+            "sha256": "36418D56672B3826D1166FA5344F991EB32B2672429E489AE220E64662C5E430"
+          },
+          {
+            "path": "Sounds/medical_drip.ogg",
+            "size": 11398,
+            "sha256": "88D570800A4A54F0CEA5BB2AB43A953ACAB72BFF74BC654F4566154D47916516"
+          },
+          {
+            "path": "Sounds/menu.ogg",
+            "size": 1682096,
+            "sha256": "4C929BACA757B76BEEE286E715F8F8053E930E8BA030F436AC41F88368660412"
+          },
+          {
+            "path": "Sounds/moving_clay_pots.ogg",
+            "size": 17450,
+            "sha256": "01C888E89B39BE553A67393DCCAF79F6999C16809F893118A5A9C0B7FAFF3AEF"
+          },
+          {
+            "path": "Sounds/nursery_loop.ogg",
+            "size": 281998,
+            "sha256": "18497E72608CD9E0A1861704D9D08954553F336DC653DCD179745945B182079C"
+          },
+          {
+            "path": "Sounds/owl.ogg",
+            "size": 40746,
+            "sha256": "ECC947D263D8CB9C6919C63A8B52A571BFFC3F0ED9E67482842ECEAFA0CC1220"
+          },
+          {
+            "path": "Sounds/rollover_1.ogg",
+            "size": 15532,
+            "sha256": "D8F9D5CD9CE56D9C1BFBCCA6B960A0427F7B5BFEFB0298E8091E916859308A98"
+          },
+          {
+            "path": "Sounds/rollover_2.ogg",
+            "size": 11981,
+            "sha256": "25D6D8CFC1C4387C424D9AC986D86431482009DBE6E42643864E5FF83E392B72"
+          },
+          {
+            "path": "Sounds/rollover_3.ogg",
+            "size": 11814,
+            "sha256": "1876DAA36739A9CFC8F25E4879D83EFB91461B12BA80F7F922004284055D38D2"
+          },
+          {
+            "path": "Sounds/rustle_1.ogg",
+            "size": 29683,
+            "sha256": "91667D8DAF24DC2C564ED299708CCB585CBE772F75F324C74300B96DB0DB2915"
+          },
+          {
+            "path": "Sounds/rustle_2.ogg",
+            "size": 18540,
+            "sha256": "A2DBD5C03E695F2F90BD636D4903ECF342FD5C50B25BF731E3A588AE3FF1A118"
+          },
+          {
+            "path": "Sounds/rustle_3.ogg",
+            "size": 39283,
+            "sha256": "958F060FEF02740D0F60F9D87AB51CE715A6BC9F71A0C02BFA3A2664686B566A"
+          },
+          {
+            "path": "Sounds/seed_handling.ogg",
+            "size": 32676,
+            "sha256": "223213B1E30A80BCB34AF7FBE3B9BFE26FDAD1D3A029858307D4BD33C18AE735"
+          },
+          {
+            "path": "Sounds/seed_movement.ogg",
+            "size": 38469,
+            "sha256": "0BAE2FBF9C64DFB43CEA47051AAD21BFD0A8F6D9C82132330F7B08B6B0238EAF"
+          },
+          {
+            "path": "Sounds/seed_planting.ogg",
+            "size": 13039,
+            "sha256": "CE7E537438B9A80281FF7B03768CB58AF1596A565FA18BED6003B22129264B9A"
+          },
+          {
+            "path": "Sounds/snip_1.ogg",
+            "size": 10237,
+            "sha256": "F1FCF3C65B24989502B783D1EFFD2BF802447D98935215C2252F43A996D66E18"
+          },
+          {
+            "path": "Sounds/snip_2.ogg",
+            "size": 8748,
+            "sha256": "0C20DD1317F2C543C0E40C58BA16D9AF9EB7EA3F239EA3B9850256DA01335405"
+          },
+          {
+            "path": "Sounds/snip_3.ogg",
+            "size": 8611,
+            "sha256": "78FF321B818FD30C54084CFDD7503DA427F4F25665772EE8B18B395C4C161DAD"
+          },
+          {
+            "path": "Sounds/song1.ogg",
+            "size": 1325331,
+            "sha256": "DD99134F720A68E583B1F8C14C7AE85943FC43E2FFFEA1C41993CCB0CBCE7000"
+          },
+          {
+            "path": "Sounds/song2.ogg",
+            "size": 1959593,
+            "sha256": "79F7DF33977503B617A93B134A9CF64B65A87DE53B80E45991B9080CB0EB2101"
+          },
+          {
+            "path": "Sounds/song3.ogg",
+            "size": 1823076,
+            "sha256": "75A11D34F3EF60DEEBEB230FEA88188A2C8E277B24340578A69C09318F120337"
+          },
+          {
+            "path": "Sounds/song4.ogg",
+            "size": 1831734,
+            "sha256": "F98BCA1976155CE4ED137056860517C894025DBEC68E7225CC9740964D0EB33B"
+          },
+          {
+            "path": "Sounds/splash1.ogg",
+            "size": 7956,
+            "sha256": "DEDA3E9497D55BB7E90CB6DDF800BB80C7663ECC6B1FC5F7BEAD7724EF04933E"
+          },
+          {
+            "path": "Sounds/teachangelY.ogg",
+            "size": 44091,
+            "sha256": "168E065CF0298A2D7028E857CF4B7FB91B5D48D8F19A42DDC24DBD174DBCC606"
+          },
+          {
+            "path": "Sounds/tool_swap.ogg",
+            "size": 7860,
+            "sha256": "3B9D06B992B4A872F2C4154245663C64356F354D593B88D77B5A77F77A73B3E2"
+          },
+          {
+            "path": "Sounds/watering_can.ogg",
+            "size": 49968,
+            "sha256": "D3A0B3B43D3B615595543916DDA9D531FFC5836E8B77466FBB9CCD483EF64296"
+          },
+          {
+            "path": "Sounds/wind_trees.ogg",
+            "size": 243922,
+            "sha256": "EFC18B42F5FD3C570AD179E2F2D479A8E2DA6D0114C73FEBC98ABA3369E1A1DB"
+          },
+          {
+            "path": "Sounds/windchimes_1.ogg",
+            "size": 210256,
+            "sha256": "E48162F492A70741928D70AD8307339F42C94110DC87E45E15D1810CC0BA95F3"
+          },
+          {
+            "path": "Sounds/windchimes_2.ogg",
+            "size": 246411,
+            "sha256": "7194ED828B50777199C53B45297B099273FBF61F539EABE94AB428D065171A50"
+          },
+          {
+            "path": "Sounds/windchimes_4.ogg",
+            "size": 270952,
+            "sha256": "FE7DB99D38DDA58DAE7DDB1E374A812EE923CCAA919879B7F5A9BF1EDB3216FF"
+          }
+        ]
+      }
     }
   ],
   "patches": [

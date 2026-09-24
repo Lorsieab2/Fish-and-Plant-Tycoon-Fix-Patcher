@@ -1,0 +1,398 @@
+#menu {
+width: 128px; /* set width of menu */
+background: none;
+font-size:12px;
+
+} 
+
+#menu ul { /* remove bullets and list indents */
+list-style: none;
+margin: 0;
+padding: 0em 0em;
+}
+
+#menu a {
+color: #fede58;
+
+text-decoration: none;
+}
+
+#menu a:hover {
+color: #ffffff;
+
+}
+
+
+
+#dropmenudiv{
+position:absolute;
+background-color:#336666;
+border:1px solid black;
+border-color:black;
+border-bottom-width: 0;
+line-height:18px;
+z-index:100;
+}
+
+#dropmenudiv a{
+width: 100%;
+display: block;
+text-indent: 3px;
+border-bottom: 1px solid black;
+padding: 1px 0;
+color: #fede58;
+text-decoration: none;
+font-weight: bold;
+}
+
+#dropmenudiv a:hover{ /*hover background color*/
+color: #ffffff;
+}
+.text {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	line-height: 12pt;
+	color: #333333;
+	font-weight: normal;
+}
+.nav {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11pt;
+	color: #FFFFCC;
+	line-height: 2pt;
+	font-weight: bold;
+	}
+	
+	
+.subhead {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 9pt;
+	color: #ffffcc;
+	font-weight: bold;
+}
+.newstitle {
+	
+	font-family:Times New Roman;
+	font-size: 14pt;
+	color: #660000;
+	font-weight:bold;
+
+}
+
+.newsdate {
+	
+	font-family:Arial;
+	font-size: 8pt;
+	color: #660000;
+	font-weight:normal;
+
+}
+
+
+.newspr {
+	
+	font-family:Arial;
+	font-size: 10pt;
+	color: #660000;
+	font-weight:normal;
+	text-decoration:underline;
+
+}
+
+a:link	{ 	text-decoration: none;
+			font-family: arial,verdana, sans-serif;
+			color: #66000;
+			font-size: 11px;
+			font-weight: bold;
+			}
+			
+a:visited {
+	text-decoration: none;
+	font-family: Arial, Helvetica, sans-serif;
+	color: #fede58;
+	font-size: 11px;
+	font-weight:bold;
+	
+}		
+	
+
+a:hover		{ text-decoration: none;
+			font-family: arial,verdana, sans-serif;
+			color: #ffffff;
+			font-size: 11px;
+			font-weight: bold;
+			}
+a:active{
+	text-decoration: none;
+ 	font-family: Arial, Helvetica, sans-serif;
+	color: #fede58;
+
+}
+ 
+ 
+			
+
+a.caption:link	{ 	
+			text-decoration: underline;
+			font-family: arial,verdana, sans-serif;
+			color: #333333;
+			font-size: 11px;
+			font-weight:bold;
+			}
+	
+
+a.caption:hover		{ 
+			text-decoration: underline;
+			font-family: arial,verdana, sans-serif;
+			color: #333333;
+			font-size: 11px;
+			font-weight:bold;
+			}
+a.caption:visited {
+	text-decoration: underline;
+	font-family: Arial, Helvetica, sans-serif;
+	color: #333333;
+	font-size: 11px;
+	font-weight:bold;
+
+}
+						
+a.review:link	{ 	
+			text-decoration: none;
+			font-family: arial,verdana, sans-serif;
+			color: #333333;
+			font-size: 11px;
+		
+			}
+	
+
+a.review:hover		{ 
+			text-decoration: underline;
+			font-family: arial,verdana, sans-serif;
+			color: #336666;
+			font-size: 11px;
+			
+			}
+						
+a.review:visited		{ 
+			text-decoration: none;
+			font-family: arial,verdana, sans-serif;
+			color: #333333;
+			font-size: 11px;
+			
+			}
+
+table { table-display:fixed; bgcolor:#336633;
+		
+		}
+
+.subhead2 {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 9pt;
+	color: #333333;
+	font-weight: bold;
+	line-height: 9pt;
+}
+.newletter {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 7pt;
+	line-height: 10pt;
+	font-weight: normal;
+	color: #ffffff;
+}
+.newsletter {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 9pt;
+	line-height: 10pt;
+	font-weight: bold;
+	color: #ffffff;
+}
+.copyright {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 8pt;
+	line-height: 8pt;
+	color: #333333;
+}
+.manualblue {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 8pt;
+	line-height: 14pt;
+	font-weight: bold;
+	color: #006699;
+}
+li {text-decoration:none
+
+}
+
+UL { list-style: none;
+	margin-left:2pt;
+ }
+
+
+
+
+ul.features {
+font-size: 8pt;
+list-style-type:circle;
+
+}
+
+li.outside
+
+{
+
+    list-style-position: outside;
+
+}
+
+label
+{
+width: 85px;
+float: left;
+text-align: right;
+margin-right: 0.5em;
+display: block;
+font-size:12px;
+}
+
+.submit input
+{
+margin-left: 6.5em;
+} 
+input
+{
+
+
+}
+
+textarea
+{ font-size:11px;
+
+}
+.submit input
+{
+
+
+} 
+fieldset
+{
+border: 1px solid #330000;
+width: 550px;
+height: 14em;
+}
+
+legend
+{
+color: #fff;
+background: #330000;
+border: 1px solid #330000;
+padding: 2px 6px;
+} 
+
+
+legend.2{
+    font-family: "Burweed ICG";
+	font-size: 14pt;
+	
+	color: #ffffff;
+	}
+
+p.box
+{
+ border: 1px solid gray; 
+ }
+ 
+ table.box
+
+{
+ border: 1px solid red;
+padding: 10px 0px 0px 0px; }
+ 
+.jumpmenu{
+background-color: #FFCC00;
+font-family:Arial, Helvetica, sans-serif;
+font-size: 11px;
+
+
+}
+
+ .notes {
+ 	
+	float:right;
+	margin-right: 10px;
+	width:30%; 
+	font-size: 9px;
+ 	color:#666666; 
+ 	border-style: solid; 
+ 	border-color:#666666; 
+ 	border-width: 1 1 1px 1;
+ 	padding: 2px 0 2px 2px;
+	background-color:#FFFFFF;
+	
+	
+ 	
+ }
+
+.notes p {
+  margin: 0em 0em 1.2em 0em;
+  color: #666666;
+  font-size:9px;
+ line-height: 2px;
+ text-align:justify;
+}
+
+.notes h1{
+  background-image: url(main_images/exlamationpoint.gif);
+  background-repeat: no-repeat;
+  background-position: top left;
+  padding: 3px 0 3px 20px;
+  border-width: 0 0 1px 0;
+  border-style: solid;
+  border-color: #666666;
+  color: #666666;
+  font-size: 110%;
+	
+	}
+	
+	table.grey{
+	background-color: #efefef;
+	border-width: 1px;
+	border-color: #336699;
+	border-style:solid;
+	padding:2px;
+	}
+	
+	table.lightblue{
+	background-color: #efefef;
+	border-width: 1px;
+	border-color: #336699;
+	border-style:solid;
+	padding:2px;
+	}
+	
+	.lightblue p{ 
+	color: #FFFFFF;
+	background-color:336699;
+	font-weight:bold;
+	font-size:12px; }
+	
+	
+.style2 {font-family: paddington}
+.style3 {font-size: large}
+.style6 {font-family: paddington; font-size: large; }
+.style1 {font-size: 12pt}
+.style7 {font-size: 8pt; line-height: 12pt; font-weight: normal; font-family: Arial, Helvetica, sans-serif;}
+.style5 {font-family: paddington; font-size: 18px; }
+.style8 {	font-size: larger;
+	font-weight: bold;
+}
+.style9 {color: #660000}
+.style10 {	
+	color: #660000;
+	font-size: 14px;
+	font-weight:bold;
+}
+
+	
+	
+	

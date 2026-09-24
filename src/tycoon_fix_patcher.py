@@ -220,6 +220,19 @@ def setting_patch_details(game_id: str, setting_id: str) -> list[PatchDetail]:
     return details
 
 
+def setting_asset_files(game_id: str, setting_id: str) -> list[str]:
+    """Game-relative paths of every file an asset setting merges into the output."""
+    setting = patch_settings(game_id).get(setting_id, {})
+    merge = setting.get("asset_merge")
+    if not isinstance(merge, dict):
+        return []
+    return [
+        str(entry.get("path", ""))
+        for entry in merge.get("files", [])
+        if isinstance(entry, dict) and entry.get("path")
+    ]
+
+
 def setting_checksum_note(game_id: str) -> str:
     """One line covering the checksum records, which are otherwise noise."""
     manifest = load_manifest(game_id)

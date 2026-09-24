@@ -20,6 +20,7 @@ from tycoon_fix_patcher import (
     output_dir_at,
     patch_settings,
     restore_game,
+    setting_asset_files,
     setting_checksum_note,
     setting_patch_details,
 )
@@ -463,12 +464,33 @@ class App(tk.Tk):
         the detail is one click away for anyone who wants it.
         """
         details = setting_patch_details(game_id, setting_id)
-        if not details:
+        asset_files = setting_asset_files(game_id, setting_id)
+        if not details and not asset_files:
             return
         holder = ttk.Frame(parent)
         holder.pack(fill="x", anchor="w", padx=(24, 0), pady=(2, 0))
         content = ttk.Frame(holder)
-        label = f"Technical details — {len(details)} change" + ("s" if len(details) != 1 else "")
+        if asset_files:
+            label = f"Technical details — {len(asset_files)} file" + ("s" if len(asset_files) != 1 else "")
+            ttk.Label(
+                content,
+                text=(
+                    "Merged into the modded game folder only where the game does not "
+                    "already have the file. Nothing in the executable changes."
+                ),
+                wraplength=760,
+                justify="left",
+                foreground="#333333",
+            ).pack(anchor="w", pady=(4, 0))
+            for path in asset_files:
+                ttk.Label(
+                    content,
+                    text=path,
+                    font=("Consolas", 9),
+                    foreground="#12508f",
+                ).pack(anchor="w", padx=(14, 0))
+        else:
+            label = f"Technical details — {len(details)} change" + ("s" if len(details) != 1 else "")
         link = tk.Label(
             holder,
             text=f"▸ {label}",
@@ -493,7 +515,7 @@ class App(tk.Tk):
                     justify="left",
                     foreground="#333333",
                 ).pack(anchor="w", padx=(14, 0))
-        checksum = setting_checksum_note(game_id)
+        checksum = setting_checksum_note(game_id) if details else ""
         if checksum:
             ttk.Label(
                 content,
