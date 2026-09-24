@@ -5,6 +5,8 @@ import itertools
 import json
 import re
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -121,7 +123,7 @@ class CombinedPatcherTests(unittest.TestCase):
         fish = combined.load_manifest("fish")
         plant = combined.load_manifest("plant")
         self.assertEqual(fish["version"], "v1.2.10")
-        self.assertEqual(plant["version"], "v1.0.0")
+        self.assertEqual(plant["version"], "v1.1.0")
         self.assertEqual(
             list(combined.patch_settings("fish")),
             [
@@ -133,7 +135,7 @@ class CombinedPatcherTests(unittest.TestCase):
         )
         self.assertEqual(
             list(combined.patch_settings("plant")),
-            ["no_old_age_plant_deaths"],
+            ["no_old_age_plant_deaths", "add_missing_ldw_assets"],
         )
 
     def test_all_fish_setting_combinations_have_pinned_hashes(self) -> None:
@@ -474,7 +476,8 @@ class PatchDetailTests(unittest.TestCase):
         for game_id in combined.GAMES:
             for setting_id in combined.patch_settings(game_id):
                 details = combined.setting_patch_details(game_id, setting_id)
-                self.assertTrue(details, f"{game_id}/{setting_id} has no detail")
+                files = combined.setting_asset_files(game_id, setting_id)
+                self.assertTrue(details or files, f"{game_id}/{setting_id} has no detail")
                 for detail in details:
                     self.assertTrue(
                         detail.note, f"{detail.id} has no note to show the reader"
@@ -550,6 +553,210 @@ class PatchDetailTests(unittest.TestCase):
         self.assertIn("_technical_details", source)
         self.assertIn("setting_patch_details", source)
         self.assertIn("Technical details", source)
+
+
+class AssetMergeTests(unittest.TestCase):
+    """Add Missing Assets merges bundled files into the output, and only then."""
+
+    def _fixture(self, root: Path, enable: list[str]) -> tuple[Namespace, Path, Path]:
+        manifest = combined.load_manifest("plant")
+        bundle = root / "repo" / "assets" / "bundle"
+        (bundle / "sounds").mkdir(parents=True)
+        (bundle / "sounds" / "new.ogg").write_bytes(b"steam sound")
+        (bundle / "images").mkdir()
+        (bundle / "images" / "have.png").write_bytes(b"steam image")
+        (bundle / "images" / "same.png").write_bytes(b"shared image")
+        setting = next(s for s in manifest["settings"] if s["id"] == "add_missing_ldw_assets")
+        setting["asset_merge"] = {
+            "source": "assets/bundle",
+            "files": [
+                {"path": rel, "size": (bundle / rel).stat().st_size,
+                 "sha256": plant_patcher.sha256_file(bundle / rel)}
+                for rel in ("sounds/new.ogg", "images/have.png", "images/same.png")
+            ],
+        }
+        manifest_path = root / "repo" / "data" / "plant_manifest.json"
+        plant_patcher.write_json(manifest_path, manifest)
+
+        vanilla = root / "Plant Tycoon"
+        (vanilla / "images").mkdir(parents=True)
+        (vanilla / "Plant Tycoon.exe").write_bytes(b"test executable")
+        (vanilla / "images" / "have.png").write_bytes(b"ldw image")
+        (vanilla / "images" / "same.png").write_bytes(b"shared image")
+        output = root / "Plant Tycoon - Modded"
+        args = Namespace(
+            game_dir=str(vanilla), manifest=str(manifest_path), output_dir=str(output),
+            dry_run=False, enable=enable, disable=None, disable_all=True,
+        )
+        return args, output, bundle
+
+    def _apply(self, args: Namespace) -> None:
+        identity = {"path": "x", "sha256": "x"}
+        with mock.patch.object(plant_patcher, "validate_original_executable", return_value=identity):
+            self.assertEqual(plant_patcher.apply_manifest(args), 0)
+
+    def test_merge_is_additive_and_never_replaces(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            args, output, _ = self._fixture(Path(raw), ["add_missing_ldw_assets"])
+            self._apply(args)
+            self.assertEqual((output / "sounds" / "new.ogg").read_bytes(), b"steam sound")
+            self.assertEqual((output / "images" / "have.png").read_bytes(), b"ldw image")
+            actions = {a["path"]: a["action"] for a in args.last_apply_summary["assets"]}
+            self.assertEqual(actions, {
+                "sounds/new.ogg": "added",
+                "images/have.png": "kept game's version",
+                "images/same.png": "identical, ignored",
+            })
+
+    def test_dry_run_reports_the_same_actions_without_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            args, output, _ = self._fixture(Path(raw), ["add_missing_ldw_assets"])
+            args.dry_run = True
+            self._apply(args)
+            self.assertFalse(output.exists())
+            actions = {a["path"]: a["action"] for a in args.last_apply_summary["assets"]}
+            self.assertEqual(actions["sounds/new.ogg"], "would add")
+            self.assertEqual(actions["images/same.png"], "identical, ignored")
+
+    def test_disabling_and_repatching_removes_the_merged_files(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            args, output, _ = self._fixture(Path(raw), ["add_missing_ldw_assets"])
+            self._apply(args)
+            self.assertTrue((output / "sounds" / "new.ogg").is_file())
+            args.enable = []
+            self._apply(args)
+            self.assertFalse((output / "sounds").exists())
+            self.assertEqual((output / "images" / "have.png").read_bytes(), b"ldw image")
+
+    def test_a_tampered_bundled_file_is_refused_before_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            args, output, bundle = self._fixture(Path(raw), ["add_missing_ldw_assets"])
+            (bundle / "sounds" / "new.ogg").write_bytes(b"something else")
+            with self.assertRaises(plant_patcher.PatchError):
+                self._apply(args)
+            self.assertFalse(output.exists())
+
+    def test_asset_setting_does_not_change_the_pinned_exe_hash(self) -> None:
+        manifest = combined.load_manifest("plant")
+        both = {"no_old_age_plant_deaths", "add_missing_ldw_assets"}
+        self.assertEqual(
+            plant_patcher.expected_patched_hash(manifest, both),
+            plant_patcher.expected_patched_hash(manifest, {"no_old_age_plant_deaths"}),
+        )
+        self.assertFalse(plant_patcher.active_patch_records(manifest, {"add_missing_ldw_assets"}))
+
+    def test_shipped_bundle_matches_its_pins(self) -> None:
+        manifest = combined.load_manifest("plant")
+        plan = plant_patcher.asset_merge_plan(
+            manifest, combined.GAMES["plant"].manifest_path, {"add_missing_ldw_assets"}
+        )
+        self.assertTrue(plan)
+        root = ROOT.resolve()
+        for item in plan:
+            self.assertTrue(Path(item["source"]).resolve().is_relative_to(root), item["source"])
+
+    def test_git_stores_every_bundled_file_byte_for_byte(self) -> None:
+        # Line-ending conversion once stored Images/stylesheet.css with LF
+        # endings, so every checkout without autocrlf failed its pin and the
+        # default Plant Tycoon patch refused to run. The working copy on a
+        # Windows machine looked correct, so compare what git itself stores.
+        if not shutil.which("git") or not (ROOT / ".git").exists():
+            self.skipTest("not a git checkout")
+        source = "assets/plant_tycoon_steam"
+        paths = [f"{source}/{rel}" for rel in combined.setting_asset_files("plant", "add_missing_ldw_assets")]
+        stored = dict(
+            (line.split("\t", 1)[1], line.split()[1])
+            for line in subprocess.run(
+                ["git", "ls-files", "-s", "--", source], cwd=ROOT,
+                capture_output=True, text=True, check=True,
+            ).stdout.splitlines()
+        )
+        actual = subprocess.run(
+            ["git", "hash-object", "--no-filters", "--stdin-paths"], cwd=ROOT,
+            input="\n".join(paths) + "\n", capture_output=True, text=True, check=True,
+        ).stdout.split()
+        for path, blob in zip(paths, actual):
+            self.assertEqual(stored.get(path), blob, f"git does not store {path} byte-for-byte")
+
+    def test_bundle_source_outside_the_patcher_is_refused(self) -> None:
+        manifest = combined.load_manifest("plant")
+        setting = next(s for s in manifest["settings"] if s["id"] == "add_missing_ldw_assets")
+        for bad in ("C:/Users/someone/Downloads/assets", "../outside", ""):
+            setting["asset_merge"]["source"] = bad
+            with self.subTest(source=bad), self.assertRaises(plant_patcher.PatchError):
+                plant_patcher.asset_merge_plan(
+                    manifest, combined.GAMES["plant"].manifest_path, {"add_missing_ldw_assets"}
+                )
+
+
+class SavedSettingsTests(unittest.TestCase):
+    """A setting added in a later release must not load as unticked."""
+
+    class _Var:
+        def __init__(self, value=""):
+            self.value = value
+
+        def get(self):
+            return self.value
+
+        def set(self, value):
+            self.value = value
+
+    def _app(self):
+        from types import SimpleNamespace
+
+        app = SimpleNamespace(
+            game_choice=self._Var("plant"),
+            output_parent=self._Var(),
+            path_vars={g: {k: self._Var() for k in ("vanilla", "output", "backup")} for g in combined.GAMES},
+            patch_vars={
+                g: {k: self._Var(bool(v.get("default", False))) for k, v in combined.patch_settings(g).items()}
+                for g in combined.GAMES
+            },
+        )
+        app._selected_settings = lambda game_id: gui.App._selected_settings(app, game_id)
+        return app
+
+    def _load(self, data: dict):
+        app = self._app()
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "patcher_local_settings.json"
+            path.write_text(json.dumps(data), encoding="utf-8")
+            with mock.patch.object(gui, "SETTINGS_PATH", path):
+                gui.App._load_settings(app)
+        return {g: {k: v.get() for k, v in app.patch_vars[g].items()} for g in combined.GAMES}
+
+    def test_v1_0_14_file_keeps_the_new_default_and_the_old_choices(self) -> None:
+        loaded = self._load({"games": {
+            "plant": {"enabled": ["no_old_age_plant_deaths"]},
+            "fish": {"enabled": ["crimson_comet_20_percent_cure"]},
+        }})
+        self.assertTrue(loaded["plant"]["add_missing_ldw_assets"])
+        self.assertTrue(loaded["plant"]["no_old_age_plant_deaths"])
+        self.assertTrue(loaded["fish"]["crimson_comet_20_percent_cure"])
+        self.assertFalse(loaded["fish"]["unknown_chemical_three_uses"])
+
+    def test_v1_0_14_file_with_the_old_fix_off_keeps_it_off(self) -> None:
+        loaded = self._load({"games": {"plant": {"enabled": []}}})
+        self.assertFalse(loaded["plant"]["no_old_age_plant_deaths"])
+        self.assertTrue(loaded["plant"]["add_missing_ldw_assets"])
+
+    def test_a_saved_untick_of_the_new_setting_is_kept(self) -> None:
+        app = self._app()
+        app.patch_vars["plant"]["add_missing_ldw_assets"].set(False)
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "patcher_local_settings.json"
+            with mock.patch.object(gui, "SETTINGS_PATH", path):
+                gui.App._save_settings(app)
+                saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertIn("add_missing_ldw_assets", saved["games"]["plant"]["known"])
+        loaded = self._load(saved)
+        self.assertFalse(loaded["plant"]["add_missing_ldw_assets"])
+        self.assertTrue(loaded["plant"]["no_old_age_plant_deaths"])
+
+    def test_legacy_list_names_only_real_settings(self) -> None:
+        for game_id, ids in gui.LEGACY_KNOWN_SETTINGS.items():
+            self.assertTrue(set(ids) <= set(combined.patch_settings(game_id)), game_id)
 
 
 if __name__ == "__main__":

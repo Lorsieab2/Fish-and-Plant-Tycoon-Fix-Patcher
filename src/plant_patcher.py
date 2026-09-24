@@ -255,8 +255,19 @@ def active_patch_records(manifest: dict[str, Any], enabled: set[str]) -> list[di
     return result
 
 
-def settings_key(enabled: set[str]) -> str:
-    return ",".join(sorted(enabled))
+def asset_setting_ids(manifest: dict[str, Any]) -> set[str]:
+    """Settings that add files to the output folder instead of patching the EXE."""
+    return {
+        key for key, value in manifest_settings(manifest).items()
+        if isinstance(value.get("asset_merge"), dict)
+    }
+
+
+def settings_key(enabled: set[str], manifest: dict[str, Any] | None = None) -> str:
+    # Asset settings never touch the executable, so they are left out of the
+    # key that selects the pinned executable hash.
+    exe_settings = enabled - asset_setting_ids(manifest) if manifest else enabled
+    return ",".join(sorted(exe_settings))
 
 
 def expected_patched_hash(manifest: dict[str, Any], enabled: set[str]) -> str:
@@ -264,8 +275,81 @@ def expected_patched_hash(manifest: dict[str, Any], enabled: set[str]) -> str:
     if variants is not None:
         if not isinstance(variants, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in variants.items()):
             raise PatchError("patched_sha256_by_settings must be a string-to-string object.")
-        return str(variants.get(settings_key(enabled), "")).upper()
+        return str(variants.get(settings_key(enabled, manifest), "")).upper()
     return str(manifest.get("patched_sha256", "")).upper()
+
+
+def asset_merge_plan(
+    manifest: dict[str, Any], manifest_path: Path, enabled: set[str]
+) -> list[dict[str, Any]]:
+    """Validate every bundled file an enabled asset setting would merge.
+
+    Each file is pinned by size and SHA-256 in the manifest, so a damaged or
+    swapped release file is refused before anything is written.
+    """
+    root = manifest_path.parent.parent
+    plan: list[dict[str, Any]] = []
+    settings = manifest_settings(manifest)
+    for setting_id in sorted(enabled & asset_setting_ids(manifest)):
+        merge = settings[setting_id]["asset_merge"]
+        # The bundle ships with the patcher, so it must resolve inside it.
+        declared = Path(str(merge.get("source", "")))
+        source = (root / declared).resolve()
+        if declared.is_absolute() or not declared.parts or not is_within(source, root):
+            raise PatchError(f"{setting_id}: asset source must be a folder inside the patcher: {declared}")
+        files = merge.get("files")
+        if not isinstance(files, list) or not files:
+            raise PatchError(f"{setting_id}: asset_merge.files must be a non-empty list.")
+        for index, entry in enumerate(files):
+            relative = Path(str(entry.get("path", "")))
+            if not relative.parts or relative.is_absolute() or ".." in relative.parts:
+                raise PatchError(f"{setting_id}: files[{index}] has an unsafe path: {relative}")
+            bundled = source / relative
+            if not bundled.is_file():
+                raise PatchError(f"{setting_id}: bundled asset is missing: {bundled}")
+            expected_size = parse_int(entry.get("size"), f"{setting_id}.files[{index}].size")
+            expected_hash = str(entry.get("sha256", "")).upper()
+            if bundled.stat().st_size != expected_size or sha256_file(bundled) != expected_hash:
+                raise PatchError(f"{setting_id}: bundled asset failed its size/SHA-256 check: {bundled}")
+            plan.append({
+                "setting": setting_id,
+                "source": bundled,
+                "path": relative.as_posix(),
+                "sha256": expected_hash,
+            })
+    return plan
+
+
+def existing_asset_action(item: dict[str, Any], game_dir: Path) -> str | None:
+    """Why a planned file is skipped, or None when the game lacks it.
+
+    The merge is purely additive: a file the game already has is never
+    replaced, whether or not its contents match the bundled copy.
+    """
+    existing = game_dir / item["path"]
+    if not existing.exists():
+        return None
+    if existing.is_file() and sha256_file(existing) == item["sha256"]:
+        return "identical, ignored"
+    return "kept game's version"
+
+
+def merge_assets(plan: list[dict[str, Any]], game_dir: Path, staging: Path) -> list[dict[str, Any]]:
+    """Copy each planned file into the staged output only if the game lacks it."""
+    summary: list[dict[str, Any]] = []
+    for item in plan:
+        relative = Path(item["path"])
+        skipped = existing_asset_action(item, game_dir)
+        if skipped:
+            summary.append({"setting": item["setting"], "path": item["path"], "action": skipped})
+            continue
+        target = staging / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(item["source"], target)
+        if sha256_file(target) != item["sha256"]:
+            raise PatchError(f"Merged asset failed its post-write SHA-256 check: {target}")
+        summary.append({"setting": item["setting"], "path": item["path"], "action": "added"})
+    return summary
 
 
 def apply_patch_bytes(data: bytes, patches: list[dict[str, Any]]) -> tuple[bytes, list[dict[str, Any]]]:
@@ -377,11 +461,12 @@ def apply_manifest(args: argparse.Namespace) -> int:
     expected_hash = expected_patched_hash(manifest, enabled)
     patched_hash = sha256_bytes(patched)
     if patches and not expected_hash:
-        raise PatchError(f"Manifest has no expected output hash for enabled settings: {settings_key(enabled)}")
+        raise PatchError(f"Manifest has no expected output hash for enabled settings: {settings_key(enabled, manifest)}")
     if patches and patched_hash != expected_hash:
         raise PatchError(
             f"Patched output hash mismatch: {patched_hash}; expected {expected_hash}."
         )
+    assets = asset_merge_plan(manifest, manifest_path, enabled)
 
     report = {
         "operation": "dry-run" if args.dry_run else "apply",
@@ -395,12 +480,20 @@ def apply_manifest(args: argparse.Namespace) -> int:
         "target": identity,
         "enabled_settings": sorted(enabled),
         "patches": patch_summary,
+        "assets": [
+            {
+                "setting": item["setting"],
+                "path": item["path"],
+                "action": existing_asset_action(item, game_dir) or "would add",
+            }
+            for item in assets
+        ],
         "output_exe_sha256": patched_hash,
     }
     if args.dry_run:
         args.last_apply_summary = report
         print(json.dumps(report, indent=2))
-        print("DRY RUN PASS: exact executable identity and all patch bytes validated; no files written.")
+        print("DRY RUN PASS: exact executable identity, all patch bytes and all bundled assets validated; no files written.")
         return 0
 
     output_parent = output_dir.parent
@@ -438,6 +531,7 @@ def apply_manifest(args: argparse.Namespace) -> int:
         staged_exe.write_bytes(patched)
         if sha256_file(staged_exe) != patched_hash:
             raise PatchError("Staged executable failed its post-write SHA-256 check.")
+        report["assets"] = merge_assets(assets, game_dir, staging)
         report["backup_dir"] = str(backup_dir)
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".plant_tycoon_fix_output.json", {

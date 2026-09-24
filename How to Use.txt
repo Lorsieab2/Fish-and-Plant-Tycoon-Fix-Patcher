@@ -35,8 +35,9 @@ executable its saves will seem to disappear - they are still there under the
 old name.
 
 The original game folders are never replaced. Exact unsupported or already
-modified EXEs are refused. The package contains no game executable or game
-asset.
+modified EXEs are refused. The package contains no game executable. Its only
+game files are the Plant Tycoon sounds and images the LDW version is missing,
+taken from the Steam version, because LDW no longer updates the games.
 
 To restore the original EXE inside a modded folder, choose One Game, select its
 timestamped backup folder and modded output folder, then click
@@ -50,7 +51,9 @@ Fish Tycoon options:
 - Universal supply slots 2-4
 - Buy Multiple Golden Seahorses
 
-Plant Tycoon option:
+Plant Tycoon options:
 - No old-age plant deaths
+- Add Missing Assets to LDW Version (only adds files the game lacks; never
+  replaces a game file)
 
 Have fun! -Lorsieab2 :)

@@ -1,5 +1,38 @@
 # Changelog
 
+## v1.0.15
+
+### Add Missing Assets to LDW Version
+
+New Plant Tycoon setting, on by default. It adds sounds and images the LDW
+download is missing, using the Steam version's files, which now ship in
+`assets/plant_tycoon_steam/`. LDW no longer updates the games, so this is the
+one exception to shipping no game files.
+
+- Only additive. A file is copied into the modded folder only where the game
+  lacks it. A game file is never replaced, and a bundled file identical to the
+  game's own is ignored. The patch log records each file as added, identical
+  and ignored, or kept at the game's version.
+- Turning the setting off and patching again produces a folder without the
+  added files, because every run rebuilds the modded folder from the vanilla
+  one.
+- Every bundled file is pinned by size and SHA-256 in the manifest, and all
+  are checked before anything is written. `scripts/pin_plant_assets.py`
+  regenerates the pins.
+- `.gitattributes` keeps git from converting line endings in the bundle, so
+  every checkout gets the exact pinned bytes. The release build checks every
+  packaged asset against its pin, and a test compares what git stores with
+  the pins.
+- The executable is not touched, so the pinned executable hashes are
+  unchanged and the setting has no effect on them.
+- Upgrading keeps the new default. The saved settings file now records which
+  settings existed when it was written, so a setting added later starts at its
+  default instead of loading as unticked. Files from v1.0.14 and earlier are
+  read the same way, and every choice they did record is kept.
+- Plant manifest is now v1.1.0 (`plant-tycoon-pc-fixes-v2`). Folders written
+  by the previous revision are still recognised and replaced normally.
+
+
 ## v1.0.14
 
 The patcher now shows what each setting actually changes, not just what it is

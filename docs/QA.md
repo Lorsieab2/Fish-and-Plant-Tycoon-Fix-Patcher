@@ -1,5 +1,27 @@
 # QA
 
+## v1.0.15
+
+- Combined unit tests: 48 passed, 8 covering Add Missing Assets and 4 covering
+  saved settings across the upgrade.
+- Real run against the supported vanilla LDW Plant Tycoon, from the release ZIP
+  extracted to an unrelated folder: 15 sounds added, 294 files identical and
+  ignored, 7 differing files kept at the game's version, no vanilla file
+  altered, executable matches its pinned hash.
+- Unticking the setting and patching again removes all 15 added files; the
+  executable hash is unchanged.
+- The patched game launches and runs with the assets in place; player-checked
+  in game.
+- Codex review finding fixed: git stored `Images/stylesheet.css` with LF
+  endings, so non-Windows checkouts failed its pin. The bundle is now `-text`,
+  the new guard fails against the old LF blob and passes on the fix, and the
+  release build checks every packaged asset against its pin.
+- Codex review finding fixed: a v1.0.14 `patcher_local_settings.json` loaded the
+  new setting as unticked. The new tests fail against the old loader and pass
+  on the fix.
+- No absolute or personal paths in code, manifest, or tests; a bundle source
+  outside the patcher is refused.
+
 ## v1.0.14
 
 - Combined unit tests: 34 passed, including five covering the new detail view.

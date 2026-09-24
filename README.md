@@ -40,6 +40,11 @@ never needs the internet.
 
 - No old-age plant deaths. The original age check and `Random(1000)` call remain;
   the eligible death range is empty.
+- Add Missing Assets to LDW Version. Adds sounds and images the LDW download is
+  missing, using the Steam version's files. The merge is only additive: a file
+  is copied into the modded folder only where the game lacks it, a game file is
+  never replaced, and a bundled file identical to the game's own is ignored.
+  Turn it off and patch again to get a folder without them.
 
 ## Use
 
@@ -114,18 +119,24 @@ files are read back, and the original icon resources remain intact.
 When both games are selected, both inputs are dry-run validated before either
 output folder is written.
 
-No game executable, save, or original game asset is included in this
-repository or release.
+No game executable or save is included in this repository or release. The one
+exception to shipping game files is `assets/plant_tycoon_steam/`: the sounds and
+images the LDW release of Plant Tycoon is missing, taken from the Steam version.
+LDW no longer updates the games, so there is no other way for the LDW version to
+get them. Each is pinned by size and SHA-256 and refused if it does not match.
 
 ## What each patch does
 
-Every setting in the GUI has a **Technical details** disclosure listing each
-byte-level change it installs — virtual address, file offset, size, and what
-that change does. It is collapsed by default. Every individual byte change also
-carries the same note in the patch log. Those notes are
-written into the patch log next to each change, so a completed run records not
-just what bytes moved but why. `docs/fish-tycoon-technical-details.md` and
-`docs/plant-tycoon-technical-details.md` go further into the disassembly.
+Every setting in the GUI has a **Technical details** disclosure, collapsed by
+default. For an executable fix it lists each byte-level change the setting
+installs — virtual address, file offset, size, and what that change does. The
+same note is written into the patch log next to each change, so a completed run
+records not just what bytes moved but why. For Add Missing Assets it lists every
+file the setting can add, and the patch log records each file as added,
+identical and ignored, or kept at the game's version.
+`docs/fish-tycoon-technical-details.md` and
+`docs/plant-tycoon-technical-details.md` go further into the disassembly and the
+asset merge.
 
 ## Tests
 
@@ -134,5 +145,7 @@ python tests/test_combined_patcher.py
 ```
 
 The suite covers the exact executable identities, the pinned output hashes, the
-game search, and the GUI wiring. It uses synthetic fixtures only, so it needs
-no copy of either game.
+game search, the GUI wiring, and the asset merge: additive only, identical files
+ignored, tampered or outside bundles refused, and every bundled file stored by
+git byte-for-byte against its pin. It uses synthetic fixtures and the bundled
+assets only, so it needs no copy of either game.
