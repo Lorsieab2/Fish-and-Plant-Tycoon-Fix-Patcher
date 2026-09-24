@@ -31,15 +31,23 @@ FILES = [
 ]
 
 
-def bundled_asset_files() -> list[str]:
-    """Every pinned asset file, as a repo-relative path, for the release ZIP."""
+def pinned_assets() -> list[tuple[str, int, str]]:
+    """Every pinned asset file as (repo-relative path, size, SHA-256)."""
     manifest = json.loads((ROOT / "data" / "plant_manifest.json").read_text(encoding="utf-8"))
     result = []
     for setting in manifest["settings"]:
         merge = setting.get("asset_merge")
         if isinstance(merge, dict):
-            result.extend(f"{merge['source']}/{entry['path']}" for entry in merge["files"])
+            result.extend(
+                (f"{merge['source']}/{entry['path']}", entry["size"], entry["sha256"].upper())
+                for entry in merge["files"]
+            )
     return result
+
+
+def bundled_asset_files() -> list[str]:
+    """Every pinned asset file, as a repo-relative path, for the release ZIP."""
+    return [relative for relative, _size, _digest in pinned_assets()]
 
 
 def main() -> int:
@@ -63,6 +71,11 @@ def main() -> int:
             raise RuntimeError(f"release archive CRC failure: {bad}")
         if any(name.lower().endswith(".exe") for name in archive.namelist()):
             raise RuntimeError("release must not contain game executables")
+        # Check the bundled assets as packaged, not as they sit on disk.
+        for relative, size, digest in pinned_assets():
+            data = archive.read(relative)
+            if len(data) != size or hashlib.sha256(data).hexdigest().upper() != digest:
+                raise RuntimeError(f"release asset does not match its pin: {relative}")
     digest = hashlib.sha256(target.read_bytes()).hexdigest().upper()
     manifest = {
         "file": target.name,

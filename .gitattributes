@@ -1,0 +1,4 @@
+# Bundled game assets are pinned by exact size and SHA-256, so git must store
+# and check them out byte-for-byte. Line-ending conversion would change text
+# files such as Images/stylesheet.css and make the pin refuse them.
+assets/plant_tycoon_steam/** -text

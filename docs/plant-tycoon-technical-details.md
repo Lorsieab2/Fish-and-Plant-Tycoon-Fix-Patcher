@@ -2,7 +2,7 @@
 
 ## Exact supported build
 
-The analysis and patch apply only to the 700,416-byte PE32 x86 executable with
+The analysis and the old-age patch apply only to the 700,416-byte PE32 x86 executable with
 SHA-256 `D1F83E3E3CAFE177452E2F8B6AF4B68CACED783B77A304370389375DB611D6F9`.
 
 ## Original old-age branch
@@ -50,7 +50,7 @@ The PE checksum field at file offset `0x150` changes from `0x000B01BF` to
 `0x000AF7C0`. The complete fixed executable SHA-256 is
 `BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046`.
 
-## Scope
+## Scope of the old-age fix
 
 This patch prevents only this explicitly identified old-age health-zero write.
 It does not prevent health loss or death from other mechanics. Visible long-term
@@ -71,3 +71,15 @@ Nothing is ever replaced. Every bundled file is pinned by size and SHA-256 in
 `data/plant_manifest.json`, and all of them are verified before any output is
 written, including on a dry run. Because the executable is unchanged, the
 setting is left out of the key that selects the pinned executable hash.
+
+`.gitattributes` marks the whole bundle `-text`, so git stores and checks out
+every file byte-for-byte. Without it, line-ending conversion stored
+`Images/stylesheet.css` with LF endings, and any checkout without Windows
+conversion failed the pin. The release build also checks every asset inside
+the finished ZIP against its pin.
+
+Against the supported LDW build, the bundle of 316 files resolves to 15 sounds
+added, 294 files identical and ignored, and 7 files kept at the game's own
+version (`Images/ldwarialbold.png`, `Images/PTfontbig.png`,
+`Images/PTfontsmall.png`, `Images/small_logo.png`, `Images/SPLASH_BG.jpg`,
+`Sounds/dirt_1.ogg`, `Sounds/watering_can.ogg`).

@@ -19,6 +19,10 @@ one exception to shipping no game files.
 - Every bundled file is pinned by size and SHA-256 in the manifest, and all
   are checked before anything is written. `scripts/pin_plant_assets.py`
   regenerates the pins.
+- `.gitattributes` keeps git from converting line endings in the bundle, so
+  every checkout gets the exact pinned bytes. The release build checks every
+  packaged asset against its pin, and a test compares what git stores with
+  the pins.
 - The executable is not touched, so the pinned executable hashes are
   unchanged and the setting has no effect on them.
 - Plant manifest is now v1.1.0 (`plant-tycoon-pc-fixes-v2`). Folders written

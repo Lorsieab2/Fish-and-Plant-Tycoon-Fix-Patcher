@@ -5,6 +5,8 @@ import itertools
 import json
 import re
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -652,6 +654,29 @@ class AssetMergeTests(unittest.TestCase):
         root = ROOT.resolve()
         for item in plan:
             self.assertTrue(Path(item["source"]).resolve().is_relative_to(root), item["source"])
+
+    def test_git_stores_every_bundled_file_byte_for_byte(self) -> None:
+        # Line-ending conversion once stored Images/stylesheet.css with LF
+        # endings, so every checkout without autocrlf failed its pin and the
+        # default Plant Tycoon patch refused to run. The working copy on a
+        # Windows machine looked correct, so compare what git itself stores.
+        if not shutil.which("git") or not (ROOT / ".git").exists():
+            self.skipTest("not a git checkout")
+        source = "assets/plant_tycoon_steam"
+        paths = [f"{source}/{rel}" for rel in combined.setting_asset_files("plant", "add_missing_ldw_assets")]
+        stored = dict(
+            (line.split("\t", 1)[1], line.split()[1])
+            for line in subprocess.run(
+                ["git", "ls-files", "-s", "--", source], cwd=ROOT,
+                capture_output=True, text=True, check=True,
+            ).stdout.splitlines()
+        )
+        actual = subprocess.run(
+            ["git", "hash-object", "--no-filters", "--stdin-paths"], cwd=ROOT,
+            input="\n".join(paths) + "\n", capture_output=True, text=True, check=True,
+        ).stdout.split()
+        for path, blob in zip(paths, actual):
+            self.assertEqual(stored.get(path), blob, f"git does not store {path} byte-for-byte")
 
     def test_bundle_source_outside_the_patcher_is_refused(self) -> None:
         manifest = combined.load_manifest("plant")
