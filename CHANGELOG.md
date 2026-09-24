@@ -25,6 +25,10 @@ one exception to shipping no game files.
   the pins.
 - The executable is not touched, so the pinned executable hashes are
   unchanged and the setting has no effect on them.
+- Upgrading keeps the new default. The saved settings file now records which
+  settings existed when it was written, so a setting added later starts at its
+  default instead of loading as unticked. Files from v1.0.14 and earlier are
+  read the same way, and every choice they did record is kept.
 - Plant manifest is now v1.1.0 (`plant-tycoon-pc-fixes-v2`). Folders written
   by the previous revision are still recognised and replaced normally.
 

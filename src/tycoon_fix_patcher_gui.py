@@ -33,6 +33,18 @@ ROOT = Path(__file__).resolve().parents[1]
 SETTINGS_PATH = ROOT / "patcher_local_settings.json"
 FISH_PICTURE_PATH = ROOT / "assets" / "fish.png"
 PLANT_PICTURE_PATH = ROOT / "assets" / "plant.png"
+# Settings files written before v1.0.15 record only which settings were
+# enabled, not which existed. These are the settings those versions had, so
+# anything added later falls back to its manifest default.
+LEGACY_KNOWN_SETTINGS = {
+    "fish": [
+        "crimson_comet_20_percent_cure",
+        "unknown_chemical_three_uses",
+        "universal_supply_slots",
+        "golden_seahorse_repurchase",
+    ],
+    "plant": ["no_old_age_plant_deaths"],
+}
 RELEASES_URL = (
     "https://github.com/Lorsieab2/Fish-and-Plant-Tycoon-Fix-Patcher/releases"
 )
@@ -907,8 +919,15 @@ class App(tk.Tk):
                 self.path_vars[game_id]["backup"].set(str(saved.get("backup", "")))
                 enabled = saved.get("enabled")
                 if isinstance(enabled, list):
+                    # Only settings the file knew about are restored; a setting
+                    # added since it was saved keeps its manifest default
+                    # instead of reading as unticked.
+                    known = saved.get("known")
+                    if not isinstance(known, list):
+                        known = LEGACY_KNOWN_SETTINGS.get(game_id, [])
                     for setting_id, variable in self.patch_vars[game_id].items():
-                        variable.set(setting_id in enabled)
+                        if setting_id in known:
+                            variable.set(setting_id in enabled)
 
     def _save_settings(self) -> None:
         data = {
@@ -920,6 +939,7 @@ class App(tk.Tk):
                     "output": self.path_vars[game_id]["output"].get().strip(),
                     "backup": self.path_vars[game_id]["backup"].get().strip(),
                     "enabled": self._selected_settings(game_id),
+                    "known": list(self.patch_vars[game_id]),
                 }
                 for game_id in GAMES
             },

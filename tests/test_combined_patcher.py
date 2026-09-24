@@ -689,5 +689,75 @@ class AssetMergeTests(unittest.TestCase):
                 )
 
 
+class SavedSettingsTests(unittest.TestCase):
+    """A setting added in a later release must not load as unticked."""
+
+    class _Var:
+        def __init__(self, value=""):
+            self.value = value
+
+        def get(self):
+            return self.value
+
+        def set(self, value):
+            self.value = value
+
+    def _app(self):
+        from types import SimpleNamespace
+
+        app = SimpleNamespace(
+            game_choice=self._Var("plant"),
+            output_parent=self._Var(),
+            path_vars={g: {k: self._Var() for k in ("vanilla", "output", "backup")} for g in combined.GAMES},
+            patch_vars={
+                g: {k: self._Var(bool(v.get("default", False))) for k, v in combined.patch_settings(g).items()}
+                for g in combined.GAMES
+            },
+        )
+        app._selected_settings = lambda game_id: gui.App._selected_settings(app, game_id)
+        return app
+
+    def _load(self, data: dict):
+        app = self._app()
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "patcher_local_settings.json"
+            path.write_text(json.dumps(data), encoding="utf-8")
+            with mock.patch.object(gui, "SETTINGS_PATH", path):
+                gui.App._load_settings(app)
+        return {g: {k: v.get() for k, v in app.patch_vars[g].items()} for g in combined.GAMES}
+
+    def test_v1_0_14_file_keeps_the_new_default_and_the_old_choices(self) -> None:
+        loaded = self._load({"games": {
+            "plant": {"enabled": ["no_old_age_plant_deaths"]},
+            "fish": {"enabled": ["crimson_comet_20_percent_cure"]},
+        }})
+        self.assertTrue(loaded["plant"]["add_missing_ldw_assets"])
+        self.assertTrue(loaded["plant"]["no_old_age_plant_deaths"])
+        self.assertTrue(loaded["fish"]["crimson_comet_20_percent_cure"])
+        self.assertFalse(loaded["fish"]["unknown_chemical_three_uses"])
+
+    def test_v1_0_14_file_with_the_old_fix_off_keeps_it_off(self) -> None:
+        loaded = self._load({"games": {"plant": {"enabled": []}}})
+        self.assertFalse(loaded["plant"]["no_old_age_plant_deaths"])
+        self.assertTrue(loaded["plant"]["add_missing_ldw_assets"])
+
+    def test_a_saved_untick_of_the_new_setting_is_kept(self) -> None:
+        app = self._app()
+        app.patch_vars["plant"]["add_missing_ldw_assets"].set(False)
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "patcher_local_settings.json"
+            with mock.patch.object(gui, "SETTINGS_PATH", path):
+                gui.App._save_settings(app)
+                saved = json.loads(path.read_text(encoding="utf-8"))
+        self.assertIn("add_missing_ldw_assets", saved["games"]["plant"]["known"])
+        loaded = self._load(saved)
+        self.assertFalse(loaded["plant"]["add_missing_ldw_assets"])
+        self.assertTrue(loaded["plant"]["no_old_age_plant_deaths"])
+
+    def test_legacy_list_names_only_real_settings(self) -> None:
+        for game_id, ids in gui.LEGACY_KNOWN_SETTINGS.items():
+            self.assertTrue(set(ids) <= set(combined.patch_settings(game_id)), game_id)
+
+
 if __name__ == "__main__":
     unittest.main()
