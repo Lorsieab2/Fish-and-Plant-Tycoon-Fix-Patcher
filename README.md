@@ -8,6 +8,9 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
+Current release: **v1.0.15**. See [CHANGELOG.md](CHANGELOG.md) for what each
+version changed.
+
 ## Supported copies
 
 Only the free Windows downloads from LDW's own site, <https://ldw.com>, are
@@ -40,11 +43,16 @@ never needs the internet.
 
 - No old-age plant deaths. The original age check and `Random(1000)` call remain;
   the eligible death range is empty.
-- Add Missing Assets to LDW Version. Adds sounds and images the LDW download is
-  missing, using the Steam version's files. The merge is only additive: a file
-  is copied into the modded folder only where the game lacks it, a game file is
-  never replaced, and a bundled file identical to the game's own is ignored.
-  Turn it off and patch again to get a folder without them.
+- Add Missing Assets to LDW Version (on by default, new in v1.0.15). Adds
+  files the LDW download is missing, using the Steam version's files. The merge
+  is only additive: a file is copied into the modded folder only where the game
+  lacks it, a game file is never replaced, and a bundled file identical to the
+  game's own is ignored. Turn it off and patch again to get a folder without
+  them. Against the supported LDW build it adds 15 sounds (birds, bell, bug
+  sounds, butterfly, cricket loop, cross-breeding chimes and harp, gentle
+  fountain, insect buzz, medical drip, wind in the trees and windchimes); 294
+  bundled files are identical to the game's own and are ignored, and 7 that
+  differ are left at the game's version.
 
 ## Use
 
@@ -120,10 +128,10 @@ When both games are selected, both inputs are dry-run validated before either
 output folder is written.
 
 No game executable or save is included in this repository or release. The one
-exception to shipping game files is `assets/plant_tycoon_steam/`: the sounds and
-images the LDW release of Plant Tycoon is missing, taken from the Steam version.
-LDW no longer updates the games, so there is no other way for the LDW version to
-get them. Each is pinned by size and SHA-256 and refused if it does not match.
+exception to shipping game files is `assets/plant_tycoon_steam/`: Plant Tycoon
+files taken from the Steam version (316 sounds, images and other files), used
+only to fill in what the LDW release is missing. LDW no longer updates the
+games, so there is no other way for the LDW version to get them. Each is pinned by size and SHA-256 and refused if it does not match.
 
 ## What each patch does
 
