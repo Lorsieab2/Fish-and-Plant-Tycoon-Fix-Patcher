@@ -69,7 +69,11 @@ jobs:
           if-no-files-found: warn
 
       - name: Publish test summary
-        if: always()
+        # A pull request from a fork (or Dependabot) gets a read-only token, so
+        # creating the check run would fail an otherwise green job. The tests
+        # still run and the XML is still uploaded above; only the report is
+        # skipped there.
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: mikepenz/action-junit-report@v4
         with:
           report_paths: junit-${{ matrix.os }}.xml
