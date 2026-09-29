@@ -1,0 +1,79 @@
+name: Tests
+
+# Runs the test suite on every push and pull request, the same way the
+# Virtual Villagers Fun Patcher and the Virtual Families 2 patcher do, so a
+# regression is caught by the pull request that introduces it rather than by
+# whoever remembers to run the suite locally.
+#
+# The whole of tests/ runs here: it needs nothing but the repository itself.
+# The game executables are never part of the repository, and the tests build
+# the small stand-in files they need in temporary folders. The checkout keeps
+# its .git folder, so the test that git stores every bundled Plant Tycoon asset
+# byte-for-byte (see .gitattributes) runs here rather than skipping.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # The JUnit reporter creates a check run and annotates failing lines on a
+  # pull request; both need more than contents: read.
+  checks: write
+  pull-requests: write
+
+concurrency:
+  # A newer push to the same branch supersedes an in-flight run.
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: pytest (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows only: the patcher is a Windows tool and ships only there.
+        os: [windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-subtests
+
+      - name: Run the test suite
+        shell: bash
+        # -rs reports skipped tests with their reason, so a test that silently
+        # stops running is visible here instead of looking like a pass.
+        run: python -m pytest tests/ -v -rs --junitxml=junit-${{ matrix.os }}.xml
+
+      - name: Upload test results
+        # Upload on failure too -- that is when the XML is most worth having.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: junit-${{ matrix.os }}.xml
+          if-no-files-found: warn
+
+      - name: Publish test summary
+        if: always()
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: junit-${{ matrix.os }}.xml
+          detailed_summary: true
+          include_passed: false
+          fail_on_failure: true
+          require_tests: true
