@@ -45,8 +45,10 @@ LEGACY_KNOWN_SETTINGS = {
     ],
     "plant": ["no_old_age_plant_deaths"],
 }
+# The owner: "Check for updates" opens the base GitHub repository, not the
+# releases page.
 RELEASES_URL = (
-    "https://github.com/Lorsieab2/Fish-and-Plant-Tycoon-Fix-Patcher/releases"
+    "https://github.com/Lorsieab2/Fish-and-Plant-Tycoon-Fix-Patcher/"
 )
 
 
