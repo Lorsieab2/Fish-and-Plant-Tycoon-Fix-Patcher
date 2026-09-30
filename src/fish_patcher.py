@@ -11,7 +11,9 @@ import os
 import re
 from pathlib import Path
 import shutil
+import stat
 import struct
+import sys
 import tempfile
 from typing import Any
 from datetime import datetime, timezone
@@ -95,6 +97,33 @@ def is_within(path: Path, parent: Path) -> bool:
         return True
     except ValueError:
         return False
+
+
+def make_writable(path: Path) -> None:
+    """Clear the read-only attribute on every file beneath path.
+
+    copytree keeps each file's attributes, so a game installed read-only
+    produced a read-only staging copy: the copied vanilla EXE could not be
+    deleted, patching failed, and the staging folder could not be cleaned up.
+    The modded copy is the player's to run and re-patch, so it is writable.
+    """
+    for item in [path, *path.rglob("*")]:
+        mode = item.stat().st_mode
+        if not mode & stat.S_IWRITE:
+            os.chmod(item, mode | stat.S_IWRITE)
+
+
+def remove_tree(path: Path) -> None:
+    """Delete a folder even when some of its files are read-only."""
+
+    def retry_writable(function, name, _error):
+        os.chmod(name, stat.S_IWRITE)
+        function(name)
+
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=retry_writable)
+    else:
+        shutil.rmtree(path, onerror=retry_writable)
 
 
 def pe_identity(data: bytes) -> dict[str, int]:
@@ -441,6 +470,7 @@ def apply_manifest(args: argparse.Namespace) -> int:
     try:
         shutil.rmtree(staging)
         shutil.copytree(game_dir, staging, ignore=excluded_output_files)
+        make_writable(staging)
         copied_vanilla_exe = staging / vanilla_exe.name
         if copied_vanilla_exe.is_file() and copied_vanilla_exe.name != output_exe_name:
             copied_vanilla_exe.unlink()
@@ -478,7 +508,10 @@ def apply_manifest(args: argparse.Namespace) -> int:
         write_json(output_dir / "FishTycoonBugFixPatchLog.json", report)
     except Exception:
         if staging.exists():
-            shutil.rmtree(staging, ignore_errors=True)
+            try:
+                remove_tree(staging)
+            except OSError:
+                pass
         raise
 
     print(json.dumps(report, indent=2))
@@ -511,6 +544,10 @@ def restore_backup(args: argparse.Namespace) -> int:
     target = output_dir / output_exe_name
     temp = output_dir / f".{output_exe_name}.restore.tmp"
     shutil.copy2(backup_exe, temp)
+    make_writable(temp)
+    if target.exists():
+        # Replacing a read-only file fails on Windows.
+        make_writable(target)
     os.replace(temp, target)
     if sha256_file(target) != expected_hash:
         raise PatchError("Restored executable failed its SHA-256 check.")

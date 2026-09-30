@@ -884,5 +884,111 @@ class SavedSettingsTests(unittest.TestCase):
             self.assertTrue(set(ids) <= set(combined.patch_settings(game_id)), game_id)
 
 
+class ReadOnlyGameFilesTests(unittest.TestCase):
+    """A game installed with read-only files must still patch and restore."""
+
+    ENGINES = (("fish", fish_patcher), ("plant", plant_patcher))
+
+    @staticmethod
+    def _read_only(path: Path) -> None:
+        import os
+        import stat
+
+        os.chmod(path, stat.S_IREAD)
+
+    @staticmethod
+    def _writable(path: Path) -> bool:
+        # The owner write bit mirrors the Windows read-only attribute. Unlike
+        # os.access it does not report True for root on a read-only file.
+        import stat
+
+        return bool(path.stat().st_mode & stat.S_IWRITE)
+
+    def _tree(self, raw: str, game_id: str) -> tuple[Path, Path, Namespace]:
+        spec = combined.GAMES[game_id]
+        root = Path(raw)
+        vanilla = root / spec.title
+        (vanilla / "Images").mkdir(parents=True)
+        (vanilla / spec.vanilla_exe_name).write_bytes(b"test executable")
+        (vanilla / "Images" / "art.png").write_bytes(b"art")
+        for path in (vanilla / spec.vanilla_exe_name, vanilla / "Images" / "art.png"):
+            self._read_only(path)
+        output = root / "out" / spec.modded_folder_name
+        args = Namespace(
+            game_dir=str(vanilla), manifest=str(spec.manifest_path), output_dir=str(output),
+            dry_run=False, enable=[], disable=None, disable_all=True,
+        )
+        return vanilla, output, args
+
+    def _cleanup(self, raw: str) -> None:
+        import os
+        import stat
+
+        for path in Path(raw).rglob("*"):
+            os.chmod(path, stat.S_IWRITE | stat.S_IREAD | stat.S_IEXEC)
+        shutil.rmtree(raw)
+
+    def _identity(self, engine, exe: Path):
+        return mock.patch.object(
+            engine, "validate_original_executable",
+            return_value={"path": str(exe), "sha256": engine.sha256_file(exe)},
+        )
+
+    def test_read_only_game_patches_and_repatches(self) -> None:
+        for game_id, engine in self.ENGINES:
+            spec = combined.GAMES[game_id]
+            raw = tempfile.mkdtemp()
+            try:
+                with self.subTest(game=game_id):
+                    vanilla, output, args = self._tree(raw, game_id)
+                    with self._identity(engine, vanilla / spec.vanilla_exe_name):
+                        self.assertEqual(engine.apply_manifest(args), 0)
+                        self.assertEqual(engine.apply_manifest(args), 0)
+                    self.assertFalse((output / spec.vanilla_exe_name).exists())
+                    self.assertTrue(self._writable(output / spec.modded_exe_name))
+                    self.assertTrue(self._writable(output / "Images" / "art.png"))
+                    # The vanilla folder itself is left exactly as it was.
+                    self.assertFalse(self._writable(vanilla / spec.vanilla_exe_name))
+            finally:
+                self._cleanup(raw)
+
+    def test_a_failed_apply_leaves_no_staging_folder(self) -> None:
+        for game_id, engine in self.ENGINES:
+            spec = combined.GAMES[game_id]
+            raw = tempfile.mkdtemp()
+            try:
+                with self.subTest(game=game_id):
+                    vanilla, output, args = self._tree(raw, game_id)
+                    # Fail after the staging copy exists: the post-write hash
+                    # check of the staged EXE reports a mismatch.
+                    with self._identity(engine, vanilla / spec.vanilla_exe_name), mock.patch.object(
+                        engine, "sha256_file", return_value="0" * 64
+                    ), self.assertRaises((OSError, engine.PatchError)):
+                        engine.apply_manifest(args)
+                    leftovers = [p.name for p in output.parent.iterdir() if "staging" in p.name]
+                    self.assertEqual(leftovers, [])
+            finally:
+                self._cleanup(raw)
+
+    def test_restore_replaces_a_read_only_modded_exe(self) -> None:
+        for game_id, engine in self.ENGINES:
+            spec = combined.GAMES[game_id]
+            raw = tempfile.mkdtemp()
+            try:
+                with self.subTest(game=game_id):
+                    vanilla, output, args = self._tree(raw, game_id)
+                    with self._identity(engine, vanilla / spec.vanilla_exe_name):
+                        engine.apply_manifest(args)
+                    backup = Path(args.last_apply_summary["backup_dir"])
+                    target = output / spec.modded_exe_name
+                    target.write_bytes(b"patched bytes")
+                    self._read_only(target)
+                    restore = Namespace(backup_dir=str(backup), output_dir=str(output))
+                    self.assertEqual(engine.restore_backup(restore), 0)
+                    self.assertEqual(target.read_bytes(), b"test executable")
+            finally:
+                self._cleanup(raw)
+
+
 if __name__ == "__main__":
     unittest.main()
