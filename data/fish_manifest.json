@@ -1,26 +1,26 @@
 {
   "manifest_version": 3,
-  "id": "fish-tycoon-pc-fixes-v13",
+  "id": "fish-tycoon-pc-fixes-v14",
   "name": "Fish Tycoon Fix Patcher",
-  "version": "v1.2.10",
+  "version": "v1.2.11",
   "description": "Repairs Crimson Comet curing, fixes Unknown Chemical uses, and lets the exact supported supplies stack in slots 2-4.",
-  "patched_sha256": "F6BBAF9C770AE11642828BBB4EEDE085727A3F22A30D349476C92C3263C7D321",
+  "patched_sha256": "E77FBB4919DF3FE104FBAAD7C65B9CD6446D11E04B940A0C4F63FFA0F88781E9",
   "patched_sha256_by_settings": {
     "crimson_comet_20_percent_cure": "33C8C9469E8E9F7DD460C4A9B9A3A897D2A9505C1E2627988046D8CED097AD9B",
-    "unknown_chemical_three_uses": "C57055BF50567BEF767B77295ED070465F104A5A0B1E38342A45E27FF971C82D",
+    "unknown_chemical_three_uses": "7CE334D50BB2D0C7EFEE15D246A9C899D489843A12D9687459381591E7202B3D",
     "universal_supply_slots": "5978BF336DE7D7833094AC2660883E83BCC639565E524EBD546305766C869CA6",
     "golden_seahorse_repurchase": "4BC47B727CF9EB7E97592B0C13BE94F9EE76B98F9F5A9CEBEC2EAF649B1185EB",
-    "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "016B88C90B578472BB0CD8D1CA29906ADCE0540657FDBF72C43EC9E0AA9DFADB",
+    "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "1F0E792B2B96B467537806DD7D85E871DB2EF0700002688A11EBC92573B2911F",
     "crimson_comet_20_percent_cure,universal_supply_slots": "C235A450F6C514289F8E2DE659E0D60622E2F111D29F45A85C5874C79A4AE697",
     "crimson_comet_20_percent_cure,golden_seahorse_repurchase": "344E5B1F51DCE5282BF49368597D4074895CBCBF836F9BC1B80C17C740AB709D",
-    "universal_supply_slots,unknown_chemical_three_uses": "4D23F8582F5C50FD72D327CA3FEF4EFC24084CCD14E84F27F0811ED772B8D2FF",
-    "golden_seahorse_repurchase,unknown_chemical_three_uses": "2D89026DD9249A3C5D432AF6C62C151C68E08031B1914078A9DE60D7B1E825B1",
+    "universal_supply_slots,unknown_chemical_three_uses": "04E470F99D58DDA31C62B9CE1A9EE98C9B8239B277D989719DA509A06A697677",
+    "golden_seahorse_repurchase,unknown_chemical_three_uses": "6849CEC4F7C248DA524F560A4751F9354907789239AE51E4BF93638157E3E763",
     "golden_seahorse_repurchase,universal_supply_slots": "6099F0DABAD2D4E1271AB7321E5F9F2C6235841CF849A86FC18123C231EFCE6B",
-    "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "E0EE1A85668D39A4A2D9A2E20A702E6A65465B34EE1AAE960EDF1D33CF32E75A",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "BA2D26C12DF2BCE399531AF129CFE7832EAC3997D91BB9067EFEDA90E92C6BCA",
+    "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "1353A4D0F362B97EE35E70215020F9F614124BD8D474AC0771AB18B441C77B8D",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "08516842F502F69105604D46F278E89B681644237813EB352F24ED773D6F2987",
     "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "2F7749A07EF79210235FB94DCE55177384D66EAAE2046DCDC77F88D17E254163",
-    "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "6969E235F29172749BBCD80486E9A79CF79B9B95B8F0822C5FB350BDB87D6ADD",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "F6BBAF9C770AE11642828BBB4EEDE085727A3F22A30D349476C92C3263C7D321"
+    "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "CE47DAB060E4B040175140B78C53254C251135D122E505E012238E53D74021B9",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "E77FBB4919DF3FE104FBAAD7C65B9CD6446D11E04B940A0C4F63FFA0F88781E9"
   },
   "target": {
     "exe_name": "Fish Tycoon.exe",
@@ -94,7 +94,7 @@
     {
       "id": "unknown_chemical_three_uses",
       "name": "Unknown Chemical: 3 uses",
-      "description": "Makes one Unknown Chemical purchase last three uses instead of one. The base game rewrites the remaining count to 1 every time the item is used, so simply raising the purchase amount would be undone on first use; that 10-byte write at VA 0x4210B7 is replaced with NOPs so the purchased count survives and decrements normally. The English store text is corrected to 'Contains 3 doses.' to match. Touches 2 places.",
+      "description": "Makes one Unknown Chemical purchase last three uses instead of one. The base game rewrites the remaining count to 1 every time the item is used, so simply raising the purchase amount would be undone on first use; that 10-byte write at VA 0x4210B7 is replaced with NOPs so the purchased count survives and decrements normally. The store text is corrected to match, in English ('Contains 3 doses.') and German ('Reicht für 3 Behandlungen.'). Touches 3 places.",
       "category": "main",
       "default": true
     },
@@ -213,6 +213,17 @@
         "unknown_chemical_three_uses"
       ],
       "note": "English store description string in .rdata at file 0x458C9. 'Contains one dose.' becomes 'Contains 3 doses.', matching what the three-use setting actually grants. Same byte length, null-padded."
+    },
+    {
+      "id": "unknown_chemical_store_description_three_doses_de",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x45854",
+      "expected": "52 65 69 63 68 74 20 66 FC 72 20 65 69 6E 65 20 42 65 68 61 6E 64 6C 75 6E 67 2E 00",
+      "replacement": "52 65 69 63 68 74 20 66 FC 72 20 33 20 42 65 68 61 6E 64 6C 75 6E 67 65 6E 2E 00 00",
+      "requires": [
+        "unknown_chemical_three_uses"
+      ],
+      "note": "German store description string in .rdata at file 0x45854. 'Reicht für eine Behandlung.' becomes 'Reicht für 3 Behandlungen.', the wording the game already uses for Growth Hormone's three doses. One byte shorter, null-padded to the same length."
     },
     {
       "id": "extend_text_virtual_size_for_slots_payload",
@@ -462,7 +473,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "A2 DB 06 00",
+      "replacement": "48 9A 06 00",
       "requires": [
         "unknown_chemical_three_uses"
       ],
@@ -510,7 +521,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "45 86 06 00",
+      "replacement": "EB 44 06 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "unknown_chemical_three_uses"
@@ -558,7 +569,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "80 38 06 00",
+      "replacement": "26 F7 05 00",
       "requires": [
         "universal_supply_slots",
         "unknown_chemical_three_uses"
@@ -574,7 +585,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "23 09 06 00",
+      "replacement": "C8 C7 06 00",
       "requires": [
         "golden_seahorse_repurchase",
         "unknown_chemical_three_uses"
@@ -606,7 +617,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "23 E3 05 00",
+      "replacement": "C8 A1 06 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "universal_supply_slots",
@@ -622,7 +633,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "C5 B3 06 00",
+      "replacement": "6B 72 06 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase",
@@ -654,7 +665,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "9F 58 06 00",
+      "replacement": "45 17 06 00",
       "requires": [
         "golden_seahorse_repurchase",
         "universal_supply_slots",
@@ -670,7 +681,7 @@
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "42 03 06 00",
+      "replacement": "E7 C1 06 00",
       "requires": [
         "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase",

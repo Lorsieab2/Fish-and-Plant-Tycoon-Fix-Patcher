@@ -122,7 +122,7 @@ class CombinedPatcherTests(unittest.TestCase):
     def test_current_manifest_versions_and_default_settings(self) -> None:
         fish = combined.load_manifest("fish")
         plant = combined.load_manifest("plant")
-        self.assertEqual(fish["version"], "v1.2.10")
+        self.assertEqual(fish["version"], "v1.2.11")
         self.assertEqual(plant["version"], "v1.1.0")
         self.assertEqual(
             list(combined.patch_settings("fish")),
@@ -137,6 +137,19 @@ class CombinedPatcherTests(unittest.TestCase):
             list(combined.patch_settings("plant")),
             ["no_old_age_plant_deaths", "add_missing_ldw_assets"],
         )
+
+    def test_unknown_chemical_text_is_corrected_in_both_languages(self) -> None:
+        # The three-use setting changes what one purchase gives, so every
+        # store description of it must say so, not only the English one.
+        manifest = combined.load_manifest("fish")
+        ids = {p["id"] for p in fish_patcher.active_patch_records(
+            manifest, {"unknown_chemical_three_uses"})}
+        self.assertIn("unknown_chemical_store_description_three_doses", ids)
+        self.assertIn("unknown_chemical_store_description_three_doses_de", ids)
+        german = next(p for p in manifest["patches"]
+                      if p["id"] == "unknown_chemical_store_description_three_doses_de")
+        text = bytes.fromhex("".join(german["replacement"].split()))
+        self.assertEqual(text.rstrip(b"\0").decode("latin-1"), "Reicht f\u00fcr 3 Behandlungen.")
 
     def test_all_fish_setting_combinations_have_pinned_hashes(self) -> None:
         manifest = combined.load_manifest("fish")
