@@ -469,6 +469,82 @@ class OutputRecognitionTests(unittest.TestCase):
             self.assertFalse(fish_patcher.recognized_output(Path(raw), manifest))
 
 
+class ExistingOutputFolderTests(unittest.TestCase):
+    """An unrelated folder in the output's place is refused before any write."""
+
+    ENGINES = (("fish", fish_patcher), ("plant", plant_patcher))
+
+    def _game(self, root: Path, game_id: str) -> tuple[Path, Path]:
+        spec = combined.GAMES[game_id]
+        vanilla = root / spec.title
+        vanilla.mkdir()
+        (vanilla / spec.vanilla_exe_name).write_bytes(b"test executable")
+        return vanilla, root / "out" / spec.modded_folder_name
+
+    def _identity(self, engine):
+        return mock.patch.object(
+            engine, "validate_original_executable", return_value={"path": "x", "sha256": "x"}
+        )
+
+    def _args(self, game_id: str, vanilla: Path, output: Path, dry_run: bool) -> Namespace:
+        return Namespace(
+            game_dir=str(vanilla), manifest=str(combined.GAMES[game_id].manifest_path),
+            output_dir=str(output), dry_run=dry_run, enable=[], disable=None, disable_all=True,
+        )
+
+    def test_dry_run_refuses_an_unrecognized_output_folder(self) -> None:
+        for game_id, engine in self.ENGINES:
+            with self.subTest(game=game_id), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                vanilla, output = self._game(root, game_id)
+                output.mkdir(parents=True)
+                (output / "my notes.txt").write_text("not a patcher folder", encoding="utf-8")
+                with self._identity(engine), self.assertRaises(engine.PatchError):
+                    engine.apply_manifest(self._args(game_id, vanilla, output, dry_run=True))
+
+    def test_a_refused_apply_writes_no_backup(self) -> None:
+        for game_id, engine in self.ENGINES:
+            with self.subTest(game=game_id), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                vanilla, output = self._game(root, game_id)
+                output.mkdir(parents=True)
+                with self._identity(engine), self.assertRaises(engine.PatchError):
+                    engine.apply_manifest(self._args(game_id, vanilla, output, dry_run=False))
+                self.assertEqual(sorted(p.name for p in output.parent.iterdir()), [output.name])
+
+    def test_both_games_writes_neither_when_one_output_is_unrecognized(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            fish_vanilla, fish_output = self._game(root, "fish")
+            plant_vanilla, plant_output = self._game(root, "plant")
+            plant_output.mkdir(parents=True)
+            configs = {
+                "fish": {"vanilla_dir": fish_vanilla, "output_dir": fish_output, "enabled": []},
+                "plant": {"vanilla_dir": plant_vanilla, "output_dir": plant_output, "enabled": []},
+            }
+            with self._identity(fish_patcher), self._identity(plant_patcher):
+                with self.assertRaises(combined.CombinedPatchError):
+                    combined.capture_run(configs, dry_run=False)
+            self.assertFalse(fish_output.exists())
+
+    def test_failed_swap_puts_the_previous_output_back(self) -> None:
+        for game_id, engine in self.ENGINES:
+            with self.subTest(game=game_id), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                vanilla, output = self._game(root, game_id)
+                args = self._args(game_id, vanilla, output, dry_run=False)
+                with self._identity(engine):
+                    self.assertEqual(engine.apply_manifest(args), 0)
+                (output / "player file.txt").write_text("keep me", encoding="utf-8")
+                with self._identity(engine), mock.patch.object(
+                    engine.os, "replace", side_effect=OSError("folder in use")
+                ), self.assertRaises(OSError):
+                    engine.apply_manifest(args)
+                self.assertEqual(
+                    (output / "player file.txt").read_text(encoding="utf-8"), "keep me"
+                )
+
+
 class PatchDetailTests(unittest.TestCase):
     """The per-patch detail the GUI shows must be complete and truthful."""
 
