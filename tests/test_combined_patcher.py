@@ -412,6 +412,18 @@ class ReleasePackagingTests(unittest.TestCase):
             self.assertNotIn("DOES NOT WORK", text)
             self.assertNotIn("does not work, leave it off", text.lower())
 
+    def test_shipped_docs_give_the_real_save_location(self) -> None:
+        # Both games name the save FOLDER after the executable
+        # (GetModuleFileNameA) and the FILES after the game, as the owner's
+        # own "Fish Tycoon - Modded\\Fish Tycoon1.ldw" saves show. The docs
+        # once had this backwards.
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        howto = (ROOT / "How to Use.txt").read_text(encoding="utf-8")
+        self.assertIn(r"Documents\LDW\<exe name>\<game name><number>.ldw", readme)
+        self.assertIn(r"Documents\LDW\(exe name)\(game name)(number).ldw", howto)
+        for text in (readme, howto):
+            self.assertNotIn("Fish Tycoon - Modded1.ldw", text)
+
     def test_release_version_matches_the_changelog(self) -> None:
         source = (ROOT / "scripts" / "build_release.py").read_text(encoding="utf-8")
         version = re.search(r'VERSION = "([^"]+)"', source).group(1)
