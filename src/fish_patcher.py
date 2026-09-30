@@ -298,6 +298,13 @@ def recognized_output(path: Path, manifest: dict[str, Any]) -> bool:
     return bool(family) and output_family(value.get("manifest_id")) == family
 
 
+def refuse_unrecognized_output(output_dir: Path, manifest: dict[str, Any]) -> None:
+    if output_dir.exists() and not recognized_output(output_dir, manifest):
+        raise PatchError(
+            f"Output folder already exists and is not recognized as this patcher's output: {output_dir}"
+        )
+
+
 def notify_windows_shell_file_changed(path: Path) -> bool:
     """Ask Explorer to discard a stale cached icon for the replaced EXE path."""
     if os.name != "nt":
@@ -331,6 +338,9 @@ def apply_manifest(args: argparse.Namespace) -> int:
         raise PatchError(
             f"Patched output hash mismatch: {patched_hash}; expected {expected_hash}."
         )
+    # Checked before anything is written, and in a dry run too, so a Both
+    # Games run cannot write one game's folder and then refuse the other's.
+    refuse_unrecognized_output(output_dir, manifest)
 
     report = {
         "operation": "dry-run" if args.dry_run else "apply",
@@ -398,14 +408,18 @@ def apply_manifest(args: argparse.Namespace) -> int:
         })
         write_json(staging / "FishTycoonBugFixPatchLog.json", report)
 
+        refuse_unrecognized_output(output_dir, manifest)
+        previous = backup_dir / "previous_output"
         if output_dir.exists():
-            if not recognized_output(output_dir, manifest):
-                raise PatchError(
-                    f"Output folder already exists and is not recognized as this patcher's output: {output_dir}"
-                )
-            previous = backup_dir / "previous_output"
             shutil.move(str(output_dir), str(previous))
-        os.replace(staging, output_dir)
+        try:
+            os.replace(staging, output_dir)
+        except OSError:
+            # Put the previous modded folder back rather than leave the player
+            # with none; it would otherwise survive only inside the backup.
+            if previous.exists() and not output_dir.exists():
+                shutil.move(str(previous), str(output_dir))
+            raise
         report["base_game_icon_resources_preserved"] = True
         report["windows_shell_icon_refresh_requested"] = notify_windows_shell_file_changed(
             output_dir / output_exe_name
