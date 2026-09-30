@@ -483,9 +483,11 @@ class ReadOnlyGameFilesTests(unittest.TestCase):
 
     @staticmethod
     def _writable(path: Path) -> bool:
-        import os
+        # The owner write bit mirrors the Windows read-only attribute. Unlike
+        # os.access it does not report True for root on a read-only file.
+        import stat
 
-        return os.access(path, os.W_OK)
+        return bool(path.stat().st_mode & stat.S_IWRITE)
 
     def _tree(self, raw: str, game_id: str) -> tuple[Path, Path, Namespace]:
         spec = combined.GAMES[game_id]
