@@ -1,4 +1,4 @@
-# Fish Tycoon Fix Patcher v1.2.10: technical details
+# Fish Tycoon Fix Patcher v1.2.11: technical details
 
 ## Crimson Comet curing
 
@@ -16,6 +16,13 @@ counter on every use. v1.2 replaces the complete ten-byte instruction with
 NOPs, preserving the count established by the purchase path. Universal slots
 add one per Unknown Chemical purchase when the three-use setting is off and
 three when it is on. The original decrement at `0x00421305` remains unchanged.
+
+The store description is corrected in both languages the executable carries:
+English "Contains one dose." at file `0x458C9` becomes "Contains 3 doses.", and
+German "Reicht für eine Behandlung." at file `0x45854` becomes "Reicht für 3
+Behandlungen.", the wording the game already uses for Growth Hormone. Before
+v1.2.11 only the English line was changed, so German players were still told
+one dose.
 
 ## Universal slots and stacking
 
@@ -100,7 +107,9 @@ English and German slot prompts are changed to generic item-replacement text.
 The manifest stores exact expected/replacement bytes, a pinned output hash for
 all fifteen nonempty setting combinations, and one mutually exclusive PE
 checksum record per combination. The three-setting build without Golden
-Seahorse is byte-identical to the output recorded in `QA.md` for v1.0.3. The patcher rejects
+Seahorse was byte-identical to the output recorded in `QA.md` for v1.0.3 until
+v1.2.11, which adds the German Unknown Chemical text to every combination that
+includes the three-use setting. The patcher rejects
 any executable identity or byte sequence that does not match. It also pins the
 original `.rsrc` section's size and SHA-256; the independent verifier requires
 that section—including the base game application icon—to remain byte-identical.
