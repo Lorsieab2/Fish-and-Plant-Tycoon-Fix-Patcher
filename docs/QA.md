@@ -1,5 +1,28 @@
 # QA
 
+## v1.0.16
+
+- Combined unit tests: 60 passed, 12 new; each new test fails against the code
+  it guards and passes on the fix.
+- All 16 Fish Tycoon and 2 Plant Tycoon setting combinations applied to the
+  supported LDW executables: every output matches its pinned SHA-256 and has a
+  valid PE checksum.
+- Windows loader check: each of the 18 patched images was run under a debugger
+  to the 32-bit loader breakpoint (image mapped and imports linked, game entry
+  point not run) and every patch site and the PE header matched in memory. The
+  v1.0.6 overlapping-.text image, used as a negative control, is rejected.
+- Both Games end to end from read-only vanilla copies, all settings: create,
+  re-patch and restore succeed, outputs match their pins, vanilla copies stay
+  byte-identical and read-only, no staging folder is left, and all 316 Plant
+  asset entries are handled correctly.
+- The game's own string lookup, emulated on the patched build, returns the
+  corrected English and German Unknown Chemical text. German was not viewed
+  in play.
+- Save location confirmed from the player's own save folders and the save
+  routine (Fish Tycoon 0x402BB0).
+- Every Codex review finding across the seven fix pull requests (#16-#22) was
+  fixed.
+
 ## v1.0.15
 
 - Combined unit tests: 48 passed, 8 covering Add Missing Assets and 4 covering
