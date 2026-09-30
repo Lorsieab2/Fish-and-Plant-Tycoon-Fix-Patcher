@@ -362,10 +362,15 @@ class SettingWarningTests(unittest.TestCase):
         self.assertNotIn("Use up slots 2-4", combined.patch_settings("fish")["universal_supply_slots"]["description"])
         with tempfile.TemporaryDirectory() as raw:
             with mock.patch.object(gui, "SETTINGS_PATH", Path(raw) / "patcher_local_settings.json"):
+                # Skip only when there is no display at all; any failure while
+                # building the patcher's own window must fail the test.
+                import tkinter
+
                 try:
-                    app = gui.App()
-                except Exception as exc:  # no display available
-                    self.skipTest(f"Tk unavailable: {exc}")
+                    tkinter.Tk().destroy()
+                except tkinter.TclError as exc:
+                    self.skipTest(f"no display for Tk: {exc}")
+                app = gui.App()
                 try:
                     app.withdraw()
                     app.game_choice.set("fish")
