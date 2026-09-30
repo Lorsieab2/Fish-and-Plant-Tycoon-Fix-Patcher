@@ -267,6 +267,55 @@ class FinderAndRefusalTests(unittest.TestCase):
         self.assertIn('self.bind_all("<MouseWheel>", self._scroll_content)', source)
 
 
+class ResourceSectionPinTests(unittest.TestCase):
+    """Both engines enforce the .rsrc pin their manifests declare."""
+
+    def _synthetic_pe(self) -> bytes:
+        import struct
+
+        data = bytearray(0x400)
+        data[:2] = b"MZ"
+        struct.pack_into("<I", data, 0x3C, 0x80)
+        data[0x80:0x84] = b"PE\0\0"
+        struct.pack_into("<HHI", data, 0x84, 0x14C, 1, 0x12345678)
+        struct.pack_into("<H", data, 0x80 + 20, 0xE0)
+        struct.pack_into("<H", data, 0x80 + 24, 0x10B)
+        struct.pack_into("<I", data, 0x80 + 24 + 28, 0x400000)
+        table = 0x80 + 24 + 0xE0
+        data[table:table + 5] = b".rsrc"
+        struct.pack_into("<II", data, table + 16, 0x100, 0x200)
+        data[0x200:0x300] = b"R" * 0x100
+        return bytes(data)
+
+    def _manifest(self, data: bytes, resource_sha: str) -> dict:
+        return {
+            "target": {
+                "size": len(data),
+                "sha256": fish_patcher.sha256_bytes(data),
+                "pe_timestamp": "0x12345678",
+                "machine": "0x014C",
+                "optional_magic": "0x010B",
+                "image_base": "0x00400000",
+                "resource_section": {
+                    "name": ".rsrc", "offset": "0x200", "size": 0x100, "sha256": resource_sha,
+                },
+            }
+        }
+
+    def test_both_engines_check_the_resource_section(self) -> None:
+        data = self._synthetic_pe()
+        good = fish_patcher.sha256_bytes(data[0x200:0x300])
+        for engine in (fish_patcher, plant_patcher):
+            with self.subTest(engine=engine.__name__), tempfile.TemporaryDirectory() as raw:
+                exe = Path(raw) / "game.exe"
+                exe.write_bytes(data)
+                identity = engine.validate_original_executable(exe, self._manifest(data, good))
+                self.assertEqual(identity["resource_section_sha256"], good)
+                with self.assertRaises(engine.PatchError) as caught:
+                    engine.validate_original_executable(exe, self._manifest(data, "0" * 64))
+                self.assertIn("resource section", str(caught.exception))
+
+
 class SectionLayoutTests(unittest.TestCase):
     """Guards the PE section layout every setting combination produces.
 
