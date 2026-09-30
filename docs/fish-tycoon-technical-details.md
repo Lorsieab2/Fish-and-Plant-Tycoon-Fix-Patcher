@@ -31,8 +31,10 @@ with the previous stack count plus the item-specific purchase amount.
 
 The use hook at `0x00420B70` temporarily swaps a complete 28-byte slot record
 into the original category slot, calls the unmodified original handler through
-a trampoline, swaps the records back, and restores the physical selected slot.
-This retains the original item effects without duplicating them.
+a trampoline and swaps the records back. It leaves the handler's own
+completed-action selected-slot value in place rather than restoring the
+physical slot (see below). This retains the original item effects without
+duplicating them.
 
 The Buy Multiple Golden Seahorses setting targets store item index `11`, and is
 on by default. Counting the store item records at VA `0x00457EF0`, which are
@@ -96,6 +98,23 @@ Golden Seahorse — the section's raw end offset rather than a size — so all
 eight of those combinations produced an executable that could not start. See
 `golden-seahorse-defects.md`.
 English and German slot prompts are changed to generic item-replacement text.
+
+### Saves made with the setting in a different state
+
+Slot counts are stored in the save verbatim, and nothing clamps them on load.
+The vanilla purchase writer at `0x00427540` sets every record's count to 3; the
+vanilla use paths then reset the Unknown Chemical to 1 (`0x004210B7`) or clear
+the whole egg record on hatch. With universal slots on, the reset is removed and
+eggs decrement, and the payload writes its own count. So an egg or Unknown
+Chemical bought while the setting was off still has count 3 and gives three uses
+once it is on. The reverse also holds: a save with stacked or relocated items
+loaded by a build without the setting runs the stock handler, which switches on
+the physical slot, so a stack of eggs is cleared by one hatch and an item outside
+its own slot may not work. A leftover count-3 record is byte-identical to a
+genuine stack of three, so this cannot be corrected in the executable; the
+setting description tells players to empty slots 2-4 before switching it.
+Re-patching keeps the executable name `Fish Tycoon - Modded.exe`, so the modded
+copy keeps its saves across setting changes.
 
 The manifest stores exact expected/replacement bytes, a pinned output hash for
 all fifteen nonempty setting combinations, and one mutually exclusive PE
