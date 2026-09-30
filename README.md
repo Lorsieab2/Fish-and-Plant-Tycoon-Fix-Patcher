@@ -93,29 +93,34 @@ restore-from-backup operation.
 ### Where your saves go
 
 Both games build their save path as
-`Documents\LDW\<game name>\<exe name><slot>.ldw`. The folder is the game's own
-fixed name, and only the file names come from the executable, through the
+`Documents\LDW\<exe name>\<game name><number>.ldw`. The folder comes from the
+executable: the game reads its own file name with `GetModuleFileNameA` and drops
+the path and `.exe`. The file names are the game's own fixed name, through the
 `%s%d.ldw` format string each build carries.
 
-So a modded copy shares the folder with your original game and writes its own
-files beside them:
+So a modded copy gets a folder of its own, next to your original game's:
 
 ```
-Documents\LDW\Fish Tycoon\
-    Fish Tycoon0.ldw            <- original: settings
-    Fish Tycoon1.ldw .. 5.ldw   <- original: save slots 1-5
-    Fish Tycoon - Modded0.ldw   <- modded: settings
-    Fish Tycoon - Modded1.ldw   <- modded: save slots
+Documents\LDW\
+    Fish Tycoon\               <- original game
+        Fish Tycoon0.ldw        <- settings
+        Fish Tycoon1.ldw ...    <- saves
+    Fish Tycoon - Modded\      <- modded copy
+        Fish Tycoon0.ldw        <- settings
+        Fish Tycoon1.ldw ...    <- saves
 ```
 
-Your original saves are never touched, and the two builds cannot overwrite each
-other. Two things follow that are easy to be surprised by:
+The file names are the same in both folders, but the folders are separate, so
+your original saves are never touched and the two builds cannot overwrite each
+other. `Documents` is wherever Windows keeps it, which is often
+`OneDrive\Documents`. Things that follow and are easy to be surprised by:
 
-- Slot `0` holds settings rather than a save, and it is per-executable too, so a
-  modded copy starts with fresh settings instead of inheriting the ones from
-  your original game.
-- Renaming a modded executable changes which `.ldw` files it uses. Rename it and
-  its saves appear to vanish; they are still there under the old name.
+- File `0` holds settings rather than a save, and it lives in the per-executable
+  folder too, so a modded copy starts with fresh settings instead of inheriting
+  the ones from your original game.
+- Renaming a modded executable changes which folder it uses. Rename it and its
+  saves appear to vanish; they are still there in the folder named after the old
+  executable.
 
 ## Safety
 
