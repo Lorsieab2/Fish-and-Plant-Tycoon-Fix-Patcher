@@ -754,6 +754,25 @@ class SavedSettingsTests(unittest.TestCase):
         self.assertFalse(loaded["plant"]["add_missing_ldw_assets"])
         self.assertTrue(loaded["plant"]["no_old_age_plant_deaths"])
 
+    def test_an_unwritable_settings_file_does_not_block_closing_or_patching(self) -> None:
+        # _close and _start both save first; an exception there left the
+        # window impossible to close and the patch run never started.
+        import os
+        import stat
+
+        app = self._app()
+        app.status_var = self._Var()
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "patcher_local_settings.json"
+            path.write_text("{}", encoding="utf-8")
+            os.chmod(path, stat.S_IREAD)
+            try:
+                with mock.patch.object(gui, "SETTINGS_PATH", path):
+                    gui.App._save_settings(app)
+            finally:
+                os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+        self.assertIn("Could not save your settings", app.status_var.get())
+
     def test_legacy_list_names_only_real_settings(self) -> None:
         for game_id, ids in gui.LEGACY_KNOWN_SETTINGS.items():
             self.assertTrue(set(ids) <= set(combined.patch_settings(game_id)), game_id)

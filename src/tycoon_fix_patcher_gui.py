@@ -946,7 +946,16 @@ class App(tk.Tk):
                 for game_id in GAMES
             },
         }
-        SETTINGS_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        try:
+            SETTINGS_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        except OSError as exc:
+            # A patcher extracted somewhere read-only (Program Files, a locked
+            # folder) must still patch and still close; only the remembered
+            # paths and choices are lost.
+            self.status_var.set(
+                f"Could not save your settings to {SETTINGS_PATH} ({exc.strerror or exc}). "
+                "Patching still works; your choices will not be remembered."
+            )
 
     def _close(self) -> None:
         if self.busy and not messagebox.askyesno(
