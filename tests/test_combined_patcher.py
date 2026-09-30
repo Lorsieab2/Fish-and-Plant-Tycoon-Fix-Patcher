@@ -756,29 +756,24 @@ class SavedSettingsTests(unittest.TestCase):
 
     def test_an_unwritable_settings_file_does_not_block_closing_or_patching(self) -> None:
         # _close and _start both save first; an exception there left the
-        # window impossible to close and the patch run never started.
-        import os
-        import stat
-
+        # window impossible to close and the patch run never started. The
+        # write failure is injected rather than made with chmod, which does
+        # not stop an elevated (root) test run from writing.
         app = self._app()
         app.status_var = self._Var()
         app.log = mock.Mock()
         app.busy = False
         app.destroy = mock.Mock()
         app._save_settings = lambda: gui.App._save_settings(app)
-        with tempfile.TemporaryDirectory() as raw:
-            path = Path(raw) / "patcher_local_settings.json"
-            path.write_text("{}", encoding="utf-8")
-            os.chmod(path, stat.S_IREAD)
-            try:
-                with mock.patch.object(gui, "SETTINGS_PATH", path), mock.patch.object(
-                    gui.messagebox, "showwarning"
-                ) as warned:
-                    first = gui.App._save_settings(app)
-                    second = gui.App._save_settings(app)
-                    gui.App._close(app)
-            finally:
-                os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+        unwritable = mock.Mock()
+        unwritable.write_text.side_effect = PermissionError(13, "Permission denied")
+        with mock.patch.object(gui, "SETTINGS_PATH", unwritable), mock.patch.object(
+            gui.messagebox, "showwarning"
+        ) as warned:
+            first = gui.App._save_settings(app)
+            second = gui.App._save_settings(app)
+            gui.App._close(app)
+        self.assertEqual(unwritable.write_text.call_count, 3)
         self.assertIn("Could not save your settings", first)
         self.assertEqual(first, second)
         self.assertIn("Could not save your settings", app.status_var.get())
