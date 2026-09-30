@@ -353,6 +353,39 @@ class SectionLayoutTests(unittest.TestCase):
             )
 
 
+class SettingWarningTests(unittest.TestCase):
+    """A setting's warning is visible wherever the setting can be ticked."""
+
+    def test_universal_slots_warning_is_shown_in_both_tabs(self) -> None:
+        warning = combined.patch_settings("fish")["universal_supply_slots"]["warning"]
+        self.assertIn("Use up slots 2-4", warning)
+        self.assertNotIn("Use up slots 2-4", combined.patch_settings("fish")["universal_supply_slots"]["description"])
+        with tempfile.TemporaryDirectory() as raw:
+            with mock.patch.object(gui, "SETTINGS_PATH", Path(raw) / "patcher_local_settings.json"):
+                try:
+                    app = gui.App()
+                except Exception as exc:  # no display available
+                    self.skipTest(f"Tk unavailable: {exc}")
+                try:
+                    app.withdraw()
+                    app.game_choice.set("fish")
+                    app._rebuild_one_game()
+                    texts = []
+                    pending = [app]
+                    while pending:
+                        widget = pending.pop()
+                        pending.extend(widget.winfo_children())
+                        try:
+                            texts.append(str(widget.cget("text")))
+                        except Exception:
+                            continue
+                    shown = [t for t in texts if t == f"Warning: {warning}"]
+                    # Once in the One Game panel, once in the Both Games panel.
+                    self.assertEqual(len(shown), 2)
+                finally:
+                    app.destroy()
+
+
 class ReleasePackagingTests(unittest.TestCase):
     """The ZIP is what players actually get, so what it references must be in it."""
 

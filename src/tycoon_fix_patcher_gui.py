@@ -458,6 +458,17 @@ class App(tk.Tk):
                 variable=self.patch_vars[game_id][setting_id],
                 command=self._save_settings,
             ).pack(anchor="w")
+            # A warning is shown in both tabs, including the compact Both
+            # Games panels, which leave out descriptions.
+            warning = str(setting.get("warning", "")).strip()
+            if warning:
+                ttk.Label(
+                    entry,
+                    text=f"Warning: {warning}",
+                    wraplength=780 if compact else 820,
+                    foreground="#9a3b00",
+                    justify="left",
+                ).pack(anchor="w", padx=(24, 0))
             if compact:
                 continue
             ttk.Label(

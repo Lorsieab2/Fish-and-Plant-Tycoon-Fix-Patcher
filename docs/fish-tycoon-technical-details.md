@@ -112,7 +112,8 @@ loaded by a build without the setting runs the stock handler, which switches on
 the physical slot, so a stack of eggs is cleared by one hatch and an item outside
 its own slot may not work. A leftover count-3 record is byte-identical to a
 genuine stack of three, so this cannot be corrected in the executable; the
-setting description tells players to empty slots 2-4 before switching it.
+setting's warning, shown under it in both the One Game and Both Games tabs,
+tells players to empty slots 2-4 before switching it.
 Re-patching keeps the executable name `Fish Tycoon - Modded.exe`, so the modded
 copy keeps its saves across setting changes.
 
