@@ -1,5 +1,47 @@
 # Changelog
 
+## v1.0.16
+
+Fixes from a full audit of both games' patches and of the patcher around them.
+Every patch was re-traced in the game code, every setting combination was
+re-applied to the supported LDW executables, and each patched build was put
+through the Windows loader with its patch bytes checked in memory. The patches
+themselves were all correct; the fixes below are in the patcher, its texts and
+its documentation.
+
+### Fish Tycoon
+
+- **Unknown Chemical: 3 uses** now also corrects the German store text,
+  "Reicht für eine Behandlung." becomes "Reicht für 3 Behandlungen." (the
+  game's own wording for Growth Hormone). Only the English line was changed
+  before. Manifest v1.2.11; the pinned hashes of the eight combinations that
+  include this setting changed, the other seven did not.
+- **Universal supply slots 2-4** now warns, in both tabs, that switching it on
+  or off on a save that already holds supplies changes their uses: an egg or
+  Unknown Chemical bought with the setting off lasts three uses once it is on,
+  and stacks or items in other slots misbehave after it is turned off. The
+  executable cannot tell a leftover record from a real stack, so the warning
+  asks players to use up slots 2-4 first.
+- The Fish engine now enforces the resource-section pin its manifest declares,
+  as the documentation already said it did.
+
+### Both games
+
+- **Patch Both** no longer writes one game and then refuses the other. An
+  existing output folder the patcher did not create is now refused in the
+  dry run, before anything is written, and a failed final swap puts the
+  previous modded folder back.
+- Games whose files are read-only now patch, re-patch and restore. Before,
+  patching failed with "Access is denied" and left a staging folder behind
+  on every attempt.
+- The patcher window no longer gets stuck when its settings file cannot be
+  saved (for example when it is extracted somewhere read-only): it still
+  patches and closes, and says once that your choices will not be
+  remembered.
+- The save-location documentation is corrected. Both games keep saves in
+  `Documents\LDW\<exe name>\<game name><number>.ldw`, so a modded copy has
+  its own folder; the docs had the folder and file names swapped.
+
 ## v1.0.15
 
 ### Add Missing Assets to LDW Version
