@@ -152,7 +152,7 @@ asset merge.
 python tests/test_combined_patcher.py
 ```
 
-The suite covers the exact executable identities, the pinned output hashes, the
+The suite covers the exact executable identities, that every setting combination has a pinned output hash, the
 game search, the GUI wiring, and the asset merge: additive only, identical files
 ignored, tampered or outside bundles refused, and every bundled file stored by
 git byte-for-byte against its pin. It uses synthetic fixtures and the bundled

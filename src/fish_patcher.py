@@ -116,6 +116,27 @@ def pe_identity(data: bytes) -> dict[str, int]:
     }
 
 
+def pe_sections(data: bytes, identity: dict[str, int]) -> dict[str, dict[str, int]]:
+    pe_offset = identity["pe_offset"]
+    section_count = struct.unpack_from("<H", data, pe_offset + 6)[0]
+    optional_size = struct.unpack_from("<H", data, pe_offset + 20)[0]
+    table_offset = pe_offset + 24 + optional_size
+    table_end = table_offset + section_count * 40
+    if table_end > len(data):
+        raise PatchError("PE section table extends beyond the executable.")
+
+    sections: dict[str, dict[str, int]] = {}
+    for index in range(section_count):
+        offset = table_offset + index * 40
+        name = data[offset:offset + 8].split(b"\0", 1)[0].decode("ascii", errors="replace")
+        raw_size = struct.unpack_from("<I", data, offset + 16)[0]
+        raw_offset = struct.unpack_from("<I", data, offset + 20)[0]
+        if raw_offset + raw_size > len(data):
+            raise PatchError(f"PE section {name!r} extends beyond the executable.")
+        sections[name] = {"offset": raw_offset, "size": raw_size}
+    return sections
+
+
 def validate_original_executable(exe: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     target = manifest.get("target")
     if not isinstance(target, dict):
@@ -149,10 +170,40 @@ def validate_original_executable(exe: Path, manifest: dict[str, Any]) -> dict[st
             raise PatchError(
                 f"Unsupported PE {key}: 0x{identity[key]:X}; expected 0x{expected:X}."
             )
+
+    expected_resource = target.get("resource_section")
+    if not isinstance(expected_resource, dict):
+        raise PatchError("Manifest target.resource_section is missing.")
+    resource_name = str(expected_resource.get("name", ""))
+    resource = pe_sections(data, identity).get(resource_name)
+    if resource is None:
+        raise PatchError(f"Required PE resource section was not found: {resource_name}")
+    expected_resource_offset = parse_int(
+        expected_resource.get("offset"), "target.resource_section.offset"
+    )
+    expected_resource_size = parse_int(
+        expected_resource.get("size"), "target.resource_section.size"
+    )
+    if resource["offset"] != expected_resource_offset or resource["size"] != expected_resource_size:
+        raise PatchError(
+            "Unsupported PE resource section layout: "
+            f"offset 0x{resource['offset']:X}, size {resource['size']}; expected "
+            f"offset 0x{expected_resource_offset:X}, size {expected_resource_size}."
+        )
+    resource_hash = sha256_bytes(
+        data[resource["offset"]:resource["offset"] + resource["size"]]
+    )
+    expected_resource_hash = str(expected_resource.get("sha256", "")).upper()
+    if resource_hash != expected_resource_hash:
+        raise PatchError(
+            "Unsupported PE resource section SHA-256.\n"
+            f"Actual:   {resource_hash}\nExpected: {expected_resource_hash}"
+        )
     return {
         "path": str(exe.resolve()),
         "size": len(data),
         "sha256": actual_hash,
+        "resource_section_sha256": resource_hash,
         **{key: f"0x{value:X}" for key, value in identity.items()},
     }
 
