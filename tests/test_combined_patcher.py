@@ -762,16 +762,33 @@ class SavedSettingsTests(unittest.TestCase):
 
         app = self._app()
         app.status_var = self._Var()
+        app.log = mock.Mock()
+        app.busy = False
+        app.destroy = mock.Mock()
+        app._save_settings = lambda: gui.App._save_settings(app)
         with tempfile.TemporaryDirectory() as raw:
             path = Path(raw) / "patcher_local_settings.json"
             path.write_text("{}", encoding="utf-8")
             os.chmod(path, stat.S_IREAD)
             try:
-                with mock.patch.object(gui, "SETTINGS_PATH", path):
-                    gui.App._save_settings(app)
+                with mock.patch.object(gui, "SETTINGS_PATH", path), mock.patch.object(
+                    gui.messagebox, "showwarning"
+                ) as warned:
+                    first = gui.App._save_settings(app)
+                    second = gui.App._save_settings(app)
+                    gui.App._close(app)
             finally:
                 os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+        self.assertIn("Could not save your settings", first)
+        self.assertEqual(first, second)
         self.assertIn("Could not save your settings", app.status_var.get())
+        # The status line is overwritten when a run starts, so the log keeps
+        # one lasting copy per session, not one per click.
+        self.assertEqual(app.log.insert.call_count, 1)
+        self.assertIn("Could not save your settings", app.log.insert.call_args[0][1])
+        # Closing tells the player before the window goes, then still closes.
+        warned.assert_called_once()
+        app.destroy.assert_called_once()
 
     def test_legacy_list_names_only_real_settings(self) -> None:
         for game_id, ids in gui.LEGACY_KNOWN_SETTINGS.items():

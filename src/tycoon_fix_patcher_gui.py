@@ -931,7 +931,8 @@ class App(tk.Tk):
                         if setting_id in known:
                             variable.set(setting_id in enabled)
 
-    def _save_settings(self) -> None:
+    def _save_settings(self) -> str:
+        """Save the remembered paths and choices; return why not, or ""."""
         data = {
             "selected_game": self.game_choice.get(),
             "output_parent": self.output_parent.get().strip(),
@@ -952,17 +953,28 @@ class App(tk.Tk):
             # A patcher extracted somewhere read-only (Program Files, a locked
             # folder) must still patch and still close; only the remembered
             # paths and choices are lost.
-            self.status_var.set(
+            problem = (
                 f"Could not save your settings to {SETTINGS_PATH} ({exc.strerror or exc}). "
                 "Patching still works; your choices will not be remembered."
             )
+            self.status_var.set(problem)
+            # The status line is overwritten as soon as a run starts, so the
+            # log keeps a lasting copy, once per session rather than per click.
+            if not getattr(self, "settings_save_logged", False):
+                self.settings_save_logged = True
+                self.log.insert("end", problem + "\n")
+                self.log.see("end")
+            return problem
+        return ""
 
     def _close(self) -> None:
         if self.busy and not messagebox.askyesno(
             APP_NAME, "An operation is running. Close anyway?"
         ):
             return
-        self._save_settings()
+        problem = self._save_settings()
+        if problem:
+            messagebox.showwarning(APP_NAME, problem)
         self.destroy()
 
 
