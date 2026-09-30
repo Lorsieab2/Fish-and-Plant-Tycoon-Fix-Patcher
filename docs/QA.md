@@ -20,7 +20,8 @@
   in play.
 - Save location confirmed from the player's own save folders and the save
   routine (Fish Tycoon 0x402BB0).
-- Every Codex review finding across the eight pull requests was fixed.
+- Every Codex review finding across the seven fix pull requests (#16-#22) was
+  fixed.
 
 ## v1.0.15
 
