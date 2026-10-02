@@ -30,7 +30,7 @@
 
 | # | Check | Result |
 |---|---|---|
-| 1a | The two payload variants differ only at `0x43F4EB` (`add eax,1` vs `add eax,3`). The payload, hooks, NOP and strings are byte-identical across all 8 builds with this setting. Nothing is written between `0x43F661` and `0x43F800`. VirtualSize is `0x3F000`. | PASS (static) |
+| 1a | The two payload variants differ only at `0x43F4EB` (`add eax,1` vs `add eax,3`). Apart from that one immediate, the payload is byte-identical across all 8 builds with this setting, and so are the hooks, the NOPs and the strings. Which variant a build gets depends only on whether Unknown Chemical: 3 uses is on. Nothing is written between `0x43F661` and `0x43F800`. VirtualSize is `0x3F000`. | PASS (static) |
 | 1b | All 58 branch and call targets land on instruction boundaries: every internal target plus the external ones (`0x4221A0`, `0x401D00`, `0x422440`, `0x427540`, `0x428225`, `0x4281D6`, `0x42813C`, `0x420B78`). The hooks decode to the right targets. No direct branch or absolute pointer anywhere in the exe lands inside the replaced bytes. | PASS (static) |
 | 1c | Rejoin state is correct. At `0x42813C` (items 8+) the original `cmp edi,0x19 / ja` is reproduced, and ECX still holds the state pointer. The dialog sequence copies vanilla `0x4281DF`–`0x428220`. EBX and `[esp+0x10]` are only overwritten on paths that go straight to the epilogue at `0x428225`. The egg continuations redefine EAX/ECX/EDX before using them. | PASS (static + emulated) |
 | 2a | The Buy confirmation (string 0xEC) appears first; No leaves slots and money untouched. | PASS (emulated) |
