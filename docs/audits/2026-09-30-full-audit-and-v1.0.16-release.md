@@ -57,7 +57,7 @@ All eight are merged (squash). CI was green on every head.
 - The English store text is corrected. For the German text, see 4.5.
 
 **[PASS] Universal supply slots 2-4** (STATIC + EMU + LOADER)
-- **Structure:** a 961-byte payload, 4 hooks and 6 prompt strings. All 58 branch targets land on instruction boundaries, nothing jumps into replaced bytes, and the state at every rejoin point is correct.
+- **Structure:** a 961-byte payload, 5 redirected sites (store purchase `0x428133`, item use `0x420B70`, and the three egg clears `0x4213A7`, `0x421476` and `0x421549`) and 6 prompt strings. All 58 branch targets land on instruction boundaries, nothing jumps into replaced bytes, and the state at every rejoin point is correct.
 - **Buying, emulated:**
   - The Buy confirmation appears first, and No changes nothing.
   - The search goes stack in slot 2 → 3 → 4, then the first empty slot, then the replace prompts.
@@ -72,7 +72,7 @@ All eight are merged (squash). CI was green on every head.
 - The repository's history records a runtime watch that confirmed the click handler is the live path.
 
 **[PASS] Section layout and checksums** (LOADER)
-- `.text` VirtualSize is `0x3F000` in every combination, and every image loads.
+- `.text` VirtualSize is extended to `0x3F000` in the 12 combinations that enable Universal Slots or Golden Seahorse, which need the extra code space. The other 4 combinations keep the vanilla `0x3E29F`. Every image, of all 16, loads.
 - As a negative control, the v1.0.6–v1.0.8 overlapping image is rejected by the Windows loader. This proves the check really detects that defect.
 
 ### Plant Tycoon
