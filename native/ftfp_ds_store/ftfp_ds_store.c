@@ -25,7 +25,10 @@
    31 Sting Ray, 32 Moray Eel -- so every rule the game has for the seahorse
    applies to them.  The rock is one of the tank's ornament records; while
    the eel is home, the rock record's spare bytes keep its health and food.
-   Owning an animal means it is in a tank. */
+   Owning an animal means it is in a tank: one of each, bought again after
+   it is trashed.  With "Buy Multiple Golden Seahorses" patched in, the store
+   sells them however many are already in the tanks, as it does the seahorse
+   (each eel comes with its own rock). */
 #include <windows.h>
 #include <string.h>
 #include "../ftfp_ds_fish/install_sites.h"
@@ -58,6 +61,11 @@
 #define O_H 0x1C
 #define O_W 0x20
 #define O_SPRITE 0x24
+#define ROCK_SINK 14                 /* the rock sits this much deeper in the gravel than its art's height */
+#define ROCK_FLOOR_H (ROCK_H - ROCK_SINK)
+#define SPR_SHADOW 3                 /* TANK_OBJECT_SHADOW.png, 135 x 33 */
+#define SHADOW_W 135
+#define HOME_FRAME_MS 240u           /* the in-rock animation, played forward then back */
 #define O_HOME_HEALTH 1             /* spare bytes after the active byte */
 #define O_HOME_FOOD 2
 #define O_HOME_FLAG 3
@@ -244,12 +252,37 @@ static int owned(char *state, int fin) {
     return fin == FIN_EEL && (eel_in_tank(state, 0) || eel_in_tank(state, 1) || eel_in_tank(state, 2));
 }
 
+/* "Buy Multiple Golden Seahorses" (fish manifest patch
+   redirect_golden_seahorse_store_blocker) puts this jump at 0x4282B2. */
+static const unsigned char REPURCHASE_JUMP[10] = { 0xE9, 0x49, 0x75, 0x01, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90 };
+
+static int sold_out(char *state, int fin) {
+    static int repurchase = -1;
+    if (repurchase < 0) repurchase = ftfp_site_holds(0x004282B2u, REPURCHASE_JUMP, sizeof REPURCHASE_JUMP);
+    return fin != 0 && !repurchase && owned(state, fin);
+}
+
 static int clamp100(int v) { return v < 0 ? 0 : v > 100 ? 100 : v; }
 
 /* After the game's own health tick for one fish, one age step. */
 static void __cdecl companion_effects(char *f, int tank) {
     char *state = game_state();
     int n, health, food;
+    if (state != NULL && *I(state, S_EGG_ICON) == SPR_ITEM_EGGS) {
+        *I(state, S_EGG_ICON) = SPR_TOOL_EGGS;      /* eggs bought with the first builds showed the store picture */
+    }
+    if (state != NULL) {                             /* rocks from the first builds sat too high on the gravel */
+        int t, k;
+        for (t = 0; t <= 2; ++t) {
+            for (k = 0; k < ORN_SLOTS; ++k) {
+                unsigned char *o = ornament(state, t, k);
+                if (is_rock(o) && *I(o, O_H) == ROCK_H) {
+                    *I(o, O_H) = ROCK_FLOOR_H;
+                    *I(o, O_Y) += ROCK_H - ROCK_FLOOR_H;
+                }
+            }
+        }
+    }
     if (state == NULL || tank < 0 || tank > 2 || *I(f, F_BODY) == BODY_SEAHORSE) return;
     if (*I(f, F_DISEASE) != 0 || *I(f, F_FOOD) <= 5 || *I(f, F_HEALTH) <= 0) return;
     health = *I(f, F_HEALTH);
@@ -373,9 +406,14 @@ static int __cdecl eel_click(char *impl, int x, int y) {
 
 /* The eel at home: the part of it behind the rock, then (after every
    ornament) the part in front, the DS in-rock animation. */
+static int home_frame(void) {
+    int step = (int)((GetTickCount() / HOME_FRAME_MS) % (2 * (HOME_FRAMES - 1)));
+    return step < HOME_FRAMES ? step : 2 * (HOME_FRAMES - 1) - step;
+}
+
 static void draw_home(char *impl, int sprite) {
     char *state = (char *)P(impl, 0x34);
-    int tank, k, frame = (int)((GetTickCount() / 110u) % HOME_FRAMES);
+    int tank, k, frame = home_frame();
     if (state == NULL) return;
     tank = *I(state, S_CURRENT_TANK);
     if (tank < 0 || tank > 2) return;
@@ -388,8 +426,54 @@ static void draw_home(char *impl, int sprite) {
     }
 }
 
-static void __cdecl draw_home_backs(char *impl) { draw_home(impl, SPR_HOME_BACK); }
-static void __cdecl draw_home_fronts(char *impl) { draw_home(impl, SPR_HOME_FRONT); }
+/* The stock pass draws every ornament's shadow (sprite 3, 135 x 33) at
+   (x - 25, y + h - 25), which suits the small stock ornaments; under the
+   wide rock it sat off to the left.  The rock's shadow is drawn here,
+   centred under it, and the stock pass skips it (a falling ornament has no
+   shadow, so the rock is marked falling for the length of the pass). */
+static unsigned char hid_shadow[ORN_SLOTS];
+
+static void rock_shadows(char *impl) {
+    char *state = (char *)P(impl, 0x34);
+    int tank, k;
+    memset(hid_shadow, 0, sizeof hid_shadow);
+    if (state == NULL) return;
+    tank = *I(state, S_CURRENT_TANK);
+    if (tank < 0 || tank > 2) return;
+    for (k = 0; k < ORN_SLOTS; ++k) {
+        unsigned char *o = ornament(state, tank, k);
+        void *img;
+        if (!is_rock(o) || *I(o, O_FALLING) != 0) continue;
+        hid_shadow[k] = 1;
+        *I(o, O_FALLING) = 1;
+        if (*I(impl, 0x28) == k) continue;                   /* being dragged: no shadow, as stock */
+        img = (void *)(UINT_PTR)SPRITE_GET(P(impl, 0x38), NULL, SPR_SHADOW);
+        if (img) DRAW(P(impl, 0x54), NULL, (int)(UINT_PTR)img,
+                      *I(o, O_X) + *I(o, O_W) / 2 - SHADOW_W / 2, *I(o, O_Y) + *I(o, O_H) - 25);
+    }
+}
+
+static void restore_shadows(char *impl) {
+    char *state = (char *)P(impl, 0x34);
+    int k, tank;
+    if (state == NULL) return;
+    tank = *I(state, S_CURRENT_TANK);
+    if (tank < 0 || tank > 2) return;
+    for (k = 0; k < ORN_SLOTS; ++k) {
+        if (hid_shadow[k]) *I(ornament(state, tank, k), O_FALLING) = 0;
+    }
+    memset(hid_shadow, 0, sizeof hid_shadow);
+}
+
+static void __cdecl draw_home_backs(char *impl) {
+    rock_shadows(impl);
+    draw_home(impl, SPR_HOME_BACK);
+}
+
+static void __cdecl draw_home_fronts(char *impl) {
+    restore_shadows(impl);
+    draw_home(impl, SPR_HOME_FRONT);
+}
 
 /* ------------------------------------------------------ Exotic Fish Eggs */
 
@@ -523,7 +607,7 @@ static void draw_page(void *scene) {
         const store_item *it = &ITEM[selected];
         draw_text(impl, it->name[lang], 0x39, 0x159, FONT_TITLE, *I(impl, 0x24));
         draw_text(impl, it->text[lang], 0x39, 0x181, FONT_BODY, 0);
-        if (it->fin != 0 && owned(state, it->fin)) {
+        if (sold_out(state, it->fin)) {
             draw_text(impl, game_string(0xE9), 0x39, 0x1FD, FONT_BODY, 0);   /* "This is in your inventory." */
         } else {
             char line[64];
@@ -592,7 +676,7 @@ static void buy(void *scene) {
     void *hint = P(impl, 0xC);
     if (selected < 0 || state == NULL) return;
     it = &ITEM[selected];
-    if (it->fin != 0 && owned(state, it->fin)) {
+    if (sold_out(state, it->fin)) {
         HINT(hint, NULL, 0x1C);                      /* "You already own this!" */
         return;
     }
@@ -606,7 +690,7 @@ static void buy(void *scene) {
         *I(state, S_EGG_ITEM) = EXOTIC_ITEM;
         *I(state, S_EGG_PRESENT) = 1;
         *I(state, S_EGG_COUNT) = 3;
-        *I(state, S_EGG_ICON) = SPR_ITEM_EGGS;
+        *I(state, S_EGG_ICON) = SPR_TOOL_EGGS;      /* the shelf shows the small picture, as stock eggs do */
         *I(state, S_EGG_CURSOR) = SPR_TOOL_EGGS;
         *I(state, S_EGG_X) = 3 * 0x30 + 0x1E;
         return;
@@ -639,7 +723,7 @@ static void buy(void *scene) {
             *I(rock, O_X) = 200;
             *I(rock, O_Y) = 250;
             *I(rock, O_FALLING) = 1;
-            *I(rock, O_H) = ROCK_H;
+            *I(rock, O_H) = ROCK_FLOOR_H;
             *I(rock, O_W) = ROCK_W;
             *I(rock, O_SPRITE) = SPR_ROCK;
             GAME(this2_fn, 0x00419C00u)(state, NULL, rock_tank, (int)(UINT_PTR)rock);
@@ -781,6 +865,8 @@ __declspec(naked) static void stub_egg_use(void) {
 __declspec(naked) static void stub_egg_confirm(void) {
     __asm {
         cmp ecx, 0xAC
+        je eggs
+        cmp ecx, SPR_TOOL_EGGS
         je eggs
         cmp ecx, SPR_ITEM_EGGS
         je eggs

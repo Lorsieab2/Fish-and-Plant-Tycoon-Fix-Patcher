@@ -319,8 +319,8 @@
           {
             "path": "FTFP DS Store.dll",
             "destination": "Fish Tycoon Fix Patcher Files/FTFP DS Store.dll",
-            "size": 97280,
-            "sha256": "DFA69895A4D6BA8050D89A2AD2EBD20E19C328BD1DD6754FB859D51A3D85CDAD"
+            "size": 97792,
+            "sha256": "ED1F413E136ECFAEE8876865458A178917F924B7362B507D5C33344652769FE3"
           },
           {
             "path": "Images/DS_EEL_Grid.png",

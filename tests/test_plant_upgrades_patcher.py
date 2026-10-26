@@ -1,6 +1,6 @@
-"""Store Upgrades and Extra Seed Boxes (Plant Tycoon) in the patcher: the
-settings, their dependencies, the companion files, the pins and the committed
-DLLs.
+"""Add new store upgrades and items (Plant Tycoon) in the patcher: the
+setting, its dependency, the companion files (the Upgrades and Seed Boxes
+DLLs and the art), the pins and the committed DLLs.
 
 Synthetic fixtures only, as tests/test_new_flowers_patcher.py. The behaviour
 in the running game is covered by the live checks in
@@ -31,7 +31,7 @@ from test_ds_fish_patcher import MSVC, SDK, SDK_VERSION  # noqa: E402
 from test_new_flowers_patcher import synthetic_plant_exe  # noqa: E402
 
 UPGRADES = ROOT / "assets" / "plant_tycoon_upgrades"
-BOXES = ROOT / "assets" / "plant_tycoon_seed_boxes"
+BOXES = UPGRADES
 FOLDER = ds_fish_loader.PLANT.patcher_files_folder
 
 
@@ -40,37 +40,35 @@ class ManifestTests(unittest.TestCase):
         self.manifest = combined.load_manifest("plant")
         self.settings = combined.patch_settings("plant")
 
-    def test_settings_are_off_by_default_chain_their_needs_and_warn(self) -> None:
-        upgrades, boxes = self.settings["plant_upgrades"], self.settings["seed_boxes"]
+    def test_setting_is_off_by_default_needs_the_flowers_and_warns(self) -> None:
+        upgrades = self.settings["plant_upgrades"]
+        self.assertEqual(upgrades["name"], "Add new store upgrades and items")
+        self.assertEqual(self.settings["new_flowers"]["name"], "Add unused flowers")
+        self.assertNotIn("seed_boxes", self.settings)
         self.assertFalse(upgrades["default"])
-        self.assertFalse(boxes["default"])
         self.assertEqual(upgrades["requires_settings"], ["new_flowers"])
-        self.assertEqual(boxes["requires_settings"], ["plant_upgrades"])
-        for text in ("Legendary Seeds", "Radioactive Plant Formula", "$10,000", "$5000"):
+        for text in ("Legendary Seeds", "Radioactive Plant Formula", "$10,000", "$5000", "Fourth", "Fifth",
+                     "Sixth", "Even more space for your seeds!", "greenhouse"):
             self.assertIn(text, upgrades["description"])
-        for text in ("Fourth", "Fifth", "Sixth", "Even more space for your seeds!", "greenhouse"):
-            self.assertIn(text, boxes["description"])
         self.assertIn("use up the formula", upgrades["warning"])
-        self.assertIn("boxes 1-3", boxes["warning"])
+        self.assertIn("boxes 4-6", upgrades["warning"])
 
     def test_every_combination_is_pinned_as_the_same_one_without_them(self) -> None:
-        # Neither writes executable bytes: New Flowers' DLL loads the Upgrades DLL, which loads the boxes'.
+        # It writes no executable bytes: the flowers' DLL loads the Upgrades DLL, which loads the boxes'.
         pins = self.manifest["patched_sha256_by_settings"]
-        added = [key for key in pins if {"plant_upgrades", "seed_boxes"} & set(key.split(","))]
-        self.assertEqual(len(added), 4)
+        added = [key for key in pins if "plant_upgrades" in key.split(",")]
+        self.assertEqual(len(added), 2)
         for key in added:
             enabled = set(key.split(","))
             self.assertIn("new_flowers", enabled)
-            if "seed_boxes" in enabled:
-                self.assertIn("plant_upgrades", enabled)
-            base = plant_patcher.settings_key(enabled - {"plant_upgrades", "seed_boxes"}, self.manifest)
+            base = plant_patcher.settings_key(enabled - {"plant_upgrades"}, self.manifest)
             self.assertEqual(pins[key], pins[base], key)
 
     def test_companion_files_are_pinned_and_present(self) -> None:
         expected = {
-            "plant_upgrades": {f"{FOLDER}/FTFP Plant Upgrades.dll", "Images/seed_grid_legendary.png",
-                               "Images/Chemicals_Grid_upgrades.png", "Images/upgrades_link.png"},
-            "seed_boxes": {f"{FOLDER}/FTFP Seed Boxes.dll"},
+            "plant_upgrades": {f"{FOLDER}/FTFP Plant Upgrades.dll", f"{FOLDER}/FTFP Seed Boxes.dll",
+                               "Images/seed_grid_legendary.png", "Images/Chemicals_Grid_upgrades.png",
+                               "Images/upgrades_link.png"},
         }
         for setting_id, destinations in expected.items():
             companion = self.settings[setting_id]["companion"]
@@ -116,11 +114,10 @@ class ManifestTests(unittest.TestCase):
 class RequirementTests(unittest.TestCase):
     def test_settings_without_what_they_build_on_are_refused(self) -> None:
         manifest = combined.load_manifest("plant")
-        with self.assertRaisesRegex(fish_patcher.PatchError, "Store Upgrades needs New Flowers"):
+        with self.assertRaisesRegex(fish_patcher.PatchError,
+                                    "Add new store upgrades and items needs Add unused flowers"):
             fish_patcher.check_setting_requirements(manifest, {"plant_upgrades"})
-        with self.assertRaisesRegex(fish_patcher.PatchError, "Extra Seed Boxes needs Store Upgrades"):
-            fish_patcher.check_setting_requirements(manifest, {"new_flowers", "seed_boxes"})
-        fish_patcher.check_setting_requirements(manifest, {"new_flowers", "plant_upgrades", "seed_boxes"})
+        fish_patcher.check_setting_requirements(manifest, {"new_flowers", "plant_upgrades"})
 
 
 class ApplyTests(unittest.TestCase):
@@ -129,7 +126,7 @@ class ApplyTests(unittest.TestCase):
             root = Path(raw)
             manifest_path = root / "repo" / "data" / "plant_manifest.json"
             plant_patcher.write_json(manifest_path, combined.load_manifest("plant"))
-            for folder in ("plant_tycoon_flowers", "plant_tycoon_upgrades", "plant_tycoon_seed_boxes"):
+            for folder in ("plant_tycoon_flowers", "plant_tycoon_upgrades"):
                 shutil.copytree(ROOT / "assets" / folder, root / "repo" / "assets" / folder)
             vanilla = root / "Plant Tycoon"
             (vanilla / "Images").mkdir(parents=True)
@@ -137,7 +134,7 @@ class ApplyTests(unittest.TestCase):
             (vanilla / "Plant Tycoon.exe").write_bytes(synthetic_plant_exe())
             output = root / "Plant Tycoon - Modded"
             args = Namespace(game_dir=str(vanilla), manifest=str(manifest_path), output_dir=str(output), dry_run=False,
-                             enable=["new_flowers", "plant_upgrades", "seed_boxes"], disable=None, disable_all=True)
+                             enable=["new_flowers", "plant_upgrades"], disable=None, disable_all=True)
             digest = hashlib.sha256(ds_fish_loader.append_startup_loader(
                 synthetic_plant_exe(), ds_fish_loader.PLANT)[0]).hexdigest().upper()
             with mock.patch.object(plant_patcher, "validate_original_executable",
@@ -197,7 +194,7 @@ class ReleaseTests(unittest.TestCase):
         packaged = set(build_release.FILES) | set(build_release.bundled_asset_files())
         self.assertIn("assets/plant_tycoon_upgrades/FTFP Plant Upgrades.dll", packaged)
         self.assertIn("assets/plant_tycoon_upgrades/Images/upgrades_link.png", packaged)
-        self.assertIn("assets/plant_tycoon_seed_boxes/FTFP Seed Boxes.dll", packaged)
+        self.assertIn("assets/plant_tycoon_upgrades/FTFP Seed Boxes.dll", packaged)
         self.assertIn("assets/plant_tycoon_flowers/FTFP New Flowers.dll", packaged)
         self.assertIn("docs/plant-tycoon-upgrades-design.md", packaged)
 

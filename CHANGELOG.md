@@ -4,7 +4,7 @@
 
 ### Plant Tycoon
 
-- **New Flowers**, a new setting, off by default. The 14 flower heads that
+- **Add unused flowers**, a new setting, off by default. The 14 flower heads that
   ship in the game's art but no plant uses become flowers 24-37:
   - the owner's names: Indigo, Peony, Lilac, Veronica, Violetta, Stella,
     Forget-me-not, Anagallis, Buttercup, Cerulean, Phalaena, Mirabilis
@@ -21,19 +21,20 @@
     go in a file per save slot.
   - Mirabilis: a third of its trumpet tube, fading out, no green bulb,
     anchored halfway between the bell and the tube's end.
-- **Store Upgrades**, a new setting, off by default, needs New Flowers. An
-  Upgrades link on the bricks of the Supplies store opens a view with only
-  the new items, where they would sit in the store:
+- **Add new store upgrades and items**, a new setting, off by default,
+  needs Add unused flowers. An Upgrades link on the bricks of the Supplies
+  store opens a view with only the new items, where they would sit in the
+  store:
   - Legendary Seeds (three a day, $5000, prismatic packets, any foliage with a
     new flower; the stock packets keep their stock flowers);
   - Radioactive Plant Formula ($10,000, 3 doses): full bloom, the most
     flowers, the largest size, no dead leaves, full health.
-  - It runs as "FTFP Plant Upgrades.dll", loaded by the New Flowers DLL; the
-    stock images are never replaced.
-- **Extra Seed Boxes**, a new setting, off by default, needs Store Upgrades:
-  the Fourth, Fifth and Sixth Seed Box ($1000 each), a second chest on the
-  Seed Storage screen behind gold arrows, also filled by the greenhouse once
-  boxes 1-3 are full. "FTFP Seed Boxes.dll"; saves keep their stock layout.
+  - the Fourth, Fifth and Sixth Seed Box ($1000 each): a second chest on
+    the Seed Storage screen behind gold arrows, also filled by the greenhouse
+    once boxes 1-3 are full.
+  - It runs as "FTFP Plant Upgrades.dll" and "FTFP Seed Boxes.dll", loaded
+    by the unused-flowers DLL; the stock images are never replaced and saves
+    keep their stock layout.
 - The release ZIP now packages every companion setting's files (New Flowers'
   were missing).
 

@@ -85,7 +85,7 @@ never needs the internet.
   fountain, insect buzz, medical drip, wind in the trees and windchimes); 294
   bundled files are identical to the game's own and are ignored, and 7 that
   differ are left at the game's version.
-- New Flowers (off by default). Fourteen flower heads ship in the game's art
+- Add unused flowers (off by default). Fourteen flower heads ship in the game's art
   but no plant uses them; this adds them as new flowers: Indigo, Peony,
   Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup,
   Cerulean, Phalaena, Mirabilis, Blueberry and Prunus. With the 23 foliages
@@ -101,21 +101,22 @@ never needs the internet.
   - Design:
     [docs/plant-tycoon-new-flowers-design.md](docs/plant-tycoon-new-flowers-design.md).
     Sell or compost the new flowers before turning it off again.
-- Store Upgrades (off by default; needs New Flowers). An Upgrades link on the
-  bricks at the left of the Supplies store opens a second view of the store
-  with only the new items, each where it would sit in the stock store:
+- Add new store upgrades and items (off by default; needs Add unused
+  flowers). An Upgrades link on the bricks at the left of the Supplies store
+  opens a second view of the store with only the new items, each where it
+  would sit in the stock store:
   - Legendary Seeds on the seed shelves: three a day, $5000 each, any foliage
     with one of the new flowers (the stock packets keep their stock flowers).
   - Radioactive Plant Formula with the chemicals: $10,000, 3 doses; full
     bloom, as many flowers as the plant can hold, the largest size, no dead or
     brown leaves, and full health.
+  - The Fourth, Fifth and Sixth Seed Box with the tool upgrades: $1000
+    each, bought in order like the stock ones. Each opens a 40-seed drawer in
+    a second chest; the gold arrows on the Seed Storage title bar switch
+    between boxes 1-3 and 4-6, and the greenhouse fills boxes 4-6 once 1-3
+    are full.
   - Click Supplies in the bottom bar to go back.
-- Extra Seed Boxes (off by default; needs Store Upgrades). The Fourth, Fifth
-  and Sixth Seed Box ($1000 each) in the Upgrades view, bought in order like
-  the stock ones. Each opens a 40-seed drawer in a second chest; the gold
-  arrows on the Seed Storage title bar switch between boxes 1-3 and 4-6, and
-  the greenhouse fills boxes 4-6 once 1-3 are full.
-  - Design for both:
+  - Design:
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
 
 ## Use

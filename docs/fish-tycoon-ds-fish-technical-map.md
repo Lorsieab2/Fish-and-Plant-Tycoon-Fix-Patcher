@@ -136,7 +136,7 @@ right table.
 
 Source: the Nintendo DS extraction session, from the USA ROM `arm9.bin`
 (value function `0x0201A10C`, body table file `0x3D6C8`, fin table file
-`0x3D6E4`; full matrix in `Downloads\Fish Tycoon (USA) - Dump\text\species_values.csv`).
+`0x3D6E4`; full matrix in `Downloads\Current Modded LDW Games and Dumps\Game Dumps\Fish Tycoon (USA) - Dump\text\species_values.csv`).
 The DS uses the same index order as the PC (0 = Shark / Silky), with the new
 types at DS 21-27, pairs Clownfish/Small Fin, Discus/Roundy, Bicolor/Angel,
 Trigger/Clown, Surgeonfish/Yellow, Tang/Blue, Idle/Moorish.

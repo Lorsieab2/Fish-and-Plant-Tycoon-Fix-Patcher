@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HARNESS_OUTPUT = ROOT / "build" / "ftfp_ds_fish" / "logic.txt"
 LAYOUT = ROOT / "data" / "ds_fish_layout.json"
 GENES = list(range(21)) + list(range(23, 30))
-DS_DUMP = Path(os.environ.get("FISH_TYCOON_DS_DUMP", r"C:\Users\Owner\Downloads\Fish Tycoon (USA) - Dump"))
+DS_DUMP = Path(os.environ.get("FISH_TYCOON_DS_DUMP", r"C:\Users\Owner\Downloads\Current Modded LDW Games and Dumps\Game Dumps\Fish Tycoon (USA) - Dump"))
 VANILLA = Path(os.environ.get("FISH_TYCOON_VANILLA", r"C:\Users\Owner\Downloads\Current Modded LDW Games and Dumps\Vanilla Games\Fish Tycoon"))
 
 

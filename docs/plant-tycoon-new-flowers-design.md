@@ -106,7 +106,7 @@ The same design as the DS Fish mod:
 10. **Save `0x41D120`, load `0x41EE00`, delete `0x41D1F0`:** the sidecar.
 11. **Mutation Liquid's flower bounce** `0x42FACE` / `0x42FAD5`: 23 becomes
     37, 22 becomes 36.
-12. **Tier-4 seeds:** built as the Legendary Seeds of the Store Upgrades
+12. **Tier-4 seeds:** built as the Legendary Seeds of the Add new store upgrades and items
     setting (`docs/plant-tycoon-upgrades-design.md`), which this DLL loads.
 
 Only Mirabilis needs new art (its recolour); the other flower heads are

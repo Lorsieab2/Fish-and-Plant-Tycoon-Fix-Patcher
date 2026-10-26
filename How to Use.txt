@@ -63,11 +63,11 @@ Plant Tycoon options:
 - No old-age plant deaths
 - Add Missing Assets to LDW Version (only adds files the game lacks; never
   replaces a game file)
-- New Flowers (off by default; adds the 14 unused flowers in the game's art,
+- Add unused flowers (off by default; adds the 14 unused flowers in the game's art,
   322 new species. Sell or compost them before turning it off again.)
-- Store Upgrades (off by default; needs New Flowers. An Upgrades link in the
-  Supplies store: Legendary Seeds and the Radioactive Plant Formula.)
-- Extra Seed Boxes (off by default; needs Store Upgrades. The Fourth, Fifth
-  and Sixth Seed Box. Move seeds out of boxes 4-6 before turning it off.)
+- Add new store upgrades and items (off by default; needs Add unused
+  flowers. An Upgrades link in the Supplies store: Legendary Seeds, the
+  Radioactive Plant Formula and the Fourth, Fifth and Sixth Seed Box. Move
+  seeds out of boxes 4-6 before turning it off.)
 
 Have fun! -Lorsieab2 :)

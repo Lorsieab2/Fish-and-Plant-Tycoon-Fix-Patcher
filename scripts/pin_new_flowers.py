@@ -35,7 +35,7 @@ PROFILE = ds_fish_loader.PLANT
 
 SETTING = {
     "id": SETTING_ID,
-    "name": "New Flowers",
+    "name": "Add unused flowers",
     "description": (
         "Adds the 14 flower heads that ship in the game's art but no plant uses, as new flowers: "
         "Indigo, Peony, Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup, "

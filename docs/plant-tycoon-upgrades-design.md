@@ -1,18 +1,19 @@
-# Plant Tycoon: Store Upgrades and Extra Seed Boxes
+# Plant Tycoon: Add new store upgrades and items
 
-Two optional Plant Tycoon settings, built on New Flowers
-(`docs/plant-tycoon-new-flowers-design.md`):
+One optional Plant Tycoon setting, **Add new store upgrades and items**
+(`plant_upgrades`), built on **Add unused flowers** (`new_flowers`,
+`docs/plant-tycoon-new-flowers-design.md`). It ships two companion DLLs:
 
-| Setting | Id | Needs | Companion DLL | Loaded by |
-|---|---|---|---|---|
-| Store Upgrades | `plant_upgrades` | New Flowers | `FTFP Plant Upgrades.dll` | `FTFP New Flowers.dll` |
-| Extra Seed Boxes | `seed_boxes` | Store Upgrades | `FTFP Seed Boxes.dll` | `FTFP Plant Upgrades.dll` |
+| Companion DLL | What | Loaded by |
+|---|---|---|
+| `FTFP Plant Upgrades.dll` | the store's Upgrades view, Legendary Seeds, the formula, the boxes' purchase | `FTFP New Flowers.dll` |
+| `FTFP Seed Boxes.dll` | the Fourth-Sixth Seed Box: the second chest and the greenhouse overflow | `FTFP Plant Upgrades.dll` |
 
-Neither setting writes a byte of the executable. Each DLL sits in
+The setting writes no byte of the executable. Each DLL sits in
 `Plant Tycoon Fix Patcher Files` beside the one that loads it, and each writes
 its own sites (all of them or none, after checking every one holds its
 vanilla bytes) and logs the result to `<name>.log` in that folder. Every pin
-with either setting is therefore the same as the pin without it
+with the setting is therefore the same as the pin without it
 (`scripts/pin_plant_upgrades.py`).
 
 ## What the player sees (the owner's design)
@@ -38,7 +39,7 @@ with either setting is therefore the same as the pin without it
     the one-time age-7 branch-death roll switched off. A dead plant stays dead,
     as with the stock cures.
   - **Fourth, Fifth and Sixth Seed Box** (seed-box column of Tool Upgrades,
-    upper left; needs Extra Seed Boxes): $1000 each, "Even more space for your
+    upper left): $1000 each, "Even more space for your
     seeds!", stock seed-box art at the stock places with the stock tick once
     owned. Bought in order, through the stock dialog and its messages.
 - The stock seed box is one 120-seed chest of three 40-seed drawers (First,
@@ -66,7 +67,7 @@ Sprite records are `{id, file, +8, +0xC, columns, rows, ...}` (0x34 bytes, table
 row are clamped (0x409EE0), so without the mod a Legendary seed shows as a
 stock packet and the formula as the Vaporbomb.
 
-## Store Upgrades: sites (`native/ftfp_plant_upgrades/upgrade_sites.h`)
+## The Upgrades DLL: sites (`native/ftfp_plant_upgrades/upgrade_sites.h`)
 
 Generated and checked by `scripts/build_plant_upgrades_headers.py` (stock
 instructions, no branch target inside, no overlap with a Fix Patcher patch or
@@ -103,7 +104,7 @@ Per slot, the three Legendary packets on sale are kept in
 `<save folder>\Plant Tycoon Fix Patcher Data\Plant Upgrades <slot>.dat`; bought
 seeds and doses live in the stock trays, so the save keeps its stock layout.
 
-## Extra Seed Boxes: sites (`native/ftfp_seed_boxes/box_sites.h`)
+## The Seed Boxes DLL: sites (`native/ftfp_seed_boxes/box_sites.h`)
 
 | Site | Address | What |
 |---|---|---|

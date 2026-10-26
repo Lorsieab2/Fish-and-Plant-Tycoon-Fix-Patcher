@@ -51,6 +51,7 @@ SITES = [
     ("store_draw", 0x447DA2, ["xor ebx, ebx", "mov ebp, 0x13b"]),
     ("store_click", 0x448173, ["mov dword ptr [esp + 0x14], eax", "mov ebp, 0x122"]),
     ("store_hover", 0x448433, ["mov eax, dword ptr [esi + 0x1bc]"]),
+    ("pollination_tail", 0x4241B4, ["pop edi", "pop esi", "pop ebp", "pop ebx", "ret 8"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).

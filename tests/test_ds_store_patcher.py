@@ -72,6 +72,16 @@ class ManifestTests(unittest.TestCase):
             self.assertNotIn(other, lowered, other)
         self.assertIn(b"FtfpStoreStartup", data)
 
+    def test_store_knows_the_seahorse_repurchase_patch(self) -> None:
+        # With "Buy Multiple Golden Seahorses" on, the animals can be bought more than once at a time:
+        # the DLL recognises the setting by its jump at 0x4282B2.
+        patch = next(p for p in self.manifest["patches"] if p["id"] == "redirect_golden_seahorse_store_blocker")
+        self.assertEqual(int(patch["offset"], 16) + 0x400000, 0x4282B2)
+        jump = bytes.fromhex(patch["replacement"].replace(" ", ""))
+        source = (ROOT / "native" / "ftfp_ds_store" / "ftfp_ds_store.c").read_text(encoding="utf-8")
+        self.assertIn("{ " + ", ".join(f"0x{b:02X}" for b in jump) + " }", source)
+        self.assertIn("0x004282B2u", source)
+
     def test_ds_fish_loads_the_store_dll_from_its_own_folder(self) -> None:
         data = (ROOT / "assets" / "fish_tycoon_ds" / "FTFP DS Fish.dll").read_bytes()
         self.assertIn("FTFP DS Store.dll".encode("utf-16-le"), data)

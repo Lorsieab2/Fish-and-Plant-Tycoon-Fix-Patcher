@@ -2,13 +2,13 @@ $ErrorActionPreference = "Stop"
 
 # "FTFP Seed Boxes.dll": the Fourth, Fifth and Sixth Seed Box in Plant Tycoon (see native/ftfp_seed_boxes/ftfp_seed_boxes.c).
 # Regenerate native/ftfp_seed_boxes/box_sites.h first with
-# scripts/build_seed_boxes_headers.py. Shipped from assets\plant_tycoon_seed_boxes.
+# scripts/build_seed_boxes_headers.py. Shipped from assets\plant_tycoon_upgrades.
 # Same toolchain and flags as the Virtual Villagers Fun Patcher's companions:
 # MSVC x86, static CRT, kernel32 only, /Brepro for a byte-identical rebuild.
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $nativeRoot = Join-Path $projectRoot "native\ftfp_seed_boxes"
-$outputRoot = Join-Path $projectRoot "assets\plant_tycoon_seed_boxes"
+$outputRoot = Join-Path $projectRoot "assets\plant_tycoon_upgrades"
 $buildRoot = Join-Path $projectRoot "build\ftfp_seed_boxes"
 $sdkRoot = "C:\Program Files (x86)\Windows Kits\10"
 $sdkVersion = "10.0.26100.0"

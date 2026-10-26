@@ -10,8 +10,10 @@
        each foliage's Extinct seed recoloured prismatic.
      * Radioactive Plant Formula (upper right, the chemicals): chemical 36,
        3 doses, $10000.  On a plant: full health, every dead branch alive
-       again, the largest size, as many flowers as the plant can hold, and
-       grown to full bloom.
+       again, the largest size, as many flowers as the plant can hold,
+       grown to full bloom, and a pollinated plant's full 5 seeds.
+     * seeds bred from the new flowers (self-pollinated or crossed) get the
+       Legendary seed art too.
      * the Fourth, Fifth and Sixth Seed Box (upper left, the seed-box column
        of the tool upgrades), when "FTFP Seed Boxes.dll" is beside this DLL;
        that DLL holds the boxes, this one sells them through the stock dialog.
@@ -47,6 +49,7 @@
 #define FORMULA_PRICE 10000
 #define FORMULA_DOSES 3
 #define FORMULA_NAME_ID 0x1F0               /* a string id above the game's last (0x1B2) */
+#define POT_SEEDS_HELD_BACK 0x7C            /* see on_pollinated */
 #define LINK_SPRITE 0x8B                    /* the one sprite id the game leaves free */
 #define EXTRA_BOXES 3
 #define BOX_PRICE 1000
@@ -170,6 +173,28 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
         AT(pot, 0x8C, int) = 100;
     }
     if (AT(pot, 0x10, float) < 28.0f && AT(pot, 0x14, float) < 28.0f) AT(pot, 0x14, float) = 28.0f;
+    if (AT(pot, 0x6C, unsigned char)) {                  /* pollinated: all 5 seeds */
+        int used = AT(pot, 0x94, int) - AT(pot, POT_SEEDS_HELD_BACK, int);
+        AT(pot, 0x94, int) = used < 0 ? 0 : used;
+        AT(pot, POT_SEEDS_HELD_BACK, int) = 0;
+    }
+}
+
+/* The end of 0x4240A0, the pollination of a pot (esi = its record):
+   * a seed with one of the new flowers gets its Legendary (prismatic) art;
+   * the seeds the game held back (it gives 5, 4 or 3, or 1 if the plant is
+     infested, by counting 0-2 or 4 seeds as used) are kept in +0x7C, the
+     record's "seed bonus" that no stock code writes, so the formula can give
+     them back.  The stock count subtracted +0x7C, so it is added back first. */
+static void __cdecl on_pollinated(char *pot) {
+    int held_back = AT(pot, 0x94, int);
+    if (held_back != 4) held_back += AT(pot, POT_SEEDS_HELD_BACK, int);
+    AT(pot, 0x94, int) = held_back;
+    AT(pot, POT_SEEDS_HELD_BACK, int) = held_back;
+    if (AT(pot, 0x68, int) >= FIRST_NEW_FLOWER && AT(pot, 0x64, int) >= 1 && AT(pot, 0x64, int) <= FOLIAGES) {
+        AT(pot, 0x70, int) = LEGENDARY_FRAME_BASE + AT(pot, 0x64, int);
+        AT(pot, 0x74, int) = LEGENDARY_TRASH;
+    }
 }
 
 /* ------------------------------------------------------------- seed boxes */
@@ -780,6 +805,22 @@ __declspec(naked) static void stub_activate(void) {
     }
 }
 
+/* 0x4241B4 the tail of the pollination (esi = the pot's record). */
+__declspec(naked) static void stub_pollinated(void) {
+    __asm {
+        pushad
+        push esi
+        call on_pollinated
+        add esp, 4
+        popad
+        pop edi
+        pop esi
+        pop ebp
+        pop ebx
+        ret 8
+    }
+}
+
 /* 0x447DA2 store draw, before the item grids: esi = store. */
 __declspec(naked) static void stub_draw(void) {
     __asm {
@@ -841,7 +882,7 @@ static const char CHEM_SHEET_FILE[] = "Chemicals_Grid_upgrades.png";
 static const char LINK_FILE[] = "upgrades_link.png";
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 18
+#define CODE_SITES 19
 #define DATA_SITES 6
 #define TOTAL_SITES (CODE_SITES + DATA_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -888,6 +929,7 @@ static int prepare(void) {
     JMP(w++, STORE_DRAW, stub_draw);
     JMP(w++, STORE_CLICK, stub_click);
     JMP(w++, STORE_HOVER, stub_hover);
+    JMP(w++, POLLINATION_TAIL, stub_pollinated);
     site_data(w++, SITE_CHEM_PICTURE_BOUND_VA, SITE_CHEM_PICTURE_BOUND_LEN, SITE_CHEM_PICTURE_BOUND_EXPECT, NULL, 0);
     writes[CODE_SITES].bytes[SITE_CHEM_PICTURE_BOUND_IMM_AT] = bound;
     site_data(w++, SITE_SEED_SHEET_FILE_VA, SITE_SEED_SHEET_FILE_LEN, SITE_SEED_SHEET_FILE_EXPECT, &seed_file, 4);
