@@ -71,7 +71,7 @@ class ManifestTests(unittest.TestCase):
     def test_setting_is_off_by_default_and_warns(self) -> None:
         self.assertFalse(self.setting["default"])
         self.assertIn("Sell or compost them", self.setting["warning"])
-        for name in ("Nightingale", "Rosetta", "Mirabilis", "Prunus", "Forget-me-not"):
+        for name in ("Nightingale", "Rosetta", "Mirabilis", "Prunus", "Silvermist"):
             self.assertIn(name, self.setting["description"])
 
     def test_every_combination_is_pinned(self) -> None:

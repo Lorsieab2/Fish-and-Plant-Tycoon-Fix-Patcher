@@ -70,7 +70,7 @@ static const flower_art ART[NEW_COUNT] = {
     { 27, 5, 81, 107, 27, 0, 0 },    /* Veronica: the blue-white star */
     { 28, 5, 81, 107, 54, 0, 0 },    /* Violetta: the purple violet */
     { 29, 5, 81, 107, 51, 0, 0 },    /* Stella: the yellow star */
-    { 30, 5, 81, 107, 39, 0, 0 },    /* Forget-me-not: the small teal flower */
+    { 30, 5, 81, 107, 39, 0, 0 },    /* Silvermist: the small teal flower */
     { 31, 5, 81, 107, 42, 0, 0 },    /* Anagallis: the small red flower */
     { 32, 5, 81, 107, 48, 0, 0 },    /* Buttercup: the small yellow flower */
     { 33, 5, 82, 108, 12, 0, 0 },    /* Cerulean: the cyan orchid */
@@ -83,7 +83,7 @@ static const flower_art ART[NEW_COUNT] = {
 
 /* The owner's names (2026-10-26). */
 static const char *const ADJECTIVE[NEW_COUNT] = {
-    "Nightingale", "Rosetta", "Lilac", "Veronica", "Violetta", "Stella", "Forget-me-not",
+    "Nightingale", "Rosetta", "Lilac", "Veronica", "Violetta", "Stella", "Silvermist",
     "Anagallis", "Buttercup", "Cerulean", "Phalaena", "Mirabilis", "Indigoberry", "Prunus",
 };
 

@@ -1639,7 +1639,7 @@
       "id": "new_flowers",
       "name": "Add unused flowers",
       "summary": "Adds the 14 flowers that are in the game's art but never used: 322 new species, reached by Mutation Liquid and breeding.",
-      "description": "Adds the 14 flower heads that ship in the game's art but no plant uses, as new flowers: Nightingale, Rosetta, Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup, Cerulean, Phalaena, Mirabilis, Indigoberry and Prunus, 322 new species with the 23 foliages. All are the rarest class. Mutation Liquid can now step a Tilia flower one place further, into the new ones, with the same odds, and breeding with one of them follows the DS fish rule (an odd sum rounds up or down at random). Runs as a companion DLL the game loads at start; each save slot keeps the new species' prices and discoveries in a separate file beside the save. See docs/plant-tycoon-new-flowers-design.md.",
+      "description": "Adds the 14 flower heads that ship in the game's art but no plant uses, as new flowers: Nightingale, Rosetta, Lilac, Veronica, Violetta, Stella, Silvermist, Anagallis, Buttercup, Cerulean, Phalaena, Mirabilis, Indigoberry and Prunus, 322 new species with the 23 foliages. All are the rarest class. Mutation Liquid can now step a Tilia flower one place further, into the new ones, with the same odds, and breeding with one of them follows the DS fish rule (an odd sum rounds up or down at random). Runs as a companion DLL the game loads at start; each save slot keeps the new species' prices and discoveries in a separate file beside the save. See docs/plant-tycoon-new-flowers-design.md.",
       "warning": "Turning this off after new flowers are in a save leaves those plants with flowers the game cannot draw or price. Sell or compost them before switching it off.",
       "category": "main",
       "default": false,
@@ -1652,7 +1652,7 @@
             "path": "Unused Flowers.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unused Flowers.dll",
             "size": 97280,
-            "sha256": "535AE0D40BCB7D085820215D50B602EA91DAA7B50DDD739A230A86F261995873"
+            "sha256": "00E0B8B63A08997B6277762708705B1EDC19A08A5EC28FE8C7F2E155CD501F01"
           },
           {
             "path": "Images/flowers64x64_grid.png",
