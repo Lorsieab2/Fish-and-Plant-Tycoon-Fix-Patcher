@@ -57,6 +57,9 @@ SITES = [
     ("fish_trash", 0x41E809, ["mov ecx, dword ptr [esi + 0x34]", "push ebx", "push edi"]),
     ("ornament_drop", 0x41F660, ["push ebx", "push ebp", "mov ebp, dword ptr [esp + 0x10]", "push esi",
                                  "mov esi, ecx"]),
+    # The tank's info panel asks the species table for the held fish's name; seahorse-type
+    # animals have none there, so the DLL names them.
+    ("held_name", 0x41DA0A, ["call 0x419290"]),
 ]
 
 # The two loops that build the swimming fish (the view) run over every slot up to this bound,

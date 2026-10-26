@@ -44,6 +44,9 @@ static const unsigned char SITE_FISH_TRASH_EXPECT[] = { 0x8B, 0x4E, 0x34, 0x53, 
 #define SITE_ORNAMENT_DROP_VA 0x0041F660u
 #define SITE_ORNAMENT_DROP_LEN 9
 static const unsigned char SITE_ORNAMENT_DROP_EXPECT[] = { 0x53, 0x55, 0x8B, 0x6C, 0x24, 0x10, 0x56, 0x8B, 0xF1 };
+#define SITE_HELD_NAME_VA 0x0041DA0Au
+#define SITE_HELD_NAME_LEN 5
+static const unsigned char SITE_HELD_NAME_EXPECT[] = { 0xE8, 0x81, 0xB8, 0xFF, 0xFF };
 #define SITE_VIEW_BUILD_SLOTS_VA 0x004140C5u
 #define SITE_VIEW_BUILD_SLOTS_LEN 3
 static const unsigned char SITE_VIEW_BUILD_SLOTS_EXPECT[] = { 0x83, 0xF8, 0x15 };

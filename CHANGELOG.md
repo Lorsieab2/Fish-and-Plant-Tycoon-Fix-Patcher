@@ -110,6 +110,11 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
     earlier builds are moved over on load. With Buy Multiple Golden
     Seahorses on they can be bought more than once.
   - The Puffer Fish puffs up now and then while it swims.
+  - Holding an animal shows its name in the tank's info panel, as a fish's
+    does: Golden Seahorse, Magic Pufferfish, Blue-Spotted Stingray, Moray
+    Eel (the stock game showed none, not even for the Golden Seahorse). The
+    store sells them under these names. Magic fish, medicines, chemicals and
+    the store animals' own effects never touch the animals.
   - The Moray Eel's rock is a movable decoration; the eel goes home in it,
     moves with it, and is dragged out by its head. Trashing the eel trashes
     its rock, and the other way round. At home it idles in the cave mouth
