@@ -1,0 +1,4 @@
+LIBRARY "FTFP Plant Upgrades"
+EXPORTS
+    FtfpUpgradesStartup = _FtfpUpgradesStartup@0
+    FtfpPlantUpgradesInstalled = _FtfpPlantUpgradesInstalled@0

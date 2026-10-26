@@ -1,5 +1,81 @@
 # Changelog
 
+## Unreleased
+
+### Plant Tycoon
+
+- **New Flowers**, a new setting, off by default. The 14 flower heads that
+  ship in the game's art but no plant uses become flowers 24-37:
+  - the owner's names: Indigo, Peony, Lilac, Veronica, Violetta, Stella,
+    Forget-me-not, Anagallis, Buttercup, Cerulean, Phalaena, Mirabilis
+    (recoloured golden), Blueberry and Prunus;
+  - 322 new species, all in the rarest class;
+  - reached by Mutation Liquid (now running over flowers 1-37 with unchanged
+    odds) and by breeding.
+  - It runs as "FTFP New Flowers.dll", loaded by a startup loader the patcher
+    appends to Plant Tycoon.exe (the same loader as DS Fish), all or nothing.
+  - It also stops the game's own out-of-range writes and the crash a new
+    flower would otherwise cause in Bio-organic Plant Food, the Fertilizer
+    Bomb and Mutation Liquid.
+  - Saves keep their stock layout; the new species' prices and discoveries
+    go in a file per save slot.
+  - Mirabilis: a third of its trumpet tube, fading out, no green bulb,
+    anchored halfway between the bell and the tube's end.
+- **Store Upgrades**, a new setting, off by default, needs New Flowers. An
+  Upgrades link on the bricks of the Supplies store opens a view with only
+  the new items, where they would sit in the store:
+  - Legendary Seeds (three a day, $5000, prismatic packets, any foliage with a
+    new flower; the stock packets keep their stock flowers);
+  - Radioactive Plant Formula ($10,000, 3 doses): full bloom, the most
+    flowers, the largest size, no dead leaves, full health.
+  - It runs as "FTFP Plant Upgrades.dll", loaded by the New Flowers DLL; the
+    stock images are never replaced.
+- **Extra Seed Boxes**, a new setting, off by default, needs Store Upgrades:
+  the Fourth, Fifth and Sixth Seed Box ($1000 each), a second chest on the
+  Seed Storage screen behind gold arrows, also filled by the greenhouse once
+  boxes 1-3 are full. "FTFP Seed Boxes.dll"; saves keep their stock layout.
+- The release ZIP now packages every companion setting's files (New Flowers'
+  were missing).
+
+### Fish Tycoon
+
+- **DS Exclusive Fish**, a new setting, off by default (fish manifest
+  v1.3.0). The Nintendo DS version's seven extra bodies and seven extra fins,
+  343 new species:
+  - Reached only through the Unknown Chemical and the Magic Fish of Mutation,
+    which can now step a Spotanus body or Twin-Fin fin one place further, with
+    unchanged odds. Eggs, the store and two PC parents never give them.
+  - A pair with a DS parent breeds by the DS game's rule (the average, an odd
+    total rounded up or down at random); PC x PC is unchanged.
+  - Prices, rarity tiers, names and fin placement come from the DS game.
+    Sprites are generated from the DS art in the PC's 18-frame turn layout,
+    with every DS fin placed per body/fin pair as the DS draws it.
+  - Runs as a companion DLL ("FTFP DS Fish.dll") loaded by a small startup
+    loader the patcher appends to the executable. It checks all 69 places it
+    changes in the running game and installs all of them or none, and writes
+    a one-line log of the result. DS species data that does not fit the save
+    goes in a separate file per save slot; saves keep their stock layout.
+  - Docs: docs/fish-tycoon-ds-fish-testing-guide.md (how to get each fish),
+    docs/fish-tycoon-ds-fish-technical-map.md (every address),
+    docs/fish-tycoon-pc-vs-ds-differences.md (how the PC and DS differ for
+    magic fish, items and research).
+- **DS Store Items**, a new setting, off by default, that needs DS Exclusive
+  Fish. An Upgrades button in the Supplies store opens the DS version's
+  store items:
+  - Puffer Fish, Sting Ray and Moray Eel, $1250 each: tank companions built
+    like the Golden Seahorse, with the DS effects rescaled to the PC's age
+    steps (health for healthy fed fish, food, and the eel's 1-in-10 save of
+    a dying fish). The Golden Seahorse keeps its PC effects and gains its DS
+    one.
+  - The Moray Eel's rock is a movable decoration; the eel goes home in it,
+    moves with it, and comes out on a click.
+  - Exotic Fish Eggs, $2300: hatch only DS-exclusive bodies and fins.
+  - Selling-tank customers no longer look at any seahorse-type companion
+    (stock code read the Golden Seahorse's species data out of range).
+  - Runs as "FTFP DS Store.dll", loaded by "FTFP DS Fish.dll"; all or
+    nothing, with its own log. Nothing new is saved outside the game's own
+    save.
+
 ## v1.0.16
 
 Fixes from a full audit of both games' patches and of the patcher around them.

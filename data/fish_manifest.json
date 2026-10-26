@@ -1,26 +1,58 @@
 {
   "manifest_version": 3,
-  "id": "fish-tycoon-pc-fixes-v14",
+  "id": "fish-tycoon-pc-fixes-v15",
   "name": "Fish Tycoon Fix Patcher",
-  "version": "v1.2.11",
+  "version": "v1.3.0",
   "description": "Repairs Crimson Comet curing, fixes Unknown Chemical uses, and lets the exact supported supplies stack in slots 2-4.",
   "patched_sha256": "E77FBB4919DF3FE104FBAAD7C65B9CD6446D11E04B940A0C4F63FFA0F88781E9",
   "patched_sha256_by_settings": {
     "crimson_comet_20_percent_cure": "33C8C9469E8E9F7DD460C4A9B9A3A897D2A9505C1E2627988046D8CED097AD9B",
-    "unknown_chemical_three_uses": "7CE334D50BB2D0C7EFEE15D246A9C899D489843A12D9687459381591E7202B3D",
-    "universal_supply_slots": "5978BF336DE7D7833094AC2660883E83BCC639565E524EBD546305766C869CA6",
+    "ds_fish": "BCDA33CDCFE0DF64C048DAC4AB660A16C9BBD15E4B58BC222834AFDAFFC7C1C0",
     "golden_seahorse_repurchase": "4BC47B727CF9EB7E97592B0C13BE94F9EE76B98F9F5A9CEBEC2EAF649B1185EB",
-    "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "1F0E792B2B96B467537806DD7D85E871DB2EF0700002688A11EBC92573B2911F",
-    "crimson_comet_20_percent_cure,universal_supply_slots": "C235A450F6C514289F8E2DE659E0D60622E2F111D29F45A85C5874C79A4AE697",
+    "universal_supply_slots": "5978BF336DE7D7833094AC2660883E83BCC639565E524EBD546305766C869CA6",
+    "unknown_chemical_three_uses": "7CE334D50BB2D0C7EFEE15D246A9C899D489843A12D9687459381591E7202B3D",
+    "crimson_comet_20_percent_cure,ds_fish": "9EA108624A8FEED3C81D6A48C874AA2F068A1FC9C59A242C9217EEF46ACC4A55",
     "crimson_comet_20_percent_cure,golden_seahorse_repurchase": "344E5B1F51DCE5282BF49368597D4074895CBCBF836F9BC1B80C17C740AB709D",
-    "universal_supply_slots,unknown_chemical_three_uses": "04E470F99D58DDA31C62B9CE1A9EE98C9B8239B277D989719DA509A06A697677",
-    "golden_seahorse_repurchase,unknown_chemical_three_uses": "6849CEC4F7C248DA524F560A4751F9354907789239AE51E4BF93638157E3E763",
+    "crimson_comet_20_percent_cure,universal_supply_slots": "C235A450F6C514289F8E2DE659E0D60622E2F111D29F45A85C5874C79A4AE697",
+    "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "1F0E792B2B96B467537806DD7D85E871DB2EF0700002688A11EBC92573B2911F",
+    "ds_fish,ds_store": "BCDA33CDCFE0DF64C048DAC4AB660A16C9BBD15E4B58BC222834AFDAFFC7C1C0",
+    "ds_fish,golden_seahorse_repurchase": "E5827D4B5D17A283BE42340F892789705A478C95611DBA690D588BEEABB1299E",
+    "ds_fish,universal_supply_slots": "4C12B07B8B23BC83FE4D1A633DD95017A1C47FF009C730E127C8AD19CF0A684B",
+    "ds_fish,unknown_chemical_three_uses": "B9FF4F1B065B9DBEF4AABEBEB5C973B260C465D2B2AE0D62603333C5F847D26A",
     "golden_seahorse_repurchase,universal_supply_slots": "6099F0DABAD2D4E1271AB7321E5F9F2C6235841CF849A86FC18123C231EFCE6B",
-    "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "1353A4D0F362B97EE35E70215020F9F614124BD8D474AC0771AB18B441C77B8D",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "08516842F502F69105604D46F278E89B681644237813EB352F24ED773D6F2987",
+    "golden_seahorse_repurchase,unknown_chemical_three_uses": "6849CEC4F7C248DA524F560A4751F9354907789239AE51E4BF93638157E3E763",
+    "universal_supply_slots,unknown_chemical_three_uses": "04E470F99D58DDA31C62B9CE1A9EE98C9B8239B277D989719DA509A06A697677",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store": "9EA108624A8FEED3C81D6A48C874AA2F068A1FC9C59A242C9217EEF46ACC4A55",
+    "crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase": "877BC5A7B81CF4F214F158D3156DDD324A6A7E280F3D24F175B4F6F954561105",
+    "crimson_comet_20_percent_cure,ds_fish,universal_supply_slots": "DAE3FBFAF75DEAFB81DFFCD7C60CEB93BAAF9C1BCA4E039D08FE6839E0A1C747",
+    "crimson_comet_20_percent_cure,ds_fish,unknown_chemical_three_uses": "3247430947D355A656D5486A151BE779B1B03553F7F8D1185E94EF3220284B0A",
     "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "2F7749A07EF79210235FB94DCE55177384D66EAAE2046DCDC77F88D17E254163",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "08516842F502F69105604D46F278E89B681644237813EB352F24ED773D6F2987",
+    "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "1353A4D0F362B97EE35E70215020F9F614124BD8D474AC0771AB18B441C77B8D",
+    "ds_fish,ds_store,golden_seahorse_repurchase": "E5827D4B5D17A283BE42340F892789705A478C95611DBA690D588BEEABB1299E",
+    "ds_fish,ds_store,universal_supply_slots": "4C12B07B8B23BC83FE4D1A633DD95017A1C47FF009C730E127C8AD19CF0A684B",
+    "ds_fish,ds_store,unknown_chemical_three_uses": "B9FF4F1B065B9DBEF4AABEBEB5C973B260C465D2B2AE0D62603333C5F847D26A",
+    "ds_fish,golden_seahorse_repurchase,universal_supply_slots": "3BD2C6B7D6922D34520B451A8E810FAEEC3B8F6AEC2E492280AFBFCF3BD698A3",
+    "ds_fish,golden_seahorse_repurchase,unknown_chemical_three_uses": "5852298D3C4F4DFB4ED19AC0DBCE348F34E8DB6B576B701E9F3A9853B854A018",
+    "ds_fish,universal_supply_slots,unknown_chemical_three_uses": "239181967AC6375169C848B103E001C485E2E1B72FCBBECC914BDEF9FB5EE355",
     "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "CE47DAB060E4B040175140B78C53254C251135D122E505E012238E53D74021B9",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "E77FBB4919DF3FE104FBAAD7C65B9CD6446D11E04B940A0C4F63FFA0F88781E9"
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase": "877BC5A7B81CF4F214F158D3156DDD324A6A7E280F3D24F175B4F6F954561105",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,universal_supply_slots": "DAE3FBFAF75DEAFB81DFFCD7C60CEB93BAAF9C1BCA4E039D08FE6839E0A1C747",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,unknown_chemical_three_uses": "3247430947D355A656D5486A151BE779B1B03553F7F8D1185E94EF3220284B0A",
+    "crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase,universal_supply_slots": "E0737D590292E5A3D1F07EF409096C0B71FD452C90695B258B86C92EE49097FC",
+    "crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase,unknown_chemical_three_uses": "8D4C4E6AE32748BDFC646A12B96ED1C4DE786765724DC647968A5CCBC5E4FB04",
+    "crimson_comet_20_percent_cure,ds_fish,universal_supply_slots,unknown_chemical_three_uses": "8204AF1DE338467354A0B48AC8293BBEBE968FF8E3F32AC90A27D504AA43B4CF",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "E77FBB4919DF3FE104FBAAD7C65B9CD6446D11E04B940A0C4F63FFA0F88781E9",
+    "ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots": "3BD2C6B7D6922D34520B451A8E810FAEEC3B8F6AEC2E492280AFBFCF3BD698A3",
+    "ds_fish,ds_store,golden_seahorse_repurchase,unknown_chemical_three_uses": "5852298D3C4F4DFB4ED19AC0DBCE348F34E8DB6B576B701E9F3A9853B854A018",
+    "ds_fish,ds_store,universal_supply_slots,unknown_chemical_three_uses": "239181967AC6375169C848B103E001C485E2E1B72FCBBECC914BDEF9FB5EE355",
+    "ds_fish,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "5571EE6F3A5D6B71054E1E1E70D1C31F97D20F80F960E8EF6CFF20F1140001FB",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots": "E0737D590292E5A3D1F07EF409096C0B71FD452C90695B258B86C92EE49097FC",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase,unknown_chemical_three_uses": "8D4C4E6AE32748BDFC646A12B96ED1C4DE786765724DC647968A5CCBC5E4FB04",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,universal_supply_slots,unknown_chemical_three_uses": "8204AF1DE338467354A0B48AC8293BBEBE968FF8E3F32AC90A27D504AA43B4CF",
+    "crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "DD28EFDDF5376EB2F660F45ECF24F1F2D8473BB7F919DA6795262F858C271455",
+    "ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "5571EE6F3A5D6B71054E1E1E70D1C31F97D20F80F960E8EF6CFF20F1140001FB",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "DD28EFDDF5376EB2F660F45ECF24F1F2D8473BB7F919DA6795262F858C271455"
   },
   "target": {
     "exe_name": "Fish Tycoon.exe",
@@ -112,6 +144,258 @@
       "description": "Allows purchasing of multiple Golden Seahorses, in case you trash or lose it somehow. The base game blocks a second purchase in three separate places, all keyed off the ownership dword at state + index*20 + 0x78: the store click handler refuses at VA 0x4282CA, the purchase routine returns before charging at VA 0x427B66, and the panel shows 'This is in your inventory.' instead of the price at VA 0x42735C. Each is wrapped so store item 11, the Golden Seahorse, takes the normal buy path while every other item keeps its original behaviour exactly. Touches 7 places.",
       "category": "main",
       "default": true
+    },
+    {
+      "id": "ds_fish",
+      "name": "DS Exclusive Fish",
+      "description": "Adds the seven bodies and seven fins only the Nintendo DS version has: Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang and Idle bodies, and Small Fin, Roundy, Angel, Clown, Yellow, Blue and Moorish fins, 343 new species in all. Eggs, the store and breeding two PC fish never give them. The Unknown Chemical, and the Magic Fish of Mutation at hatching, can now step a Spotanus body or a Twin-Fin fin one place further, into the DS ones, with the same odds as before. Breeding a DS fish follows the DS game: the parents' average, an odd total rounded up or down at random. Prices, rarity (most need environment level 3), names and fin placement follow the DS game. Runs as a companion DLL the game loads at start; new sprites go in Images, and each save slot keeps its DS species data in a separate file beside the save. See docs/fish-tycoon-ds-fish-testing-guide.md.",
+      "warning": "Turning this off after DS fish are in a save leaves those fish with genes the game cannot draw or name. Sell or trash every DS fish before switching it off.",
+      "category": "main",
+      "default": false,
+      "companion": {
+        "source": "assets/fish_tycoon_ds",
+        "startup_loader": true,
+        "files": [
+          {
+            "path": "FTFP DS Fish.dll",
+            "destination": "Fish Tycoon Fix Patcher Files/FTFP DS Fish.dll",
+            "size": 105472,
+            "sha256": "4B3BA02132311C3D2791E0141202EBF5059F84BB5E03E2C0A6AE48AA6F330D00"
+          },
+          {
+            "path": "Images/FISH_23_body_Grid.png",
+            "destination": "Images/FISH_23_body_Grid.png",
+            "size": 79268,
+            "sha256": "D0A39A53723C8FD733474787F2D084738742EB5D28EB5ED9D3A15D045EC81A95"
+          },
+          {
+            "path": "Images/FISH_23_bot_Grid.png",
+            "destination": "Images/FISH_23_bot_Grid.png",
+            "size": 2958,
+            "sha256": "EB23370DF511DB3353D3C77B517E40458A78238256379C8DC398E59205BFF2AD"
+          },
+          {
+            "path": "Images/FISH_23_top_Grid.png",
+            "destination": "Images/FISH_23_top_Grid.png",
+            "size": 2815,
+            "sha256": "B87E98609FAAE76590F3D9AAE1B4802C61895CBE2E806111B333C3C3BF04E757"
+          },
+          {
+            "path": "Images/FISH_24_body_Grid.png",
+            "destination": "Images/FISH_24_body_Grid.png",
+            "size": 115111,
+            "sha256": "18CB6F458706C5A6C9F417D65A5C0DBB452B4BE0F0E73AD8A92F1B5B78B60D98"
+          },
+          {
+            "path": "Images/FISH_24_bot_Grid.png",
+            "destination": "Images/FISH_24_bot_Grid.png",
+            "size": 12342,
+            "sha256": "7C1B8057BABBD3C1093C63B5996E3517F71595A3BB821C0FA88BC00968E9DF73"
+          },
+          {
+            "path": "Images/FISH_24_top_Grid.png",
+            "destination": "Images/FISH_24_top_Grid.png",
+            "size": 16156,
+            "sha256": "1B2D94426B525E8CC3C4459386F5C716CE2C7160BB956DFCAFFF7F6F0419916D"
+          },
+          {
+            "path": "Images/FISH_25_body_Grid.png",
+            "destination": "Images/FISH_25_body_Grid.png",
+            "size": 115817,
+            "sha256": "DD37271939F390298E38F5656EE63F478A6328F99AF0CC28EB5E931861D41874"
+          },
+          {
+            "path": "Images/FISH_25_bot_Grid.png",
+            "destination": "Images/FISH_25_bot_Grid.png",
+            "size": 10517,
+            "sha256": "A6DB462C70C1CE3A2CEB53DC534FD1960CFABB39864B69AC534FD166B924C490"
+          },
+          {
+            "path": "Images/FISH_25_top_Grid.png",
+            "destination": "Images/FISH_25_top_Grid.png",
+            "size": 12367,
+            "sha256": "855EB8C131B93E5070510B99FF83738BC2D44ED103E8DD1CAD5ED14A866134B0"
+          },
+          {
+            "path": "Images/FISH_26_body_Grid.png",
+            "destination": "Images/FISH_26_body_Grid.png",
+            "size": 188989,
+            "sha256": "37587D90BDF7315D0D09B1AE1BFFB5119723B2ACCC8B38511CFC0DF870673BFC"
+          },
+          {
+            "path": "Images/FISH_26_bot_Grid.png",
+            "destination": "Images/FISH_26_bot_Grid.png",
+            "size": 10750,
+            "sha256": "68EEA403BC6F224B7427ADE09186D669C9C095C5D2B5AA8BBB5F8AB9D074D0A4"
+          },
+          {
+            "path": "Images/FISH_26_top_Grid.png",
+            "destination": "Images/FISH_26_top_Grid.png",
+            "size": 11348,
+            "sha256": "904B43A46942C4A2E9BA82994F2D615513F292A06D369C6DB4363920B5BCB1AA"
+          },
+          {
+            "path": "Images/FISH_27_body_Grid.png",
+            "destination": "Images/FISH_27_body_Grid.png",
+            "size": 70336,
+            "sha256": "948B947ACBB15ED7202FC4C2327F9DAD7386BDE24F693501A2F7F4784B6B79EE"
+          },
+          {
+            "path": "Images/FISH_27_bot_Grid.png",
+            "destination": "Images/FISH_27_bot_Grid.png",
+            "size": 10300,
+            "sha256": "83B07868F41D2C42163C1807E7EDBC0F77974734E2C2CB3513DD34B2114004E0"
+          },
+          {
+            "path": "Images/FISH_27_top_Grid.png",
+            "destination": "Images/FISH_27_top_Grid.png",
+            "size": 13001,
+            "sha256": "0A69290B680035137A1874334060BCB810B77C23A93AEB253ECF43BD8E48C00F"
+          },
+          {
+            "path": "Images/FISH_28_body_Grid.png",
+            "destination": "Images/FISH_28_body_Grid.png",
+            "size": 181464,
+            "sha256": "F1DBC97BB370A7AFBAFAD458DA6A3C4B5D645EB7FB89FB6BEF45449DF255E25F"
+          },
+          {
+            "path": "Images/FISH_28_bot_Grid.png",
+            "destination": "Images/FISH_28_bot_Grid.png",
+            "size": 14192,
+            "sha256": "386F7C9327B4011BFAC6E3AE8D7018B29EE7D5A8F03984EC1D5C28B1FC1A8BC4"
+          },
+          {
+            "path": "Images/FISH_28_top_Grid.png",
+            "destination": "Images/FISH_28_top_Grid.png",
+            "size": 19332,
+            "sha256": "25E1D983376BCC8A23C20AC6B0E876453124D4EF11ADD5DFEB410C06B356BC4C"
+          },
+          {
+            "path": "Images/FISH_29_body_Grid.png",
+            "destination": "Images/FISH_29_body_Grid.png",
+            "size": 101766,
+            "sha256": "12CC6ADA910326D1ED65B65021CC7659CC0CAFFB08FD33021EBA1C54543F7F41"
+          },
+          {
+            "path": "Images/FISH_29_bot_Grid.png",
+            "destination": "Images/FISH_29_bot_Grid.png",
+            "size": 9374,
+            "sha256": "2FAB41BD606D78FD78DC245D73871190E522033B1249B9250EDE05ADAE5EBE23"
+          },
+          {
+            "path": "Images/FISH_29_top_Grid.png",
+            "destination": "Images/FISH_29_top_Grid.png",
+            "size": 9554,
+            "sha256": "C2733745C7208D3170AA4AFD9F0D41058A3B1FEA24F917960CED9C83DFE1B994"
+          },
+          {
+            "path": "Images/FISH_DS_adult_dead_Grid.png",
+            "destination": "Images/FISH_DS_adult_dead_Grid.png",
+            "size": 46068,
+            "sha256": "35AD6ED8AC20D52AA2652890FBEEE5BF58B114950E1D1FC0517BEEA08D0C4E5A"
+          },
+          {
+            "path": "Images/FISH_DS_teen_Grid.png",
+            "destination": "Images/FISH_DS_teen_Grid.png",
+            "size": 163473,
+            "sha256": "3173577EA2E383D302CEC0717F2F7E561EFBEE622A5DFA7C5580EA21EFEFB447"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ds_store",
+      "name": "DS Store Items",
+      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Puffer Fish, Sting Ray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and click its head to let it out. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
+      "warning": "Turning this off after buying a store animal leaves it in your tank drawn as a Golden Seahorse, and the eel's rock as a sprite the game cannot draw. Move the animals to the trash and the eel out of its rock before switching it off.",
+      "category": "main",
+      "default": false,
+      "requires_settings": [
+        "ds_fish"
+      ],
+      "companion": {
+        "source": "assets/fish_tycoon_ds_store",
+        "files": [
+          {
+            "path": "FTFP DS Store.dll",
+            "destination": "Fish Tycoon Fix Patcher Files/FTFP DS Store.dll",
+            "size": 97280,
+            "sha256": "DFA69895A4D6BA8050D89A2AD2EBD20E19C328BD1DD6754FB859D51A3D85CDAD"
+          },
+          {
+            "path": "Images/DS_EEL_Grid.png",
+            "destination": "Images/DS_EEL_Grid.png",
+            "size": 214865,
+            "sha256": "EBB8F37FFDBB1781EA52F003D989B3CC305C3810281D092A61B394CA2080D759"
+          },
+          {
+            "path": "Images/DS_EEL_HOME_BACK_Grid.png",
+            "destination": "Images/DS_EEL_HOME_BACK_Grid.png",
+            "size": 47925,
+            "sha256": "0E2322E5F6E8DAC6830A59E1DE41C680A96B4E4BFB88BD50DF4EAF3310F6FA90"
+          },
+          {
+            "path": "Images/DS_EEL_HOME_FRONT_Grid.png",
+            "destination": "Images/DS_EEL_HOME_FRONT_Grid.png",
+            "size": 45798,
+            "sha256": "118726A701ABA1D44A3EC4FF437B0A1B900FF97B411E29DB43983F94DA16A68F"
+          },
+          {
+            "path": "Images/DS_EEL_ROCK.png",
+            "destination": "Images/DS_EEL_ROCK.png",
+            "size": 28572,
+            "sha256": "E2AFF1C094CA746F61BEC1A7FEE1FDDA15522739EC694226A79E86C5A8DF1FC2"
+          },
+          {
+            "path": "Images/DS_PUFFER_Grid.png",
+            "destination": "Images/DS_PUFFER_Grid.png",
+            "size": 50498,
+            "sha256": "2ABC291E8A7FAD23B270784237D8E528A83399ED29ACE2A041BB17B4C5AD9080"
+          },
+          {
+            "path": "Images/DS_STINGRAY_Grid.png",
+            "destination": "Images/DS_STINGRAY_Grid.png",
+            "size": 126667,
+            "sha256": "275625BC4700D942C9D55C3508288CCFF7160CA48F9B98969647CF9FAE9C8E0C"
+          },
+          {
+            "path": "Images/ITEM_DS_EEL.png",
+            "destination": "Images/ITEM_DS_EEL.png",
+            "size": 7841,
+            "sha256": "9993D12F6D7030D9E70CC3E51D5B8A2126A8CAF574253DC26E88F42803612237"
+          },
+          {
+            "path": "Images/ITEM_DS_PUFFER.png",
+            "destination": "Images/ITEM_DS_PUFFER.png",
+            "size": 6194,
+            "sha256": "66D1A1B0CC1D91A8750B043C7FB53C6090390225F7C0A1881CC09A1AD9641865"
+          },
+          {
+            "path": "Images/ITEM_DS_STINGRAY.png",
+            "destination": "Images/ITEM_DS_STINGRAY.png",
+            "size": 4838,
+            "sha256": "C60F9B4460FC94B2C7C60992010A635529E5691FF6626D97E76047E156CE3FD3"
+          },
+          {
+            "path": "Images/ITEM_FISHEGGS_EXOTIC.png",
+            "destination": "Images/ITEM_FISHEGGS_EXOTIC.png",
+            "size": 3340,
+            "sha256": "19190AAECDCAF6A6AE0FE6FB9202869839D8E6E3293FFA87455F4C06E7888150"
+          },
+          {
+            "path": "Images/SuppliesUpgradesButton.png",
+            "destination": "Images/SuppliesUpgradesButton.png",
+            "size": 12806,
+            "sha256": "C952DF8292000D947EC28265FBB010941532B9D324B1AF6CC114EBA89480E8DA"
+          },
+          {
+            "path": "Images/TOOL_FISHEGGS_EXOTIC.png",
+            "destination": "Images/TOOL_FISHEGGS_EXOTIC.png",
+            "size": 1573,
+            "sha256": "45416410EA80F2E55692C04C8DBA3883D5F0B0A700F9B0E1CB604A8A3FC42019"
+          }
+        ]
+      }
     }
   ],
   "patches": [

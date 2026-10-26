@@ -6,7 +6,13 @@
   "description": "Fixes the supported classic Windows Plant Tycoon build: stops the old-age random-death branch and restores sounds and images the LDW release is missing.",
   "patched_sha256": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046",
   "patched_sha256_by_settings": {
-    "no_old_age_plant_deaths": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046"
+    "new_flowers": "F71823C4530907F7F91174A9C248D536B2A917864C7F86FE62D8C432588B41E0",
+    "no_old_age_plant_deaths": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046",
+    "new_flowers,no_old_age_plant_deaths": "34934B5D8ACB67FC75A74983CE97C616D40284D68AFA4D5F57EB3E3CE46A3D89",
+    "new_flowers,plant_upgrades": "F71823C4530907F7F91174A9C248D536B2A917864C7F86FE62D8C432588B41E0",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades": "34934B5D8ACB67FC75A74983CE97C616D40284D68AFA4D5F57EB3E3CE46A3D89",
+    "new_flowers,plant_upgrades,seed_boxes": "F71823C4530907F7F91174A9C248D536B2A917864C7F86FE62D8C432588B41E0",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_boxes": "34934B5D8ACB67FC75A74983CE97C616D40284D68AFA4D5F57EB3E3CE46A3D89"
   },
   "target": {
     "exe_name": "Plant Tycoon.exe",
@@ -1623,6 +1629,100 @@
             "path": "Sounds/windchimes_4.ogg",
             "size": 270952,
             "sha256": "FE7DB99D38DDA58DAE7DDB1E374A812EE923CCAA919879B7F5A9BF1EDB3216FF"
+          }
+        ]
+      }
+    },
+    {
+      "id": "new_flowers",
+      "name": "New Flowers",
+      "description": "Adds the 14 flower heads that ship in the game's art but no plant uses, as new flowers: Indigo, Peony, Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup, Cerulean, Phalaena, Mirabilis, Blueberry and Prunus, 322 new species with the 23 foliages. All are the rarest class. Mutation Liquid can now step a Tilia flower one place further, into the new ones, with the same odds, and breeding mixes them by the game's own rule. Runs as a companion DLL the game loads at start; each save slot keeps the new species' prices and discoveries in a separate file beside the save. See docs/plant-tycoon-new-flowers-design.md.",
+      "warning": "Turning this off after new flowers are in a save leaves those plants with flowers the game cannot draw or price. Sell or compost them before switching it off.",
+      "category": "main",
+      "default": false,
+      "companion": {
+        "source": "assets/plant_tycoon_flowers",
+        "startup_loader": true,
+        "files": [
+          {
+            "path": "FTFP New Flowers.dll",
+            "destination": "Plant Tycoon Fix Patcher Files/FTFP New Flowers.dll",
+            "size": 96768,
+            "sha256": "B9C63A6A1EE89AF757831DBB736D1AEA6D3229FD6D46C174E8A3050B12F02E2E"
+          },
+          {
+            "path": "Images/flowers64x64_grid.png",
+            "destination": "Images/flowers64x64_grid.png",
+            "size": 115138,
+            "sha256": "A93C0F3BCDFE7BCDD34011604C6CA9C172233F508E013B577CE61891DBBB1DF3"
+          },
+          {
+            "path": "Images/flowers64x64_grid_mask.png",
+            "destination": "Images/flowers64x64_grid_mask.png",
+            "size": 34101,
+            "sha256": "A83D64DE895103F398D09B4D4550074A960ADFD299349A165C0D7C63705FBF1D"
+          }
+        ]
+      }
+    },
+    {
+      "id": "plant_upgrades",
+      "name": "Store Upgrades",
+      "description": "Adds an Upgrades link on the bricks at the left of the Supplies store. It opens a second view of the store with only the new items, each where it would sit in the store: Legendary Seeds on the seed shelves (three a day, $5000 each, any foliage with one of the New Flowers; the stock seed packets keep their stock flowers) and the Radioactive Plant Formula with the chemicals ($10,000, 3 doses: full bloom, as many flowers as the plant can hold, the largest size, no dead or brown leaves, and full health). Click Supplies in the bottom bar to go back. Needs New Flowers. See docs/plant-tycoon-upgrades-design.md.",
+      "warning": "Turning this off leaves bought Legendary seeds drawn as another seed packet and the formula drawn as an Insta-Grow Vaporbomb that does nothing. Plant or sell them, and use up the formula, before switching it off.",
+      "category": "main",
+      "default": false,
+      "requires_settings": [
+        "new_flowers"
+      ],
+      "companion": {
+        "source": "assets/plant_tycoon_upgrades",
+        "files": [
+          {
+            "path": "FTFP Plant Upgrades.dll",
+            "destination": "Plant Tycoon Fix Patcher Files/FTFP Plant Upgrades.dll",
+            "size": 124416,
+            "sha256": "07D56236B35D7307E38C53D78C6D6AE9026B4077F72925B90B70A1C9F1578650"
+          },
+          {
+            "path": "Images/Chemicals_Grid_upgrades.png",
+            "destination": "Images/Chemicals_Grid_upgrades.png",
+            "size": 50793,
+            "sha256": "A00DAA7620EB7559CDA4E9AF033AC817C9EEB06A91B23346CB00D2ACE1711758"
+          },
+          {
+            "path": "Images/seed_grid_legendary.png",
+            "destination": "Images/seed_grid_legendary.png",
+            "size": 247669,
+            "sha256": "EA371CE1A680C78D7C3880F84A788A56DFADD0E047D96174521AC4EBEDED11CA"
+          },
+          {
+            "path": "Images/upgrades_link.png",
+            "destination": "Images/upgrades_link.png",
+            "size": 2050,
+            "sha256": "A4476540585A846E020D5E2B42A888AF7264014A0D9EE72B0DA600FCC5E562EF"
+          }
+        ]
+      }
+    },
+    {
+      "id": "seed_boxes",
+      "name": "Extra Seed Boxes",
+      "description": "Adds the Fourth, Fifth and Sixth Seed Box (\"Even more space for your seeds!\", $1000 each), sold in the store's Upgrades view where the stock seed boxes are, and bought in order like them. Each opens one more 40-seed drawer in a second chest on the Seed Storage screen; the gold arrows on its title bar switch between boxes 1-3 and 4-6. Seeds sent to the seed box from the greenhouse fill boxes 1-3 first, then 4-6. Each save slot keeps the second chest in a separate file beside the save. Needs Store Upgrades.",
+      "warning": "Turning this off hides boxes 4-6 and the seeds in them. Move those seeds to boxes 1-3 before switching it off.",
+      "category": "main",
+      "default": false,
+      "requires_settings": [
+        "plant_upgrades"
+      ],
+      "companion": {
+        "source": "assets/plant_tycoon_seed_boxes",
+        "files": [
+          {
+            "path": "FTFP Seed Boxes.dll",
+            "destination": "Plant Tycoon Fix Patcher Files/FTFP Seed Boxes.dll",
+            "size": 92672,
+            "sha256": "5C4C22DA58188C91BAE206BCB817BD0E4FDF817C8285006A97D8EC6CA75F2FA1"
           }
         ]
       }

@@ -1,4 +1,17 @@
-# Fish Tycoon Fix Patcher v1.2.11: technical details
+# Fish Tycoon Fix Patcher v1.3.0: technical details
+
+## DS Exclusive Fish
+
+New in v1.3.0, off by default. Unlike the settings below it does not patch
+the executable's existing bytes. The patcher appends one read/execute section
+(`.ftfpst`, src/ds_fish_loader.py) and routes the C runtime's `call WinMain`
+at VA `0x0042D7DE` through it. The stub loads
+`Fish Tycoon Fix Patcher Files\FTFP DS Fish.dll` by its full path (never the
+DLL search order), calls `FtfpStartup`, and enters WinMain. The DLL
+(native/ftfp_ds_fish/) writes 69 sites in memory, all or none, after checking
+each holds its stock bytes; none overlaps a patch below, so every combination
+works and is pinned. Every address, the save sidecar and the sprite pipeline
+are in docs/fish-tycoon-ds-fish-technical-map.md.
 
 ## Crimson Comet curing
 

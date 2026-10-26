@@ -1,0 +1,4 @@
+LIBRARY "FTFP Seed Boxes"
+EXPORTS
+    FtfpSeedBoxesStartup = _FtfpSeedBoxesStartup@0
+    FtfpSeedBoxesInstalled = _FtfpSeedBoxesInstalled@0

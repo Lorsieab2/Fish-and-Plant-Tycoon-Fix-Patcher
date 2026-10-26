@@ -38,6 +38,38 @@ never needs the internet.
   Seahorses, in case you trash or lose it somehow. It shipped broken from
   v1.0.6 and was fixed in v1.0.12; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
+- DS Exclusive Fish (off by default). Adds the Nintendo DS version's seven
+  extra bodies (Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang, Idle)
+  and seven extra fins (Small Fin, Roundy, Angel, Clown, Yellow, Blue,
+  Moorish): 343 new species. Eggs, the store and two PC parents never give
+  them. The Unknown Chemical, and the Magic Fish of Mutation at hatching, can
+  step a Spotanus body or Twin-Fin fin one place further into them, with the
+  same odds as before. Breeding a DS fish, prices, rarity, names and fin
+  placement follow the DS game. It runs as a companion DLL the game loads at
+  start (`Fish Tycoon Fix Patcher Files\FTFP DS Fish.dll`), its sprites go
+  in `Images`, and each save slot keeps its DS species data in
+  `Fish Tycoon Fix Patcher Data\DS Fish <slot>.dat` beside the saves; the
+  save files themselves keep their stock layout. How to get each one:
+  [docs/fish-tycoon-ds-fish-testing-guide.md](docs/fish-tycoon-ds-fish-testing-guide.md);
+  every address it uses:
+  [docs/fish-tycoon-ds-fish-technical-map.md](docs/fish-tycoon-ds-fish-technical-map.md).
+  Sell or trash every DS fish before turning it off again.
+- DS Store Items (off by default; needs DS Exclusive Fish, which it turns on
+  with it). An Upgrades button in the Supplies store opens the DS version's
+  store items. The Puffer Fish, Sting Ray and Moray Eel ($1250 each) are tank
+  companions like the Golden Seahorse: they swim, can be dragged between
+  tanks, never age, breed or get sold, and magically enhance the life and
+  environment of your fish (the Tools tab's Game Mechanics lists the exact
+  effects). The Moray Eel comes with its rock: drop the eel on it to send it
+  home, move the rock and the eel goes with it, and click its head to let it
+  out. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
+  The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
+  second companion DLL (`Fish Tycoon Fix Patcher Files\FTFP DS Store.dll`),
+  loaded by DS Fish's; everything it adds is kept in the game's own save.
+  Design and live checks:
+  [docs/fish-tycoon-ds-store-items-design.md](docs/fish-tycoon-ds-store-items-design.md).
+  Trash the store animals, and let the eel out of its rock, before turning it
+  off again.
 
 ### Plant Tycoon
 
@@ -53,6 +85,38 @@ never needs the internet.
   fountain, insect buzz, medical drip, wind in the trees and windchimes); 294
   bundled files are identical to the game's own and are ignored, and 7 that
   differ are left at the game's version.
+- New Flowers (off by default). Fourteen flower heads ship in the game's art
+  but no plant uses them; this adds them as new flowers: Indigo, Peony,
+  Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup,
+  Cerulean, Phalaena, Mirabilis, Blueberry and Prunus. With the 23 foliages
+  that is 322 new species, all in the rarest class.
+  - Mutation Liquid can step a Tilia flower one place further, into the new
+    ones, with the same odds.
+  - Breeding mixes them by the game's own rule.
+  - Mirabilis is recoloured golden so it isn't confused with Jalapa.
+  - It runs as a companion DLL the game loads at start
+    (`Plant Tycoon Fix Patcher Files\FTFP New Flowers.dll`). Each save slot
+    keeps the new species' prices and discoveries in
+    `Plant Tycoon Fix Patcher Data\New Flowers <slot>.dat` beside the saves.
+  - Design:
+    [docs/plant-tycoon-new-flowers-design.md](docs/plant-tycoon-new-flowers-design.md).
+    Sell or compost the new flowers before turning it off again.
+- Store Upgrades (off by default; needs New Flowers). An Upgrades link on the
+  bricks at the left of the Supplies store opens a second view of the store
+  with only the new items, each where it would sit in the stock store:
+  - Legendary Seeds on the seed shelves: three a day, $5000 each, any foliage
+    with one of the new flowers (the stock packets keep their stock flowers).
+  - Radioactive Plant Formula with the chemicals: $10,000, 3 doses; full
+    bloom, as many flowers as the plant can hold, the largest size, no dead or
+    brown leaves, and full health.
+  - Click Supplies in the bottom bar to go back.
+- Extra Seed Boxes (off by default; needs Store Upgrades). The Fourth, Fifth
+  and Sixth Seed Box ($1000 each) in the Upgrades view, bought in order like
+  the stock ones. Each opens a 40-seed drawer in a second chest; the gold
+  arrows on the Seed Storage title bar switch between boxes 1-3 and 4-6, and
+  the greenhouse fills boxes 4-6 once 1-3 are full.
+  - Design for both:
+    [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
 
 ## Use
 

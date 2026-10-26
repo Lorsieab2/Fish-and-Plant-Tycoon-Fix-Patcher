@@ -52,10 +52,22 @@ Fish Tycoon options:
 - Unknown Chemical: 3 uses
 - Universal supply slots 2-4
 - Buy Multiple Golden Seahorses
+- DS Exclusive Fish (off by default; adds the DS version's 7 bodies and
+  7 fins. Sell or trash every DS fish before turning it off again.)
+- DS Store Items (off by default; needs DS Exclusive Fish. Adds an
+  Upgrades button to the Supplies store with the DS Puffer Fish, Sting Ray,
+  Moray Eel and Exotic Fish Eggs. Trash the animals and let the eel out of
+  its rock before turning it off again.)
 
 Plant Tycoon options:
 - No old-age plant deaths
 - Add Missing Assets to LDW Version (only adds files the game lacks; never
   replaces a game file)
+- New Flowers (off by default; adds the 14 unused flowers in the game's art,
+  322 new species. Sell or compost them before turning it off again.)
+- Store Upgrades (off by default; needs New Flowers. An Upgrades link in the
+  Supplies store: Legendary Seeds and the Radioactive Plant Formula.)
+- Extra Seed Boxes (off by default; needs Store Upgrades. The Fourth, Fifth
+  and Sixth Seed Box. Move seeds out of boxes 4-6 before turning it off.)
 
 Have fun! -Lorsieab2 :)

@@ -22,6 +22,8 @@ from tycoon_fix_patcher import (
     restore_game,
     setting_asset_files,
     setting_checksum_note,
+    setting_companion_details,
+    setting_companion_files,
     setting_patch_details,
 )
 
@@ -77,6 +79,7 @@ class App(tk.Tk):
             }
             for game_id in GAMES
         }
+        self._link_setting_requirements()
         self.status_var = tk.StringVar(
             value="Choose one game or both games. Close the games before patching."
         )
@@ -90,6 +93,20 @@ class App(tk.Tk):
         self._load_settings()
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._close)
+
+    def _link_setting_requirements(self) -> None:
+        """A setting that builds on another (DS Store Items on DS Exclusive
+        Fish) turns it on with it, and goes off when it goes off."""
+        for game_id in GAMES:
+            settings = patch_settings(game_id)
+            variables = self.patch_vars[game_id]
+            for setting_id, setting in settings.items():
+                for needed in setting.get("requires_settings", []):
+                    if needed not in variables:
+                        continue
+                    dependent, base = variables[setting_id], variables[needed]
+                    dependent.trace_add("write", lambda *_a, d=dependent, b=base: d.get() and not b.get() and b.set(True))
+                    base.trace_add("write", lambda *_a, d=dependent, b=base: not b.get() and d.get() and d.set(False))
 
     def _load_brand_images(self) -> None:
         self.fish_picture = tk.PhotoImage(file=str(FISH_PICTURE_PATH))
@@ -488,9 +505,11 @@ class App(tk.Tk):
         Kept behind a disclosure so the window stays readable for players while
         the detail is one click away for anyone who wants it.
         """
-        details = setting_patch_details(game_id, setting_id)
+        byte_details = setting_patch_details(game_id, setting_id)
+        details = byte_details + setting_companion_details(game_id, setting_id)
         asset_files = setting_asset_files(game_id, setting_id)
-        if not details and not asset_files:
+        companion_files = setting_companion_files(game_id, setting_id)
+        if not details and not asset_files and not companion_files:
             return
         holder = ttk.Frame(parent)
         holder.pack(fill="x", anchor="w", padx=(24, 0), pady=(2, 0))
@@ -508,6 +527,28 @@ class App(tk.Tk):
                 foreground="#333333",
             ).pack(anchor="w", pady=(4, 0))
             for path in asset_files:
+                ttk.Label(
+                    content,
+                    text=path,
+                    font=("Consolas", 9),
+                    foreground="#12508f",
+                ).pack(anchor="w", padx=(14, 0))
+        elif companion_files:
+            label = (
+                f"Technical details — {len(details)} executable change" + ("s" if len(details) != 1 else "")
+                + f", {len(companion_files)} file" + ("s" if len(companion_files) != 1 else "")
+            )
+            ttk.Label(
+                content,
+                text=(
+                    "Copied into the modded game folder: the companion DLL into the patcher's "
+                    "folder beside the executable, and the new sprites into Images."
+                ),
+                wraplength=760,
+                justify="left",
+                foreground="#333333",
+            ).pack(anchor="w", pady=(4, 0))
+            for path in companion_files:
                 ttk.Label(
                     content,
                     text=path,
@@ -540,7 +581,7 @@ class App(tk.Tk):
                     justify="left",
                     foreground="#333333",
                 ).pack(anchor="w", padx=(14, 0))
-        checksum = setting_checksum_note(game_id) if details else ""
+        checksum = setting_checksum_note(game_id) if byte_details else ""
         if checksum:
             ttk.Label(
                 content,

@@ -1,0 +1,51 @@
+{
+ "button": [
+  440,
+  551
+ ],
+ "button_size": [
+  100,
+  50
+ ],
+ "companions": {
+  "PUFFER": {
+   "cell": [
+    74,
+    71
+   ],
+   "cols": 6,
+   "rows": 3
+  },
+  "STINGRAY": {
+   "cell": [
+    145,
+    63
+   ],
+   "cols": 6,
+   "rows": 3
+  },
+  "EEL": {
+   "cell": [
+    234,
+    45
+   ],
+   "cols": 6,
+   "rows": 3
+  }
+ },
+ "eel_home": {
+  "cell": [
+   160,
+   132
+  ],
+  "cols": 4,
+  "rows": 4,
+  "frames": 16,
+  "head_box": [
+   60,
+   55,
+   115,
+   115
+  ]
+ }
+}

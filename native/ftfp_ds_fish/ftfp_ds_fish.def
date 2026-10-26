@@ -1,0 +1,4 @@
+LIBRARY "FTFP DS Fish"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpDsFishInstalled = _FtfpDsFishInstalled@0

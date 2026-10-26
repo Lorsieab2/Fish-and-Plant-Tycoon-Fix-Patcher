@@ -21,9 +21,16 @@ FILES = [
     "data/fish_manifest.json",
     "data/plant_manifest.json",
     "docs/fish-tycoon-technical-details.md",
+    "docs/fish-tycoon-ds-fish-technical-map.md",
+    "docs/fish-tycoon-ds-fish-testing-guide.md",
+    "docs/fish-tycoon-pc-vs-ds-differences.md",
+    "docs/fish-tycoon-ds-store-items-design.md",
+    "docs/plant-tycoon-new-flowers-design.md",
+    "docs/plant-tycoon-upgrades-design.md",
     "docs/plant-tycoon-technical-details.md",
     "docs/golden-seahorse-defects.md",
     "docs/QA.md",
+    "src/ds_fish_loader.py",
     "src/fish_patcher.py",
     "src/plant_patcher.py",
     "src/tycoon_fix_patcher.py",
@@ -32,16 +39,19 @@ FILES = [
 
 
 def pinned_assets() -> list[tuple[str, int, str]]:
-    """Every pinned asset file as (repo-relative path, size, SHA-256)."""
-    manifest = json.loads((ROOT / "data" / "plant_manifest.json").read_text(encoding="utf-8"))
+    """Every pinned bundled file as (repo-relative path, size, SHA-256): the
+    Plant Tycoon asset merge and every companion setting of both games."""
     result = []
-    for setting in manifest["settings"]:
-        merge = setting.get("asset_merge")
-        if isinstance(merge, dict):
-            result.extend(
-                (f"{merge['source']}/{entry['path']}", entry["size"], entry["sha256"].upper())
-                for entry in merge["files"]
-            )
+    for name in ("plant_manifest.json", "fish_manifest.json"):
+        manifest = json.loads((ROOT / "data" / name).read_text(encoding="utf-8"))
+        for setting in manifest["settings"]:
+            for key in ("asset_merge", "companion"):
+                bundle = setting.get(key)
+                if isinstance(bundle, dict):
+                    result.extend(
+                        (f"{bundle['source']}/{entry['path']}", entry["size"], entry["sha256"].upper())
+                        for entry in bundle["files"]
+                    )
     return result
 
 
