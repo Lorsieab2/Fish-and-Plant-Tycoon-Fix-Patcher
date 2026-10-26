@@ -8,6 +8,10 @@ Writes assets/fish_tycoon_ds_store/Images/:
       tank companions, 6x3 cells, frames 0-17 in the Golden Seahorse's layout
       (and the fish's): 0-5 a swim loop facing left, 6-11 the same mirrored,
       12-17 the turn (narrowing, mirrored 12-14, back 15-17)
+  DS_PUFFER_PUFF_Grid.png
+      the puffer swimming puffed up, 4x2 cells of the puffer's cell size: the
+      DS's 4 puff-up frames facing left, then the same mirrored. The DLL
+      plays them every so often while it swims (the owner's call).
   DS_EEL_ROCK.png, DS_EEL_HOME_BACK_Grid.png, DS_EEL_HOME_FRONT_Grid.png
       the eel's rock and, for an eel at home, the parts of it behind and in
       front of the rock (back, rock, front at one top-left = the DS in-rock
@@ -98,6 +102,27 @@ def companion(source: Path, picks: list[int], turn: list[int] | None, scale: flo
     return sheet(cells, cell, 6), cell
 
 
+def puff_sheet(source: Path, scale: float, cell: tuple[int, int]) -> Image.Image:
+    """The puffer's 4 puff-up frames, left then mirrored, cropped and scaled
+    exactly as its swim sheet is (so the two line up)."""
+    frames = frames_in(source)
+    union = None
+    for f in frames:
+        box = f.getbbox()
+        union = box if union is None else (min(union[0], box[0]), min(union[1], box[1]),
+                                           max(union[2], box[2]), max(union[3], box[3]))
+    cells = []
+    for mirrored in (False, True):
+        for f in frames:
+            art = scaled(f.crop(union), scale)
+            if mirrored:
+                art = art.transpose(Image.FLIP_LEFT_RIGHT)
+            image = Image.new("RGBA", cell)
+            image.alpha_composite(art, ((cell[0] - art.width) // 2, (cell[1] - art.height) // 2))
+            cells.append(image)
+    return sheet(cells, cell, len(frames))
+
+
 def icon(image: Image.Image) -> Image.Image:
     image = image.crop(image.getbbox())
     scale = min(ICON_BOX[0] / image.width, ICON_BOX[1] / image.height, 1.0)
@@ -165,6 +190,8 @@ def main() -> int:
         image.save(OUT / f"DS_{name}_Grid.png")
         layout["companions"][name] = {"cell": list(cell), "cols": 6, "rows": 3}
         first_frames[name] = image.crop((0, 0, cell[0], cell[1]))
+    puff_sheet(src / COMPANIONS["PUFFER"][0], COMPANIONS["PUFFER"][3],
+               tuple(layout["companions"]["PUFFER"]["cell"])).save(OUT / "DS_PUFFER_PUFF_Grid.png")
 
     # The eel's rock and the eel at home: 16 of the 32 in-rock frames.
     scale = 0.9

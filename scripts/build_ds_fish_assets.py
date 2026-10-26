@@ -64,6 +64,10 @@ BODY_WIDTH = [1.00, 0.97, 0.94, 0.92, 0.91, 0.90,
 HEAD_ON_SHIFT = {12: 7.0, 13: 9.5, 14: 9.5, 15: -10.5, 16: -10.5, 17: -8.0}
 FIN_WIDTH = [1.0] * 12 + [0.8, 0.5, 0.4, 0.4, 0.5, 0.8]
 MIRRORED = [False] * 6 + [True] * 9 + [False] * 3
+# 0x4145F0 draws the body at fish y + (0x38 - h) / 2, h = rec+0x64 = body cell
+# height (50, set from the cell rect at 0x413EFD / 0x4156CB), but the fins at
+# fish y + anchor y: the body sits 3 px below the anchors' origin.
+BODY_DY = (0x38 - BODY_CELL[1]) // 2
 FIN_ALPHA = 210        # the PC's most common fin alpha; the DS has no fin alpha
 
 
@@ -162,7 +166,7 @@ def pair_anchors(offsets: dict, bodies: dict, fins: dict) -> list[dict]:
                     continue
                 x = body["left"] + body["scale"] * (int(o[dx]) + ds_box[0] - body["ds_left"])
                 edge = 3 if part == "top" else 1
-                y = body["top"] + body["scale"] * (int(o[dy]) + ds_box[edge] - body["ds_top"])
+                y = BODY_DY + body["top"] + body.get("scale_y", body["scale"]) * (int(o[dy]) + ds_box[edge] - body["ds_top"])
                 anchor += [round(x - pc_box[0]), round(y - pc_box[edge])]
             rows.append({"body": exe_gene(b), "fin": exe_gene(f), "anchor": anchor})
     return rows
@@ -209,7 +213,10 @@ def main() -> int:
         else:
             pc_box = cell(pc_sheet(gene, "body"), 0, BODY_CELL, 7).getbbox()
             ds_box = body_ds.getbbox()
+            # PC bodies have their own proportions: map the DS offsets by width
+            # across and by height up and down.
             placed = {"left": pc_box[0], "top": pc_box[1], "scale": (pc_box[2] - pc_box[0]) / (ds_box[2] - ds_box[0]),
+                      "scale_y": (pc_box[3] - pc_box[1]) / (ds_box[3] - ds_box[1]),
                       "ds_left": ds_box[0], "ds_top": ds_box[1]}
             fin_cell0 = {"top": cell(pc_sheet(gene, "top"), 0, FIN_CELL, 13),
                          "bottom": cell(pc_sheet(gene, "bot"), 0, FIN_CELL, 13)}

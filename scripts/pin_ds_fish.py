@@ -35,6 +35,7 @@ SETTING_ID = "ds_fish"
 SETTING = {
     "id": SETTING_ID,
     "name": "DS Exclusive Fish",
+    "summary": "Adds the Nintendo DS version's 7 extra fish bodies and 7 extra fins: 343 new species, reached through the Unknown Chemical and the Magic Fish of Mutation.",
     "description": (
         "Adds the seven bodies and seven fins only the Nintendo DS version has: Clownfish, Discus, "
         "Bicolor, Trigger, Surgeonfish, Tang and Idle bodies, and Small Fin, Roundy, Angel, Clown, "

@@ -119,6 +119,7 @@
     {
       "id": "crimson_comet_20_percent_cure",
       "name": "Crimson Comet 20% curing fix",
+      "summary": "The Crimson Comet magic fish cures a sick fish 20% of the time, as it was meant to. In the base game it never cures anything.",
       "description": "Repairs the cure roll, which the base game can never pass. The original code calls its random helper with an upper bound of 0, so no roll can come back under the threshold and a Crimson Comet never cures anything. The call is redirected to a wrapper that rolls 0-99 once per eligible diseased fish and cures on 0-19, a flat 20 percent. The disease clear and the cure counter behind it are the original code, unchanged. Touches 2 places: VA 0x4204CE and a 14-byte wrapper at VA 0x401E11.",
       "category": "main",
       "default": true
@@ -126,6 +127,7 @@
     {
       "id": "unknown_chemical_three_uses",
       "name": "Unknown Chemical: 3 uses",
+      "summary": "One Unknown Chemical purchase lasts three uses instead of one.",
       "description": "Makes one Unknown Chemical purchase last three uses instead of one. The base game rewrites the remaining count to 1 every time the item is used, so simply raising the purchase amount would be undone on first use; that 10-byte write at VA 0x4210B7 is replaced with NOPs so the purchased count survives and decrements normally. The store text is corrected to match, in English ('Contains 3 doses.') and German ('Reicht für 3 Behandlungen.'). Touches 3 places.",
       "category": "main",
       "default": true
@@ -133,6 +135,7 @@
     {
       "id": "universal_supply_slots",
       "name": "Universal supply slots 2-4",
+      "summary": "Medicines, chemicals and fish eggs can go in any of supply slots 2-4, instead of each being locked to its own slot.",
       "description": "Lets the eight supported medicines, chemicals, and egg types share supply slots 2-4 instead of each being locked to its own slot. Buying an item first looks for a matching stack in slots 2-4, then the first empty slot, and only then asks to replace something. The normal Buy confirmation still appears and cancelling changes nothing. Using an item swaps its record into the slot the original handler expects and swaps it back, so effects still run exactly once. Adds a 961-byte routine at the end of .text (VA 0x43F2A0) and rewrites the slot prompts to say 'item' in English and German. Touches 14 places.",
       "warning": "Changing this setting on a save that already has supplies: the base game gives every purchase a count of 3 and then throws the item away after one use, while this setting counts uses down. An egg or Unknown Chemical bought before the setting was turned on therefore lasts 3 uses once it is on, and items stacked or moved to another slot while it was on can misbehave after it is turned off (a stack of eggs is used up by one hatch; an item outside its own slot may not work). Use up slots 2-4 before switching this setting on or off. Modded copies keep the same executable name when you re-patch, so they keep using the same saves.",
       "category": "main",
@@ -141,6 +144,7 @@
     {
       "id": "golden_seahorse_repurchase",
       "name": "Buy Multiple Golden Seahorses",
+      "summary": "Lets you buy the Golden Seahorse again, and more than one, if you trash or lose it. With DS Store Items on, the store animals can be bought more than once too.",
       "description": "Allows purchasing of multiple Golden Seahorses, in case you trash or lose it somehow. The base game blocks a second purchase in three separate places, all keyed off the ownership dword at state + index*20 + 0x78: the store click handler refuses at VA 0x4282CA, the purchase routine returns before charging at VA 0x427B66, and the panel shows 'This is in your inventory.' instead of the price at VA 0x42735C. Each is wrapped so store item 11, the Golden Seahorse, takes the normal buy path while every other item keeps its original behaviour exactly. Touches 7 places.",
       "category": "main",
       "default": true
@@ -148,6 +152,7 @@
     {
       "id": "ds_fish",
       "name": "DS Exclusive Fish",
+      "summary": "Adds the Nintendo DS version's 7 extra fish bodies and 7 extra fins: 343 new species, reached through the Unknown Chemical and the Magic Fish of Mutation.",
       "description": "Adds the seven bodies and seven fins only the Nintendo DS version has: Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang and Idle bodies, and Small Fin, Roundy, Angel, Clown, Yellow, Blue and Moorish fins, 343 new species in all. Eggs, the store and breeding two PC fish never give them. The Unknown Chemical, and the Magic Fish of Mutation at hatching, can now step a Spotanus body or a Twin-Fin fin one place further, into the DS ones, with the same odds as before. Breeding a DS fish follows the DS game: the parents' average, an odd total rounded up or down at random. Prices, rarity (most need environment level 3), names and fin placement follow the DS game. Runs as a companion DLL the game loads at start; new sprites go in Images, and each save slot keeps its DS species data in a separate file beside the save. See docs/fish-tycoon-ds-fish-testing-guide.md.",
       "warning": "Turning this off after DS fish are in a save leaves those fish with genes the game cannot draw or name. Sell or trash every DS fish before switching it off.",
       "category": "main",
@@ -159,8 +164,8 @@
           {
             "path": "FTFP DS Fish.dll",
             "destination": "Fish Tycoon Fix Patcher Files/FTFP DS Fish.dll",
-            "size": 105472,
-            "sha256": "4B3BA02132311C3D2791E0141202EBF5059F84BB5E03E2C0A6AE48AA6F330D00"
+            "size": 105984,
+            "sha256": "58A1C228A429F2DE8EC60BC86A4BB14CF371D8D476EB01297DB96780DD171962"
           },
           {
             "path": "Images/FISH_23_body_Grid.png",
@@ -306,6 +311,7 @@
     {
       "id": "ds_store",
       "name": "DS Store Items",
+      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Puffer Fish, Sting Ray and Moray Eel (with its rock), tank animals that help your fish, and Exotic Fish Eggs that hatch only DS fish. Needs DS Exclusive Fish.",
       "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Puffer Fish, Sting Ray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and click its head to let it out. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
       "warning": "Turning this off after buying a store animal leaves it in your tank drawn as a Golden Seahorse, and the eel's rock as a sprite the game cannot draw. Move the animals to the trash and the eel out of its rock before switching it off.",
       "category": "main",
@@ -351,6 +357,12 @@
             "destination": "Images/DS_PUFFER_Grid.png",
             "size": 50498,
             "sha256": "2ABC291E8A7FAD23B270784237D8E528A83399ED29ACE2A041BB17B4C5AD9080"
+          },
+          {
+            "path": "Images/DS_PUFFER_PUFF_Grid.png",
+            "destination": "Images/DS_PUFFER_PUFF_Grid.png",
+            "size": 67119,
+            "sha256": "179F14B380986D8CC38BEB807AD4668951FF7C202AC3E5207E5004B0F6E41018"
           },
           {
             "path": "Images/DS_STINGRAY_Grid.png",

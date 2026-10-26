@@ -475,6 +475,16 @@ class App(tk.Tk):
                 variable=self.patch_vars[game_id][setting_id],
                 command=self._save_settings,
             ).pack(anchor="w")
+            # What the setting adds or does, in plain words: shown everywhere,
+            # including the compact Both Games panels.
+            summary = str(setting.get("summary", "")).strip()
+            if summary:
+                ttk.Label(
+                    entry,
+                    text=summary,
+                    wraplength=780 if compact else 820,
+                    justify="left",
+                ).pack(anchor="w", padx=(24, 0))
             # A warning is shown in both tabs, including the compact Both
             # Games panels, which leave out descriptions.
             warning = str(setting.get("warning", "")).strip()

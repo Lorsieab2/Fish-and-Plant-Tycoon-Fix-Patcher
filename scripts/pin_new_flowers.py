@@ -36,6 +36,7 @@ PROFILE = ds_fish_loader.PLANT
 SETTING = {
     "id": SETTING_ID,
     "name": "Add unused flowers",
+    "summary": "Adds the 14 flowers that are in the game's art but never used: 322 new species, reached by Mutation Liquid and breeding.",
     "description": (
         "Adds the 14 flower heads that ship in the game's art but no plant uses, as new flowers: "
         "Indigo, Peony, Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup, "

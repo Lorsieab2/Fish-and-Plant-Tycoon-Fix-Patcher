@@ -35,6 +35,7 @@ DLL_NAME = "FTFP DS Store.dll"
 SETTING = {
     "id": SETTING_ID,
     "name": "DS Store Items",
+    "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Puffer Fish, Sting Ray and Moray Eel (with its rock), tank animals that help your fish, and Exotic Fish Eggs that hatch only DS fish. Needs DS Exclusive Fish.",
     "description": (
         "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. "
         "The Puffer Fish, Sting Ray and Moray Eel are tank companions like the Golden Seahorse: "

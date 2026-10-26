@@ -380,6 +380,8 @@ static void init_ds_rows_only(char *state) {
     }
 }
 
+static void refresh_anchors(char *state);
+
 static void __cdecl on_load(int slot) {
     wchar_t path[1024];
     HANDLE file;
@@ -387,6 +389,7 @@ static void __cdecl on_load(int slot) {
     int ok = 0;
     char *state = game_state();
     if (!is_game_slot(slot) || state == NULL) return;
+    refresh_anchors(state);
     ds_rows_for(state);
     if (ds_rows == NULL) return;
     if (sidecar_path(slot, path, 1024, 0)) {
@@ -493,6 +496,20 @@ static void __stdcall pair_anchors(int *sprite, int body, int fin) {
     sprite[6] = a[1];          /* +0x18 top y */
     sprite[7] = a[2];          /* +0x1C bottom x */
     sprite[8] = a[3];          /* +0x20 bottom y */
+}
+
+/* A fish keeps the fin anchors it was given when it was born or mutated, in
+   its record (+0x68..+0x74).  After a load every fish with a DS gene gets the
+   current ones, so fish from earlier builds of this DLL are drawn right too. */
+static void refresh_anchors(char *state) {
+    int tank, slot;
+    for (tank = 0; tank <= 3; ++tank) {
+        for (slot = 0; slot < 31; ++slot) {
+            char *rec = state + 0x390 + tank * 0x51EC + slot * 0x288;
+            if (*(int *)rec == 0) continue;
+            pair_anchors((int *)(rec + 0x54), *(int *)(rec + 0x4C), *(int *)(rec + 0x50));
+        }
+    }
 }
 
 /* Head-on frames (12-17) draw a fin at body + 44 + c - anchor, which only

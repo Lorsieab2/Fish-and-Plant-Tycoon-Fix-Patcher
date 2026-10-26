@@ -39,6 +39,7 @@ FOLDER = ds_fish_loader.PLANT.patcher_files_folder
 SETTING = {
     "id": SETTING_ID,
     "name": "Add new store upgrades and items",
+    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula, and the Fourth, Fifth and Sixth Seed Box. Needs Add unused flowers.",
     "description": (
         "Adds an Upgrades link on the bricks at the left of the Supplies store. It opens a second "
         "view of the store with only the new items, each where it would sit in the store: "
