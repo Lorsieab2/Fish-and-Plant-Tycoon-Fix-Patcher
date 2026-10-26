@@ -39,7 +39,7 @@ SETTING = {
     "summary": "Adds the 14 flowers that are in the game's art but never used: 322 new species, reached by Mutation Liquid and breeding.",
     "description": (
         "Adds the 14 flower heads that ship in the game's art but no plant uses, as new flowers: "
-        "Nightingale, Rosetta, Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup, "
+        "Nightingale, Rosetta, Lilac, Veronica, Violetta, Stella, Silvermist, Anagallis, Buttercup, "
         "Cerulean, Phalaena, Mirabilis, Indigoberry and Prunus, 322 new species with the 23 foliages. "
         "All are the rarest class. Mutation Liquid can now step a Tilia flower one place further, "
         "into the new ones, with the same odds, and breeding with one of them follows the DS fish rule (an odd sum rounds up or down at random). "

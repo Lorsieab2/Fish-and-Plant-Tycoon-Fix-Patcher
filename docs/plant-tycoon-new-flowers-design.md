@@ -19,7 +19,7 @@ become flower genes 24-37. With the 23 foliages that is 322 new species
 | 27 | Veronica | flowers56x56, cell 27 | blue-white star |
 | 28 | Violetta | flowers56x56, cell 54 | purple violet |
 | 29 | Stella | flowers56x56, cell 51 | yellow star |
-| 30 | Forget-me-not | flowers56x56, cell 39 | small teal flower |
+| 30 | Silvermist | flowers56x56, cell 39 | small teal flower |
 | 31 | Anagallis | flowers56x56, cell 42 | small red flower |
 | 32 | Buttercup | flowers56x56, cell 48 | small yellow flower |
 | 33 | Cerulean | flowers64x64, cell 12 | cyan orchid |
@@ -70,7 +70,7 @@ green bulb, anchored halfway between the bell's centre and the tube's end
 - **Value V** = foliage base + flower add, as for every species. Flower adds
   for the new genes (between the Extinct flowers' 26-64 and the top
   override): Nightingale and Rosetta 60; Lilac, Veronica, Violetta and Stella 45;
-  Forget-me-not, Anagallis and Buttercup 35; Cerulean and Phalaena 70;
+  Silvermist, Anagallis and Buttercup 35; Cerulean and Phalaena 70;
   Mirabilis 55; Indigoberry and Prunus 50.
 - **Asking price P** at a new game: V plus or minus Random(V/2), the same
   rule as every other species; and x1.75 with the Flower of Knowledge.
