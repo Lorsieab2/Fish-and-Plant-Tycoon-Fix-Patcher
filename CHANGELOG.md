@@ -100,7 +100,13 @@
   - The Puffer Fish puffs up now and then while it swims.
   - The Moray Eel's rock is a movable decoration; the eel goes home in it,
     moves with it, and is dragged out by its head. Trashing the eel trashes
-    its rock, and the other way round.
+    its rock, and the other way round. At home it turns slowly (a frame
+    every 10 seconds) and stays inside the cave mouth; the DS frames where
+    it lunges over the rock are left out.
+  - DS fins now sit on the body in the game: a left-facing fish (frames
+    0-5) draws its fins at x + 50 - anchor and a right-facing one at x +
+    anchor, the other way round from what the DS pair anchors assumed, so
+    every DS fin was 8-26 px toward the head.
   - Exotic Fish Eggs, $2300: hatch only DS-exclusive bodies and fins.
   - Selling-tank customers no longer look at any seahorse-type companion
     (stock code read the Golden Seahorse's species data out of range).

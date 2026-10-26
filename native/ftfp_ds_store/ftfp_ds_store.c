@@ -73,7 +73,7 @@
 #define ROCK_FLOOR_H (ROCK_H - ROCK_SINK)
 #define SPR_SHADOW 3                 /* TANK_OBJECT_SHADOW.png, 135 x 33 */
 #define SHADOW_W 135
-#define HOME_FRAME_MS 240u           /* the in-rock animation, played forward then back */
+#define HOME_FRAME_MS 10000u         /* the in-rock animation, played forward then back (user: very gradual) */
 #define O_HOME_HEALTH 1             /* spare bytes after the active byte */
 #define O_HOME_FOOD 2
 #define O_HOME_FLAG 3

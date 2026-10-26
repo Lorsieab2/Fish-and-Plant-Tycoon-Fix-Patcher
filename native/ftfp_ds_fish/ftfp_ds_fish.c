@@ -37,6 +37,7 @@
 
 #define GENE_SEAHORSE 22
 #define GENE_PC_LAST 20
+#define FIN_MIRROR_X 0x32           /* a left-facing fish's fins sit at x + 50 - anchor x (0x414878) */
 #define ROW_STRIDE 31
 #define ENTRY_SIZE 40
 #define SPECIES_BASE 0x14B40
@@ -532,7 +533,7 @@ static int __cdecl head_on_x(int body, int fin, int part, int frame, int anchor,
     if (w0 <= 0 || f0[1] == 0 || fk[1] == 0) {
         return c - anchor;
     }
-    num = (anchor + f0[0] - b0[0]) * wk;
+    num = (FIN_MIRROR_X - anchor + f0[0] - b0[0]) * wk;   /* frame 0's fin is at x + 50 - anchor */
     if (frame < 3) {          /* 12-14 face right: the fin's front edge is its right edge */
         x = bk[1] - (num + w0 / 2) / w0 - fk[1];
     } else {

@@ -11,7 +11,7 @@ static const int COMPANION_CELL[3][2] = { { 74, 71 }, { 145, 63 }, { 234, 45 } }
 #define ROCK_W 160
 #define ROCK_H 132
 #define HOME_COLS 4
-#define HOME_FRAMES 16
+#define HOME_FRAMES 12
 /* Where the eel's head shows at home, in rock coordinates: left, top, right, bottom. */
 static const int HEAD_BOX[4] = { 60, 55, 115, 115 };
 

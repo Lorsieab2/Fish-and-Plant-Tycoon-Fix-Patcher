@@ -70,6 +70,13 @@ def scaled(image: Image.Image, scale: float) -> Image.Image:
     return image.resize((max(1, round(image.width * scale)), max(1, round(image.height * scale))), Image.LANCZOS)
 
 
+def inside_box(image: Image.Image, box: tuple[int, int, int, int]) -> bool:
+    """Whether every visible pixel of the image lies within box (left, top, right, bottom)."""
+    bounds = image.getchannel("A").getbbox()
+    return bounds is None or (bounds[0] >= box[0] and bounds[1] >= box[1]
+                              and bounds[2] <= box[2] + 1 and bounds[3] <= box[3] + 1)
+
+
 def sheet(cells: list[Image.Image], size: tuple[int, int], cols: int) -> Image.Image:
     rows = (len(cells) + cols - 1) // cols
     out = Image.new("RGBA", (size[0] * cols, size[1] * rows))
@@ -197,14 +204,19 @@ def main() -> int:
     scale = 0.9
     rock = scaled(Image.open(src / "moray_eel_rock.png").convert("RGBA"), scale)
     rock.save(OUT / "DS_EEL_ROCK.png")
-    backs = frames_in(src / "moray_eel_back")[::2]
-    fronts = frames_in(src / "moray_eel_front")[::2]
+    backs = [scaled(f, scale) for f in frames_in(src / "moray_eel_back")[::2]]
+    fronts = [scaled(f, scale) for f in frames_in(src / "moray_eel_front")[::2]]
     cell = rock.size
-    sheet([scaled(f, scale) for f in backs], cell, 4).save(OUT / "DS_EEL_HOME_BACK_Grid.png")
-    sheet([scaled(f, scale) for f in fronts], cell, 4).save(OUT / "DS_EEL_HOME_FRONT_Grid.png")
-    # The cave mouth, where the eel's head shows in every frame: a click there lets it out.
-    layout["eel_home"] = {"cell": list(cell), "cols": 4, "rows": 4, "frames": len(backs),
-                          "head_box": [60, 55, 115, 115]}
+    # The cave mouth, where the eel's head shows: a press there pulls it out. Only the frames
+    # where the eel stays in it are used (decided, user): the DS ones where it lunges over the
+    # rock's shoulder or slides out underneath look like the eel clipping through the rock.
+    head_box = (60, 55, 115, 115)
+    calm = [i for i, front in enumerate(fronts) if inside_box(front, head_box)]
+    backs, fronts = [backs[i] for i in calm], [fronts[i] for i in calm]
+    sheet(backs, cell, 4).save(OUT / "DS_EEL_HOME_BACK_Grid.png")
+    sheet(fronts, cell, 4).save(OUT / "DS_EEL_HOME_FRONT_Grid.png")
+    layout["eel_home"] = {"cell": list(cell), "cols": 4, "rows": -(-len(backs) // 4), "frames": len(backs),
+                          "head_box": list(head_box)}
 
     inrock = frames_in(src / "moray_eel")[0]
     icon(first_frames["PUFFER"]).save(OUT / "ITEM_DS_PUFFER.png")

@@ -68,6 +68,8 @@ MIRRORED = [False] * 6 + [True] * 9 + [False] * 3
 # height (50, set from the cell rect at 0x413EFD / 0x4156CB), but the fins at
 # fish y + anchor y: the body sits 3 px below the anchors' origin.
 BODY_DY = (0x38 - BODY_CELL[1]) // 2
+# A left-facing fish (frames 0-5) has its fins at fish x + 50 - anchor x (0x414878).
+FIN_MIRROR_X = 0x32
 FIN_ALPHA = 210        # the PC's most common fin alpha; the DS has no fin alpha
 
 
@@ -151,7 +153,9 @@ def pair_anchors(offsets: dict, bodies: dict, fins: dict) -> list[dict]:
     body's frame-0 art in its PC-layout sheet (scaled by the body's own
     PC/DS width ratio), and the anchor is chosen so the fin's frame-0 art
     lands there by its attaching edge: a top fin's left and bottom, a bottom
-    fin's left and top."""
+    fin's left and top. Frames 0-5 (facing left) draw a fin at fish x + 50 -
+    anchor x and frames 6-11 at fish x + anchor x (0x41484A, 0x4147B0); the
+    mirrored cells make the two agree."""
     rows = []
     for b in range(DS_GENES):
         for f in range(DS_GENES):
@@ -167,7 +171,7 @@ def pair_anchors(offsets: dict, bodies: dict, fins: dict) -> list[dict]:
                 x = body["left"] + body["scale"] * (int(o[dx]) + ds_box[0] - body["ds_left"])
                 edge = 3 if part == "top" else 1
                 y = BODY_DY + body["top"] + body.get("scale_y", body["scale"]) * (int(o[dy]) + ds_box[edge] - body["ds_top"])
-                anchor += [round(x - pc_box[0]), round(y - pc_box[edge])]
+                anchor += [round(FIN_MIRROR_X - (x - pc_box[0])), round(y - pc_box[edge])]
             rows.append({"body": exe_gene(b), "fin": exe_gene(f), "anchor": anchor})
     return rows
 
