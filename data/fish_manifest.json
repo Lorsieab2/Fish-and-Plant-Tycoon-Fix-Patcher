@@ -386,8 +386,8 @@
           {
             "path": "FTFP DS Store.dll",
             "destination": "Fish Tycoon Fix Patcher Files/FTFP DS Store.dll",
-            "size": 101376,
-            "sha256": "2F6DCD6C9311D64D50282EA4FBDC59CFA3C50209F3DC656FD453B3B6B14B9A3A"
+            "size": 101888,
+            "sha256": "28478190CD5A8E8D1DC8E2034AE0E2B4CC5913F7F0588666643B7321B4554AC5"
           },
           {
             "path": "Images/DS_EEL_Grid.png",
@@ -398,14 +398,14 @@
           {
             "path": "Images/DS_EEL_HOME_BACK_Grid.png",
             "destination": "Images/DS_EEL_HOME_BACK_Grid.png",
-            "size": 32224,
-            "sha256": "663B3BC380A99DA6B2AA2CAFD4F4A84F074B60957D466D56B94C2BBAD8D15DF2"
+            "size": 73512,
+            "sha256": "AC5BE8C56052C687134306D34F8C1450C9DCD290FAA1A5B07BC0E702DDDC1F5F"
           },
           {
             "path": "Images/DS_EEL_HOME_FRONT_Grid.png",
             "destination": "Images/DS_EEL_HOME_FRONT_Grid.png",
-            "size": 30313,
-            "sha256": "174167A88D9809665E87BFE4F3C1E11E41C9B18B47B45934506C51206FE59FE6"
+            "size": 106703,
+            "sha256": "323FFB37AA9FB199AE41F22D9AE5E67E32FBAF86174281A756B91E18EBB06A1B"
           },
           {
             "path": "Images/DS_EEL_ROCK.png",

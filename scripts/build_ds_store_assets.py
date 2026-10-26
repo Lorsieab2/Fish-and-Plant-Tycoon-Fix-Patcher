@@ -46,6 +46,13 @@ TURN_WIDTH = [0.81, 0.67, 0.53, 0.53, 0.67, 0.81]
 BUTTON_POS = (440, 551)
 BUTTON_SIZE = (100, 50)
 ICON_BOX = (80, 60)          # the net cells are about 85 wide; stock icons are up to 69
+# The DS in-rock cycle (moray_eel_back/front, 32 frames): the frames the eel idles on in the
+# cave mouth, and its action burst (it ducks, peeks, lunges and snaps out with its mouth open,
+# then is back in at 1). In the frames where the DS shows it behind the rock, it is drawn whole
+# in front of it (decided, user).
+HOME_IDLE = list(range(1, 14))
+HOME_ACTION = list(range(14, 32)) + [0]
+HOME_IN_FRONT = {15, 21, 26, 27, 31}
 EGG_HUE = 0.36          # the user's green, distinct from the orange Common Eggs
 
 COMPANIONS = {
@@ -68,13 +75,6 @@ def frames_in(folder: Path) -> list[Image.Image]:
 
 def scaled(image: Image.Image, scale: float) -> Image.Image:
     return image.resize((max(1, round(image.width * scale)), max(1, round(image.height * scale))), Image.LANCZOS)
-
-
-def inside_box(image: Image.Image, box: tuple[int, int, int, int]) -> bool:
-    """Whether every visible pixel of the image lies within box (left, top, right, bottom)."""
-    bounds = image.getchannel("A").getbbox()
-    return bounds is None or (bounds[0] >= box[0] and bounds[1] >= box[1]
-                              and bounds[2] <= box[2] + 1 and bounds[3] <= box[3] + 1)
 
 
 def sheet(cells: list[Image.Image], size: tuple[int, int], cols: int) -> Image.Image:
@@ -204,19 +204,20 @@ def main() -> int:
     scale = 0.9
     rock = scaled(Image.open(src / "moray_eel_rock.png").convert("RGBA"), scale)
     rock.save(OUT / "DS_EEL_ROCK.png")
-    backs = [scaled(f, scale) for f in frames_in(src / "moray_eel_back")[::2]]
-    fronts = [scaled(f, scale) for f in frames_in(src / "moray_eel_front")[::2]]
+    backs = [scaled(f, scale) for f in frames_in(src / "moray_eel_back")]
+    fronts = [scaled(f, scale) for f in frames_in(src / "moray_eel_front")]
     cell = rock.size
-    # The cave mouth, where the eel's head shows: a press there pulls it out. Only the frames
-    # where the eel stays in it are used (decided, user): the DS ones where it lunges over the
-    # rock's shoulder or slides out underneath look like the eel clipping through the rock.
-    head_box = (60, 55, 115, 115)
-    calm = [i for i, front in enumerate(fronts) if inside_box(front, head_box)]
-    backs, fronts = [backs[i] for i in calm], [fronts[i] for i in calm]
+    for i in HOME_IN_FRONT:                      # the whole eel on the front layer
+        whole = backs[i].copy()
+        whole.alpha_composite(fronts[i])
+        backs[i], fronts[i] = Image.new("RGBA", whole.size), whole
+    picks = HOME_IDLE + HOME_ACTION
+    backs, fronts = [backs[i] for i in picks], [fronts[i] for i in picks]
     sheet(backs, cell, 4).save(OUT / "DS_EEL_HOME_BACK_Grid.png")
     sheet(fronts, cell, 4).save(OUT / "DS_EEL_HOME_FRONT_Grid.png")
-    layout["eel_home"] = {"cell": list(cell), "cols": 4, "rows": -(-len(backs) // 4), "frames": len(backs),
-                          "head_box": list(head_box)}
+    # The cave mouth, where the eel's head shows while it idles: a press there pulls it out.
+    layout["eel_home"] = {"cell": list(cell), "cols": 4, "rows": -(-len(picks) // 4), "frames": len(picks),
+                          "idle": len(HOME_IDLE), "action": len(HOME_ACTION), "head_box": [60, 55, 115, 115]}
 
     inrock = frames_in(src / "moray_eel")[0]
     icon(first_frames["PUFFER"]).save(OUT / "ITEM_DS_PUFFER.png")

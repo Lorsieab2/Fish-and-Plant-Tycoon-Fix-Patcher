@@ -91,7 +91,11 @@ the rock plays the DS in-rock animation (eel back layer, rock, eel front
 layer), with the head peeking out. While it is home, **moving the rock moves
 the eel with it**. Pressing on its head (the cave mouth, rock x 60-115,
 y 55-115) pulls it out already held, so the player drags it out of the rock.
-The in-rock animation plays forward then back, one frame every 240 ms.
+At home the eel idles in the cave mouth (DS frames 1-13, forward then back,
+one frame every 10 s) and every 30-90 s plays the DS's action burst, frames
+14-31 then 0, at 120 ms a frame with the closing bite held 500 ms (user). In
+DS frames 15, 21, 26, 27 and 31 the DS shows the eel behind the rock; here its
+back layer is merged into the front one, so it is drawn whole in front.
 
 Trashing goes both ways: the eel thrown away takes its rock with it, and the
 rock dropped on the trash can asks "Delete this fish?" and takes its eel

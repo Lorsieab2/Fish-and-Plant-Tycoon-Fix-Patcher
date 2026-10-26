@@ -39,8 +39,10 @@
    132
   ],
   "cols": 4,
-  "rows": 3,
-  "frames": 12,
+  "rows": 8,
+  "frames": 32,
+  "idle": 13,
+  "action": 19,
   "head_box": [
    60,
    55,

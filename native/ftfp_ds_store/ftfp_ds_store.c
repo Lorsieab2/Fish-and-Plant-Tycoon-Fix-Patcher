@@ -584,10 +584,36 @@ static int __cdecl rock_trash(char *impl, int x, int y) {
 }
 
 /* The eel at home: the part of it behind the rock, then (after every
-   ornament) the part in front, the DS in-rock animation. */
+   ornament) the part in front, the DS in-rock animation.  It idles in the
+   cave mouth, very gradually, and every 30-90 s plays the DS's action burst
+   (ducks, peeks, lunges, snaps out in front of the rock and bites) at the
+   DS's own pace (user). */
+#define ACTION_FRAME_MS 120u
+#define BITE_MS 500u                 /* the burst's last frame, the bite, is held */
+static DWORD next_snap = 0, snap_start = 0;
+
+static DWORD snap_gap(DWORD now) {
+    return 30000u + ((now * 1103515245u + 12345u) >> 8) % 60000u;
+}
+
 static int home_frame(void) {
-    int step = (int)((GetTickCount() / HOME_FRAME_MS) % (2 * (HOME_FRAMES - 1)));
-    return step < HOME_FRAMES ? step : 2 * (HOME_FRAMES - 1) - step;
+    DWORD now = GetTickCount();
+    int step;
+    if (next_snap == 0) next_snap = now + snap_gap(now);
+    if (snap_start == 0 && (int)(now - next_snap) >= 0) snap_start = now;
+    if (snap_start != 0) {
+        DWORD t = now - snap_start;
+        int k;
+        for (k = 0; k < HOME_ACTION; ++k) {
+            DWORD ms = k == HOME_ACTION - 1 ? BITE_MS : ACTION_FRAME_MS;
+            if (t < ms) return HOME_IDLE + k;
+            t -= ms;
+        }
+        snap_start = 0;
+        next_snap = now + snap_gap(now);
+    }
+    step = (int)((now / HOME_FRAME_MS) % (2 * (HOME_IDLE - 1)));
+    return step < HOME_IDLE ? step : 2 * (HOME_IDLE - 1) - step;
 }
 
 static void draw_home(char *impl, int sprite) {

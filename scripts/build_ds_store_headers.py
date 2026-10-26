@@ -171,6 +171,9 @@ def write_data() -> None:
              f"#define ROCK_H {home['cell'][1]}",
              f"#define HOME_COLS {home['cols']}",
              f"#define HOME_FRAMES {home['frames']}",
+             "/* The sheet holds the idle frames, then the action burst (it ends with the bite). */",
+             f"#define HOME_IDLE {home['idle']}",
+             f"#define HOME_ACTION {home['action']}",
              "/* Where the eel's head shows at home, in rock coordinates: left, top, right, bottom. */",
              "static const int HEAD_BOX[4] = { " + ", ".join(str(v) for v in home["head_box"]) + " };",
              "", "#endif", ""]
