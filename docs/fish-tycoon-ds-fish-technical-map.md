@@ -75,7 +75,7 @@ age, kind)`:
   trigger it.
 
 Hatch-time mate mutation `0x42014C`-`0x42025B`: if the tank holds an adult of
-magic fish 5 (`0x41DE90(5)` = body 13, fin 6, Grouper Wasp), 16% chance to
+magic fish 5 (`0x41DE90(5)` = body 13, fin 6, Wasp Grouper), 16% chance to
 step the stored mate body or fin by +/-1, then clamp both to `0..20` at
 `0x42021D` and `0x420245`. Vanilla bug: the fin branch tests the *body* value
 for its 0/20 bounce (`0x4201CC`, `0x4201E8`); the clamp hides it. Decided:

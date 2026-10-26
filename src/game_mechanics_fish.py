@@ -233,7 +233,7 @@ EGGS = (
     ),
     Fact(
         "Common Fish Eggs ($120): body and fin each one of 0, 4, 8, 12, 16, 20 (1 in 6 each), so "
-        "1 egg in 36 is the magic Spotanus Greenfin.",
+        "1 egg in 36 is the magic Greenfin Spotanus.",
     ),
     Fact("Unusual Fish Eggs ($450): body and fin each one of 2, 6, 10, 14, 18 (1 in 5 each)."),
     Fact(
@@ -258,19 +258,19 @@ MAGIC_FISH = (
         "A magic fish counts when a live adult of its species is in the same tank. Finding all "
         "seven wins the game.",
     ),
-    Fact("Fertility, Spotanus Greenfin (body 20, fin 16): one extra baby per litter in its tank."),
+    Fact("Fertility, Greenfin Spotanus (body 20, fin 16): one extra baby per litter in its tank."),
     Fact(
-        "Sustenance, Leaffish Speckled (14, 14): starving fish in its tank never lose health. "
+        "Sustenance, Speckled Leaffish (14, 14): starving fish in its tank never lose health. "
         "The game rolls Random(0) to allow the loss, and Random(0) is always 0.",
     ),
     Fact(
-        "Curing, Comet Crimson (11, 11): does nothing. Its cure needs Random(0) to be non-zero, and "
+        "Curing, Crimson Comet (11, 11): does nothing. Its cure needs Random(0) to be non-zero, and "
         "Random(0) is always 0.",
         patched=(("crimson_comet_20_percent_cure",
                   f"each sick fish in its tank is cured on {below(100, 20)} per age step."),),
     ),
     Fact(
-        f"Growth, Goldbulb Oriental (10, 9): each fish in its tank rolls {at_most(100, 10)} on "
+        f"Growth, Oriental Goldbulb (10, 9): each fish in its tank rolls {at_most(100, 10)} on "
         "every update for each step it takes plus one, when more than 270 real-life seconds have "
         "built up toward its next step; a success adds 1 age, with its own health, sickness and "
         "food step.",
@@ -280,18 +280,18 @@ MAGIC_FISH = (
         ),
     ),
     Fact(
-        "Health, Snooper Orange (5, 8): +1 health to every fish in its tank, each age step, after "
+        "Health, Orange Snooper (5, 8): +1 health to every fish in its tank, each age step, after "
         "the health change and before the clamp.",
     ),
     Fact(
-        f"Mutation, Grouper Wasp (13, 6): at each birth in its tank, {at_most(100, 15)} chance to "
+        f"Mutation, Wasp Grouper (13, 6): at each birth in its tank, {at_most(100, 15)} chance to "
         "move the father's stored body or fin one step up or down before the babies' genes are "
         "averaged. Once per litter.",
         subs=("Stock bug: the fin step tests the body's value for its 0 and 20 bounce.",),
         patched=(("ds_fish", "the step can also go from 20 into the DS genes."),),
     ),
     Fact(
-        "The Golden Guppy, Fire-Arrow Canary (7, 7): no effect. The game never checks for it, but "
+        "The Golden Guppy, Canary Fire-Arrow (7, 7): no effect. The game never checks for it, but "
         "it counts toward the seven.",
     ),
     Fact(
@@ -446,7 +446,7 @@ NEW_GAME = (
     ),
     Fact(
         "Starter eggs: 7 babies if all three main tanks are empty, otherwise 3, all at age 4. The "
-        "first is always a Spotanus Greenfin, the Magic Fish of Fertility.",
+        "first is always a Greenfin Spotanus, the Magic Fish of Fertility.",
     ),
     Fact(
         "Answering Yes to \"Would you like HELP the first time?\" turns on the tutorial, sets 2x "

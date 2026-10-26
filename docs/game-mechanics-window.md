@@ -41,7 +41,7 @@ These are shared with the Virtual Villagers and Virtual Families patchers.
   which speed. Each tab opens with a "Time and units" note.
 - **Real effects.** Facts describe what the code does, not what the game's
   text claims: for example the swapped Plant of Incubation / Nutrition
-  labels, and the Comet Crimson's cure that never fires. Things that cannot
+  labels, and the Crimson Comet's cure that never fires. Things that cannot
   happen are not listed. Stock bugs are described, not fixed.
 - **Patches.** The unpatched game comes first. Where a setting of this
   patcher changes a fact, a "With the patcher (<setting>, on/off by

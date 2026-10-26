@@ -95,7 +95,7 @@ land on it or a neighbour):
 
 ## 4. Optional: the Magic Fish of Mutation
 
-The **Grouper Wasp** is the Magic Fish of Mutation. While an adult one is in
+The **Wasp Grouper** is the Magic Fish of Mutation. While an adult one is in
 the tank, each hatching has a 16% chance to step the father's body or fin one
 place before the baby is worked out (the PC's own rule, kept). With the mod
 the step can go from Spotanus or Twin-Fin into the DS types, so two PC
@@ -117,5 +117,5 @@ push one step deeper.
   level 3.
 - Saving, quitting and reloading keeps DS fish and DS species data (the file
   `Fish Tycoon Fix Patcher Data\DS Fish <slot>.dat` beside the saves).
-- A Grouper Wasp in the tank occasionally gives a DS baby from Spotanus or
+- A Wasp Grouper in the tank occasionally gives a DS baby from Spotanus or
   Twin-Fin parents.
