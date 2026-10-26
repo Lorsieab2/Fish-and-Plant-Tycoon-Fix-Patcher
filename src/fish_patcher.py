@@ -18,6 +18,8 @@ import tempfile
 from typing import Any
 from datetime import datetime, timezone
 
+import ds_fish_loader
+
 
 # Shown whenever an executable fails the exact identity check, so the
 # player is told which copy of the game is supported instead of being
@@ -265,6 +267,19 @@ def enabled_settings(manifest: dict[str, Any], args: argparse.Namespace) -> set[
     return enabled
 
 
+def check_setting_requirements(manifest: dict[str, Any], enabled: set[str]) -> None:
+    """A setting that builds on another (`requires_settings`) needs it on too."""
+    settings = manifest_settings(manifest)
+    for key in sorted(enabled):
+        needed = settings[key].get("requires_settings", [])
+        if not isinstance(needed, list) or not all(isinstance(item, str) for item in needed):
+            raise PatchError(f"{key}: requires_settings must be a string list.")
+        missing = [item for item in needed if item not in enabled]
+        if missing:
+            names = ", ".join(str(settings.get(item, {}).get("name", item)) for item in missing)
+            raise PatchError(f"{settings[key].get('name', key)} needs {names}; turn that on too.")
+
+
 def active_patch_records(manifest: dict[str, Any], enabled: set[str]) -> list[dict[str, Any]]:
     raw = manifest.get("patches")
     if not isinstance(raw, list):
@@ -286,6 +301,85 @@ def active_patch_records(manifest: dict[str, Any], enabled: set[str]) -> list[di
 
 def settings_key(enabled: set[str]) -> str:
     return ",".join(sorted(enabled))
+
+
+def companion_setting_ids(manifest: dict[str, Any]) -> set[str]:
+    """Settings that ship a runtime companion (a DLL and its files) with the game."""
+    return {
+        key for key, value in manifest_settings(manifest).items()
+        if isinstance(value.get("companion"), dict)
+    }
+
+
+def needs_startup_loader(manifest: dict[str, Any], enabled: set[str]) -> bool:
+    settings = manifest_settings(manifest)
+    return any(
+        bool(settings[setting_id]["companion"].get("startup_loader"))
+        for setting_id in enabled & companion_setting_ids(manifest)
+    )
+
+
+def companion_plan(
+    manifest: dict[str, Any], manifest_path: Path, enabled: set[str]
+) -> list[dict[str, Any]]:
+    """Validate every file an enabled companion setting copies into the game.
+
+    Each file is pinned by size and SHA-256 in the manifest and must resolve
+    inside the patcher, so a damaged or swapped release file is refused
+    before anything is written. A companion file goes to its own game-relative
+    destination: the DLL into the patcher's folder beside the executable,
+    images into the game's Images folder (which the game reads before ft.dat).
+    """
+    root = manifest_path.parent.parent
+    plan: list[dict[str, Any]] = []
+    settings = manifest_settings(manifest)
+    for setting_id in sorted(enabled & companion_setting_ids(manifest)):
+        companion = settings[setting_id]["companion"]
+        declared = Path(str(companion.get("source", "")))
+        source = (root / declared).resolve()
+        if declared.is_absolute() or not declared.parts or not is_within(source, root):
+            raise PatchError(f"{setting_id}: companion source must be a folder inside the patcher: {declared}")
+        files = companion.get("files")
+        if not isinstance(files, list) or not files:
+            raise PatchError(f"{setting_id}: companion.files must be a non-empty list.")
+        for index, entry in enumerate(files):
+            relative = Path(str(entry.get("path", "")))
+            destination = Path(str(entry.get("destination", "")))
+            for label, value in (("path", relative), ("destination", destination)):
+                if not value.parts or value.is_absolute() or ".." in value.parts:
+                    raise PatchError(f"{setting_id}: files[{index}] has an unsafe {label}: {value}")
+            bundled = source / relative
+            if not bundled.is_file():
+                raise PatchError(f"{setting_id}: companion file is missing: {bundled}")
+            expected_size = parse_int(entry.get("size"), f"{setting_id}.files[{index}].size")
+            expected_hash = str(entry.get("sha256", "")).upper()
+            if bundled.stat().st_size != expected_size or sha256_file(bundled) != expected_hash:
+                raise PatchError(f"{setting_id}: companion file failed its size/SHA-256 check: {bundled}")
+            plan.append({
+                "setting": setting_id,
+                "source": bundled,
+                "destination": destination.as_posix(),
+                "sha256": expected_hash,
+            })
+    return plan
+
+
+def install_companion_files(plan: list[dict[str, Any]], staging: Path) -> list[dict[str, Any]]:
+    """Copy each planned companion file into the staged output, read back."""
+    summary: list[dict[str, Any]] = []
+    for item in plan:
+        target = staging / Path(item["destination"])
+        target.parent.mkdir(parents=True, exist_ok=True)
+        replaced = target.exists()
+        shutil.copy2(item["source"], target)
+        if sha256_file(target) != item["sha256"]:
+            raise PatchError(f"Companion file failed its post-write SHA-256 check: {target}")
+        summary.append({
+            "setting": item["setting"],
+            "path": item["destination"],
+            "action": "replaced" if replaced else "added",
+        })
+    return summary
 
 
 def expected_patched_hash(manifest: dict[str, Any], enabled: set[str]) -> str:
@@ -356,6 +450,31 @@ def resolve_paths(args: argparse.Namespace, manifest: dict[str, Any]) -> tuple[P
     return game_dir, exe, output_dir
 
 
+def output_names(
+    manifest: dict[str, Any], enabled: set[str], output_dir: Path, default_exe: str
+) -> tuple[Path, str]:
+    """The modded folder and EXE for these settings.
+
+    Settings that add new content (``"separate_output": true``) get their own
+    copy, "<Game> - Modded Upgrades", beside the plain "<Game> - Modded", so the
+    two never replace each other. A folder the user named themselves is kept;
+    only the default name is swapped.
+    """
+    output_cfg = manifest.get("output", {})
+    exe_name = str(output_cfg.get("exe_name", default_exe))
+    settings = manifest_settings(manifest)
+    if not any(settings.get(setting_id, {}).get("separate_output") for setting_id in enabled):
+        return output_dir, exe_name
+    folder = output_cfg.get("upgrades_folder_name")
+    exe = output_cfg.get("upgrades_exe_name")
+    if not folder or not exe:
+        return output_dir, exe_name
+    default_folder = str(output_cfg.get("default_folder_name", ""))
+    if output_dir.name.casefold() == default_folder.casefold():
+        output_dir = output_dir.parent / str(folder)
+    return output_dir, str(exe)
+
+
 def output_family(identifier: Any) -> str:
     """Drop the trailing -v<N> revision from a manifest id.
 
@@ -402,22 +521,32 @@ def apply_manifest(args: argparse.Namespace) -> int:
     manifest_path = Path(args.manifest).expanduser().resolve()
     manifest = read_json(manifest_path)
     game_dir, vanilla_exe, output_dir = resolve_paths(args, manifest)
-    output_exe_name = str(
-        manifest.get("output", {}).get("exe_name", "Fish Tycoon - Modded.exe")
-    )
     identity = validate_original_executable(vanilla_exe, manifest)
     enabled = enabled_settings(manifest, args)
+    output_dir, output_exe_name = output_names(manifest, enabled, output_dir, "Fish Tycoon - Modded.exe")
+    check_setting_requirements(manifest, enabled)
     patches = active_patch_records(manifest, enabled)
     original = vanilla_exe.read_bytes()
     patched, patch_summary = apply_patch_bytes(original, patches)
+    loader_summary: list[dict[str, str]] = []
+    if needs_startup_loader(manifest, enabled):
+        # The DS Fish companion's loader goes on last, over the patched bytes:
+        # one new read/execute section and the C runtime's call of WinMain
+        # routed through it (src/ds_fish_loader.py).
+        try:
+            patched, loader_summary = ds_fish_loader.append_startup_loader(patched)
+        except ds_fish_loader.LoaderError as exc:
+            raise PatchError(f"Startup loader: {exc}.") from exc
     expected_hash = expected_patched_hash(manifest, enabled)
     patched_hash = sha256_bytes(patched)
-    if patches and not expected_hash:
+    changed = bool(patches) or bool(loader_summary)
+    if changed and not expected_hash:
         raise PatchError(f"Manifest has no expected output hash for enabled settings: {settings_key(enabled)}")
-    if patches and patched_hash != expected_hash:
+    if changed and patched_hash != expected_hash:
         raise PatchError(
             f"Patched output hash mismatch: {patched_hash}; expected {expected_hash}."
         )
+    companions = companion_plan(manifest, manifest_path, enabled)
     # Checked before anything is written, and in a dry run too, so a Both
     # Games run cannot write one game's folder and then refuse the other's.
     refuse_unrecognized_output(output_dir, manifest)
@@ -434,12 +563,17 @@ def apply_manifest(args: argparse.Namespace) -> int:
         "target": identity,
         "enabled_settings": sorted(enabled),
         "patches": patch_summary,
+        "startup_loader": loader_summary,
+        "companion_files": [
+            {"setting": item["setting"], "path": item["destination"], "action": "would add"}
+            for item in companions
+        ],
         "output_exe_sha256": patched_hash,
     }
     if args.dry_run:
         args.last_apply_summary = report
         print(json.dumps(report, indent=2))
-        print("DRY RUN PASS: exact executable identity and all patch bytes validated; no files written.")
+        print("DRY RUN PASS: exact executable identity, all patch bytes and all companion files validated; no files written.")
         return 0
 
     output_parent = output_dir.parent
@@ -478,6 +612,7 @@ def apply_manifest(args: argparse.Namespace) -> int:
         staged_exe.write_bytes(patched)
         if sha256_file(staged_exe) != patched_hash:
             raise PatchError("Staged executable failed its post-write SHA-256 check.")
+        report["companion_files"] = install_companion_files(companions, staging)
         report["backup_dir"] = str(backup_dir)
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".fish_tycoon_bug_fix_output.json", {

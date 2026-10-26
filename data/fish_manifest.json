@@ -1,26 +1,106 @@
 {
   "manifest_version": 3,
-  "id": "fish-tycoon-pc-fixes-v14",
+  "id": "fish-tycoon-pc-fixes-v15",
   "name": "Fish Tycoon Fix Patcher",
-  "version": "v1.2.11",
+  "version": "v1.3.0",
   "description": "Repairs Crimson Comet curing, fixes Unknown Chemical uses, and lets the exact supported supplies stack in slots 2-4.",
   "patched_sha256": "E77FBB4919DF3FE104FBAAD7C65B9CD6446D11E04B940A0C4F63FFA0F88781E9",
   "patched_sha256_by_settings": {
+    "bigger_tanks": "DD20289FCA4D788B7C75BDD159E2D258A156581D021E075312673FA96FC05EFB",
     "crimson_comet_20_percent_cure": "33C8C9469E8E9F7DD460C4A9B9A3A897D2A9505C1E2627988046D8CED097AD9B",
-    "unknown_chemical_three_uses": "7CE334D50BB2D0C7EFEE15D246A9C899D489843A12D9687459381591E7202B3D",
-    "universal_supply_slots": "5978BF336DE7D7833094AC2660883E83BCC639565E524EBD546305766C869CA6",
+    "ds_fish": "9AF93031C464008CB79327848617D5C56D763FACCE3087AD216C286324AF3BFD",
     "golden_seahorse_repurchase": "4BC47B727CF9EB7E97592B0C13BE94F9EE76B98F9F5A9CEBEC2EAF649B1185EB",
-    "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "1F0E792B2B96B467537806DD7D85E871DB2EF0700002688A11EBC92573B2911F",
-    "crimson_comet_20_percent_cure,universal_supply_slots": "C235A450F6C514289F8E2DE659E0D60622E2F111D29F45A85C5874C79A4AE697",
+    "universal_supply_slots": "5978BF336DE7D7833094AC2660883E83BCC639565E524EBD546305766C869CA6",
+    "unknown_chemical_three_uses": "7CE334D50BB2D0C7EFEE15D246A9C899D489843A12D9687459381591E7202B3D",
+    "bigger_tanks,crimson_comet_20_percent_cure": "26BA993D34275BBA95580F88737F88C3F2E8F9DD0A65FD89208EC5F2EC3767B8",
+    "bigger_tanks,ds_fish": "A26D7933A4B4EADC86BD4D0122C7DFF761864B157A97595E4D578A4B265704FE",
+    "bigger_tanks,golden_seahorse_repurchase": "A50772E8A2A6A5BA514A4B929F374AA73F3DAA5DCA78CA498FE1882AA8CF0DAB",
+    "bigger_tanks,universal_supply_slots": "93BFC3D9E983BB9C9E698BA74816377D2C6D358F42EBABE7A3225831DE0269C8",
+    "bigger_tanks,unknown_chemical_three_uses": "82DA95937F2DCCE9802719572E716F8C7033661C5E012D7643BFCF0E9666848C",
+    "crimson_comet_20_percent_cure,ds_fish": "F49EDFD4253800DEA7028FF2EF16FEE92DA6B02EB47F5EF86F59CB80C147F44D",
     "crimson_comet_20_percent_cure,golden_seahorse_repurchase": "344E5B1F51DCE5282BF49368597D4074895CBCBF836F9BC1B80C17C740AB709D",
-    "universal_supply_slots,unknown_chemical_three_uses": "04E470F99D58DDA31C62B9CE1A9EE98C9B8239B277D989719DA509A06A697677",
-    "golden_seahorse_repurchase,unknown_chemical_three_uses": "6849CEC4F7C248DA524F560A4751F9354907789239AE51E4BF93638157E3E763",
+    "crimson_comet_20_percent_cure,universal_supply_slots": "C235A450F6C514289F8E2DE659E0D60622E2F111D29F45A85C5874C79A4AE697",
+    "crimson_comet_20_percent_cure,unknown_chemical_three_uses": "1F0E792B2B96B467537806DD7D85E871DB2EF0700002688A11EBC92573B2911F",
+    "ds_fish,ds_store": "9AF93031C464008CB79327848617D5C56D763FACCE3087AD216C286324AF3BFD",
+    "ds_fish,golden_seahorse_repurchase": "67C6B0ACE614071F590BAD5A996E746258BD8065BF275AD94A06820707E2CCE6",
+    "ds_fish,universal_supply_slots": "BE8563F74122448F2B61977E8460EADE4C5202E5B129669889F789172C4ED8BA",
+    "ds_fish,unknown_chemical_three_uses": "33B2505F553A96921BC129A882CA24230B96757EB8EE2F17ECE0EE27D552EF1D",
     "golden_seahorse_repurchase,universal_supply_slots": "6099F0DABAD2D4E1271AB7321E5F9F2C6235841CF849A86FC18123C231EFCE6B",
-    "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "1353A4D0F362B97EE35E70215020F9F614124BD8D474AC0771AB18B441C77B8D",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "08516842F502F69105604D46F278E89B681644237813EB352F24ED773D6F2987",
+    "golden_seahorse_repurchase,unknown_chemical_three_uses": "6849CEC4F7C248DA524F560A4751F9354907789239AE51E4BF93638157E3E763",
+    "universal_supply_slots,unknown_chemical_three_uses": "04E470F99D58DDA31C62B9CE1A9EE98C9B8239B277D989719DA509A06A697677",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish": "5463E4F8E4D9ABCC3CAD8CF0B579E095838C5560BE9C2D74E4F07B3376DB8E5C",
+    "bigger_tanks,crimson_comet_20_percent_cure,golden_seahorse_repurchase": "5C11FB53F02E0B7DD0F0FB6ACC26F081A38D5347D535B901E59A4D1EA0D67A95",
+    "bigger_tanks,crimson_comet_20_percent_cure,universal_supply_slots": "7E5400D195F14FB4FB011BB1963974AB5388D0D0B1C1CD5A6C9ED704FD34820B",
+    "bigger_tanks,crimson_comet_20_percent_cure,unknown_chemical_three_uses": "35EBB50675B51F43F310AC6E258CE4A90D517B2D701BFF1C9149059B56C02373",
+    "bigger_tanks,ds_fish,ds_store": "A26D7933A4B4EADC86BD4D0122C7DFF761864B157A97595E4D578A4B265704FE",
+    "bigger_tanks,ds_fish,golden_seahorse_repurchase": "F13C9556E505630852A0A25EF35FF2ACAFC61408F5793845F25163D31902F75B",
+    "bigger_tanks,ds_fish,universal_supply_slots": "CDB2E326853B46A4256C4B5FABD3B3F113BAAD0153A3BFC70DD94D238EDEC4E7",
+    "bigger_tanks,ds_fish,unknown_chemical_three_uses": "6145ACD3F7CB4B62FB022497329A7CA7BE701F67C48DAB74EAEAEBED86A2F2D6",
+    "bigger_tanks,golden_seahorse_repurchase,universal_supply_slots": "45462E6098EF2F1FE878A6C66895073F8B82203D21167DB3ED9B129A56BB3FC1",
+    "bigger_tanks,golden_seahorse_repurchase,unknown_chemical_three_uses": "649F78418F30EA9B13A1805CFB5B21B53682AD436CF13BA50FE9C0273773D990",
+    "bigger_tanks,universal_supply_slots,unknown_chemical_three_uses": "648C5AFEFAE92259D48AC62B90E81676952DF8988B7EEA9658564A4017C91988",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store": "F49EDFD4253800DEA7028FF2EF16FEE92DA6B02EB47F5EF86F59CB80C147F44D",
+    "crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase": "DDF90C51A25DFB72100F41A4E7815265712661156222BF72CAC382AFBC46E0D0",
+    "crimson_comet_20_percent_cure,ds_fish,universal_supply_slots": "5423DFB5EBCDEEF6FBE9D43FA6928EE1271FF250DA7A90894605ADCCA51B540F",
+    "crimson_comet_20_percent_cure,ds_fish,unknown_chemical_three_uses": "17EE7D56365AC86E87C12D42D4F685604E2DC40968AAEEBE1085BBFE8C338DBF",
     "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "2F7749A07EF79210235FB94DCE55177384D66EAAE2046DCDC77F88D17E254163",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "08516842F502F69105604D46F278E89B681644237813EB352F24ED773D6F2987",
+    "crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "1353A4D0F362B97EE35E70215020F9F614124BD8D474AC0771AB18B441C77B8D",
+    "ds_fish,ds_store,golden_seahorse_repurchase": "67C6B0ACE614071F590BAD5A996E746258BD8065BF275AD94A06820707E2CCE6",
+    "ds_fish,ds_store,universal_supply_slots": "BE8563F74122448F2B61977E8460EADE4C5202E5B129669889F789172C4ED8BA",
+    "ds_fish,ds_store,unknown_chemical_three_uses": "33B2505F553A96921BC129A882CA24230B96757EB8EE2F17ECE0EE27D552EF1D",
+    "ds_fish,golden_seahorse_repurchase,universal_supply_slots": "7A4D576BCBAC3C5774A82E15684EF0F470D6A7B2A2CB6DA30F189B4520121501",
+    "ds_fish,golden_seahorse_repurchase,unknown_chemical_three_uses": "69879609448A1AAE76E4393BF8DA2A00461B35EA9B2A05798EBD2E754EDCC3EA",
+    "ds_fish,universal_supply_slots,unknown_chemical_three_uses": "18B5584570A9DB79CAE9AFD3669BA2CABFD0BBC325A7182277EA320CEC3B7C13",
     "golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "CE47DAB060E4B040175140B78C53254C251135D122E505E012238E53D74021B9",
-    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "E77FBB4919DF3FE104FBAAD7C65B9CD6446D11E04B940A0C4F63FFA0F88781E9"
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,ds_store": "5463E4F8E4D9ABCC3CAD8CF0B579E095838C5560BE9C2D74E4F07B3376DB8E5C",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase": "79F06FC522664047231E6C58BF274330D7B7B32CBBB778A7E1929A472B0CA738",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,universal_supply_slots": "FF7932075945C4B6A61E595B822CEA940C9EC5E7A1B6F96D66A68F554B146C4B",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,unknown_chemical_three_uses": "9A48B8BBD3A215AD1450773A25D4196CC3D3F47E615491516EE12C5A053B60A3",
+    "bigger_tanks,crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots": "486FFD8539F536EE43C9277EC3374232065F40CD69F522DEA7DAFCC4B74753A0",
+    "bigger_tanks,crimson_comet_20_percent_cure,golden_seahorse_repurchase,unknown_chemical_three_uses": "E26CDD5269A57A6C5E5C35622881C3FD7EDBFC6B98CB734C942C9821C6F4E0AD",
+    "bigger_tanks,crimson_comet_20_percent_cure,universal_supply_slots,unknown_chemical_three_uses": "EFE3CDF46D398813EC348703A6D9966D5A6ABE279E2CF31BC966A12DE8033236",
+    "bigger_tanks,ds_fish,ds_store,golden_seahorse_repurchase": "F13C9556E505630852A0A25EF35FF2ACAFC61408F5793845F25163D31902F75B",
+    "bigger_tanks,ds_fish,ds_store,universal_supply_slots": "CDB2E326853B46A4256C4B5FABD3B3F113BAAD0153A3BFC70DD94D238EDEC4E7",
+    "bigger_tanks,ds_fish,ds_store,unknown_chemical_three_uses": "6145ACD3F7CB4B62FB022497329A7CA7BE701F67C48DAB74EAEAEBED86A2F2D6",
+    "bigger_tanks,ds_fish,golden_seahorse_repurchase,universal_supply_slots": "60FEFC2AB0CEEAF621AB43B91ADAF6DA64F4E515C96E7EAD0386C997C1411579",
+    "bigger_tanks,ds_fish,golden_seahorse_repurchase,unknown_chemical_three_uses": "757449D3CC37E3907F726B3EF58F9E734D0283F597CBCE4D90CDD5E5339C1688",
+    "bigger_tanks,ds_fish,universal_supply_slots,unknown_chemical_three_uses": "7D61128C9EF8F5FF192976252FA20EBC4EE64467679E6ACA48EE15DD970AE73D",
+    "bigger_tanks,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "70BED4C7E1EA638505AB0CE7EA906F329CAF4C3B018DA0FDFF8E1E5AD5837B02",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase": "DDF90C51A25DFB72100F41A4E7815265712661156222BF72CAC382AFBC46E0D0",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,universal_supply_slots": "5423DFB5EBCDEEF6FBE9D43FA6928EE1271FF250DA7A90894605ADCCA51B540F",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,unknown_chemical_three_uses": "17EE7D56365AC86E87C12D42D4F685604E2DC40968AAEEBE1085BBFE8C338DBF",
+    "crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase,universal_supply_slots": "DDBB255D41F7E10EA03053C53919F77678220BA20D2F0547F66A6C7725F06F13",
+    "crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase,unknown_chemical_three_uses": "B081657DE1742B81C2C887EE7AB043E62B9BD9C2BAA734E8978C20EA74F2E40C",
+    "crimson_comet_20_percent_cure,ds_fish,universal_supply_slots,unknown_chemical_three_uses": "B43DA71DCC6C5F102F469F587953943AF1F8199EF812054381549E7C5E7D5017",
+    "crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "E77FBB4919DF3FE104FBAAD7C65B9CD6446D11E04B940A0C4F63FFA0F88781E9",
+    "ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots": "7A4D576BCBAC3C5774A82E15684EF0F470D6A7B2A2CB6DA30F189B4520121501",
+    "ds_fish,ds_store,golden_seahorse_repurchase,unknown_chemical_three_uses": "69879609448A1AAE76E4393BF8DA2A00461B35EA9B2A05798EBD2E754EDCC3EA",
+    "ds_fish,ds_store,universal_supply_slots,unknown_chemical_three_uses": "18B5584570A9DB79CAE9AFD3669BA2CABFD0BBC325A7182277EA320CEC3B7C13",
+    "ds_fish,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "42F31BC7ABE4C2D40D263F571FBDDCA0A1355EA9CD739E4C2FC6DF53D062FE72",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase": "79F06FC522664047231E6C58BF274330D7B7B32CBBB778A7E1929A472B0CA738",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,ds_store,universal_supply_slots": "FF7932075945C4B6A61E595B822CEA940C9EC5E7A1B6F96D66A68F554B146C4B",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,ds_store,unknown_chemical_three_uses": "9A48B8BBD3A215AD1450773A25D4196CC3D3F47E615491516EE12C5A053B60A3",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase,universal_supply_slots": "389963A179DE3C47E5E7FC82444E65C183B5CDDCFDC4BCE9524F00BA01CA0768",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase,unknown_chemical_three_uses": "87DDD4AE7ABA109E37C3870EA8D1E708B0AB7C82F542B11AA1038790078957A3",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,universal_supply_slots,unknown_chemical_three_uses": "A8707FEB01FED0A8533EA21FC3C6E315DC242A44F83F4D41DD7881C1A516A3BE",
+    "bigger_tanks,crimson_comet_20_percent_cure,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "90A6009827E99460BDEB553CEF6CE4C4CCD37CB8A7137DD2F5855EBBFAD05053",
+    "bigger_tanks,ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots": "60FEFC2AB0CEEAF621AB43B91ADAF6DA64F4E515C96E7EAD0386C997C1411579",
+    "bigger_tanks,ds_fish,ds_store,golden_seahorse_repurchase,unknown_chemical_three_uses": "757449D3CC37E3907F726B3EF58F9E734D0283F597CBCE4D90CDD5E5339C1688",
+    "bigger_tanks,ds_fish,ds_store,universal_supply_slots,unknown_chemical_three_uses": "7D61128C9EF8F5FF192976252FA20EBC4EE64467679E6ACA48EE15DD970AE73D",
+    "bigger_tanks,ds_fish,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "2426A2952A28B1ABF98283AB414884A87FFE558DDEC7E7B074A3969EA28FF6FE",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots": "DDBB255D41F7E10EA03053C53919F77678220BA20D2F0547F66A6C7725F06F13",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase,unknown_chemical_three_uses": "B081657DE1742B81C2C887EE7AB043E62B9BD9C2BAA734E8978C20EA74F2E40C",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,universal_supply_slots,unknown_chemical_three_uses": "B43DA71DCC6C5F102F469F587953943AF1F8199EF812054381549E7C5E7D5017",
+    "crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "6569DBC19C28B16969E16FEEFDF202D15475B903666846C2B31485E630F95379",
+    "ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "42F31BC7ABE4C2D40D263F571FBDDCA0A1355EA9CD739E4C2FC6DF53D062FE72",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots": "389963A179DE3C47E5E7FC82444E65C183B5CDDCFDC4BCE9524F00BA01CA0768",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase,unknown_chemical_three_uses": "87DDD4AE7ABA109E37C3870EA8D1E708B0AB7C82F542B11AA1038790078957A3",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,ds_store,universal_supply_slots,unknown_chemical_three_uses": "A8707FEB01FED0A8533EA21FC3C6E315DC242A44F83F4D41DD7881C1A516A3BE",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "8495A0BE109A125F095A11334D77D0423AD6EDCABDDFFC805559BF4868824A35",
+    "bigger_tanks,ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "2426A2952A28B1ABF98283AB414884A87FFE558DDEC7E7B074A3969EA28FF6FE",
+    "crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "6569DBC19C28B16969E16FEEFDF202D15475B903666846C2B31485E630F95379",
+    "bigger_tanks,crimson_comet_20_percent_cure,ds_fish,ds_store,golden_seahorse_repurchase,universal_supply_slots,unknown_chemical_three_uses": "8495A0BE109A125F095A11334D77D0423AD6EDCABDDFFC805559BF4868824A35"
   },
   "target": {
     "exe_name": "Fish Tycoon.exe",
@@ -81,12 +161,15 @@
   },
   "output": {
     "default_folder_name": "Fish Tycoon - Modded",
-    "exe_name": "Fish Tycoon - Modded.exe"
+    "exe_name": "Fish Tycoon - Modded.exe",
+    "upgrades_folder_name": "Fish Tycoon - Modded Upgrades",
+    "upgrades_exe_name": "Fish Tycoon - Modded Upgrades.exe"
   },
   "settings": [
     {
       "id": "crimson_comet_20_percent_cure",
       "name": "Crimson Comet 20% curing fix",
+      "summary": "The Crimson Comet magic fish cures a sick fish 20% of the time, as it was meant to. In the base game it never cures anything.",
       "description": "Repairs the cure roll, which the base game can never pass. The original code calls its random helper with an upper bound of 0, so no roll can come back under the threshold and a Crimson Comet never cures anything. The call is redirected to a wrapper that rolls 0-99 once per eligible diseased fish and cures on 0-19, a flat 20 percent. The disease clear and the cure counter behind it are the original code, unchanged. Touches 2 places: VA 0x4204CE and a 14-byte wrapper at VA 0x401E11.",
       "category": "main",
       "default": true
@@ -94,6 +177,7 @@
     {
       "id": "unknown_chemical_three_uses",
       "name": "Unknown Chemical: 3 uses",
+      "summary": "One Unknown Chemical purchase lasts three uses instead of one.",
       "description": "Makes one Unknown Chemical purchase last three uses instead of one. The base game rewrites the remaining count to 1 every time the item is used, so simply raising the purchase amount would be undone on first use; that 10-byte write at VA 0x4210B7 is replaced with NOPs so the purchased count survives and decrements normally. The store text is corrected to match, in English ('Contains 3 doses.') and German ('Reicht für 3 Behandlungen.'). Touches 3 places.",
       "category": "main",
       "default": true
@@ -101,6 +185,7 @@
     {
       "id": "universal_supply_slots",
       "name": "Universal supply slots 2-4",
+      "summary": "Medicines, chemicals and fish eggs can go in any of supply slots 2-4, instead of each being locked to its own slot.",
       "description": "Lets the eight supported medicines, chemicals, and egg types share supply slots 2-4 instead of each being locked to its own slot. Buying an item first looks for a matching stack in slots 2-4, then the first empty slot, and only then asks to replace something. The normal Buy confirmation still appears and cancelling changes nothing. Using an item swaps its record into the slot the original handler expects and swaps it back, so effects still run exactly once. Adds a 961-byte routine at the end of .text (VA 0x43F2A0) and rewrites the slot prompts to say 'item' in English and German. Touches 14 places.",
       "warning": "Changing this setting on a save that already has supplies: the base game gives every purchase a count of 3 and then throws the item away after one use, while this setting counts uses down. An egg or Unknown Chemical bought before the setting was turned on therefore lasts 3 uses once it is on, and items stacked or moved to another slot while it was on can misbehave after it is turned off (a stack of eggs is used up by one hatch; an item outside its own slot may not work). Use up slots 2-4 before switching this setting on or off. Modded copies keep the same executable name when you re-patch, so they keep using the same saves.",
       "category": "main",
@@ -109,9 +194,281 @@
     {
       "id": "golden_seahorse_repurchase",
       "name": "Buy Multiple Golden Seahorses",
+      "summary": "Lets you buy the Golden Seahorse again, and more than one, if you trash or lose it. With DS Store Items on, the store animals can be bought more than once too.",
       "description": "Allows purchasing of multiple Golden Seahorses, in case you trash or lose it somehow. The base game blocks a second purchase in three separate places, all keyed off the ownership dword at state + index*20 + 0x78: the store click handler refuses at VA 0x4282CA, the purchase routine returns before charging at VA 0x427B66, and the panel shows 'This is in your inventory.' instead of the price at VA 0x42735C. Each is wrapped so store item 11, the Golden Seahorse, takes the normal buy path while every other item keeps its original behaviour exactly. Touches 7 places.",
       "category": "main",
       "default": true
+    },
+    {
+      "id": "bigger_tanks",
+      "name": "Bigger tanks: 26 fish",
+      "summary": "Every tank holds 26 fish instead of 21.",
+      "description": "Raises every tank (Tank 1, Tank 2 and the selling tank) from 21 fish to 26. Each tank's block in the game's state already has room for 31 fish records and the save already stores all of them, so nothing about the save changes; the game simply only ever used the first 21. Every place that assumes 21 is raised: adding a fish, the swimming fish on screen, the per-step update, new game, the magic-fish check, thought bubbles, medicines and chemicals, customers, the selling screen and the sickness crowding count. Loops that test three fish per pass test two, thirteen times. With DS Store Items on, slots 26-30 hold the store's animals, so they never take a fish's place. Touches 45 places. See docs/fish-tycoon-tank-expansion.md.",
+      "warning": "Turning this off while a tank holds more than 21 fish hides the fish in slots 22-26 until it is on again. Sell or move fish down to 21 per tank before switching it off.",
+      "category": "main",
+      "default": false
+    },
+    {
+      "id": "ds_fish",
+      "name": "DS Exclusive Fish",
+      "summary": "Adds the Nintendo DS version's 7 extra fish bodies and 7 extra fins: 343 new species, reached through the Unknown Chemical and the Magic Fish of Mutation.",
+      "description": "Adds the seven bodies and seven fins only the Nintendo DS version has: Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang and Idle bodies, and Small Fin, Roundy, Angel, Clown, Yellow, Blue and Moorish fins, 343 new species in all. Eggs, the store and breeding two PC fish never give them. The Unknown Chemical, and the Magic Fish of Mutation at hatching, can now step a Spotanus body or a Twin-Fin fin one place further, into the DS ones, with the same odds as before. Breeding a DS fish follows the DS game: the parents' average, an odd total rounded up or down at random. Prices, rarity (most need environment level 3), names and fin placement follow the DS game. Runs as a companion DLL the game loads at start; new sprites go in Images, and each save slot keeps its DS species data in a separate file beside the save. See docs/fish-tycoon-ds-fish-testing-guide.md.",
+      "warning": "Turning this off after DS fish are in a save leaves those fish with genes the game cannot draw or name. Sell or trash every DS fish before switching it off.",
+      "category": "main",
+      "default": false,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/fish_tycoon_ds",
+        "startup_loader": true,
+        "files": [
+          {
+            "path": "DS Exclusive Fish.dll",
+            "destination": "Fish Tycoon Fix Patcher DLLs/DS Exclusive Fish.dll",
+            "size": 105984,
+            "sha256": "1A1DE0D03AE915F6C61DC845C72D7E73E6725A182DE4FDB5866CA6704EFEE29E"
+          },
+          {
+            "path": "Images/FISH_23_body_Grid.png",
+            "destination": "Images/FISH_23_body_Grid.png",
+            "size": 79268,
+            "sha256": "D0A39A53723C8FD733474787F2D084738742EB5D28EB5ED9D3A15D045EC81A95"
+          },
+          {
+            "path": "Images/FISH_23_bot_Grid.png",
+            "destination": "Images/FISH_23_bot_Grid.png",
+            "size": 2958,
+            "sha256": "EB23370DF511DB3353D3C77B517E40458A78238256379C8DC398E59205BFF2AD"
+          },
+          {
+            "path": "Images/FISH_23_top_Grid.png",
+            "destination": "Images/FISH_23_top_Grid.png",
+            "size": 2815,
+            "sha256": "B87E98609FAAE76590F3D9AAE1B4802C61895CBE2E806111B333C3C3BF04E757"
+          },
+          {
+            "path": "Images/FISH_24_body_Grid.png",
+            "destination": "Images/FISH_24_body_Grid.png",
+            "size": 115111,
+            "sha256": "18CB6F458706C5A6C9F417D65A5C0DBB452B4BE0F0E73AD8A92F1B5B78B60D98"
+          },
+          {
+            "path": "Images/FISH_24_bot_Grid.png",
+            "destination": "Images/FISH_24_bot_Grid.png",
+            "size": 12342,
+            "sha256": "7C1B8057BABBD3C1093C63B5996E3517F71595A3BB821C0FA88BC00968E9DF73"
+          },
+          {
+            "path": "Images/FISH_24_top_Grid.png",
+            "destination": "Images/FISH_24_top_Grid.png",
+            "size": 16156,
+            "sha256": "1B2D94426B525E8CC3C4459386F5C716CE2C7160BB956DFCAFFF7F6F0419916D"
+          },
+          {
+            "path": "Images/FISH_25_body_Grid.png",
+            "destination": "Images/FISH_25_body_Grid.png",
+            "size": 115817,
+            "sha256": "DD37271939F390298E38F5656EE63F478A6328F99AF0CC28EB5E931861D41874"
+          },
+          {
+            "path": "Images/FISH_25_bot_Grid.png",
+            "destination": "Images/FISH_25_bot_Grid.png",
+            "size": 10517,
+            "sha256": "A6DB462C70C1CE3A2CEB53DC534FD1960CFABB39864B69AC534FD166B924C490"
+          },
+          {
+            "path": "Images/FISH_25_top_Grid.png",
+            "destination": "Images/FISH_25_top_Grid.png",
+            "size": 12367,
+            "sha256": "855EB8C131B93E5070510B99FF83738BC2D44ED103E8DD1CAD5ED14A866134B0"
+          },
+          {
+            "path": "Images/FISH_26_body_Grid.png",
+            "destination": "Images/FISH_26_body_Grid.png",
+            "size": 188989,
+            "sha256": "37587D90BDF7315D0D09B1AE1BFFB5119723B2ACCC8B38511CFC0DF870673BFC"
+          },
+          {
+            "path": "Images/FISH_26_bot_Grid.png",
+            "destination": "Images/FISH_26_bot_Grid.png",
+            "size": 10750,
+            "sha256": "68EEA403BC6F224B7427ADE09186D669C9C095C5D2B5AA8BBB5F8AB9D074D0A4"
+          },
+          {
+            "path": "Images/FISH_26_top_Grid.png",
+            "destination": "Images/FISH_26_top_Grid.png",
+            "size": 11348,
+            "sha256": "904B43A46942C4A2E9BA82994F2D615513F292A06D369C6DB4363920B5BCB1AA"
+          },
+          {
+            "path": "Images/FISH_27_body_Grid.png",
+            "destination": "Images/FISH_27_body_Grid.png",
+            "size": 70336,
+            "sha256": "948B947ACBB15ED7202FC4C2327F9DAD7386BDE24F693501A2F7F4784B6B79EE"
+          },
+          {
+            "path": "Images/FISH_27_bot_Grid.png",
+            "destination": "Images/FISH_27_bot_Grid.png",
+            "size": 10300,
+            "sha256": "83B07868F41D2C42163C1807E7EDBC0F77974734E2C2CB3513DD34B2114004E0"
+          },
+          {
+            "path": "Images/FISH_27_top_Grid.png",
+            "destination": "Images/FISH_27_top_Grid.png",
+            "size": 13001,
+            "sha256": "0A69290B680035137A1874334060BCB810B77C23A93AEB253ECF43BD8E48C00F"
+          },
+          {
+            "path": "Images/FISH_28_body_Grid.png",
+            "destination": "Images/FISH_28_body_Grid.png",
+            "size": 181464,
+            "sha256": "F1DBC97BB370A7AFBAFAD458DA6A3C4B5D645EB7FB89FB6BEF45449DF255E25F"
+          },
+          {
+            "path": "Images/FISH_28_bot_Grid.png",
+            "destination": "Images/FISH_28_bot_Grid.png",
+            "size": 14192,
+            "sha256": "386F7C9327B4011BFAC6E3AE8D7018B29EE7D5A8F03984EC1D5C28B1FC1A8BC4"
+          },
+          {
+            "path": "Images/FISH_28_top_Grid.png",
+            "destination": "Images/FISH_28_top_Grid.png",
+            "size": 19332,
+            "sha256": "25E1D983376BCC8A23C20AC6B0E876453124D4EF11ADD5DFEB410C06B356BC4C"
+          },
+          {
+            "path": "Images/FISH_29_body_Grid.png",
+            "destination": "Images/FISH_29_body_Grid.png",
+            "size": 101766,
+            "sha256": "12CC6ADA910326D1ED65B65021CC7659CC0CAFFB08FD33021EBA1C54543F7F41"
+          },
+          {
+            "path": "Images/FISH_29_bot_Grid.png",
+            "destination": "Images/FISH_29_bot_Grid.png",
+            "size": 9374,
+            "sha256": "2FAB41BD606D78FD78DC245D73871190E522033B1249B9250EDE05ADAE5EBE23"
+          },
+          {
+            "path": "Images/FISH_29_top_Grid.png",
+            "destination": "Images/FISH_29_top_Grid.png",
+            "size": 9554,
+            "sha256": "C2733745C7208D3170AA4AFD9F0D41058A3B1FEA24F917960CED9C83DFE1B994"
+          },
+          {
+            "path": "Images/FISH_DS_adult_dead_Grid.png",
+            "destination": "Images/FISH_DS_adult_dead_Grid.png",
+            "size": 46068,
+            "sha256": "35AD6ED8AC20D52AA2652890FBEEE5BF58B114950E1D1FC0517BEEA08D0C4E5A"
+          },
+          {
+            "path": "Images/FISH_DS_teen_Grid.png",
+            "destination": "Images/FISH_DS_teen_Grid.png",
+            "size": 163473,
+            "sha256": "3173577EA2E383D302CEC0717F2F7E561EFBEE622A5DFA7C5580EA21EFEFB447"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ds_store",
+      "name": "DS Store Items",
+      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Puffer Fish, Sting Ray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, and Exotic Fish Eggs that hatch only DS fish. Needs DS Exclusive Fish.",
+      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Puffer Fish, Sting Ray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal slots of its own, the Golden Seahorse's included. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
+      "warning": "Turning this off after buying a store animal leaves it in your tank drawn as a Golden Seahorse, and the eel's rock as a sprite the game cannot draw. Move the animals to the trash and the eel out of its rock before switching it off.",
+      "category": "main",
+      "default": false,
+      "separate_output": true,
+      "requires_settings": [
+        "ds_fish"
+      ],
+      "companion": {
+        "source": "assets/fish_tycoon_ds_store",
+        "files": [
+          {
+            "path": "DS Store Items.dll",
+            "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
+            "size": 101888,
+            "sha256": "622BB7E9038E2E1AC223C569CC2103B58D57C8F94085DA7D41D37E5554A58D13"
+          },
+          {
+            "path": "Images/DS_EEL_Grid.png",
+            "destination": "Images/DS_EEL_Grid.png",
+            "size": 214865,
+            "sha256": "EBB8F37FFDBB1781EA52F003D989B3CC305C3810281D092A61B394CA2080D759"
+          },
+          {
+            "path": "Images/DS_EEL_HOME_BACK_Grid.png",
+            "destination": "Images/DS_EEL_HOME_BACK_Grid.png",
+            "size": 73512,
+            "sha256": "AC5BE8C56052C687134306D34F8C1450C9DCD290FAA1A5B07BC0E702DDDC1F5F"
+          },
+          {
+            "path": "Images/DS_EEL_HOME_FRONT_Grid.png",
+            "destination": "Images/DS_EEL_HOME_FRONT_Grid.png",
+            "size": 106703,
+            "sha256": "323FFB37AA9FB199AE41F22D9AE5E67E32FBAF86174281A756B91E18EBB06A1B"
+          },
+          {
+            "path": "Images/DS_EEL_ROCK.png",
+            "destination": "Images/DS_EEL_ROCK.png",
+            "size": 28572,
+            "sha256": "E2AFF1C094CA746F61BEC1A7FEE1FDDA15522739EC694226A79E86C5A8DF1FC2"
+          },
+          {
+            "path": "Images/DS_PUFFER_Grid.png",
+            "destination": "Images/DS_PUFFER_Grid.png",
+            "size": 50498,
+            "sha256": "2ABC291E8A7FAD23B270784237D8E528A83399ED29ACE2A041BB17B4C5AD9080"
+          },
+          {
+            "path": "Images/DS_PUFFER_PUFF_Grid.png",
+            "destination": "Images/DS_PUFFER_PUFF_Grid.png",
+            "size": 67119,
+            "sha256": "179F14B380986D8CC38BEB807AD4668951FF7C202AC3E5207E5004B0F6E41018"
+          },
+          {
+            "path": "Images/DS_STINGRAY_Grid.png",
+            "destination": "Images/DS_STINGRAY_Grid.png",
+            "size": 126667,
+            "sha256": "275625BC4700D942C9D55C3508288CCFF7160CA48F9B98969647CF9FAE9C8E0C"
+          },
+          {
+            "path": "Images/ITEM_DS_EEL.png",
+            "destination": "Images/ITEM_DS_EEL.png",
+            "size": 7841,
+            "sha256": "9993D12F6D7030D9E70CC3E51D5B8A2126A8CAF574253DC26E88F42803612237"
+          },
+          {
+            "path": "Images/ITEM_DS_PUFFER.png",
+            "destination": "Images/ITEM_DS_PUFFER.png",
+            "size": 6194,
+            "sha256": "66D1A1B0CC1D91A8750B043C7FB53C6090390225F7C0A1881CC09A1AD9641865"
+          },
+          {
+            "path": "Images/ITEM_DS_STINGRAY.png",
+            "destination": "Images/ITEM_DS_STINGRAY.png",
+            "size": 4838,
+            "sha256": "C60F9B4460FC94B2C7C60992010A635529E5691FF6626D97E76047E156CE3FD3"
+          },
+          {
+            "path": "Images/ITEM_FISHEGGS_EXOTIC.png",
+            "destination": "Images/ITEM_FISHEGGS_EXOTIC.png",
+            "size": 3340,
+            "sha256": "19190AAECDCAF6A6AE0FE6FB9202869839D8E6E3293FFA87455F4C06E7888150"
+          },
+          {
+            "path": "Images/SuppliesUpgradesButton.png",
+            "destination": "Images/SuppliesUpgradesButton.png",
+            "size": 12806,
+            "sha256": "C952DF8292000D947EC28265FBB010941532B9D324B1AF6CC114EBA89480E8DA"
+          },
+          {
+            "path": "Images/TOOL_FISHEGGS_EXOTIC.png",
+            "destination": "Images/TOOL_FISHEGGS_EXOTIC.png",
+            "size": 1573,
+            "sha256": "45416410EA80F2E55692C04C8DBA3883D5F0B0A700F9B0E1CB604A8A3FC42019"
+          }
+        ]
+      }
     }
   ],
   "patches": [
@@ -453,6 +810,518 @@
       "note": "Wrapper at VA 0x43F840. Runs the original branch first so the ownership flags are untouched, then for store item 11 jumps to VA 0x4274A4 so the panel shows the price rather than the inventory notice. Every other item falls through to VA 0x427362 exactly as before."
     },
     {
+      "id": "tank26_addfish_free_slot",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x19C72",
+      "expected": "83 F8 15",
+      "replacement": "83 F8 1A",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: addfish free slot."
+    },
+    {
+      "id": "tank26_view_build_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x140C5",
+      "expected": "83 F8 15",
+      "replacement": "83 F8 1A",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: view build slots."
+    },
+    {
+      "id": "tank26_view_refresh_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x15893",
+      "expected": "83 F8 15",
+      "replacement": "83 F8 1A",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: view refresh slots."
+    },
+    {
+      "id": "tank26_update_loop1_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x206B1",
+      "expected": "83 F9 15",
+      "replacement": "83 F9 1A",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: update loop1 slots."
+    },
+    {
+      "id": "tank26_update_loop2_count",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x206E0",
+      "expected": "C7 44 24 18 15 00 00 00",
+      "replacement": "C7 44 24 18 1A 00 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: update loop2 count."
+    },
+    {
+      "id": "tank26_reset_remove_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1A90C",
+      "expected": "83 FE 15",
+      "replacement": "83 FE 1A",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: reset remove slots."
+    },
+    {
+      "id": "tank26_reset_clear_count",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x198F7",
+      "expected": "BE 15 00 00 00",
+      "replacement": "BE 1A 00 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: reset clear count."
+    },
+    {
+      "id": "tank26_magic_scan_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1DF20",
+      "expected": "83 FA 15",
+      "replacement": "83 FA 1A",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: magic scan slots."
+    },
+    {
+      "id": "tank26_thoughts_random_slot",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x13538",
+      "expected": "6A 15",
+      "replacement": "6A 1A",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: thoughts random slot."
+    },
+    {
+      "id": "tank26_tutorial_sick_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x25567",
+      "expected": "83 F8 15",
+      "replacement": "83 F8 1A",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: tutorial sick slots."
+    },
+    {
+      "id": "tank26_medicine_a_end",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x21043",
+      "expected": "81 FB 28 35 00 00",
+      "replacement": "81 FB D0 41 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: medicine a end."
+    },
+    {
+      "id": "tank26_medicine_b_end",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x2118E",
+      "expected": "81 FB 28 35 00 00",
+      "replacement": "81 FB D0 41 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: medicine b end."
+    },
+    {
+      "id": "tank26_medicine_c_end",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x2128A",
+      "expected": "81 FB 28 35 00 00",
+      "replacement": "81 FB D0 41 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: medicine c end."
+    },
+    {
+      "id": "tank26_customers_end",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x24495",
+      "expected": "81 FE 28 35 00 00",
+      "replacement": "81 FE D0 41 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: customers end."
+    },
+    {
+      "id": "tank26_sparkle_entries_a",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x20E24",
+      "expected": "83 FF 15",
+      "replacement": "83 FF 1B",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sparkle entries a."
+    },
+    {
+      "id": "tank26_sparkle_entries_b",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x210AF",
+      "expected": "83 FF 15",
+      "replacement": "83 FF 1B",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sparkle entries b."
+    },
+    {
+      "id": "tank26_sparkle_entries_c",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x211FE",
+      "expected": "83 FF 15",
+      "replacement": "83 FF 1B",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sparkle entries c."
+    },
+    {
+      "id": "tank26_sparkle_entries_d",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x212FD",
+      "expected": "83 FF 15",
+      "replacement": "83 FF 1B",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sparkle entries d."
+    },
+    {
+      "id": "tank26_sick_crowd_count",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1E260",
+      "expected": "B9 07 00 00 00",
+      "replacement": "B9 0D 00 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sick crowd count."
+    },
+    {
+      "id": "tank26_sick_crowd_third_skip",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1E280",
+      "expected": "74 03",
+      "replacement": "EB 03",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sick crowd third skip."
+    },
+    {
+      "id": "tank26_sick_crowd_stride",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1E285",
+      "expected": "05 98 07 00 00",
+      "replacement": "05 10 05 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sick crowd stride."
+    },
+    {
+      "id": "tank26_eggs_t0_count_code",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1FCA8",
+      "expected": "8B CD 8D 9B 00 00 00 00",
+      "replacement": "B9 0D 00 00 00 90 90 90",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: eggs t0 count code."
+    },
+    {
+      "id": "tank26_eggs_t0_third_skip",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1FCCF",
+      "expected": "74 05",
+      "replacement": "EB 05",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: eggs t0 third skip."
+    },
+    {
+      "id": "tank26_eggs_t0_stride",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1FCD6",
+      "expected": "05 98 07 00 00",
+      "replacement": "05 10 05 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: eggs t0 stride."
+    },
+    {
+      "id": "tank26_eggs_t1_count",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1FCE6",
+      "expected": "B9 07 00 00 00",
+      "replacement": "B9 0D 00 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: eggs t1 count."
+    },
+    {
+      "id": "tank26_eggs_t1_third_skip",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1FD0F",
+      "expected": "74 05",
+      "replacement": "EB 05",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: eggs t1 third skip."
+    },
+    {
+      "id": "tank26_eggs_t1_stride",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1FD16",
+      "expected": "05 98 07 00 00",
+      "replacement": "05 10 05 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: eggs t1 stride."
+    },
+    {
+      "id": "tank26_eggs_t2_count",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1FD26",
+      "expected": "B9 07 00 00 00",
+      "replacement": "B9 0D 00 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: eggs t2 count."
+    },
+    {
+      "id": "tank26_eggs_t2_third_skip",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1FD4F",
+      "expected": "74 05",
+      "replacement": "EB 05",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: eggs t2 third skip."
+    },
+    {
+      "id": "tank26_eggs_t2_stride",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x1FD56",
+      "expected": "05 98 07 00 00",
+      "replacement": "05 10 05 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: eggs t2 stride."
+    },
+    {
+      "id": "tank26_cheat_age_third_a",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x2309A",
+      "expected": "89 9C 2A A4 08 00 00",
+      "replacement": "89 9C 2A 1C 06 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: cheat age third a."
+    },
+    {
+      "id": "tank26_cheat_age_third_b",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x230A9",
+      "expected": "8B AA AC 08 00 00",
+      "replacement": "8B AA 24 06 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: cheat age third b."
+    },
+    {
+      "id": "tank26_cheat_age_stride",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x230AF",
+      "expected": "05 98 07 00 00",
+      "replacement": "05 10 05 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: cheat age stride."
+    },
+    {
+      "id": "tank26_cheat_age_end",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x230B4",
+      "expected": "3D 28 35 00 00",
+      "replacement": "3D D0 41 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: cheat age end."
+    },
+    {
+      "id": "tank26_cheat_age_third_c",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x230B9",
+      "expected": "89 AA A8 08 00 00",
+      "replacement": "89 AA 20 06 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: cheat age third c."
+    },
+    {
+      "id": "tank26_sell_adults_count",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x2381F",
+      "expected": "8D 57 07",
+      "replacement": "8D 57 0D",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sell adults count."
+    },
+    {
+      "id": "tank26_sell_adults_third_skip",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x23873",
+      "expected": "74 1D",
+      "replacement": "EB 1D",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sell adults third skip."
+    },
+    {
+      "id": "tank26_sell_adults_stride",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x23892",
+      "expected": "05 98 07 00 00",
+      "replacement": "05 10 05 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sell adults stride."
+    },
+    {
+      "id": "tank26_sellscene_adults_count",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x23E85",
+      "expected": "B9 07 00 00 00",
+      "replacement": "B9 0D 00 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sellscene adults count."
+    },
+    {
+      "id": "tank26_sellscene_adults_third_skip",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x23EC9",
+      "expected": "74 15",
+      "replacement": "EB 15",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sellscene adults third skip."
+    },
+    {
+      "id": "tank26_sellscene_adults_stride",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x23EE0",
+      "expected": "05 98 07 00 00",
+      "replacement": "05 10 05 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sellscene adults stride."
+    },
+    {
+      "id": "tank26_sellscene_comp_count",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x23F62",
+      "expected": "BA 07 00 00 00",
+      "replacement": "BA 0D 00 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sellscene comp count."
+    },
+    {
+      "id": "tank26_sellscene_comp_body22",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x23F82",
+      "expected": "8D 5A 0F",
+      "replacement": "8D 5A 09",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sellscene comp body22."
+    },
+    {
+      "id": "tank26_sellscene_comp_third_skip",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x23FC8",
+      "expected": "74 14",
+      "replacement": "EB 14",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sellscene comp third skip."
+    },
+    {
+      "id": "tank26_sellscene_comp_stride",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x23FDE",
+      "expected": "05 98 07 00 00",
+      "replacement": "05 10 05 00 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "note": "26 fish per tank: sellscene comp stride."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "45 AA 06 00",
+      "requires": [
+        "bigger_tanks"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks)."
+    },
+    {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
@@ -462,43 +1331,12 @@
         "crimson_comet_20_percent_cure"
       ],
       "excludes": [
+        "bigger_tanks",
         "golden_seahorse_repurchase",
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
       "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure)."
-    },
-    {
-      "id": "update_pe_checksum_unknown_chemical_three_uses",
-      "file_path": "Fish Tycoon.exe",
-      "offset": "0x150",
-      "expected": "B0 09 06 00",
-      "replacement": "48 9A 06 00",
-      "requires": [
-        "unknown_chemical_three_uses"
-      ],
-      "excludes": [
-        "crimson_comet_20_percent_cure",
-        "golden_seahorse_repurchase",
-        "universal_supply_slots"
-      ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (unknown_chemical_three_uses)."
-    },
-    {
-      "id": "update_pe_checksum_universal_supply_slots",
-      "file_path": "Fish Tycoon.exe",
-      "offset": "0x150",
-      "expected": "B0 09 06 00",
-      "replacement": "DC 76 06 00",
-      "requires": [
-        "universal_supply_slots"
-      ],
-      "excludes": [
-        "crimson_comet_20_percent_cure",
-        "golden_seahorse_repurchase",
-        "unknown_chemical_three_uses"
-      ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (universal_supply_slots)."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase",
@@ -510,6 +1348,7 @@
         "golden_seahorse_repurchase"
       ],
       "excludes": [
+        "bigger_tanks",
         "crimson_comet_20_percent_cure",
         "universal_supply_slots",
         "unknown_chemical_three_uses"
@@ -517,36 +1356,106 @@
       "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase)."
     },
     {
-      "id": "update_pe_checksum_crimson_comet_20_percent_cure_unknown_chemical_three_uses",
+      "id": "update_pe_checksum_universal_supply_slots",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "EB 44 06 00",
+      "replacement": "DC 76 06 00",
       "requires": [
-        "crimson_comet_20_percent_cure",
-        "unknown_chemical_three_uses"
-      ],
-      "excludes": [
-        "golden_seahorse_repurchase",
         "universal_supply_slots"
       ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_unknown_chemical_three_uses)."
+      "excludes": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (universal_supply_slots)."
     },
     {
-      "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots",
+      "id": "update_pe_checksum_unknown_chemical_three_uses",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "7F 21 06 00",
+      "replacement": "48 9A 06 00",
       "requires": [
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "bigger_tanks",
         "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
         "universal_supply_slots"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (unknown_chemical_three_uses)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_crimson_comet_20_percent_cure",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "E8 54 06 00",
+      "requires": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure"
       ],
       "excludes": [
         "golden_seahorse_repurchase",
+        "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_universal_supply_slots)."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, crimson_comet_20_percent_cure)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_golden_seahorse_repurchase",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "C5 D7 06 00",
+      "requires": [
+        "bigger_tanks",
+        "golden_seahorse_repurchase"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, golden_seahorse_repurchase)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_universal_supply_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "72 17 06 00",
+      "requires": [
+        "bigger_tanks",
+        "universal_supply_slots"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, universal_supply_slots)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "DE 3A 06 00",
+      "requires": [
+        "bigger_tanks",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "universal_supply_slots"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase",
@@ -559,42 +1468,45 @@
         "golden_seahorse_repurchase"
       ],
       "excludes": [
+        "bigger_tanks",
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase)."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure, golden_seahorse_repurchase)."
     },
     {
-      "id": "update_pe_checksum_universal_supply_slots_unknown_chemical_three_uses",
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "26 F7 05 00",
+      "replacement": "7F 21 06 00",
       "requires": [
-        "universal_supply_slots",
-        "unknown_chemical_three_uses"
-      ],
-      "excludes": [
-        "crimson_comet_20_percent_cure",
-        "golden_seahorse_repurchase"
-      ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (universal_supply_slots_unknown_chemical_three_uses)."
-    },
-    {
-      "id": "update_pe_checksum_golden_seahorse_repurchase_unknown_chemical_three_uses",
-      "file_path": "Fish Tycoon.exe",
-      "offset": "0x150",
-      "expected": "B0 09 06 00",
-      "replacement": "C8 C7 06 00",
-      "requires": [
-        "golden_seahorse_repurchase",
-        "unknown_chemical_three_uses"
-      ],
-      "excludes": [
         "crimson_comet_20_percent_cure",
         "universal_supply_slots"
       ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase_unknown_chemical_three_uses)."
+      "excludes": [
+        "bigger_tanks",
+        "golden_seahorse_repurchase",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure, universal_supply_slots)."
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "EB 44 06 00",
+      "requires": [
+        "crimson_comet_20_percent_cure",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "bigger_tanks",
+        "golden_seahorse_repurchase",
+        "universal_supply_slots"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure, unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase_universal_supply_slots",
@@ -607,42 +1519,147 @@
         "universal_supply_slots"
       ],
       "excludes": [
+        "bigger_tanks",
         "crimson_comet_20_percent_cure",
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase_universal_supply_slots)."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase, universal_supply_slots)."
     },
     {
-      "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses",
+      "id": "update_pe_checksum_golden_seahorse_repurchase_unknown_chemical_three_uses",
       "file_path": "Fish Tycoon.exe",
       "offset": "0x150",
       "expected": "B0 09 06 00",
-      "replacement": "C8 A1 06 00",
+      "replacement": "C8 C7 06 00",
       "requires": [
-        "crimson_comet_20_percent_cure",
-        "universal_supply_slots",
-        "unknown_chemical_three_uses"
-      ],
-      "excludes": [
-        "golden_seahorse_repurchase"
-      ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses)."
-    },
-    {
-      "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_unknown_chemical_three_uses",
-      "file_path": "Fish Tycoon.exe",
-      "offset": "0x150",
-      "expected": "B0 09 06 00",
-      "replacement": "6B 72 06 00",
-      "requires": [
-        "crimson_comet_20_percent_cure",
         "golden_seahorse_repurchase",
         "unknown_chemical_three_uses"
       ],
       "excludes": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure",
         "universal_supply_slots"
       ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_unknown_chemical_three_uses)."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase, unknown_chemical_three_uses)."
+    },
+    {
+      "id": "update_pe_checksum_universal_supply_slots_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "26 F7 05 00",
+      "requires": [
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (universal_supply_slots, unknown_chemical_three_uses)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_crimson_comet_20_percent_cure_golden_seahorse_repurchase",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "68 82 06 00",
+      "requires": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase"
+      ],
+      "excludes": [
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, crimson_comet_20_percent_cure, golden_seahorse_repurchase)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_crimson_comet_20_percent_cure_universal_supply_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "14 C2 06 00",
+      "requires": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure",
+        "universal_supply_slots"
+      ],
+      "excludes": [
+        "golden_seahorse_repurchase",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, crimson_comet_20_percent_cure, universal_supply_slots)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_crimson_comet_20_percent_cure_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "81 E5 05 00",
+      "requires": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "golden_seahorse_repurchase",
+        "universal_supply_slots"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, crimson_comet_20_percent_cure, unknown_chemical_three_uses)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_golden_seahorse_repurchase_universal_supply_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "91 37 06 00",
+      "requires": [
+        "bigger_tanks",
+        "golden_seahorse_repurchase",
+        "universal_supply_slots"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "unknown_chemical_three_uses"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, golden_seahorse_repurchase, universal_supply_slots)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_golden_seahorse_repurchase_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "5E 68 06 00",
+      "requires": [
+        "bigger_tanks",
+        "golden_seahorse_repurchase",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "universal_supply_slots"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, golden_seahorse_repurchase, unknown_chemical_three_uses)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_universal_supply_slots_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "BB 97 06 00",
+      "requires": [
+        "bigger_tanks",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, universal_supply_slots, unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots",
@@ -656,9 +1673,44 @@
         "universal_supply_slots"
       ],
       "excludes": [
+        "bigger_tanks",
         "unknown_chemical_three_uses"
       ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots)."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure, golden_seahorse_repurchase, universal_supply_slots)."
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "6B 72 06 00",
+      "requires": [
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "bigger_tanks",
+        "universal_supply_slots"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure, golden_seahorse_repurchase, unknown_chemical_three_uses)."
+    },
+    {
+      "id": "update_pe_checksum_crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "C8 A1 06 00",
+      "requires": [
+        "crimson_comet_20_percent_cure",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "bigger_tanks",
+        "golden_seahorse_repurchase"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure, universal_supply_slots, unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses",
@@ -672,9 +1724,78 @@
         "unknown_chemical_three_uses"
       ],
       "excludes": [
+        "bigger_tanks",
         "crimson_comet_20_percent_cure"
       ],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses)."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (golden_seahorse_repurchase, universal_supply_slots, unknown_chemical_three_uses)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "34 E2 05 00",
+      "requires": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "universal_supply_slots"
+      ],
+      "excludes": [
+        "unknown_chemical_three_uses"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, crimson_comet_20_percent_cure, golden_seahorse_repurchase, universal_supply_slots)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_crimson_comet_20_percent_cure_golden_seahorse_repurchase_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "01 13 06 00",
+      "requires": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "universal_supply_slots"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, crimson_comet_20_percent_cure, golden_seahorse_repurchase, unknown_chemical_three_uses)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_crimson_comet_20_percent_cure_universal_supply_slots_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "5E 42 06 00",
+      "requires": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "golden_seahorse_repurchase"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, crimson_comet_20_percent_cure, universal_supply_slots, unknown_chemical_three_uses)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "DA B7 06 00",
+      "requires": [
+        "bigger_tanks",
+        "golden_seahorse_repurchase",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
+      "excludes": [
+        "crimson_comet_20_percent_cure"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, golden_seahorse_repurchase, universal_supply_slots, unknown_chemical_three_uses)."
     },
     {
       "id": "update_pe_checksum_crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses",
@@ -688,8 +1809,26 @@
         "universal_supply_slots",
         "unknown_chemical_three_uses"
       ],
+      "excludes": [
+        "bigger_tanks"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure, golden_seahorse_repurchase, universal_supply_slots, unknown_chemical_three_uses)."
+    },
+    {
+      "id": "update_pe_checksum_bigger_tanks_crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses",
+      "file_path": "Fish Tycoon.exe",
+      "offset": "0x150",
+      "expected": "B0 09 06 00",
+      "replacement": "7D 62 06 00",
+      "requires": [
+        "bigger_tanks",
+        "crimson_comet_20_percent_cure",
+        "golden_seahorse_repurchase",
+        "universal_supply_slots",
+        "unknown_chemical_three_uses"
+      ],
       "excludes": [],
-      "note": "PE optional-header CheckSum, recomputed for this exact combination (crimson_comet_20_percent_cure_golden_seahorse_repurchase_universal_supply_slots_unknown_chemical_three_uses)."
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (bigger_tanks, crimson_comet_20_percent_cure, golden_seahorse_repurchase, universal_supply_slots, unknown_chemical_three_uses)."
     }
   ]
 }

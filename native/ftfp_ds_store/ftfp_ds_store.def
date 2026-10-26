@@ -1,0 +1,4 @@
+LIBRARY "DS Store Items"
+EXPORTS
+    FtfpStoreStartup = _FtfpStoreStartup@4
+    FtfpDsStoreInstalled = _FtfpDsStoreInstalled@0

@@ -18,6 +18,9 @@ import tempfile
 from typing import Any
 from datetime import datetime, timezone
 
+import ds_fish_loader
+import fish_patcher
+
 
 # Shown whenever an executable fails the exact identity check, so the
 # player is told which copy of the game is supported instead of being
@@ -308,6 +311,17 @@ def expected_patched_hash(manifest: dict[str, Any], enabled: set[str]) -> str:
     return str(manifest.get("patched_sha256", "")).upper()
 
 
+def companion_plan(
+    manifest: dict[str, Any], manifest_path: Path, enabled: set[str]
+) -> list[dict[str, Any]]:
+    """Every file an enabled companion setting copies in, pinned by size and
+    SHA-256 (the same checks as Fish Tycoon's companions)."""
+    try:
+        return fish_patcher.companion_plan(manifest, manifest_path, enabled)
+    except fish_patcher.PatchError as exc:
+        raise PatchError(str(exc)) from exc
+
+
 def asset_merge_plan(
     manifest: dict[str, Any], manifest_path: Path, enabled: set[str]
 ) -> list[dict[str, Any]]:
@@ -486,23 +500,37 @@ def apply_manifest(args: argparse.Namespace) -> int:
     manifest_path = Path(args.manifest).expanduser().resolve()
     manifest = read_json(manifest_path)
     game_dir, vanilla_exe, output_dir = resolve_paths(args, manifest)
-    output_exe_name = str(
-        manifest.get("output", {}).get("exe_name", "Plant Tycoon - Modded.exe")
-    )
     identity = validate_original_executable(vanilla_exe, manifest)
     enabled = enabled_settings(manifest, args)
+    output_dir, output_exe_name = fish_patcher.output_names(
+        manifest, enabled, output_dir, "Plant Tycoon - Modded.exe"
+    )
+    try:
+        fish_patcher.check_setting_requirements(manifest, enabled)
+    except fish_patcher.PatchError as exc:
+        raise PatchError(str(exc)) from exc
     patches = active_patch_records(manifest, enabled)
     original = vanilla_exe.read_bytes()
     patched, patch_summary = apply_patch_bytes(original, patches)
+    loader_summary: list[dict[str, str]] = []
+    if fish_patcher.needs_startup_loader(manifest, enabled):
+        # The New Flowers companion's loader goes on last, over the patched
+        # bytes (src/ds_fish_loader.py, Plant Tycoon's profile).
+        try:
+            patched, loader_summary = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.PLANT)
+        except ds_fish_loader.LoaderError as exc:
+            raise PatchError(f"Cannot add the startup loader: {exc}") from exc
+    changed = bool(patches or loader_summary)
     expected_hash = expected_patched_hash(manifest, enabled)
     patched_hash = sha256_bytes(patched)
-    if patches and not expected_hash:
+    if changed and not expected_hash:
         raise PatchError(f"Manifest has no expected output hash for enabled settings: {settings_key(enabled, manifest)}")
-    if patches and patched_hash != expected_hash:
+    if changed and patched_hash != expected_hash:
         raise PatchError(
             f"Patched output hash mismatch: {patched_hash}; expected {expected_hash}."
         )
     assets = asset_merge_plan(manifest, manifest_path, enabled)
+    companions = companion_plan(manifest, manifest_path, enabled)
     # Checked before anything is written, and in a dry run too, so a Both
     # Games run cannot write one game's folder and then refuse the other's.
     refuse_unrecognized_output(output_dir, manifest)
@@ -519,6 +547,11 @@ def apply_manifest(args: argparse.Namespace) -> int:
         "target": identity,
         "enabled_settings": sorted(enabled),
         "patches": patch_summary,
+        "startup_loader": loader_summary,
+        "companion_files": [
+            {"setting": item["setting"], "path": item["destination"], "action": "would add"}
+            for item in companions
+        ],
         "assets": [
             {
                 "setting": item["setting"],
@@ -572,6 +605,7 @@ def apply_manifest(args: argparse.Namespace) -> int:
         if sha256_file(staged_exe) != patched_hash:
             raise PatchError("Staged executable failed its post-write SHA-256 check.")
         report["assets"] = merge_assets(assets, game_dir, staging)
+        report["companion_files"] = fish_patcher.install_companion_files(companions, staging)
         report["backup_dir"] = str(backup_dir)
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".plant_tycoon_fix_output.json", {

@@ -6,7 +6,11 @@
   "description": "Fixes the supported classic Windows Plant Tycoon build: stops the old-age random-death branch and restores sounds and images the LDW release is missing.",
   "patched_sha256": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046",
   "patched_sha256_by_settings": {
-    "no_old_age_plant_deaths": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046"
+    "new_flowers": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "no_old_age_plant_deaths": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046",
+    "new_flowers,no_old_age_plant_deaths": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "new_flowers,plant_upgrades": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41"
   },
   "target": {
     "exe_name": "Plant Tycoon.exe",
@@ -25,12 +29,15 @@
   },
   "output": {
     "default_folder_name": "Plant Tycoon - Modded",
-    "exe_name": "Plant Tycoon - Modded.exe"
+    "exe_name": "Plant Tycoon - Modded.exe",
+    "upgrades_folder_name": "Plant Tycoon - Modded Upgrades",
+    "upgrades_exe_name": "Plant Tycoon - Modded Upgrades.exe"
   },
   "settings": [
     {
       "id": "no_old_age_plant_deaths",
       "name": "No old-age plant deaths",
+      "summary": "Plants no longer die of old age.",
       "description": "Stops plants dying of old age. A plant's age starts at 0 when it is created and counts up in the game's internal age units. Once it passes 1720.0, the threshold held as a double at VA 0x4695E0 and compared at VA 0x42E21F, the plant becomes eligible to die: every update from then on calls Random(1000) at VA 0x42E231 and kills the plant when the roll lands in 0-9. That is a 1 in 100 chance, 1%, on each eligible update, and it keeps rolling for the rest of the plant's life, so a long-lived plant faces it repeatedly. Younger plants are never eligible and are unaffected either way. The patch changes one byte, the comparison operand at VA 0x42E23B, from 9 to -1. Because the branch is a signed compare, no roll in 0-999 can fall in range, so the chance becomes exactly 0 rather than merely small. The age check and the random call both still run untouched; only the death branch is now unreachable. Plants still die of neglect, disease and everything else. Touches 1 byte.",
       "category": "main",
       "default": true
@@ -38,6 +45,7 @@
     {
       "id": "add_missing_ldw_assets",
       "name": "Add Missing Assets to LDW Version",
+      "summary": "Adds the sounds and images the LDW version of the game is missing, taken from the Steam version.",
       "description": "Adds sounds and images the LDW download is missing, taken from the Steam version of the game and bundled with this patcher. The merge is only additive: files are copied into the modded game folder only where the game does not already have them. A game file is never replaced, and a bundled file identical to the game's own is ignored. Turning this off and patching again produces a folder without them. The executable is not changed.",
       "category": "main",
       "default": true,
@@ -1623,6 +1631,88 @@
             "path": "Sounds/windchimes_4.ogg",
             "size": 270952,
             "sha256": "FE7DB99D38DDA58DAE7DDB1E374A812EE923CCAA919879B7F5A9BF1EDB3216FF"
+          }
+        ]
+      }
+    },
+    {
+      "id": "new_flowers",
+      "name": "Add unused flowers",
+      "summary": "Adds the 14 flowers that are in the game's art but never used: 322 new species, reached by Mutation Liquid and breeding.",
+      "description": "Adds the 14 flower heads that ship in the game's art but no plant uses, as new flowers: Indigo, Peony, Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup, Cerulean, Phalaena, Mirabilis, Blueberry and Prunus, 322 new species with the 23 foliages. All are the rarest class. Mutation Liquid can now step a Tilia flower one place further, into the new ones, with the same odds, and breeding mixes them by the game's own rule. Runs as a companion DLL the game loads at start; each save slot keeps the new species' prices and discoveries in a separate file beside the save. See docs/plant-tycoon-new-flowers-design.md.",
+      "warning": "Turning this off after new flowers are in a save leaves those plants with flowers the game cannot draw or price. Sell or compost them before switching it off.",
+      "category": "main",
+      "default": false,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/plant_tycoon_flowers",
+        "startup_loader": true,
+        "files": [
+          {
+            "path": "Unused Flowers.dll",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Unused Flowers.dll",
+            "size": 97280,
+            "sha256": "5F9414046BC8B1B4D94E8C514ADB40C05374CC8FF9D389131EFFD237230C7BB0"
+          },
+          {
+            "path": "Images/flowers64x64_grid.png",
+            "destination": "Images/flowers64x64_grid.png",
+            "size": 115138,
+            "sha256": "A93C0F3BCDFE7BCDD34011604C6CA9C172233F508E013B577CE61891DBBB1DF3"
+          },
+          {
+            "path": "Images/flowers64x64_grid_mask.png",
+            "destination": "Images/flowers64x64_grid_mask.png",
+            "size": 34101,
+            "sha256": "A83D64DE895103F398D09B4D4550074A960ADFD299349A165C0D7C63705FBF1D"
+          }
+        ]
+      }
+    },
+    {
+      "id": "plant_upgrades",
+      "name": "Add new store upgrades and items",
+      "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula, and the Fourth, Fifth and Sixth Seed Box. Needs Add unused flowers.",
+      "description": "Adds an Upgrades link on the bricks at the left of the Supplies store. It opens a second view of the store with only the new items, each where it would sit in the store: Legendary Seeds on the seed shelves (three a day, $5000 each, any foliage with one of the unused flowers; the stock seed packets keep their stock flowers), the Radioactive Plant Formula with the chemicals ($10,000, 3 doses, far beyond spamming Fertilizer Bombs and Plant Food: every branch grows, the largest size, full bloom, a flower on every spot of every branch and leaf, no dead or brown leaves, full health, and 5 seeds when pollinated), and the Fourth, Fifth and Sixth Seed Box with the tool upgrades (\"Even more space for your seeds!\", $1000 each, bought in order like the stock boxes). Each new box opens a 40-seed drawer in a second chest on the Seed Storage screen; the gold arrows on its title bar switch between boxes 1-3 and 4-6, and the greenhouse fills boxes 4-6 once 1-3 are full. Click Supplies in the bottom bar to leave the Upgrades view. Needs Add unused flowers. Each save slot keeps the new data in separate files beside the save. See docs/plant-tycoon-upgrades-design.md.",
+      "warning": "Turning this off leaves bought Legendary seeds drawn as another seed packet, the formula drawn as an Insta-Grow Vaporbomb that does nothing, boxes 4-6 hidden with their seeds, and the extra flowers the formula grew drawn away from their plants. Plant or sell the seeds, use up the formula, sell or compost the plants it was used on, and move seeds out of boxes 4-6 before switching it off.",
+      "category": "main",
+      "default": false,
+      "separate_output": true,
+      "requires_settings": [
+        "new_flowers"
+      ],
+      "companion": {
+        "source": "assets/plant_tycoon_upgrades",
+        "files": [
+          {
+            "path": "Store Upgrades and Items.dll",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Store Upgrades and Items.dll",
+            "size": 133632,
+            "sha256": "F059B55E2A2D6A9B30D989318FB56C3EFCABE8856110D35452681A9530B814C1"
+          },
+          {
+            "path": "Extra Seed Boxes.dll",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Extra Seed Boxes.dll",
+            "size": 92672,
+            "sha256": "D9B923F88423614287CBD180AC19CC732D15C38C97ED8E1B49FD9554C85FFEE4"
+          },
+          {
+            "path": "Images/Chemicals_Grid_upgrades.png",
+            "destination": "Images/Chemicals_Grid_upgrades.png",
+            "size": 50793,
+            "sha256": "A00DAA7620EB7559CDA4E9AF033AC817C9EEB06A91B23346CB00D2ACE1711758"
+          },
+          {
+            "path": "Images/seed_grid_legendary.png",
+            "destination": "Images/seed_grid_legendary.png",
+            "size": 247669,
+            "sha256": "EA371CE1A680C78D7C3880F84A788A56DFADD0E047D96174521AC4EBEDED11CA"
+          },
+          {
+            "path": "Images/upgrades_link.png",
+            "destination": "Images/upgrades_link.png",
+            "size": 2050,
+            "sha256": "A4476540585A846E020D5E2B42A888AF7264014A0D9EE72B0DA600FCC5E562EF"
           }
         ]
       }

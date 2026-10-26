@@ -1,5 +1,133 @@
 # Changelog
 
+## v1.0.17
+
+New content for both games (DS fish, fins and store animals; the 14 unused
+flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
+
+### Both games
+
+- The companion DLLs are named after their settings and kept in
+  "Fish Tycoon Fix Patcher DLLs" / "Plant Tycoon Fix Patcher DLLs" inside
+  the modded copy: DS Exclusive Fish.dll, DS Store Items.dll, Unused
+  Flowers.dll, Store Upgrades and Items.dll, Extra Seed Boxes.dll.
+
+- **Tools** tab: Backup and Restore Saves, and Rename Player Slots, for the
+  original game's saves and each modded copy's. Every change backs the save
+  folder up first.
+- **Game Mechanics** (Tools tab): how both games really work, read from their
+  code, with every random roll's exact odds and what each patcher setting
+  changes. It is read-only.
+
+### Plant Tycoon
+
+- **Add unused flowers**, a new setting, off by default. The 14 flower heads that
+  ship in the game's art but no plant uses become flowers 24-37:
+  - the owner's names: Indigo, Peony, Lilac, Veronica, Violetta, Stella,
+    Forget-me-not, Anagallis, Buttercup, Cerulean, Phalaena, Mirabilis
+    (recoloured golden), Blueberry and Prunus;
+  - 322 new species, all in the rarest class;
+  - reached by Mutation Liquid (now running over flowers 1-37 with unchanged
+    odds) and by breeding.
+  - It runs as "Unused Flowers.dll", loaded by a startup loader the patcher
+    appends to Plant Tycoon.exe (the same loader as DS Fish), all or nothing.
+  - It also stops the game's own out-of-range writes and the crash a new
+    flower would otherwise cause in Bio-organic Plant Food, the Fertilizer
+    Bomb and Mutation Liquid.
+  - Saves keep their stock layout; the new species' prices and discoveries
+    go in a file per save slot.
+  - Mirabilis: a third of its trumpet tube, fading out, no green bulb,
+    anchored halfway between the bell and the tube's end.
+- **Add new store upgrades and items**, a new setting, off by default,
+  needs Add unused flowers. An Upgrades link on the bricks of the Supplies
+  store opens a view with only the new items, where they would sit in the
+  store:
+  - Legendary Seeds (three a day, $5000, prismatic packets, any foliage with a
+    new flower; the stock packets keep their stock flowers);
+  - Breeding with one of the new flowers follows the DS fish rule: the
+    parents' average, an odd sum rounded up or down at random (stock x
+    stock still rounds up, as in the game). It is part of Add unused
+    flowers, so it works without the store upgrades too.
+  - Radioactive Plant Formula ($10,000, 3 doses): far beyond spamming
+    Fertilizer Bombs and Plant Food. Every branch grows (dead ones and the
+    ones the plant's shape normally hides), the largest size, full bloom,
+    and a flower on every spot of every branch and leaf: up to 6 per part,
+    hundreds on a big plant. No dead leaves, full health, and 5 seeds when
+    pollinated.
+  - the Fourth, Fifth and Sixth Seed Box ($1000 each): a second chest on
+    the Seed Storage screen behind gold arrows, also filled by the greenhouse
+    once boxes 1-3 are full.
+  - It runs as "Store Upgrades and Items.dll" and "Extra Seed Boxes.dll", loaded
+    by the unused-flowers DLL; the stock images are never replaced and saves
+    keep their stock layout.
+- The release ZIP now packages every companion setting's files (New Flowers'
+  were missing).
+
+### Both games
+
+- With a setting that adds new content on (DS Exclusive Fish or DS Store
+  Items; Add unused flowers or Add new store upgrades and items), the copy is
+  "Fish Tycoon - Modded Upgrades" / "Plant Tycoon - Modded Upgrades" (folder
+  and EXE), beside the plain "- Modded" copy, so the two never replace each
+  other. A folder you name yourself keeps its name.
+
+### Fish Tycoon
+
+- **Bigger tanks: 26 fish**, a new setting, off by default. Every tank holds
+  26 fish instead of 21: 45 byte changes to every place that assumes 21.
+  The state already has 31 fish records per tank and saves all of them, so
+  the save layout is unchanged.
+- **DS Exclusive Fish**, a new setting, off by default (fish manifest
+  v1.3.0). The Nintendo DS version's seven extra bodies and seven extra fins,
+  343 new species:
+  - Reached only through the Unknown Chemical and the Magic Fish of Mutation,
+    which can now step a Spotanus body or Twin-Fin fin one place further, with
+    unchanged odds. Eggs, the store and two PC parents never give them.
+  - A pair with a DS parent breeds by the DS game's rule (the average, an odd
+    total rounded up or down at random); PC x PC is unchanged.
+  - Prices, rarity tiers, names and fin placement come from the DS game.
+    Sprites are generated from the DS art in the PC's 18-frame turn layout,
+    with every DS fin placed per body/fin pair as the DS draws it.
+  - Runs as a companion DLL ("DS Exclusive Fish.dll") loaded by a small startup
+    loader the patcher appends to the executable. It checks all 69 places it
+    changes in the running game and installs all of them or none, and writes
+    a one-line log of the result. DS species data that does not fit the save
+    goes in a separate file per save slot; saves keep their stock layout.
+  - Docs: docs/fish-tycoon-ds-fish-testing-guide.md (how to get each fish),
+    docs/fish-tycoon-ds-fish-technical-map.md (every address),
+    docs/fish-tycoon-pc-vs-ds-differences.md (how the PC and DS differ for
+    magic fish, items and research).
+- **DS Store Items**, a new setting, off by default, that needs DS Exclusive
+  Fish. An Upgrades button in the Supplies store opens the DS version's
+  store items:
+  - Puffer Fish, Sting Ray and Moray Eel, $1250 each: tank companions built
+    like the Golden Seahorse, with the DS effects rescaled to the PC's age
+    steps (health for healthy fed fish, food, and the eel's 1-in-10 save of
+    a dying fish). The Golden Seahorse keeps its PC effects and gains its DS
+    one.
+  - The animals, the Golden Seahorse included, never take a fish's place:
+    each tank has 5 animal slots of its own (slots 26-30), and saves from
+    earlier builds are moved over on load. With Buy Multiple Golden
+    Seahorses on they can be bought more than once.
+  - The Puffer Fish puffs up now and then while it swims.
+  - The Moray Eel's rock is a movable decoration; the eel goes home in it,
+    moves with it, and is dragged out by its head. Trashing the eel trashes
+    its rock, and the other way round. At home it idles in the cave mouth
+    (a frame every 10 seconds) and every 30-90 seconds plays the DS's
+    action burst at the DS's pace: it ducks, peeks, lunges and snaps out in
+    front of the rock with a bite. Where the DS shows it behind the rock,
+    it is drawn in front of it.
+  - DS fins now sit on the body in the game: a left-facing fish (frames
+    0-5) draws its fins at x + 50 - anchor and a right-facing one at x +
+    anchor, the other way round from what the DS pair anchors assumed, so
+    every DS fin was 8-26 px toward the head.
+  - Exotic Fish Eggs, $2300: hatch only DS-exclusive bodies and fins.
+  - Selling-tank customers no longer look at any seahorse-type companion
+    (stock code read the Golden Seahorse's species data out of range).
+  - Runs as "DS Store Items.dll", loaded by "DS Exclusive Fish.dll"; all or
+    nothing, with its own log. Nothing new is saved outside the game's own
+    save.
+
 ## v1.0.16
 
 Fixes from a full audit of both games' patches and of the patcher around them.

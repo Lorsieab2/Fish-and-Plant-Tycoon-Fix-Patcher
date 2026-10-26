@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.16**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.17**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -38,6 +38,44 @@ never needs the internet.
   Seahorses, in case you trash or lose it somehow. It shipped broken from
   v1.0.6 and was fixed in v1.0.12; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
+- Bigger tanks: 26 fish (off by default). Every tank holds 26 fish instead of
+  21. The game's save already has room for them, so saves keep their layout.
+  Sell or move fish down to 21 per tank before turning it off again. Design:
+  [docs/fish-tycoon-tank-expansion.md](docs/fish-tycoon-tank-expansion.md).
+- DS Exclusive Fish (off by default). Adds the Nintendo DS version's seven
+  extra bodies (Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang, Idle)
+  and seven extra fins (Small Fin, Roundy, Angel, Clown, Yellow, Blue,
+  Moorish): 343 new species. Eggs, the store and two PC parents never give
+  them. The Unknown Chemical, and the Magic Fish of Mutation at hatching, can
+  step a Spotanus body or Twin-Fin fin one place further into them, with the
+  same odds as before. Breeding a DS fish, prices, rarity, names and fin
+  placement follow the DS game. It runs as a companion DLL the game loads at
+  start (`Fish Tycoon Fix Patcher DLLs\DS Exclusive Fish.dll`), its sprites go
+  in `Images`, and each save slot keeps its DS species data in
+  `Fish Tycoon Fix Patcher Data\DS Fish <slot>.dat` beside the saves; the
+  save files themselves keep their stock layout. How to get each one:
+  [docs/fish-tycoon-ds-fish-testing-guide.md](docs/fish-tycoon-ds-fish-testing-guide.md);
+  every address it uses:
+  [docs/fish-tycoon-ds-fish-technical-map.md](docs/fish-tycoon-ds-fish-technical-map.md).
+  Sell or trash every DS fish before turning it off again.
+- DS Store Items (off by default; needs DS Exclusive Fish, which it turns on
+  with it). An Upgrades button in the Supplies store opens the DS version's
+  store items. The Puffer Fish, Sting Ray and Moray Eel ($1250 each) are tank
+  companions like the Golden Seahorse: they swim, can be dragged between
+  tanks, never age, breed or get sold, and magically enhance the life and
+  environment of your fish (the Tools tab's Game Mechanics lists the exact
+  effects). The Moray Eel comes with its rock: drop the eel on it to send it
+  home, move the rock and the eel goes with it, and drag it out by its head.
+  Trashing the eel trashes its rock, and the other way round. The animals,
+  the Golden Seahorse included, never take a fish's place: each tank has 5
+  animal slots of its own. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
+  The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
+  second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
+  loaded by DS Fish's; everything it adds is kept in the game's own save.
+  Design and live checks:
+  [docs/fish-tycoon-ds-store-items-design.md](docs/fish-tycoon-ds-store-items-design.md).
+  Trash the store animals, and let the eel out of its rock, before turning it
+  off again.
 
 ### Plant Tycoon
 
@@ -53,6 +91,42 @@ never needs the internet.
   fountain, insect buzz, medical drip, wind in the trees and windchimes); 294
   bundled files are identical to the game's own and are ignored, and 7 that
   differ are left at the game's version.
+- Add unused flowers (off by default). Fourteen flower heads ship in the game's art
+  but no plant uses them; this adds them as new flowers: Indigo, Peony,
+  Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup,
+  Cerulean, Phalaena, Mirabilis, Blueberry and Prunus. With the 23 foliages
+  that is 322 new species, all in the rarest class.
+  - Mutation Liquid can step a Tilia flower one place further, into the new
+    ones, with the same odds.
+  - Breeding mixes them by the game's own rule.
+  - Mirabilis is recoloured golden so it isn't confused with Jalapa.
+  - It runs as a companion DLL the game loads at start
+    (`Plant Tycoon Fix Patcher DLLs\Unused Flowers.dll`). Each save slot
+    keeps the new species' prices and discoveries in
+    `Plant Tycoon Fix Patcher Data\New Flowers <slot>.dat` beside the saves.
+  - Design:
+    [docs/plant-tycoon-new-flowers-design.md](docs/plant-tycoon-new-flowers-design.md).
+    Sell or compost the new flowers before turning it off again.
+- Add new store upgrades and items (off by default; needs Add unused
+  flowers). An Upgrades link on the bricks at the left of the Supplies store
+  opens a second view of the store with only the new items, each where it
+  would sit in the stock store:
+  - Legendary Seeds on the seed shelves: three a day, $5000 each, any foliage
+    with one of the new flowers (the stock packets keep their stock flowers).
+  - Radioactive Plant Formula with the chemicals: $10,000, 3 doses; far
+    beyond spamming Fertilizer Bombs and Plant Food: every branch grows (dead
+    ones and the ones the plant's shape normally hides), the largest size,
+    full bloom, a flower on every spot of every branch and leaf (hundreds on a
+    big plant), no dead or brown leaves, full health, and 5 seeds when
+    pollinated.
+  - The Fourth, Fifth and Sixth Seed Box with the tool upgrades: $1000
+    each, bought in order like the stock ones. Each opens a 40-seed drawer in
+    a second chest; the gold arrows on the Seed Storage title bar switch
+    between boxes 1-3 and 4-6, and the greenhouse fills boxes 4-6 once 1-3
+    are full.
+  - Click Supplies in the bottom bar to go back.
+  - Design:
+    [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
 
 ## Use
 
@@ -87,6 +161,11 @@ Choose one parent location in the GUI. The patcher creates complete separate
 output folders named `Fish Tycoon - Modded` and `Plant Tycoon - Modded`.
 Their executables are named `Fish Tycoon - Modded.exe` and
 `Plant Tycoon - Modded.exe`. Original folders and executables are not replaced.
+With a setting that adds new content on (DS Exclusive Fish, DS Store Items,
+Add unused flowers, Add new store upgrades and items), the copy is
+`Fish Tycoon - Modded Upgrades` / `Plant Tycoon - Modded Upgrades` (folder and
+EXE) instead, beside the plain copy; the game names its save folder after the
+EXE, so it keeps its own saves.
 The **One Game** tab also retains each original patcher's verified
 restore-from-backup operation.
 
@@ -121,6 +200,33 @@ other. `Documents` is wherever Windows keeps it, which is often
 - Renaming a modded executable changes which folder it uses. Rename it and its
   saves appear to vanish; they are still there in the folder named after the old
   executable.
+
+## Tools
+
+The **Tools** tab works on the saves of either game, in any of its save
+folders: the original game's and each modded copy's (see "Where your saves
+go"). Close the game first.
+
+- **Backup and Restore Saves.** A backup is a zip of the whole save folder,
+  kept in `Documents\LDW\Fish and Plant Tycoon Fix Patcher Save Backups`.
+  Restoring makes the folder exactly the backup again, after backing up the
+  folder as it is now, so a restore can itself be undone.
+- **Rename Player Slots.** Changes a player's name in the game's player list
+  and inside that player's own save files, up to 31 plain characters as in the
+  game. The save folder is backed up first. A save file is changed only where
+  it holds exactly the old name; anything else is left alone. The layouts are
+  in `src/save_tools.py`.
+- **Game Mechanics.** A read-only page, with a tab for each game, on how the
+  games really work underneath, read from their code:
+  - time away, health, food, sickness, pests, breeding, seeds, the store,
+    research, selling, magic fish and plants, and bugs;
+  - an index of every random roll and timer.
+
+  Every chance is the game's own test with its exact odds (`Random(100) < 50`
+  is 50.05%, not 50%). Each line is labelled VERIFIED-C, VERIFIED-E or
+  UNCONFIRMED. A "With the patcher" line marks what one of this patcher's
+  settings changes. It never touches a save, so the games can stay open. See
+  [docs/game-mechanics-window.md](docs/game-mechanics-window.md).
 
 ## Safety
 

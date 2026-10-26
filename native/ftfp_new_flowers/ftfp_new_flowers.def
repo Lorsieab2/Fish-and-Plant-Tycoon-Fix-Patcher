@@ -1,0 +1,4 @@
+LIBRARY "Unused Flowers"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpNewFlowersInstalled = _FtfpNewFlowersInstalled@0

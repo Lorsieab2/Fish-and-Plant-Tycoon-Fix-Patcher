@@ -122,7 +122,7 @@ class CombinedPatcherTests(unittest.TestCase):
     def test_current_manifest_versions_and_default_settings(self) -> None:
         fish = combined.load_manifest("fish")
         plant = combined.load_manifest("plant")
-        self.assertEqual(fish["version"], "v1.2.11")
+        self.assertEqual(fish["version"], "v1.3.0")
         self.assertEqual(plant["version"], "v1.1.0")
         self.assertEqual(
             list(combined.patch_settings("fish")),
@@ -131,11 +131,14 @@ class CombinedPatcherTests(unittest.TestCase):
                 "unknown_chemical_three_uses",
                 "universal_supply_slots",
                 "golden_seahorse_repurchase",
+                "bigger_tanks",
+                "ds_fish",
+                "ds_store",
             ],
         )
         self.assertEqual(
             list(combined.patch_settings("plant")),
-            ["no_old_age_plant_deaths", "add_missing_ldw_assets"],
+            ["no_old_age_plant_deaths", "add_missing_ldw_assets", "new_flowers", "plant_upgrades"],
         )
 
     def test_unknown_chemical_text_is_corrected_in_both_languages(self) -> None:
@@ -406,7 +409,9 @@ class SectionLayoutTests(unittest.TestCase):
                 for patch in engine.active_patch_records(manifest, enabled)
                 if str(patch["id"]).startswith("update_pe_checksum")
             ]
-            expected = 0 if not enabled else 1
+            # DS Fish and DS Store Items patch no manifest bytes: DS Fish's
+            # startup loader recomputes the checksum itself, after every other change.
+            expected = 0 if not (enabled - {"ds_fish", "ds_store"}) else 1
             self.assertEqual(
                 len(checksum_patches),
                 expected,
@@ -663,8 +668,12 @@ class PatchDetailTests(unittest.TestCase):
     def test_every_setting_has_detail_and_every_change_is_explained(self) -> None:
         for game_id in combined.GAMES:
             for setting_id in combined.patch_settings(game_id):
-                details = combined.setting_patch_details(game_id, setting_id)
-                files = combined.setting_asset_files(game_id, setting_id)
+                details = combined.setting_patch_details(game_id, setting_id) + combined.setting_companion_details(
+                    game_id, setting_id
+                )
+                files = combined.setting_asset_files(game_id, setting_id) + combined.setting_companion_files(
+                    game_id, setting_id
+                )
                 self.assertTrue(details or files, f"{game_id}/{setting_id} has no detail")
                 for detail in details:
                     self.assertTrue(

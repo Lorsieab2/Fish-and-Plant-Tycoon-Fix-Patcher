@@ -233,6 +233,35 @@ def setting_asset_files(game_id: str, setting_id: str) -> list[str]:
     ]
 
 
+def setting_companion_files(game_id: str, setting_id: str) -> list[str]:
+    """Game-relative destinations of every file a companion setting copies in."""
+    setting = patch_settings(game_id).get(setting_id, {})
+    companion = setting.get("companion")
+    if not isinstance(companion, dict):
+        return []
+    return [
+        str(entry.get("destination", ""))
+        for entry in companion.get("files", [])
+        if isinstance(entry, dict) and entry.get("destination")
+    ]
+
+
+def setting_companion_details(game_id: str, setting_id: str) -> list[PatchDetail]:
+    """The executable changes a companion setting's startup loader makes."""
+    setting = patch_settings(game_id).get(setting_id, {})
+    companion = setting.get("companion")
+    if not isinstance(companion, dict) or not companion.get("startup_loader"):
+        return []
+    import ds_fish_loader
+
+    return [
+        PatchDetail(id=f"startup_loader_{index}", file_offset=offset, virtual_address=va,
+                    length=length, note=note)
+        for index, (offset, va, length, note) in enumerate(
+            ds_fish_loader.described_changes(ds_fish_loader.PLANT if game_id == "plant" else ds_fish_loader.FISH))
+    ]
+
+
 def setting_checksum_note(game_id: str) -> str:
     """One line covering the checksum records, which are otherwise noise."""
     manifest = load_manifest(game_id)
