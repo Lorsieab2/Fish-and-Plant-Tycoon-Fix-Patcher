@@ -23,9 +23,9 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 - **Add unused flowers**, a new setting, off by default. The 14 flower heads that
   ship in the game's art but no plant uses become flowers 24-37:
-  - the owner's names: Indigo, Peony, Lilac, Veronica, Violetta, Stella,
+  - the owner's names: Nightingale, Rosetta, Lilac, Veronica, Violetta, Stella,
     Forget-me-not, Anagallis, Buttercup, Cerulean, Phalaena, Mirabilis
-    (recoloured golden), Blueberry and Prunus;
+    (recoloured golden), Indigoberry and Prunus;
   - 322 new species, all in the rarest class;
   - reached by Mutation Liquid (now running over flowers 1-37 with unchanged
     odds) and by breeding.

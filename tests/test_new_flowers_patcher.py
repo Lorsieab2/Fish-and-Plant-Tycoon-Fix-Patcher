@@ -71,7 +71,7 @@ class ManifestTests(unittest.TestCase):
     def test_setting_is_off_by_default_and_warns(self) -> None:
         self.assertFalse(self.setting["default"])
         self.assertIn("Sell or compost them", self.setting["warning"])
-        for name in ("Indigo", "Peony", "Mirabilis", "Prunus", "Forget-me-not"):
+        for name in ("Nightingale", "Rosetta", "Mirabilis", "Prunus", "Forget-me-not"):
             self.assertIn(name, self.setting["description"])
 
     def test_every_combination_is_pinned(self) -> None:
@@ -100,7 +100,7 @@ class ManifestTests(unittest.TestCase):
         for other in (b"user32.dll", b"msvcr", b"vcruntime"):
             self.assertNotIn(other, lowered, other)
         self.assertIn(b"FtfpStartup", data)
-        for name in (b"Indigo", b"Phalaena", b"Cerulean"):
+        for name in (b"Nightingale", b"Phalaena", b"Cerulean"):
             self.assertIn(name, data)
 
 

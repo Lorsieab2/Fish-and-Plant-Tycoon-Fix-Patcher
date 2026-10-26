@@ -92,9 +92,9 @@ never needs the internet.
   bundled files are identical to the game's own and are ignored, and 7 that
   differ are left at the game's version.
 - Add unused flowers (off by default). Fourteen flower heads ship in the game's art
-  but no plant uses them; this adds them as new flowers: Indigo, Peony,
+  but no plant uses them; this adds them as new flowers: Nightingale, Rosetta,
   Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup,
-  Cerulean, Phalaena, Mirabilis, Blueberry and Prunus. With the 23 foliages
+  Cerulean, Phalaena, Mirabilis, Indigoberry and Prunus. With the 23 foliages
   that is 322 new species, all in the rarest class.
   - Mutation Liquid can step a Tilia flower one place further, into the new
     ones, with the same odds.

@@ -39,10 +39,10 @@ SETTING = {
     "summary": "Adds the 14 flowers that are in the game's art but never used: 322 new species, reached by Mutation Liquid and breeding.",
     "description": (
         "Adds the 14 flower heads that ship in the game's art but no plant uses, as new flowers: "
-        "Indigo, Peony, Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup, "
-        "Cerulean, Phalaena, Mirabilis, Blueberry and Prunus, 322 new species with the 23 foliages. "
+        "Nightingale, Rosetta, Lilac, Veronica, Violetta, Stella, Forget-me-not, Anagallis, Buttercup, "
+        "Cerulean, Phalaena, Mirabilis, Indigoberry and Prunus, 322 new species with the 23 foliages. "
         "All are the rarest class. Mutation Liquid can now step a Tilia flower one place further, "
-        "into the new ones, with the same odds, and breeding mixes them by the game's own rule. "
+        "into the new ones, with the same odds, and breeding with one of them follows the DS fish rule (an odd sum rounds up or down at random). "
         "Runs as a companion DLL the game loads at start; each save slot keeps the new species' "
         "prices and discoveries in a separate file beside the save. See "
         "docs/plant-tycoon-new-flowers-design.md."

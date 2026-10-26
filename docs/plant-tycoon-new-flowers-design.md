@@ -13,8 +13,8 @@ become flower genes 24-37. With the 23 foliages that is 322 new species
 
 | Gene | Name | Art (sheet, first of its 3 views) | Looks like |
 |---|---|---|---|
-| 24 | Indigo | flowers56x56, cell 6 | blue rose |
-| 25 | Peony | flowers56x56, cell 33 | pink rose |
+| 24 | Nightingale | flowers56x56, cell 6 | blue rose |
+| 25 | Rosetta | flowers56x56, cell 33 | pink rose |
 | 26 | Lilac | flowers56x56, cell 24 | lilac star |
 | 27 | Veronica | flowers56x56, cell 27 | blue-white star |
 | 28 | Violetta | flowers56x56, cell 54 | purple violet |
@@ -25,11 +25,11 @@ become flower genes 24-37. With the 23 foliages that is 322 new species
 | 33 | Cerulean | flowers64x64, cell 12 | cyan orchid |
 | 34 | Phalaena | flowers64x64, cell 27 | white-purple orchid |
 | 35 | Mirabilis | flowers64x64, cell 33 (new) | trumpet, recoloured golden yellow, short fading tube, no bulb |
-| 36 | Blueberry | fruit, cell 6 | blueberries |
+| 36 | Indigoberry | fruit, cell 6 | blueberries |
 | 37 | Prunus | fruit, cell 15 | purple plum |
 
 The names are the owner's. A species is named like the game's own: the
-flower name, then the foliage noun ("Peony Fern"). Mirabilis's art was magenta like the
+flower name, then the foliage noun ("Rosetta Fern"). Mirabilis's art was magenta like the
 game's Jalapa, so it is recoloured golden yellow and copied into the 64x64
 sheet's empty cells 33-35 (`scripts/build_new_flowers_assets.py`, which
 ships the stock sheet and mask with those three cells filled). The owner
@@ -69,9 +69,9 @@ green bulb, anchored halfway between the bell's centre and the tube's end
   - the seed art follows the foliage (no new seed art).
 - **Value V** = foliage base + flower add, as for every species. Flower adds
   for the new genes (between the Extinct flowers' 26-64 and the top
-  override): Indigo and Peony 60; Lilac, Veronica, Violetta and Stella 45;
+  override): Nightingale and Rosetta 60; Lilac, Veronica, Violetta and Stella 45;
   Forget-me-not, Anagallis and Buttercup 35; Cerulean and Phalaena 70;
-  Mirabilis 55; Blueberry and Prunus 50.
+  Mirabilis 55; Indigoberry and Prunus 50.
 - **Asking price P** at a new game: V plus or minus Random(V/2), the same
   rule as every other species; and x1.75 with the Flower of Knowledge.
 - **Magic plants:** none of the new species is magic.

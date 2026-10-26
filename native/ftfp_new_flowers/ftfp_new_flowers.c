@@ -64,8 +64,8 @@ typedef struct flower_art {
 #endif
 
 static const flower_art ART[NEW_COUNT] = {
-    { 24, 5, 81, 107, 6, 0, 0 },     /* Indigo: the blue rose */
-    { 25, 5, 81, 107, 33, 0, 0 },    /* Peony: the pink rose */
+    { 24, 5, 81, 107, 6, 0, 0 },     /* Nightingale: the blue rose */
+    { 25, 5, 81, 107, 33, 0, 0 },    /* Rosetta: the pink rose */
     { 26, 5, 81, 107, 24, 0, 0 },    /* Lilac: the lilac star */
     { 27, 5, 81, 107, 27, 0, 0 },    /* Veronica: the blue-white star */
     { 28, 5, 81, 107, 54, 0, 0 },    /* Violetta: the purple violet */
@@ -77,14 +77,14 @@ static const flower_art ART[NEW_COUNT] = {
     { 34, 5, 82, 108, 27, 0, 0 },    /* Phalaena: the white-purple orchid */
     { 35, 5, 82, 108, 33, MIRABILIS_ANCHOR_X, MIRABILIS_ANCHOR_Y }, /* Mirabilis: the trumpet, recoloured into the sheet's empty cells 33-35;
                                         anchored halfway between the bell and the tube's end, not the cell's centre */
-    { 36, 5, 83, 109, 6, 0, 0 },     /* Blueberry */
+    { 36, 5, 83, 109, 6, 0, 0 },     /* Indigoberry */
     { 37, 5, 83, 109, 15, 0, 0 },    /* Prunus: the purple plum */
 };
 
 /* The owner's names (2026-10-26). */
 static const char *const ADJECTIVE[NEW_COUNT] = {
-    "Indigo", "Peony", "Lilac", "Veronica", "Violetta", "Stella", "Forget-me-not",
-    "Anagallis", "Buttercup", "Cerulean", "Phalaena", "Mirabilis", "Blueberry", "Prunus",
+    "Nightingale", "Rosetta", "Lilac", "Veronica", "Violetta", "Stella", "Forget-me-not",
+    "Anagallis", "Buttercup", "Cerulean", "Phalaena", "Mirabilis", "Indigoberry", "Prunus",
 };
 
 /* The value each flower adds to its species' value (the game's own flower adds
