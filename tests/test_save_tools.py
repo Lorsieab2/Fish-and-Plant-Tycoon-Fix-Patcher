@@ -66,6 +66,16 @@ class SaveToolTests(unittest.TestCase):
         found = [p.name for p in save_tools.save_folders("fish", self.root)]
         self.assertEqual(found, ["Fish Tycoon", "Fish Tycoon - Modded"])
 
+    def test_the_tools_list_only_the_patchers_copies(self) -> None:
+        make_folder(self.root, "fish", ["A"] * 5, "Fish Tycoon")
+        make_folder(self.root, "fish", ["A"] * 5, "Fish Tycoon - Modded")
+        make_folder(self.root, "fish", ["A"] * 5, "Fish Tycoon - Modded Upgrades")
+        make_folder(self.root, "fish", ["A"] * 5, "Fish Tycoon - Copy")
+        found = [p.name for p in save_tools.modded_save_folders("fish", self.root)]
+        self.assertEqual(found, ["Fish Tycoon - Modded", "Fish Tycoon - Modded Upgrades"])
+        self.assertTrue(save_tools.is_save_folder("fish", self.root / "LDW" / "Fish Tycoon"))
+        self.assertFalse(save_tools.is_save_folder("plant", self.root / "LDW" / "Fish Tycoon"))
+
     def test_rename_changes_the_list_and_the_slot_files_only(self) -> None:
         for game_id in save_tools.FORMATS:
             fmt = save_tools.FORMATS[game_id]

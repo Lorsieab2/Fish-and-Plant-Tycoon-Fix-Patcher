@@ -191,11 +191,13 @@ class App(tk.Tk):
             outer, text="Where to save the modified game folders", padding=8
         )
         destination.pack(fill="x", pady=(8, 4))
-        ttk.Entry(destination, textvariable=self.output_parent).pack(
+        place = ttk.Frame(destination)
+        place.pack(fill="x")
+        ttk.Entry(place, textvariable=self.output_parent).pack(
             side="left", fill="x", expand=True
         )
         ttk.Button(
-            destination,
+            place,
             text="Choose Location...",
             command=self._browse_output_parent,
         ).pack(side="left", padx=(8, 0))
@@ -206,7 +208,8 @@ class App(tk.Tk):
                 "“Plant Tycoon - Modded” here; with new fish, flowers "
                 "or store items, “… - Modded Upgrades” instead."
             ),
-        ).pack(side="bottom", anchor="w", pady=(5, 0))
+            wraplength=880,
+        ).pack(anchor="w", pady=(5, 0))
         update = tk.Label(
             outer,
             text="Check for updates",
@@ -632,6 +635,7 @@ class App(tk.Tk):
         self.tools_name_vars = [tk.StringVar() for _ in range(5)]
         self.tools_slot_labels: list[ttk.Label] = []
         self.tools_slot_controls: list[tuple[ttk.Entry, ttk.Button]] = []
+        self.tools_chosen: dict[str, str] = {}      # a save folder the player browsed to, per game
 
         select = ttk.LabelFrame(tab, text="Game and save folder", padding=10)
         select.pack(fill="x")
@@ -650,7 +654,8 @@ class App(tk.Tk):
         )
         self.tools_folder_box.pack(side="left", fill="x", expand=True, padx=8)
         self.tools_folder_box.bind("<<ComboboxSelected>>", lambda _e: self._tools_load_names())
-        ttk.Button(folder_row, text="Refresh", command=self._tools_refresh).pack(side="left")
+        ttk.Button(folder_row, text="Browse...", command=self._tools_choose_folder).pack(side="left")
+        ttk.Button(folder_row, text="Refresh", command=self._tools_refresh).pack(side="left", padx=(8, 0))
         open_link = tk.Label(
             select, text="Open this save folder", fg="#0057c2", cursor="hand2",
             font=("Segoe UI", 9, "underline"),
@@ -660,8 +665,9 @@ class App(tk.Tk):
         ttk.Label(
             select,
             text=(
-                "Each copy of a game keeps its own saves in Documents\\LDW\\<exe name>. "
-                "Close the game before using these tools."
+                "Each copy of a game keeps its own saves in Documents\\LDW\\<exe name>. The list "
+                "shows the patcher's copies, “- Modded” and “- Modded Upgrades”; use Browse for any "
+                "other. Close the game before using these tools."
             ),
             wraplength=880, foreground="#444444",
         ).pack(anchor="w", pady=(4, 0))
@@ -752,11 +758,34 @@ class App(tk.Tk):
         )
 
     def _tools_refresh(self) -> None:
-        folders = [str(path) for path in save_tools.save_folders(self.tools_game.get())]
+        game_id = self.tools_game.get()
+        folders = [str(path) for path in save_tools.modded_save_folders(game_id)]
+        current = self.tools_folder.get()
+        # A folder the player browsed to stays listed while it is this game's save folder.
+        chosen = self.tools_chosen.get(game_id)
+        if chosen and chosen not in folders and save_tools.is_save_folder(game_id, Path(chosen)):
+            folders.append(chosen)
         self.tools_folder_box.configure(values=folders)
-        if self.tools_folder.get() not in folders:
+        if current not in folders:
             self.tools_folder.set(folders[0] if folders else "")
         self._tools_load_names()
+
+    def _tools_choose_folder(self) -> None:
+        game_id = self.tools_game.get()
+        chosen = filedialog.askdirectory(
+            title=f"Choose a {GAMES[game_id].title} save folder (it holds {GAMES[game_id].title}0.ldw)",
+            initialdir=str(save_tools.ldw_folder()),
+        )
+        if not chosen:
+            return
+        if not save_tools.is_save_folder(game_id, Path(chosen)):
+            messagebox.showerror(
+                APP_NAME, f"That folder has no {GAMES[game_id].title}0.ldw, so it is not this game's save folder."
+            )
+            return
+        self.tools_chosen[game_id] = str(Path(chosen))
+        self.tools_folder.set(str(Path(chosen)))
+        self._tools_refresh()
 
     def _tools_load_names(self) -> None:
         folder = self.tools_folder.get()

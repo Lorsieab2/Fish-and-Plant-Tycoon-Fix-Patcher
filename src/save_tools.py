@@ -91,6 +91,21 @@ def save_folders(game_id: str, documents: Path | None = None) -> list[Path]:
     return found
 
 
+MODDED_SUFFIXES = (" - Modded", " - Modded Upgrades")
+
+
+def modded_save_folders(game_id: str, documents: Path | None = None) -> list[Path]:
+    """The save folders of this patcher's copies only: "<Game> - Modded" and
+    "<Game> - Modded Upgrades" (the game saves under its executable's name)."""
+    fmt = FORMATS[game_id]
+    names = {(fmt.title + suffix).casefold() for suffix in MODDED_SUFFIXES}
+    return [path for path in save_folders(game_id, documents) if path.name.casefold() in names]
+
+
+def is_save_folder(game_id: str, folder: Path) -> bool:
+    return (folder / f"{FORMATS[game_id].title}0.ldw").is_file()
+
+
 def _settings_path(fmt: SaveFormat, folder: Path) -> Path:
     return folder / f"{fmt.title}0.ldw"
 
