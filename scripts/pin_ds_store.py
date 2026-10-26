@@ -55,6 +55,7 @@ SETTING = {
     ),
     "category": "main",
     "default": False,
+    "separate_output": True,
     "requires_settings": ["ds_fish"],
 }
 

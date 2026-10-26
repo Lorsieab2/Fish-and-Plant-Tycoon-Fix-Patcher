@@ -167,10 +167,12 @@ class ApplyTests(unittest.TestCase):
         vanilla = root / "Fish Tycoon"
         (vanilla / "Images").mkdir(parents=True)
         (vanilla / "Fish Tycoon.exe").write_bytes(synthetic_exe())
-        output = root / "Fish Tycoon - Modded"
-        args = Namespace(game_dir=str(vanilla), manifest=str(manifest_path), output_dir=str(output),
+        # The patcher is given the plain "- Modded" folder (the GUI's default); new content
+        # goes to "- Modded Upgrades" beside it.
+        args = Namespace(game_dir=str(vanilla), manifest=str(manifest_path),
+                         output_dir=str(root / "Fish Tycoon - Modded"),
                          dry_run=False, enable=[SETTING], disable=None, disable_all=True)
-        return args, output, bundle
+        return args, root / "Fish Tycoon - Modded Upgrades", bundle
 
     def _apply(self, args: Namespace) -> None:
         identity = {"path": "x", "sha256": "x"}
@@ -187,19 +189,31 @@ class ApplyTests(unittest.TestCase):
             dll = output / "Fish Tycoon Fix Patcher Files" / "FTFP DS Fish.dll"
             self.assertEqual(dll.read_bytes(), (bundle / "FTFP DS Fish.dll").read_bytes())
             self.assertTrue((output / "Images" / "FISH_29_body_Grid.png").is_file())
-            exe = (output / "Fish Tycoon - Modded.exe").read_bytes()
+            exe = (output / "Fish Tycoon - Modded Upgrades.exe").read_bytes()
             self.assertIn(b".ftfpst", exe[:0x1000])
             self.assertEqual(len(args.last_apply_summary["startup_loader"]), 5)
 
-    def test_turning_it_off_and_repatching_removes_everything(self) -> None:
+    def test_turning_it_off_makes_the_plain_copy_and_keeps_the_upgrades_one(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
-            args, output, _ = self._fixture(Path(raw))
+            args, upgrades, _ = self._fixture(Path(raw))
             self._apply(args)
             args.enable = []
             self._apply(args)
-            self.assertFalse((output / "Fish Tycoon Fix Patcher Files").exists())
-            self.assertFalse((output / "Images" / "FISH_29_body_Grid.png").exists())
-            self.assertNotIn(b".ftfpst", (output / "Fish Tycoon - Modded.exe").read_bytes()[:0x1000])
+            plain = Path(raw) / "Fish Tycoon - Modded"
+            self.assertFalse((plain / "Fish Tycoon Fix Patcher Files").exists())
+            self.assertFalse((plain / "Images" / "FISH_29_body_Grid.png").exists())
+            self.assertNotIn(b".ftfpst", (plain / "Fish Tycoon - Modded.exe").read_bytes()[:0x1000])
+            self.assertFalse((plain / "Fish Tycoon - Modded Upgrades.exe").exists())
+            self.assertTrue((upgrades / "Fish Tycoon Fix Patcher Files" / "FTFP DS Fish.dll").is_file())
+            self.assertIn(b".ftfpst", (upgrades / "Fish Tycoon - Modded Upgrades.exe").read_bytes()[:0x1000])
+
+    def test_a_folder_the_user_named_is_kept(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            args, _, _ = self._fixture(Path(raw))
+            args.output_dir = str(Path(raw) / "My Fish")
+            self._apply(args)
+            self.assertTrue((Path(raw) / "My Fish" / "Fish Tycoon - Modded Upgrades.exe").is_file())
+            self.assertFalse((Path(raw) / "Fish Tycoon - Modded Upgrades").exists())
 
     def test_a_tampered_companion_file_is_refused_before_writing(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

@@ -161,6 +161,11 @@ Choose one parent location in the GUI. The patcher creates complete separate
 output folders named `Fish Tycoon - Modded` and `Plant Tycoon - Modded`.
 Their executables are named `Fish Tycoon - Modded.exe` and
 `Plant Tycoon - Modded.exe`. Original folders and executables are not replaced.
+With a setting that adds new content on (DS Exclusive Fish, DS Store Items,
+Add unused flowers, Add new store upgrades and items), the copy is
+`Fish Tycoon - Modded Upgrades` / `Plant Tycoon - Modded Upgrades` (folder and
+EXE) instead, beside the plain copy; the game names its save folder after the
+EXE, so it keeps its own saves.
 The **One Game** tab also retains each original patcher's verified
 restore-from-backup operation.
 

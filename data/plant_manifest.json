@@ -29,7 +29,9 @@
   },
   "output": {
     "default_folder_name": "Plant Tycoon - Modded",
-    "exe_name": "Plant Tycoon - Modded.exe"
+    "exe_name": "Plant Tycoon - Modded.exe",
+    "upgrades_folder_name": "Plant Tycoon - Modded Upgrades",
+    "upgrades_exe_name": "Plant Tycoon - Modded Upgrades.exe"
   },
   "settings": [
     {
@@ -1641,6 +1643,7 @@
       "warning": "Turning this off after new flowers are in a save leaves those plants with flowers the game cannot draw or price. Sell or compost them before switching it off.",
       "category": "main",
       "default": false,
+      "separate_output": true,
       "companion": {
         "source": "assets/plant_tycoon_flowers",
         "startup_loader": true,
@@ -1674,6 +1677,7 @@
       "warning": "Turning this off leaves bought Legendary seeds drawn as another seed packet, the formula drawn as an Insta-Grow Vaporbomb that does nothing, and boxes 4-6 hidden with their seeds. Plant or sell the seeds, use up the formula and move seeds out of boxes 4-6 before switching it off.",
       "category": "main",
       "default": false,
+      "separate_output": true,
       "requires_settings": [
         "new_flowers"
       ],

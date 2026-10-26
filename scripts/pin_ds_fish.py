@@ -54,6 +54,7 @@ SETTING = {
     ),
     "category": "main",
     "default": False,
+    "separate_output": True,
 }
 
 

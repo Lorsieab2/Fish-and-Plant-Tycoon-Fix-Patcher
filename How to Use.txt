@@ -19,8 +19,12 @@ FISH & PLANT TYCOON FIX PATCHER
 
 The patcher creates only "Fish Tycoon - Modded" and/or
 "Plant Tycoon - Modded" beneath the chosen location. Their executables use
-those exact names plus ".exe". The patcher remembers the chosen paths. The
-blue underlined paths open those folders in File Explorer.
+those exact names plus ".exe". With new content on (DS Exclusive Fish, DS
+Store Items, Add unused flowers, or Add new store upgrades and items) the copy
+is "Fish Tycoon - Modded Upgrades" / "Plant Tycoon - Modded Upgrades" instead,
+so it never replaces the plain modded copy, and it keeps its own saves. The
+patcher remembers the chosen paths. The blue underlined paths open those
+folders in File Explorer.
 
 About your saves: both games save to
 Documents\LDW\(exe name)\(game name)(number).ldw. The folder comes from the

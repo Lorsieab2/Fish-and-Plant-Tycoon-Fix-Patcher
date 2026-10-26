@@ -121,6 +121,7 @@ class ApplyTests(unittest.TestCase):
             with mock.patch.object(fish_patcher, "validate_original_executable", return_value={"path": "x", "sha256": "x"}), \
                     mock.patch.object(fish_patcher, "expected_patched_hash", return_value=digest):
                 self.assertEqual(fish_patcher.apply_manifest(args), 0)
+            output = root / "Fish Tycoon - Modded Upgrades"     # new content gets its own copy
             folder = output / ds_fish_loader.PATCHER_FILES_FOLDER
             self.assertEqual((folder / "FTFP DS Store.dll").read_bytes(), (STORE / "FTFP DS Store.dll").read_bytes())
             self.assertTrue((folder / "FTFP DS Fish.dll").is_file())

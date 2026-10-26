@@ -140,6 +140,7 @@ class ApplyTests(unittest.TestCase):
                                    return_value={"path": "x", "sha256": "x"}), \
                     mock.patch.object(plant_patcher, "expected_patched_hash", return_value=digest):
                 self.assertEqual(plant_patcher.apply_manifest(args), 0)
+            output = root / "Plant Tycoon - Modded Upgrades"    # new content gets its own copy
             self.assertEqual((output / "Plant Tycoon Fix Patcher Files" / "FTFP New Flowers.dll").read_bytes(),
                              (ASSETS / "FTFP New Flowers.dll").read_bytes())
             self.assertEqual((output / "Images" / "flowers64x64_grid.png").read_bytes(),

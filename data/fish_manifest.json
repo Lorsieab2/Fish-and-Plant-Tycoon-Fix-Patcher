@@ -161,7 +161,9 @@
   },
   "output": {
     "default_folder_name": "Fish Tycoon - Modded",
-    "exe_name": "Fish Tycoon - Modded.exe"
+    "exe_name": "Fish Tycoon - Modded.exe",
+    "upgrades_folder_name": "Fish Tycoon - Modded Upgrades",
+    "upgrades_exe_name": "Fish Tycoon - Modded Upgrades.exe"
   },
   "settings": [
     {
@@ -214,6 +216,7 @@
       "warning": "Turning this off after DS fish are in a save leaves those fish with genes the game cannot draw or name. Sell or trash every DS fish before switching it off.",
       "category": "main",
       "default": false,
+      "separate_output": true,
       "companion": {
         "source": "assets/fish_tycoon_ds",
         "startup_loader": true,
@@ -373,6 +376,7 @@
       "warning": "Turning this off after buying a store animal leaves it in your tank drawn as a Golden Seahorse, and the eel's rock as a sprite the game cannot draw. Move the animals to the trash and the eel out of its rock before switching it off.",
       "category": "main",
       "default": false,
+      "separate_output": true,
       "requires_settings": [
         "ds_fish"
       ],

@@ -450,6 +450,31 @@ def resolve_paths(args: argparse.Namespace, manifest: dict[str, Any]) -> tuple[P
     return game_dir, exe, output_dir
 
 
+def output_names(
+    manifest: dict[str, Any], enabled: set[str], output_dir: Path, default_exe: str
+) -> tuple[Path, str]:
+    """The modded folder and EXE for these settings.
+
+    Settings that add new content (``"separate_output": true``) get their own
+    copy, "<Game> - Modded Upgrades", beside the plain "<Game> - Modded", so the
+    two never replace each other. A folder the user named themselves is kept;
+    only the default name is swapped.
+    """
+    output_cfg = manifest.get("output", {})
+    exe_name = str(output_cfg.get("exe_name", default_exe))
+    settings = manifest_settings(manifest)
+    if not any(settings.get(setting_id, {}).get("separate_output") for setting_id in enabled):
+        return output_dir, exe_name
+    folder = output_cfg.get("upgrades_folder_name")
+    exe = output_cfg.get("upgrades_exe_name")
+    if not folder or not exe:
+        return output_dir, exe_name
+    default_folder = str(output_cfg.get("default_folder_name", ""))
+    if output_dir.name.casefold() == default_folder.casefold():
+        output_dir = output_dir.parent / str(folder)
+    return output_dir, str(exe)
+
+
 def output_family(identifier: Any) -> str:
     """Drop the trailing -v<N> revision from a manifest id.
 
@@ -496,11 +521,9 @@ def apply_manifest(args: argparse.Namespace) -> int:
     manifest_path = Path(args.manifest).expanduser().resolve()
     manifest = read_json(manifest_path)
     game_dir, vanilla_exe, output_dir = resolve_paths(args, manifest)
-    output_exe_name = str(
-        manifest.get("output", {}).get("exe_name", "Fish Tycoon - Modded.exe")
-    )
     identity = validate_original_executable(vanilla_exe, manifest)
     enabled = enabled_settings(manifest, args)
+    output_dir, output_exe_name = output_names(manifest, enabled, output_dir, "Fish Tycoon - Modded.exe")
     check_setting_requirements(manifest, enabled)
     patches = active_patch_records(manifest, enabled)
     original = vanilla_exe.read_bytes()

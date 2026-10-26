@@ -51,6 +51,14 @@
 - The release ZIP now packages every companion setting's files (New Flowers'
   were missing).
 
+### Both games
+
+- With a setting that adds new content on (DS Exclusive Fish or DS Store
+  Items; Add unused flowers or Add new store upgrades and items), the copy is
+  "Fish Tycoon - Modded Upgrades" / "Plant Tycoon - Modded Upgrades" (folder
+  and EXE), beside the plain "- Modded" copy, so the two never replace each
+  other. A folder you name yourself keeps its name.
+
 ### Fish Tycoon
 
 - **Bigger tanks: 26 fish**, a new setting, off by default. Every tank holds

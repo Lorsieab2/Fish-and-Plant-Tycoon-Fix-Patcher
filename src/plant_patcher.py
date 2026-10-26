@@ -500,11 +500,11 @@ def apply_manifest(args: argparse.Namespace) -> int:
     manifest_path = Path(args.manifest).expanduser().resolve()
     manifest = read_json(manifest_path)
     game_dir, vanilla_exe, output_dir = resolve_paths(args, manifest)
-    output_exe_name = str(
-        manifest.get("output", {}).get("exe_name", "Plant Tycoon - Modded.exe")
-    )
     identity = validate_original_executable(vanilla_exe, manifest)
     enabled = enabled_settings(manifest, args)
+    output_dir, output_exe_name = fish_patcher.output_names(
+        manifest, enabled, output_dir, "Plant Tycoon - Modded.exe"
+    )
     try:
         fish_patcher.check_setting_requirements(manifest, enabled)
     except fish_patcher.PatchError as exc:

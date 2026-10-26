@@ -63,6 +63,7 @@ SETTING = {
     ),
     "category": "main",
     "default": False,
+    "separate_output": True,
     "requires_settings": ["new_flowers"],
 }
 

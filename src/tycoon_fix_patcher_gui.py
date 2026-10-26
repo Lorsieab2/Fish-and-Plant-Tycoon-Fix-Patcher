@@ -203,7 +203,8 @@ class App(tk.Tk):
             destination,
             text=(
                 "Creates only “Fish Tycoon - Modded” and/or "
-                "“Plant Tycoon - Modded” here."
+                "“Plant Tycoon - Modded” here; with new fish, flowers "
+                "or store items, “… - Modded Upgrades” instead."
             ),
         ).pack(side="bottom", anchor="w", pady=(5, 0))
         update = tk.Label(
