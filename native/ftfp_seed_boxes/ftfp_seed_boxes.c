@@ -1,10 +1,10 @@
-/* FTFP Seed Boxes -- the Fourth, Fifth and Sixth Seed Box in PC Plant Tycoon.
+/* Extra Seed Boxes -- the Fourth, Fifth and Sixth Seed Box in PC Plant Tycoon.
 
    WHAT.  The stock seed box is one 120-seed chest of three 40-seed drawers:
    the First Seed Box is open from the start, the Second and Third are bought
    in the store.  This mod adds a second chest with the same three drawers,
    the Fourth, Fifth and Sixth Seed Box ("Even more space for your seeds!"),
-   sold on the store's Upgrades view (FTFP Plant Upgrades.dll) and bought in
+   sold on the store's Upgrades view (Store Upgrades and Items.dll) and bought in
    order like the stock ones.  Once the Fourth is owned, gold arrows on the
    Seed Storage title bar switch between the two chests; each works exactly
    like the stock one, because the chest on screen is always the one in the
@@ -12,7 +12,7 @@
    seed box goes to the first free slot of boxes 1-3, then of boxes 4-6, and
    "Your seed box is already full!" only comes when all of them are full.
 
-   HOW.  "FTFP Plant Upgrades.dll" loads this DLL and calls
+   HOW.  "Store Upgrades and Items.dll" loads this DLL and calls
    FtfpSeedBoxesStartup() before WinMain, which writes every site in
    box_sites.h -- all of them or none -- after checking each holds exactly
    its vanilla bytes: the drawer-level function, and four slots of the Seed
@@ -410,7 +410,7 @@ static int append_hex(char *out, int at, unsigned int v) {
     return at;
 }
 
-/* "<game>\Plant Tycoon Fix Patcher Files\FTFP Seed Boxes.log". */
+/* "<game>\Plant Tycoon Fix Patcher DLLs\Extra Seed Boxes.log". */
 static void write_install_log(void) {
     wchar_t path[1024];
     char line[160];
@@ -421,7 +421,7 @@ static void write_install_log(void) {
     if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return;
     slash[1] = L'\0';
     if (wcslen(path) + 64 >= 1024) return;
-    wcscat_s(path, 1024, L"Plant Tycoon Fix Patcher Files\\FTFP Seed Boxes.log");
+    wcscat_s(path, 1024, L"Plant Tycoon Fix Patcher DLLs\\Extra Seed Boxes.log");
     if (installed) {
         len = append_text(line, len, "Seed Boxes: installed (all sites)\r\n");
     } else if (ftfp_failed_site != 0) {
@@ -451,7 +451,7 @@ typedef struct ftfp_box_events {
 static const ftfp_box_events events = { 1, before_save, on_load, on_delete, on_new_game,
                                         FtfpSeedBoxOwned, FtfpSeedBoxSetOwned };
 
-/* Called once by "FTFP Plant Upgrades.dll" after it installed, before WinMain. */
+/* Called once by "Store Upgrades and Items.dll" after it installed, before WinMain. */
 const ftfp_box_events *__stdcall FtfpSeedBoxesStartup(void) {
     if (!installed) {
         __try {

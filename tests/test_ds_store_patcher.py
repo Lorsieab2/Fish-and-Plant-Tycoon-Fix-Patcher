@@ -56,7 +56,7 @@ class ManifestTests(unittest.TestCase):
         companion = self.setting["companion"]
         self.assertFalse(companion.get("startup_loader", False))
         destinations = {f["destination"] for f in companion["files"]}
-        self.assertIn(f"{ds_fish_loader.PATCHER_FILES_FOLDER}/FTFP DS Store.dll", destinations)
+        self.assertIn(f"{ds_fish_loader.PATCHER_FILES_FOLDER}/DS Store Items.dll", destinations)
         self.assertEqual(len([d for d in destinations if d.startswith("Images/")]), 13)
         self.assertIn("Images/DS_PUFFER_PUFF_Grid.png", destinations)
         self.assertIn("Images/SuppliesUpgradesButton.png", destinations)
@@ -66,7 +66,7 @@ class ManifestTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(data).hexdigest().upper(), entry["sha256"], entry["path"])
 
     def test_dll_imports_only_kernel32_and_exports_its_startup(self) -> None:
-        data = (STORE / "FTFP DS Store.dll").read_bytes()
+        data = (STORE / "DS Store Items.dll").read_bytes()
         lowered = data.lower()
         self.assertIn(b"kernel32.dll", lowered)
         for other in (b"user32.dll", b"msvcr", b"vcruntime"):
@@ -84,8 +84,8 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("0x004282B2u", source)
 
     def test_ds_fish_loads_the_store_dll_from_its_own_folder(self) -> None:
-        data = (ROOT / "assets" / "fish_tycoon_ds" / "FTFP DS Fish.dll").read_bytes()
-        self.assertIn("FTFP DS Store.dll".encode("utf-16-le"), data)
+        data = (ROOT / "assets" / "fish_tycoon_ds" / "DS Exclusive Fish.dll").read_bytes()
+        self.assertIn("DS Store Items.dll".encode("utf-16-le"), data)
         self.assertIn(b"FtfpStoreStartup", data)
 
 
@@ -123,8 +123,8 @@ class ApplyTests(unittest.TestCase):
                 self.assertEqual(fish_patcher.apply_manifest(args), 0)
             output = root / "Fish Tycoon - Modded Upgrades"     # new content gets its own copy
             folder = output / ds_fish_loader.PATCHER_FILES_FOLDER
-            self.assertEqual((folder / "FTFP DS Store.dll").read_bytes(), (STORE / "FTFP DS Store.dll").read_bytes())
-            self.assertTrue((folder / "FTFP DS Fish.dll").is_file())
+            self.assertEqual((folder / "DS Store Items.dll").read_bytes(), (STORE / "DS Store Items.dll").read_bytes())
+            self.assertTrue((folder / "DS Exclusive Fish.dll").is_file())
             self.assertTrue((output / "Images" / "DS_EEL_ROCK.png").is_file())
 
 
@@ -155,7 +155,7 @@ class CommittedDllTests(unittest.TestCase):
             result = subprocess.run(command, cwd=out, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(
-                (out / "rebuilt.dll").read_bytes(), (STORE / "FTFP DS Store.dll").read_bytes(),
+                (out / "rebuilt.dll").read_bytes(), (STORE / "DS Store Items.dll").read_bytes(),
                 "rebuild the DLL (scripts/build_ftfp_ds_store.ps1) and re-pin (scripts/pin_ds_store.py)",
             )
 
@@ -166,7 +166,7 @@ class ReleaseTests(unittest.TestCase):
         import build_release
 
         packaged = set(build_release.FILES) | set(build_release.bundled_asset_files())
-        self.assertIn("assets/fish_tycoon_ds_store/FTFP DS Store.dll", packaged)
+        self.assertIn("assets/fish_tycoon_ds_store/DS Store Items.dll", packaged)
         self.assertIn("assets/fish_tycoon_ds_store/Images/SuppliesUpgradesButton.png", packaged)
 
 

@@ -1,4 +1,4 @@
-/* FTFP DS Store -- the Nintendo DS store items in PC Fish Tycoon.
+/* DS Store Items -- the Nintendo DS store items in PC Fish Tycoon.
 
    WHAT.  An "Upgrades" button in the Supplies store opens a second page:
      * Puffer Fish, Sting Ray and Moray Eel: tank companions like the
@@ -16,7 +16,7 @@
      * Puffer Fish: +1 food, and a 60% chance of +1 more;
      * Moray Eel: a fish that would die survives at health 10, 1 time in 10.
 
-   HOW.  "FTFP DS Store.dll" sits beside "FTFP DS Fish.dll", which loads it
+   HOW.  "DS Store Items.dll" sits beside "DS Exclusive Fish.dll", which loads it
    after its own install and lends it sprite table entries 220-235.  Every
    write into the game is in store_sites.h -- all of them or none.
 
@@ -1381,7 +1381,7 @@ static int append_hex(char *out, int at, unsigned int value) {
     return at;
 }
 
-/* "<game>\Fish Tycoon Fix Patcher Files\FTFP DS Store.log", as DS Fish's log. */
+/* "<game>\Fish Tycoon Fix Patcher DLLs\DS Store Items.log", as DS Fish's log. */
 static void write_install_log(void) {
     wchar_t path[1024];
     char line[160];
@@ -1392,11 +1392,11 @@ static void write_install_log(void) {
     if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return;
     slash[1] = L'\0';
     if (wcslen(path) + 64 >= 1024) return;
-    wcscat_s(path, 1024, L"Fish Tycoon Fix Patcher Files\\FTFP DS Store.log");
+    wcscat_s(path, 1024, L"Fish Tycoon Fix Patcher DLLs\\DS Store Items.log");
     if (installed) {
         len = append_text(line, len, "DS Store: installed (all sites)\r\n");
     } else if (!host_ok) {
-        len = append_text(line, len, "DS Store: NOT installed; FTFP DS Fish.dll is not the version this build expects\r\n");
+        len = append_text(line, len, "DS Store: NOT installed; DS Exclusive Fish.dll is not the version this build expects\r\n");
     } else if (ftfp_failed_site != 0) {
         len = append_text(line, len, "DS Store: NOT installed; the code at ");
         len = append_hex(line, len, ftfp_failed_site);
@@ -1410,7 +1410,7 @@ static void write_install_log(void) {
     CloseHandle(file);
 }
 
-/* Called once by FTFP DS Fish.dll, after its own install, before WinMain. */
+/* Called once by DS Exclusive Fish.dll, after its own install, before WinMain. */
 int __stdcall FtfpStoreStartup(const ftfp_store_host *host) {
     if (installed) return 1;
     __try {

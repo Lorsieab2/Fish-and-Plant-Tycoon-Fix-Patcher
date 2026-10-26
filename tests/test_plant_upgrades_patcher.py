@@ -66,7 +66,7 @@ class ManifestTests(unittest.TestCase):
 
     def test_companion_files_are_pinned_and_present(self) -> None:
         expected = {
-            "plant_upgrades": {f"{FOLDER}/FTFP Plant Upgrades.dll", f"{FOLDER}/FTFP Seed Boxes.dll",
+            "plant_upgrades": {f"{FOLDER}/Store Upgrades and Items.dll", f"{FOLDER}/Extra Seed Boxes.dll",
                                "Images/seed_grid_legendary.png", "Images/Chemicals_Grid_upgrades.png",
                                "Images/upgrades_link.png"},
         }
@@ -86,8 +86,8 @@ class ManifestTests(unittest.TestCase):
         self.assertNotIn("images/chemicals_grid.png", names)
 
     def test_dlls_import_only_kernel32_and_export_their_startups(self) -> None:
-        for path, export in ((UPGRADES / "FTFP Plant Upgrades.dll", b"FtfpUpgradesStartup"),
-                             (BOXES / "FTFP Seed Boxes.dll", b"FtfpSeedBoxesStartup")):
+        for path, export in ((UPGRADES / "Store Upgrades and Items.dll", b"FtfpUpgradesStartup"),
+                             (BOXES / "Extra Seed Boxes.dll", b"FtfpSeedBoxesStartup")):
             data = path.read_bytes()
             lowered = data.lower()
             self.assertIn(b"kernel32.dll", lowered)
@@ -96,15 +96,15 @@ class ManifestTests(unittest.TestCase):
             self.assertIn(export, data)
 
     def test_each_dll_loads_the_next_from_its_own_folder(self) -> None:
-        flowers = (ROOT / "assets" / "plant_tycoon_flowers" / "FTFP New Flowers.dll").read_bytes()
-        self.assertIn("FTFP Plant Upgrades.dll".encode("utf-16-le"), flowers)
+        flowers = (ROOT / "assets" / "plant_tycoon_flowers" / "Unused Flowers.dll").read_bytes()
+        self.assertIn("Store Upgrades and Items.dll".encode("utf-16-le"), flowers)
         self.assertIn(b"FtfpUpgradesStartup", flowers)
-        upgrades = (UPGRADES / "FTFP Plant Upgrades.dll").read_bytes()
-        self.assertIn("FTFP Seed Boxes.dll".encode("utf-16-le"), upgrades)
+        upgrades = (UPGRADES / "Store Upgrades and Items.dll").read_bytes()
+        self.assertIn("Extra Seed Boxes.dll".encode("utf-16-le"), upgrades)
         self.assertIn(b"FtfpSeedBoxesStartup", upgrades)
 
     def test_store_texts_are_the_owners(self) -> None:
-        data = (UPGRADES / "FTFP Plant Upgrades.dll").read_bytes()
+        data = (UPGRADES / "Store Upgrades and Items.dll").read_bytes()
         for text in (b"Legendary Seeds", b"rediscovered on Isola", b"Radioactive Plant Formula",
                      b"No more dead leaves!", b"Contains 3 doses.", b"Fourth Seed Box", b"Sixth Seed Box",
                      b"Even more space for your seeds!"):
@@ -143,10 +143,10 @@ class ApplyTests(unittest.TestCase):
                 self.assertEqual(plant_patcher.apply_manifest(args), 0)
             output = root / "Plant Tycoon - Modded Upgrades"    # new content gets its own copy
             folder = output / FOLDER
-            self.assertEqual((folder / "FTFP Plant Upgrades.dll").read_bytes(),
-                             (UPGRADES / "FTFP Plant Upgrades.dll").read_bytes())
-            self.assertEqual((folder / "FTFP Seed Boxes.dll").read_bytes(), (BOXES / "FTFP Seed Boxes.dll").read_bytes())
-            self.assertTrue((folder / "FTFP New Flowers.dll").is_file())
+            self.assertEqual((folder / "Store Upgrades and Items.dll").read_bytes(),
+                             (UPGRADES / "Store Upgrades and Items.dll").read_bytes())
+            self.assertEqual((folder / "Extra Seed Boxes.dll").read_bytes(), (BOXES / "Extra Seed Boxes.dll").read_bytes())
+            self.assertTrue((folder / "Unused Flowers.dll").is_file())
             self.assertTrue((output / "Images" / "seed_grid_legendary.png").is_file())
             self.assertEqual((output / "Images" / "seed_Grid.png").read_bytes(), b"stock")
 
@@ -181,10 +181,10 @@ class CommittedDllTests(unittest.TestCase):
                              f"rebuild {committed.name} and re-pin (scripts/pin_plant_upgrades.py)")
 
     def test_upgrades_rebuild_matches(self) -> None:
-        self.rebuild("ftfp_plant_upgrades", UPGRADES / "FTFP Plant Upgrades.dll")
+        self.rebuild("ftfp_plant_upgrades", UPGRADES / "Store Upgrades and Items.dll")
 
     def test_seed_boxes_rebuild_matches(self) -> None:
-        self.rebuild("ftfp_seed_boxes", BOXES / "FTFP Seed Boxes.dll")
+        self.rebuild("ftfp_seed_boxes", BOXES / "Extra Seed Boxes.dll")
 
 
 class ReleaseTests(unittest.TestCase):
@@ -193,10 +193,10 @@ class ReleaseTests(unittest.TestCase):
         import build_release
 
         packaged = set(build_release.FILES) | set(build_release.bundled_asset_files())
-        self.assertIn("assets/plant_tycoon_upgrades/FTFP Plant Upgrades.dll", packaged)
+        self.assertIn("assets/plant_tycoon_upgrades/Store Upgrades and Items.dll", packaged)
         self.assertIn("assets/plant_tycoon_upgrades/Images/upgrades_link.png", packaged)
-        self.assertIn("assets/plant_tycoon_upgrades/FTFP Seed Boxes.dll", packaged)
-        self.assertIn("assets/plant_tycoon_flowers/FTFP New Flowers.dll", packaged)
+        self.assertIn("assets/plant_tycoon_upgrades/Extra Seed Boxes.dll", packaged)
+        self.assertIn("assets/plant_tycoon_flowers/Unused Flowers.dll", packaged)
         self.assertIn("docs/plant-tycoon-upgrades-design.md", packaged)
 
 

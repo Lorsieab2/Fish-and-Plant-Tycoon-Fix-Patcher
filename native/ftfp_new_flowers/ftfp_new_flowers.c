@@ -1,4 +1,4 @@
-/* FTFP New Flowers -- the 14 unused flower heads in PC Plant Tycoon.
+/* Unused Flowers -- the 14 unused flower heads in PC Plant Tycoon.
 
    WHAT.  Plant Tycoon ships 14 flower heads (3 views each) in its flower
    sheets that no flower gene uses.  They become flower genes 24-37, so with
@@ -8,7 +8,7 @@
        over 1-37: a Tilia (23) can step up into 24, and 37 bounces to 36;
      * breeding, by the game's own rule (the parents' average, rounded up);
      * Legendary Seeds, sold on the store's Upgrades page by the separate
-       "FTFP Plant Upgrades.dll", which this DLL loads when it is beside it.
+       "Store Upgrades and Items.dll", which this DLL loads when it is beside it.
    docs/plant-tycoon-new-flowers-design.md has the design and every address.
 
    HOW.  The patched executable's startup stub loads this DLL by its full
@@ -293,7 +293,7 @@ static void __cdecl on_delete(int slot) {
 
 /* ---------------------------------------------------------------- upgrades */
 
-/* "FTFP Plant Upgrades.dll" (the store's Upgrades page) needs these flowers,
+/* "Store Upgrades and Items.dll" (the store's Upgrades page) needs these flowers,
    so this DLL loads it and passes on the save, load, delete and new-game
    events for its own sidecar. */
 typedef struct ftfp_upgrades_events {
@@ -319,7 +319,7 @@ static void load_upgrades(void) {
     if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return;
     slash[1] = L'\0';
     if (wcslen(path) + 40 >= 1024) return;
-    wcscat_s(path, 1024, L"FTFP Plant Upgrades.dll");
+    wcscat_s(path, 1024, L"Store Upgrades and Items.dll");
     if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) return;
     module = LoadLibraryW(path);
     if (module == NULL) return;
@@ -702,7 +702,7 @@ static int append_hex(char *out, int at, unsigned int v) {
     return at;
 }
 
-/* "<game>\Plant Tycoon Fix Patcher Files\FTFP New Flowers.log". */
+/* "<game>\Plant Tycoon Fix Patcher DLLs\Unused Flowers.log". */
 static void write_install_log(void) {
     wchar_t path[1024];
     char line[160];
@@ -713,7 +713,7 @@ static void write_install_log(void) {
     if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return;
     slash[1] = L'\0';
     if (wcslen(path) + 64 >= 1024) return;
-    wcscat_s(path, 1024, L"Plant Tycoon Fix Patcher Files\\FTFP New Flowers.log");
+    wcscat_s(path, 1024, L"Plant Tycoon Fix Patcher DLLs\\Unused Flowers.log");
     if (installed) {
         len = append_text(line, len, "New Flowers: installed (all sites)\r\n");
     } else if (ftfp_failed_site != 0) {

@@ -104,7 +104,7 @@ push one step deeper.
 
 ## 5. Things to check while testing
 
-- The mod is on: `Fish Tycoon Fix Patcher Files\FTFP DS Fish.log` beside the
+- The mod is on: `Fish Tycoon Fix Patcher DLLs\DS Exclusive Fish.log` beside the
   game reads "DS Fish: installed (all sites)".
 - Eggs and store fish never come out as a DS type.
 - The Unknown Chemical can step Spotanus to Clownfish, Twin-Fin to Small Fin,

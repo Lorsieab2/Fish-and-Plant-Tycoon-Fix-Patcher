@@ -56,7 +56,7 @@ green bulb, anchored halfway between the bell's centre and the tube's end
   parents give new-flower seeds, a pair always breeds true, and a mixed pair
   can land between. The roll lives in this DLL's hook of the pollination's tail
   (`0x4241B4`), so it applies with "Add unused flowers" alone; it then
-  passes the pot on to "FTFP Plant Upgrades.dll" (events version 2) for the
+  passes the pot on to "Store Upgrades and Items.dll" (events version 2) for the
   Legendary seed art and the formula's held-back seeds.
 
 ## Rules for the new species
@@ -79,7 +79,7 @@ green bulb, anchored halfway between the bell's centre and the tube's end
 ## How it is built
 
 The same design as the DS Fish mod:
-- a companion DLL ("FTFP New Flowers.dll") loaded by a startup loader the
+- a companion DLL ("Unused Flowers.dll") loaded by a startup loader the
   patcher appends to Plant Tycoon.exe (`src/ds_fish_loader.py`, PLANT
   profile);
 - the DLL checks every site it changes and installs all of them or none;

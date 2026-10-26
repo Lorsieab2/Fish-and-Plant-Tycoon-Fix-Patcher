@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-# "FTFP DS Store.dll": the DS store items (see native/ftfp_ds_store/ftfp_ds_store.c).
+# "DS Store Items.dll": the DS store items (see native/ftfp_ds_store/ftfp_ds_store.c).
 # Regenerate native/ftfp_ds_store/store_sites.h and store_data.h first with
 # scripts/build_ds_store_headers.py. Shipped from assets\fish_tycoon_ds_store.
 # Same toolchain and flags as the Virtual Villagers Fun Patcher's companions:
@@ -39,11 +39,11 @@ New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
     ("/LIBPATH:" + (Join-Path $sdkRoot "Lib\$sdkVersion\um\x86")) `
     ("/LIBPATH:" + (Join-Path $sdkRoot "Lib\$sdkVersion\ucrt\x86")) `
     ("/IMPLIB:" + (Join-Path $buildRoot "ftfp_ds_store.lib")) `
-    ("/OUT:" + (Join-Path $outputRoot "FTFP DS Store.dll")) `
+    ("/OUT:" + (Join-Path $outputRoot "DS Store Items.dll")) `
     /RELEASE `
     /SAFESEH:NO `
     kernel32.lib
 if ($LASTEXITCODE -ne 0) {
-    throw "FTFP DS Store.dll compilation failed."
+    throw "DS Store Items.dll compilation failed."
 }
-Get-FileHash -Algorithm SHA256 (Join-Path $outputRoot "FTFP DS Store.dll") | Format-List
+Get-FileHash -Algorithm SHA256 (Join-Path $outputRoot "DS Store Items.dll") | Format-List

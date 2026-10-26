@@ -12,7 +12,7 @@ read/execute section to the executable and routes the C runtime's
                                                       ; 0 or >= 0x208 -> done
     edi = after the last backslash                    ; none -> done
     the tail does not fit -> done
-    copy L"Fish Tycoon Fix Patcher Files\\FTFP DS Fish.dll" there
+    copy L"Fish Tycoon Fix Patcher DLLs\\DS Exclusive Fish.dll" there
     GetProcAddress(ebx, "LoadLibraryExW")(esi, NULL, LOAD_WITH_ALTERED_SEARCH_PATH)
       -> GetProcAddress(., "FtfpStartup") -> call it
   done:
@@ -34,8 +34,8 @@ from dataclasses import dataclass
 import struct
 
 SECTION_NAME = b".ftfpst"
-PATCHER_FILES_FOLDER = "Fish Tycoon Fix Patcher Files"
-DLL_NAME = "FTFP DS Fish.dll"
+PATCHER_FILES_FOLDER = "Fish Tycoon Fix Patcher DLLs"
+DLL_NAME = "DS Exclusive Fish.dll"
 EXPORT = b"FtfpStartup\0"
 
 WINMAIN_CALL_VA = 0x0042D7DE        # e8 6d cb ff ff: call WinMain
@@ -61,14 +61,14 @@ class LoaderProfile:
 
 
 FISH = LoaderProfile(
-    game="fish", patcher_files_folder="Fish Tycoon Fix Patcher Files", dll_name="FTFP DS Fish.dll",
+    game="fish", patcher_files_folder="Fish Tycoon Fix Patcher DLLs", dll_name="DS Exclusive Fish.dll",
     winmain_call_va=WINMAIN_CALL_VA, winmain_va=WINMAIN_VA,
     get_module_handle_a_iat=GET_MODULE_HANDLE_A_IAT, get_proc_address_iat=GET_PROC_ADDRESS_IAT,
     what_it_installs="That checks every one of the 69 places it changes in the running game and writes all of "
                      "them or none; docs/fish-tycoon-ds-fish-technical-map.md lists them.",
 )
 PLANT = LoaderProfile(
-    game="plant", patcher_files_folder="Plant Tycoon Fix Patcher Files", dll_name="FTFP New Flowers.dll",
+    game="plant", patcher_files_folder="Plant Tycoon Fix Patcher DLLs", dll_name="Unused Flowers.dll",
     winmain_call_va=0x00451AE0,        # e8 9b 11 fc ff: call WinMain (0x412C80)
     winmain_va=0x00412C80,
     get_module_handle_a_iat=0x004650F0, get_proc_address_iat=0x004650F4,

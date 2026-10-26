@@ -6,11 +6,11 @@ One optional Plant Tycoon setting, **Add new store upgrades and items**
 
 | Companion DLL | What | Loaded by |
 |---|---|---|
-| `FTFP Plant Upgrades.dll` | the store's Upgrades view, Legendary Seeds, the formula, the boxes' purchase | `FTFP New Flowers.dll` |
-| `FTFP Seed Boxes.dll` | the Fourth-Sixth Seed Box: the second chest and the greenhouse overflow | `FTFP Plant Upgrades.dll` |
+| `Store Upgrades and Items.dll` | the store's Upgrades view, Legendary Seeds, the formula, the boxes' purchase | `Unused Flowers.dll` |
+| `Extra Seed Boxes.dll` | the Fourth-Sixth Seed Box: the second chest and the greenhouse overflow | `Store Upgrades and Items.dll` |
 
 The setting writes no byte of the executable. Each DLL sits in
-`Plant Tycoon Fix Patcher Files` beside the one that loads it, and each writes
+`Plant Tycoon Fix Patcher DLLs` beside the one that loads it, and each writes
 its own sites (all of them or none, after checking every one holds its
 vanilla bytes) and logs the result to `<name>.log` in that folder. Every pin
 with the setting is therefore the same as the pin without it

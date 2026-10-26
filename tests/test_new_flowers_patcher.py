@@ -84,7 +84,7 @@ class ManifestTests(unittest.TestCase):
         self.assertTrue(companion["startup_loader"])
         destinations = {f["destination"] for f in companion["files"]}
         self.assertEqual(destinations, {
-            "Plant Tycoon Fix Patcher Files/FTFP New Flowers.dll",
+            "Plant Tycoon Fix Patcher DLLs/Unused Flowers.dll",
             "Images/flowers64x64_grid.png",
             "Images/flowers64x64_grid_mask.png",
         })
@@ -94,7 +94,7 @@ class ManifestTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(data).hexdigest().upper(), entry["sha256"], entry["path"])
 
     def test_dll_imports_only_kernel32(self) -> None:
-        data = (ASSETS / "FTFP New Flowers.dll").read_bytes()
+        data = (ASSETS / "Unused Flowers.dll").read_bytes()
         lowered = data.lower()
         self.assertIn(b"kernel32.dll", lowered)
         for other in (b"user32.dll", b"msvcr", b"vcruntime"):
@@ -109,14 +109,14 @@ class LoaderTests(unittest.TestCase):
         out, records = ds_fish_loader.append_startup_loader(synthetic_plant_exe(), PLANT)
         self.assertIn(b".ftfpst", out[:0x1000])
         self.assertEqual(records[3]["offset"], f"0x{PLANT.winmain_call_va - 0x400000:X}")
-        self.assertIn("Plant Tycoon Fix Patcher Files\\FTFP New Flowers.dll".encode("utf-16-le"), out)
+        self.assertIn("Plant Tycoon Fix Patcher DLLs\\Unused Flowers.dll".encode("utf-16-le"), out)
         pe = struct.unpack_from("<I", out, 0x3C)[0]
         self.assertEqual(struct.unpack_from("<I", out, pe + 24 + 64)[0], ds_fish_loader.pe_checksum(
             out[:pe + 88] + b"\0\0\0\0" + out[pe + 92:]))
 
     def test_gui_details_use_the_plant_profile(self) -> None:
         details = combined.setting_companion_details("plant", SETTING)
-        self.assertTrue(any("FTFP New Flowers.dll" in d.note for d in details))
+        self.assertTrue(any("Unused Flowers.dll" in d.note for d in details))
         self.assertTrue(any(d.virtual_address == PLANT.winmain_call_va for d in details))
 
 
@@ -141,8 +141,8 @@ class ApplyTests(unittest.TestCase):
                     mock.patch.object(plant_patcher, "expected_patched_hash", return_value=digest):
                 self.assertEqual(plant_patcher.apply_manifest(args), 0)
             output = root / "Plant Tycoon - Modded Upgrades"    # new content gets its own copy
-            self.assertEqual((output / "Plant Tycoon Fix Patcher Files" / "FTFP New Flowers.dll").read_bytes(),
-                             (ASSETS / "FTFP New Flowers.dll").read_bytes())
+            self.assertEqual((output / "Plant Tycoon Fix Patcher DLLs" / "Unused Flowers.dll").read_bytes(),
+                             (ASSETS / "Unused Flowers.dll").read_bytes())
             self.assertEqual((output / "Images" / "flowers64x64_grid.png").read_bytes(),
                              (ASSETS / "Images" / "flowers64x64_grid.png").read_bytes())
             self.assertEqual(len(args.last_apply_summary["startup_loader"]), 5)
@@ -171,7 +171,7 @@ class CommittedDllTests(unittest.TestCase):
             ]
             result = subprocess.run(command, cwd=out, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertEqual((out / "rebuilt.dll").read_bytes(), (ASSETS / "FTFP New Flowers.dll").read_bytes(),
+            self.assertEqual((out / "rebuilt.dll").read_bytes(), (ASSETS / "Unused Flowers.dll").read_bytes(),
                              "rebuild the DLL (scripts/build_ftfp_new_flowers.ps1) and re-pin (scripts/pin_new_flowers.py)")
 
 

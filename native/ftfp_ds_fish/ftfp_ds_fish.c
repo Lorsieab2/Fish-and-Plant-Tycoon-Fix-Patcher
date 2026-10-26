@@ -1,4 +1,4 @@
-/* FTFP DS Fish -- the Nintendo DS exclusive fish in PC Fish Tycoon.
+/* DS Exclusive Fish -- the Nintendo DS exclusive fish in PC Fish Tycoon.
 
    WHAT.  Seven DS-only bodies (Clownfish, Discus, Bicolor, Trigger,
    Surgeonfish, Tang, Idle) and seven DS-only fins (Small Fin, Roundy, Angel,
@@ -423,7 +423,7 @@ typedef struct sprite_entry {
 #define DS_SPRITE_BASE GAME_SPRITES                 /* body, bot, top per DS gene */
 #define DS_SPRITE_TEEN (GAME_SPRITES + 3 * DS_COUNT)
 #define DS_SPRITE_DEAD (DS_SPRITE_TEEN + 1)
-#define STORE_SPRITE_BASE (DS_SPRITE_DEAD + 1)        /* 220: lent to "FTFP DS Store.dll" */
+#define STORE_SPRITE_BASE (DS_SPRITE_DEAD + 1)        /* 220: lent to "DS Store Items.dll" */
 #define STORE_SPRITE_COUNT 16
 #define ALL_SPRITES (STORE_SPRITE_BASE + STORE_SPRITE_COUNT)
 static sprite_entry sprites[ALL_SPRITES];
@@ -1001,7 +1001,7 @@ static int prepare(void) {
     return (int)(w - writes) == TOTAL_SITES;
 }
 
-/* One line in "<game>\Fish Tycoon Fix Patcher Files\FTFP DS Fish.log": whether the
+/* One line in "<game>\Fish Tycoon Fix Patcher DLLs\DS Exclusive Fish.log": whether the
    DS fish are in this run, and if not, the first site that was not stock. */
 static int append_text(char *out, int at, const char *text) {
     while (*text && at < 158) out[at++] = *text++;
@@ -1027,7 +1027,7 @@ static void write_install_log(void) {
     if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return;
     slash[1] = L'\0';
     if (wcslen(path) + 64 >= 1024) return;
-    wcscat_s(path, 1024, L"Fish Tycoon Fix Patcher Files\\FTFP DS Fish.log");
+    wcscat_s(path, 1024, L"Fish Tycoon Fix Patcher DLLs\\DS Exclusive Fish.log");
     if (installed) {
         len = append_text(line, len, "DS Fish: installed (all sites)\r\n");
     } else if (ftfp_failed_site != 0) {
@@ -1045,7 +1045,7 @@ static void write_install_log(void) {
 
 /* ------------------------------------------------------------ DS Store */
 
-/* "FTFP DS Store.dll" (the "DS Store Items" setting), beside this DLL, adds
+/* "DS Store Items.dll" (the "DS Store Items" setting), beside this DLL, adds
    the store's Upgrades page.  It is loaded only once the DS fish are in, and
    gets the sprite table entries set aside for it. */
 typedef struct ftfp_store_host {
@@ -1068,7 +1068,7 @@ static void load_store(void) {
     if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return;
     slash[1] = L'\0';
     if (wcslen(path) + 32 >= 1024) return;
-    wcscat_s(path, 1024, L"FTFP DS Store.dll");
+    wcscat_s(path, 1024, L"DS Store Items.dll");
     if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) return;
     store = LoadLibraryW(path);
     if (store == NULL) return;

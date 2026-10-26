@@ -2,8 +2,8 @@
 
     python scripts/pin_plant_upgrades.py
 
-Run after rebuilding "FTFP Plant Upgrades.dll" (scripts/build_ftfp_plant_upgrades.ps1),
-"FTFP Seed Boxes.dll" (scripts/build_ftfp_seed_boxes.ps1) or the Upgrades art
+Run after rebuilding "Store Upgrades and Items.dll" (scripts/build_ftfp_plant_upgrades.ps1),
+"Extra Seed Boxes.dll" (scripts/build_ftfp_seed_boxes.ps1) or the Upgrades art
 (scripts/build_plant_upgrades_assets.py), and after scripts/pin_new_flowers.py.
 It
 
@@ -33,7 +33,7 @@ import ds_fish_loader  # noqa: E402
 MANIFEST = ROOT / "data" / "plant_manifest.json"
 SOURCE = "assets/plant_tycoon_upgrades"
 SETTING_ID = "plant_upgrades"
-DLL_NAMES = ("FTFP Plant Upgrades.dll", "FTFP Seed Boxes.dll")
+DLL_NAMES = ("Store Upgrades and Items.dll", "Extra Seed Boxes.dll")
 FOLDER = ds_fish_loader.PLANT.patcher_files_folder
 
 SETTING = {
@@ -57,9 +57,10 @@ SETTING = {
     ),
     "warning": (
         "Turning this off leaves bought Legendary seeds drawn as another seed packet, the formula "
-        "drawn as an Insta-Grow Vaporbomb that does nothing, and boxes 4-6 hidden with their seeds. "
-        "Plant or sell the seeds, use up the formula and move seeds out of boxes 4-6 before "
-        "switching it off."
+        "drawn as an Insta-Grow Vaporbomb that does nothing, boxes 4-6 hidden with their seeds, "
+        "and the extra flowers the formula grew drawn away from their plants. Plant or sell the "
+        "seeds, use up the formula, sell or compost the plants it was used on, and move seeds out "
+        "of boxes 4-6 before switching it off."
     ),
     "category": "main",
     "default": False,

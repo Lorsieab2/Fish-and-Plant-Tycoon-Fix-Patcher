@@ -1,6 +1,6 @@
 # DS store items in PC Fish Tycoon
 
-Status: built ("FTFP DS Store.dll", the "DS Store Items" setting) and run in
+Status: built ("DS Store Items.dll", the "DS Store Items" setting) and run in
 the game; see "Live checks" at the end. Every hook site is pinned by
 `scripts/build_ds_store_headers.py` against the vanilla executable, and
 none overlaps a Fix Patcher patch or a DS Fish site.
@@ -193,10 +193,10 @@ There is no store sidecar.
 
 ## Packaging
 
-- A second companion DLL, `FTFP DS Store.dll`, sits in "Fish Tycoon Fix
-  Patcher Files" beside `FTFP DS Fish.dll`. DS Fish loads it after its own
+- A second companion DLL, `DS Store Items.dll`, sits in "Fish Tycoon Fix
+  Patcher Files" beside `DS Exclusive Fish.dll`. DS Fish loads it after its own
   install and lends it sprite table entries 220-235 (12 used).
-- It writes its own log, "FTFP DS Store.log".
+- It writes its own log, "DS Store Items.log".
 - The "DS Store Items" setting declares `"requires_settings": ["ds_fish"]`.
   The patcher refuses it on its own, and the GUI ticks DS Exclusive Fish
   with it.

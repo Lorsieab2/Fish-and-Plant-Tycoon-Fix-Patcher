@@ -1,8 +1,16 @@
 # Changelog
 
-## Unreleased
+## v1.0.17
+
+New content for both games (DS fish, fins and store animals; the 14 unused
+flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Both games
+
+- The companion DLLs are named after their settings and kept in
+  "Fish Tycoon Fix Patcher DLLs" / "Plant Tycoon Fix Patcher DLLs" inside
+  the modded copy: DS Exclusive Fish.dll, DS Store Items.dll, Unused
+  Flowers.dll, Store Upgrades and Items.dll, Extra Seed Boxes.dll.
 
 - **Tools** tab: Backup and Restore Saves, and Rename Player Slots, for the
   original game's saves and each modded copy's. Every change backs the save
@@ -21,7 +29,7 @@
   - 322 new species, all in the rarest class;
   - reached by Mutation Liquid (now running over flowers 1-37 with unchanged
     odds) and by breeding.
-  - It runs as "FTFP New Flowers.dll", loaded by a startup loader the patcher
+  - It runs as "Unused Flowers.dll", loaded by a startup loader the patcher
     appends to Plant Tycoon.exe (the same loader as DS Fish), all or nothing.
   - It also stops the game's own out-of-range writes and the crash a new
     flower would otherwise cause in Bio-organic Plant Food, the Fertilizer
@@ -49,7 +57,7 @@
   - the Fourth, Fifth and Sixth Seed Box ($1000 each): a second chest on
     the Seed Storage screen behind gold arrows, also filled by the greenhouse
     once boxes 1-3 are full.
-  - It runs as "FTFP Plant Upgrades.dll" and "FTFP Seed Boxes.dll", loaded
+  - It runs as "Store Upgrades and Items.dll" and "Extra Seed Boxes.dll", loaded
     by the unused-flowers DLL; the stock images are never replaced and saves
     keep their stock layout.
 - The release ZIP now packages every companion setting's files (New Flowers'
@@ -80,7 +88,7 @@
   - Prices, rarity tiers, names and fin placement come from the DS game.
     Sprites are generated from the DS art in the PC's 18-frame turn layout,
     with every DS fin placed per body/fin pair as the DS draws it.
-  - Runs as a companion DLL ("FTFP DS Fish.dll") loaded by a small startup
+  - Runs as a companion DLL ("DS Exclusive Fish.dll") loaded by a small startup
     loader the patcher appends to the executable. It checks all 69 places it
     changes in the running game and installs all of them or none, and writes
     a one-line log of the result. DS species data that does not fit the save
@@ -116,7 +124,7 @@
   - Exotic Fish Eggs, $2300: hatch only DS-exclusive bodies and fins.
   - Selling-tank customers no longer look at any seahorse-type companion
     (stock code read the Golden Seahorse's species data out of range).
-  - Runs as "FTFP DS Store.dll", loaded by "FTFP DS Fish.dll"; all or
+  - Runs as "DS Store Items.dll", loaded by "DS Exclusive Fish.dll"; all or
     nothing, with its own log. Nothing new is saved outside the game's own
     save.
 

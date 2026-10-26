@@ -2,7 +2,7 @@
 
     python scripts/pin_ds_fish.py "<vanilla Fish Tycoon folder>"
 
-Run after rebuilding "FTFP DS Fish.dll" (scripts/build_ftfp_ds_fish.ps1) or
+Run after rebuilding "DS Exclusive Fish.dll" (scripts/build_ftfp_ds_fish.ps1) or
 the sheets (scripts/build_ds_fish_assets.py). It
 
   * records every companion file under assets/fish_tycoon_ds by size and

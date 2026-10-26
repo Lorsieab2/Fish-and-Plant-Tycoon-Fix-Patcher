@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-# "FTFP Plant Upgrades.dll": the store's Upgrades view in Plant Tycoon (see native/ftfp_plant_upgrades/ftfp_plant_upgrades.c).
+# "Store Upgrades and Items.dll": the store's Upgrades view in Plant Tycoon (see native/ftfp_plant_upgrades/ftfp_plant_upgrades.c).
 # Regenerate native/ftfp_plant_upgrades/upgrade_sites.h first with
 # scripts/build_plant_upgrades_headers.py. Shipped from assets\plant_tycoon_upgrades.
 # Same toolchain and flags as the Virtual Villagers Fun Patcher's companions:
@@ -39,11 +39,11 @@ New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
     ("/LIBPATH:" + (Join-Path $sdkRoot "Lib\$sdkVersion\um\x86")) `
     ("/LIBPATH:" + (Join-Path $sdkRoot "Lib\$sdkVersion\ucrt\x86")) `
     ("/IMPLIB:" + (Join-Path $buildRoot "ftfp_plant_upgrades.lib")) `
-    ("/OUT:" + (Join-Path $outputRoot "FTFP Plant Upgrades.dll")) `
+    ("/OUT:" + (Join-Path $outputRoot "Store Upgrades and Items.dll")) `
     /RELEASE `
     /SAFESEH:NO `
     kernel32.lib
 if ($LASTEXITCODE -ne 0) {
-    throw "FTFP Plant Upgrades.dll compilation failed."
+    throw "Store Upgrades and Items.dll compilation failed."
 }
-Get-FileHash -Algorithm SHA256 (Join-Path $outputRoot "FTFP Plant Upgrades.dll") | Format-List
+Get-FileHash -Algorithm SHA256 (Join-Path $outputRoot "Store Upgrades and Items.dll") | Format-List

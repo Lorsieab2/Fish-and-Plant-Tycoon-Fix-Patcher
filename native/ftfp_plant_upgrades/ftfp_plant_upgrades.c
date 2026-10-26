@@ -1,11 +1,11 @@
-/* FTFP Plant Upgrades -- the store's Upgrades view in PC Plant Tycoon.
+/* Store Upgrades and Items -- the store's Upgrades view in PC Plant Tycoon.
 
    WHAT.  An "Upgrades" link on the teal bricks at the left of the store opens
    a second view of the store that shows only the new items, each where it
    would sit in the stock store:
      * Legendary Seeds (lower right, the seed shelves): three a day, $5000
        each, any foliage with one of the 14 new flowers (genes 24-37, from
-       "FTFP New Flowers.dll", which loads this DLL).  The stock packets keep
+       "Unused Flowers.dll", which loads this DLL).  The stock packets keep
        their stock rolls; only these can grow the new flowers.  Their art is
        each foliage's Extinct seed recoloured prismatic.
      * Radioactive Plant Formula (upper right, the chemicals): chemical 36,
@@ -15,7 +15,7 @@
      * seeds bred from the new flowers (self-pollinated or crossed) get the
        Legendary seed art too.
      * the Fourth, Fifth and Sixth Seed Box (upper left, the seed-box column
-       of the tool upgrades), when "FTFP Seed Boxes.dll" is beside this DLL;
+       of the tool upgrades), when "Extra Seed Boxes.dll" is beside this DLL;
        that DLL holds the boxes, this one sells them through the stock dialog.
    The link is hidden on the Upgrades view; the bottom bar's "Supplies" plate
    leads back.  docs/plant-tycoon-upgrades-design.md has every address.
@@ -257,7 +257,7 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
     }
 }
 
-/* After a pot's pollination (0x4240A0's tail, hooked by "FTFP New Flowers.dll"):
+/* After a pot's pollination (0x4240A0's tail, hooked by "Unused Flowers.dll"):
    * a seed with one of the new flowers gets its Legendary (prismatic) art;
    * the seeds the game held back (it gives 5, 4 or 3, or 1 if the plant is
      infested, by counting 0-2 or 4 seeds as used) are kept in +0x7C, the
@@ -276,7 +276,7 @@ static void __cdecl on_pollinated(char *pot) {
 
 /* ------------------------------------------------------------- seed boxes */
 
-/* "FTFP Seed Boxes.dll": the boxes themselves, and its save events. */
+/* "Extra Seed Boxes.dll": the boxes themselves, and its save events. */
 typedef struct ftfp_box_events {
     int version;
     void (__cdecl *save)(char *state, int slot);
@@ -1030,7 +1030,7 @@ static int append_hex(char *out, int at, unsigned int v) {
     return at;
 }
 
-/* "<game>\Plant Tycoon Fix Patcher Files\FTFP Plant Upgrades.log". */
+/* "<game>\Plant Tycoon Fix Patcher DLLs\Store Upgrades and Items.log". */
 static void write_install_log(void) {
     wchar_t path[1024];
     char line[160];
@@ -1041,7 +1041,7 @@ static void write_install_log(void) {
     if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return;
     slash[1] = L'\0';
     if (wcslen(path) + 64 >= 1024) return;
-    wcscat_s(path, 1024, L"Plant Tycoon Fix Patcher Files\\FTFP Plant Upgrades.log");
+    wcscat_s(path, 1024, L"Plant Tycoon Fix Patcher DLLs\\Store Upgrades and Items.log");
     if (installed) {
         len = append_text(line, len, "Plant Upgrades: installed (all sites)\r\n");
     } else if (ftfp_failed_site != 0) {
@@ -1064,14 +1064,14 @@ typedef struct ftfp_upgrades_events {
     void (__cdecl *load)(const char *state, int slot);
     void (__cdecl *remove)(int slot);
     void (__cdecl *new_game)(void);
-    void (__cdecl *pollinated)(char *pot);   /* version 2: called by "FTFP New Flowers.dll" after its breeding rule */
+    void (__cdecl *pollinated)(char *pot);   /* version 2: called by "Unused Flowers.dll" after its breeding rule */
 } ftfp_upgrades_events;
 
 static const ftfp_upgrades_events events = { 2, on_save, on_load, on_delete, on_new_game, on_pollinated };
 
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
-/* "FTFP Seed Boxes.dll", when it is beside this DLL. */
+/* "Extra Seed Boxes.dll", when it is beside this DLL. */
 static void load_boxes(void) {
     wchar_t path[1024];
     wchar_t *slash;
@@ -1082,7 +1082,7 @@ static void load_boxes(void) {
     if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return;
     slash[1] = L'\0';
     if (wcslen(path) + 40 >= 1024) return;
-    wcscat_s(path, 1024, L"FTFP Seed Boxes.dll");
+    wcscat_s(path, 1024, L"Extra Seed Boxes.dll");
     if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) return;
     module = LoadLibraryW(path);
     if (module == NULL) return;
@@ -1092,7 +1092,7 @@ static void load_boxes(void) {
     if (found != NULL && found->version == 1) boxes = found;
 }
 
-/* Called once by "FTFP New Flowers.dll" after it installed, before WinMain. */
+/* Called once by "Unused Flowers.dll" after it installed, before WinMain. */
 const ftfp_upgrades_events *__stdcall FtfpUpgradesStartup(void) {
     if (!installed) {
         __try {

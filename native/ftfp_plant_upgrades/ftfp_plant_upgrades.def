@@ -1,4 +1,4 @@
-LIBRARY "FTFP Plant Upgrades"
+LIBRARY "Store Upgrades and Items"
 EXPORTS
     FtfpUpgradesStartup = _FtfpUpgradesStartup@0
     FtfpPlantUpgradesInstalled = _FtfpPlantUpgradesInstalled@0

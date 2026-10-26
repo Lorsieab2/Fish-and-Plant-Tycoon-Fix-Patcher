@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-# "FTFP Seed Boxes.dll": the Fourth, Fifth and Sixth Seed Box in Plant Tycoon (see native/ftfp_seed_boxes/ftfp_seed_boxes.c).
+# "Extra Seed Boxes.dll": the Fourth, Fifth and Sixth Seed Box in Plant Tycoon (see native/ftfp_seed_boxes/ftfp_seed_boxes.c).
 # Regenerate native/ftfp_seed_boxes/box_sites.h first with
 # scripts/build_seed_boxes_headers.py. Shipped from assets\plant_tycoon_upgrades.
 # Same toolchain and flags as the Virtual Villagers Fun Patcher's companions:
@@ -39,11 +39,11 @@ New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
     ("/LIBPATH:" + (Join-Path $sdkRoot "Lib\$sdkVersion\um\x86")) `
     ("/LIBPATH:" + (Join-Path $sdkRoot "Lib\$sdkVersion\ucrt\x86")) `
     ("/IMPLIB:" + (Join-Path $buildRoot "ftfp_seed_boxes.lib")) `
-    ("/OUT:" + (Join-Path $outputRoot "FTFP Seed Boxes.dll")) `
+    ("/OUT:" + (Join-Path $outputRoot "Extra Seed Boxes.dll")) `
     /RELEASE `
     /SAFESEH:NO `
     kernel32.lib
 if ($LASTEXITCODE -ne 0) {
-    throw "FTFP Seed Boxes.dll compilation failed."
+    throw "Extra Seed Boxes.dll compilation failed."
 }
-Get-FileHash -Algorithm SHA256 (Join-Path $outputRoot "FTFP Seed Boxes.dll") | Format-List
+Get-FileHash -Algorithm SHA256 (Join-Path $outputRoot "Extra Seed Boxes.dll") | Format-List

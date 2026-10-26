@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.16**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.17**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -50,7 +50,7 @@ never needs the internet.
   step a Spotanus body or Twin-Fin fin one place further into them, with the
   same odds as before. Breeding a DS fish, prices, rarity, names and fin
   placement follow the DS game. It runs as a companion DLL the game loads at
-  start (`Fish Tycoon Fix Patcher Files\FTFP DS Fish.dll`), its sprites go
+  start (`Fish Tycoon Fix Patcher DLLs\DS Exclusive Fish.dll`), its sprites go
   in `Images`, and each save slot keeps its DS species data in
   `Fish Tycoon Fix Patcher Data\DS Fish <slot>.dat` beside the saves; the
   save files themselves keep their stock layout. How to get each one:
@@ -70,7 +70,7 @@ never needs the internet.
   the Golden Seahorse included, never take a fish's place: each tank has 5
   animal slots of its own. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
   The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
-  second companion DLL (`Fish Tycoon Fix Patcher Files\FTFP DS Store.dll`),
+  second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
   loaded by DS Fish's; everything it adds is kept in the game's own save.
   Design and live checks:
   [docs/fish-tycoon-ds-store-items-design.md](docs/fish-tycoon-ds-store-items-design.md).
@@ -101,7 +101,7 @@ never needs the internet.
   - Breeding mixes them by the game's own rule.
   - Mirabilis is recoloured golden so it isn't confused with Jalapa.
   - It runs as a companion DLL the game loads at start
-    (`Plant Tycoon Fix Patcher Files\FTFP New Flowers.dll`). Each save slot
+    (`Plant Tycoon Fix Patcher DLLs\Unused Flowers.dll`). Each save slot
     keeps the new species' prices and discoveries in
     `Plant Tycoon Fix Patcher Data\New Flowers <slot>.dat` beside the saves.
   - Design:

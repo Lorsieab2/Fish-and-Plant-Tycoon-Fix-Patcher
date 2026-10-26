@@ -2,7 +2,7 @@
 
     python scripts/pin_new_flowers.py "<vanilla Plant Tycoon folder>"
 
-Run after rebuilding "FTFP New Flowers.dll" (scripts/build_ftfp_new_flowers.ps1)
+Run after rebuilding "Unused Flowers.dll" (scripts/build_ftfp_new_flowers.ps1)
 or its art (scripts/build_new_flowers_assets.py). It
 
   * records every companion file under assets/plant_tycoon_flowers by size

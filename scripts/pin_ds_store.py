@@ -2,7 +2,7 @@
 
     python scripts/pin_ds_store.py
 
-Run after rebuilding "FTFP DS Store.dll" (scripts/build_ftfp_ds_store.ps1) or
+Run after rebuilding "DS Store Items.dll" (scripts/build_ftfp_ds_store.ps1) or
 its art (scripts/build_ds_store_assets.py), and after scripts/pin_ds_fish.py.
 It
 
@@ -30,7 +30,7 @@ import ds_fish_loader  # noqa: E402
 MANIFEST = ROOT / "data" / "fish_manifest.json"
 SOURCE = "assets/fish_tycoon_ds_store"
 SETTING_ID = "ds_store"
-DLL_NAME = "FTFP DS Store.dll"
+DLL_NAME = "DS Store Items.dll"
 
 SETTING = {
     "id": SETTING_ID,

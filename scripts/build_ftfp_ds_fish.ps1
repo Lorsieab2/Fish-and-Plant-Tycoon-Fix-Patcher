@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-# "FTFP DS Fish.dll": the DS exclusive fish (see native/ftfp_ds_fish/ftfp_ds_fish.c).
+# "DS Exclusive Fish.dll": the DS exclusive fish (see native/ftfp_ds_fish/ftfp_ds_fish.c).
 # Regenerate native/ftfp_ds_fish/ds_sites.h and ds_data.h first with
 # scripts/build_ds_fish_headers.py. Shipped from assets\fish_tycoon_ds.
 # Same toolchain and flags as the Virtual Villagers Fun Patcher's companions:
@@ -39,11 +39,11 @@ New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
     ("/LIBPATH:" + (Join-Path $sdkRoot "Lib\$sdkVersion\um\x86")) `
     ("/LIBPATH:" + (Join-Path $sdkRoot "Lib\$sdkVersion\ucrt\x86")) `
     ("/IMPLIB:" + (Join-Path $buildRoot "ftfp_ds_fish.lib")) `
-    ("/OUT:" + (Join-Path $outputRoot "FTFP DS Fish.dll")) `
+    ("/OUT:" + (Join-Path $outputRoot "DS Exclusive Fish.dll")) `
     /RELEASE `
     /SAFESEH:NO `
     kernel32.lib
 if ($LASTEXITCODE -ne 0) {
-    throw "FTFP DS Fish.dll compilation failed."
+    throw "DS Exclusive Fish.dll compilation failed."
 }
-Get-FileHash -Algorithm SHA256 (Join-Path $outputRoot "FTFP DS Fish.dll") | Format-List
+Get-FileHash -Algorithm SHA256 (Join-Path $outputRoot "DS Exclusive Fish.dll") | Format-List

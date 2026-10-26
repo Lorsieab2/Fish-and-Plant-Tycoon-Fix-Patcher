@@ -137,7 +137,7 @@ class ManifestTests(unittest.TestCase):
         companion = self.setting["companion"]
         self.assertTrue(companion["startup_loader"])
         destinations = {f["destination"] for f in companion["files"]}
-        self.assertIn("Fish Tycoon Fix Patcher Files/FTFP DS Fish.dll", destinations)
+        self.assertIn("Fish Tycoon Fix Patcher DLLs/DS Exclusive Fish.dll", destinations)
         self.assertEqual(len([d for d in destinations if d.startswith("Images/")]), 23)
         for entry in companion["files"]:
             path = ROOT / companion["source"] / entry["path"]
@@ -146,7 +146,7 @@ class ManifestTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(data).hexdigest().upper(), entry["sha256"], entry["path"])
 
     def test_companion_dll_imports_only_kernel32(self) -> None:
-        data = (ROOT / "assets" / "fish_tycoon_ds" / "FTFP DS Fish.dll").read_bytes()
+        data = (ROOT / "assets" / "fish_tycoon_ds" / "DS Exclusive Fish.dll").read_bytes()
         self.assertEqual(data[:2], b"MZ")
         lowered = data.lower()
         self.assertIn(b"kernel32.dll", lowered)
@@ -186,8 +186,8 @@ class ApplyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             args, output, bundle = self._fixture(Path(raw))
             self._apply(args)
-            dll = output / "Fish Tycoon Fix Patcher Files" / "FTFP DS Fish.dll"
-            self.assertEqual(dll.read_bytes(), (bundle / "FTFP DS Fish.dll").read_bytes())
+            dll = output / "Fish Tycoon Fix Patcher DLLs" / "DS Exclusive Fish.dll"
+            self.assertEqual(dll.read_bytes(), (bundle / "DS Exclusive Fish.dll").read_bytes())
             self.assertTrue((output / "Images" / "FISH_29_body_Grid.png").is_file())
             exe = (output / "Fish Tycoon - Modded Upgrades.exe").read_bytes()
             self.assertIn(b".ftfpst", exe[:0x1000])
@@ -200,11 +200,11 @@ class ApplyTests(unittest.TestCase):
             args.enable = []
             self._apply(args)
             plain = Path(raw) / "Fish Tycoon - Modded"
-            self.assertFalse((plain / "Fish Tycoon Fix Patcher Files").exists())
+            self.assertFalse((plain / "Fish Tycoon Fix Patcher DLLs").exists())
             self.assertFalse((plain / "Images" / "FISH_29_body_Grid.png").exists())
             self.assertNotIn(b".ftfpst", (plain / "Fish Tycoon - Modded.exe").read_bytes()[:0x1000])
             self.assertFalse((plain / "Fish Tycoon - Modded Upgrades.exe").exists())
-            self.assertTrue((upgrades / "Fish Tycoon Fix Patcher Files" / "FTFP DS Fish.dll").is_file())
+            self.assertTrue((upgrades / "Fish Tycoon Fix Patcher DLLs" / "DS Exclusive Fish.dll").is_file())
             self.assertIn(b".ftfpst", (upgrades / "Fish Tycoon - Modded Upgrades.exe").read_bytes()[:0x1000])
 
     def test_a_folder_the_user_named_is_kept(self) -> None:
@@ -218,7 +218,7 @@ class ApplyTests(unittest.TestCase):
     def test_a_tampered_companion_file_is_refused_before_writing(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             args, output, bundle = self._fixture(Path(raw))
-            with open(bundle / "FTFP DS Fish.dll", "ab") as handle:
+            with open(bundle / "DS Exclusive Fish.dll", "ab") as handle:
                 handle.write(b"\0")
             with self.assertRaises(fish_patcher.PatchError):
                 self._apply(args)
@@ -272,7 +272,7 @@ class CommittedDllTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(
                 (out / "rebuilt.dll").read_bytes(),
-                (ROOT / "assets" / "fish_tycoon_ds" / "FTFP DS Fish.dll").read_bytes(),
+                (ROOT / "assets" / "fish_tycoon_ds" / "DS Exclusive Fish.dll").read_bytes(),
                 "rebuild the DLL (scripts/build_ftfp_ds_fish.ps1) and re-pin (scripts/pin_ds_fish.py)",
             )
 
@@ -291,7 +291,7 @@ class GuiAndReleaseTests(unittest.TestCase):
 
         packaged = set(build_release.FILES) | set(build_release.bundled_asset_files())
         self.assertIn("src/ds_fish_loader.py", packaged)
-        self.assertIn("assets/fish_tycoon_ds/FTFP DS Fish.dll", packaged)
+        self.assertIn("assets/fish_tycoon_ds/DS Exclusive Fish.dll", packaged)
         self.assertIn("assets/fish_tycoon_ds/Images/FISH_DS_teen_Grid.png", packaged)
         self.assertIn("docs/fish-tycoon-ds-fish-testing-guide.md", packaged)
 
