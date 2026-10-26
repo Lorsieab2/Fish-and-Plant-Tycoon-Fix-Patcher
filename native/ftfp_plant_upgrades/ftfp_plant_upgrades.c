@@ -257,45 +257,14 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
     }
 }
 
-/* The end of 0x4240A0, the pollination of a pot (esi = its record):
+/* After a pot's pollination (0x4240A0's tail, hooked by "FTFP New Flowers.dll"):
    * a seed with one of the new flowers gets its Legendary (prismatic) art;
    * the seeds the game held back (it gives 5, 4 or 3, or 1 if the plant is
      infested, by counting 0-2 or 4 seeds as used) are kept in +0x7C, the
      record's "seed bonus" that no stock code writes, so the formula can give
      them back.  The stock count subtracted +0x7C, so it is added back first. */
-/* The game's seed class (0x42CA80's rule) and trash value (0x4240A0), for a
-   child whose genes the DLL changed. */
-static int seed_class(int foliage, int flower) {
-    int odd_special = foliage == 3 || foliage == 7 || foliage == 11 || foliage == 15 ||
-                      flower == 3 || flower == 7 || flower == 11 || flower == 15;
-    if (foliage > 17 || flower > 17) return 3;
-    if (foliage % 2 == 0 || flower % 2 == 0) return 2;
-    return odd_special ? 1 : 0;
-}
-
-static int seed_trash(int flower) {
-    if (flower > 17) return 10;
-    if (flower % 2 == 0) return 5;
-    return flower == 3 || flower == 7 || flower == 11 || flower == 15 ? 3 : 1;
-}
-
-/* Breeding with a new flower uses the DS fish rule (decided, user: the same
-   approach as the DS fish): the parents' average, an odd sum rounded up or
-   down at random, one roll per pollination.  Stock x stock keeps the game's
-   rounding up, and a pair always breeds true. */
-static void ds_flower_rounding(char *pot) {
-    int target = AT(pot, 0x58, int), donor = AT(pot, 0x60, int), flower;
-    if (target < FIRST_NEW_FLOWER && donor < FIRST_NEW_FLOWER) return;
-    if ((target + donor) % 2 == 0 || game_random(2) != 0) return;     /* even, or rounded up: stock */
-    flower = (target + donor) / 2;
-    AT(pot, 0x68, int) = flower;
-    AT(pot, 0x70, int) = AT(pot, 0x64, int) * 4 - 4 + seed_class(AT(pot, 0x64, int), flower);
-    AT(pot, 0x74, int) = seed_trash(flower);
-}
-
 static void __cdecl on_pollinated(char *pot) {
     int held_back = AT(pot, 0x94, int);
-    ds_flower_rounding(pot);
     if (held_back != 4) held_back += AT(pot, POT_SEEDS_HELD_BACK, int);
     AT(pot, 0x94, int) = held_back;
     AT(pot, POT_SEEDS_HELD_BACK, int) = held_back;
@@ -914,22 +883,6 @@ __declspec(naked) static void stub_activate(void) {
     }
 }
 
-/* 0x4241B4 the tail of the pollination (esi = the pot's record). */
-__declspec(naked) static void stub_pollinated(void) {
-    __asm {
-        pushad
-        push esi
-        call on_pollinated
-        add esp, 4
-        popad
-        pop edi
-        pop esi
-        pop ebp
-        pop ebx
-        ret 8
-    }
-}
-
 /* 0x42D330 (stdcall-style, ret 0xC): is this flower spot free?  Yes to all
    while the formula flowers a plant. */
 __declspec(naked) static void stub_joint_free(void) {
@@ -1006,7 +959,7 @@ static const char CHEM_SHEET_FILE[] = "Chemicals_Grid_upgrades.png";
 static const char LINK_FILE[] = "upgrades_link.png";
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 20
+#define CODE_SITES 19
 #define DATA_SITES 6
 #define TOTAL_SITES (CODE_SITES + DATA_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -1053,7 +1006,6 @@ static int prepare(void) {
     JMP(w++, STORE_DRAW, stub_draw);
     JMP(w++, STORE_CLICK, stub_click);
     JMP(w++, STORE_HOVER, stub_hover);
-    JMP(w++, POLLINATION_TAIL, stub_pollinated);
     JMP(w++, JOINT_FREE, stub_joint_free);
     site_data(w++, SITE_CHEM_PICTURE_BOUND_VA, SITE_CHEM_PICTURE_BOUND_LEN, SITE_CHEM_PICTURE_BOUND_EXPECT, NULL, 0);
     writes[CODE_SITES].bytes[SITE_CHEM_PICTURE_BOUND_IMM_AT] = bound;
@@ -1112,9 +1064,10 @@ typedef struct ftfp_upgrades_events {
     void (__cdecl *load)(const char *state, int slot);
     void (__cdecl *remove)(int slot);
     void (__cdecl *new_game)(void);
+    void (__cdecl *pollinated)(char *pot);   /* version 2: called by "FTFP New Flowers.dll" after its breeding rule */
 } ftfp_upgrades_events;
 
-static const ftfp_upgrades_events events = { 1, on_save, on_load, on_delete, on_new_game };
+static const ftfp_upgrades_events events = { 2, on_save, on_load, on_delete, on_new_game, on_pollinated };
 
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 

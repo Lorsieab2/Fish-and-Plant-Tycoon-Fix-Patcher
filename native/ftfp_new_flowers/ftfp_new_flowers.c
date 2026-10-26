@@ -302,6 +302,7 @@ typedef struct ftfp_upgrades_events {
     void (__cdecl *load)(const char *state, int slot);
     void (__cdecl *remove)(int slot);
     void (__cdecl *new_game)(void);
+    void (__cdecl *pollinated)(char *pot);    /* version 2 */
 } ftfp_upgrades_events;
 typedef const ftfp_upgrades_events *(__stdcall *upgrades_startup_fn)(void);
 
@@ -325,7 +326,7 @@ static void load_upgrades(void) {
     startup = (upgrades_startup_fn)GetProcAddress(module, "FtfpUpgradesStartup");
     if (startup == NULL) return;
     events = startup();
-    if (events != NULL && events->version == 1) upgrades = events;
+    if (events != NULL && (events->version == 1 || events->version == 2)) upgrades = events;
 }
 
 static void __cdecl on_save_all(char *state, int slot) {
@@ -534,6 +535,57 @@ __declspec(naked) static void stub_new_game(void) {
     }
 }
 
+/* ------------------------------------------------------------ pollination */
+
+/* The game's seed class (0x42CA80's rule) and trash value (0x4240A0), for a
+   child whose flower the breeding rule changed. */
+static int seed_class(int foliage, int flower) {
+    int odd_special = foliage == 3 || foliage == 7 || foliage == 11 || foliage == 15 ||
+                      flower == 3 || flower == 7 || flower == 11 || flower == 15;
+    if (foliage > 17 || flower > 17) return 3;
+    if (foliage % 2 == 0 || flower % 2 == 0) return 2;
+    return odd_special ? 1 : 0;
+}
+
+static int seed_trash(int flower) {
+    if (flower > 17) return 10;
+    if (flower % 2 == 0) return 5;
+    return flower == 3 || flower == 7 || flower == 11 || flower == 15 ? 3 : 1;
+}
+
+/* Breeding with a new flower uses the DS fish rule (decided, user: the same
+   approach as the DS fish): the parents' average, an odd sum rounded up or
+   down at random, one roll per pollination.  Stock x stock keeps the game's
+   rounding up, and a pair always breeds true.  The pot holds the target
+   (+0x54 foliage, +0x58 flower), the donor (+0x5C, +0x60) and the child
+   (+0x64, +0x68, its seed frame +0x70 and trash value +0x74). */
+static void __cdecl on_pollinated(char *pot) {
+    int target = *(int *)(pot + 0x58), donor = *(int *)(pot + 0x60);
+    if ((target >= FIRST_NEW || donor >= FIRST_NEW) && (target + donor) % 2 != 0 && game_random(2) == 0) {
+        int foliage = *(int *)(pot + 0x64), flower = (target + donor) / 2;
+        *(int *)(pot + 0x68) = flower;
+        *(int *)(pot + 0x70) = foliage * 4 - 4 + seed_class(foliage, flower);
+        *(int *)(pot + 0x74) = seed_trash(flower);
+    }
+    if (upgrades != NULL && upgrades->version >= 2) upgrades->pollinated(pot);
+}
+
+/* 0x4241B4 the tail of the pollination (esi = the pot's record). */
+__declspec(naked) static void stub_pollinated(void) {
+    __asm {
+        pushad
+        push esi
+        call on_pollinated
+        add esp, 4
+        popad
+        pop edi
+        pop esi
+        pop ebp
+        pop ebx
+        ret 8
+    }
+}
+
 /* 0x41D120 save(slot) (thiscall, ret 4): the sidecar, then the game's save. */
 __declspec(naked) static void stub_save(void) {
     __asm {
@@ -591,7 +643,7 @@ __declspec(naked) static void stub_delete(void) {
 /* ----------------------------------------------------------------- install */
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 11
+#define CODE_SITES 12
 #define IMM_SITES 4
 #define TOTAL_SITES (CODE_SITES + IMM_SITES + INDEX_SITE_COUNT)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -626,6 +678,7 @@ static int prepare(void) {
     JMP(w++, SAVE, stub_save);
     JMP(w++, LOAD, stub_load);
     JMP(w++, DELETE, stub_delete);
+    JMP(w++, POLLINATED, stub_pollinated);
     IMM(w++, DRAW_BOUND);
     IMM(w++, FLOWERING_BOUND);
     IMM(w++, MUTATION_TOP);

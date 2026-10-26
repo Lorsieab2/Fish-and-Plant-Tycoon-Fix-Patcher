@@ -46,6 +46,10 @@ static const unsigned char SITE_LOAD_EXPECT[] = { 0xB8, 0x74, 0x40, 0x05, 0x00 }
 #define SITE_DELETE_LEN 5
 static const unsigned char SITE_DELETE_EXPECT[] = { 0xE9, 0x5B, 0x64, 0xFE, 0xFF };
 #define SITE_DELETE_BACK 0x0041D1F5u
+#define SITE_POLLINATED_VA 0x004241B4u
+#define SITE_POLLINATED_LEN 7
+static const unsigned char SITE_POLLINATED_EXPECT[] = { 0x5F, 0x5E, 0x5D, 0x5B, 0xC2, 0x08, 0x00 };
+#define SITE_POLLINATED_BACK 0x004241BBu
 #define SITE_DRAW_BOUND_VA 0x0042D9D0u
 #define SITE_DRAW_BOUND_LEN 3
 static const unsigned char SITE_DRAW_BOUND_EXPECT[] = { 0x83, 0xF8, 0x16 };

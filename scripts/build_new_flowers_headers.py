@@ -51,6 +51,9 @@ SITES = [
     ("save", 0x41D120, ["mov edx, dword ptr [esp + 4]", "test edx, edx"]),
     ("load", 0x41EE00, ["mov eax, 0x54074"]),
     ("delete", 0x41D1F0, ["jmp 0x403650"]),
+    # The tail of a pot's pollination (esi = its record): new-flower breeding, then the
+    # Upgrades DLL's seed handling.
+    ("pollinated", 0x4241B4, ["pop edi", "pop esi", "pop ebp", "pop ebx", "ret 8"]),
 ]
 
 # One-byte or one-dword immediates: (name, va, instruction, value, new value).

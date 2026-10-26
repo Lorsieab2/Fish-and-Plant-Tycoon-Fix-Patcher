@@ -1651,8 +1651,8 @@
           {
             "path": "FTFP New Flowers.dll",
             "destination": "Plant Tycoon Fix Patcher Files/FTFP New Flowers.dll",
-            "size": 96768,
-            "sha256": "B9C63A6A1EE89AF757831DBB736D1AEA6D3229FD6D46C174E8A3050B12F02E2E"
+            "size": 97280,
+            "sha256": "AE2C21D056CC13AEB87446418AA1688AB32487987C06C68384C0247650C9D26B"
           },
           {
             "path": "Images/flowers64x64_grid.png",
@@ -1687,8 +1687,8 @@
           {
             "path": "FTFP Plant Upgrades.dll",
             "destination": "Plant Tycoon Fix Patcher Files/FTFP Plant Upgrades.dll",
-            "size": 134144,
-            "sha256": "25884BFAD96CB9117BD91CB233D4DE8FEAFDFD8D971EE0E95E800C5C932B4ED5"
+            "size": 133632,
+            "sha256": "6A1E50B0333D8CBC944D1B4AF7ED4A61F8F251DAFE1CAD7A7058A6A2C9D58961"
           },
           {
             "path": "FTFP Seed Boxes.dll",

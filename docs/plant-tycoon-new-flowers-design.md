@@ -54,8 +54,10 @@ green bulb, anchored halfway between the bell's centre and the tube's end
   one roll per pollination, as the DS breeds its fish; the seed's class
   (packet art) and trash value follow the flower it lands on. Two new-flower
   parents give new-flower seeds, a pair always breeds true, and a mixed pair
-  can land between. The roll lives in the pollination hook of "Add new store
-  upgrades and items" (`0x4241B4`), so it applies when that setting is on.
+  can land between. The roll lives in this DLL's hook of the pollination's tail
+  (`0x4241B4`), so it applies with "Add unused flowers" alone; it then
+  passes the pot on to "FTFP Plant Upgrades.dll" (events version 2) for the
+  Legendary seed art and the formula's held-back seeds.
 
 ## Rules for the new species
 
