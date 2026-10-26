@@ -159,34 +159,30 @@ static volatile unsigned char formula_flowering = 0;
 /* A plant family's shape table: 0xF4-byte part definitions ending with id -1.
    +0x14/+0x18/+0x1C/+0x20 the part's box in its sheet, +0xA8 its flower spot
    count, +0xAC + i*12 the spots (x, y, flags).  Every definition has room for
-   6; the empty ones past the count get spots spread over the part's box.  The
-   game reads a flower's spot by index without checking the count, so these
-   draw everywhere, and only the formula raises the counts to reach them. */
+   6; the empty ones past the count get spots on the part's own visible pixels
+   (FORMULA_SPOTS, from the art).  The game reads a flower's spot by index
+   without checking the count, so these draw everywhere, and only the formula
+   raises the counts to reach them. */
 #define DEF_STRIDE 0xF4
 #define DEF_MAX 80
 #define SPOTS 6
-static const int SPOT_AT[SPOTS][2] = { { 50, 25 }, { 30, 50 }, { 70, 50 }, { 50, 75 }, { 25, 25 }, { 75, 75 } };
 
-static int part_box(const char *def, int *x, int *y, int *w, int *h) {
-    *x = AT(def, 0x14, int);
-    *y = AT(def, 0x18, int);
-    *w = AT(def, 0x1C, int);
-    *h = AT(def, 0x20, int);
-    return *w > 0 && *h > 0 && AT(def, 0xA8, int) >= 0 && AT(def, 0xA8, int) <= SPOTS;
+static void add_spots(void) {
+    int k;
+    for (k = 0; k < FORMULA_SPOT_COUNT; ++k) {
+        int *spot = (int *)(UINT_PTR)FORMULA_SPOTS[k].at;
+        if (spot[0] || spot[1] || spot[2]) continue;
+        spot[0] = FORMULA_SPOTS[k].x;
+        spot[1] = FORMULA_SPOTS[k].y;
+    }
 }
 
-static void add_spots(char *table) {
-    int n, i, x, y, w, h;
-    for (n = 0; n < DEF_MAX && AT(table, n * DEF_STRIDE, int) != -1; ++n) {
-        char *def = table + n * DEF_STRIDE;
-        if (!part_box(def, &x, &y, &w, &h)) continue;
-        for (i = AT(def, 0xA8, int); i < SPOTS; ++i) {
-            int *spot = &AT(def, 0xAC + i * 12, int);
-            if (spot[0] || spot[1] || spot[2]) continue;      /* a spot the artists left unused */
-            spot[0] = x + w * SPOT_AT[i][0] / 100;
-            spot[1] = y + h * SPOT_AT[i][1] / 100;
-        }
-    }
+/* How many of a definition's spots, from the first, are in place. */
+static int filled_spots(const char *def) {
+    int i = 0;
+    while (i < SPOTS && (AT(def, 0xAC + i * 12, int) || AT(def, 0xB0 + i * 12, int) || AT(def, 0xB4 + i * 12, int)))
+        ++i;
+    return i;
 }
 
 /* At start-up, before any save is drawn: every family's tables writable (the
@@ -202,8 +198,8 @@ static void prepare_shapes(void) {
         int n = 0;
         while (n < DEF_MAX && AT(table, n * DEF_STRIDE, int) != -1) ++n;
         if (!VirtualProtect(table, (SIZE_T)n * DEF_STRIDE, PAGE_READWRITE, &old)) return;
-        add_spots(table);
     }
+    add_spots();
     shapes_ready = 1;
 }
 
@@ -214,15 +210,18 @@ static int known_table(const char *table) {
     return 0;
 }
 
-/* add_flowers with every part's spot count at 6 (restored afterwards). */
+/* add_flowers with every part's spot count raised to its spots in place
+   (restored afterwards). */
 static void flower_everything(char *plant) {
     add_flowers_fn add_flowers = (add_flowers_fn)AT(AT(plant, 0, char *), 0x44, void *);
     char *table = AT(plant, 4, char *);
-    int saved[DEF_MAX], n = 0, x, y, w, h;
+    int saved[DEF_MAX], n = 0;
     if (shapes_ready && known_table(table))             /* else the plant's own spots only */
     for (n = 0; n < DEF_MAX && AT(table, n * DEF_STRIDE, int) != -1; ++n) {
-        saved[n] = AT(table + n * DEF_STRIDE, 0xA8, int);
-        if (part_box(table + n * DEF_STRIDE, &x, &y, &w, &h)) AT(table + n * DEF_STRIDE, 0xA8, int) = SPOTS;
+        char *def = table + n * DEF_STRIDE;
+        int filled = filled_spots(def);
+        saved[n] = AT(def, 0xA8, int);
+        if (filled > saved[n]) AT(def, 0xA8, int) = filled;
     }
     formula_flowering = 1;
     add_flowers(plant, 0, 360, 0);

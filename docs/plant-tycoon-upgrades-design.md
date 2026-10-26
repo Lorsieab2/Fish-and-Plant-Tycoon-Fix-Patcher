@@ -44,9 +44,14 @@ with the setting is therefore the same as the pin without it
     shape stops: a part definition (0xF4 bytes in its family's shape table)
     lists 0-6 flower spots, most of them on joints, and a spot on a joint is
     taken while a branch grows there (`0x42D330`). So the formula:
-    - fills every part definition's empty spots up to 6, spread over the
-      part's box (leaves too; spots the artists left unused past the count
-      are kept). The DLL writes them into all 23 shape tables at start-up;
+    - fills every part definition's empty spots up to 6 (leaves too; spots
+      the artists left unused past the count are kept). The header script
+      places each one on the part's own visible pixels in its sheet (def
+      +0x08, box +0x14..+0x20), up to 2 px inside the outline and as far as
+      possible from the others; a thin stem gets a smaller margin, and a part
+      with no visible pixels its pivot, so no slot is ever empty (a flower on
+      an empty spot would draw far from its plant). The DLL writes them into
+      all 23 shape tables at start-up;
       the draw reads a flower's spot by index without checking the count, so
       the flowers draw after a restart too;
     - raises every count to 6 only while it flowers the plant, and restores

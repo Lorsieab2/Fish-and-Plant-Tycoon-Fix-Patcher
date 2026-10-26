@@ -82,6 +82,73 @@ SHAPE_TABLES = [
 ]
 
 
+SPRITES_TABLE, SPRITE_RECORDS, SPRITE_STRIDE = 0x4855F0, 222, 0x34
+
+
+def formula_spots(data: bytes, images: Path) -> list[tuple[int, int, int]]:
+    """For every part definition, its empty flower spots past the count, each placed on an opaque
+    pixel of the part (its sheet, +0x08, and its box, +0x14..+0x20), at least 2 px inside, as far
+    as possible from the spots it already has (farthest-point sampling)."""
+    from PIL import Image
+    import numpy as np
+
+    word = lambda va: struct.unpack_from("<i", data, va - BASE)[0]
+    sheets = {}
+    for k in range(SPRITE_RECORDS):
+        record = SPRITES_TABLE + k * SPRITE_STRIDE
+        if word(record + 4):
+            sheets[word(record)] = c_string_at(data, word(record + 4)).decode("latin-1")
+    cache: dict[str, np.ndarray] = {}
+    out = []
+    for table in SHAPE_TABLES:
+        va = table
+        while word(va) != -1:
+            count, (x0, y0, w, h) = word(va + 0xA8), (word(va + 0x14), word(va + 0x18), word(va + 0x1C), word(va + 0x20))
+            name = sheets.get(word(va + 8))
+            if name and w > 0 and h > 0 and count < 6:
+                if name not in cache:
+                    cache[name] = np.asarray(Image.open(images / name).convert("RGBA"))[:, :, 3]
+                alpha = cache[name][y0:y0 + h, x0:x0 + w]
+                # Up to 2 px inside the outline, less for a thin stem or leaf, any visible pixel as
+                # a last resort, else the part's pivot: every slot gets a spot, because a flower the
+                # formula put on a slot draws at that slot's spot after every restart.
+                xs = ys = np.array([], dtype=int)
+                for solid, shrink in ((128, 2), (128, 1), (128, 0), (0, 0)):
+                    inside = alpha > solid
+                    for _ in range(shrink):
+                        inside[1:-1, 1:-1] &= inside[:-2, 1:-1] & inside[2:, 1:-1] & inside[1:-1, :-2] & inside[1:-1, 2:]
+                        inside[[0, -1], :] = False
+                        inside[:, [0, -1]] = False
+                    ys, xs = np.nonzero(inside)
+                    if len(xs):
+                        break
+                if not len(xs):
+                    xs, ys = np.array([word(va + 0x24) - x0]), np.array([word(va + 0x28) - y0])
+                taken = [(word(va + 0xAC + i * 12), word(va + 0xB0 + i * 12)) for i in range(6)
+                         if any(word(va + 0xAC + i * 12 + j) for j in (0, 4, 8))]
+                pts = np.stack([xs + x0, ys + y0], axis=1)
+                if not taken:                          # start nearest the box's centre
+                    centre = np.array([x0 + w / 2, y0 + h / 2])
+                    taken = [tuple(pts[np.argmin(((pts - centre) ** 2).sum(1))])]
+                    first = taken[0]
+                else:
+                    first = None
+                for i in range(count, 6):
+                    at = va + 0xAC + i * 12
+                    if any(word(at + j) for j in (0, 4, 8)):
+                        continue                       # a spot the artists left unused
+                    if first is not None:
+                        x, y = first
+                        first = None
+                    else:
+                        d = np.min([((pts - np.array(t)) ** 2).sum(1) for t in taken], axis=0)
+                        x, y = pts[int(np.argmax(d))]
+                        taken.append((x, y))
+                    out.append((at, int(x), int(y)))
+            va += 0xF4
+    return out
+
+
 def c_string_at(data: bytes, va: int) -> bytes:
     at = va - BASE
     return data[at:data.index(b"\0", at)]
@@ -169,6 +236,14 @@ def main() -> int:
         if n == 0:
             raise SystemExit(f"shape table 0x{va:X} is empty")
     lines.append("")
+    spots = formula_spots(data, Path(sys.argv[1]) / "Images")
+    lines.append("/* The Radioactive Plant Formula's extra flower spots: (spot address, x, y), each on the")
+    lines.append("   part's own visible pixels in its sheet, spread apart. */")
+    lines.append("typedef struct { unsigned int at; int x, y; } formula_spot;")
+    lines.append(f"static const formula_spot FORMULA_SPOTS[{len(spots)}] = {{")
+    lines += [f"    {{ 0x{at:08X}u, {x}, {y} }}," for at, x, y in spots]
+    lines.append("};")
+    lines.append(f"#define FORMULA_SPOT_COUNT {len(spots)}")
     lines.append("static const unsigned int SHAPE_TABLES[] = { "
                  + ", ".join(f"0x{va:08X}u" for va in SHAPE_TABLES) + " };")
     lines.append(f"#define SHAPE_TABLE_COUNT {len(SHAPE_TABLES)}")

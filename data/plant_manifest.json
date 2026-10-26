@@ -1687,8 +1687,8 @@
           {
             "path": "FTFP Plant Upgrades.dll",
             "destination": "Plant Tycoon Fix Patcher Files/FTFP Plant Upgrades.dll",
-            "size": 125952,
-            "sha256": "473520A12CE6D301A9177AACC195C241161A3F7D1063BC392EE395FF25E50FF7"
+            "size": 134144,
+            "sha256": "25884BFAD96CB9117BD91CB233D4DE8FEAFDFD8D971EE0E95E800C5C932B4ED5"
           },
           {
             "path": "FTFP Seed Boxes.dll",
