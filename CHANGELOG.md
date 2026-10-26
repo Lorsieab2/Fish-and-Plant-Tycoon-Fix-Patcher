@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Both games
+
+- **Tools** tab: Backup and Restore Saves, and Rename Player Slots, for the
+  original game's saves and each modded copy's. Every change backs the save
+  folder up first.
+- **Game Mechanics** (Tools tab): how both games really work, read from their
+  code, with every random roll's exact odds and what each patcher setting
+  changes. It is read-only.
+
 ### Plant Tycoon
 
 - **Add unused flowers**, a new setting, off by default. The 14 flower heads that
