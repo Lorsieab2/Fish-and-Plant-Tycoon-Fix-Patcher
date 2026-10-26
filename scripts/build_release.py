@@ -26,6 +26,12 @@ FILES = [
     "docs/QA.md",
     "src/fish_patcher.py",
     "src/plant_patcher.py",
+    "src/save_tools.py",
+    "src/game_mechanics.py",
+    "src/game_mechanics_fish.py",
+    "src/game_mechanics_plant.py",
+    "src/game_mechanics_window.py",
+    "docs/game-mechanics-window.md",
     "src/tycoon_fix_patcher.py",
     "src/tycoon_fix_patcher_gui.py",
 ]

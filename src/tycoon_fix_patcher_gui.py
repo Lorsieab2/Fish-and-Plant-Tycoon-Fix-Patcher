@@ -7,9 +7,12 @@ import json
 from pathlib import Path
 import subprocess
 import threading
+import zipfile
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import webbrowser
+
+import save_tools
 
 from tycoon_fix_patcher import (
     CombinedPatchError,
@@ -200,10 +203,13 @@ class App(tk.Tk):
         notebook.pack(fill="both", expand=True)
         one = ttk.Frame(notebook, padding=14)
         both = ttk.Frame(notebook, padding=14)
+        tools = ttk.Frame(notebook, padding=14)
         notebook.add(one, text="One Game")
         notebook.add(both, text="Both Games")
+        notebook.add(tools, text="Tools")
         self._build_one_tab(one)
         self._build_both_tab(both)
+        self._build_tools_tab(tools)
 
         status = ttk.LabelFrame(outer, text="Status and verification log", padding=10)
         status.pack(fill="both", expand=True, pady=(10, 0))
@@ -563,6 +569,228 @@ class App(tk.Tk):
             self.after_idle(self._content_resized, None)
 
         link.bind("<Button-1>", toggle)
+
+    # --- Tools: save backups and player slot names --------------------------
+
+    def _build_tools_tab(self, tab: ttk.Frame) -> None:
+        """Back up, restore and rename saves, for either game, in any of its
+        save folders (the original game's and each modded copy's)."""
+        self.tools_game = tk.StringVar(value="fish")
+        self.tools_folder = tk.StringVar()
+        self.tools_name_vars = [tk.StringVar() for _ in range(5)]
+        self.tools_slot_labels: list[ttk.Label] = []
+
+        select = ttk.LabelFrame(tab, text="Game and save folder", padding=10)
+        select.pack(fill="x")
+        row = ttk.Frame(select)
+        row.pack(fill="x")
+        for game_id, spec in GAMES.items():
+            ttk.Radiobutton(
+                row, text=spec.title, value=game_id, variable=self.tools_game,
+                command=self._tools_refresh,
+            ).pack(side="left", padx=(0, 12))
+        folder_row = ttk.Frame(select)
+        folder_row.pack(fill="x", pady=(8, 0))
+        ttk.Label(folder_row, text="Save folder:").pack(side="left")
+        self.tools_folder_box = ttk.Combobox(
+            folder_row, textvariable=self.tools_folder, state="readonly", width=70
+        )
+        self.tools_folder_box.pack(side="left", fill="x", expand=True, padx=8)
+        self.tools_folder_box.bind("<<ComboboxSelected>>", lambda _e: self._tools_load_names())
+        ttk.Button(folder_row, text="Refresh", command=self._tools_refresh).pack(side="left")
+        open_link = tk.Label(
+            select, text="Open this save folder", fg="#0057c2", cursor="hand2",
+            font=("Segoe UI", 9, "underline"),
+        )
+        open_link.pack(anchor="w", pady=(4, 0))
+        open_link.bind("<Button-1>", lambda _e: self._open_folder(self.tools_folder.get()))
+        ttk.Label(
+            select,
+            text=(
+                "Each copy of a game keeps its own saves in Documents\\LDW\\<exe name>. "
+                "Close the game before using these tools."
+            ),
+            wraplength=880, foreground="#444444",
+        ).pack(anchor="w", pady=(4, 0))
+
+        backup = ttk.LabelFrame(tab, text="Backup and Restore Saves", padding=10)
+        backup.pack(fill="x", pady=(10, 0))
+        buttons = ttk.Frame(backup)
+        buttons.pack(anchor="w")
+        ttk.Button(buttons, text="Back Up Saves Now", command=self._tools_back_up).pack(side="left")
+        ttk.Button(buttons, text="Restore Saves From Backup...", command=self._tools_restore).pack(
+            side="left", padx=(8, 0)
+        )
+        backups_link = tk.Label(
+            backup, text="Open the backups folder", fg="#0057c2", cursor="hand2",
+            font=("Segoe UI", 9, "underline"),
+        )
+        backups_link.pack(anchor="w", pady=(6, 0))
+        backups_link.bind("<Button-1>", lambda _e: self._tools_open_backups())
+        ttk.Label(
+            backup,
+            text=(
+                "A backup is a zip of the whole save folder. Restoring makes the folder exactly "
+                "the backup again, after backing up the folder as it is now, so a restore can "
+                "itself be undone."
+            ),
+            wraplength=880, foreground="#444444",
+        ).pack(anchor="w", pady=(4, 0))
+
+        rename = ttk.LabelFrame(tab, text="Rename Player Slots", padding=10)
+        rename.pack(fill="x", pady=(10, 0))
+        for index in range(5):
+            line = ttk.Frame(rename)
+            line.pack(fill="x", pady=2)
+            label = ttk.Label(line, text=f"Slot {index + 1}:", width=34)
+            label.pack(side="left")
+            self.tools_slot_labels.append(label)
+            ttk.Entry(line, textvariable=self.tools_name_vars[index], width=34).pack(side="left", padx=8)
+            ttk.Button(
+                line, text="Rename",
+                command=lambda slot=index + 1: self._tools_rename(slot),
+            ).pack(side="left")
+        ttk.Label(
+            rename,
+            text=(
+                "Changes the name in the game's player list and inside that player's own save "
+                "files. Up to 31 plain characters, as in the game. The save folder is backed up "
+                "first."
+            ),
+            wraplength=880, foreground="#444444",
+        ).pack(anchor="w", pady=(4, 0))
+
+        mechanics = ttk.LabelFrame(tab, text="Game Mechanics", padding=10)
+        mechanics.pack(fill="x", pady=(10, 0))
+        line = ttk.Frame(mechanics)
+        line.pack(anchor="w")
+        ttk.Button(line, text="Game Mechanics...", command=self._tools_open_mechanics).pack(side="left")
+        ttk.Button(line, text="?", width=3, command=self._tools_mechanics_help).pack(side="left", padx=(6, 0))
+        ttk.Label(
+            mechanics,
+            text=(
+                "For the curious: how both games really work underneath, worked out from their "
+                "code. Every chance, timer and number, and what this patcher's settings change. "
+                "Read-only; the games can stay open."
+            ),
+            wraplength=880, foreground="#444444",
+        ).pack(anchor="w", pady=(4, 0))
+        self._tools_refresh()
+
+    def _tools_open_mechanics(self) -> None:
+        import game_mechanics_window
+
+        game_mechanics_window.open_window(self, self.tools_game.get())
+
+    def _tools_mechanics_help(self) -> None:
+        messagebox.showinfo(
+            APP_NAME,
+            "Game Mechanics opens a read-only page with a tab for each game: time and time "
+            "away, health, food, sickness, breeding, eggs and seeds, the store items, research, "
+            "selling, magic fish and magic plants, and an index of every random roll and timer.\n\n"
+            "Every line is labelled. VERIFIED-E means the game's code was run and counted "
+            "exactly, VERIFIED-C means it was read in the game's code, and UNCONFIRMED marks "
+            "estimates. Where one of this patcher's settings changes a fact, a \"With the "
+            "patcher\" line says how.\n\nIt never opens or changes a save or game file.",
+        )
+
+    def _tools_refresh(self) -> None:
+        folders = [str(path) for path in save_tools.save_folders(self.tools_game.get())]
+        self.tools_folder_box.configure(values=folders)
+        if self.tools_folder.get() not in folders:
+            self.tools_folder.set(folders[0] if folders else "")
+        self._tools_load_names()
+
+    def _tools_load_names(self) -> None:
+        folder = self.tools_folder.get()
+        names: list[str] = []
+        if folder:
+            try:
+                names = save_tools.read_slot_names(self.tools_game.get(), Path(folder))
+            except (OSError, save_tools.SaveToolError) as exc:
+                self.status_var.set(f"Could not read the player list: {exc}")
+        for index, label in enumerate(self.tools_slot_labels):
+            current = names[index] if index < len(names) else ""
+            label.configure(text=f"Slot {index + 1}: {current or '(empty)'}")
+            self.tools_name_vars[index].set(current)
+
+    def _tools_open_backups(self) -> None:
+        folder = save_tools.default_backups_folder()
+        folder.mkdir(parents=True, exist_ok=True)
+        self._open_folder(str(folder))
+
+    def _tools_folder_or_warn(self) -> Path | None:
+        folder = self.tools_folder.get()
+        if not folder:
+            messagebox.showerror(APP_NAME, "No save folder found for this game. Play it once first.")
+            return None
+        return Path(folder)
+
+    def _tools_back_up(self) -> None:
+        folder = self._tools_folder_or_warn()
+        if folder is None:
+            return
+        try:
+            target = save_tools.back_up(folder)
+        except (OSError, save_tools.SaveToolError) as exc:
+            messagebox.showerror(APP_NAME, f"Backup failed:\n\n{exc}")
+            return
+        self.log.insert("end", f"\n=== Saves backed up ===\n{folder}\n-> {target}\n")
+        self.log.see("end")
+        self.status_var.set(f"Saves backed up to {target.name}.")
+        messagebox.showinfo(APP_NAME, f"Saves backed up to:\n\n{target}")
+
+    def _tools_restore(self) -> None:
+        folder = self._tools_folder_or_warn()
+        if folder is None:
+            return
+        chosen = filedialog.askopenfilename(
+            title="Choose a save backup",
+            initialdir=str(save_tools.default_backups_folder()),
+            filetypes=[("Save backups", "*.zip")],
+        )
+        if not chosen:
+            return
+        if not messagebox.askyesno(
+            APP_NAME,
+            f"Replace every save in\n\n{folder}\n\nwith the backup\n\n{Path(chosen).name}?\n\n"
+            "The folder as it is now is backed up first.",
+        ):
+            return
+        try:
+            before = save_tools.restore(Path(chosen), folder)
+        except (OSError, zipfile.BadZipFile, save_tools.SaveToolError) as exc:
+            messagebox.showerror(APP_NAME, f"Restore failed; nothing was changed:\n\n{exc}")
+            return
+        self.log.insert(
+            "end", f"\n=== Saves restored ===\n{chosen}\n-> {folder}\nPrevious saves kept in {before}\n"
+        )
+        self.log.see("end")
+        self._tools_load_names()
+        self.status_var.set("Saves restored.")
+        messagebox.showinfo(APP_NAME, f"Saves restored. The previous saves were backed up to:\n\n{before}")
+
+    def _tools_rename(self, slot: int) -> None:
+        folder = self._tools_folder_or_warn()
+        if folder is None:
+            return
+        new_name = self.tools_name_vars[slot - 1].get()
+        try:
+            report = save_tools.rename_slot(self.tools_game.get(), folder, slot, new_name)
+        except (OSError, save_tools.SaveToolError) as exc:
+            messagebox.showerror(APP_NAME, f"Rename failed; nothing was changed:\n\n{exc}")
+            return
+        skipped = (
+            f"Left alone (name did not match): {', '.join(report['skipped'])}\n" if report["skipped"] else ""
+        )
+        self.log.insert(
+            "end",
+            f"\n=== Slot {slot} renamed ===\n{report['old_name']!r} -> {report['new_name']!r}\n"
+            f"Changed: {', '.join(report['changed'])}\n{skipped}Backup: {report['backup']}\n",
+        )
+        self.log.see("end")
+        self._tools_load_names()
+        self.status_var.set(f"Slot {slot} renamed to {report['new_name']}.")
 
     def _path_row(
         self,

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Both games
+
+- **Tools** tab: Backup and Restore Saves, and Rename Player Slots, for the
+  original game's saves and each modded copy's. Every change backs the save
+  folder up first.
+- **Game Mechanics** (Tools tab): how both games really work, read from their
+  code, with every random roll's exact odds and what each patcher setting
+  changes. It is read-only.
+
 ## v1.0.16
 
 Fixes from a full audit of both games' patches and of the patcher around them.

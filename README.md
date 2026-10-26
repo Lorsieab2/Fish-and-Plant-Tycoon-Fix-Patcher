@@ -122,6 +122,33 @@ other. `Documents` is wherever Windows keeps it, which is often
   saves appear to vanish; they are still there in the folder named after the old
   executable.
 
+## Tools
+
+The **Tools** tab works on the saves of either game, in any of its save
+folders: the original game's and each modded copy's (see "Where your saves
+go"). Close the game first.
+
+- **Backup and Restore Saves.** A backup is a zip of the whole save folder,
+  kept in `Documents\LDW\Fish and Plant Tycoon Fix Patcher Save Backups`.
+  Restoring makes the folder exactly the backup again, after backing up the
+  folder as it is now, so a restore can itself be undone.
+- **Rename Player Slots.** Changes a player's name in the game's player list
+  and inside that player's own save files, up to 31 plain characters as in the
+  game. The save folder is backed up first. A save file is changed only where
+  it holds exactly the old name; anything else is left alone. The layouts are
+  in `src/save_tools.py`.
+- **Game Mechanics.** A read-only page, with a tab for each game, on how the
+  games really work underneath, read from their code:
+  - time away, health, food, sickness, pests, breeding, seeds, the store,
+    research, selling, magic fish and plants, and bugs;
+  - an index of every random roll and timer.
+
+  Every chance is the game's own test with its exact odds (`Random(100) < 50`
+  is 50.05%, not 50%). Each line is labelled VERIFIED-C, VERIFIED-E or
+  UNCONFIRMED. A "With the patcher" line marks what one of this patcher's
+  settings changes. It never touches a save, so the games can stay open. See
+  [docs/game-mechanics-window.md](docs/game-mechanics-window.md).
+
 ## Safety
 
 Each engine remains bound to the exact supported stock executable identity,
