@@ -58,7 +58,8 @@ Fish Tycoon options:
   7 fins. Sell or trash every DS fish before turning it off again.)
 - DS Store Items (off by default; needs DS Exclusive Fish. Adds an
   Upgrades button to the Supplies store with the DS Puffer Fish, Sting Ray,
-  Moray Eel and Exotic Fish Eggs. Trash the animals and let the eel out of
+  Moray Eel and Exotic Fish Eggs. The animals never take a fish's place.
+  Trash the animals and let the eel out of
   its rock before turning it off again.)
 
 Plant Tycoon options:

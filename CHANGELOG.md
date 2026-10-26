@@ -81,8 +81,14 @@
     steps (health for healthy fed fish, food, and the eel's 1-in-10 save of
     a dying fish). The Golden Seahorse keeps its PC effects and gains its DS
     one.
+  - The animals, the Golden Seahorse included, never take a fish's place:
+    each tank has 5 animal slots of its own (slots 26-30), and saves from
+    earlier builds are moved over on load. With Buy Multiple Golden
+    Seahorses on they can be bought more than once.
+  - The Puffer Fish puffs up now and then while it swims.
   - The Moray Eel's rock is a movable decoration; the eel goes home in it,
-    moves with it, and comes out on a click.
+    moves with it, and is dragged out by its head. Trashing the eel trashes
+    its rock, and the other way round.
   - Exotic Fish Eggs, $2300: hatch only DS-exclusive bodies and fins.
   - Selling-tank customers no longer look at any seahorse-type companion
     (stock code read the Golden Seahorse's species data out of range).

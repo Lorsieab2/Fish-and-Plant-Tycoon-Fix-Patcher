@@ -46,6 +46,25 @@ treat anything above 20 as their default case. Nothing reads a seahorse's
 fin except the stage-3 draw. The DLL hooks that draw at `0x414C8A` to pick
 the animal's own sheet, centred on the seahorse's 116 x 62 hit box.
 
+### Animal slots: they never take a fish's place
+
+Decided (user): "26 fish + 5 animals". The state already holds 31 fish
+records per tank; the stock game uses 21, and "Bigger tanks: 26 fish" uses
+26. Every animal, the Golden Seahorse included, lives in slots 26-30, so a
+tank full of fish still takes up to 5 animals:
+- the two loops that build the swimming view (`0x4140C5`, `0x415893`) run
+  to 31 instead of 21 or 26 (the DLL accepts either stock value);
+- buying places the animal in the first free slot 26-30 of the tank (else
+  another tank), and the stock Golden Seahorse purchase is moved there too
+  (`0x427E43`);
+- an animal dropped on a tank button moves to that tank's animal slots;
+- loading a save (the state's Load at `0x4424D0`) moves animals from older
+  builds out of the fish slots, and a new game clears slots 26-30
+  (`0x41AACA`).
+
+With "Buy Multiple Golden Seahorses" on, the store animals can be bought
+more than once too; with it off, one of each, buyable again after trashing.
+
 Customers in the selling tank (`0x42426F`) and their thought bubbles
 (`0x41355F`) now skip every seahorse-type companion, the Golden Seahorse
 included; stock code read their species data out of range.
@@ -57,8 +76,9 @@ the stock rule.
 Art, from the DS session's 3D renders, in the seahorse's 18-frame layout
 (faces left, mirrored, turning):
 
-- Puffer Fish: its 4 DS frames are its puff-up, so it swims deflated and
-  puffs up while it turns.
+- Puffer Fish: it swims deflated and now and then puffs up while swimming
+  (its 4 DS puff frames, in their own sheet, `DS_PUFFER_PUFF_Grid.png`),
+  then deflates again.
 - Sting Ray: the 8-frame side-view swim.
 - Moray Eel: the tailed swimming eel (16-frame swim).
 
@@ -69,8 +89,13 @@ rock is a separate decoration the player drags like the shell or pagoda. Drop
 the eel on its rock and it goes home: it disappears from the open water and
 the rock plays the DS in-rock animation (eel back layer, rock, eel front
 layer), with the head peeking out. While it is home, **moving the rock moves
-the eel with it**. A click on its head (the cave mouth, rock x 60-115,
-y 55-115) lets it out again.
+the eel with it**. Pressing on its head (the cave mouth, rock x 60-115,
+y 55-115) pulls it out already held, so the player drags it out of the rock.
+The in-rock animation plays forward then back, one frame every 240 ms.
+
+Trashing goes both ways: the eel thrown away takes its rock with it, and the
+rock dropped on the trash can asks "Delete this fish?" and takes its eel
+(home in it, or swimming) with it.
 
 The rock and the eel's home state need no sidecar:
 - The rock is one of the tank's six ornament records (sprite 228 with the
@@ -192,6 +217,17 @@ There is no store sidecar.
 - One age step with the Puffer Fish in the tank took the babies' food from
   60 to 61, 60 and 61. The step itself costs 1 food; the puffer gave +1, and
   +1 more to two of the three.
-- Not checked in the running game: the eel's death save, and the
+- Animal slots (with "Bigger tanks", a tank of 26 fish): two Puffer Fish,
+  the Sting Ray, the Moray Eel and then the Golden Seahorse all went into
+  slots 26-29 with the 26 fish untouched; they survived quitting and
+  reloading. The puffer puffs up while swimming.
+- The eel dropped on the Tank Two button moved to Tank Two's slot 26; thrown
+  away there, its rock in Tank One went too. The rock thrown away took the
+  swimming eel with it.
+- Pressing on the eel's head brought it out held; the harness posts mouse
+  messages, and the stock drag follows the real cursor, so the drag itself
+  was not watched (the drop worked).
+- Not checked in the running game: moving animals out of the fish slots of
+  a save from an earlier build, the eel's death save, and the
   selling-tank guards (they are a compare and a jump each, pinned by the
   header script).

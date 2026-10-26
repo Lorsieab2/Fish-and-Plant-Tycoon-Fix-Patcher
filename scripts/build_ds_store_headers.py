@@ -49,6 +49,22 @@ SITES = [
     ("ornaments", 0x41EF1B, ["jmp 0x41d600"]),
     ("fish_drop", 0x41F064, ["mov ecx, dword ptr [esi + 0x34]", "mov eax, dword ptr [ecx + 0x384]"]),
     ("ornament_pick", 0x41E570, ["mov eax, dword ptr [ecx + 0x34]", "mov edx, dword ptr [eax + 0x384]"]),
+    # The animals live in each tank's spare fish records, slots 26-30: the Golden Seahorse's stock
+    # placement, new game (clear them), the fish trash (the eel's rock goes with it) and the ornament
+    # drop (the rock in the trash, with its eel).
+    ("seahorse_place", 0x427E43, ["mov ecx, dword ptr [esi + 0x10]", "lea edx, [esp + 0x3c]"]),
+    ("new_game_clear", 0x41AACA, ["call 0x4198f0"]),
+    ("fish_trash", 0x41E809, ["mov ecx, dword ptr [esi + 0x34]", "push ebx", "push edi"]),
+    ("ornament_drop", 0x41F660, ["push ebx", "push ebp", "mov ebp, dword ptr [esp + 0x10]", "push esi",
+                                 "mov esi, ecx"]),
+]
+
+# The two loops that build the swimming fish (the view) run over every slot up to this bound,
+# 21 stock or 26 with "Bigger tanks"; the DLL makes it 31 so the animals in 26-30 swim. These
+# share their byte with that setting's patches on purpose: the DLL accepts either value.
+VIEW_LIMITS = [
+    ("view_build_slots", 0x4140C5),
+    ("view_refresh_slots", 0x415893),
 ]
 
 # The Supplies scene's vtable (0x44C294): slot address -> the function it holds.
@@ -57,6 +73,7 @@ VTABLE = [
     ("vt_command", 0x44C2A0, 0x428300),
     ("vt_overlay", 0x44C2B0, 0x41B5F0),
     ("vt_activate", 0x44C2B8, 0x427960),
+    ("state_load", 0x4424D0, 0x41AE70),            # the state's vtable: Load(slot)
 ]
 
 
@@ -107,6 +124,21 @@ def main() -> int:
         if len(raw) < 5:
             raise SystemExit(f"{name} at 0x{va:X} is {len(raw)} bytes; a jump needs 5")
         emit(name, va, raw, True)
+
+    for name, va in VIEW_LIMITS:
+        got = disasm(data, va, 1)[0]
+        if text(got) != "cmp eax, 0x15":
+            raise SystemExit(f"{name} at 0x{va:X}: expected cmp eax, 0x15, found {text(got)}")
+        raw = bytes(got.bytes)
+        for start, end, other in used:
+            if va < end and start < va + len(raw):
+                raise SystemExit(f"{name} at 0x{va:X} overlaps {other}")
+        used.append((va, va + len(raw), name))
+        upper = name.upper()
+        lines.append(f"#define SITE_{upper}_VA 0x{va:08X}u")
+        lines.append(f"#define SITE_{upper}_LEN {len(raw)}")
+        lines.append(f"static const unsigned char SITE_{upper}_EXPECT[] = {{ {c_bytes(raw)} }};")
+        lines.append(f"static const unsigned char SITE_{upper}_EXPECT_26[] = {{ {c_bytes(raw[:-1] + bytes([0x1A]))} }};")
 
     for name, va, holds in VTABLE:
         raw = data[va - BASE: va - BASE + 4]

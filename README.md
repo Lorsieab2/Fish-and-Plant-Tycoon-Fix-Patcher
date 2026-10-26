@@ -65,8 +65,10 @@ never needs the internet.
   tanks, never age, breed or get sold, and magically enhance the life and
   environment of your fish (the Tools tab's Game Mechanics lists the exact
   effects). The Moray Eel comes with its rock: drop the eel on it to send it
-  home, move the rock and the eel goes with it, and click its head to let it
-  out. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
+  home, move the rock and the eel goes with it, and drag it out by its head.
+  Trashing the eel trashes its rock, and the other way round. The animals,
+  the Golden Seahorse included, never take a fish's place: each tank has 5
+  animal slots of its own. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
   The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
   second companion DLL (`Fish Tycoon Fix Patcher Files\FTFP DS Store.dll`),
   loaded by DS Fish's; everything it adds is kept in the game's own save.

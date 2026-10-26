@@ -32,6 +32,26 @@ static const unsigned char SITE_FISH_DROP_EXPECT[] = { 0x8B, 0x4E, 0x34, 0x8B, 0
 #define SITE_ORNAMENT_PICK_VA 0x0041E570u
 #define SITE_ORNAMENT_PICK_LEN 9
 static const unsigned char SITE_ORNAMENT_PICK_EXPECT[] = { 0x8B, 0x41, 0x34, 0x8B, 0x90, 0x84, 0x03, 0x00, 0x00 };
+#define SITE_SEAHORSE_PLACE_VA 0x00427E43u
+#define SITE_SEAHORSE_PLACE_LEN 7
+static const unsigned char SITE_SEAHORSE_PLACE_EXPECT[] = { 0x8B, 0x4E, 0x10, 0x8D, 0x54, 0x24, 0x3C };
+#define SITE_NEW_GAME_CLEAR_VA 0x0041AACAu
+#define SITE_NEW_GAME_CLEAR_LEN 5
+static const unsigned char SITE_NEW_GAME_CLEAR_EXPECT[] = { 0xE8, 0x21, 0xEE, 0xFF, 0xFF };
+#define SITE_FISH_TRASH_VA 0x0041E809u
+#define SITE_FISH_TRASH_LEN 5
+static const unsigned char SITE_FISH_TRASH_EXPECT[] = { 0x8B, 0x4E, 0x34, 0x53, 0x57 };
+#define SITE_ORNAMENT_DROP_VA 0x0041F660u
+#define SITE_ORNAMENT_DROP_LEN 9
+static const unsigned char SITE_ORNAMENT_DROP_EXPECT[] = { 0x53, 0x55, 0x8B, 0x6C, 0x24, 0x10, 0x56, 0x8B, 0xF1 };
+#define SITE_VIEW_BUILD_SLOTS_VA 0x004140C5u
+#define SITE_VIEW_BUILD_SLOTS_LEN 3
+static const unsigned char SITE_VIEW_BUILD_SLOTS_EXPECT[] = { 0x83, 0xF8, 0x15 };
+static const unsigned char SITE_VIEW_BUILD_SLOTS_EXPECT_26[] = { 0x83, 0xF8, 0x1A };
+#define SITE_VIEW_REFRESH_SLOTS_VA 0x00415893u
+#define SITE_VIEW_REFRESH_SLOTS_LEN 3
+static const unsigned char SITE_VIEW_REFRESH_SLOTS_EXPECT[] = { 0x83, 0xF8, 0x15 };
+static const unsigned char SITE_VIEW_REFRESH_SLOTS_EXPECT_26[] = { 0x83, 0xF8, 0x1A };
 #define SITE_VT_MOUSE_VA 0x0044C298u
 #define SITE_VT_MOUSE_LEN 4
 static const unsigned char SITE_VT_MOUSE_EXPECT[] = { 0x80, 0x79, 0x42, 0x00 };
@@ -48,5 +68,9 @@ static const unsigned char SITE_VT_OVERLAY_EXPECT[] = { 0xF0, 0xB5, 0x41, 0x00 }
 #define SITE_VT_ACTIVATE_LEN 4
 static const unsigned char SITE_VT_ACTIVATE_EXPECT[] = { 0x60, 0x79, 0x42, 0x00 };
 #define SITE_VT_ACTIVATE_HOLDS 0x00427960u
+#define SITE_STATE_LOAD_VA 0x004424D0u
+#define SITE_STATE_LOAD_LEN 4
+static const unsigned char SITE_STATE_LOAD_EXPECT[] = { 0x70, 0xAE, 0x41, 0x00 };
+#define SITE_STATE_LOAD_HOLDS 0x0041AE70u
 
 #endif

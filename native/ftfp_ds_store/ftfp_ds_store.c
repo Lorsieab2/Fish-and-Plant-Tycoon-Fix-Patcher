@@ -20,10 +20,13 @@
    after its own install and lends it sprite table entries 220-235.  Every
    write into the game is in store_sites.h -- all of them or none.
 
-   STATE.  Nothing new is saved.  A companion is a seahorse-type fish record
+   STATE.  Nothing new is saved.  An animal is a seahorse-type fish record
    (body 22) whose fin marks the animal: 22 Golden Seahorse, 30 Puffer Fish,
    31 Sting Ray, 32 Moray Eel -- so every rule the game has for the seahorse
-   applies to them.  The rock is one of the tank's ornament records; while
+   applies to them.  The animals (the Golden Seahorse too) live in the last
+   five of each tank's 31 fish records, slots 26-30, which no stock gameplay
+   loop reaches (the game uses 21, or 26 with "Bigger tanks"), so they never
+   take a fish's place; they are saved with the game.  The rock is one of the tank's ornament records; while
    the eel is home, the rock record's spare bytes keep its health and food.
    Owning an animal means it is in a tank: one of each, bought again after
    it is trashed.  With "Buy Multiple Golden Seahorses" patched in, the store
@@ -39,7 +42,12 @@
 #define FISH_BASE 0x390
 #define TANK_STRIDE 0x51EC
 #define SLOT_STRIDE 0x288
-#define SLOTS 21
+#define RECORDS 31                  /* fish records per tank; the game uses 21 (26 with "Bigger tanks") */
+#define ANIMAL_FIRST 26             /* the animals' slots: 26-30 */
+#define ANIMAL_SLOTS 5
+#define F_MARK 0x14                 /* mate-gene fields, read only by breeding: the animal signature */
+#define F_KIND 0x18
+#define ANIMAL_MARK 0x41435446      /* "FTCA" */
 #define ORN_BASE 0x5208
 #define ORN_STRIDE 0x2C
 #define ORN_SLOTS 6
@@ -104,7 +112,8 @@
 #define SPR_ROCK_HOME (STORE_SPRITE_BASE + 9)
 #define SPR_HOME_BACK (STORE_SPRITE_BASE + 10)
 #define SPR_HOME_FRONT (STORE_SPRITE_BASE + 11)
-#define STORE_SPRITES 12
+#define SPR_PUFF (STORE_SPRITE_BASE + 12)
+#define STORE_SPRITES 13
 
 typedef struct sprite_entry {
     int id;
@@ -133,6 +142,7 @@ static const struct { const char *name; int cols, rows; } SPRITE_FILES[STORE_SPR
     { "DS_EEL_ROCK.png", 0, 0 },                /* the eel home */
     { "DS_EEL_HOME_BACK_Grid.png", HOME_COLS, HOME_FRAMES / HOME_COLS },
     { "DS_EEL_HOME_FRONT_Grid.png", HOME_COLS, HOME_FRAMES / HOME_COLS },
+    { "DS_PUFFER_PUFF_Grid.png", 4, 2 },        /* the puffer puffed up: left, then right */
 };
 
 /* ------------------------------------------------------------ the game */
@@ -219,12 +229,39 @@ static int is_companion(char *f, int fin) {
     return *I(f, F_LIVE) != 0 && *I(f, F_BODY) == BODY_SEAHORSE && *I(f, F_FIN) == fin;
 }
 
+static int is_animal(char *f) {
+    return *I(f, F_LIVE) != 0 && *I(f, F_BODY) == BODY_SEAHORSE && *I(f, F_MARK) == ANIMAL_MARK;
+}
+
+/* An animal of this kind in slots 26-30, or one an earlier build left among the fish. */
+static int is_kind(char *f, int slot, int fin) {
+    return slot >= ANIMAL_FIRST ? is_animal(f) && *I(f, F_FIN) == fin : is_companion(f, fin);
+}
+
 static int count_in_tank(char *state, int tank, int fin) {
     int s, n = 0;
-    for (s = 0; s < SLOTS; ++s) {
-        if (is_companion(fish(state, tank, s), fin)) ++n;
+    for (s = 0; s < RECORDS; ++s) {
+        if (is_kind(fish(state, tank, s), s, fin)) ++n;
     }
     return n;
+}
+
+static int free_animal_slot(char *state, int tank) {
+    int s;
+    for (s = ANIMAL_FIRST; s < ANIMAL_FIRST + ANIMAL_SLOTS; ++s) {
+        if (!is_animal(fish(state, tank, s))) return s;
+    }
+    return -1;
+}
+
+/* Copies an animal's record into a free animal slot of the tank: its slot, or -1. */
+static int place_animal(char *state, int tank, char *rec) {
+    int slot = tank >= 0 && tank <= 2 ? free_animal_slot(state, tank) : -1;
+    if (slot < 0) return -1;
+    *I(rec, F_MARK) = ANIMAL_MARK;
+    *I(rec, F_KIND) = *I(rec, F_FIN);
+    memcpy(fish(state, tank, slot), rec, SLOT_STRIDE);
+    return slot;
 }
 
 static int is_rock(unsigned char *o) {
@@ -330,9 +367,21 @@ static void make_companion(char *state, char *rec, int fin, int health, int food
     *I(rec, F_LIVE) = STATE_NOW(state, NULL);
 }
 
+/* Every 26 seconds or so (each puffer on its own clock) the puffer puffs up
+   while it swims: the DS's puff-up frames 1, 2, 3, held, then back.  0 = not now. */
+static int puff_stage(char *rec) {
+    DWORD t = (GetTickCount() + (DWORD)(UINT_PTR)rec * 2654435761u) % 26000u;
+    if (t < 300u) return 1;
+    if (t < 600u) return 2;
+    if (t < 3600u) return 3;
+    if (t < 3900u) return 2;
+    if (t < 4200u) return 1;
+    return 0;
+}
+
 /* The stage-3 draw: each animal's own sheet, centred on the seahorse's box. */
-static int __cdecl companion_sheet(int fin, int *x, int *y) {
-    int k = fin - FIN_PUFFER, w, h, nx;
+static int __cdecl companion_sheet(char *rec, int *x, int *y, int *frame) {
+    int fin = *I(rec, F_FIN), k = fin - FIN_PUFFER, w, h, nx, stage;
     if (k < 0 || k > 2) return 0x65;
     w = COMPANION_CELL[k][0];
     h = COMPANION_CELL[k][1];
@@ -341,6 +390,10 @@ static int __cdecl companion_sheet(int fin, int *x, int *y) {
     if (nx > 800 - w) nx = 800 - w;
     *x = nx;
     *y = *y + 30 - h / 2;
+    if (fin == FIN_PUFFER && *frame >= 0 && *frame < 12 && (stage = puff_stage(rec)) != 0) {
+        *frame = (*frame >= 6 ? 4 : 0) + stage;           /* 0-5 face left, 6-11 right */
+        return SPR_PUFF;
+    }
     return SPR_SHEET + k;
 }
 
@@ -350,14 +403,54 @@ static int inside(int x, int y, int left, int top, int right, int bottom) {
     return x >= left && x <= right && y >= top && y <= bottom;
 }
 
-/* A fish dropped in the tank: the eel on its rock goes home.  1 = handled. */
+/* The tank button under (x, y) (Tank 1, Tank 2, the selling tank), or -1;
+   rects at impl+0x58 / +0x68 / +0x78: left, top, right, bottom. */
+static int button_tank(char *impl, int x, int y) {
+    int t;
+    for (t = 0; t <= 2; ++t) {
+        int *r = I(impl, 0x58 + t * 0x10);
+        if (inside(x, y, r[0], r[1], r[2], r[3])) return t;
+    }
+    return -1;
+}
+
+/* An animal dropped on a tank button: into that tank's animal slots, never the fish's. */
+static void move_animal(char *impl, char *state, int tank, int slot, int entry, int to) {
+    void *view = P(impl, 0x3C);
+    int dest;
+    if (to == tank) {
+        VIEW_MOVE(view, NULL, entry, tank, 1, -1);            /* back to swimming */
+        return;
+    }
+    if (to == 1 && *I(state, S_SECOND_TANK) == 0) {
+        HINT(P(impl, 0x44), NULL, 8);
+        VIEW_MOVE(view, NULL, entry, tank, 1, -1);
+        return;
+    }
+    dest = free_animal_slot(state, to);
+    if (dest < 0) {
+        HINT(P(impl, 0x44), NULL, 6);                         /* "The tank is full!" */
+        VIEW_MOVE(view, NULL, entry, tank, 1, -1);
+        return;
+    }
+    memcpy(fish(state, to, dest), fish(state, tank, slot), SLOT_STRIDE);
+    REMOVE_FISH(state, NULL, tank, slot);
+    VIEW_MOVE(view, NULL, entry, -1, 1, -1);
+}
+
+/* A fish dropped in the tank: an animal on a tank button moves there, and
+   the eel on its rock goes home.  1 = handled. */
 static int __cdecl eel_drop(char *impl, int tank, int slot, int entry, int x, int y) {
     char *state = (char *)P(impl, 0x34);
     char *f;
-    int k;
-    if (state == NULL || tank < 0 || tank > 2 || tank != *I(state, S_CURRENT_TANK) || slot < 0 || slot >= SLOTS) return 0;
+    int k, to;
+    if (state == NULL || tank < 0 || tank > 2 || slot < 0 || slot >= RECORDS) return 0;
     f = fish(state, tank, slot);
-    if (!is_companion(f, FIN_EEL)) return 0;
+    if (slot >= ANIMAL_FIRST && is_animal(f) && (to = button_tank(impl, x, y)) >= 0) {
+        move_animal(impl, state, tank, slot, entry, to);
+        return 1;
+    }
+    if (tank != *I(state, S_CURRENT_TANK) || !is_kind(f, slot, FIN_EEL)) return 0;
     for (k = 0; k < ORN_SLOTS; ++k) {
         unsigned char *o = ornament(state, tank, k);
         if (o[0] == 0 || *I(o, O_SPRITE) != SPR_ROCK) continue;
@@ -373,11 +466,25 @@ static int __cdecl eel_drop(char *impl, int tank, int slot, int entry, int x, in
     return 0;
 }
 
-/* A click in the tank: on the head of an eel at home, the eel comes out.  1 = handled. */
+/* The view entry swimming the fish in (tank, slot), or -1. */
+static int view_entry(char *impl, int tank, int slot) {
+    char *view = *(char **)P(impl, 0x3C);
+    int i, n = *I(view, 0x5DD8);
+    for (i = 1; i <= n && i < 150; ++i) {
+        unsigned char *e = (unsigned char *)view + 0x1080 + i * 0x84;
+        if (e[0] && *I(e, 0x40) == tank && *I(e, 0x44) == slot) return i;
+    }
+    return -1;
+}
+
+/* A press in the tank on the head of an eel at home: the eel comes out, already
+   held, so it is dragged out of the rock (stock pick 0x41E3F0 does the same for
+   a fish).  0 = not here, 1 = handled, 2 = handled and now held. */
 static int __cdecl eel_click(char *impl, int x, int y) {
     char *state = (char *)P(impl, 0x34);
     char rec[SLOT_STRIDE];
-    int tank, k;
+    unsigned char *e;
+    int tank, k, slot, entry;
     if (state == NULL) return 0;
     tank = *I(state, S_CURRENT_TANK);
     if (tank < 0 || tank > 2) return 0;
@@ -391,7 +498,8 @@ static int __cdecl eel_click(char *impl, int x, int y) {
         make_companion(state, rec, FIN_EEL,
                        o[O_HOME_FLAG] == HOME_FLAG && o[O_HOME_HEALTH] > 0 ? o[O_HOME_HEALTH] : 80,
                        o[O_HOME_FLAG] == HOME_FLAG ? o[O_HOME_FOOD] : 50);
-        if (ADD_FISH(state, NULL, tank, (int)(UINT_PTR)rec) == -1) {
+        slot = place_animal(state, tank, rec);
+        if (slot < 0) {
             HINT(P(impl, 0x44), NULL, 6);          /* "The tank is full!" */
             return 1;
         }
@@ -399,9 +507,80 @@ static int __cdecl eel_click(char *impl, int x, int y) {
         *I(o, O_SPRITE) = SPR_ROCK;
         VIEW_SYNC(P(impl, 0x3C), NULL, (int)(UINT_PTR)fish(state, tank, 0));   /* as after a hatch */
         play_sound(0xC);
-        return 1;
+        entry = view_entry(impl, tank, slot);
+        if (entry < 0) return 1;
+        e = (unsigned char *)*(char **)P(impl, 0x3C) + 0x1080 + entry * 0x84;
+        e[1] = 1;                                   /* held */
+        *I(e, 0x4C) = -1;
+        GAME(this3_fn, 0x00413B70u)(P(impl, 0x3C), NULL, x, y, entry);
+        *I(state, 0x1E4E8) = entry;
+        *I(impl, 0x20) = x;
+        *I(impl, 0x24) = y;
+        play_sound(3);
+        return 2;
     }
     return 0;
+}
+
+static int remove_out_rock(char *state, int tank) {
+    int t, k, pass;
+    for (pass = 0; pass < 2; ++pass) {
+        for (t = 0; t <= 2; ++t) {
+            if ((pass == 0) != (t == tank)) continue;          /* the eel's own tank first */
+            for (k = 0; k < ORN_SLOTS; ++k) {
+                unsigned char *o = ornament(state, t, k);
+                if (o[0] != 0 && *I(o, O_SPRITE) == SPR_ROCK) {
+                    memset(o, 0, ORN_STRIDE);
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+/* 0x41E809, the trash after its "throw away?" answer: an eel takes a rock with it. */
+static void __cdecl fish_trashed(char *impl, int tank, int slot) {
+    char *state = (char *)P(impl, 0x34);
+    if (state == NULL || tank < 0 || tank > 2 || slot < 0 || slot >= RECORDS) return;
+    if (is_kind(fish(state, tank, slot), slot, FIN_EEL)) remove_out_rock(state, tank);
+}
+
+static int confirm_in(void *parent, int string_id);
+
+/* An ornament dropped (the stock game only moves them): the eel's rock on the
+   trash can is thrown away, with its eel (inside it, or the one swimming in
+   the same tank, else another).  1 = handled. */
+static int __cdecl rock_trash(char *impl, int x, int y) {
+    char *state = (char *)P(impl, 0x34);
+    int tank, k = *I(impl, 0x28), t, s, pass, done = 0;
+    unsigned char *o;
+    if (state == NULL || k < 0 || k >= ORN_SLOTS) return 0;
+    tank = *I(state, S_CURRENT_TANK);
+    if (tank < 0 || tank > 2) return 0;
+    o = ornament(state, tank, k);
+    if (!is_rock(o) || !inside(x, y, *I(impl, 0x88), *I(impl, 0x8C), *I(impl, 0x90), *I(impl, 0x94))) return 0;
+    if (!confirm_in(P(impl, 0x50), 0xAC)) return 0;            /* no: the stock code puts it back */
+    if (!is_home_rock(o)) {
+        for (pass = 0; pass < 2 && !done; ++pass) {
+            for (t = 0; t <= 2 && !done; ++t) {
+                if ((pass == 0) != (t == tank)) continue;
+                for (s = 0; s < RECORDS && !done; ++s) {
+                    if (!is_kind(fish(state, t, s), s, FIN_EEL)) continue;
+                    if (t == tank) {
+                        int entry = view_entry(impl, t, s);
+                        if (entry >= 0) VIEW_MOVE(P(impl, 0x3C), NULL, entry, -1, 0, s);
+                    }
+                    REMOVE_FISH(state, NULL, t, s);
+                    done = 1;
+                }
+            }
+        }
+    }
+    memset(o, 0, ORN_STRIDE);
+    *I(impl, 0x28) = 0x63;
+    play_sound(4);
+    return 1;
 }
 
 /* The eel at home: the part of it behind the rock, then (after every
@@ -626,22 +805,16 @@ static void draw_page(void *scene) {
     }
 }
 
-static int confirm(char *impl, int string_id) {
+static int confirm_in(void *parent, int string_id) {
     char dialog[0x400];
     int answer;
     DIALOG_INIT(dialog, NULL, string_id, 1);
-    answer = DIALOG_RUN(dialog, NULL, (int)(UINT_PTR)P(impl, 0x20), 0);
+    answer = DIALOG_RUN(dialog, NULL, (int)(UINT_PTR)parent, 0);
     DIALOG_FREE(dialog, NULL);
     return answer == 0;
 }
 
-static int free_fish_slot(char *state, int tank) {
-    int s;
-    for (s = 0; s < SLOTS; ++s) {
-        if (*I(fish(state, tank, s), F_LIVE) == 0) return 1;
-    }
-    return 0;
-}
+static int confirm(char *impl, int string_id) { return confirm_in(P(impl, 0x20), string_id); }
 
 static int free_ornament_slot(char *state, int tank) {
     int k;
@@ -698,7 +871,7 @@ static void buy(void *scene) {
         int order[3], n = tank_order(state, order), i, fish_tank = -1, rock_tank = -1;
         char rec[SLOT_STRIDE];
         for (i = 0; i < n && fish_tank < 0; ++i) {
-            if (free_fish_slot(state, order[i])) fish_tank = order[i];
+            if (free_animal_slot(state, order[i]) >= 0) fish_tank = order[i];
         }
         if (it->fin == FIN_EEL && fish_tank >= 0) {
             if (free_ornament_slot(state, fish_tank)) rock_tank = fish_tank;
@@ -712,7 +885,7 @@ static void buy(void *scene) {
         }
         if (!confirm(impl, 0xEC)) return;
         make_companion(state, rec, it->fin, 80 + RANDOM(15), 50);
-        if (ADD_FISH(state, NULL, fish_tank, (int)(UINT_PTR)rec) == -1) {
+        if (place_animal(state, fish_tank, rec) < 0) {
             HINT(hint, NULL, 6);
             return;
         }
@@ -730,6 +903,67 @@ static void buy(void *scene) {
         }
         charge(state, it->price);
     }
+}
+
+/* The stock Golden Seahorse purchase (0x427E43): into the animal slots, the
+   tank you came from first.  1 = placed; 0 = no room (the stock refund). */
+static int __cdecl place_seahorse(char *state, char *rec, int now) {
+    int order[3], n = tank_order(state, order), i;
+    *I(rec, F_LIVE) = now;
+    *I(rec, F_PREGNANT) = 0;
+    for (i = 0; i < n; ++i) {
+        if (place_animal(state, order[i], rec) >= 0) return 1;
+    }
+    return 0;
+}
+
+/* New game (after the stock clear of slots 0-20): the animal slots too. */
+static void __cdecl clear_animals(char *state) {
+    int t, s;
+    for (t = 0; t <= 3; ++t) {
+        for (s = ANIMAL_FIRST; s < RECORDS; ++s) {
+            *I(fish(state, t, s), F_LIVE) = 0;
+            *I(fish(state, t, s), F_MARK) = 0;
+        }
+    }
+}
+
+/* After a save loads: leftovers in the animal slots are cleared, and animals
+   an earlier build kept among the fish move to their own slots. */
+static void settle_animals(char *state) {
+    int t, s, to, k;
+    for (t = 0; t <= 3; ++t) {
+        for (s = ANIMAL_FIRST; s < RECORDS; ++s) {
+            char *f = fish(state, t, s);
+            if (*I(f, F_LIVE) != 0 && !is_animal(f)) {
+                *I(f, F_LIVE) = 0;
+                *I(f, F_MARK) = 0;
+            }
+        }
+    }
+    for (t = 0; t <= 3; ++t) {
+        for (s = 0; s < ANIMAL_FIRST; ++s) {
+            char *f = fish(state, t, s);
+            int fin = *I(f, F_FIN);
+            if (*I(f, F_LIVE) == 0 || *I(f, F_BODY) != BODY_SEAHORSE) continue;
+            if (fin != FIN_SEAHORSE && (fin < FIN_PUFFER || fin > FIN_EEL)) continue;
+            for (k = 0, to = -1; k < 4 && to < 0; ++k) {
+                int target = k == 0 ? (t <= 2 ? t : 0) : k - 1;
+                char rec[SLOT_STRIDE];
+                memcpy(rec, f, SLOT_STRIDE);
+                if (place_animal(state, target, rec) >= 0) to = target;
+            }
+            if (to >= 0) REMOVE_FISH(state, NULL, t, s);
+        }
+    }
+}
+
+typedef int (__fastcall *load_fn)(void *state, void *edx, int slot);
+
+static int __fastcall on_state_load(char *state, void *edx, int slot) {
+    int ok = GAME(load_fn, SITE_STATE_LOAD_HOLDS)(state, edx, slot) & 0xFF;
+    if (ok && slot != 0 && slot != 0xB) settle_animals(state);
+    return ok;
 }
 
 /* The Supplies scene's vtable slots. */
@@ -782,6 +1016,10 @@ static const DWORD k_draw_ornaments = 0x0041D600u;
 static const DWORD k_drop_join = 0x0041F06Du, k_drop_done = 0x0041F0F9u;
 static const DWORD k_pick_join = 0x0041E579u;
 static const DWORD k_draw_join = 0x00414C93u;
+static const DWORD k_seahorse_ok = 0x00427C66u, k_seahorse_full = 0x00427E9Fu;
+static const DWORD k_reset_clear = 0x004198F0u;
+static const DWORD k_trash_join = 0x0041E80Eu;
+static const DWORD k_ornament_drop_join = 0x0041F669u;
 
 /* Replaces `call 0x41DF50` (the per-step health tick): the tick, then the
    companions' effects.  ebp is the tank there. */
@@ -923,14 +1161,20 @@ __declspec(naked) static void stub_ornament_pick(void) {
         push ecx
         call eel_click
         add esp, 12
-        test eax, eax
+        mov [esp + 28], eax
         popad
+        test eax, eax
         jnz handled
         mov eax, [ecx + 0x34]
         mov edx, [eax + 0x384]
         jmp k_pick_join
     handled:
+        cmp eax, 2
+        je held
         xor eax, eax
+        ret 8
+    held:
+        mov al, 1                      /* picked up, as the stock fish pick returns */
         ret 8
     }
 }
@@ -939,25 +1183,101 @@ __declspec(naked) static void stub_ornament_pick(void) {
 __declspec(naked) static void stub_draw_companion(void) {
     __asm {
         mov edx, [esp + 0x24]
-        push eax
-        push edx
-        push ebx
-        lea ecx, [esp + 4]
-        push ecx
-        lea ecx, [esp + 4]
-        push ecx
-        push dword ptr [esi + 0x50]
+        push eax                       /* frame */
+        push edx                       /* y */
+        push ebx                       /* x */
+        lea ecx, [esp + 8]
+        push ecx                       /* &frame */
+        lea ecx, [esp + 8]
+        push ecx                       /* &y */
+        lea ecx, [esp + 8]
+        push ecx                       /* &x */
+        push esi                       /* the record */
         call companion_sheet
-        add esp, 12
+        add esp, 16
         push eax
         jmp k_draw_join
+    }
+}
+
+/* 0x427E43, the stock Golden Seahorse placement: eax = now, the record at esp+0x3C. */
+__declspec(naked) static void stub_seahorse_place(void) {
+    __asm {
+        pushad
+        mov ecx, [esp + 28]            /* now (eax) */
+        lea edx, [esp + 0x20 + 0x3C]   /* the record */
+        push ecx
+        push edx
+        push dword ptr [esi + 0x10]    /* the state */
+        call place_seahorse
+        add esp, 12
+        test eax, eax
+        popad
+        jz full
+        jmp k_seahorse_ok
+    full:
+        jmp k_seahorse_full
+    }
+}
+
+/* Replaces `call 0x4198F0` in the new-game reset: that clear, then the animals'. */
+__declspec(naked) static void stub_new_game_clear(void) {
+    __asm {
+        call k_reset_clear
+        pushad
+        push esi
+        call clear_animals
+        add esp, 4
+        popad
+        ret
+    }
+}
+
+/* 0x41E809, the trash after the answer: esi = impl, edi = tank, ebx = slot. */
+__declspec(naked) static void stub_fish_trash(void) {
+    __asm {
+        pushad
+        push ebx
+        push edi
+        push esi
+        call fish_trashed
+        add esp, 12
+        popad
+        mov ecx, [esi + 0x34]
+        push ebx
+        push edi
+        jmp k_trash_join
+    }
+}
+
+/* 0x41F660, the ornament drop (thiscall impl; x, y), ret 8. */
+__declspec(naked) static void stub_ornament_drop(void) {
+    __asm {
+        pushad
+        push dword ptr [esp + 0x28]
+        push dword ptr [esp + 0x28]
+        push ecx
+        call rock_trash
+        add esp, 12
+        mov [esp + 28], eax
+        popad
+        test eax, eax
+        jnz handled
+        push ebx
+        push ebp
+        mov ebp, [esp + 0x10]
+        push esi
+        mov esi, ecx
+        jmp k_ornament_drop_join
+    handled:
+        ret 8
     }
 }
 
 /* ----------------------------------------------------------------- install */
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 14
+#define TOTAL_SITES 21
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -965,6 +1285,16 @@ static int host_ok = 0;
 #define JMP(W, NAME, TO) ftfp_site_branch((W), SITE_##NAME##_VA, SITE_##NAME##_LEN, SITE_##NAME##_EXPECT, 0xE9, CODE_ADDR(TO))
 #define CALL(W, NAME, TO) ftfp_site_branch((W), SITE_##NAME##_VA, SITE_##NAME##_LEN, SITE_##NAME##_EXPECT, 0xE8, CODE_ADDR(TO))
 #define SLOT(W, NAME, TO) ftfp_site_imm32((W), SITE_##NAME##_VA, SITE_##NAME##_LEN, SITE_##NAME##_EXPECT, 0, (unsigned int)(UINT_PTR)(TO))
+
+/* The view builders' slot bound (`cmp eax, 21`, or 26 with "Bigger tanks"):
+   31, so the animals in slots 26-30 swim too. */
+static void view_limit(ftfp_site_write *w, unsigned int va, const unsigned char *stock, const unsigned char *bigger) {
+    w->va = va;
+    w->length = 3;
+    w->expect = ftfp_site_holds(va, bigger, 3) ? bigger : stock;
+    memcpy(w->bytes, w->expect, 3);
+    w->bytes[2] = RECORDS;
+}
 
 static int prepare(void) {
     ftfp_site_write *w = writes;
@@ -982,6 +1312,13 @@ static int prepare(void) {
     SLOT(w++, VT_COMMAND, on_command);
     SLOT(w++, VT_OVERLAY, on_overlay);
     SLOT(w++, VT_ACTIVATE, on_activate);
+    JMP(w++, SEAHORSE_PLACE, stub_seahorse_place);
+    CALL(w++, NEW_GAME_CLEAR, stub_new_game_clear);
+    JMP(w++, FISH_TRASH, stub_fish_trash);
+    JMP(w++, ORNAMENT_DROP, stub_ornament_drop);
+    SLOT(w++, STATE_LOAD, on_state_load);
+    view_limit(w++, SITE_VIEW_BUILD_SLOTS_VA, SITE_VIEW_BUILD_SLOTS_EXPECT, SITE_VIEW_BUILD_SLOTS_EXPECT_26);
+    view_limit(w++, SITE_VIEW_REFRESH_SLOTS_VA, SITE_VIEW_REFRESH_SLOTS_EXPECT, SITE_VIEW_REFRESH_SLOTS_EXPECT_26);
     return (int)(w - writes) == TOTAL_SITES;
 }
 
