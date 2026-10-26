@@ -631,6 +631,7 @@ class App(tk.Tk):
         self.tools_folder = tk.StringVar()
         self.tools_name_vars = [tk.StringVar() for _ in range(5)]
         self.tools_slot_labels: list[ttk.Label] = []
+        self.tools_slot_controls: list[tuple[ttk.Entry, ttk.Button]] = []
 
         select = ttk.LabelFrame(tab, text="Game and save folder", padding=10)
         select.pack(fill="x")
@@ -697,17 +698,21 @@ class App(tk.Tk):
             label = ttk.Label(line, text=f"Slot {index + 1}:", width=34)
             label.pack(side="left")
             self.tools_slot_labels.append(label)
-            ttk.Entry(line, textvariable=self.tools_name_vars[index], width=34).pack(side="left", padx=8)
-            ttk.Button(
+            entry = ttk.Entry(line, textvariable=self.tools_name_vars[index], width=34)
+            entry.pack(side="left", padx=8)
+            button = ttk.Button(
                 line, text="Rename",
                 command=lambda slot=index + 1: self._tools_rename(slot),
-            ).pack(side="left")
+            )
+            button.pack(side="left")
+            self.tools_slot_controls.append((entry, button))
         ttk.Label(
             rename,
             text=(
                 "Changes the name in the game's player list and inside that player's own save "
-                "files. Up to 31 plain characters, as in the game. The save folder is backed up "
-                "first."
+                "files. Only slots with a saved game can be renamed, and \"NEW PLAYER\" is not "
+                "a name (the game uses it for empty slots). Up to 31 plain characters, as in the "
+                "game. The save folder is backed up first."
             ),
             wraplength=880, foreground="#444444",
         ).pack(anchor="w", pady=(4, 0))
@@ -763,8 +768,13 @@ class App(tk.Tk):
                 self.status_var.set(f"Could not read the player list: {exc}")
         for index, label in enumerate(self.tools_slot_labels):
             current = names[index] if index < len(names) else ""
-            label.configure(text=f"Slot {index + 1}: {current or '(empty)'}")
-            self.tools_name_vars[index].set(current)
+            active = bool(folder) and save_tools.slot_is_active(
+                self.tools_game.get(), Path(folder), index + 1, current
+            )
+            label.configure(text=f"Slot {index + 1}: {current if active else '(empty)'}")
+            self.tools_name_vars[index].set(current if active else "")
+            for widget in self.tools_slot_controls[index]:
+                widget.configure(state="normal" if active else "disabled")
 
     def _tools_open_backups(self) -> None:
         folder = save_tools.default_backups_folder()

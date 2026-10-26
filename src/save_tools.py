@@ -116,10 +116,23 @@ def read_slot_names(game_id: str, folder: Path) -> list[str]:
     return [_name_at(data, fmt.names_offset + i * fmt.name_stride, fmt.name_stride) for i in range(fmt.slots)]
 
 
+EMPTY_SLOT_NAME = "NEW PLAYER"     # what the game lists for a slot nobody plays
+
+
+def slot_is_active(game_id: str, folder: Path, slot: int, name: str) -> bool:
+    """A slot someone plays: a real name in the player list and its saved game on disk."""
+    fmt = FORMATS[game_id]
+    if not name or name.strip().casefold() == EMPTY_SLOT_NAME.casefold():
+        return False
+    return (folder / f"{fmt.title}{slot}.ldw").is_file()
+
+
 def validate_name(game_id: str, name: str) -> str:
     fmt = FORMATS[game_id]
     if not name or name != name.strip():
         raise SaveToolError("A name cannot be empty or start or end with a space.")
+    if name.casefold() == EMPTY_SLOT_NAME.casefold():
+        raise SaveToolError(f"\"{EMPTY_SLOT_NAME}\" is how the game marks an empty slot; choose another name.")
     if len(name) > fmt.max_name:
         raise SaveToolError(f"A name can be at most {fmt.max_name} characters, as in the game.")
     if any(not (0x20 <= ord(c) < 0x7F) for c in name):
@@ -198,6 +211,8 @@ def rename_slot(game_id: str, folder: Path, slot: int, new_name: str,
     settings_path = _settings_path(fmt, folder)
     settings = _read_ldw(settings_path)
     old_name = read_slot_names(game_id, folder)[slot - 1]
+    if not slot_is_active(game_id, folder, slot, old_name):
+        raise SaveToolError(f"Slot {slot} has no saved game to rename; only slots in use can be renamed.")
     backup = back_up(folder, backups, f"before renaming slot {slot}")
 
     offset = fmt.names_offset + (slot - 1) * fmt.name_stride

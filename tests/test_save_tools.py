@@ -100,11 +100,23 @@ class SaveToolTests(unittest.TestCase):
 
     def test_bad_names_are_refused_before_anything_changes(self) -> None:
         folder = make_folder(self.root, "fish", ["Ana", "Bo", "Cy", "Di", "Ed"])
-        for bad in ("", " Ana", "x" * 32, "Zoë", "tab\there"):
+        for bad in ("", " Ana", "x" * 32, "Zoë", "tab\there", "NEW PLAYER", "New Player"):
             with self.assertRaises(save_tools.SaveToolError, msg=bad):
                 save_tools.rename_slot("fish", folder, 1, bad, self.backups)
         self.assertFalse(self.backups.exists())
         self.assertEqual(save_tools.read_slot_names("fish", folder)[0], "Ana")
+
+    def test_only_slots_with_a_saved_game_can_be_renamed(self) -> None:
+        fmt = save_tools.FORMATS["plant"]
+        folder = make_folder(self.root, "plant", ["Ana", "NEW PLAYER", "", "Di", "Ed"])
+        (folder / f"{fmt.title}4.ldw").unlink()            # listed, but its game is gone
+        for slot in (2, 3, 4):
+            with self.assertRaises(save_tools.SaveToolError, msg=f"slot {slot}"):
+                save_tools.rename_slot("plant", folder, slot, "Someone", self.backups)
+        self.assertFalse(self.backups.exists(), "nothing is backed up or written")
+        self.assertEqual(save_tools.read_slot_names("plant", folder), ["Ana", "NEW PLAYER", "", "Di", "Ed"])
+        self.assertTrue(save_tools.slot_is_active("plant", folder, 1, "Ana"))
+        self.assertEqual(save_tools.rename_slot("plant", folder, 5, "Edna", self.backups)["new_name"], "Edna")
 
     def test_back_up_and_restore_round_trip(self) -> None:
         folder = make_folder(self.root, "plant", ["Ana", "Bo", "Cy", "Di", "Ed"])
