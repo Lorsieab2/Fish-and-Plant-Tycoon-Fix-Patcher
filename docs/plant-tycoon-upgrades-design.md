@@ -34,10 +34,27 @@ with the setting is therefore the same as the pin without it
   - **Radioactive Plant Formula** (chemicals, upper right): chemical id 36,
     $10,000, 3 doses. Icon: the Mutation Liquid bottle, prismatic on its
     coloured parts only. On a plant: full health, every dead (brown) branch
-    alive again, size 110 (the largest), as many flowers as the plant can
-    hold, full bloom (grown to age 28 through the Insta-Grow mechanism), and
-    the one-time age-7 branch-death roll switched off. A dead plant stays dead,
-    as with the stock cures.
+    alive again, and every branch the plant's shape hides (type 2) grown too,
+    size 110 (the largest), full bloom (grown to age 28 through the Insta-Grow
+    mechanism), and the one-time age-7 branch-death roll switched off. A dead
+    plant stays dead, as with the stock cures.
+
+    Decided (user): "max insane flowering", beyond spamming the Fertilizer
+    Bomb and Bio-organic Plant Food 100 times. Those stop where the plant's
+    shape stops: a part definition (0xF4 bytes in its family's shape table)
+    lists 0-6 flower spots, most of them on joints, and a spot on a joint is
+    taken while a branch grows there (`0x42D330`). So the formula:
+    - fills every part definition's empty spots up to 6, spread over the
+      part's box (leaves too; spots the artists left unused past the count
+      are kept). The DLL writes them into all 23 shape tables at start-up;
+      the draw reads a flower's spot by index without checking the count, so
+      the flowers draw after a restart too;
+    - raises every count to 6 only while it flowers the plant, and restores
+      them, so stock flowering and the stock items are unchanged;
+    - answers "free" for every spot while it flowers (hook at `0x42D330`);
+    - then adds flowers until no spot is left (`0x42ED60(360, 0)`).
+    Live: a rose bush went from 5 flowers to 276, a 37-branch plant from 4 to
+    276, and every one of the 14 new flowers from a handful to 39-132.
   - **Fourth, Fifth and Sixth Seed Box** (seed-box column of Tool Upgrades,
     upper left): $1000 each, "Even more space for your
     seeds!", stock seed-box art at the stock places with the stock tick once

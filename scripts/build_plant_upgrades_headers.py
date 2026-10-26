@@ -52,6 +52,9 @@ SITES = [
     ("store_click", 0x448173, ["mov dword ptr [esp + 0x14], eax", "mov ebp, 0x122"]),
     ("store_hover", 0x448433, ["mov eax, dword ptr [esi + 0x1bc]"]),
     ("pollination_tail", 0x4241B4, ["pop edi", "pop esi", "pop ebp", "pop ebx", "ret 8"]),
+    # "is this flower spot free?" (a spot on a joint is taken while a branch grows there): the
+    # formula's flowering skips that test, so every spot on every branch flowers.
+    ("joint_free", 0x42D330, ["mov eax, dword ptr [esp + 0xc]", "mov edx, dword ptr [esp + 8]"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).
@@ -69,6 +72,14 @@ DATA = [
     ("link_record", 0x4882D4, bytes(0x18)),       # the table's spare, all-zero last record
 ]
 SHEET_FILES = {"seed_sheet_file": (0x2E, b"seed_grid.png"), "chem_sheet_file": (0xB3, b"Chemicals_Grid.png")}
+
+
+# Every plant family's shape table (the pointer each plant constructor stores at +4).
+SHAPE_TABLES = [
+    0x47CD98, 0x47D488, 0x47DA80, 0x47E540, 0x47EF08, 0x47F7E0, 0x480578, 0x480A78,
+    0x480F80, 0x4824C0, 0x482D00, 0x4834E0, 0x484940, 0x488868, 0x489DA0, 0x48AD00,
+    0x48B6C8, 0x48C740, 0x48D420, 0x48E0C0, 0x490568, 0x490B60, 0x4914C8,
+]
 
 
 def c_string_at(data: bytes, va: int) -> bytes:
@@ -142,6 +153,25 @@ def main() -> int:
         if name == "link_record" and (va - SPRITES) % 0x34:
             raise SystemExit("link_record is not a sprite record")
         emit(name, va, stock)
+
+    # The plant shape tables: 0xF4-byte part definitions ending with id -1. A definition has
+    # room for 6 flower spots (+0xAC, 12 bytes each, count at +0xA8). For the Radioactive Plant
+    # Formula the DLL fills the all-zero spots past the count (a few definitions keep unused
+    # spots there from the artists; those stay as they are).
+    for va in SHAPE_TABLES:
+        at, n = va - BASE, 0
+        while struct.unpack_from("<i", data, at)[0] != -1:
+            count = struct.unpack_from("<i", data, at + 0xA8)[0]
+            if not 0 <= count <= 6 or n >= 80:
+                raise SystemExit(f"shape table 0x{va:X}: record {n} is not a part definition")
+            at += 0xF4
+            n += 1
+        if n == 0:
+            raise SystemExit(f"shape table 0x{va:X} is empty")
+    lines.append("")
+    lines.append("static const unsigned int SHAPE_TABLES[] = { "
+                 + ", ".join(f"0x{va:08X}u" for va in SHAPE_TABLES) + " };")
+    lines.append(f"#define SHAPE_TABLE_COUNT {len(SHAPE_TABLES)}")
 
     lines += ["", "#endif", ""]
     OUT.mkdir(parents=True, exist_ok=True)

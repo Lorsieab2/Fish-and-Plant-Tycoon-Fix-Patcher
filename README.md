@@ -113,9 +113,12 @@ never needs the internet.
   would sit in the stock store:
   - Legendary Seeds on the seed shelves: three a day, $5000 each, any foliage
     with one of the new flowers (the stock packets keep their stock flowers).
-  - Radioactive Plant Formula with the chemicals: $10,000, 3 doses; full
-    bloom, as many flowers as the plant can hold, the largest size, no dead or
-    brown leaves, and full health.
+  - Radioactive Plant Formula with the chemicals: $10,000, 3 doses; far
+    beyond spamming Fertilizer Bombs and Plant Food: every branch grows (dead
+    ones and the ones the plant's shape normally hides), the largest size,
+    full bloom, a flower on every spot of every branch and leaf (hundreds on a
+    big plant), no dead or brown leaves, full health, and 5 seeds when
+    pollinated.
   - The Fourth, Fifth and Sixth Seed Box with the tool upgrades: $1000
     each, bought in order like the stock ones. Each opens a 40-seed drawer in
     a second chest; the gold arrows on the Seed Storage title bar switch

@@ -36,8 +36,12 @@
   store:
   - Legendary Seeds (three a day, $5000, prismatic packets, any foliage with a
     new flower; the stock packets keep their stock flowers);
-  - Radioactive Plant Formula ($10,000, 3 doses): full bloom, the most
-    flowers, the largest size, no dead leaves, full health.
+  - Radioactive Plant Formula ($10,000, 3 doses): far beyond spamming
+    Fertilizer Bombs and Plant Food. Every branch grows (dead ones and the
+    ones the plant's shape normally hides), the largest size, full bloom,
+    and a flower on every spot of every branch and leaf: up to 6 per part,
+    hundreds on a big plant. No dead leaves, full health, and 5 seeds when
+    pollinated.
   - the Fourth, Fifth and Sixth Seed Box ($1000 each): a second chest on
     the Seed Storage screen behind gold arrows, also filled by the greenhouse
     once boxes 1-3 are full.

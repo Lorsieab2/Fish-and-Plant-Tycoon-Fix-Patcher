@@ -152,8 +152,87 @@ static void __cdecl buy_legendary(char *dlg) {
 
 /* ----------------------------------------------------------------- formula */
 
-/* Full health, dead branches alive, largest size, every flower the plant can
-   hold, grown to full bloom.  The dose is already used (stock order). */
+/* Set while the formula flowers a plant: every flower spot counts as free,
+   even on a joint a branch grows from (stub_joint_free). */
+static volatile unsigned char formula_flowering = 0;
+
+/* A plant family's shape table: 0xF4-byte part definitions ending with id -1.
+   +0x14/+0x18/+0x1C/+0x20 the part's box in its sheet, +0xA8 its flower spot
+   count, +0xAC + i*12 the spots (x, y, flags).  Every definition has room for
+   6; the empty ones past the count get spots spread over the part's box.  The
+   game reads a flower's spot by index without checking the count, so these
+   draw everywhere, and only the formula raises the counts to reach them. */
+#define DEF_STRIDE 0xF4
+#define DEF_MAX 80
+#define SPOTS 6
+static const int SPOT_AT[SPOTS][2] = { { 50, 25 }, { 30, 50 }, { 70, 50 }, { 50, 75 }, { 25, 25 }, { 75, 75 } };
+
+static int part_box(const char *def, int *x, int *y, int *w, int *h) {
+    *x = AT(def, 0x14, int);
+    *y = AT(def, 0x18, int);
+    *w = AT(def, 0x1C, int);
+    *h = AT(def, 0x20, int);
+    return *w > 0 && *h > 0 && AT(def, 0xA8, int) >= 0 && AT(def, 0xA8, int) <= SPOTS;
+}
+
+static void add_spots(char *table) {
+    int n, i, x, y, w, h;
+    for (n = 0; n < DEF_MAX && AT(table, n * DEF_STRIDE, int) != -1; ++n) {
+        char *def = table + n * DEF_STRIDE;
+        if (!part_box(def, &x, &y, &w, &h)) continue;
+        for (i = AT(def, 0xA8, int); i < SPOTS; ++i) {
+            int *spot = &AT(def, 0xAC + i * 12, int);
+            if (spot[0] || spot[1] || spot[2]) continue;      /* a spot the artists left unused */
+            spot[0] = x + w * SPOT_AT[i][0] / 100;
+            spot[1] = y + h * SPOT_AT[i][1] / 100;
+        }
+    }
+}
+
+/* At start-up, before any save is drawn: every family's tables writable (the
+   formula raises their counts for a moment) and their spots in place, so the
+   formula's flowers draw where they grew after a restart too. */
+static int shapes_ready = 0;
+
+static void prepare_shapes(void) {
+    int t;
+    for (t = 0; t < SHAPE_TABLE_COUNT; ++t) {
+        char *table = (char *)(UINT_PTR)SHAPE_TABLES[t];
+        DWORD old;
+        int n = 0;
+        while (n < DEF_MAX && AT(table, n * DEF_STRIDE, int) != -1) ++n;
+        if (!VirtualProtect(table, (SIZE_T)n * DEF_STRIDE, PAGE_READWRITE, &old)) return;
+        add_spots(table);
+    }
+    shapes_ready = 1;
+}
+
+static int known_table(const char *table) {
+    int t;
+    for (t = 0; t < SHAPE_TABLE_COUNT; ++t)
+        if ((UINT_PTR)table == SHAPE_TABLES[t]) return 1;
+    return 0;
+}
+
+/* add_flowers with every part's spot count at 6 (restored afterwards). */
+static void flower_everything(char *plant) {
+    add_flowers_fn add_flowers = (add_flowers_fn)AT(AT(plant, 0, char *), 0x44, void *);
+    char *table = AT(plant, 4, char *);
+    int saved[DEF_MAX], n = 0, x, y, w, h;
+    if (shapes_ready && known_table(table))             /* else the plant's own spots only */
+    for (n = 0; n < DEF_MAX && AT(table, n * DEF_STRIDE, int) != -1; ++n) {
+        saved[n] = AT(table + n * DEF_STRIDE, 0xA8, int);
+        if (part_box(table + n * DEF_STRIDE, &x, &y, &w, &h)) AT(table + n * DEF_STRIDE, 0xA8, int) = SPOTS;
+    }
+    formula_flowering = 1;
+    add_flowers(plant, 0, 360, 0);
+    formula_flowering = 0;
+    while (n-- > 0) AT(table + n * DEF_STRIDE, 0xA8, int) = saved[n];
+}
+
+/* Full health, every branch alive (dead ones, and the ones the plant's shape
+   hides), largest size, a flower on every spot of every branch, grown to full
+   bloom.  The dose is already used (stock order). */
 static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plant) {
     char *state = AT(greenhouse, 0x68, char *);
     char *pot = state + 0x2188 + (row * 5 + col) * 0x5600;
@@ -163,13 +242,12 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
     for (k = 0; k < 60; ++k) {
         int *type = &AT(pot, 0xA8 + k * 0x16C + 4, int);
         if (*type == 0) break;
-        if (*type == 4) *type = 1;
+        if (*type == 2 || *type == 4) *type = 1;          /* hidden or dead: alive (cut ones stay cut) */
     }
     AT(pot, 0x80, int) = 110;
     AT(pot, 0x9C, int) = 1;                              /* skip the age-7 roll that kills branches */
     if (plant != NULL && AT(plant, 4, void *) != NULL) {
-        add_flowers_fn add_flowers = (add_flowers_fn)AT(AT(plant, 0, char *), 0x44, void *);
-        add_flowers(plant, 0, 360, 0);
+        flower_everything(plant);
         AT(pot, 0x8C, int) = 100;
     }
     if (AT(pot, 0x10, float) < 28.0f && AT(pot, 0x14, float) < 28.0f) AT(pot, 0x14, float) = 28.0f;
@@ -536,6 +614,7 @@ static const DWORD k_draw_skip = 0x00447FF8u;          /* after the stock item g
 static const DWORD k_click_back = SITE_STORE_CLICK_BACK;
 static const DWORD k_click_done = 0x00448583u;         /* the mouse handler's exit */
 static const DWORD k_hover_back = SITE_STORE_HOVER_BACK;
+static const DWORD k_joint_free_back = SITE_JOINT_FREE_BACK;
 static const DWORD k_sprite_draw = 0x004208F0u;
 static const float k_one = 1.0f;
 
@@ -821,6 +900,21 @@ __declspec(naked) static void stub_pollinated(void) {
     }
 }
 
+/* 0x42D330 (stdcall-style, ret 0xC): is this flower spot free?  Yes to all
+   while the formula flowers a plant. */
+__declspec(naked) static void stub_joint_free(void) {
+    __asm {
+        cmp byte ptr [formula_flowering], 0
+        je stock
+        mov al, 1
+        ret 0xC
+    stock:
+        mov eax, [esp + 0xC]
+        mov edx, [esp + 8]
+        jmp k_joint_free_back
+    }
+}
+
 /* 0x447DA2 store draw, before the item grids: esi = store. */
 __declspec(naked) static void stub_draw(void) {
     __asm {
@@ -882,7 +976,7 @@ static const char CHEM_SHEET_FILE[] = "Chemicals_Grid_upgrades.png";
 static const char LINK_FILE[] = "upgrades_link.png";
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 19
+#define CODE_SITES 20
 #define DATA_SITES 6
 #define TOTAL_SITES (CODE_SITES + DATA_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -930,6 +1024,7 @@ static int prepare(void) {
     JMP(w++, STORE_CLICK, stub_click);
     JMP(w++, STORE_HOVER, stub_hover);
     JMP(w++, POLLINATION_TAIL, stub_pollinated);
+    JMP(w++, JOINT_FREE, stub_joint_free);
     site_data(w++, SITE_CHEM_PICTURE_BOUND_VA, SITE_CHEM_PICTURE_BOUND_LEN, SITE_CHEM_PICTURE_BOUND_EXPECT, NULL, 0);
     writes[CODE_SITES].bytes[SITE_CHEM_PICTURE_BOUND_IMM_AT] = bound;
     site_data(w++, SITE_SEED_SHEET_FILE_VA, SITE_SEED_SHEET_FILE_LEN, SITE_SEED_SHEET_FILE_EXPECT, &seed_file, 4);
@@ -1021,6 +1116,13 @@ const ftfp_upgrades_events *__stdcall FtfpUpgradesStartup(void) {
             if (prepare() && ftfp_install_sites(writes, TOTAL_SITES)) installed = 1;
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             installed = 0;
+        }
+        if (installed) {
+            __try {
+                prepare_shapes();
+            } __except (EXCEPTION_EXECUTE_HANDLER) {
+                shapes_ready = 0;
+            }
         }
         write_install_log();
         if (installed) {
