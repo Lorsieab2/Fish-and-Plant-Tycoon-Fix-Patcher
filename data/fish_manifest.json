@@ -371,8 +371,8 @@
     {
       "id": "ds_store",
       "name": "DS Store Items",
-      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Puffer Fish, Sting Ray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, and Exotic Fish Eggs that hatch only DS fish. Needs DS Exclusive Fish.",
-      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Puffer Fish, Sting Ray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal slots of its own, the Golden Seahorse's included. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
+      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, and Exotic Fish Eggs that hatch only DS fish. Needs DS Exclusive Fish.",
+      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal slots of its own, the Golden Seahorse's included. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
       "warning": "Turning this off after buying a store animal leaves it in your tank drawn as a Golden Seahorse, and the eel's rock as a sprite the game cannot draw. Move the animals to the trash and the eel out of its rock before switching it off.",
       "category": "main",
       "default": false,
@@ -386,8 +386,8 @@
           {
             "path": "DS Store Items.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
-            "size": 101888,
-            "sha256": "622BB7E9038E2E1AC223C569CC2103B58D57C8F94085DA7D41D37E5554A58D13"
+            "size": 102400,
+            "sha256": "80A4BDA1D33465BFEA1A0F5BDBED95732F8CBE36E9DB5727F520D159B25B003C"
           },
           {
             "path": "Images/DS_EEL_Grid.png",

@@ -65,6 +65,19 @@ tank full of fish still takes up to 5 animals:
 With "Buy Multiple Golden Seahorses" on, the store animals can be bought
 more than once too; with it off, one of each, buyable again after trashing.
 
+### Names
+
+The tank's info panel shows a held fish's species name from the species table
+(`0x41D980` calls `0x419290`); a seahorse-type record has no name there, so
+stock code showed nothing for the Golden Seahorse. The DLL hooks that call
+(`0x41DA0A`) and, for an animal, returns its name (user): Golden Seahorse,
+Magic Pufferfish, Blue-Spotted Stingray, Moray Eel. The store page uses the
+same names.
+
+No stock slot loop reaches slots 26-30 (magic fish, medicines, the Unknown
+Chemical, the age step), and the DLL's own effects skip seahorse-type
+records, so nothing but the animals' placement code ever touches them.
+
 Customers in the selling tank (`0x42426F`) and their thought bubbles
 (`0x41355F`) now skip every seahorse-type companion, the Golden Seahorse
 included; stock code read their species data out of range.

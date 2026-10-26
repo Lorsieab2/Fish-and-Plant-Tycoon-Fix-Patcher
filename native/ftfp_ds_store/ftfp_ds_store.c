@@ -706,6 +706,42 @@ static void __cdecl exotic_hatch(char *impl, int x, int y) {
     }
 }
 
+/* ------------------------------------------------------- creature names */
+
+/* The names the info panel shows for a held animal (user, 2026-10-26).  The
+   game's species table has no name for a seahorse-type record, so stock code
+   showed none, the Golden Seahorse's included. */
+static const char *animal_name(int fin) {
+    switch (fin) {
+    case FIN_SEAHORSE: return "Golden Seahorse";
+    case FIN_PUFFER: return "Magic Pufferfish";
+    case FIN_RAY: return "Blue-Spotted Stingray";
+    case FIN_EEL: return "Moray Eel";
+    default: return NULL;
+    }
+}
+
+/* After 0x41D980's species lookup (kind 0 = the held fish): an animal's name
+   in place of the table's empty one. */
+static const char *__cdecl held_name(char *impl, int kind, const char *found) {
+    char *state = (char *)P(impl, 0x34), *view, *rec;
+    unsigned char *e;
+    int i, tank, slot;
+    const char *name;
+    if (kind != 0 || state == NULL) return found;
+    i = *I(state, 0x1E4E8);
+    view = *(char **)P(impl, 0x3C);
+    if (view == NULL || i < 1 || i >= 150 || i > *I(view, 0x5DD8)) return found;
+    e = (unsigned char *)view + 0x1080 + i * 0x84;
+    tank = *I(e, 0x40);
+    slot = *I(e, 0x44);
+    if (tank < 0 || tank > 2 || slot < 0 || slot >= RECORDS) return found;
+    rec = fish(state, tank, slot);
+    if (*I(rec, F_BODY) != BODY_SEAHORSE) return found;
+    name = animal_name(*I(rec, F_FIN));
+    return name != NULL ? name : found;
+}
+
 /* ------------------------------------------------------- the store page */
 
 typedef struct store_item {
@@ -720,11 +756,11 @@ typedef struct store_item {
 #define ITEMS 4
 static const store_item ITEM[ITEMS] = {
     { FIN_PUFFER, 1250, 44, 83, 85, 70, SPR_ITEM_PUFFER, 80, 60,
-      { "Puffer Fish", "Kugelfisch" },
+      { "Magic Pufferfish", "Magischer Kugelfisch" },
       { "The puffer fish magically enhances your\nenvironment and the life of your fish.\nComes fully installed.",
         "Dieser Kugelfisch verbessert auf\nmagische Weise die Umgebung und das\nLeben deiner Fische.\nWird komplett installiert ausgeliefert." } },
     { FIN_RAY, 1250, 141, 87, 73, 71, SPR_ITEM_PUFFER + 1, 80, 60,
-      { "Sting Ray", "Stachelrochen" },
+      { "Blue-Spotted Stingray", "Blaupunktrochen" },
       { "The sting ray magically enhances your\nenvironment and the life of your fish.\nComes fully installed.",
         "Dieser Stachelrochen verbessert auf\nmagische Weise die Umgebung und das\nLeben deiner Fische.\nWird komplett installiert ausgeliefert." } },
     { FIN_EEL, 1250, 234, 93, 71, 71, SPR_ITEM_PUFFER + 2, 80, 60,
@@ -1033,6 +1069,8 @@ static void __fastcall on_activate(void *scene, void *edx, int active) {
 /* ------------------------------------------------------------------ stubs */
 
 static const DWORD k_health_tick = 0x0041DF50u;
+static const DWORD k_species_lookup = 0x00419290u;
+static const DWORD k_held_name_back = 0x0041DA0Fu;
 static const DWORD k_dead_join = 0x0042062Eu, k_alive_join = 0x00420649u;
 static const DWORD k_customer_join = 0x0042427Du, k_customer_skip = 0x0042448Au;
 static const DWORD k_thought_join = 0x0041356Cu, k_thought_skip = 0x00413622u;
@@ -1277,6 +1315,24 @@ __declspec(naked) static void stub_fish_trash(void) {
 }
 
 /* 0x41F660, the ornament drop (thiscall impl; x, y), ret 8. */
+/* 0x41DA0A call 0x419290 (thiscall: kind, a, b; ret 0xC), in 0x41D980 (esi = the
+   tank scene): the lookup as before, then held_name.  Back at 0x41DA0F. */
+__declspec(naked) static void stub_held_name(void) {
+    __asm {
+        push dword ptr [esp + 8]
+        push dword ptr [esp + 8]
+        push dword ptr [esp + 8]
+        call dword ptr [k_species_lookup]
+        push eax
+        push dword ptr [esp + 4]
+        push esi
+        call held_name
+        add esp, 12
+        add esp, 12
+        jmp k_held_name_back
+    }
+}
+
 __declspec(naked) static void stub_ornament_drop(void) {
     __asm {
         pushad
@@ -1303,7 +1359,7 @@ __declspec(naked) static void stub_ornament_drop(void) {
 /* ----------------------------------------------------------------- install */
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 21
+#define TOTAL_SITES 22
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -1342,6 +1398,7 @@ static int prepare(void) {
     CALL(w++, NEW_GAME_CLEAR, stub_new_game_clear);
     JMP(w++, FISH_TRASH, stub_fish_trash);
     JMP(w++, ORNAMENT_DROP, stub_ornament_drop);
+    JMP(w++, HELD_NAME, stub_held_name);
     SLOT(w++, STATE_LOAD, on_state_load);
     view_limit(w++, SITE_VIEW_BUILD_SLOTS_VA, SITE_VIEW_BUILD_SLOTS_EXPECT, SITE_VIEW_BUILD_SLOTS_EXPECT_26);
     view_limit(w++, SITE_VIEW_REFRESH_SLOTS_VA, SITE_VIEW_REFRESH_SLOTS_EXPECT, SITE_VIEW_REFRESH_SLOTS_EXPECT_26);
