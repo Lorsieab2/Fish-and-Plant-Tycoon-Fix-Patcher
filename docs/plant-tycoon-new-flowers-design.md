@@ -48,9 +48,14 @@ green bulb, anchored halfway between the bell's centre and the tube's end
   - 3 seeds, rerolled every in-game day with the others;
   - foliage: any of the 23, equally likely;
   - flower: any of 24-37, equally likely.
-- **Breeding** keeps the game's own rule: the child's flower is the parents'
-  average, rounded up, so two new-flower parents give new-flower seeds and a
-  mixed pair can land between.
+- **Breeding** (decided, user: the same approach as the DS fish): stock x
+  stock keeps the game's rule, the parents' average rounded up. With a
+  new-flower parent the average's odd sums are rounded up or down at random,
+  one roll per pollination, as the DS breeds its fish; the seed's class
+  (packet art) and trash value follow the flower it lands on. Two new-flower
+  parents give new-flower seeds, a pair always breeds true, and a mixed pair
+  can land between. The roll lives in the pollination hook of "Add new store
+  upgrades and items" (`0x4241B4`), so it applies when that setting is on.
 
 ## Rules for the new species
 

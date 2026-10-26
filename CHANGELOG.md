@@ -36,6 +36,9 @@
   store:
   - Legendary Seeds (three a day, $5000, prismatic packets, any foliage with a
     new flower; the stock packets keep their stock flowers);
+  - Breeding with one of the new flowers follows the DS fish rule: the
+    parents' average, an odd sum rounded up or down at random (stock x
+    stock still rounds up, as in the game).
   - Radioactive Plant Formula ($10,000, 3 doses): far beyond spamming
     Fertilizer Bombs and Plant Food. Every branch grows (dead ones and the
     ones the plant's shape normally hides), the largest size, full bloom,
