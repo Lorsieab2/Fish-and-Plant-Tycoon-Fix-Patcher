@@ -682,6 +682,25 @@ static void __cdecl draw_home_fronts(char *impl) {
 
 /* ------------------------------------------------------ Exotic Fish Eggs */
 
+/* The Fix Patcher's "Universal supply slots" setting: supply slots 2-4 are
+   records at state + 0x2B8 + k * 0x1C (k = 1..3, slot #4 = k 3), any item in
+   any of them, egg stacks counting one hatch per purchase.  Its payload is
+   recognised by its use hook (0x420B70 jumps to 0x43F550). */
+#define SLOT_RECORD(state, k) ((state) + 0x2B8 + (k) * 0x1C)
+#define SR_ITEM 0x00
+#define SR_PRESENT 0x04
+#define SR_COUNT 0x08
+#define SR_ICON 0x0C
+#define SR_CURSOR 0x10
+#define SR_X 0x14
+
+static int exotic_any_slot;                 /* set at install: the use gate below is in */
+
+static int universal_slots(void) {
+    const unsigned char *p = (const unsigned char *)(UINT_PTR)0x00420B70u;
+    return p[0] == 0xE9 && *(const int *)(p + 1) == (int)(0x0043F550u - 0x00420B75u);
+}
+
 /* The egg switch for item 28: the stock egg sequence with DS-only genes. */
 static void __cdecl exotic_hatch(char *impl, int x, int y) {
     char *state = (char *)P(impl, 0x34);
@@ -691,11 +710,15 @@ static void __cdecl exotic_hatch(char *impl, int x, int y) {
     SPLASH(P(impl, 0x3C), NULL, 4, x, y);
     *I(impl, 0x30) = CLOCK_NOW() + 10;
     state = (char *)P(impl, 0x34);
-    *I(state, S_EGG_COUNT) = 0;
-    *I(state, S_EGG_PRESENT) = 0;
-    *I(state, S_EGG_ICON) = 0;
-    *I(state, S_EGG_CURSOR) = 0;
-    *I(state, S_EGG_ITEM) = 0;
+    /* With universal slots the used record sits in slot #4 for the call and a
+       stack loses one hatch (the setting's own egg rule); else it is used up. */
+    if (!universal_slots() || --*I(state, S_EGG_COUNT) <= 0) {
+        *I(state, S_EGG_COUNT) = 0;
+        *I(state, S_EGG_PRESENT) = 0;
+        *I(state, S_EGG_ICON) = 0;
+        *I(state, S_EGG_CURSOR) = 0;
+        *I(state, S_EGG_ITEM) = 0;
+    }
     count = RANDOM(2) + *I(state, S_EGG_PLANT) + 3;
     if (*I(state, S_EASY) == 0) ++count;
     while (count-- > 0) {
@@ -904,6 +927,36 @@ static void charge(char *state, int price) {
     play_sound(0xE);
 }
 
+/* Exotic Eggs with universal slots, as the setting buys stock eggs: confirm,
+   then a stack of Exotic Eggs in slots 2-4 gains one hatch, else the first
+   empty slot takes them, else the setting's three "replace?" prompts. */
+static void buy_exotic_universal(char *impl, char *state, int price) {
+    int k, slot = -1, count = 1;
+    static const int replace_prompt[4] = { 0, 0xEF, 0xEE, 0xED };
+    char *r;
+    if (!confirm(impl, 0xEC)) return;
+    for (k = 1; k <= 3 && slot < 0; ++k) {
+        r = SLOT_RECORD(state, k);
+        if (*I(r, SR_ICON) != 0 && *I(r, SR_ITEM) == EXOTIC_ITEM) {
+            slot = k;
+            count = *I(r, SR_COUNT) + 1;
+        }
+    }
+    for (k = 1; k <= 3 && slot < 0; ++k)
+        if (*I(SLOT_RECORD(state, k), SR_ICON) == 0) slot = k;
+    for (k = 1; k <= 3 && slot < 0; ++k)
+        if (confirm(impl, replace_prompt[k])) slot = k;
+    if (slot < 0) return;
+    charge(state, price);
+    r = SLOT_RECORD(state, slot);
+    *I(r, SR_ITEM) = EXOTIC_ITEM;
+    *I(r, SR_PRESENT) = 1;
+    *I(r, SR_COUNT) = count;
+    *I(r, SR_ICON) = SPR_TOOL_EGGS;
+    *I(r, SR_CURSOR) = SPR_TOOL_EGGS;
+    *I(r, SR_X) = slot * 0x30 + 0x1E;
+}
+
 static void buy(void *scene) {
     char *impl = store_impl(scene);
     char *state = (char *)P(impl, 0x10);
@@ -917,6 +970,10 @@ static void buy(void *scene) {
     }
     if (it->price > *I(state, S_MONEY)) {
         HINT(hint, NULL, 2);                         /* "You can't afford to buy this yet!" */
+        return;
+    }
+    if (it->fin == 0 && exotic_any_slot) {
+        buy_exotic_universal(impl, state, it->price);
         return;
     }
     if (it->fin == 0) {
@@ -1451,7 +1508,9 @@ static void write_install_log(void) {
     if (wcslen(path) + 64 >= 1024) return;
     wcscat_s(path, 1024, L"Fish Tycoon Fix Patcher DLLs\\DS Store Items.log");
     if (installed) {
-        len = append_text(line, len, "DS Store: installed (all sites)\r\n");
+        len = append_text(line, len, exotic_any_slot
+                          ? "DS Store: installed (all sites); Exotic Eggs use universal supply slots\r\n"
+                          : "DS Store: installed (all sites)\r\n");
     } else if (!host_ok) {
         len = append_text(line, len, "DS Store: NOT installed; DS Exclusive Fish.dll is not the version this build expects\r\n");
     } else if (ftfp_failed_site != 0) {
@@ -1467,6 +1526,31 @@ static void write_install_log(void) {
     CloseHandle(file);
 }
 
+/* With "Universal supply slots": its use trampoline sends items 0-7 to their
+   own slot (eggs 5-7 to slot #4) and lets anything else through untouched,
+   at 0x43F593 `jmp 0x43F5DE`.  Exotic Eggs (item 28) join the eggs there, so
+   they work from any of slots 2-4.  Only written when that payload is in the
+   executable; edx holds the item, the eggs branch is 0x43F5AC. */
+static const unsigned char USE_GATE_EXPECT[5] = { 0xE9, 0x46, 0x00, 0x00, 0x00 };
+static const DWORD k_use_eggs = 0x0043F5ACu, k_use_other = 0x0043F5DEu;
+static ftfp_site_write use_gate[1];
+
+__declspec(naked) static void stub_use_gate(void) {
+    __asm {
+        cmp edx, EXOTIC_ITEM
+        jne other
+        jmp k_use_eggs
+    other:
+        jmp k_use_other
+    }
+}
+
+static void install_use_gate(void) {
+    if (!universal_slots()) return;
+    ftfp_site_branch(use_gate, 0x0043F593u, 5, USE_GATE_EXPECT, 0xE9, CODE_ADDR(stub_use_gate));
+    exotic_any_slot = ftfp_install_sites(use_gate, 1);
+}
+
 /* Called once by DS Exclusive Fish.dll, after its own install, before WinMain. */
 int __stdcall FtfpStoreStartup(const ftfp_store_host *host) {
     if (installed) return 1;
@@ -1474,6 +1558,7 @@ int __stdcall FtfpStoreStartup(const ftfp_store_host *host) {
         host_ok = name_sprites(host);
         if (host_ok && prepare() && ftfp_install_sites(writes, TOTAL_SITES)) {
             installed = 1;
+            install_use_gate();
         }
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         installed = 0;

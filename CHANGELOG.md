@@ -127,6 +127,8 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
     anchor, the other way round from what the DS pair anchors assumed, so
     every DS fin was 8-26 px toward the head.
   - Exotic Fish Eggs, $2300: hatch only DS-exclusive bodies and fins.
+    With Universal supply slots on, they stack and hatch from any of
+    slots 2-4, like the stock eggs.
   - Selling-tank customers no longer look at any seahorse-type companion
     (stock code read the Golden Seahorse's species data out of range).
   - Runs as "DS Store Items.dll", loaded by "DS Exclusive Fish.dll"; all or

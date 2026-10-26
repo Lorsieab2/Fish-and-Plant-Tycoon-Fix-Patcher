@@ -172,8 +172,21 @@ They hatch through a detour of the egg switch at `0x421356`, which reuses
 the stock hatch epilogue `0x421437`. The stock confirm text at `0x4281AF`
 also treats them as eggs ("Replace eggs in slot #4?").
 
-The Fix Patcher's "Universal supply slots" setting knows item values 0-7
-only, so Exotic Eggs always go in slot #4.
+With the Fix Patcher's "Universal supply slots" setting (its payload knows
+item values 0-7 only), the DLL makes Exotic Eggs follow that setting's egg
+rules (user: existing patches should cover the new content):
+- buying: a stack of Exotic Eggs in slots 2-4 gains one hatch, else the
+  first empty slot takes them, else the setting's three "replace?" prompts;
+- using: the payload's use trampoline lets item values above 7 through
+  untouched at `0x43F593`; the DLL redirects that jump so item 28 takes the
+  eggs branch (swapped into slot #4 for the hatch), from any slot;
+- hatching takes one from the stack and clears the slot at zero.
+The redirect is written only when the payload is in the executable, and the
+log says "Exotic Eggs use universal supply slots". Without the setting they
+stay in slot #4 and a purchase replaces them, as with stock eggs.
+Checked live: two purchases stacked in slot 2 (count 2), two hatches from
+slot 2 gave 4 DS babies each time and then emptied it; slot 4's starter eggs
+were untouched.
 
 ## Store page mechanics
 
