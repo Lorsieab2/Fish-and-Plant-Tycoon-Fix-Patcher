@@ -38,6 +38,10 @@ never needs the internet.
   Seahorses, in case you trash or lose it somehow. It shipped broken from
   v1.0.6 and was fixed in v1.0.12; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
+- Bigger tanks: 26 fish (off by default). Every tank holds 26 fish instead of
+  21. The game's save already has room for them, so saves keep their layout.
+  Sell or move fish down to 21 per tank before turning it off again. Design:
+  [docs/fish-tycoon-tank-expansion.md](docs/fish-tycoon-tank-expansion.md).
 - DS Exclusive Fish (off by default). Adds the Nintendo DS version's seven
   extra bodies (Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang, Idle)
   and seven extra fins (Small Fin, Roundy, Angel, Clown, Yellow, Blue,

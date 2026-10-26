@@ -131,6 +131,7 @@ class CombinedPatcherTests(unittest.TestCase):
                 "unknown_chemical_three_uses",
                 "universal_supply_slots",
                 "golden_seahorse_repurchase",
+                "bigger_tanks",
                 "ds_fish",
                 "ds_store",
             ],

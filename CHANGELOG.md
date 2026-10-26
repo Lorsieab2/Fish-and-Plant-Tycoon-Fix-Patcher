@@ -49,6 +49,10 @@
 
 ### Fish Tycoon
 
+- **Bigger tanks: 26 fish**, a new setting, off by default. Every tank holds
+  26 fish instead of 21: 45 byte changes to every place that assumes 21.
+  The state already has 31 fish records per tank and saves all of them, so
+  the save layout is unchanged.
 - **DS Exclusive Fish**, a new setting, off by default (fish manifest
   v1.3.0). The Nintendo DS version's seven extra bodies and seven extra fins,
   343 new species:

@@ -25,6 +25,7 @@ FILES = [
     "docs/fish-tycoon-ds-fish-testing-guide.md",
     "docs/fish-tycoon-pc-vs-ds-differences.md",
     "docs/fish-tycoon-ds-store-items-design.md",
+    "docs/fish-tycoon-tank-expansion.md",
     "docs/plant-tycoon-new-flowers-design.md",
     "docs/plant-tycoon-upgrades-design.md",
     "docs/plant-tycoon-technical-details.md",
