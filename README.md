@@ -30,6 +30,9 @@ never needs the internet.
 
 ### Fish Tycoon
 
+- Fix Vanilla Bugs (on by default): the Plant of Incubation and Plant of
+  Nutrition store labels are swapped back, so each plant is named for what
+  it does.
 - Crimson Comet 20% curing fix.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and

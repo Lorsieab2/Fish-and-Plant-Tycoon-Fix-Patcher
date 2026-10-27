@@ -82,6 +82,16 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Fish Tycoon
 
+- **Fix Vanilla Bugs**, a new setting, on by default. The stock store has
+  the two plants' labels swapped: the $200 plant sold as "Plant of
+  Incubation" really rescues starving fish, and the $350 "Plant of
+  Nutrition" really adds 1 egg per batch. Two data patches swap the store
+  records' name and description IDs back; prices, pictures, effects and
+  saves are unchanged.
+- **Game Mechanics**: Fish Food research is explained in full (food
+  duration per level, sickness odds, food look), and the starter-eggs entry
+  shows why the first baby is always a Greenfin Spotanus and how a player
+  can still end up without one.
 - **Bigger tanks: 26 fish**, a new setting, off by default. Every tank holds
   26 fish instead of 21: 45 byte changes to every place that assumes 21.
   The state already has 31 fish records per tank and saves all of them, so

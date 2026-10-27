@@ -52,7 +52,7 @@ class ManifestTests(unittest.TestCase):
     def test_every_byte_combination_has_a_checksum_record_and_a_pin(self) -> None:
         settings = pin_tank_expansion.byte_settings(self.manifest)
         self.assertIn(SETTING, settings)
-        self.assertEqual(len(settings), 5)
+        self.assertEqual(len(settings), 6)
         checksums = {tuple(p["requires"]) for p in self.manifest["patches"] if p["id"].startswith("update_pe_checksum")}
         pins = self.manifest["patched_sha256_by_settings"]
         for count in range(1, len(settings) + 1):

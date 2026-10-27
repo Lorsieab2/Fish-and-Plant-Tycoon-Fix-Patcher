@@ -63,9 +63,7 @@ class PageTests(unittest.TestCase):
                 self.assertIsNone(VAGUE.search(text), text)
 
     def test_patched_lines_name_real_settings(self) -> None:
-        known = {"fish": {"crimson_comet_20_percent_cure", "unknown_chemical_three_uses",
-                          "universal_supply_slots", "golden_seahorse_repurchase", "ds_fish", "ds_store"},
-                 "plant": {"no_old_age_plant_deaths", "add_missing_ldw_assets"}}
+        known = {game_id: set(gm.manifest_settings(game_id)) for game_id in gm.GAMES}
         for game_id in gm.GAMES:
             for group in gm.load_page(game_id).groups:
                 for fact in group.facts:
