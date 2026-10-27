@@ -34,6 +34,7 @@ FILES = [
     "src/ds_fish_loader.py",
     "src/fish_patcher.py",
     "src/plant_patcher.py",
+    "src/save_backup.py",
     "src/save_tools.py",
     "src/game_mechanics.py",
     "src/game_mechanics_fish.py",

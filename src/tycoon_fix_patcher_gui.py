@@ -12,6 +12,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import webbrowser
 
+import save_backup
 import save_tools
 
 from tycoon_fix_patcher import (
@@ -677,24 +678,51 @@ class App(tk.Tk):
         buttons = ttk.Frame(backup)
         buttons.pack(anchor="w")
         ttk.Button(buttons, text="Back Up Saves Now", command=self._tools_back_up).pack(side="left")
-        ttk.Button(buttons, text="Restore Saves From Backup...", command=self._tools_restore).pack(
+        ttk.Button(buttons, text="Open Backups Folder", command=self._tools_open_backups).pack(
             side="left", padx=(8, 0)
         )
-        backups_link = tk.Label(
-            backup, text="Open the backups folder", fg="#0057c2", cursor="hand2",
-            font=("Segoe UI", 9, "underline"),
+        ttk.Button(buttons, text="Import Older .zip Backup...", command=self._tools_import_zip).pack(
+            side="left", padx=(8, 0)
         )
-        backups_link.pack(anchor="w", pady=(6, 0))
-        backups_link.bind("<Button-1>", lambda _e: self._tools_open_backups())
+        listing = ttk.Frame(backup)
+        listing.pack(fill="x", pady=(8, 0))
+        self.tools_backup_list = tk.Listbox(
+            listing, height=6, activestyle="none", exportselection=False, font=("Segoe UI", 9)
+        )
+        self.tools_backup_list.pack(side="left", fill="x", expand=True)
+        scroll = ttk.Scrollbar(listing, orient="vertical", command=self.tools_backup_list.yview)
+        scroll.pack(side="left", fill="y")
+        self.tools_backup_list.configure(yscrollcommand=scroll.set)
+        actions = ttk.Frame(backup)
+        actions.pack(anchor="w", pady=(8, 0))
+        ttk.Button(actions, text="Restore Whole Folder", command=lambda: self._tools_restore(None)).pack(
+            side="left"
+        )
+        ttk.Label(actions, text="Player slot:").pack(side="left", padx=(16, 4))
+        self.tools_restore_slot = tk.StringVar(value="1")
+        ttk.Combobox(
+            actions, textvariable=self.tools_restore_slot, values=["1", "2", "3", "4", "5"],
+            width=3, state="readonly",
+        ).pack(side="left")
+        ttk.Button(
+            actions, text="Restore This Slot",
+            command=lambda: self._tools_restore(int(self.tools_restore_slot.get())),
+        ).pack(side="left", padx=(6, 0))
+        ttk.Button(actions, text="Delete Backup", command=self._tools_delete_backup).pack(
+            side="left", padx=(16, 0)
+        )
         ttk.Label(
             backup,
             text=(
-                "A backup is a zip of the whole save folder. Restoring makes the folder exactly "
-                "the backup again, after backing up the folder as it is now, so a restore can "
-                "itself be undone."
+                "A backup is a checked copy of the save folder, kept in its own Backups folder. "
+                "If the game is running it is paused for the copy and resumed afterwards. A "
+                "restore needs the game closed; it puts back the whole folder or one player's "
+                "slot, after backing up the saves as they are now, so a restore can itself be "
+                "undone."
             ),
             wraplength=880, foreground="#444444",
-        ).pack(anchor="w", pady=(4, 0))
+        ).pack(anchor="w", pady=(6, 0))
+        self.tools_backups = []
 
         rename = ttk.LabelFrame(tab, text="Rename Player Slots", padding=10)
         rename.pack(fill="x", pady=(10, 0))
@@ -804,11 +832,37 @@ class App(tk.Tk):
             self.tools_name_vars[index].set(current if active else "")
             for widget in self.tools_slot_controls[index]:
                 widget.configure(state="normal" if active else "disabled")
+        self._tools_load_backups()
+
+    def _tools_load_backups(self) -> None:
+        self.tools_backup_list.delete(0, "end")
+        self.tools_backups = []
+        folder = self.tools_folder.get()
+        if not folder:
+            return
+        try:
+            self.tools_backups = save_backup.list_backups(self.tools_game.get(), Path(folder))
+        except OSError as exc:
+            self.status_var.set(f"Could not list the backups: {exc}")
+        for info in self.tools_backups:
+            self.tools_backup_list.insert("end", info.describe())
+        if not self.tools_backups:
+            self.tools_backup_list.insert("end", "No backups yet. Back Up Saves Now makes one.")
+
+    def _tools_selected_backup(self):
+        picked = self.tools_backup_list.curselection()
+        if not self.tools_backups or not picked or picked[0] >= len(self.tools_backups):
+            messagebox.showerror(APP_NAME, "Choose a backup in the list first.")
+            return None
+        return self.tools_backups[picked[0]]
 
     def _tools_open_backups(self) -> None:
-        folder = save_tools.default_backups_folder()
-        folder.mkdir(parents=True, exist_ok=True)
-        self._open_folder(str(folder))
+        folder = self._tools_folder_or_warn()
+        if folder is None:
+            return
+        target = folder / save_backup.BACKUPS_FOLDER
+        target.mkdir(exist_ok=True)
+        self._open_folder(str(target))
 
     def _tools_folder_or_warn(self) -> Path | None:
         folder = self.tools_folder.get()
@@ -822,44 +876,99 @@ class App(tk.Tk):
         if folder is None:
             return
         try:
-            target = save_tools.back_up(folder)
-        except (OSError, save_tools.SaveToolError) as exc:
-            messagebox.showerror(APP_NAME, f"Backup failed:\n\n{exc}")
+            result = save_backup.back_up_save_folder(folder)
+        except (OSError, save_backup.BackupError) as exc:
+            messagebox.showerror(APP_NAME, f"No backup was made:\n\n{exc}")
             return
-        self.log.insert("end", f"\n=== Saves backed up ===\n{folder}\n-> {target}\n")
+        lines = [
+            f"{result.file_count} files ({save_backup.describe_size(result.total_bytes)}) copied "
+            f"and checked into:\n\n{result.backup_folder}"
+        ]
+        if result.paused:
+            lines.append("The game was paused for the copy and resumed.")
+        lines.extend(result.resume_problems)
+        self.log.insert("end", f"\n=== Saves backed up ===\n{folder}\n-> {result.backup_folder}\n")
         self.log.see("end")
-        self.status_var.set(f"Saves backed up to {target.name}.")
-        messagebox.showinfo(APP_NAME, f"Saves backed up to:\n\n{target}")
+        self._tools_load_backups()
+        self.status_var.set(f"Saves backed up: {result.backup_folder.name}.")
+        messagebox.showinfo(APP_NAME, "\n\n".join(lines))
 
-    def _tools_restore(self) -> None:
+    def _tools_restore(self, slot: int | None) -> None:
+        folder = self._tools_folder_or_warn()
+        info = self._tools_selected_backup() if folder is not None else None
+        if info is None:
+            return
+        game_id = self.tools_game.get()
+        try:
+            plan = save_backup.plan_restore(game_id, folder, info.folder, slot)
+        except (OSError, save_backup.BackupError) as exc:
+            messagebox.showerror(APP_NAME, f"Nothing was restored:\n\n{exc}")
+            return
+        if plan.changes == 0:
+            messagebox.showinfo(APP_NAME, "The saves are already the same as this backup; nothing to restore.")
+            return
+        what = "every save" if slot is None else f"player slot {slot}"
+        name_note = ", and the slot's name in the player list" if plan.player_name is not None else ""
+        if not messagebox.askyesno(
+            APP_NAME,
+            f"Restore {what} from the backup of {info.when.strftime('%Y-%m-%d %H:%M:%S')}?\n\n"
+            f"{len(plan.replace)} files replaced, {len(plan.add)} added, {len(plan.remove)} removed"
+            f"{name_note}.\n\nThe saves as they are now are backed up first. The game must be closed.",
+            default="no",
+        ):
+            return
+        try:
+            result = save_backup.restore_backup(game_id, folder, info.folder, slot)
+        except (OSError, save_backup.BackupError) as exc:
+            messagebox.showerror(APP_NAME, f"Restore failed:\n\n{exc}")
+            self._tools_load_backups()
+            return
+        before = result.before_restore.backup_folder if result.before_restore else None
+        kept = f"Previous saves kept in {before}\n" if before else ""
+        self.log.insert("end", f"\n=== Saves restored ({what}) ===\n{info.folder}\n-> {folder}\n{kept}")
+        self.log.see("end")
+        self._tools_load_names()
+        self.status_var.set("Saves restored.")
+        done = "Saves restored."
+        if before:
+            done += f" The previous saves were backed up to:\n\n{before}"
+        messagebox.showinfo(APP_NAME, done)
+
+    def _tools_delete_backup(self) -> None:
+        folder = self._tools_folder_or_warn()
+        info = self._tools_selected_backup() if folder is not None else None
+        if info is None:
+            return
+        if not messagebox.askyesno(
+            APP_NAME,
+            f"Delete the backup of {info.when.strftime('%Y-%m-%d %H:%M:%S')}?\n\nThis cannot be undone.",
+            default="no",
+        ):
+            return
+        try:
+            save_backup.delete_backup(folder, info.folder)
+        except (OSError, save_backup.BackupError) as exc:
+            messagebox.showerror(APP_NAME, str(exc))
+        self._tools_load_backups()
+
+    def _tools_import_zip(self) -> None:
         folder = self._tools_folder_or_warn()
         if folder is None:
             return
         chosen = filedialog.askopenfilename(
-            title="Choose a save backup",
+            title="Choose a .zip save backup from an older version",
             initialdir=str(save_tools.default_backups_folder()),
             filetypes=[("Save backups", "*.zip")],
         )
         if not chosen:
             return
-        if not messagebox.askyesno(
-            APP_NAME,
-            f"Replace every save in\n\n{folder}\n\nwith the backup\n\n{Path(chosen).name}?\n\n"
-            "The folder as it is now is backed up first.",
-        ):
-            return
         try:
-            before = save_tools.restore(Path(chosen), folder)
-        except (OSError, zipfile.BadZipFile, save_tools.SaveToolError) as exc:
-            messagebox.showerror(APP_NAME, f"Restore failed; nothing was changed:\n\n{exc}")
+            made = save_backup.import_zip_backup(self.tools_game.get(), folder, Path(chosen))
+        except (OSError, zipfile.BadZipFile, save_backup.BackupError) as exc:
+            messagebox.showerror(APP_NAME, f"Nothing was imported:\n\n{exc}")
             return
-        self.log.insert(
-            "end", f"\n=== Saves restored ===\n{chosen}\n-> {folder}\nPrevious saves kept in {before}\n"
-        )
-        self.log.see("end")
-        self._tools_load_names()
-        self.status_var.set("Saves restored.")
-        messagebox.showinfo(APP_NAME, f"Saves restored. The previous saves were backed up to:\n\n{before}")
+        self._tools_load_backups()
+        messagebox.showinfo(APP_NAME, f"Imported as {made.name}. Choose it in the list to restore it.")
 
     def _tools_rename(self, slot: int) -> None:
         folder = self._tools_folder_or_warn()
