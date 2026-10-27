@@ -30,6 +30,14 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Plant Tycoon
 
+- **Sort Seeds button**, a new setting, off by default. A "Sort Seeds"
+  button on the Seed Storage title bar asks "Sort Seeds in Seed Boxes?" (Yes /
+  No), then sorts every seed in the unlocked seed box space: by the class of
+  the plant it grows (A to D), its foliage, its flower, then its parents
+  (unknown "?" first), packed from the first slot, boxes 1-3 before 4-6.
+  The sort is built in a copy and written only if it holds exactly the same
+  seeds. Works with the Fourth-Sixth Seed Box arrows. Game Mechanics has a
+  "Sorting seeds" section.
 - **Add unused flowers**, a new setting, off by default. The 14 flower heads that
   ship in the game's art but no plant uses become flowers 24-37:
   - the owner's names: Nightingale, Rosetta, Lilac, Veronica, Violetta, Stella,

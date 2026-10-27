@@ -211,6 +211,19 @@ void __cdecl FtfpSeedBoxSetOwned(int box, int value) {
     show_arrows();
 }
 
+/* For "Sort Seeds.dll": where each chest is right now and how many of its
+   rows are unlocked (4 per box owned).  Returns the number of chests. */
+int __cdecl FtfpSeedBoxesChests(char *state, unsigned char **chests, int *rows) {
+    int stock_level;
+    if (state == NULL || chests == NULL || rows == NULL) return 0;
+    stock_level = AT(state, 0x8AC, unsigned char) ? 2 : AT(state, 0x80C, unsigned char) ? 1 : 0;
+    chests[0] = resident == 0 ? (unsigned char *)state + STATE_BOX : other_chest;
+    chests[1] = resident == 0 ? other_chest : (unsigned char *)state + STATE_BOX;
+    rows[0] = (stock_level + 1) * 4;
+    rows[1] = owned_count() * 4;
+    return 2;
+}
+
 /* ----------------------------------------------------------------- sidecar */
 
 #define SIDECAR_MAGIC 0x58425350u      /* "PSBX" */

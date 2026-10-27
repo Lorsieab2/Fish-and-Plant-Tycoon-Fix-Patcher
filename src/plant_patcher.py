@@ -515,10 +515,10 @@ def apply_manifest(args: argparse.Namespace) -> int:
     patched, patch_summary = apply_patch_bytes(original, patches)
     loader_summary: list[dict[str, str]] = []
     if fish_patcher.needs_startup_loader(manifest, enabled):
-        # The New Flowers companion's loader goes on last, over the patched
-        # bytes (src/ds_fish_loader.py, Plant Tycoon's profile).
+        # The companion loader goes on last, over the patched bytes
+        # (src/ds_fish_loader.py: Unused Flowers, or Sort Seeds on its own).
         try:
-            patched, loader_summary = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.PLANT)
+            patched, loader_summary = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.plant_profile(enabled))
         except ds_fish_loader.LoaderError as exc:
             raise PatchError(f"Cannot add the startup loader: {exc}") from exc
     changed = bool(patches or loader_summary)

@@ -1,0 +1,4 @@
+LIBRARY "Sort Seeds"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpSortSeedsLastResult = _FtfpSortSeedsLastResult@0

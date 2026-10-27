@@ -77,5 +77,8 @@ Plant Tycoon options:
   flowers. An Upgrades link in the Supplies store: Legendary Seeds, the
   Radioactive Plant Formula and the Fourth, Fifth and Sixth Seed Box. Move
   seeds out of boxes 4-6 before turning it off.)
+- Sort Seeds button (off by default; a "Sort Seeds" button on the Seed
+  Storage title bar. Asks Yes/No, then sorts every seed by the plant it grows
+  and its parents into your unlocked seed boxes, first box first.)
 
 Have fun! -Lorsieab2 :)
