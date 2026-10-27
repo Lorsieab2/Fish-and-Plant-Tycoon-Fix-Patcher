@@ -29,6 +29,7 @@ def page() -> GamePage:
         ),
         groups=(
             Group("Time away (catch-up)", TIME_AWAY),
+            Group("Which tank counts", SCOPE),
             Group("Ages and stages", AGES),
             Group("Health", HEALTH),
             Group("Sickness", SICKNESS),
@@ -175,9 +176,52 @@ SICKNESS = (
     ),
 )
 
+SCOPE = (
+    Fact(
+        "Every update runs all four tanks together: the first tank, Tank Two, the selling tank and "
+        "the isolation tank. A tank you are not looking at keeps going (0x41FE70, tanks 0-3).",
+    ),
+    Fact(
+        "Magic fish work only in their own tank: a live adult (age 20 or more) of the species must "
+        "be in the same tank as the fish it acts on (0x41DE90 scans only that tank).",
+        subs=(
+            "Health, Sustenance, Growth and Curing act on the fish in their tank, the isolation tank "
+            "included.",
+            "Fertility and Mutation act at a birth: what counts is the tank the mother gives birth "
+            "in. Births never happen in the isolation tank, so there they do nothing.",
+            "The customer bonus of a discovered magic species is permanent and counts everywhere.",
+        ),
+    ),
+    Fact(
+        "Owned items work in every tank, wherever they are drawn: the Aeration System, Temperature "
+        "Regulator, Cleaning Snail, all four plants, research and the Golden Seahorse are game-wide "
+        "flags. The snail and plants are only drawn in the tank screens; that is all.",
+    ),
+    Fact(
+        "Ornaments count wherever they are: each one owned adds a customer, in any tank. Moving "
+        "them is only decoration. The only tank-specific part of the customer count is the adults "
+        "in the selling tank.",
+    ),
+    Fact(
+        "Things you use act on the tank you are looking at (never directly on the isolation tank):",
+        subs=(
+            "Food and the Ick and Fungal Treatments: every fish in that tank, plus the fish in the "
+            "isolation tank if there is one.",
+            "Vitamins, Growth Hormone and the Unknown Chemical: only that tank's fish.",
+            "Eggs hatch into that tank.",
+        ),
+    ),
+    Fact("Sickness spreads per tank: each other sick fish in the same tank adds 6 to the odds "
+         "(not on Easy)."),
+    Fact("DS store animals act only on the fish in their own tank.",
+         patched=(("ds_store", "the Stingray, Pufferfish and Moray Eel each count only in the tank "
+                   "they are in."),)),
+)
+
 FOOD = (
     Fact(
-        "Food runs from 0 to 100. Feeding gives every live fish in the tank +50, capped at 100, "
+        "Food runs from 0 to 100. Feeding gives every live fish in the tank you are looking at +50, and the fish in "
+        "the isolation tank too, capped at 100, "
         "whatever the Fish Food research level; research only changes the food's look.",
     ),
     Fact(
@@ -303,8 +347,9 @@ MAGIC_FISH = (
 )
 
 CONSUMABLES = (
-    Fact("A medicine or chemical acts on every fish in the tank you use it on. There is no "
-         "cooldown: \"one drop every half hour\" is only advice."),
+    Fact("A medicine or chemical acts on every fish in the tank you use it on; the Ick and Fungal "
+         "Treatments also reach the fish in the isolation tank. There is no cooldown: \"one drop "
+         "every half hour\" is only advice."),
     Fact(
         "Ick Treatment ($30, 3 doses): each fish with ick is cured on Random(100) < C: Easy 70 "
         f"({chance(100, 70)}), Medium 40 ({chance(100, 40)}), Hard 25 ({chance(100, 25)}).",

@@ -88,6 +88,7 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   code bytes swap which plant each effect checks, so the Plant of Incubation
   adds the egg (Exotic Fish Eggs too) and the Plant of Nutrition rescues
   starving fish. Names, pictures, prices and saves are unchanged.
+- **Game Mechanics**: a new "Which tank counts" section (Fish) and "Where things count" section (Plant): magic fish only in their own tank, owned items and ornaments everywhere, food and Ick/Fungal treatment also reach the isolation fish, magic plants permanent once discovered, plants for sale still in their pot.
 - **Game Mechanics**: Fish Food research is explained in full (food
   duration per level, sickness odds, food look), and the starter-eggs entry
   shows why the first baby is always a Greenfin Spotanus and how a player

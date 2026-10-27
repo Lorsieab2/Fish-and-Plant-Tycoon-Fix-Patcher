@@ -28,6 +28,7 @@ def page() -> GamePage:
         ),
         groups=(
             Group("Time away (catch-up)", TIME_AWAY),
+            Group("Where things count", SCOPE),
             Group("Ages and stages", AGES),
             Group("Water", WATER),
             Group("Health and soil", HEALTH),
@@ -49,6 +50,32 @@ def page() -> GamePage:
         ),
     )
 
+
+SCOPE = (
+    Fact(
+        "Where a plant stands never matters: no effect checks the pot, row or neighbours. All 15 "
+        "pots update together.",
+    ),
+    Fact(
+        "A plant for sale stays in its greenhouse pot, so it keeps aging and everything that reaches "
+        "plants reaches it: Fruit of Life, the Fertilizer Bomb, the Insta-Grow Vaporbomb, single "
+        "doses. No plant updates while you are in the nursery; that time is caught up in the "
+        "greenhouse, so a plant can still sell on its last update's health.",
+    ),
+    Fact(
+        "Magic plants are permanent once discovered (a plant of the species alive at age 24, or at "
+        "once with Mutation Liquid). Their effects stay after the plant dies or is sold, and reach "
+        "every plant; only a new game clears them.",
+    ),
+    Fact(
+        "Nursery ornaments count as soon as they are bought; there is nothing to place. They only "
+        "affect visitors.",
+    ),
+    Fact(
+        "Upgrades are game-wide: soil and water upgrades apply to plants potted before them too; "
+        "shears, nets and seed boxes apply when used. The bug collection bonus is permanent.",
+    ),
+)
 
 TIME_AWAY = (
     Fact(
@@ -366,12 +393,13 @@ MAGIC = (
     Fact("Fruit of Life, Mela Rare Oak (foliage 14, flower 16): every plant gets +2 health and is "
          "cured of pests each unit, pest odds / 3, and 2 more flowers."),
     Fact("Flower of Knowledge, Nox Orchid (4, 4): every asking price becomes V + 3/4 V, once."),
-    Fact("Rose of Joy, Rosaceae Fern (7, 7): 4 toward the visitor limit."),
+    Fact("Rose of Joy, Rosaceae Fern (7, 7): 4 points toward the visitor score instead of 2."),
     Fact("Golden Berries of Wealth, Aureus Scandens (2, 14): visitors see every price 1/4 lower."),
     Fact("Fabled Rose of Isola, Fabled Lemonbush (11, 10): only the visitor bonus every magic plant "
          "gives (2), and the highest value, 250."),
     Fact("Magic Tree of Fragrance, Fourpetal Maple (13, 13): bugs appear 1 point more often."),
-    Fact("Every magic plant adds 2 to the visitor limit (the Rose of Joy 4)."),
+    Fact("Every magic plant adds 2 points to the visitor score S, about 1 more visitor (the Rose "
+         "of Joy 4 points, about 2; see Selling and visitors)."),
 )
 
 BUGS = (
