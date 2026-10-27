@@ -51,10 +51,12 @@ def page() -> GamePage:
             Group("Nursery ornaments", ORNAMENTS),
             Group("Magic plants", MAGIC),
             Group("Bugs", BUGS),
+            Group("Goals, messages and statistics", GOALS),
             Group("Sorting seeds", SORTING,
                   note="Only with the Sort Seeds button setting: a \"Sort Seeds\" button on the Seed Storage "
                        "title bar."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
+            Group("Fish Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
         ),
     )
@@ -316,7 +318,14 @@ MUTATION = (
 SHOP_SEEDS = (
     Fact(
         "The seed shop offers 3 seeds of each tier and rerolls them after 86401 real-time seconds; "
-        "only once, however long you were away.",
+        "only once, however long you were away. The reroll is checked every 3 real-time seconds in "
+        "the greenhouse only, and it refills shelves you bought out. Nothing else in the store has "
+        "a stock or a timer: chemicals, tool upgrades and ornaments can be bought at any time "
+        "(the chemical tray and the seed tray have limited room).",
+        patched=(("seed_refresh_key", "pressing R (or r) in the Supplies store rerolls all nine "
+                  "packets at once with the same roll (0x41DC60, so the same odds), Legendary Seeds "
+                  "included with Add new store upgrades and items. The next daily reroll still comes "
+                  "at its usual time."),),
     ),
     Fact(
         "Common ($50): each gene 1, 5, 9 (20.001% each), 13 or 17 (19.998% each), so a Common seed "
@@ -521,19 +530,140 @@ ORNAMENTS = (
 )
 
 MAGIC = (
-    Fact("A magic plant counts once a plant of its species is alive at age 24, or at once through "
-         "Mutation Liquid. Finding all six wins the game."),
-    Fact("Fruit of Life, Mela Rare Oak (foliage 14, flower 16): every plant gets +2 health and is "
-         "cured of pests each unit, pest odds / 3, and 2 more flowers."),
-    Fact("Flower of Knowledge, Nox Orchid (4, 4): every asking price becomes V + 3 x (V/4 rounded "
-         "down), once."),
-    Fact("Rose of Joy, Rosaceae Fern (7, 7): 4 points toward the visitor score instead of 2."),
-    Fact("Golden Berries of Wealth, Aureus Scandens (2, 14): visitors see every price 1/4 lower."),
-    Fact("Fabled Rose of Isola, Fabled Lemonbush (11, 10): only the visitor bonus every magic plant "
-         "gives (2), and the highest value, 250."),
-    Fact("Magic Tree of Fragrance, Fourpetal Maple (13, 13): bugs appear 1 point more often."),
-    Fact("Every magic plant adds 2 points to the visitor score S, about 1 more visitor (the Rose "
-         "of Joy 4 points, about 2; see Selling and visitors)."),
+    Fact(
+        "How a magic plant is found: a plant of its species alive (health above 0) at age 24 or "
+        "more at a plant update in the greenhouse, or at once when a Mutation Liquid dose turns a "
+        "plant into it (any age; passing through it counts even if a later dose moves on). Each is "
+        "found once and stays found until a new game.",
+        subs=(
+            "On finding it, its message shows once in the greenhouse (within about 3 real-time "
+            "seconds), with either answer to the tutorial question. The message says it was "
+            "repotted and moved to the nursery; in fact your plant stays in its greenhouse pot and "
+            "can be sold or bred like any other. The nursery shows a separate display plant of the "
+            "species in a golden pot, and clicking it shows the message again.",
+            "Every found magic plant is a place visitors walk to and adds 2 points to the visitor "
+            "score S and the stay score T (the Rose of Joy 4). The Statistics screen counts them.",
+            "Breeding: a seed's gene is the parents' genes averaged and rounded up, so foliage f "
+            "needs parent foliages adding up to 2f - 1 or 2f, and the same for the flower. Two "
+            "Common seeds (genes 1, 5, 9, 13, 17) or two Endangered (3, 7, 11, 15) give only odd "
+            "genes; a Common with an Endangered gives only even genes 2-16. Averaging never leaves "
+            "the parents' range.",
+            "Mutation Liquid: each dose moves the flower (50%) or the foliage (50%) one step up or "
+            "down (50% each), so a plant one step from a magic one reaches it with 1 dose in 4.",
+        ),
+    ),
+    Fact(
+        "Magic Tree of Fragrance, Fourpetal Maple (foliage 13, flower 13), class A, value V = 44.",
+        subs=(
+            "Easiest of all: the two seeds every new game starts with in Seed Storage, the Citrus "
+            "Maranta (9, 17) and the Jalapa Ball Cactus (17, 9), always breed it.",
+            "Common shop seeds: 3.999% per seed (11.52% that at least one of the three on the "
+            "shelf is one). Also Common (9, 9) x (17, 17), or Endangered (11, 11) x (15, 15).",
+            "Mutation Liquid from Extinct (12, 12), (12, 14) or (14, 12): 1 in 8 within 2 doses.",
+            "Effect: bugs appear 1 point more often (+1.001% per 3-real-time-second greenhouse "
+            "check).",
+        ),
+    ),
+    Fact(
+        "Rose of Joy, Rosaceae Fern (7, 7), class B, V = 75.",
+        subs=(
+            "Endangered shop seeds: exactly 6.25% per seed (17.60% that one of the three is). Or "
+            "breed Common (5, 5) x (9, 9), Common (5, 9) x (9, 5), or Endangered (3, 3) x (11, "
+            "11).",
+            "Mutation Liquid from (6, 7), (8, 7), (7, 6) or (7, 8): 1 in 4 per dose.",
+            "Effect: 4 points to the visitor score S and the stay score T instead of 2. Nothing "
+            "else.",
+        ),
+    ),
+    Fact(
+        "Flower of Knowledge, Nox Orchid (4, 4), class C, V = 95.",
+        subs=(
+            "Extinct shop seeds: 1.1285% per seed. Or breed Common (5, 5) x Endangered (3, 3), or "
+            "Common (1, 5) x Endangered (7, 3).",
+            "Mutation Liquid from (3, 4), (5, 4), (4, 3) or (4, 5): 1 in 4 per dose.",
+            "Effect: when it is found, every species' asking price is set once to V + 3 x (V/4 "
+            "rounded down), overwriting prices you set. Its message says \"from now on\", but it "
+            "is a one-time change: later prices you set stay.",
+            "A Start Over from a game that has it begins the new game with those raised prices "
+            "(code order, not tried live).",
+        ),
+    ),
+    Fact(
+        "Golden Berries of Wealth, Aureus Scandens (2, 14), class C, V = 130.",
+        subs=(
+            "Extinct shop seeds: 1.1285% per seed. Or breed Common (1, 13) x Endangered (3, 15), "
+            "or Common (1, 17) x Endangered (3, 11).",
+            "Mutation Liquid: from (1, 14) a foliage step always lands on 2 (0 bounces to 2), so 1 "
+            "dose in 2; from (3, 14), (2, 13) or (2, 15) 1 in 4.",
+            "Effect: visitors see every asking price a quarter lower (P' - P'/4, rounded down), so "
+            "plants sell more easily at the same price; you are still paid your full price.",
+        ),
+    ),
+    Fact(
+        "Fruit of Life, Mela Rare Oak (14, 16), class C, V = 110.",
+        subs=(
+            "Extinct shop seeds: 1.1285% per seed. Or breed Common (13, 17) x Endangered (15, 15), "
+            "or Common (17, 17) x Endangered (11, 15).",
+            "Mutation Liquid from (13, 16), (15, 16), (14, 15) or (14, 17): 1 in 4 per dose.",
+            "Effect, on every plant: +2 health and pests cured each age unit (if alive), the pest "
+            "odds X divided by 3, and 2 more counted flowers when a plant flowers.",
+            "Class C plants lose health on Common soil (-5 a unit), so grow it on Bio-organic or "
+            "Isola soil, or use Mutation Liquid (no age needed).",
+        ),
+    ),
+    Fact(
+        "Fabled Rose of Isola, Fabled Lemonbush (11, 10), class C, V = 250, the highest value in "
+        "the game.",
+        subs=(
+            "Never from the shop. No pair of Common and Endangered seeds breeds it in one go. Two "
+            "ways: breed Common (9, 9) x Extinct (12, 10); or from Common seeds only, (9, 13) x "
+            "(13, 9) gives (11, 11), (9, 9) x (13, 9) gives (11, 9), then (11, 11) x (11, 9) gives "
+            "it.",
+            "Mutation Liquid from (10, 10), (12, 10), (11, 9) or (11, 11): 1 in 4 per dose, 32.81% "
+            "within a 3-dose bottle.",
+            "Effect: only the 2 visitor points every magic plant gives.",
+        ),
+    ),
+    Fact(
+        "Finding all six shows the win screen (\"Amazing! With the restoration of the Magic "
+        "Plants...\") when the last message shows. It gives no money or reward and the game "
+        "goes on; the middle of the nursery opens it again (see Hidden keys, clicks and cheats).",
+        patched=(("new_flowers", "the new flowers are never magic, but as parents they add routes: "
+                  "a flower 24 with a flower 8 gives 16 (Fruit of Life), with 4 gives 14 (Golden "
+                  "Berries), with 2 gives 13 (Fragrance)."),),
+    ),
+)
+
+GOALS = (
+    Fact(
+        "The only goal is finding all six magic plants, which shows the win screen; play goes on "
+        "afterwards. There is no map, chapter or island progression: the intro and the win text "
+        "are the only story.",
+    ),
+    Fact(
+        "One-time messages, each shown once per game in the greenhouse: the welcome (always), "
+        "each magic plant (always), all 48 bugs caught (always, with $5000 once); and only in a game "
+        "started with Yes to the tutorial: your first plant death, a plant pruned to death, your "
+        "first sale (which also ends the first-sale bonus, see Selling and visitors) and the end "
+        "of the tutorial. If 10 messages are already waiting, a new one is lost.",
+    ),
+    Fact(
+        "Statistics screen: Real Hours Played (whole real-time hours since the game began, closed "
+        "time included; the nursery Sundial shows it too), Money Earned, Plants Sold, Average "
+        "Price, Plants Cured, Seeds Planted, Liters Water Used, Branches Pruned, Net Swung, Bugs "
+        "Caught, Nursery Visitors (those who stay), Magic Plants Found and Species Discovered. "
+        "None of them changes the game.",
+    ),
+    Fact(
+        "Collections shows only the bug collection; there is no species or magic-plant catalogue. "
+        "A plant's species name shows once it is age 24, whether or not the species was "
+        "discovered before.",
+    ),
+    Fact(
+        "Snapshots (F1 in the greenhouse, or the camera) save a picture named PlantTycoon_Snapshot "
+        "to your Desktop.",
+    ),
+    Fact("Autosave runs every 601 real-time seconds; quitting does not save (see Clocks)."),
 )
 
 SORTING = (
@@ -722,10 +852,35 @@ HIDDEN = (
         "code needs a counter at 1 before d, and nothing ever sets it to 1, so it never pays.",
     ),
     Fact(
-        "The patcher's own additions are clicks, not keys: the Upgrades link in the Supplies store "
+        "The Supplies store and its seed shelves handle no hidden keys. Its key handler (0x447950) "
+        "reacts only to the screen keys 1 or m, 2 or s, 4 or c, 5 or n and to Escape (all listed "
+        "above). In the unpatched game no key redraws or restocks the seed shelves or changes a price: the shelves "
+        "change only with the reroll every 86401 real-time seconds (see Shop seeds).",
+    ),
+    Fact(
+        "The patcher's own key: R (or r) in the Supplies store restocks the seed shelves "
+        "(R refreshes the seed shop, on by default; nothing on any other screen). The patcher's "
+        "other additions are clicks, not keys: the Upgrades link in the Supplies store "
         "and the gold box arrows (Add new store upgrades and items), and the Sort Seeds button "
         "(Sort Seeds button).",
     ),
+)
+
+OTHER_GAME = (
+    Fact('Which tank counts: see Where things count (plants have no tanks; position never matters).'),
+    Fact('Health: see Health and soil.'),
+    Fact('Sickness: see Pests. Plants have no other disease.'),
+    Fact('Food: not in Plant Tycoon. Plants need water instead (see Water).'),
+    Fact('Breeding and babies: see Pollination and seeds.'),
+    Fact('Eggs: see Shop seeds.'),
+    Fact("Magic fish and Magic fish one by one: see Magic plants (each one's own entry)."),
+    Fact('Medicines and chemicals: see Chemicals and Mutation Liquid.'),
+    Fact('Permanent store items: see Tools and shears (the upgrades) and Nursery ornaments.'),
+    Fact('Research: not in Plant Tycoon; the tool upgrades take its place (see Tools and shears).'),
+    Fact('Selling and customers: see Selling and visitors.'),
+    Fact('Species and prices: see Prices.'),
+    Fact('Goals and popups: see Goals, messages and statistics.'),
+    Fact("DS store animals: not in Plant Tycoon. The patcher's new Plant Tycoon items are in Shop seeds (Legendary Seeds), Chemicals (Radioactive Plant Formula) and Tools and shears (Fourth to Sixth Seed Box)."),
 )
 
 INDEX = (

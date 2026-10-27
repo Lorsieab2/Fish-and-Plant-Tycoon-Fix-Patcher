@@ -62,3 +62,21 @@ class DeadCodeTests(unittest.TestCase):
                 self.assertTrue(any(phrase in text for text in dead), f"{game_id}: {phrase}")
                 self.assertFalse(any(phrase in text for text in lines if "Not reachable" not in text),
                                  f"{game_id}: {phrase} appears outside the dead-code line")
+
+
+class ParityTests(unittest.TestCase):
+    """Fish and Plant Tycoon cover the same topics: each page maps every group of the other."""
+
+    SHARED = {"Clocks", "Time away (catch-up)", "Ages and stages", "A new game",
+              "Hidden keys, clicks and cheats", "Chance and timer index"}
+
+    def test_every_topic_of_the_other_game_is_mapped(self) -> None:
+        titles = {gid: [group.title for group in gm.load_page(gid).groups] for gid in gm.GAMES}
+        for game_id, other, name in (("fish", "plant", "Plant"), ("plant", "fish", "Fish")):
+            groups = {group.title: group for group in gm.load_page(game_id).groups}
+            self.assertTrue(self.SHARED <= set(groups), game_id)
+            mapping = " ".join(fact.text for fact in groups[f"{name} Tycoon's topics here"].facts)
+            for title in titles[other]:
+                if title in self.SHARED or title.endswith("topics here"):
+                    continue
+                self.assertIn(title.split(" one by one")[0], mapping, f"{game_id}: {title}")

@@ -69,6 +69,8 @@ Fish Tycoon options:
 
 Plant Tycoon options:
 - No old-age plant deaths
+- R refreshes the seed shop (on by default; press R in the Supplies store to
+  restock the seed shelves at once, Legendary Seeds too)
 - Add Missing Assets to LDW Version (only adds files the game lacks; never
   replaces a game file)
 - Add unused flowers (off by default; adds the 14 unused flowers in the game's art,

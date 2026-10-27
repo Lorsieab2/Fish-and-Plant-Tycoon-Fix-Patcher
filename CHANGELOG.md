@@ -30,6 +30,11 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Plant Tycoon
 
+- **R refreshes the seed shop**, a new setting, on by default. Press R in the
+  Supplies store to restock the seed shelves at once (Legendary Seeds too),
+  through the game's own restock roll (0x41DC60). Three byte changes: the
+  store's ignored-key case goes through 32 bytes in the zero tail of .text.
+  Proven by emulating the patched key handler.
 - **Sort Seeds button**, a new setting, off by default. A "Sort Seeds"
   button on the Seed Storage title bar asks "Sort Seeds in Seed Boxes?" (Yes /
   No), then sorts every seed in the unlocked seed box space: by the class of
@@ -96,6 +101,15 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   code bytes swap which plant each effect checks, so the Plant of Incubation
   adds the egg (Exotic Fish Eggs too) and the Plant of Nutrition rescues
   starving fish. Names, pictures, prices and saves are unchanged.
+- **Game Mechanics: every magic fish and magic plant, one by one.** How to get
+  each (eggs or shop seeds with exact odds, breeding pairs, the Unknown Chemical
+  or Mutation Liquid), its value and what finding it does, plus the win screens,
+  the Trophy Case, statistics and one-time messages. Found from the code: a new
+  game's two Seed Storage seeds always breed Plant Tycoon's Magic Tree of
+  Fragrance. Both pages now cover the same topics, each mapping the other
+  game's topics (or saying "not in <game>"), and both say the stores handle no
+  hidden keys (no timed stock in Fish Tycoon; only the seed shelves in Plant
+  Tycoon). Tests keep the parity.
 - **Game Mechanics: Clocks and Hidden keys, clicks and cheats.** Each page now
   starts with a Clocks section (game time = age steps/units, real time = wall
   clock; what Stop Time, message boxes and a closed game do to each timer), and

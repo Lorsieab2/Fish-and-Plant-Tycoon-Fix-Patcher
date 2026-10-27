@@ -83,6 +83,12 @@ never needs the internet.
 
 - No old-age plant deaths. The original age check and `Random(1000)` call remain;
   the eligible death range is empty.
+- R refreshes the seed shop (on by default). Pressing R (or r) in the Supplies
+  store restocks all nine seed packets at once with the game's own restock roll,
+  so the odds are the stock ones; with Add new store upgrades and items the
+  Legendary Seeds are rerolled too. R does nothing on other screens, the daily
+  restock keeps its time, and nothing extra is saved. Three byte changes, each
+  checked against the vanilla bytes.
 - Add Missing Assets to LDW Version (on by default, new in v1.0.15). Adds
   files the LDW download is missing, using the Steam version's files. The merge
   is only additive: a file is copied into the modded folder only where the game
