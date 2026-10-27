@@ -7,13 +7,19 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Both games
 
+- No path is too long: the patcher's staging copy and the save backups use
+  Windows' extended-length paths, so a deep output or save folder never fails
+  with "path too long"; the staging folder's name is also shorter.
+
 - The companion DLLs are named after their settings and kept in
   "Fish Tycoon Fix Patcher DLLs" / "Plant Tycoon Fix Patcher DLLs" inside
   the modded copy: DS Exclusive Fish.dll, DS Store Items.dll, Unused
   Flowers.dll, Store Upgrades and Items.dll, Extra Seed Boxes.dll.
 
-- **Tools** tab: Backup and Restore Saves, and Rename Player Slots, working
-  like the Virtual Villagers Fun Patcher's tools. A backup is a checked copy
+- **Tools** tab, laid out like the Virtual Villagers Fun Patcher's: links
+  for the game on the One Game tab and for each game, each with a "?" guide,
+  opening Back Up Saves, Restore Saves, Rename Players and Game Mechanics
+  windows that work like VV's. A backup is a checked copy
   (SHA-256, times kept) in the save folder's own Backups folder; a running
   game is paused for it and resumed. A restore, with the game closed, puts
   back the whole folder or one player slot, after backing up the saves as they

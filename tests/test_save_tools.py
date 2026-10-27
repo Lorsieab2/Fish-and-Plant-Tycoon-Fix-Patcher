@@ -150,11 +150,14 @@ class ToolsTabWiringTests(unittest.TestCase):
     def test_gui_has_the_tools_tab_and_ships_the_module(self) -> None:
         source = (ROOT / "src" / "tycoon_fix_patcher_gui.py").read_text(encoding="utf-8")
         self.assertIn('notebook.add(tools, text="Tools")', source)
-        for handler in ("_tools_back_up", "_tools_restore", "_tools_rename", "_tools_delete_backup", "_tools_import_zip"):
-            self.assertIn(f"def {handler}", source)
+        self.assertIn("tools_tab.ToolsTab(self, tab)", source)
+        tools = (ROOT / "src" / "tools_tab.py").read_text(encoding="utf-8")
+        for handler in ("back_up", "restore", "rename", "mechanics", "show_help"):
+            self.assertIn(f"    def {handler}(", tools)
         release = (ROOT / "scripts" / "build_release.py").read_text(encoding="utf-8")
         self.assertIn('"src/save_tools.py"', release)
         self.assertIn('"src/save_backup.py"', release)
+        self.assertIn('"src/tools_tab.py"', release)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import argparse
 import ctypes
 import hashlib
 import json
+import long_paths
 import os
 import re
 from pathlib import Path
@@ -568,7 +569,11 @@ def apply_manifest(args: argparse.Namespace) -> int:
         print("DRY RUN PASS: exact executable identity, all patch bytes and all bundled assets validated; no files written.")
         return 0
 
-    output_parent = output_dir.parent
+    # Every file operation below uses the extended-length path form, so a deep
+    # output location never fails with "path too long" (src/long_paths.py).
+    output_fs = long_paths.extended(output_dir)
+    game_fs = long_paths.extended(game_dir)
+    output_parent = output_fs.parent
     output_parent.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_dir = output_parent / ".plant_tycoon_patch_backups" / stamp
@@ -592,10 +597,10 @@ def apply_manifest(args: argparse.Namespace) -> int:
     }
     write_json(backup_dir / "plant_tycoon_patch_backup_manifest.json", backup_manifest)
 
-    staging = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.staging-", dir=output_parent))
+    staging = Path(tempfile.mkdtemp(prefix=".ftfp-staging-", dir=output_parent))
     try:
         shutil.rmtree(staging)
-        shutil.copytree(game_dir, staging, ignore=excluded_output_files)
+        shutil.copytree(game_fs, staging, ignore=excluded_output_files)
         make_writable(staging)
         copied_vanilla_exe = staging / vanilla_exe.name
         if copied_vanilla_exe.is_file() and copied_vanilla_exe.name != output_exe_name:
@@ -604,36 +609,36 @@ def apply_manifest(args: argparse.Namespace) -> int:
         staged_exe.write_bytes(patched)
         if sha256_file(staged_exe) != patched_hash:
             raise PatchError("Staged executable failed its post-write SHA-256 check.")
-        report["assets"] = merge_assets(assets, game_dir, staging)
+        report["assets"] = merge_assets(assets, game_fs, staging)
         report["companion_files"] = fish_patcher.install_companion_files(companions, staging)
-        report["backup_dir"] = str(backup_dir)
+        report["backup_dir"] = str(long_paths.plain(backup_dir))
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".plant_tycoon_fix_output.json", {
             "manifest_id": manifest.get("id"),
             "manifest_version": manifest.get("version"),
             "created_utc": utc_now(),
             "vanilla_game_dir": str(game_dir),
-            "backup_dir": str(backup_dir),
+            "backup_dir": str(long_paths.plain(backup_dir)),
         })
         write_json(staging / "PlantTycoonFixPatchLog.json", report)
 
         refuse_unrecognized_output(output_dir, manifest)
         previous = backup_dir / "previous_output"
-        if output_dir.exists():
-            shutil.move(str(output_dir), str(previous))
+        if output_fs.exists():
+            shutil.move(str(output_fs), str(previous))
         try:
-            os.replace(staging, output_dir)
+            os.replace(staging, output_fs)
         except OSError:
             # Put the previous modded folder back rather than leave the player
             # with none; it would otherwise survive only inside the backup.
-            if previous.exists() and not output_dir.exists():
-                shutil.move(str(previous), str(output_dir))
+            if previous.exists() and not output_fs.exists():
+                shutil.move(str(previous), str(output_fs))
             raise
         report["base_game_icon_resources_preserved"] = True
         report["windows_shell_icon_refresh_requested"] = notify_windows_shell_file_changed(
             output_dir / output_exe_name
         )
-        write_json(output_dir / "PlantTycoonFixPatchLog.json", report)
+        write_json(output_fs / "PlantTycoonFixPatchLog.json", report)
     except Exception:
         if staging.exists():
             try:

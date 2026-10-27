@@ -98,7 +98,7 @@ class PageTests(unittest.TestCase):
 
 class WindowSourceTests(unittest.TestCase):
     def test_tools_tab_opens_the_window(self) -> None:
-        source = (ROOT / "src" / "tycoon_fix_patcher_gui.py").read_text(encoding="utf-8")
+        source = (ROOT / "src" / "tools_tab.py").read_text(encoding="utf-8")
         self.assertIn("Game Mechanics...", source)
         self.assertIn("game_mechanics_window.open_window", source)
 

@@ -203,10 +203,14 @@ other. `Documents` is wherever Windows keeps it, which is often
 
 ## Tools
 
-The **Tools** tab works on the saves of either game. Its list holds the modded
-copies' save folders ("- Modded" and "- Modded Upgrades"; see "Where your
-saves go"), and Browse picks any other. The tools work the way the Virtual
-Villagers Fun Patcher's do.
+The **Tools** tab is laid out and works like the Virtual Villagers Fun
+Patcher's: the tools for the game chosen on the One Game tab, then the same
+tools for each game (Back up saves, Restore saves..., Rename players...,
+Game mechanics...), and Back Up Saves (Both)... for both at once. Every tool
+has a "?" guide. They work on the modded copies' save folders ("- Modded",
+"- Modded Upgrades" and any other "<Game> - Modded..." folder; see "Where
+your saves go"). Every file operation uses Windows' long-path form, so a deep
+folder never fails with "path too long".
 
 - **Backup and Restore Saves.** A backup is a copy of the save folder (the
   game's saves and the patcher's own per-player files) in a `Backups` folder
