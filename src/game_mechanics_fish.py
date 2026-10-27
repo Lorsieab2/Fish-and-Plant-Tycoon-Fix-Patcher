@@ -440,11 +440,17 @@ PERMANENT_ITEMS = (
         ),
     ),
     Fact(
-        "A Golden Seahorse in the selling tank: the stock sale code does not exclude it (it checks "
-        "only for a live adult), and its price lookup reads past the species table. What happens "
-        "then was not traced.",
-        label="U",
-        patched=(("ds_store", "the sale code skips it, like the DS animals."),),
+        "A Golden Seahorse in the selling tank is never sold in normal play. The stock sale code "
+        "(0x424240, run every real-life second) does not check for it, so it does look at it as a "
+        "live adult, but its price lookup lands just past the species table, where both the asking "
+        "price and the base price read 0 (in every save checked). 0 is \"2B or more\", which never "
+        "sells.",
+        subs=(
+            "One exception: in a game started with the tutorial, until its \"basics\" tip (tutorial "
+            "popup 19) has shown and while you have sold at most 1 fish, any fish priced under $50 is treated as a big bargain. In "
+            "that short window a seahorse in the selling tank could sell, for $0.",
+        ),
+        patched=(("ds_store", "the sale code skips it (and the DS animals) entirely."),),
     ),
     Fact(
         "The two plants do each other's job. The Plant of Incubation ($200, \"increases the "
