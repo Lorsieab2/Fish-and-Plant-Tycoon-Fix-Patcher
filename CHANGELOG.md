@@ -96,6 +96,17 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   code bytes swap which plant each effect checks, so the Plant of Incubation
   adds the egg (Exotic Fish Eggs too) and the Plant of Nutrition rescues
   starving fish. Names, pictures, prices and saves are unchanged.
+- **Game Mechanics: Clocks and Hidden keys, clicks and cheats.** Each page now
+  starts with a Clocks section (game time = age steps/units, real time = wall
+  clock; what Stop Time, message boxes and a closed game do to each timer), and
+  every duration names its clock (a test enforces it). New section listing every
+  hidden key, click and cheat, from the code: Fish Tycoon's typed tank cheats
+  (c +$1000, u full version, w fake win), the hidden Trophy Case strip, the
+  selling shop's hidden click spots and all 40 shop tips; Plant Tycoon's
+  hotkeys (Space pauses, F1 snapshot, F3 pointer, F10 unchecked price box), the
+  faucet's 50 random tips, the nursery decoration clicks and the Sundial. Dead
+  code (Fish's expiry check, Plant's "d then w" $50,000 cheat) is marked not
+  reachable, also enforced by a test.
 - **Game Mechanics accuracy pass.** Every fact on both pages was re-checked
   against the game code: 18 Fish and 21 Plant corrections (for example Growth
   Hormone runs one step's checks, the first-sale bonus only exists in tutorial

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from game_mechanics import Fact, GamePage, Group, at_most, below, chance
 
-STEP = "one age step (5, 10 or 15 real-life minutes at 2x speed, Normal and 1/2 speed)"
+STEP = "one age step (5, 10 or 15 real-time minutes at 2x speed, Normal and 1/2 speed)"
 
 
 def page() -> GamePage:
@@ -21,13 +21,16 @@ def page() -> GamePage:
             "\"Random(100) <= 40\" is 41.04%, not 41%."
         ),
         time_and_units=(
-            "Fish live in age steps. The speed option sets the real-life length of one step: 2x speed "
-            "5 minutes, Normal 10 minutes (the default), 1/2 speed 15 minutes; Stop Time pauses. A "
-            "fish is a baby at age 1-5, a teen at 6-19 and an adult from 20. \"Per step\" means once "
-            "per age step of each fish. \"Real-life\" times are wall-clock time, whether the game is "
-            "open or not. Difficulty is Easy, Medium (the default) or Hard."
+            "Two clocks (see Clocks for every timer). Game time is fish age steps: the speed option "
+            "sets the real-time length of one step, 2x speed 5 minutes, Normal 10 minutes (the "
+            "default), 1/2 speed 15 minutes, and Stop Time pauses it; it keeps counting while the "
+            "game is closed. Real time is the wall clock: it ignores the speed setting, and most "
+            "real-time timers only run while the game is open, in their own screen. A fish is a "
+            "baby at age 1-5, a teen at 6-19 and an adult from 20 (game time). \"Per step\" means "
+            "once per age step of each fish. Difficulty is Easy, Medium (the default) or Hard."
         ),
         groups=(
+            Group("Clocks", CLOCKS),
             Group("Time away (catch-up)", TIME_AWAY),
             Group("Which tank counts", SCOPE),
             Group("Ages and stages", AGES),
@@ -47,17 +50,63 @@ def page() -> GamePage:
             Group("DS store animals", DS_ANIMALS,
                   note="Only with the DS Store Items setting. The store calls them \"magically enhancing\"; "
                        "these are their real effects."),
+            Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Chance and timer index", INDEX),
         ),
     )
 
 
+CLOCKS = (
+    Fact(
+        "Game time = age steps (5, 10 or 15 real-time minutes at 2x speed, Normal and 1/2 speed). "
+        "It is the wall clock turned into steps, so it keeps counting while the game is closed (the "
+        "save keeps the clock), caught up when the tank screen next updates (see Time away). Stop "
+        "Time throws the banked time away. Game time runs: fish ageing, health, sickness, food, "
+        "breeding and pregnancy (4 age steps), and research (about 49 age steps).",
+    ),
+    Fact(
+        "Real time = the wall clock or the game's own tick counter, the same at every speed. None "
+        "of these timers is paused by Stop Time except the ambient sounds, and none counts while "
+        "the game is closed:",
+        subs=(
+            "Fish update check: every 301 real-time seconds or more, only while the tank screen is "
+            "open (see Time away for the short waits).",
+            "Selling: one sale roll per real-time second while the selling scene is open, none for "
+            "5 real-time seconds after a sale. It keeps rolling while a message box covers the "
+            "selling scene (code reading, not seen live).",
+            "Customers decide every quarter real-time second (26 hundredths in practice); they "
+            "stand still while a message box is open.",
+            "Autosave: every 30 real-time minutes from the game's start, in any screen, but not "
+            "while a message box is open.",
+            "Thought bubbles and the shop's click texts stay 4-5 real-time seconds; tank hints 2 "
+            "real-time seconds.",
+            "Ambient tank sounds: every 210 real-time seconds on the tank screen (the first 630 "
+            "real-time seconds after the intro); skipped under Stop Time.",
+            "Tutorial waits (real-time): the next tip 25 seconds after a mating, 500 seconds (shown "
+            "at the first fish update after that, so 500-801 seconds) after the \"basics\" tip, "
+            "7 seconds after returning from the species screen. The three share one timer, so a "
+            "later one replaces an earlier one. They start over after a restart.",
+            "Splash screen: 3 real-time seconds (6 in the full version). The \"Real Hours Played\" "
+            "statistic counts real time from your first tank visit to quitting, this session only.",
+        ),
+    ),
+    Fact(
+        "While a message box is open (tips, Buy?, Options, Statistics, Unlock), the screen behind "
+        "it is still drawn but its update stops: fish do not update, customers freeze, and the "
+        "autosave waits. The game keeps running when it is not the active window or is minimised.",
+    ),
+    Fact(
+        "Speed 1/2 speed, Normal and 2x speed change only game time. Stop Time pauses fish steps, "
+        "research and the ambient sounds; nothing else checks it.",
+    ),
+)
+
 TIME_AWAY = (
     Fact(
-        "Fish only update while the tank screen is open: once every 301 real-life seconds or more, "
-        "at once when you open the tank screen or switch tanks, and again 11 real-life seconds "
-        "later; also 2 real-life seconds after the Unknown Chemical, 8 after Growth Hormone, 5 "
-        "after the starter eggs and 11 after other eggs. It is put off 10 real-life seconds while "
+        "Fish only update while the tank screen is open: once every 301 real-time seconds or more, "
+        "at once when you open the tank screen or switch tanks, and again 11 real-time seconds "
+        "later; also 2 real-time seconds after the Unknown Chemical, 8 after Growth Hormone, 5 "
+        "after the starter eggs and 11 after other eggs. It is put off 10 real-time seconds while "
         "you drag a fish. In the store, the selling scene, the species screen or the options, nothing "
         "updates; the time is caught up the next time the tank screen opens.",
     ),
@@ -66,22 +115,22 @@ TIME_AWAY = (
         "isolation tank), whichever is on screen.",
     ),
     Fact(
-        "An update turns each fish's banked real-life time into age steps and runs every step's "
+        "An update turns each fish's banked real time into age steps and runs every step's "
         "health, sickness, food and death checks one by one. The time banked at once is capped:",
         subs=(
-            "More than 72 real-life hours (259200 s) banked: 72 hours of steps, so 864 steps at 2x "
+            "More than 72 real-time hours (259200 s) banked: 72 hours of steps, so 864 steps at 2x "
             "speed, 432 at Normal and 288 at 1/2 speed.",
-            "Up to 72 real-life hours, by speed. 2x speed: up to 32400 real-life seconds (108 "
-            "steps) is kept, more becomes 25200 s (84 steps). Normal: more than 25200 real-life "
-            "seconds becomes 25200 s (42 steps). 1/2 speed: more than 18000 real-life seconds is "
+            "Up to 72 real-time hours, by speed. 2x speed: up to 32400 real-time seconds (108 "
+            "steps) is kept, more becomes 25200 s (84 steps). Normal: more than 25200 real-time "
+            "seconds becomes 25200 s (42 steps). 1/2 speed: more than 18000 real-time seconds is "
             "raised to 25200 s (28 steps).",
-            "So time away is not counted evenly. At Normal speed, 71 real-life hours away gives 42 "
-            "steps (7 hours' worth) and 73 real-life hours away gives 432 steps (72 hours' worth).",
+            "So time away is not counted evenly. At Normal speed, 71 real-time hours away gives 42 "
+            "steps (7 hours' worth) and 73 real-time hours away gives 432 steps (72 hours' worth).",
             "The rest of the banked time below one step is kept for the next update.",
         ),
     ),
     Fact(
-        "Stop Time: no fish ages, eats, gets sick or dies, and research stops. Paused real-life time "
+        "Stop Time: no fish ages, eats, gets sick or dies, and research stops. Paused real time "
         "is thrown away, also while the game is closed. Leaving Stop Time resets every fish's banked "
         "time.",
     ),
@@ -95,14 +144,14 @@ TIME_AWAY = (
     ),
     Fact(
         "If the computer's clock goes backwards, a fish whose last update is in the future is set to "
-        "30 real-life seconds ago.",
+        "30 real-time seconds ago.",
     ),
 )
 
 AGES = (
     Fact("Babies are 1-5, teens 6-19, adults 20 and up. A fish shows as a baby from age 1."),
     Fact(
-        "From an egg (age 1) to adult (20) is 19 steps: 95, 190 or 285 real-life minutes at 2x "
+        "From an egg (age 1) to adult (20) is 19 steps: 95, 190 or 285 real-time minutes at 2x "
         "speed, Normal and 1/2 speed.",
     ),
     Fact(
@@ -252,8 +301,8 @@ BREEDING = (
     ),
     Fact(
         "She is due at her age + 3 and gives birth at the first update after that: 4 age steps "
-        "after mating, which is 3 to 4 step lengths of real-life time (her part-step already banked "
-        "counts): 15-20, 30-40 or 45-60 real-life minutes at 2x speed, Normal and 1/2 speed. While she stays in the "
+        "after mating, which is 3 to 4 step lengths of real time (her part-step already banked "
+        "counts): 15-20, 30-40 or 45-60 real-time minutes at 2x speed, Normal and 1/2 speed. While she stays in the "
         "isolation tank her pregnancy is frozen; she gives birth once she is back in another tank "
         "and has aged a step.",
     ),
@@ -324,7 +373,7 @@ MAGIC_FISH = (
     ),
     Fact(
         f"Growth, Oriental Goldbulb (10, 9): each fish in its tank rolls {at_most(100, 10)} on "
-        "every update for each step it takes plus one, when the fish's banked real-life time "
+        "every update for each step it takes plus one, when the fish's banked real time "
         "(before it is turned into steps) is over 270 seconds; a success adds 1 age, with its own health, sickness and "
         "food step.",
         subs=(
@@ -427,7 +476,7 @@ PERMANENT_ITEMS = (
     ),
     Fact(
         "Golden Seahorse ($1300): no effect on fish. It brings 2 more customers to the selling "
-        "scene and makes each customer 2 points (out of 100, every quarter real-life second) more "
+        "scene and makes each customer 2 points (out of 100, every quarter real-time second) more "
         "likely to walk to the tanks. Both count even after it is gone. It arrives as an adult in "
         "Tank One (Tank Two, then the selling tank, if that is full) and never ages with time, "
         "eats, gets sick or breeds, and overfeeding never hurts it. Growth Hormone still raises "
@@ -441,7 +490,7 @@ PERMANENT_ITEMS = (
     ),
     Fact(
         "A Golden Seahorse in the selling tank is never sold in normal play. The stock sale code "
-        "(0x424240, run every real-life second) does not check for it, so it does look at it as a "
+        "(0x424240, run every real-time second) does not check for it, so it does look at it as a "
         "live adult, but its price lookup lands just past the species table, where both the asking "
         "price and the base price read 0 (in every save checked). 0 is \"2B or more\", which never "
         "sells.",
@@ -495,9 +544,9 @@ RESEARCH = (
         "Fish Environment $500 then $1750, Advertising $350 then $1500.",
     ),
     Fact(
-        "A research gains 2 points for every age step's worth of real-life time and finishes at 100. "
+        "A research gains 2 points for every age step's worth of real time and finishes at 100. "
         "It starts at 1 with one step already counted, so it takes about 49 steps: about 4 h 5 min, "
-        "8 h 10 min or 12 h 15 min of real-life time at 2x speed, Normal and 1/2 speed. Its timer is never capped, so "
+        "8 h 10 min or 12 h 15 min of real time at 2x speed, Normal and 1/2 speed. Its timer is never capped, so "
         "time away counts in full; Stop Time throws the time away.",
     ),
     Fact(
@@ -533,7 +582,7 @@ RESEARCH = (
         subs=(
             "More customers: the crowd counted when you open the selling scene includes 2 x level x "
             "(adults in the selling tank / 3, rounded down, + Random(2) + 2).",
-            "Customers walk to the tanks more often: +2 points per level on the quarter real-life second "
+            "Customers walk to the tanks more often: +2 points per level on the quarter real-time second "
             "Random(100) roll (see Selling and customers).",
             "On finishing level 2 every species' base price rises by a tenth, on level 3 by a "
             "seventh; your asking prices stay, so they become better bargains (higher sale odds).",
@@ -549,9 +598,9 @@ SELLING = (
         "open the selling scene; they keep coming and going until you leave.",
     ),
     Fact(
-        "Selling only happens while the selling scene is open. Once every real-life second, the "
+        "Selling only happens while the selling scene is open. Once every real-time second, the "
         "adults in the selling tank are tried in slot order; the first that sells ends that second. "
-        "After a sale there is no other for 5 real-life seconds.",
+        "After a sale there is no other for 5 real-time seconds.",
     ),
     Fact(
         "Each fish rolls Random(900) <= T, with K = (N + 2) / 2 rounded down and N the customers "
@@ -570,7 +619,7 @@ SELLING = (
     ),
     Fact("You are paid your asking price P, whatever it is, even 0."),
     Fact(
-        "Every quarter real-life second (0.26 s in practice), each customer standing inside first "
+        "Every quarter real-time second (0.26 s in practice), each customer standing inside first "
         f"leaves on {below(100, 3)}; otherwise it walks over to the tanks on Random(100) < k, with "
         "k = magic species discovered + 2 x (Advertising level + Golden Seahorse). Example: "
         f"Advertising level 1 and nothing else, {below(100, 2)} for that second roll.",
@@ -635,7 +684,7 @@ GOALS = (
         "The only goal is finding all seven magic fish, which opens the win screen. No tutorial "
         "popup gives money or items.",
     ),
-    Fact("The autosave runs every 30 real-life minutes, in any screen."),
+    Fact("The autosave runs every 30 real-time minutes, in any screen."),
 )
 
 DS_ANIMALS = (
@@ -661,6 +710,124 @@ DS_ANIMALS = (
          f"nothing (one {below(10, 1)} roll per dying fish)."),
 )
 
+HIDDEN = (
+    Fact(
+        "Hidden typed cheats on the tank screen (lowercase letters only; Shift or Caps Lock stops "
+        "them). They work in every game, with no setting or debug mode, while the tank screen is "
+        "up and the screensaver is off (handler 0x41ED10):",
+        subs=(
+            "c: +$1000 cash per press, no limit.",
+            "u: marks this copy as the full (registered) version for the session, which unlocks "
+            "the store's full-version-only items. Whether it lasts after a restart was not "
+            "checked.",
+            "w: shows the game-win screen within a fraction of a real-time second. It changes "
+            "nothing: no magic fish is found or saved, and any click or key goes back to the "
+            "tank.",
+        ),
+    ),
+    Fact(
+        "Hidden click on the tank screen: the strip at the top of the tank, from (212, 4) to (480, "
+        "44), opens the Trophy Case. There is no button there.",
+    ),
+    Fact(
+        "Hidden clicks in the selling shop (\"Click around the shop for hidden tips!\"): each spot "
+        "plays a sound and shows a line of text for 4-5 real-time seconds. None changes the game:",
+        subs=(
+            "Left of the window, (65, 111)-(103, 216): a random game tip (below). The first click "
+            "in a tutorial game shows the fragile-hybrids tip instead.",
+            "The poster, (118, 74)-(218, 141): \"You have discovered N species!\". The first click "
+            "in a tutorial game shows the poster tip, which says clicking the poster again gives "
+            "game tips; the code gives tips on the other spot, so the poster only shows the "
+            "species count.",
+            "(229, 139)-(335, 174): \"You have cured N fish!\". (342, 66)-(456, 106): \"You have "
+            "fed your fish N times!\". (29, 266)-(99, 326): \"You have earned N Isola-bucks so "
+            "far!\". (185, 146)-(230, 191): \"You have trashed N fish!\".",
+            "(2, 325)-(36, 361) and (649, 122)-(729, 213): \"You have bought N of the 4 Magic "
+            "Plants!\".",
+            "(337, 111)-(637, 186), the selling tank: a sound only.",
+            "With Advertising level 2 or 3, the bag display at (100, 231)-(145, 270): \"You have "
+            "sold N fish!\". Level 2 also adds small plants and level 3 a sign and a sale sign; "
+            "those have no click of their own.",
+            "A click anywhere else on a customer makes it show a thought bubble.",
+        ),
+    ),
+    Fact(
+        "The random shop tip is one of 40, picked by Random(40): tips 1-8 2.502% each, 9-40 "
+        "2.499% each (tip 20 and tip 28 are the same text, so that text is 5.0%). There is no "
+        "memory, so a tip can repeat. The texts are the game's own and some are wrong (see the "
+        "notes after the list):",
+        subs=(
+            "1. Did you know there are over 400 species of fish?",
+            "2. If your baby fish are dying, research Fish Environment!",
+            "3. The fish's 'age' does not refer to years, but more like hours.",
+            "4. Most fish are inexpensive, but some are worth more than $300!",
+            "5. Meds don't always work in one try.",
+            "6. Breeding two identical fish produces offspring of the same species.",
+            "7. New breeds start with a price somewhere near their true value.",
+            "8. If you'd like to feed your fish less often, research better Food.",
+            "9. Researching Fish Food makes fish get sick less often.",
+            "10. Any adult fish in your selling tank can be purchased by customers in the store.",
+            "11. Fish keep growing (and getting hungry!) even when the game is off.",
+            "12. One way to find the Magic Fish is to keep track of every species combination.",
+            "13. If you price your fish too high, they will sell slowly or not at all.",
+            "14. If you price your fish too low, they will sell very fast but will make little money.",
+            "15. Growth Hormone affects each fish a little differently.",
+            "16. You cannot have more than 20 fish per tank.",
+            "17. Fish from Isola don't die of old age!",
+            "18. There is more than one approach to solving the game.",
+            "19. Changing the price of a fish will change it for all fish of that species.",
+            "20. To change the price of a species, use the 'Species' button.",
+            "21. Diseases spread to other fish in the same tank!",
+            "22. Ornaments help bring people into your store.",
+            "23. Magic Fish help bring people into your store.",
+            "24. Having lots of fish for sale helps bringing people into your store.",
+            "25. Sick fish cannot be impregnated.",
+            "26. Compare your game stats with those of other players via the Statistics Screen.",
+            "27. You can click on the Magic Fish in the trophy case.",
+            "28. To change the price of a species, use the 'Species' button.",
+            "29. You can change the speed of time in the options menu.",
+            "30. The cleaning snails reduce disease in every tank.",
+            "31. Here on Isola, we use Isola-bucks!",
+            "32. Magic Fish only affect fish in the tank they are swimming in.",
+            "33. Dead Magic Fish are no longer beneficial.",
+            "34. Dead fish increase disease among your fish.",
+            "35. You can move ornaments between tanks.",
+            "36. Researching Advertising will have a huge effect on crowds in your store.",
+            "37. If you often have dead baby fish, research Fish Environment.",
+            "38. Often the more fragile fish are more valuable.",
+            "39. Hybrids are very fragile. They need more advanced Environment.",
+            "40. Extremely rare hybrids are extremely fragile.",
+            "Notes: tip 16 says 20 fish per tank; a tank holds 21. Tip 17 says fish don't die of "
+            "old age; that is right, they only die of health 0.",
+        ),
+    ),
+    Fact(
+        "Tutorial tips (only in a game started with Yes to help): each shows once, one at a time, "
+        "when its trigger happens (see Goals and popups). A message box closes with Escape or "
+        "Return.",
+    ),
+    Fact(
+        "Ordinary keys nobody mentions:",
+        subs=(
+            "Tank screen: Escape opens the main menu. In screensaver mode any key or click ends "
+            "it and updates the fish at once.",
+            "Species screen: number keys (top row or keypad) type the selected species' price, "
+            "like the on-screen keypad, up to 4 digits; Escape is Done.",
+            "Selling scene and Supplies store: Escape is Done. Trophy Case: Escape goes back.",
+            "Message boxes: Return is the first button; Escape closes or cancels.",
+            "Alt+F4 or closing the window quits.",
+        ),
+    ),
+    Fact(
+        "Not reachable (dead code, so nothing the player can do): a \"This copy of Fish Tycoon has "
+        "expired\" check (its switch is never set), a Backspace branch on the species screen "
+        "(the game never sends that key code), and F-keys, arrows, Tab and Delete (no screen "
+        "uses them).",
+    ),
+    Fact("The patcher adds no keys. Its additions are clicks: the store's Upgrades button and "
+         "the DS animals (with DS Store Items)."),
+)
+
 INDEX = (
     Fact(
         "The rolls that change fish, with their exact odds (the customers' own movement rolls "
@@ -679,7 +846,7 @@ INDEX = (
             "Fish Vitamins Random(10) + 6; Growth Hormone Random(5) + 2.",
             "Eggs: Random(2) + 3 babies; genes Random(6), Random(5) or Random(10). Starter "
             "eggs: Random(5) and Random(6) (see A new game).",
-            "Selling: Random(900) <= T each real-life second; sick fish "
+            "Selling: Random(900) <= T each real-time second; sick fish "
             f"{at_most(100, 20)}; customer walks to the tanks Random(100) < k.",
             f"New species price: Random(n), minus on {at_most(100, 49)}.",
             "Customers: crowd Random(2) (see Selling and customers).",
@@ -689,14 +856,14 @@ INDEX = (
         "Every timer:",
         subs=(
             f"Age step: {STEP}.",
-            "Fish and research update: every 301 real-life seconds or more on the tank screen, at "
-            "once when it opens, and 11 real-life seconds after opening it or dropping eggs (see "
+            "Fish and research update: every 301 real-time seconds or more on the tank screen, at "
+            "once when it opens, and 11 real-time seconds after opening it or dropping eggs (see "
             "Time away for the other short waits).",
             "Pregnancy: 4 age steps.",
             "Research: about 49 age steps.",
-            "Selling: one sale roll per real-life second; none for 5 real-life seconds after a "
-            "sale; customers decide every quarter real-life second.",
-            "Autosave: every 30 real-life minutes.",
+            "Selling: one sale roll per real-time second; none for 5 real-time seconds after a "
+            "sale; customers decide every quarter real-time second.",
+            "Autosave: every 30 real-time minutes.",
         ),
     ),
 )

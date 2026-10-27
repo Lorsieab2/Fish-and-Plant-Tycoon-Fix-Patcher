@@ -19,17 +19,19 @@ def page() -> GamePage:
             "is 50.05% and \"Random(10000) < 10\" is 0.12%."
         ),
         time_and_units=(
-            "Plants live in age units. The speed option sets the real-life length of one unit: Fast 2 "
+            "Two clocks (see Clocks for every timer). Game time is plant age units. "
+            "The speed option sets the real-time length of one unit: Fast 2 "
             "minutes, Normal 10 minutes (the default; a game started with the tutorial runs at "
             "Fast), Slow 15 minutes; Stop Time pauses. Ages are in-game age units: a plant flowers "
             "at age 21 and is mature at 24. \"Per unit\" means once per age unit of each plant. "
-            "\"Real-life\" times are wall-clock time. Plant aging and the seed shop's reroll also "
-            "count time with the game closed; every other timer runs only while the game is open, "
-            "in its own screen. "
+            "Real time is the wall clock, the same at every speed. Plant aging (game time) and the "
+            "seed shop's reroll (real time) also count time with the game closed; every other "
+            "timer runs only while the game is open, in its own screen. "
             "Difficulty is Easy, Normal (the default) or Hard. The game's timers fire one second "
             "after their nominal time (a \"60-second\" timer runs every 61 seconds)."
         ),
         groups=(
+            Group("Clocks", CLOCKS),
             Group("Time away (catch-up)", TIME_AWAY),
             Group("Where things count", SCOPE),
             Group("Ages and stages", AGES),
@@ -52,6 +54,7 @@ def page() -> GamePage:
             Group("Sorting seeds", SORTING,
                   note="Only with the Sort Seeds button setting: a \"Sort Seeds\" button on the Seed Storage "
                        "title bar."),
+            Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Chance and timer index", INDEX),
         ),
     )
@@ -83,16 +86,59 @@ SCOPE = (
     ),
 )
 
+CLOCKS = (
+    Fact(
+        "Game time = age units (2, 10 or 15 real-time minutes at Fast, Normal and Slow). It is the "
+        "game's saved clock turned into units, so it keeps counting while the game is closed and is "
+        "caught up in the greenhouse (see Time away). Stop Time (Options, or Space in the "
+        "greenhouse) throws the elapsed time away. Game time runs: plant ageing, health, water, "
+        "pests, size, seed ripening (7 age units), old age and flowering.",
+    ),
+    Fact(
+        "Real time = the wall clock, the same at every speed:",
+        subs=(
+            "Plant update check: every 61 real-time seconds, only in the greenhouse, and at once "
+            "on entering it. It still fires under Stop Time, but adds no age.",
+            "Greenhouse check every 3 real-time seconds: bug arrivals (none under Stop Time) and "
+            "the seed shop's reroll check.",
+            "Seed shop reroll: 86401 real-time seconds, counted with the game closed too, but "
+            "checked only in the greenhouse, and only one reroll however long you were away.",
+            "Nursery check every 2 real-time seconds, only in the nursery: visitors arrive and "
+            "plants sell. It keeps going under Stop Time, so plants still sell while time is "
+            "stopped. There is no catch-up for time spent elsewhere.",
+            "A flying bug flies off 23 real-time seconds after it appears, Stop Time or not; a "
+            "crawling bug pauses 2-8 real-time seconds at a time.",
+            "Autosave: every 601 real-time seconds, in every screen, but not while a message box "
+            "is open. Quitting does not save; only the autosave and opening the Supplies store "
+            "save.",
+            "Status-bar messages and tips stay 4-5 real-time seconds; nursery price bubbles and "
+            "the Sundial's text 5 real-time seconds; splash pages 4 real-time seconds.",
+            "Double-clicking a pot needs two clicks within 250 real-time milliseconds.",
+        ),
+    ),
+    Fact(
+        "Frame-based (the game draws at most 30 frames per real-time second): watering adds 6, 9 "
+        "or 12 water per frame (at most 180, 270 or 360 per real-time second); Insta-Grow adds "
+        "0.07 age units per frame, so its 7-14 units take at least about 3.3-6.7 real-time "
+        "seconds. Insta-Grow keeps going under Stop Time and while a message box is open over the "
+        "greenhouse.",
+    ),
+    Fact(
+        "While a message box is open, the screen behind it is drawn but does not update: no plant "
+        "update, bugs or visitors, and no autosave.",
+    ),
+)
+
 TIME_AWAY = (
     Fact(
-        "Plants only update in the greenhouse: every 61 real-life seconds, at once when you enter "
+        "Plants only update in the greenhouse: every 61 real-time seconds, at once when you enter "
         "it, and when you change the speed in Options. Time spent anywhere else, or with the game "
         "closed, is caught up the next time you enter the greenhouse.",
     ),
     Fact(
         "Time away is not capped: every missed age unit is simulated one by one (infestation, "
         "health, water loss, dryness, old age, death), so plants can die while the game is closed. "
-        "The caps in the code act only on the whole real-life seconds left over after the "
+        "The caps in the code act only on the whole real-time seconds left over after the "
         "conversion (normally 0 or 1, kept for the next update), so they never change anything.",
     ),
     Fact(
@@ -126,7 +172,7 @@ TIME_AWAY = (
 
 AGES = (
     Fact(
-        "A seed planted at age 0 starts at health 90. One age unit is 2, 10 or 15 real-life minutes "
+        "A seed planted at age 0 starts at health 90. One age unit is 2, 10 or 15 real-time minutes "
         "(Fast, Normal, Slow).",
     ),
     Fact(
@@ -141,8 +187,8 @@ AGES = (
     ),
     Fact(
         f"Above age 1720: each unit, {at_most(1000, 9)} chance that the plant dies of old age, "
-        "99.3 more age units on average (real-life: 3 h 19 min at Fast, 16 h 33 min at Normal, "
-        "24 h 50 min at Slow). Age 1720 is 57 h 20 min of real-life time at Fast, 11 days 22 h 40 "
+        "99.3 more age units on average (real time: 3 h 19 min at Fast, 16 h 33 min at Normal, "
+        "24 h 50 min at Slow). Age 1720 is 57 h 20 min of real time at Fast, 11 days 22 h 40 "
         "min at Normal and 17 days 22 h at Slow.",
         patched=(("no_old_age_plant_deaths", "plants never die of old age."),),
     ),
@@ -237,7 +283,7 @@ SEEDS = (
     ),
     Fact(
         "Seeds ripen one per age unit: the first 3, 4, 5 or 7 units after pollination (5, 4, 3 "
-        "seeds, infested), and all are ripe after 7 age units: 60-70 real-life minutes at Normal "
+        "seeds, infested), and all are ripe after 7 age units: 60-70 real-time minutes at Normal "
         "(12-14 min at Fast, 90-105 min at Slow).",
     ),
     Fact(
@@ -269,7 +315,7 @@ MUTATION = (
 
 SHOP_SEEDS = (
     Fact(
-        "The seed shop offers 3 seeds of each tier and rerolls them after 86401 real-life seconds; "
+        "The seed shop offers 3 seeds of each tier and rerolls them after 86401 real-time seconds; "
         "only once, however long you were away.",
     ),
     Fact(
@@ -286,7 +332,7 @@ SHOP_SEEDS = (
     Fact(
         "Legendary Seeds: not in the unpatched game.",
         patched=(("plant_upgrades", "three at a time on the store's Upgrades view, $5000 each, "
-                  "rerolled with the stock seeds (once per 86401 real-life seconds): foliage "
+                  "rerolled with the stock seeds (once per 86401 real-time seconds): foliage "
                   f"Random(23) + 1 (1-16 {each(23, 0)} each, 17-23 {each(23, 22)} each), flower one "
                   f"of the 14 new flowers 24-37 (24-31 {each(14, 0)} each, 32-37 {each(14, 13)} "
                   "each), so class D. Besides these, only Mutation Liquid and breeding from a "
@@ -297,7 +343,7 @@ SHOP_SEEDS = (
 NEW_GAME = (
     Fact(
         "A new game starts with $250, four plants in the first row (genes from 1, 5, 9, 13, 17, "
-        "never the magic Fourpetal Maple), aged as if 4799 real-life seconds had passed at the "
+        "never the magic Fourpetal Maple), aged as if 4799 real-time seconds had passed at the "
         "current speed (age 8 at most), with health 70-89 and water 400.",
     ),
     Fact(
@@ -313,7 +359,7 @@ SELLING = (
         "species' asking price P.",
     ),
     Fact(
-        "Every 2 real-life seconds in the nursery, each plant for sale rolls Random(1300) <= k x E, "
+        "Every 2 real-time seconds in the nursery, each plant for sale rolls Random(1300) <= k x E, "
         "with E = half the visitors browsing, rounded down. Visitors see a price P' (below) and "
         "compare it with the species' value V:",
         subs=(
@@ -337,7 +383,7 @@ SELLING = (
     Fact(
         "Visitors: up to 8 + 47 x S / 78 (8-55), where S is 2 per plant for sale, 1 or 4 per "
         "ornament (see Nursery ornaments), 4 for the Rose of Joy, 2 per other magic plant and 4 for "
-        f"the full bug collection. Every 2 real-life seconds in the nursery, below the limit, "
+        f"the full bug collection. Every 2 real-time seconds in the nursery, below the limit, "
         f"{below(100, 55)} chance that "
         "1, 2 or 3 arrive (33.33% each); the count can overshoot the limit by 2.",
     ),
@@ -441,7 +487,7 @@ CHEMICALS = (
     ),
     Fact(
         "Insta-Grow ($250, 5 doses): the plant gains 7 to 14 age units (1 in 8 each) at 0.07 units "
-        "per frame, so over 100-200 frames (its real-life length depends on the frame rate), with no "
+        "per frame, so over 100-200 frames (its real-time length depends on the frame rate), with no "
         "water, health, pest or old-age changes for them. The Vaporbomb ($1500, 2 doses) does it to "
         "every live plant.",
     ),
@@ -524,7 +570,7 @@ SORTING = (
 
 BUGS = (
     Fact(
-        "Every 3 real-life seconds in the greenhouse, if no bug is out and time is running, a bug "
+        "Every 3 real-time seconds in the greenhouse, if no bug is out and time is running, a bug "
         "appears on Random(100) < t, with t = 6 + (20 - bugs collected, at least 0) / 4: "
         f"{below(100, 11)} with none collected, down to {below(100, 6)} from 17. The Magic Tree of "
         "Fragrance adds 1.",
@@ -547,8 +593,139 @@ BUGS = (
         f"A bug you already have is skipped on {below(100, 40)}, and then nothing appears that time. "
         "Catching a duplicate pays $5, $20 or $40; all 48 pay $5000 once.",
     ),
-    Fact("Butterflies and dragonflies fly off 23 real-life seconds after appearing; beetles and "
+    Fact("Butterflies and dragonflies fly off 23 real-time seconds after appearing; beetles and "
          "spiders walk until they leave."),
+)
+
+HIDDEN = (
+    Fact(
+        "Greenhouse keys (lowercase letters only):",
+        subs=(
+            "2 or s: Seed Storage. 3 or p: the Supplies store. 4 or c: Collections. 5 or n: the "
+            "Nursery. 1 or m: the greenhouse itself (nothing).",
+            "Space: Stop Time on or off (\"Time Paused\" / \"Unpaused\"), the same as the Options "
+            "setting.",
+            "Escape: the main menu. F1: the snapshot (camera) screen.",
+            "F10: opens the asking-price box with none of the Price button's checks. With no pot "
+            "selected (as on entering the greenhouse) it works on a pot that does not exist and "
+            "writes past the game's data when you press OK. What that does was not tested; do "
+            "not use it.",
+        ),
+    ),
+    Fact(
+        "Keys on the other screens:",
+        subs=(
+            "Seed Storage: 1 or m greenhouse, 3 or p store, 4 or c Collections, 5 or n Nursery; "
+            "Escape back to the greenhouse.",
+            "Supplies store: 1 or m greenhouse, 2 or s Seed Storage, 4 or c Collections, 5 or n "
+            "Nursery; Escape greenhouse.",
+            "Collections: 1 or m greenhouse, 2 or s Seed Storage, 3 or p store, 5 or n Nursery; "
+            "Escape or F1 greenhouse. F3 hides or shows the mouse pointer (every other press "
+            "hides it, in every screen, until F3 is pressed again there).",
+            "Nursery: only 1 or m and Escape (both to the greenhouse). 3 and 4 change the first "
+            "visitor's look (a leftover developer key; it changes nothing else).",
+            "Splash screen: any key or click shows the next page; F1 skips straight to the "
+            "greenhouse (what that does with no game loaded was not tested).",
+            "Message boxes: Return is OK, Escape cancels. The price box takes digits and a minus "
+            "sign first, so a zero or negative asking price can be typed (what then happens was "
+            "not tested).",
+        ),
+    ),
+    Fact(
+        "Hidden clicks in the greenhouse:",
+        subs=(
+            "The faucet (x 754-804, y 430-505), when you hold nothing and click no pot: a random "
+            "tip in the status bar for 4-5 real-time seconds (list below).",
+            "Double-click the selected pot (no tool held): it shows the seed you planted "
+            "(\"Displaying seed in this pot...\").",
+        ),
+    ),
+    Fact(
+        "Hidden clicks in the nursery (each only if you own the item):",
+        subs=(
+            "Bird House: a sound and an animation. Wheelbarrow: a sound and 3-22 sparkles. Stone "
+            "Turtle: a sound and three animations. None of them changes visitors or sales.",
+            "Sundial: a sound and \"Real Hours Played: N\" for 5 real-time seconds, where N is "
+            "the whole real-time hours since the game was started, closed time included (not time "
+            "played).",
+            "A magic plant's display: shows that magic plant's message again. Nothing else.",
+            "The middle of the nursery (363, 275, 75 x 71), once all six magic plants are found: "
+            "the win screen again.",
+            "A plant for sale: \"Asking Price: P\" for 5 real-time seconds. A visitor: a new "
+            "thought bubble. Dragging a plant onto another sale spot swaps the two plants, also in "
+            "the greenhouse.",
+            "The Weather Vane, Lantern, Owl, Cherub, Bench, Fountain, Sign, Fence, Gate, Cash "
+            "Register and Refurbishment do nothing when clicked.",
+        ),
+    ),
+    Fact(
+        "The faucet tip is one of 50, picked by Random(50): tips 1-18 2.002% each, 19-50 1.999% "
+        "each, with no memory, so a tip can repeat (clicking while that same tip is showing "
+        "changes nothing). One more is picked the same way for the loading screen at start-up. "
+        "The texts are the game's own; tip 22 is wrong (an infested plant can be pollinated, for "
+        "1 seed) and tips 33, 36 and 37 do not hold in the nursery:",
+        subs=(
+            "1. Time passes whether you're playing the game or not.",
+            "2. Duplicate bugs are turned into cash.",
+            "3. Careful! Pruning cannot be undone.",
+            "4. Ornaments attract more visitors to your nursery.",
+            "5. Some exotic plants survive only in special soil.",
+            "6. Plants can be damaged by pruning.",
+            "7. Pause the game if you go away for very long.",
+            "8. Upgraded nets help you catch the faster bugs.",
+            "9. Only mature plants display their name.",
+            "10. Mature plants produce pollen.",
+            "11. Plants produce seeds after you pollinate them.",
+            "12. Infested plants have small black insects around them.",
+            "13. Plants keep growing even when the game is off.",
+            "14. Isola is pronounced ee-zoh-lah!",
+            "15. Each Magic Plant has a unique effect.",
+            "16. There are over 500 different species of Plants!",
+            "17. You can drag seeds directly to the Seeds button.",
+            "18. Magic Plants attract visitors to your store.",
+            "19. You can breed and sell Magic Plants that you've found.",
+            "20. If your plants are dying, buy better soil.",
+            "21. There are many approaches to solving the game.",
+            "22. Infested plants cannot be pollinated.",
+            "23. Some plants can sell for more than $400.",
+            "24. Pricing your plants too high inhibits sales.",
+            "25. Double-clicking a pot will show what seed you planted.",
+            "26. The supply shop's seed inventory changes once a day.",
+            "27. Mutation Liquid changes the DNA of the plant.",
+            "28. If your plants sell quickly, the price may be too low.",
+            "29. The effect of Magic Plants is automatic and permanent.",
+            "30. Magic Plants are automatically repotted in golden pots.",
+            "31. You can't rush Mother Nature!",
+            "32. The 'ESC' key will take you back one screen.",
+            "33. There are hotkeys for moving between screens.",
+            "34. Dead plants may still have seeds on them.",
+            "35. Soil upgrades immediately benefit your plants.",
+            "36. The number keys navigate from screen to screen.",
+            "37. 'm', 'c', 'p', 's', and 'n' keys will change screens.",
+            "38. Trashing a pot containing dirt gives you a new pot.",
+            "39. Pruning dead foliage can improve plant health.",
+            "40. Moving your hand too quickly scares bugs.",
+            "41. Sneaking up on bugs with your net helps you catch them.",
+            "42. Plants sell better if flowers are visible.",
+            "43. You can share snapshots of your plants.",
+            "44. Catching bugs can help finance your purchases.",
+            "45. Trashing unwanted seeds turns them into cash.",
+            "46. Plants with dead foliage don't sell well.",
+            "47. Certain chemicals can advance your breeding program.",
+            "48. You can rearrange your plants in the nursery.",
+            "49. You can take snapshots of your favorite plants.",
+            "50. The speed of time can be changed from Options.",
+        ),
+    ),
+    Fact(
+        "Not reachable (dead code): a \"d then w\" cheat for $50,000 cash in the greenhouse. The "
+        "code needs a counter at 1 before d, and nothing ever sets it to 1, so it never pays.",
+    ),
+    Fact(
+        "The patcher's own additions are clicks, not keys: the Upgrades link in the Supplies store "
+        "and the gold box arrows (Add new store upgrades and items), and the Sort Seeds button "
+        "(Sort Seeds button).",
+    ),
 )
 
 INDEX = (
@@ -561,7 +738,7 @@ INDEX = (
             "Seeds: Random(3), 33.33% each.",
             "Mutation Liquid: Random(2), 50.00%, twice.",
             f"Shop seeds: Random(5), Random(4), Random(6), Random(8); Extinct high genes {below(100, 15)}.",
-            "Selling: Random(1300) <= k x E every 2 real-life seconds in the nursery, per plant for "
+            "Selling: Random(1300) <= k x E every 2 real-time seconds in the nursery, per plant for "
             "sale.",
             f"Visitors: arrival {below(100, 55)}; 1-3 by Random(3); stay Random(100) < 20 + 60T/67; "
             f"leave {below(100, 20)}.",
@@ -573,12 +750,13 @@ INDEX = (
     Fact(
         "Every timer:",
         subs=(
-            "Age unit: 2, 10 or 15 real-life minutes (Fast, Normal, Slow).",
-            "Plant update: every 61 real-life seconds in the greenhouse.",
-            "Bugs and shop reroll check: every 3 real-life seconds in the greenhouse.",
-            "Nursery (visitors and sales): every 2 real-life seconds while in the nursery.",
-            "Shop reroll: 86401 real-life seconds.",
-            "Autosave: every 601 real-life seconds while the game is open.",
+            "Age unit: 2, 10 or 15 real-time minutes (Fast, Normal, Slow).",
+            "Plant update: every 61 real-time seconds in the greenhouse.",
+            "Bugs and shop reroll check: every 3 real-time seconds in the greenhouse.",
+            "Nursery (visitors and sales): every 2 real-time seconds while in the nursery.",
+            "Shop reroll: 86401 real-time seconds.",
+            "Autosave: every 601 real-time seconds while the game is open (not while a message box is "
+            "open).",
         ),
     ),
 )
