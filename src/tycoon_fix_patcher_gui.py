@@ -33,6 +33,7 @@ from tycoon_fix_patcher import (
 APP_NAME = "Fish & Plant Tycoon Fix Patcher"
 CREATOR_DESCRIPTION = "🪴 Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :) 🐟"
 CREATOR_TEXT = "Created with Codex AI, with contributions from Claude AI. Made with love by Lorsieab2 :)"
+FLOWER_NAMES_CREDIT = "Plant Tycoon flower names (Add unused flowers): credit to Virtual_Lady and Lorsieab2."
 ROOT = Path(__file__).resolve().parents[1]
 SETTINGS_PATH = ROOT / "patcher_local_settings.json"
 FISH_PICTURE_PATH = ROOT / "assets" / "fish.png"
@@ -240,6 +241,7 @@ class App(tk.Tk):
         self.log.pack(fill="both", expand=True, pady=(8, 0))
 
         self._creator_line(outer, small=True).pack(anchor="w", pady=(8, 0))
+        ttk.Label(outer, text=FLOWER_NAMES_CREDIT, font=("Segoe UI", 9)).pack(anchor="w")
 
     def _content_resized(self, _event: tk.Event) -> None:
         self.content_canvas.configure(scrollregion=self.content_canvas.bbox("all"))

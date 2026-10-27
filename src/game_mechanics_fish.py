@@ -347,46 +347,77 @@ MAGIC_FISH = (
 )
 
 CONSUMABLES = (
-    Fact("A medicine or chemical acts on every fish in the tank you use it on; the Ick and Fungal "
-         "Treatments also reach the fish in the isolation tank. There is no cooldown: \"one drop "
-         "every half hour\" is only advice."),
     Fact(
-        "Ick Treatment ($30, 3 doses): each fish with ick is cured on Random(100) < C: Easy 70 "
-        f"({chance(100, 70)}), Medium 40 ({chance(100, 40)}), Hard 25 ({chance(100, 25)}).",
+        "Buying one fills its supply slot: medicines go in slot #2, chemicals in slot #3, eggs in slot "
+        "#4 (any of 2-4 with Universal supply slots). A medicine, Fish Vitamins or Growth Hormone "
+        "purchase holds 3 doses; the Unknown Chemical 1; eggs are one batch. Each use spends one, on "
+        "the tank you are looking at. There is no cooldown: \"one drop every half hour\" is only "
+        "advice.",
     ),
     Fact(
-        "Fungal Treatment ($40, 3 doses): the same for fungus. During the tutorial, while it asks "
-        "you to breed, any medicine cures fungus every time.",
-    ),
-    Fact("Fish Vitamins ($140): each fish with health 1-99 gains 6-15 health (Random(10) + 6), "
-         "capped at 100."),
-    Fact(
-        "Growth Hormone ($380): each fish aged 40 or less gains 2-6 age (Random(5) + 2). The skipped "
-        "steps get no health, sickness or food changes, except on Hard.",
+        "Ick Treatment ($30, 3 doses): every fish with ick in the tank you use it on, and the fish in "
+        "the isolation tank, is cured on Random(100) < C: Easy 70 "
+        f"({chance(100, 70)}), Medium 40 ({chance(100, 40)}), Hard 25 ({chance(100, 25)}). Each fish "
+        "rolls on its own; a failed roll leaves it sick, and you can dose again at once. It does "
+        "nothing for fungus.",
     ),
     Fact(
-        f"Unknown Chemical ($650): each live fish (not the Golden Seahorse) is changed on "
-        f"{at_most(100, 25)}. Then its body changes on {at_most(100, 49)}, otherwise its fin; "
-        f"the gene moves one step up on {at_most(100, 49)}, otherwise down, but always down at 20 "
-        "and always up at 0. One dose.",
+        "Fungal Treatment ($40, 3 doses): the same for fungus, with the same odds; it does nothing for "
+        "ick. During the tutorial, while it asks you to breed, any medicine cures fungus every time.",
+    ),
+    Fact(
+        "Fish Vitamins ($140, 3 doses): each fish in the tank you use it on with health 1-99 gains "
+        "6-15 health (Random(10) + 6, 10% each), capped at 100. Sick fish get it too, but it does not "
+        "cure them. Dead fish (health 0) and fish at 100 get nothing. It does not reach the isolation "
+        "tank.",
+    ),
+    Fact(
+        "Growth Hormone ($380, 3 doses): each fish in the tank you use it on aged 40 or less gains "
+        "2-6 age (Random(5) + 2, 20% each), so babies and teens grow up sooner. The skipped steps get "
+        "no health, sickness or food changes, except on Hard, where they are played out. Fish older "
+        "than 40 get nothing. A new game starts with 1 dose in slot #3.",
+    ),
+    Fact(
+        f"Unknown Chemical ($650): each live fish (not the Golden Seahorse) in the tank you use it on "
+        f"is changed on {at_most(100, 25)}. Then its body changes on {at_most(100, 49)}, otherwise its "
+        f"fin; the gene moves one step up on {at_most(100, 49)}, otherwise down, but always down at "
+        "20 and always up at 0. One dose. It is how you reach odd (rare) genes and new species "
+        "without breeding.",
         patched=(
             ("unknown_chemical_three_uses", "one purchase gives 3 doses."),
             ("ds_fish", "a body or fin at 20 can also step up into the DS genes (23-29), with the "
              "same odds; 29 is the new end."),
         ),
     ),
+    Fact("Common, Unusual and Rare Fish Eggs: see Eggs."),
 )
 
 PERMANENT_ITEMS = (
-    Fact(f"Aeration System ($70): {at_most(100, 40)} chance of +1 health per fish per step "
-         "(blocked for a sick or hungry fish)."),
-    Fact("Temperature Regulator ($175): the same, a second roll."),
-    Fact(f"Cleaning Snail ($80): halves the sickness odds on {at_most(100, 49)}; it does nothing "
-         "once you own the Plant of Curing."),
+    Fact(
+        "Each permanent item is bought once and works game-wide from then on, in all four tanks "
+        "(see Which tank counts), whichever tank you were in when you bought it.",
+    ),
+    Fact(
+        f"Aeration System ($70): each age step, each fish gets {at_most(100, 40)} chance of +1 "
+        "health, added before the step's total is taken. If the fish is sick or its food is below 5, "
+        "a positive total becomes 0, so it only helps healthy, fed fish. It also adds bubbles and a "
+        "sound.",
+    ),
+    Fact(
+        f"Temperature Regulator ($175): a second, separate {at_most(100, 40)} chance of +1 health per "
+        "fish per step, with the same rule for sick or hungry fish. With both, a fish gets 0, 1 or 2 "
+        "of these points a step.",
+    ),
+    Fact(
+        f"Cleaning Snail ($80): an adult's sickness odds X are halved on {at_most(100, 49)} each step. "
+        "It does nothing once you own the Plant of Curing (the two never stack). It is drawn in the "
+        "tank you are looking at; that is only for show.",
+    ),
     Fact(
         "Golden Seahorse ($1300): no effect on fish. It brings 2 more customers to the selling "
-        "scene and makes each customer 2 points more likely to walk to the tanks. Both count even "
-        "after it is gone.",
+        "scene and makes each customer 2 points (out of 100, every quarter second) more likely to "
+        "walk to the tanks. Both count even after it is gone. It never ages, eats, gets sick or is "
+        "sold, and overfeeding never hurts it.",
         patched=(
             ("golden_seahorse_repurchase", "it can be bought again after it is gone."),
             ("ds_store", f"it also gives healthy, fed fish in its tank {below(100, 82)} chance of +1 "
@@ -395,20 +426,37 @@ PERMANENT_ITEMS = (
     ),
     Fact(
         "The two plants do each other's job. The Plant of Incubation ($200, \"increases the "
-        f"viability of purchased eggs\") rescues starving fish ({at_most(100, 20)}, food +5 per "
-        "step). The Plant of Nutrition ($350) adds 1 egg to every egg batch.",
+        f"viability of purchased eggs\") rescues starving fish: a fish at food 2 or less has "
+        f"{at_most(100, 20)} chance each step of food +5. The Plant of Nutrition ($350) adds 1 egg to "
+        "every egg batch (Common, Unusual, Rare).",
         patched=(("fix_vanilla_bugs", "the effects are swapped back: the Plant of Incubation adds the "
                   "egg (Exotic Fish Eggs too) and the Plant of Nutrition rescues starving fish. Names, "
                   "pictures and prices are unchanged, and plants already owned switch over."),),
     ),
-    Fact("Plant of Curing ($650): always halves the sickness odds."),
-    Fact("Plant of Fertility ($1250): one extra baby per litter."),
+    Fact(
+        "Plant of Curing ($650): every adult's sickness odds X are halved, every step, in every tank. "
+        "It makes the Cleaning Snail useless. It does not cure a sick fish.",
+    ),
+    Fact(
+        "Plant of Fertility ($1250): every litter gets one more baby (1-3 with the Magic Fish of "
+        "Fertility). It does not change eggs.",
+    ),
     Fact(
         "Ornaments (Shell $20, Pagoda $50, Diver $350, Fancy Coral $950, Sunken Antique Column $1500, "
-        "Sunken Ship $3500): each brings 1 more customer to the selling scene. They are movable, "
-        "6 per tank at most.",
+        "Sunken Ship $3500): each one owned brings 1 more customer to the selling scene, whichever "
+        "tank it is in. That is their only effect.",
+        subs=(
+            "A purchase drops it into the tank you are looking at; drag it to place it, or onto the "
+            "Tank Two button to move it there (with the Second Tank). 6 per tank at most.",
+            "Fewer ornaments make the customers' diver \"?\" thought (they want more decor) more "
+            "likely: it shows when Random(4) is above the number you own. The thought changes "
+            "nothing.",
+        ),
     ),
-    Fact("Second Tank ($450): a second full-size tank."),
+    Fact(
+        "Second Tank ($450): unlocks Tank Two, a second full-size tank (21 fish) with its own fish, "
+        "ornaments and magic fish. You can drop fish and ornaments on its button to move them.",
+    ),
 )
 
 RESEARCH = (
@@ -439,11 +487,28 @@ RESEARCH = (
             "It does not change health, breeding, prices or customers.",
         ),
     ),
-    Fact("Fish Environment: only the rarity part of the health change (see Health)."),
     Fact(
-        "Advertising: more customers and a higher chance that they walk to the tanks (see Selling "
-        "and customers). On finishing level 2 every species' base price rises by a tenth, on level "
-        "3 by a seventh; your asking prices stay, so they become better bargains.",
+        "Fish Environment research ($500 then $1750): changes only the part of each step's health "
+        "change that comes from the fish's rarest gene (its body or fin, whichever is rarer):",
+        subs=(
+            "Common genes: +1 / +3 / +5 health per step at levels 1 / 2 / 3.",
+            "Half-rare genes: -1 / +1 / +3.",
+            "Rare (odd) genes: -19 / -6 / 0. So at level 1 a rare fish loses 19 health a step "
+            "(dies in about 6 steps without help); level 3 makes rare fish safe.",
+            "It does not change sickness, food, breeding, prices or customers.",
+        ),
+    ),
+    Fact(
+        "Advertising research ($350 then $1500): three effects, all in the selling scene:",
+        subs=(
+            "More customers: the crowd counted when you open the selling scene includes 2 x level x "
+            "(adults in the selling tank / 3, rounded down, + Random(2) + 2).",
+            "Customers walk to the tanks more often: +2 points per level on the quarter-second "
+            "Random(100) roll (see Selling and customers).",
+            "On finishing level 2 every species' base price rises by a tenth, on level 3 by a "
+            "seventh; your asking prices stay, so they become better bargains (higher sale odds).",
+            "The shop's posters change at levels 2 and 3; that is only for show.",
+        ),
     ),
 )
 
