@@ -83,7 +83,9 @@
 #define S_MONEY 0x38C
 #define S_SPENT 0x24
 #define S_SECOND_TANK 0x230
-#define S_EGG_PLANT 0x17C
+/* The egg plant's dword: the game's own hatch code (0x4213DB, mov ecx, [edi + disp32]) names it,
+   0x17C as shipped or 0x168 with Fix Vanilla Bugs, so Exotic Fish Eggs follow the same plant. */
+#define S_EGG_PLANT (*(const int *)0x004213DDu)
 #define S_EASY 0x14
 #define S_EGG_ITEM 0x30C
 #define S_EGG_PRESENT 0x310

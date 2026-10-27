@@ -82,12 +82,12 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Fish Tycoon
 
-- **Fix Vanilla Bugs**, a new setting, on by default. The stock store has
-  the two plants' labels swapped: the $200 plant sold as "Plant of
-  Incubation" really rescues starving fish, and the $350 "Plant of
-  Nutrition" really adds 1 egg per batch. Two data patches swap the store
-  records' name and description IDs back; prices, pictures, effects and
-  saves are unchanged.
+- **Fix Vanilla Bugs**, a new setting, on by default. In the stock game the
+  two plants do each other's job: the $200 Plant of Incubation rescues
+  starving fish and the $350 Plant of Nutrition adds 1 egg per batch. Four
+  code bytes swap which plant each effect checks, so the Plant of Incubation
+  adds the egg (Exotic Fish Eggs too) and the Plant of Nutrition rescues
+  starving fish. Names, pictures, prices and saves are unchanged.
 - **Game Mechanics**: Fish Food research is explained in full (food
   duration per level, sickness odds, food look), and the starter-eggs entry
   shows why the first baby is always a Greenfin Spotanus and how a player
