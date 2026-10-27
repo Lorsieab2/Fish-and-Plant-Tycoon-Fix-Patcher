@@ -51,6 +51,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterator, Protocol
 
+import long_paths
 import save_tools
 
 BACKUPS_FOLDER = "Backups"
@@ -103,6 +104,7 @@ def _is_link(path: Path) -> bool:
 def files_to_back_up(save_folder: Path) -> list[Path]:
     """Every file under ``save_folder`` except its Backups folder, relative and sorted."""
     files: list[Path] = []
+    save_folder = long_paths.extended(save_folder)
 
     def walk(folder: Path, relative: Path) -> None:
         for entry in sorted(folder.iterdir(), key=lambda item: item.name.casefold()):
@@ -242,22 +244,24 @@ def _copy_one(source: Path, destination: Path) -> CopiedFile:
 
 def copy_save_folder(save_folder: Path, now: datetime | None = None, suffix: str = "") -> BackupResult:
     """Copy the save folder into a new Backups\\Backup <date> folder inside it."""
+    shown = long_paths.plain(save_folder)
+    save_folder = long_paths.extended(save_folder)
     if not save_folder.is_dir():
-        raise BackupError(f"The save folder does not exist: {save_folder}")
+        raise BackupError(f"The save folder does not exist: {shown}")
     relatives = files_to_back_up(save_folder)
     if not relatives:
-        raise BackupError(f"There is nothing to back up in {save_folder}.")
+        raise BackupError(f"There is nothing to back up in {shown}.")
     when = now or datetime.now()
     staging = _new_backup_folder(save_folder, when, suffix)
-    result = BackupResult(save_folder, staging)
+    result = BackupResult(shown, staging)
     try:
         for relative in relatives:
             copied = _copy_one(save_folder / relative, staging / relative)
             copied.relative = relative
             result.files.append(copied)
-        result.backup_folder = _finish_backup(staging, when, suffix)
+        result.backup_folder = long_paths.plain(_finish_backup(staging, when, suffix))
     except (OSError, BackupError) as exc:
-        where = _set_aside(staging)
+        where = long_paths.plain(_set_aside(staging))
         reason = exc if isinstance(exc, BackupError) else f"{type(exc).__name__}: {exc}"
         raise BackupError(
             f"The backup could not be completed ({reason}). The partial copy was kept as "
@@ -473,7 +477,7 @@ def players_in(game_id: str, folder: Path) -> dict[int, str]:
 
 def list_backups(game_id: str, save_folder: Path) -> list[BackupInfo]:
     """This save folder's usable backups, newest first."""
-    backups = save_folder / BACKUPS_FOLDER
+    backups = long_paths.extended(save_folder) / BACKUPS_FOLDER
     if not backups.is_dir():
         return []
     found: list[tuple[datetime, int, BackupInfo]] = []
@@ -484,7 +488,8 @@ def list_backups(game_id: str, save_folder: Path) -> list[BackupInfo]:
         when, sequence, label = parsed
         files = files_to_back_up(entry)
         size = sum((entry / relative).stat().st_size for relative in files)
-        found.append((when, sequence, BackupInfo(entry, when, label, len(files), size, players_in(game_id, entry))))
+        found.append((when, sequence, BackupInfo(long_paths.plain(entry), when, label, len(files), size,
+                                                 players_in(game_id, entry))))
     found.sort(key=lambda item: (item[0], item[1]), reverse=True)
     return [info for _when, _sequence, info in found]
 
@@ -552,6 +557,7 @@ def plan_restore(game_id: str, save_folder: Path, backup: Path, slot: int | None
     slot's files are touched, plus its name in the player list; a file that
     belongs to no slot and differs is refused, since restoring the slot with
     or without it would leave the save inconsistent."""
+    save_folder, backup = long_paths.extended(save_folder), long_paths.extended(backup)
     _require_backup_of(save_folder, backup)
     in_backup = set(files_to_back_up(backup))
     in_folder = set(files_to_back_up(save_folder))
@@ -595,7 +601,7 @@ def _place(source: Path, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     expected = _hash_file(source)
     while True:
-        temp = target.with_name(f"{target.name}.ftfp-restore-{uuid.uuid4().hex[:12]}.tmp")
+        temp = target.with_name(f"~ftfp-{uuid.uuid4().hex[:8]}.tmp")
         try:
             writer = temp.open("xb")
         except FileExistsError:
@@ -637,6 +643,7 @@ def restore_backup(game_id: str, save_folder: Path, backup: Path, slot: int | No
     """Restore ``backup`` (all of it, or one slot) into ``save_folder``, with the game closed.
     The current saves are backed up first as "(before restore)"; any failure puts every file back."""
     controller = processes if processes is not None else WindowsProcesses()
+    save_folder, backup = long_paths.extended(save_folder), long_paths.extended(backup)
     exe = game_exe_name(save_folder)
     if game_running(save_folder, controller):
         raise RestoreRefused(
@@ -674,7 +681,7 @@ def _roll_back(save_folder: Path, before: BackupResult | None, done: list[Path])
     problems: list[str] = []
     for relative in reversed(done):
         target = save_folder / relative
-        original = before.backup_folder / relative if before else None
+        original = long_paths.extended(before.backup_folder) / relative if before else None
         try:
             if original is not None and original.is_file():
                 _place(original, target)
@@ -697,6 +704,7 @@ def _clear_read_only(path: str) -> None:
 def delete_backup(save_folder: Path, backup: Path) -> None:
     """Delete one of this save folder's backups. It is renamed "... (deleting)" first, so an
     interrupted delete never leaves a half-emptied folder that still looks like a backup."""
+    save_folder, backup = long_paths.extended(save_folder), long_paths.extended(backup)
     _require_backup_of(save_folder, backup)
     doomed = backup.with_name(backup.name + DELETING)
     try:
@@ -740,6 +748,7 @@ _ZIP_TIME = re.compile(r"(\d{4}-\d{2}-\d{2}) (\d{2})(\d{2})(\d{2})")
 
 def import_zip_backup(game_id: str, save_folder: Path, archive_path: Path) -> Path:
     title = save_tools.FORMATS[game_id].title
+    save_folder = long_paths.extended(save_folder)
     match = _ZIP_TIME.search(archive_path.stem)
     try:
         when = datetime.strptime(" ".join(match.groups()), "%Y-%m-%d %H %M %S") if match else None
@@ -761,7 +770,34 @@ def import_zip_backup(game_id: str, save_folder: Path, archive_path: Path) -> Pa
         staging = _new_backup_folder(save_folder, when, "")
         try:
             archive.extractall(staging, members)
-            return _finish_backup(staging, when, "")
+            return long_paths.plain(_finish_backup(staging, when, ""))
         except (OSError, BackupError) as exc:
             where = _set_aside(staging)
             raise BackupError(f"The zip could not be imported ({exc}); the partial copy is {where}.") from exc
+
+
+# --------------------------------------------------------------------- folders
+
+PATCHER_SUFFIXES = ("Modded", "Modded Upgrades")
+
+
+def is_patcher_save_folder(game_id: str, name: str) -> bool:
+    """Whether ``name`` is the save folder of a copy the patcher built."""
+    title = save_tools.FORMATS[game_id].title
+    return any(name.casefold() == f"{title} - {suffix}".casefold() for suffix in PATCHER_SUFFIXES)
+
+
+def find_save_folders(game_id: str, documents: Path | None = None) -> list[Path]:
+    """Every Documents\\LDW\\<Game> - Modded... folder that holds saves, the patcher's own first.
+    The original game's folder is not listed: the tools are for the modded copies. Another
+    "<Game> - Modded..." folder (a copy the player renamed) is listed after them."""
+    title = save_tools.FORMATS[game_id].title
+    prefix = f"{title} - Modded".casefold()
+    found = [path for path in save_tools.save_folders(game_id, documents) if path.name.casefold().startswith(prefix)]
+    order = [f"{title} - {suffix}".casefold() for suffix in PATCHER_SUFFIXES]
+
+    def key(path: Path) -> tuple[int, int, str]:
+        name = path.name.casefold()
+        return (0, order.index(name), name) if name in order else (1, 0, name)
+
+    return sorted(found, key=key)
