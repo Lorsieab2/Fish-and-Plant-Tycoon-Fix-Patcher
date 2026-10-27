@@ -6,7 +6,7 @@ test with its exact odds (game_mechanics.chance).
 
 from __future__ import annotations
 
-from game_mechanics import Fact, GamePage, Group, at_least, at_most, below, chance
+from game_mechanics import Fact, GamePage, Group, at_least, at_most, below, chance, each
 
 
 def page() -> GamePage:
@@ -20,9 +20,12 @@ def page() -> GamePage:
         ),
         time_and_units=(
             "Plants live in age units. The speed option sets the real-life length of one unit: Fast 2 "
-            "minutes, Normal 10 minutes (the default), Slow 15 minutes; Stop Time pauses. A plant "
-            "flowers at age 21 and is mature at 24. \"Per unit\" means once per age unit of each "
-            "plant. \"Real-life\" times are wall-clock time, whether the game is open or not. "
+            "minutes, Normal 10 minutes (the default; a game started with the tutorial runs at "
+            "Fast), Slow 15 minutes; Stop Time pauses. Ages are in-game age units: a plant flowers "
+            "at age 21 and is mature at 24. \"Per unit\" means once per age unit of each plant. "
+            "\"Real-life\" times are wall-clock time. Plant aging and the seed shop's reroll also "
+            "count time with the game closed; every other timer runs only while the game is open, "
+            "in its own screen. "
             "Difficulty is Easy, Normal (the default) or Hard. The game's timers fire one second "
             "after their nominal time (a \"60-second\" timer runs every 61 seconds)."
         ),
@@ -89,7 +92,8 @@ TIME_AWAY = (
     Fact(
         "Time away is not capped: every missed age unit is simulated one by one (infestation, "
         "health, water loss, dryness, old age, death), so plants can die while the game is closed. "
-        "The caps in the code act only on a leftover below one second and never change anything.",
+        "The caps in the code act only on the whole real-life seconds left over after the "
+        "conversion (normally 0 or 1, kept for the next update), so they never change anything.",
     ),
     Fact(
         "A long catch-up is not exactly like live play:",
@@ -97,7 +101,7 @@ TIME_AWAY = (
             "Its age tests use the plant's final age, not the unit being simulated: dry young "
             "plants shrink only if the final age is below 21, old-age rolls start if the final age "
             "is above 1720, and the species counts as discovered if the final age is 24 or more. A "
-            "plant going from age 1650 to 1800 in one catch-up gets 150 old-age rolls instead of 80.",
+            "plant going from age 1650 to 1800 in one catch-up gets 150 old-age rolls instead of 81.",
             "Health and water are clamped to their limits only after the whole catch-up, so health "
             "can climb above 100 and act as a buffer for later units.",
             "A plant that dies part-way can come back: the next unit's health change still runs, "
@@ -133,12 +137,13 @@ AGES = (
          "flowers and size only work before 21."),
     Fact(
         "Age 24: mature. The species counts as discovered, the plant can give and take pollen and "
-        "can be put up for sale, and flower-linked bugs can appear. Flowers keep opening until 28.",
+        "can be put up for sale, and flower-linked bugs can appear. Flowers keep opening until age 28.",
     ),
     Fact(
         f"Above age 1720: each unit, {at_most(1000, 9)} chance that the plant dies of old age, "
-        "about 99 more units on average (16 h 30 min at Normal). Age 1720 is 57 h 20 min at Fast, "
-        "11 days 22 h 40 min at Normal and 17 days 22 h at Slow.",
+        "99.3 more age units on average (real-life: 3 h 19 min at Fast, 16 h 33 min at Normal, "
+        "24 h 50 min at Slow). Age 1720 is 57 h 20 min of real-life time at Fast, 11 days 22 h 40 "
+        "min at Normal and 17 days 22 h at Slow.",
         patched=(("no_old_age_plant_deaths", "plants never die of old age."),),
     ),
 )
@@ -198,7 +203,7 @@ PESTS = (
 SIZE = (
     Fact(
         "Size runs from 50 to 110 and starts at 80. Plant Food and the Fertilizer Bomb raise it; "
-        "pests and dryness before age 21 lower it. Above 90 the plant grows more flowers. A size "
+        "pests (at any age) and dryness (before age 21) lower it. Above 90 the plant grows more flowers. A size "
         "above 100 looks the same as 100.",
     ),
 )
@@ -232,11 +237,15 @@ SEEDS = (
     ),
     Fact(
         "Seeds ripen one per age unit: the first 3, 4, 5 or 7 units after pollination (5, 4, 3 "
-        "seeds, infested), and all are ripe after 7 units: 60-70 real-life minutes at Normal.",
+        "seeds, infested), and all are ripe after 7 age units: 60-70 real-life minutes at Normal "
+        "(12-14 min at Fast, 90-105 min at Slow).",
     ),
     Fact(
         "Breeding has no randomness: the seed's foliage is the parents' foliages averaged and "
         "rounded up, and the same for the flower. Every seed of one pollination is the same.",
+        patched=(("new_flowers", "if either parent has a new flower (24-37) and the flower sum is "
+                  f"odd, the flower is rounded down or up ({chance(2, 1)} each), one roll per "
+                  "pollination; every seed of that pollination is still the same."),),
     ),
     Fact(
         "Throwing a seed away pays by its flower: above 17 $10, even $5, 3/7/11/15 $3, other odd $1. "
@@ -249,9 +258,13 @@ MUTATION = (
         "Mutation Liquid ($1000, 3 doses) works on any planted plant, at any age. "
         f"{chance(2, 1)}: the flower moves one step up or down ({chance(2, 1)} each); otherwise "
         "the foliage does, and the plant regrows in its new shape. Above 23 becomes 22, 0 becomes 2.",
+        patched=(("new_flowers", "the flower steps over 1-37: a Tilia flower (23) can step up into the "
+                  "new flowers (24), and 38 bounces back to 36. The foliage still stays within 1-23."),),
     ),
     Fact("The new species counts as discovered at once, and becomes a magic plant at once if it is "
-         "one. These are the only random gene changes in the game."),
+         "one. These are the only random gene changes in the game.",
+         patched=(("new_flowers", "breeding with a new flower also rounds an odd flower sum at "
+                   "random (see Pollination and seeds)."),)),
 )
 
 SHOP_SEEDS = (
@@ -266,14 +279,18 @@ SHOP_SEEDS = (
     Fact("Endangered ($200): each gene 3, 7, 11 or 15 (exactly 25% each). 1 seed in 16 is the magic "
          "Rosaceae Fern."),
     Fact(
-        f"Extinct ($2000): each gene is 18-23 (1 in 6 each) on {below(100, 15)}, otherwise one of 2, "
-        "4 ... 16 (exactly 1 in 8 each).",
-    ),    Fact(
+        f"Extinct ($2000): each gene, separately, is 18 or 19 ({each(6, 0)} each) or 20-23 "
+        f"({each(6, 5)} each) on {below(100, 15)}, otherwise one of 2, 4 ... 16 (exactly 1 in 8 "
+        "each).",
+    ),
+    Fact(
         "Legendary Seeds: not in the unpatched game.",
-        patched=(("plant_upgrades", "three a day on the store's Upgrades view, $5000 each, rerolled "
-                  "with the stock seeds: any foliage with one of the 14 new flowers (genes 24-37), so "
-                  "class D. They are the only seeds that grow the new flowers besides Mutation "
-                  "Liquid."),),
+        patched=(("plant_upgrades", "three at a time on the store's Upgrades view, $5000 each, "
+                  "rerolled with the stock seeds (once per 86401 real-life seconds): foliage "
+                  f"Random(23) + 1 (1-16 {each(23, 0)} each, 17-23 {each(23, 22)} each), flower one "
+                  f"of the 14 new flowers 24-37 (24-31 {each(14, 0)} each, 32-37 {each(14, 13)} "
+                  "each), so class D. Besides these, only Mutation Liquid and breeding from a "
+                  "new-flower plant give the new flowers."),),
     ),
 )
 
@@ -300,7 +317,8 @@ SELLING = (
         "with E = half the visitors browsing, rounded down. Visitors see a price P' (below) and "
         "compare it with the species' value V:",
         subs=(
-            "Before your first sale: k = 70 when P' is below 3V.",
+            "Only in a game started with the tutorial, before your first sale: k = 70 when P' is "
+            "below 3V.",
             "P' at least half below V (not infested): k = 30.",
             "P' below V by less than half (not infested): k = 10.",
             "P' from V to 1.5V, or an infested plant below V: k = 5.",
@@ -319,7 +337,8 @@ SELLING = (
     Fact(
         "Visitors: up to 8 + 47 x S / 78 (8-55), where S is 2 per plant for sale, 1 or 4 per "
         "ornament (see Nursery ornaments), 4 for the Rose of Joy, 2 per other magic plant and 4 for "
-        f"the full bug collection. Every 2 seconds, below the limit, {below(100, 55)} chance that "
+        f"the full bug collection. Every 2 real-life seconds in the nursery, below the limit, "
+        f"{below(100, 55)} chance that "
         "1, 2 or 3 arrive (33.33% each); the count can overshoot the limit by 2.",
     ),
     Fact(
@@ -341,7 +360,8 @@ PRICES = (
         f"{at_most(100, 50)}, otherwise V plus d, with d = Random(V/2).",
     ),
     Fact(
-        "Discovering the Flower of Knowledge resets every asking price to V + 3/4 V, once, "
+        "Discovering the Flower of Knowledge resets every asking price to V + 3 x (V/4 rounded "
+        "down), once, "
         "overwriting prices you set.",
     ),
     Fact(
@@ -382,7 +402,7 @@ TOOLS = (
         "hurt it, and Golden shears heal more when cutting a dead part.",
     ),
     Fact(
-        "Net: Standard (from the start), Large $1000, Golden $4500. The Large and Golden nets catch in "
+        "Net: Crude Butterfly Net (from the start), Large $1000, Golden $4500. The Large and Golden nets catch in "
         "a 60 x 40 box instead of 40 x 25. With the Golden net held, flying bugs only flee when the "
         "cursor is within 40 x 25 instead of 70 x 65, so they are much easier to catch.",
     ),
@@ -420,17 +440,20 @@ CHEMICALS = (
         "also get flowers and size +5 to +14, which counts as a Plant Food dose.",
     ),
     Fact(
-        "Insta-Grow ($250, 5 doses): the plant ages 7 to 14 units quickly (1 in 8 each), with no "
+        "Insta-Grow ($250, 5 doses): the plant gains 7 to 14 age units (1 in 8 each) at 0.07 units "
+        "per frame, so over 100-200 frames (its real-life length depends on the frame rate), with no "
         "water, health, pest or old-age changes for them. The Vaporbomb ($1500, 2 doses) does it to "
         "every live plant.",
-    ),    Fact("Mutation Liquid ($1000, 3 doses): changes one gene of the plant; see Mutation Liquid."),
+    ),
+    Fact("Mutation Liquid ($1000, 3 doses): changes one gene of the plant; see Mutation Liquid."),
     Fact(
         "Radioactive Plant Formula: not in the unpatched game.",
         patched=(("plant_upgrades", "on the store's Upgrades view, $10,000, 3 doses, one pot per dose. "
                   "On a live plant: health 100, every dead (brown) part alive again, every hidden "
-                  "branch of its shape grown, size 110 (the largest), grown to age 28 (full bloom), a "
-                  "flower on every flower spot of every part (each part gets 6), no later dead "
-                  "leaves, and 5 seeds when it is pollinated. A dead plant stays dead."),),
+                  "branch of its shape grown, size 110 (the largest), grown to age 28 (full bloom), "
+                  "flowers on every flower spot of every live, uncut part (its spots filled up to 6 "
+                  "per part), no later dead leaves, and, if it is already pollinated, all 5 of its "
+                  "seeds (pollinating it later gives the usual 5, 4 or 3). A dead plant stays dead."),),
     ),
 )
 
@@ -456,7 +479,8 @@ MAGIC = (
          "Mutation Liquid. Finding all six wins the game."),
     Fact("Fruit of Life, Mela Rare Oak (foliage 14, flower 16): every plant gets +2 health and is "
          "cured of pests each unit, pest odds / 3, and 2 more flowers."),
-    Fact("Flower of Knowledge, Nox Orchid (4, 4): every asking price becomes V + 3/4 V, once."),
+    Fact("Flower of Knowledge, Nox Orchid (4, 4): every asking price becomes V + 3 x (V/4 rounded "
+         "down), once."),
     Fact("Rose of Joy, Rosaceae Fern (7, 7): 4 points toward the visitor score instead of 2."),
     Fact("Golden Berries of Wealth, Aureus Scandens (2, 14): visitors see every price 1/4 lower."),
     Fact("Fabled Rose of Isola, Fabled Lemonbush (11, 10): only the visitor bonus every magic plant "
@@ -506,9 +530,13 @@ BUGS = (
         "Fragrance adds 1.",
     ),
     Fact(
-        f"{at_most(100, 75)}: a random pot gets a chance to bring its plant's bug: foliage 4, 7, 8, "
-        "12, 15, 17, 22, 23 from age 7, or flower 4, 6, 9, 10, 11, 12, 14, 20 from age 24. Each of "
-        "those 16 genes has its own bug, and 16 of the 48 bugs come only this way.",
+        f"{at_most(100, 75)}: a random pot is tried. It qualifies with foliage 7, 8, 12, 14, 15, 17, "
+        "18 or 22 from age 7, or flower 6, 9, 11, 12, 18, 19, 20 or 23 from age 24 (health is not "
+        f"checked). Then, foliage first on {below(100, 50)}, otherwise flower first, its bug comes "
+        "from foliage 4, 7, 8, 12, 15, 17, 22, 23 (age 7+) or flower 4, 6, 9, 10, 11, 12, 14, 20 "
+        "(age 24+). Each of those 16 genes has its own bug, and 16 of the 48 bugs come only this "
+        "way; a bug of foliage 4 or 23, or flower 4, 10 or 14, needs the pot's other gene to "
+        "qualify it.",
     ),
     Fact(
         "Otherwise a random family (25% each), then with r = Random(100): a common bug on "
@@ -533,7 +561,8 @@ INDEX = (
             "Seeds: Random(3), 33.33% each.",
             "Mutation Liquid: Random(2), 50.00%, twice.",
             f"Shop seeds: Random(5), Random(4), Random(6), Random(8); Extinct high genes {below(100, 15)}.",
-            "Selling: Random(1300) <= k x E every 2 seconds per plant.",
+            "Selling: Random(1300) <= k x E every 2 real-life seconds in the nursery, per plant for "
+            "sale.",
             f"Visitors: arrival {below(100, 55)}; 1-3 by Random(3); stay Random(100) < 20 + 60T/67; "
             f"leave {below(100, 20)}.",
             f"New asking prices: Random(V/2), minus on {at_most(100, 50)}.",
@@ -547,9 +576,9 @@ INDEX = (
             "Age unit: 2, 10 or 15 real-life minutes (Fast, Normal, Slow).",
             "Plant update: every 61 real-life seconds in the greenhouse.",
             "Bugs and shop reroll check: every 3 real-life seconds in the greenhouse.",
-            "Nursery (visitors and sales): every 2 real-life seconds.",
+            "Nursery (visitors and sales): every 2 real-life seconds while in the nursery.",
             "Shop reroll: 86401 real-life seconds.",
-            "Autosave: every 601 real-life seconds.",
+            "Autosave: every 601 real-life seconds while the game is open.",
         ),
     ),
 )

@@ -66,6 +66,12 @@ def chance(n: int, k: int) -> str:
     return text
 
 
+def each(n: int, v: int) -> str:
+    """The exact chance that Random(n) == v (e.g. 16.669%), to 3 decimals."""
+    value = 100 * (rand_count(n, v + 1) - rand_count(n, v)) / RAND_PERIOD
+    return f"{value:.3f}%"
+
+
 def below(n: int, k: int) -> str:
     """`Random(n) < k` and its exact chance."""
     return f"Random({n}) < {k} ({chance(n, k)})"

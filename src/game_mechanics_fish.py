@@ -55,8 +55,10 @@ def page() -> GamePage:
 TIME_AWAY = (
     Fact(
         "Fish only update while the tank screen is open: once every 301 real-life seconds or more, "
-        "at once when you open the tank screen or switch tanks, and 10 real-life seconds after "
-        "either. In the store, the selling scene, the species screen or the options, nothing "
+        "at once when you open the tank screen or switch tanks, and again 11 real-life seconds "
+        "later; also 2 real-life seconds after the Unknown Chemical, 8 after Growth Hormone, 5 "
+        "after the starter eggs and 11 after other eggs. It is put off 10 real-life seconds while "
+        "you drag a fish. In the store, the selling scene, the species screen or the options, nothing "
         "updates; the time is caught up the next time the tank screen opens.",
     ),
     Fact(
@@ -69,11 +71,12 @@ TIME_AWAY = (
         subs=(
             "More than 72 real-life hours (259200 s) banked: 72 hours of steps, so 864 steps at 2x "
             "speed, 432 at Normal and 288 at 1/2 speed.",
-            "Up to 72 hours, by speed. 2x speed: up to 32400 s (108 steps) is kept, more becomes "
-            "25200 s (84 steps). Normal: more than 25200 s becomes 25200 s (42 steps). 1/2 speed: "
-            "more than 18000 s is raised to 25200 s (28 steps).",
-            "So time away is not counted evenly. At Normal speed, 71 hours away gives 42 steps "
-            "(7 hours' worth) and 73 hours away gives 432 steps (72 hours' worth).",
+            "Up to 72 real-life hours, by speed. 2x speed: up to 32400 real-life seconds (108 "
+            "steps) is kept, more becomes 25200 s (84 steps). Normal: more than 25200 real-life "
+            "seconds becomes 25200 s (42 steps). 1/2 speed: more than 18000 real-life seconds is "
+            "raised to 25200 s (28 steps).",
+            "So time away is not counted evenly. At Normal speed, 71 real-life hours away gives 42 "
+            "steps (7 hours' worth) and 73 real-life hours away gives 432 steps (72 hours' worth).",
             "The rest of the banked time below one step is kept for the next update.",
         ),
     ),
@@ -158,7 +161,8 @@ SICKNESS = (
             "Easy: X - X/5. Hard: X + X/2.",
             "Plant of Curing owned: X halved, always. Otherwise the Cleaning Snail halves it on "
             f"{at_most(100, 49)}. The two never stack.",
-            "Each other sick fish in the same tank: +6 (not on Easy).",
+            "Each other sick fish in the same tank: +6 (not on Easy), dead fish that were sick "
+            "included.",
             "Age above 600: +15.",
         ),
     ),
@@ -247,8 +251,9 @@ BREEDING = (
         "dropped can be sick; it goes back to its tank unchanged.",
     ),
     Fact(
-        "She is due at her age + 3 and gives birth at the first update after that: 4 age steps, "
-        "20, 40 or 60 real-life minutes at 2x speed, Normal and 1/2 speed. While she stays in the "
+        "She is due at her age + 3 and gives birth at the first update after that: 4 age steps "
+        "after mating, which is 3 to 4 step lengths of real-life time (her part-step already banked "
+        "counts): 15-20, 30-40 or 45-60 real-life minutes at 2x speed, Normal and 1/2 speed. While she stays in the "
         "isolation tank her pregnancy is frozen; she gives birth once she is back in another tank "
         "and has aged a step.",
     ),
@@ -259,12 +264,14 @@ BREEDING = (
     Fact(
         "A baby's body is the parents' bodies averaged and rounded down, and the same for the fin. "
         "Babies start at health 100 and food 90, in their mother's tank.",
-        patched=(("ds_fish", "when either parent has a DS gene, the DS game's rule applies: the "
-                  "average, with an odd total rounded up or down at random, one roll per litter."),),
+        patched=(("ds_fish", "for a body (or fin) pair with a DS gene, the DS game's rule: the "
+                  "average, with an odd total rounded up or down at random, one roll per litter "
+                  "shared by body and fin; a pair without a DS gene still rounds down."),),
     ),
     Fact(
         "A baby born into a full tank (21 fish) is lost without a message. The game's "
         "\"One of your tanks is full!\" warning is never shown.",
+        patched=(("bigger_tanks", "Tank One, Tank Two and the selling tank hold 26 fish."),),
     ),
     Fact("A sick mother loses her pregnancy; a dead mother never gives birth."),
 )
@@ -317,8 +324,8 @@ MAGIC_FISH = (
     ),
     Fact(
         f"Growth, Oriental Goldbulb (10, 9): each fish in its tank rolls {at_most(100, 10)} on "
-        "every update for each step it takes plus one, when more than 270 real-life seconds have "
-        "built up toward its next step; a success adds 1 age, with its own health, sickness and "
+        "every update for each step it takes plus one, when the fish's banked real-life time "
+        "(before it is turned into steps) is over 270 seconds; a success adds 1 age, with its own health, sickness and "
         "food step.",
         subs=(
             "Live play gives about 2, 3 or 4 rolls per step (2x speed, Normal, 1/2 speed); a long "
@@ -327,14 +334,17 @@ MAGIC_FISH = (
     ),
     Fact(
         "Health, Orange Snooper (5, 8): +1 health to every fish in its tank, each age step, after "
-        "the health change and before the clamp.",
+        "the step's (already clamped) health change, then clamped to 100 again. So a fish the "
+        "health change left at 0 is raised to 1 and survives that step, unless starvation takes "
+        "the point back.",
     ),
     Fact(
         f"Mutation, Wasp Grouper (13, 6): at each birth in its tank, {at_most(100, 15)} chance to "
         "move the father's stored body or fin one step up or down before the babies' genes are "
         "averaged. Once per litter.",
         subs=("Stock bug: the fin step tests the body's value for its 0 and 20 bounce.",),
-        patched=(("ds_fish", "the step can also go from 20 into the DS genes."),),
+        patched=(("ds_fish", "the step can also go from 20 into the DS genes, and the fin step "
+                  "tests the fin's own value (the stock bug is fixed)."),),
     ),
     Fact(
         "The Golden Guppy, Canary Fire-Arrow (7, 7): no effect. The game never checks for it, but "
@@ -363,7 +373,9 @@ CONSUMABLES = (
     ),
     Fact(
         "Fungal Treatment ($40, 3 doses): the same for fungus, with the same odds; it does nothing for "
-        "ick. During the tutorial, while it asks you to breed, any medicine cures fungus every time.",
+        "ick. In the tutorial, until the breeding tip appears, any medicine (Ick or Fungal "
+        "Treatment) cures a fungus-sick fish with no roll; the first such cure brings up that tip, "
+        "and after that the normal odds apply.",
     ),
     Fact(
         "Fish Vitamins ($140, 3 doses): each fish in the tank you use it on with health 1-99 gains "
@@ -373,9 +385,9 @@ CONSUMABLES = (
     ),
     Fact(
         "Growth Hormone ($380, 3 doses): each fish in the tank you use it on aged 40 or less gains "
-        "2-6 age (Random(5) + 2, 20% each), so babies and teens grow up sooner. The skipped steps get "
-        "no health, sickness or food changes, except on Hard, where they are played out. Fish older "
-        "than 40 get nothing. A new game starts with 1 dose in slot #3.",
+        "2-6 age (Random(5) + 2, 20% each), so babies and teens grow up sooner. Only one age step's "
+        "health, sickness and food checks run for the whole jump (the last one); on Hard every "
+        "skipped step runs. Fish older than 40 and dead fish get nothing. A new game starts with 1 dose in slot #3.",
     ),
     Fact(
         f"Unknown Chemical ($650): each live fish (not the Golden Seahorse) in the tank you use it on "
@@ -415,14 +427,24 @@ PERMANENT_ITEMS = (
     ),
     Fact(
         "Golden Seahorse ($1300): no effect on fish. It brings 2 more customers to the selling "
-        "scene and makes each customer 2 points (out of 100, every quarter second) more likely to "
-        "walk to the tanks. Both count even after it is gone. It never ages, eats, gets sick or is "
-        "sold, and overfeeding never hurts it.",
+        "scene and makes each customer 2 points (out of 100, every quarter real-life second) more "
+        "likely to walk to the tanks. Both count even after it is gone. It arrives as an adult in "
+        "Tank One (Tank Two, then the selling tank, if that is full) and never ages with time, "
+        "eats, gets sick or breeds, and overfeeding never hurts it. Growth Hormone still raises "
+        "its age number.",
         patched=(
-            ("golden_seahorse_repurchase", "it can be bought again after it is gone."),
+            ("golden_seahorse_repurchase", "it can be bought any number of times, even while one "
+             "is in a tank; extra ones add no customers or walk-over points."),
             ("ds_store", f"it also gives healthy, fed fish in its tank {below(100, 82)} chance of +1 "
              "health each step."),
         ),
+    ),
+    Fact(
+        "A Golden Seahorse in the selling tank: the stock sale code does not exclude it (it checks "
+        "only for a live adult), and its price lookup reads past the species table. What happens "
+        "then was not traced.",
+        label="U",
+        patched=(("ds_store", "the sale code skips it, like the DS animals."),),
     ),
     Fact(
         "The two plants do each other's job. The Plant of Incubation ($200, \"increases the "
@@ -447,7 +469,8 @@ PERMANENT_ITEMS = (
         "tank it is in. That is their only effect.",
         subs=(
             "A purchase drops it into the tank you are looking at; drag it to place it, or onto the "
-            "Tank Two button to move it there (with the Second Tank). 6 per tank at most.",
+            "Tank Two button to move it there (with the Second Tank). Each ornament can be bought "
+            "once (6 in all); a tank has room for 6.",
             "Fewer ornaments make the customers' diver \"?\" thought (they want more decor) more "
             "likely: it shows when Random(4) is above the number you own. The thought changes "
             "nothing.",
@@ -456,6 +479,7 @@ PERMANENT_ITEMS = (
     Fact(
         "Second Tank ($450): unlocks Tank Two, a second full-size tank (21 fish) with its own fish, "
         "ornaments and magic fish. You can drop fish and ornaments on its button to move them.",
+        patched=(("bigger_tanks", "it holds 26 fish, like Tank One and the selling tank."),),
     ),
 )
 
@@ -467,7 +491,7 @@ RESEARCH = (
     Fact(
         "A research gains 2 points for every age step's worth of real-life time and finishes at 100. "
         "It starts at 1 with one step already counted, so it takes about 49 steps: about 4 h 5 min, "
-        "8 h 10 min or 12 h 15 min at 2x speed, Normal and 1/2 speed. Its timer is never capped, so "
+        "8 h 10 min or 12 h 15 min of real-life time at 2x speed, Normal and 1/2 speed. Its timer is never capped, so "
         "time away counts in full; Stop Time throws the time away.",
     ),
     Fact(
@@ -503,7 +527,7 @@ RESEARCH = (
         subs=(
             "More customers: the crowd counted when you open the selling scene includes 2 x level x "
             "(adults in the selling tank / 3, rounded down, + Random(2) + 2).",
-            "Customers walk to the tanks more often: +2 points per level on the quarter-second "
+            "Customers walk to the tanks more often: +2 points per level on the quarter real-life second "
             "Random(100) roll (see Selling and customers).",
             "On finishing level 2 every species' base price rises by a tenth, on level 3 by a "
             "seventh; your asking prices stay, so they become better bargains (higher sale odds).",
@@ -521,13 +545,13 @@ SELLING = (
     Fact(
         "Selling only happens while the selling scene is open. Once every real-life second, the "
         "adults in the selling tank are tried in slot order; the first that sells ends that second. "
-        "After a sale there is no other for 5 seconds.",
+        "After a sale there is no other for 5 real-life seconds.",
     ),
     Fact(
         "Each fish rolls Random(900) <= T, with K = (N + 2) / 2 rounded down and N the customers "
         "browsing or at the tank. P is your asking price, B the species' base price:",
         subs=(
-            "P at least half below B: T = 30K. With no customers browsing, "
+            "P below B by at least half of B (rounded down): T = 30K. With no customers browsing, "
             f"{at_most(900, 30)}.",
             f"P below B by less than half: T = 10K ({at_most(900, 10)} with none browsing).",
             f"P from B to 1.5B: T = 4K ({at_most(900, 4)} with none browsing).",
@@ -540,15 +564,17 @@ SELLING = (
     ),
     Fact("You are paid your asking price P, whatever it is, even 0."),
     Fact(
-        "Each customer standing inside walks over to the tanks on Random(100) < k every quarter "
-        "second, with k = magic species discovered + 2 x (Advertising level + Golden Seahorse). "
-        f"Example: Advertising level 1 and nothing else, {below(100, 2)}.",
+        "Every quarter real-life second (0.26 s in practice), each customer standing inside first "
+        f"leaves on {below(100, 3)}; otherwise it walks over to the tanks on Random(100) < k, with "
+        "k = magic species discovered + 2 x (Advertising level + Golden Seahorse). Example: "
+        f"Advertising level 1 and nothing else, {below(100, 2)} for that second roll.",
     ),
     Fact(
         "Thought bubbles are only hints and change nothing: a frowning \"$!\" means a fish is "
-        "overpriced (2B or more, or half the time above 1.5B), a smiling \"$\" a bargain, a stinky "
+        "overpriced (2B or more, or on Random(100) < 50 (50.05%) above 1.5B), a smiling \"$\" a bargain, a stinky "
         "fish a sick or dead one, a diver with \"?\" that customers want more ornaments, and a fish "
-        "with \"?\" that no adult is for sale.",
+        "with \"?\" that 3 random looks at the selling tank found no adult (or only adults "
+        "priced from B to 1.5B).",
     ),
 )
 
@@ -576,7 +602,8 @@ NEW_GAME = (
         "slot #4. Difficulty carries over from the options.",
     ),
     Fact(
-        "Starter eggs: 7 babies if all three main tanks are empty, otherwise 3, all at age 4. The "
+        "Starter eggs: 7 babies if Tank One, Tank Two and the selling tank are all empty (the "
+        "isolation tank is not checked), otherwise 3, all at age 4. The "
         "first is always a Greenfin Spotanus (body 20, fin 16), the Magic Fish of Fertility: the "
         "code adds it with fixed genes and throws its Random(5) away (0x41FD7C).",
         subs=(
@@ -624,12 +651,14 @@ DS_ANIMALS = (
         f"Moray Eel: a fish in its tank that would die survives at health 10 on {below(10, 1)}. "
         "It counts while it swims and while it is in its rock.",
     ),
-    Fact("Two or more of the same animal in a tank each roll separately."),
+    Fact(f"Two Sting Rays or Puffer Fish in a tank each roll separately; extra Moray Eels add "
+         f"nothing (one {below(10, 1)} roll per dying fish)."),
 )
 
 INDEX = (
     Fact(
-        "Every gameplay roll, with its exact odds:",
+        "The rolls that change fish, with their exact odds (the customers' own movement rolls "
+        "are in Selling and customers):",
         subs=(
             f"Health: Temperature Regulator and Aeration System {at_most(100, 40)} each; Easy "
             f"{at_most(100, 30)}.",
@@ -637,14 +666,17 @@ INDEX = (
             f"{chance(2, 1)}; Cleaning Snail {at_most(100, 49)}.",
             f"Food: Fish Food L2 {at_most(100, 60)}, L3 {at_most(100, 30)}; Plant of Incubation "
             f"(Nutrition with Fix Vanilla Bugs) {at_most(100, 20)}.",
-            f"Growth fish {at_most(100, 10)}; Mutation fish {at_most(100, 15)}.",
+            f"Growth fish {at_most(100, 10)}; Mutation fish {at_most(100, 15)}, then body or fin "
+            f"and up or down {at_most(100, 49)} each.",
             f"Unknown Chemical {at_most(100, 25)}, then {at_most(100, 49)} twice.",
             f"Ick and Fungal Treatment: {below(100, 70)} / {below(100, 40)} / {below(100, 25)}.",
             "Fish Vitamins Random(10) + 6; Growth Hormone Random(5) + 2.",
-            "Eggs: Random(2) + 3 babies; genes Random(6), Random(5) or Random(10).",
-            "Selling: Random(900) <= T each second; sick fish "
+            "Eggs: Random(2) + 3 babies; genes Random(6), Random(5) or Random(10). Starter "
+            "eggs: Random(5) and Random(6) (see A new game).",
+            "Selling: Random(900) <= T each real-life second; sick fish "
             f"{at_most(100, 20)}; customer walks to the tanks Random(100) < k.",
             f"New species price: Random(n), minus on {at_most(100, 49)}.",
+            "Customers: crowd Random(2) (see Selling and customers).",
         ),
     ),
     Fact(
@@ -652,11 +684,12 @@ INDEX = (
         subs=(
             f"Age step: {STEP}.",
             "Fish and research update: every 301 real-life seconds or more on the tank screen, at "
-            "once when it opens, and 10 seconds after opening it or dropping eggs.",
+            "once when it opens, and 11 real-life seconds after opening it or dropping eggs (see "
+            "Time away for the other short waits).",
             "Pregnancy: 4 age steps.",
             "Research: about 49 age steps.",
-            "Selling: one sale roll per real-life second; 5 seconds after a sale; customers decide "
-            "every quarter second.",
+            "Selling: one sale roll per real-life second; none for 5 real-life seconds after a "
+            "sale; customers decide every quarter real-life second.",
             "Autosave: every 30 real-life minutes.",
         ),
     ),
