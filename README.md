@@ -203,17 +203,27 @@ other. `Documents` is wherever Windows keeps it, which is often
 
 ## Tools
 
-The **Tools** tab works on the saves of either game, in any of its save
-folders: the original game's and each modded copy's (see "Where your saves
-go"). Close the game first.
+The **Tools** tab works on the saves of either game. Its list holds the modded
+copies' save folders ("- Modded" and "- Modded Upgrades"; see "Where your
+saves go"), and Browse picks any other. The tools work the way the Virtual
+Villagers Fun Patcher's do.
 
-- **Backup and Restore Saves.** A backup is a zip of the whole save folder,
-  kept in `Documents\LDW\Fish and Plant Tycoon Fix Patcher Save Backups`.
-  Restoring makes the folder exactly the backup again, after backing up the
-  folder as it is now, so a restore can itself be undone.
+- **Backup and Restore Saves.** A backup is a copy of the save folder (the
+  game's saves and the patcher's own per-player files) in a `Backups` folder
+  inside it, named `Backup <date and time>`. Every copied file is read back
+  and checked against the original's SHA-256 and keeps its times; a copy that
+  fails is set aside as `INCOMPLETE` and never offered. If the game is
+  running it is paused for the copy and resumed afterwards. Backups are
+  listed newest first with the players they hold. A restore needs the game
+  closed and puts back the whole folder, or one player slot (that player's
+  save files, the patcher's files for that slot, and the slot's name in the
+  player list); the saves as they are now are backed up first as
+  `(before restore)`, so a restore can itself be undone. Zip backups made by
+  v1.0.17 can be imported into the list.
 - **Rename Player Slots.** Changes a player's name in the game's player list
   and inside that player's own save files, up to 31 plain characters as in the
-  game. The save folder is backed up first. A save file is changed only where
+  game, with the game closed. The save folder is backed up first, as
+  `(before rename)`. A save file is changed only where
   it holds exactly the old name; anything else is left alone. The layouts are
   in `src/save_tools.py`.
 - **Game Mechanics.** A read-only page, with a tab for each game, on how the

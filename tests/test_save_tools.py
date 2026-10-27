@@ -1,4 +1,4 @@
-"""Save tools: back up, restore, rename player slots. Synthetic save folders
+"""Save tools: player slots and renaming. Synthetic save folders
 laid out like the games' own (see src/save_tools.py), so no game is needed."""
 
 from __future__ import annotations
@@ -7,12 +7,18 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
-import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import save_tools  # noqa: E402
+
+
+class NoGame:
+    """A process list with the game not running."""
+
+    def find(self, exe_name):
+        return []
 
 SIZES = {"fish": (0xE8, 0x1E3C8), "plant": (0xC0, 0x53FB0)}
 
@@ -81,7 +87,7 @@ class SaveToolTests(unittest.TestCase):
             fmt = save_tools.FORMATS[game_id]
             folder = make_folder(self.root, game_id, ["Ana", "Bo", "Cy", "Di", "Ed"], f"{game_id} r")
             before = {p.name: p.read_bytes() for p in folder.iterdir()}
-            report = save_tools.rename_slot(game_id, folder, 2, "Robert Fishkeeper", self.backups)
+            report = save_tools.rename_slot(game_id, folder, 2, "Robert Fishkeeper", NoGame())
             self.assertEqual(report["old_name"], "Bo")
             self.assertEqual(save_tools.read_slot_names(game_id, folder), ["Ana", "Robert Fishkeeper", "Cy", "Di", "Ed"])
             expected = {f"{fmt.title}0.ldw"} | {f"{fmt.title}{2 + extra}.ldw" for extra in fmt.slot_file_offsets}
@@ -95,7 +101,8 @@ class SaveToolTests(unittest.TestCase):
             self.assertTrue(slot[fmt.slot_name_offset:].startswith(b"Robert Fishkeeper\0"))
             self.assertEqual(slot[fmt.slot_name_offset + 40], 0x7A, "data after the name field is kept")
             self.assertTrue((folder / f"{fmt.title}0.ldw").read_bytes().endswith(b"TAIL"))
-            self.assertTrue(Path(report["backup"]).is_file())
+            self.assertTrue(Path(report["backup"]).is_dir())
+            self.assertTrue(Path(report["backup"]).name.endswith("(before rename)"))
 
     def test_rename_leaves_a_file_whose_name_does_not_match(self) -> None:
         fmt = save_tools.FORMATS["fish"]
@@ -104,7 +111,7 @@ class SaveToolTests(unittest.TestCase):
         data = bytearray(other.read_bytes())
         data[fmt.slot_name_offset: fmt.slot_name_offset + 4] = b"Zed\0"
         other.write_bytes(bytes(data))
-        report = save_tools.rename_slot("fish", folder, 2, "Bea", self.backups)
+        report = save_tools.rename_slot("fish", folder, 2, "Bea", NoGame())
         self.assertIn(other.name, report["skipped"])
         self.assertEqual(other.read_bytes(), bytes(data))
 
@@ -112,8 +119,8 @@ class SaveToolTests(unittest.TestCase):
         folder = make_folder(self.root, "fish", ["Ana", "Bo", "Cy", "Di", "Ed"])
         for bad in ("", " Ana", "x" * 32, "Zoë", "tab\there", "NEW PLAYER", "New Player"):
             with self.assertRaises(save_tools.SaveToolError, msg=bad):
-                save_tools.rename_slot("fish", folder, 1, bad, self.backups)
-        self.assertFalse(self.backups.exists())
+                save_tools.rename_slot("fish", folder, 1, bad, NoGame())
+        self.assertFalse((folder / "Backups").exists())
         self.assertEqual(save_tools.read_slot_names("fish", folder)[0], "Ana")
 
     def test_only_slots_with_a_saved_game_can_be_renamed(self) -> None:
@@ -122,49 +129,32 @@ class SaveToolTests(unittest.TestCase):
         (folder / f"{fmt.title}4.ldw").unlink()            # listed, but its game is gone
         for slot in (2, 3, 4):
             with self.assertRaises(save_tools.SaveToolError, msg=f"slot {slot}"):
-                save_tools.rename_slot("plant", folder, slot, "Someone", self.backups)
-        self.assertFalse(self.backups.exists(), "nothing is backed up or written")
+                save_tools.rename_slot("plant", folder, slot, "Someone", NoGame())
+        self.assertFalse((folder / "Backups").exists(), "nothing is backed up or written")
         self.assertEqual(save_tools.read_slot_names("plant", folder), ["Ana", "NEW PLAYER", "", "Di", "Ed"])
         self.assertTrue(save_tools.slot_is_active("plant", folder, 1, "Ana"))
-        self.assertEqual(save_tools.rename_slot("plant", folder, 5, "Edna", self.backups)["new_name"], "Edna")
+        self.assertEqual(save_tools.rename_slot("plant", folder, 5, "Edna", NoGame())["new_name"], "Edna")
 
-    def test_back_up_and_restore_round_trip(self) -> None:
-        folder = make_folder(self.root, "plant", ["Ana", "Bo", "Cy", "Di", "Ed"])
-        (folder / "Fish Tycoon Fix Patcher Data").mkdir()
-        (folder / "Fish Tycoon Fix Patcher Data" / "DS Fish 1.dat").write_bytes(b"sidecar")
-        snapshot = {p.relative_to(folder).as_posix(): p.read_bytes() for p in folder.rglob("*") if p.is_file()}
-        backup = save_tools.back_up(folder, self.backups)
-        save_tools.rename_slot("plant", folder, 1, "Changed", self.backups)
-        (folder / "Plant Tycoon9.ldw").write_bytes(b"ldwg-new")
-        before_restore = save_tools.restore(backup, folder, self.backups)
-        restored = {p.relative_to(folder).as_posix(): p.read_bytes() for p in folder.rglob("*") if p.is_file()}
-        self.assertEqual(restored, snapshot)
-        with zipfile.ZipFile(before_restore) as archive:
-            self.assertIn("Plant Tycoon9.ldw", archive.namelist())
+    def test_rename_refuses_while_the_game_runs(self) -> None:
+        class Running:
+            def find(self, exe_name):
+                return [1234]
 
-    def test_restore_refuses_unsafe_or_foreign_zips(self) -> None:
-        folder = make_folder(self.root, "fish", ["Ana"] * 5)
-        evil = self.root / "evil.zip"
-        with zipfile.ZipFile(evil, "w") as archive:
-            archive.writestr("../escape.ldw", b"x")
-            archive.writestr("Fish Tycoon0.ldw", b"ldwg")
-        foreign = self.root / "foreign.zip"
-        with zipfile.ZipFile(foreign, "w") as archive:
-            archive.writestr("notes.txt", b"hello")
-        for bad in (evil, foreign):
-            with self.assertRaises(save_tools.SaveToolError):
-                save_tools.restore(bad, folder, self.backups)
-        self.assertEqual(save_tools.read_slot_names("fish", folder), ["Ana"] * 5)
+        folder = make_folder(self.root, "fish", ["Ana", "Bo", "Cy", "Di", "Ed"], "Fish Tycoon - Modded")
+        with self.assertRaises(save_tools.SaveToolError):
+            save_tools.rename_slot("fish", folder, 1, "Zed", Running())
+        self.assertEqual(save_tools.read_slot_names("fish", folder)[0], "Ana")
 
 
 class ToolsTabWiringTests(unittest.TestCase):
     def test_gui_has_the_tools_tab_and_ships_the_module(self) -> None:
         source = (ROOT / "src" / "tycoon_fix_patcher_gui.py").read_text(encoding="utf-8")
         self.assertIn('notebook.add(tools, text="Tools")', source)
-        for handler in ("_tools_back_up", "_tools_restore", "_tools_rename"):
+        for handler in ("_tools_back_up", "_tools_restore", "_tools_rename", "_tools_delete_backup", "_tools_import_zip"):
             self.assertIn(f"def {handler}", source)
         release = (ROOT / "scripts" / "build_release.py").read_text(encoding="utf-8")
         self.assertIn('"src/save_tools.py"', release)
+        self.assertIn('"src/save_backup.py"', release)
 
 
 if __name__ == "__main__":

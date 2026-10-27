@@ -1,4 +1,5 @@
-"""Save tools for Fish Tycoon and Plant Tycoon: back up, restore, rename slots.
+"""Save tools for Fish Tycoon and Plant Tycoon: the save formats and renaming slots
+(backup and restore are in save_backup.py).
 
 Both games keep their saves in Documents\\LDW\\<exe name>\\ (see README,
 "Where your saves go"): file 0 holds the settings, including the five player
@@ -14,8 +15,8 @@ only that magic and the data size, so a name can be changed in place. The
 name box in the game takes up to 31 characters (Fish Tycoon: a 0x20-byte
 buffer, 0x40BC90); names here are limited to the same, printable ASCII only.
 
-Nothing is written without a backup first: every restore and rename zips the
-whole save folder into the backups folder before it changes anything. A
+Nothing is written without a backup first: a rename copies the whole save
+folder into its Backups folder (save_backup.py) before it changes anything. A
 rename changes a slot file's name only where that file holds exactly the
 slot's old name, so a file whose layout is not the one described here is left
 alone.
@@ -25,12 +26,8 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
-from datetime import datetime
 import os
 from pathlib import Path
-import shutil
-import tempfile
-import zipfile
 
 
 class SaveToolError(RuntimeError):
@@ -55,7 +52,7 @@ FORMATS = {
 }
 
 HEADER = b"ldwg"
-BACKUPS_FOLDER = "Fish and Plant Tycoon Fix Patcher Save Backups"
+OLD_BACKUPS_FOLDER = "Fish and Plant Tycoon Fix Patcher Save Backups"   # v1.0.17 zip backups
 
 
 def documents_folder() -> Path:
@@ -73,7 +70,7 @@ def ldw_folder(documents: Path | None = None) -> Path:
 
 
 def default_backups_folder(documents: Path | None = None) -> Path:
-    return ldw_folder(documents) / BACKUPS_FOLDER
+    return ldw_folder(documents) / OLD_BACKUPS_FOLDER
 
 
 def save_folders(game_id: str, documents: Path | None = None) -> list[Path]:
@@ -155,70 +152,12 @@ def validate_name(game_id: str, name: str) -> str:
     return name
 
 
-def _stamp() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H%M%S")
-
-
-def back_up(folder: Path, backups: Path | None = None, reason: str = "") -> Path:
-    """Zip the whole save folder (subfolders included) into the backups folder."""
-    if not folder.is_dir():
-        raise SaveToolError(f"Save folder not found: {folder}")
-    backups = backups or default_backups_folder(folder.parent.parent)
-    backups.mkdir(parents=True, exist_ok=True)
-    suffix = f" ({reason})" if reason else ""
-    target = backups / f"{folder.name} {_stamp()}{suffix}.zip"
-    n = 2
-    while target.exists():
-        target = backups / f"{folder.name} {_stamp()}{suffix} {n}.zip"
-        n += 1
-    temp = target.with_suffix(".zip.tmp")
-    with zipfile.ZipFile(temp, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for path in sorted(p for p in folder.rglob("*") if p.is_file()):
-            archive.write(path, path.relative_to(folder).as_posix())
-    with zipfile.ZipFile(temp) as archive:
-        if archive.testzip() is not None:
-            raise SaveToolError("The backup failed its own check; nothing was changed.")
-    temp.replace(target)
-    return target
-
-
-def _safe_members(archive: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
-    members = []
-    for info in archive.infolist():
-        name = Path(info.filename)
-        if name.is_absolute() or ".." in name.parts or info.filename.startswith(("/", "\\")):
-            raise SaveToolError(f"The backup holds an unsafe path: {info.filename}")
-        members.append(info)
-    return members
-
-
-def restore(backup: Path, folder: Path, backups: Path | None = None) -> Path:
-    """Make the save folder exactly the backup's contents. The folder as it was
-    is backed up first; returns that backup."""
-    with zipfile.ZipFile(backup) as archive:
-        if archive.testzip() is not None:
-            raise SaveToolError("The backup is damaged; nothing was changed.")
-        members = _safe_members(archive)
-        if not any(Path(m.filename).name.endswith("0.ldw") for m in members):
-            raise SaveToolError("This zip does not look like a save backup (no settings file).")
-        before = back_up(folder, backups, "before restore") if folder.is_dir() else None
-        staging = Path(tempfile.mkdtemp(prefix=".restore-", dir=folder.parent))
-        try:
-            archive.extractall(staging, members)
-            if folder.exists():
-                shutil.rmtree(folder)
-            staging.replace(folder)
-        except Exception:
-            if staging.exists():
-                shutil.rmtree(staging, ignore_errors=True)
-            raise
-    return before if before else backup
-
-
 def rename_slot(game_id: str, folder: Path, slot: int, new_name: str,
-                backups: Path | None = None) -> dict:
+                processes=None) -> dict:
     """Rename player slot `slot` (1-5): the settings file's slot list and the
-    name inside that slot's own save files. Backs the folder up first."""
+    name inside that slot's own save files, with the game closed. Backs the
+    folder up first, as "Backups\\Backup <date> (before rename)" inside it."""
+    import save_backup
     fmt = FORMATS[game_id]
     if not 1 <= slot <= fmt.slots:
         raise SaveToolError(f"Slot must be 1-{fmt.slots}.")
@@ -228,7 +167,9 @@ def rename_slot(game_id: str, folder: Path, slot: int, new_name: str,
     old_name = read_slot_names(game_id, folder)[slot - 1]
     if not slot_is_active(game_id, folder, slot, old_name):
         raise SaveToolError(f"Slot {slot} has no saved game to rename; only slots in use can be renamed.")
-    backup = back_up(folder, backups, f"before renaming slot {slot}")
+    if save_backup.game_running(folder, processes):
+        raise SaveToolError(f"{save_backup.game_exe_name(folder)} is running. Quit the game first; nothing was changed.")
+    backup = save_backup.copy_save_folder(folder, suffix=save_backup.BEFORE_RENAME).backup_folder
 
     offset = fmt.names_offset + (slot - 1) * fmt.name_stride
     settings[offset: offset + fmt.name_stride] = new_name.encode("ascii").ljust(fmt.name_stride, b"\0")
