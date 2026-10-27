@@ -96,6 +96,12 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   code bytes swap which plant each effect checks, so the Plant of Incubation
   adds the egg (Exotic Fish Eggs too) and the Plant of Nutrition rescues
   starving fish. Names, pictures, prices and saves are unchanged.
+- **Game Mechanics accuracy pass.** Every fact on both pages was re-checked
+  against the game code: 18 Fish and 21 Plant corrections (for example Growth
+  Hormone runs one step's checks, the first-sale bonus only exists in tutorial
+  games, the plant-bug qualifier lists, the Crude Butterfly Net, exact Extinct
+  and Legendary seed odds), new patched lines for Bigger tanks and Add unused
+  flowers, and every time now says real-life time or in-game age steps/units.
 - **Game Mechanics: every store item, upgrade and research explained.** Fish:
   each medicine and chemical (doses, odds, which tank), every permanent item,
   ornament and the Second Tank, and Fish Environment and Advertising in full.
