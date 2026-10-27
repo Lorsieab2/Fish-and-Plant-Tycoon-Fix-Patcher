@@ -40,6 +40,7 @@ def page() -> GamePage:
             Group("Breeding and babies", BREEDING),
             Group("Eggs", EGGS),
             Group("Magic fish", MAGIC_FISH),
+            Group("Magic fish one by one: how to get each", MAGIC_HOW),
             Group("Medicines and chemicals", CONSUMABLES),
             Group("Permanent store items", PERMANENT_ITEMS),
             Group("Research", RESEARCH),
@@ -51,6 +52,7 @@ def page() -> GamePage:
                   note="Only with the DS Store Items setting. The store calls them \"magically enhancing\"; "
                        "these are their real effects."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
+            Group("Plant Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
         ),
     )
@@ -405,6 +407,111 @@ MAGIC_FISH = (
     ),
 )
 
+MAGIC_HOW = (
+    Fact(
+        "How a magic fish is found: at a fish update (the tank screen, see Clocks), any tank holding "
+        "a live adult (age 20 or more) of the species. The first one sets the species' asking "
+        "price and shows its message once (\"You discovered the Magic Fish of ...! ... This fish "
+        "was added to your trophy case.\"), with either answer to the tutorial question. It stays "
+        "found for the rest of the game, even if the fish dies. Each one found is +1 to the "
+        "customers' walk-over roll and lights a decal on the tank's top strip.",
+        subs=(
+            "Breeding: a baby's gene is the parents' genes averaged and rounded down, so gene t "
+            "needs parents adding up to 2t or 2t + 1. Gene 20 needs both parents at 20. Two Common "
+            "or two Unusual eggs' fish give only even genes; a Common with an Unusual gives odd "
+            "ones.",
+            "Rare-gene fish (any odd gene) lose 19 health an age step at Fish Environment level "
+            "1 and cannot grow up from an egg there: research Environment, or skip ages with "
+            "Growth Hormone, or make an adult one with the Unknown Chemical.",
+            "Unknown Chemical: per dose, each fish in the tank moves one particular gene one "
+            "particular way on about 6.5% (body +1 6.52%, body -1 6.51%, fin +1 6.51%, fin -1 "
+            "6.49%), so a fish one step from a magic one becomes it on about 6.5% per dose.",
+        ),
+        patched=(("ds_fish", "the DS genes add routes, never remove one: a DS gene 23 can step "
+                  "down to 20, and a DS x PC pair averages over the DS order (for example a DS "
+                  "parent 21 with a PC 19 always gives 20). Exotic Fish Eggs hatch only DS genes, so "
+                  "never a magic fish."),),
+    ),
+    Fact(
+        "Fertility, Greenfin Spotanus (body 20, fin 16), common genes, base price B = 48.",
+        subs=(
+            "Every new game: the first starter egg is always one (see A new game).",
+            "Common Fish Eggs: 2.777% per egg. Never from Unusual or Rare eggs.",
+            "Breeding: both parents need body 20; for example Spined Spotanus (20, 12) x Twin-Fin "
+            "Spotanus (20, 20), both from Common eggs, or two Greenfin Spotanus.",
+            "Unknown Chemical from (19, 16), (20, 15) or (20, 17).",
+            "Effect: one more baby per litter in its tank.",
+        ),
+    ),
+    Fact(
+        "Sustenance, Speckled Leaffish (14, 14), half-rare genes, B = 55.",
+        subs=(
+            "Unusual Fish Eggs: 3.999% per egg; Rare Fish Eggs: 1.000% per egg. Never from Common "
+            "eggs.",
+            "Breeding: Spined Stickfish (12, 12) x Greenfin Beta (16, 16), both Common; or Flagged "
+            "Goldbulb (10, 18) x Golden Bananafish (18, 10), both Unusual.",
+            "Unknown Chemical from (13, 14), (15, 14), (14, 13) or (14, 15).",
+            "Effect: starving fish in its tank never lose health. Its message says you won't need "
+            "to feed as often; food still drops at the normal rate.",
+        ),
+    ),
+    Fact(
+        "Curing, Crimson Comet (11, 11), rare genes, B = 70.",
+        subs=(
+            "Never from eggs. Breeding a Common with an Unusual: Orange Fruitfish (8, 8) x Speckled "
+            "Leaffish (14, 14), Spined Stickfish (12, 12) x Golden Goldbulb (10, 10), or Pink "
+            "Fatfish (4, 4) x Flagged Bananafish (18, 18).",
+            "Unknown Chemical from (10, 11), (12, 11), (11, 10) or (11, 12).",
+            "Effect: none in the unpatched game (its cure can never happen; see Magic fish).",
+        ),
+        patched=(("crimson_comet_20_percent_cure", f"each sick fish in its tank is cured on "
+                  f"{below(100, 20)} per age step."),),
+    ),
+    Fact(
+        "Growth, Oriental Goldbulb (10, 9), rare genes, B = 70.",
+        subs=(
+            "Never from eggs. Breeding needs a Rare-egg or bred parent: Golden Stickfish (12, 10) "
+            "x Orange Fruitfish (8, 8), Orange Goldbulb (10, 8) x Golden Goldbulb (10, 10), or "
+            "Spined Leaffish (14, 12) x Wasp Goldshark (6, 6).",
+            "Unknown Chemical from (9, 9), (11, 9), (10, 8) or (10, 10).",
+            "Effect: fish in its tank sometimes gain an extra age step (see Magic fish).",
+        ),
+    ),
+    Fact(
+        "Health, Orange Snooper (5, 8), rare genes, B = 70.",
+        subs=(
+            "Never from eggs. Breeding: Orange Arrowfish (2, 8) x Orange Fruitfish (8, 8), Orange "
+            "Goldshark (6, 8) x Orange Fatfish (4, 8), or Pink Shark (0, 4) x Spined Goldbulb (10, "
+            "12).",
+            "Unknown Chemical from (4, 8), (6, 8), (5, 7) or (5, 9).",
+            "Effect: +1 health per age step to every fish in its tank.",
+        ),
+    ),
+    Fact(
+        "Mutation, Wasp Grouper (13, 6), rare genes, B = 95.",
+        subs=(
+            "Never from eggs. Breeding: Pink Goldbulb (10, 4) x Orange Beta (16, 8), Wasp Leaffish "
+            "(14, 6) x Wasp Stickfish (12, 6), or Hornet Bananafish (18, 2) x Golden Fruitfish (8, "
+            "10).",
+            "Unknown Chemical from (12, 6), (14, 6), (13, 5) or (13, 7).",
+            "Effect: a 16.02% chance per litter in its tank to move one of the father's genes one "
+            "step. Its message says babies can be unrelated to either parent; the change is one "
+            "step at most.",
+        ),
+    ),
+    Fact(
+        "The Golden Guppy, Canary Fire-Arrow (7, 7), rare genes, B = 190, the highest base price.",
+        subs=(
+            "Never from eggs. Breeding a Common with an Unusual: Pink Fatfish (4, 4) x Golden "
+            "Goldbulb (10, 10), Orange Fruitfish (8, 8) x Wasp Goldshark (6, 6), or Silky "
+            "Stickfish (12, 0) x Speckled Arrowfish (2, 14).",
+            "Unknown Chemical from (6, 7), (8, 7), (7, 6) or (7, 8).",
+            "Effect: none (its message says it will make you rich; only its high price does). It "
+            "counts toward the seven.",
+        ),
+    ),
+)
+
 CONSUMABLES = (
     Fact(
         "Buying one fills its supply slot: medicines go in slot #2, chemicals in slot #3, eggs in slot "
@@ -681,10 +788,31 @@ NEW_GAME = (
 
 GOALS = (
     Fact(
-        "The only goal is finding all seven magic fish, which opens the win screen. No tutorial "
+        "The only goal is finding all seven magic fish. The seventh one's message is followed by "
+        "the win screen (\"You have discovered the 7 Magic Fish of Isola! The lagoon and the "
+        "ecosystem are saved...\"); a click or key goes back to the tank. It gives no money or "
+        "reward, the game goes on, and it shows once per game. No tutorial popup or research "
         "popup gives money or items.",
     ),
-    Fact("The autosave runs every 30 real-time minutes, in any screen."),
+    Fact(
+        "Trophy Case (the strip at the top of the tank screen): the seven magic fish, each drawn "
+        "with its name once found, or a \"?\" and \"#k/7\" until then. Clicking a found one "
+        "shows its title (\"The Magic Fish of Fertility\" ...) for 2-3 real-time seconds; nothing "
+        "else. Stats opens the Statistics screen.",
+    ),
+    Fact(
+        "Statistics: Real Hours Played (real time since the game began), Units of Food Given, Fish "
+        "Trashed, Fish Cured, Fish Sold, Average Price per Fish, Money Earned, Money Spent, Species "
+        "Discovered and Magic Fish Found. None changes the game. Species discovery (a live adult of "
+        "any species) only sets its asking price and counts here and on the shop poster.",
+    ),
+    Fact(
+        "Not reachable (dead code): a second win popup text (\"Congratulations! You discovered the "
+        "7 Magic Fish of Isola! The island is restored!...\") and a \"tank full\" popup are never "
+        "queued.",
+    ),
+    Fact("The autosave runs every 30 real-time minutes, in any screen (not while a message box is "
+         "open)."),
 )
 
 DS_ANIMALS = (
@@ -824,8 +952,37 @@ HIDDEN = (
         "(the game never sends that key code), and F-keys, arrows, Tab and Delete (no screen "
         "uses them).",
     ),
+    Fact(
+        "The stores handle no hidden keys. The Supplies store (key handler 0x428770, shared with "
+        "the Trophy Case) and the selling shop (key handler 0x423DB0) each react only to Escape "
+        "(Done). No key redraws, restocks or reprices anything. Nothing in the Fish Tycoon store "
+        "has a stock or a timer: medicines, chemicals and eggs can be bought at any time (one "
+        "batch per supply slot), each permanent item and ornament once, and one research at a "
+        "time; asking prices change only on the species screen.",
+    ),
     Fact("The patcher adds no keys. Its additions are clicks: the store's Upgrades button and "
          "the DS animals (with DS Store Items)."),
+)
+
+OTHER_GAME = (
+    Fact('Where things count: see Which tank counts.'),
+    Fact('Water: not in Fish Tycoon. Fish have food instead (see Food).'),
+    Fact('Health and soil: see Health. Soil is not in Fish Tycoon; Fish Environment research plays its part (see Research).'),
+    Fact('Pests: see Sickness (ick and fungus).'),
+    Fact('Size: not in Fish Tycoon; fish have no size.'),
+    Fact('Flowers: not in Fish Tycoon.'),
+    Fact('Pollination and seeds: see Breeding and babies.'),
+    Fact('Mutation Liquid: see the Unknown Chemical (Medicines and chemicals) and the Mutation fish (Magic fish).'),
+    Fact("Shop seeds: see Eggs. Fish Tycoon's store has no daily stock (see Hidden keys, clicks and cheats)."),
+    Fact('Selling and visitors: see Selling and customers.'),
+    Fact('Prices: see Species and prices.'),
+    Fact('Tools and shears (upgrades): not in Fish Tycoon; its permanent items and research take their place (see Permanent store items and Research).'),
+    Fact('Chemicals: see Medicines and chemicals.'),
+    Fact('Nursery ornaments: see the ornaments in Permanent store items.'),
+    Fact('Magic plants: see Magic fish and Magic fish one by one.'),
+    Fact('Bugs (a collection): not in Fish Tycoon; the Trophy Case of magic fish is its only collection (see Goals and popups).'),
+    Fact('Goals, messages and statistics: see Goals and popups.'),
+    Fact("Sorting seeds: not in Fish Tycoon (the patcher's Sort Seeds button is Plant Tycoon only)."),
 )
 
 INDEX = (

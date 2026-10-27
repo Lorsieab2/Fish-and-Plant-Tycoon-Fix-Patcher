@@ -8,15 +8,27 @@
   "patched_sha256_by_settings": {
     "new_flowers": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "no_old_age_plant_deaths": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046",
+    "seed_refresh_key": "645ED3D70BBEBFE95A72C711A1FAFBD10182708E3893632623C69E0A996383CE",
     "sort_seeds": "58D1F11E972B29B152A01B75AA3BF753E3605B87A65FE558105A63F59AB8BC8B",
     "new_flowers,no_old_age_plant_deaths": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "new_flowers,plant_upgrades": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "new_flowers,seed_refresh_key": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "new_flowers,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "no_old_age_plant_deaths,seed_refresh_key": "CC4144431DE20CD1F8660F66713DAF913BFA90E2CB3BB716B0059FBA97DF3F9C",
     "no_old_age_plant_deaths,sort_seeds": "A5F03C0E921FB010444FB3B5019BE7F03FB843F25538FF78703B68FEBDA1CA76",
+    "seed_refresh_key,sort_seeds": "39766F72A9029722555AD1A59467712B5EADABC16B633AA238DD63987D2FF837",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "new_flowers,no_old_age_plant_deaths,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "new_flowers,no_old_age_plant_deaths,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "new_flowers,plant_upgrades,seed_refresh_key": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "new_flowers,plant_upgrades,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
-    "new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41"
+    "new_flowers,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "no_old_age_plant_deaths,seed_refresh_key,sort_seeds": "6B28F2029C6D1799163EAC13FD4B557DCB0AFC49654F0375295D1F4025B19CA8",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "new_flowers,no_old_age_plant_deaths,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418"
   },
   "target": {
     "exe_name": "Plant Tycoon.exe",
@@ -45,6 +57,14 @@
       "name": "No old-age plant deaths",
       "summary": "Plants no longer die of old age.",
       "description": "Stops plants dying of old age. A plant's age starts at 0 when it is created and counts up in the game's internal age units. Once it passes 1720.0, the threshold held as a double at VA 0x4695E0 and compared at VA 0x42E21F, the plant becomes eligible to die: every update from then on calls Random(1000) at VA 0x42E231 and kills the plant when the roll lands in 0-9. That is a 1 in 100 chance, 1%, on each eligible update, and it keeps rolling for the rest of the plant's life, so a long-lived plant faces it repeatedly. Younger plants are never eligible and are unaffected either way. The patch changes one byte, the comparison operand at VA 0x42E23B, from 9 to -1. Because the branch is a signed compare, no roll in 0-999 can fall in range, so the chance becomes exactly 0 rather than merely small. The age check and the random call both still run untouched; only the death branch is now unreachable. Plants still die of neglect, disease and everything else. Touches 1 byte.",
+      "category": "main",
+      "default": true
+    },
+    {
+      "id": "seed_refresh_key",
+      "name": "R refreshes the seed shop",
+      "summary": "Press R in the Supplies store to restock the seed shelves at once (Legendary Seeds too), with the game's own odds.",
+      "description": "A cheat key for the Supplies store: pressing R (or r) on the store screen restocks all nine seed packets at once, using the game's own restock roll, so the odds are the stock ones. With Add new store upgrades and items, the three Legendary Seeds are rerolled too. Bought-out shelves fill again. The daily restock still comes at its usual time, and nothing extra is saved. R does nothing on any other screen.",
       "category": "main",
       "default": true
     },
@@ -1763,6 +1783,39 @@
       "note": "VA 0x42E23B, one byte. The old-age branch rolls Random(1000) and kills the plant when the result is 0-9, a 1 percent chance per eligible update. The comparison operand changes from 9 to 0xFF, which as a signed compare leaves the range empty, so every roll 0-999 skips the health-zero write. The age check at VA 0x42E219 and the RNG call itself are untouched."
     },
     {
+      "id": "seed_refresh_text_size",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x1f8",
+      "expected": "2F 39 06 00",
+      "replacement": "00 40 06 00",
+      "requires": [
+        "seed_refresh_key"
+      ],
+      "note": "The .text section's VirtualSize, 0x6392F -> 0x64000 (its raw size), so the zero tail that holds the R key's code is mapped."
+    },
+    {
+      "id": "seed_refresh_code",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x64930",
+      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "replacement": "8B 44 24 0C 0C 20 3C 72 75 11 51 8B 89 BC 01 00 00 85 C9 74 05 E8 16 93 FB FF 59 32 C0 C2 0C 00",
+      "requires": [
+        "seed_refresh_key"
+      ],
+      "note": "VA 0x464930 (the zero tail of .text): if the typed character is r or R, call the game's own seed-shelf roll 0x41DC60 on the state ([store+0x1BC]); always return 0, as the ignored-key case did."
+    },
+    {
+      "id": "seed_refresh_key_case",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x479f0",
+      "expected": "7E 79 44 00",
+      "replacement": "30 49 46 00",
+      "requires": [
+        "seed_refresh_key"
+      ],
+      "note": "Case 4 of the store's character switch (jump table 0x4479E0), the ignored keys, now goes through the R key code at 0x464930 instead of straight to 'return 0'."
+    },
+    {
       "id": "update_pe_checksum_no_old_age_plant_deaths",
       "file_path": "Plant Tycoon.exe",
       "offset": "0x150",
@@ -1771,7 +1824,37 @@
       "requires": [
         "no_old_age_plant_deaths"
       ],
-      "note": "PE optional-header CheckSum at file 0x150, recomputed for exactly this setting combination (no_old_age_plant_deaths). Windows does not verify this field for user-mode executables, but integrity tools read it, so it is kept correct."
+      "excludes": [
+        "seed_refresh_key"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (no_old_age_plant_deaths)."
+    },
+    {
+      "id": "update_pe_checksum_seed_refresh_key",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x150",
+      "expected": "BF 01 0B 00",
+      "replacement": "95 7E 0B 00",
+      "requires": [
+        "seed_refresh_key"
+      ],
+      "excludes": [
+        "no_old_age_plant_deaths"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (seed_refresh_key)."
+    },
+    {
+      "id": "update_pe_checksum_no_old_age_plant_deaths_seed_refresh_key",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x150",
+      "expected": "BF 01 0B 00",
+      "replacement": "96 74 0B 00",
+      "requires": [
+        "no_old_age_plant_deaths",
+        "seed_refresh_key"
+      ],
+      "excludes": [],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (no_old_age_plant_deaths, seed_refresh_key)."
     }
   ],
   "verification": {
