@@ -129,6 +129,12 @@ never needs the internet.
   - Click Supplies in the bottom bar to go back.
   - Design:
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
+- Sort Seeds button (off by default). A "Sort Seeds" button on the Seed
+  Storage title bar. After a Yes/No question it sorts every seed in the
+  unlocked seed box space by the class of the plant it grows, its foliage and
+  flower, then its parents (unknown first), and packs them from the first
+  slot: boxes 1-3 fill before 4-6, and locked drawers stay empty. It checks
+  that exactly the same seeds come out as went in before writing anything.
 
 ## Use
 

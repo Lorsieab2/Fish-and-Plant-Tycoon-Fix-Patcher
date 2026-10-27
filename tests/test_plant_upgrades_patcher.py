@@ -57,7 +57,7 @@ class ManifestTests(unittest.TestCase):
         # It writes no executable bytes: the flowers' DLL loads the Upgrades DLL, which loads the boxes'.
         pins = self.manifest["patched_sha256_by_settings"]
         added = [key for key in pins if "plant_upgrades" in key.split(",")]
-        self.assertEqual(len(added), 2)
+        self.assertEqual(len(added), 4)          # with and without Sort Seeds
         for key in added:
             enabled = set(key.split(","))
             self.assertIn("new_flowers", enabled)

@@ -329,6 +329,27 @@ static void load_upgrades(void) {
     if (events != NULL && (events->version == 1 || events->version == 2)) upgrades = events;
 }
 
+/* "Sort Seeds.dll" (its own setting) wraps the Seed Storage scene after
+   "Extra Seed Boxes.dll", so it loads last. */
+typedef int (__stdcall *sort_startup_fn)(void);
+
+static void load_sort_seeds(void) {
+    wchar_t path[1024];
+    wchar_t *slash;
+    HMODULE module;
+    sort_startup_fn startup;
+    DWORD n = GetModuleFileNameW((HMODULE)&__ImageBase, path, 1024);
+    if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return;
+    slash[1] = L'\0';
+    if (wcslen(path) + 40 >= 1024) return;
+    wcscat_s(path, 1024, L"Sort Seeds.dll");
+    if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) return;
+    module = LoadLibraryW(path);
+    if (module == NULL) return;
+    startup = (sort_startup_fn)GetProcAddress(module, "FtfpStartup");
+    if (startup != NULL) startup();
+}
+
 static void __cdecl on_save_all(char *state, int slot) {
     on_save(slot);
     if (upgrades) upgrades->save(state, slot);
@@ -745,6 +766,10 @@ int __stdcall FtfpStartup(void) {
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             upgrades = NULL;
         }
+    }
+    __try {
+        load_sort_seeds();
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
     return installed;
 }

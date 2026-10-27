@@ -30,7 +30,7 @@ had a companion.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import struct
 
 SECTION_NAME = b".ftfpst"
@@ -75,6 +75,19 @@ PLANT = LoaderProfile(
     what_it_installs="That checks every place it changes in the running game and writes all of them or none; "
                      "docs/plant-tycoon-new-flowers-technical-map.md lists them.",
 )
+# With only the Sort Seeds button on, the loader loads that DLL itself; with
+# the new flowers on, "Unused Flowers.dll" loads it (after the seed boxes).
+PLANT_SORT = replace(
+    PLANT, dll_name="Sort Seeds.dll",
+    what_it_installs="That wraps two slots of the Seed Storage screen's table (its commands and its "
+                     "opening) after checking they hold the stock functions, or writes nothing; "
+                     "native/ftfp_sort_seeds/ftfp_sort_seeds.c describes them.",
+)
+
+
+def plant_profile(enabled: set[str]) -> LoaderProfile:
+    """The DLL Plant Tycoon's loader loads for these settings."""
+    return PLANT if "new_flowers" in enabled else PLANT_SORT
 
 PATH_WCHARS = 0x208
 PATH_BYTES = PATH_WCHARS * 2

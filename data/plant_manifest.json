@@ -8,9 +8,15 @@
   "patched_sha256_by_settings": {
     "new_flowers": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "no_old_age_plant_deaths": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046",
+    "sort_seeds": "58D1F11E972B29B152A01B75AA3BF753E3605B87A65FE558105A63F59AB8BC8B",
     "new_flowers,no_old_age_plant_deaths": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "new_flowers,plant_upgrades": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
-    "new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41"
+    "new_flowers,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "no_old_age_plant_deaths,sort_seeds": "A5F03C0E921FB010444FB3B5019BE7F03FB843F25538FF78703B68FEBDA1CA76",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "new_flowers,no_old_age_plant_deaths,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "new_flowers,plant_upgrades,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41"
   },
   "target": {
     "exe_name": "Plant Tycoon.exe",
@@ -1652,7 +1658,7 @@
             "path": "Unused Flowers.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unused Flowers.dll",
             "size": 97280,
-            "sha256": "00E0B8B63A08997B6277762708705B1EDC19A08A5EC28FE8C7F2E155CD501F01"
+            "sha256": "C2C8AE04DF18AA77D2BBE2A6509A16A3D577ED239E6DBAB266B474E8ACC9CE2A"
           },
           {
             "path": "Images/flowers64x64_grid.png",
@@ -1693,8 +1699,8 @@
           {
             "path": "Extra Seed Boxes.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Extra Seed Boxes.dll",
-            "size": 92672,
-            "sha256": "D9B923F88423614287CBD180AC19CC732D15C38C97ED8E1B49FD9554C85FFEE4"
+            "size": 93184,
+            "sha256": "2B98A67FECD8C79A31E15CF283F1224DE0898F74E0C343121A11E1727462E8FE"
           },
           {
             "path": "Images/Chemicals_Grid_upgrades.png",
@@ -1713,6 +1719,32 @@
             "destination": "Images/upgrades_link.png",
             "size": 2050,
             "sha256": "A4476540585A846E020D5E2B42A888AF7264014A0D9EE72B0DA600FCC5E562EF"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sort_seeds",
+      "name": "Sort Seeds button",
+      "summary": "Adds a Sort Seeds button to the Seed Storage screen: sorts every seed by the plant it grows, then its parents, into the unlocked seed boxes in order.",
+      "description": "Adds a \"Sort Seeds\" button on the Seed Storage screen's title bar. One click sorts every seed in your unlocked seed box space and packs them from the first slot, left to right and top to bottom: the First Seed Box's drawer fills first, then the Second's and the Third's if you bought them, then the Fourth, Fifth and Sixth with Add new store upgrades and items. Locked drawers stay empty. Order, lowest first: the class of the plant the seed grows (the game's own A, B, C, D rarity), then its foliage, then its flower, then the parents (the seed's own plant, then the pollen donor; unknown \"?\" parents first). Seeds that tie keep their order. The sort checks that exactly the same seeds come out as went in before it writes anything, never touches the seed tray, and does nothing while you hold a seed. Runs as a companion DLL the game loads at start; saves are unchanged.",
+      "category": "main",
+      "default": false,
+      "companion": {
+        "source": "assets/plant_tycoon_sort_seeds",
+        "startup_loader": true,
+        "files": [
+          {
+            "path": "Sort Seeds.dll",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Sort Seeds.dll",
+            "size": 91136,
+            "sha256": "F1F742484BF9E05FCB9959B10D2F01C2431BF283CCA7AD1C037D4A0166D43C27"
+          },
+          {
+            "path": "Images/sort_seeds_button.png",
+            "destination": "Images/sort_seeds_button.png",
+            "size": 2873,
+            "sha256": "DF57E04B182D77E51397260A827EDA37B66B66D15084BFB159BF59E6EF3BDE47"
           }
         ]
       }

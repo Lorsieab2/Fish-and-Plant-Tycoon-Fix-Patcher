@@ -46,6 +46,9 @@ def page() -> GamePage:
             Group("Nursery ornaments", ORNAMENTS),
             Group("Magic plants", MAGIC),
             Group("Bugs", BUGS),
+            Group("Sorting seeds", SORTING,
+                  note="Only with the Sort Seeds button setting: a \"Sort Seeds\" button on the Seed Storage "
+                       "title bar."),
             Group("Chance and timer index", INDEX),
         ),
     )
@@ -400,6 +403,38 @@ MAGIC = (
     Fact("Magic Tree of Fragrance, Fourpetal Maple (13, 13): bugs appear 1 point more often."),
     Fact("Every magic plant adds 2 points to the visitor score S, about 1 more visitor (the Rose "
          "of Joy 4 points, about 2; see Selling and visitors)."),
+)
+
+SORTING = (
+    Fact(
+        "Clicking Sort Seeds asks first (Yes / No). Yes sorts every seed in the unlocked seed box space at once; "
+        "No, or holding a seed, changes nothing. The seed tray is never touched.",
+    ),
+    Fact(
+        "Where seeds go: packed from the first slot, left to right, top to bottom, through the unlocked "
+        "drawers in order: First, Second and Third Seed Box, then the Fourth, Fifth and Sixth (pages 4-6, "
+        "with Add new store upgrades and items). Boxes 1-3 fill completely before any seed goes to boxes "
+        "4-6. Locked drawers are never written, and the empty slots end up at the end.",
+    ),
+    Fact(
+        "Order, each key only breaking ties of the one before, lowest first:",
+        subs=(
+            "1. The class of the plant the seed grows, from its foliage and flower genes: A, then B, C, D "
+            "(see Health and soil; the new flowers are D). A seed with no known child genes goes last.",
+            "2. That plant's foliage gene.",
+            "3. That plant's flower gene.",
+            "4. The seed's own parent (the plant it ripened on): foliage, then flower.",
+            "5. The pollen donor: foliage, then flower.",
+            "Unknown parents (shop seeds, the \"?\" in the info panel) count as 0, so they come before every "
+            "known parent of the same plant.",
+            "6. Seeds equal on all of these keep their old order (top-left first, boxes 1-3 before 4-6).",
+        ),
+    ),
+    Fact(
+        "Safety: the sort builds the new boxes in a copy, checks that the copy holds exactly the same seeds "
+        "(every byte, and as many) as before, and only then writes it; otherwise nothing changes. Saves are "
+        "unchanged in layout.",
+    ),
 )
 
 BUGS = (
