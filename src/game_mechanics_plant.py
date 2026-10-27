@@ -268,6 +268,12 @@ SHOP_SEEDS = (
     Fact(
         f"Extinct ($2000): each gene is 18-23 (1 in 6 each) on {below(100, 15)}, otherwise one of 2, "
         "4 ... 16 (exactly 1 in 8 each).",
+    ),    Fact(
+        "Legendary Seeds: not in the unpatched game.",
+        patched=(("plant_upgrades", "three a day on the store's Upgrades view, $5000 each, rerolled "
+                  "with the stock seeds: any foliage with one of the 14 new flowers (genes 24-37), so "
+                  "class D. They are the only seeds that grow the new flowers besides Mutation "
+                  "Liquid."),),
     ),
 )
 
@@ -347,22 +353,62 @@ PRICES = (
 
 TOOLS = (
     Fact(
-        "Upgrades, each needing the one before: Soil Bio-organic $850 then Isola $3000; Water "
-        "Filtered $650 then Isola $2700; Shears Sharp $500 then Golden $1200; Net Large $1000 then "
-        "Golden $4500; Seed box $700 then $700.",
+        "Upgrades are bought in the Supplies store's Tool Upgrades column, each needing the one "
+        "before, and work game-wide at once: every pot, including plants already potted and plants "
+        "for sale.",
+    ),
+    Fact(
+        "Soil: Common (from the start), Bio-organic $850, Soil from Isola $3000. It sets each age "
+        "unit's health change by the plant's class (Common / Bio-organic / Isola):",
+        subs=(
+            "Class A +1 / +3 / +5, B -1 / +1 / +3, C -5 / -3 / +1, D -10 / -5 / +1.",
+            "So only Isola soil keeps every class healthy; on Common soil a class D plant loses 10 "
+            "health a unit. A gain is skipped while the plant is infested or too dry.",
+        ),
+    ),
+    Fact(
+        "Water: Tap (from the start), Filtered $650, Water from Isola $2700. Three effects (Tap / "
+        "Filtered / Isola):",
+        subs=(
+            "The watering can adds 6 / 9 / 12 water per frame held over a pot.",
+            "Each unit a plant loses 6 + difficulty minus 0 / 1 / 2 water (see Water).",
+            "The pest odds X out of 10000 per unit: class A 10 / 5 / 1, B 20 / 10 / 5, C 100 / 20 / "
+            "10, D 200 / 100 / 50 (see Pests).",
+        ),
+    ),
+    Fact(
+        "Shears: Dull (from the start), Sharp $500, Golden $1200. They change what pruning does "
+        "(below): Sharp shears hurt a green part or flower less than Dull ones, Golden shears never "
+        "hurt it, and Golden shears heal more when cutting a dead part.",
+    ),
+    Fact(
+        "Net: Standard (from the start), Large $1000, Golden $4500. The Large and Golden nets catch in "
+        "a 60 x 40 box instead of 40 x 25. With the Golden net held, flying bugs only flee when the "
+        "cursor is within 40 x 25 instead of 70 x 65, so they are much easier to catch.",
+    ),
+    Fact(
+        "Seed boxes: First (from the start), Second $700, Third $700. Each opens a 40-seed drawer in "
+        "Seed Storage: 40, 80 or 120 seeds. With every unlocked drawer full, the greenhouse says "
+        "\"Your seed box is already full!\" and the seed is not moved.",
+        patched=(("plant_upgrades", "the Fourth, Fifth and Sixth Seed Box ($1000 each, in order, on "
+                  "the store's Upgrades view) open a second 120-seed chest: gold arrows on the Seed "
+                  "Storage title bar switch between boxes 1-3 and 4-6, and the greenhouse fills "
+                  "boxes 4-6 once 1-3 are full."),
+                 ("sort_seeds", "a Sort Seeds button sorts every unlocked box (see Sorting seeds).")),
     ),
     Fact(
         "Shears on a dead part (plant alive): Dull +0 to +3 health, Sharp +0 to +3, Golden +2 to +6. "
         "On a green part or a flower: Dull -10 to -24, Sharp -7 to -13, Golden no damage. Pruning "
         "can kill a plant.",
     ),
-    Fact("The Large and Golden nets catch in a 60 x 40 box instead of 40 x 25. With the Golden net "
-         "held, flying bugs only flee when the cursor is within 40 x 25 instead of 70 x 65."),
 )
 
 CHEMICALS = (
     Fact("A chemical dose is used up before its effect is checked: using one where it cannot work "
          "wastes the dose."),
+    Fact("Most chemicals act on the one pot you use them on, which must hold a plant (a plant for "
+         "sale too). The Fertilizer Bomb and the Insta-Grow Vaporbomb act on every pot with a live "
+         "plant."),
     Fact("Plant Food ($75, 15 doses): before age 21, size +5 to +14. Each dose also makes visitors "
          "see the price 1/5 lower, for up to 2 doses."),
     Fact("Vitamins ($125, 3 doses): health +5 to +14, up to 100."),
@@ -377,16 +423,31 @@ CHEMICALS = (
         "Insta-Grow ($250, 5 doses): the plant ages 7 to 14 units quickly (1 in 8 each), with no "
         "water, health, pest or old-age changes for them. The Vaporbomb ($1500, 2 doses) does it to "
         "every live plant.",
+    ),    Fact("Mutation Liquid ($1000, 3 doses): changes one gene of the plant; see Mutation Liquid."),
+    Fact(
+        "Radioactive Plant Formula: not in the unpatched game.",
+        patched=(("plant_upgrades", "on the store's Upgrades view, $10,000, 3 doses, one pot per dose. "
+                  "On a live plant: health 100, every dead (brown) part alive again, every hidden "
+                  "branch of its shape grown, size 110 (the largest), grown to age 28 (full bloom), a "
+                  "flower on every flower spot of every part (each part gets 6), no later dead "
+                  "leaves, and 5 seeds when it is pollinated. A dead plant stays dead."),),
     ),
 )
 
 ORNAMENTS = (
     Fact(
-        "Ornaments only bring visitors. Stone Turtle $50, Sundial $150, Weather Vane $75, Charming "
-        "Lantern $125, Owl Statuette $100, Country Wheelbarrow $300, Bird House $60, Cherub "
-        "Statuette $325, Bench $550 and Cash Register $750 count 1 each; Fountain $4500, Sign $675, "
-        "Fence $1800, Gate $1000 and Refurbishment $2500 count 4 toward the visitor limit (see "
-        "Selling and visitors).",
+        "Nursery ornaments only bring visitors; they count as soon as they are bought (there is "
+        "nothing to place) and visitors walk over to look at them. Each adds to two scores (see "
+        "Selling and visitors):",
+        subs=(
+            "Stone Turtle $50, Sundial $150, Weather Vane $75, Charming Lantern $125, Owl Statuette "
+            "$100, Country Wheelbarrow $300, Bird House $60, Cherub Statuette $325, Bench $550 and "
+            "Cash Register $750: +1 to the visitor limit score S and +1 to the stay score T.",
+            "Sign $675, Fence $1800, Gate $1000 and Refurbishment $2500: +4 to S and +2 to T.",
+            "Fountain $4500: +4 to S and +5 to T.",
+            "S sets the most visitors at once (8 + 47 x S / 78, rounded down; 1 point is about 0.6 "
+            "visitors); T sets how likely a new visitor stays (20 + 60 x T / 67 out of 100).",
+        ),
     ),
 )
 

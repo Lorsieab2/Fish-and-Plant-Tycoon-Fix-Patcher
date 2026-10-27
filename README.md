@@ -97,7 +97,8 @@ never needs the internet.
   but no plant uses them; this adds them as new flowers: Nightingale, Rosetta,
   Lilac, Veronica, Violetta, Stella, Silvermist, Anagallis, Buttercup,
   Cerulean, Phalaena, Mirabilis, Indigoberry and Prunus. With the 23 foliages
-  that is 322 new species, all in the rarest class.
+  that is 322 new species, all in the rarest class. Flower names: credit to
+  Virtual_Lady and Lorsieab2.
   - Mutation Liquid can step a Tilia flower one place further, into the new
     ones, with the same odds.
   - Breeding mixes them by the game's own rule.
@@ -278,6 +279,13 @@ identical and ignored, or kept at the game's version.
 `docs/fish-tycoon-technical-details.md` and
 `docs/plant-tycoon-technical-details.md` go further into the disassembly and the
 asset merge.
+
+## Credits
+
+- Created with Codex AI, with contributions from Claude AI. Made with love by
+  Lorsieab2.
+- Plant Tycoon's new flower names (Add unused flowers): credit to
+  **Virtual_Lady** and **Lorsieab2**.
 
 ## Tests
 

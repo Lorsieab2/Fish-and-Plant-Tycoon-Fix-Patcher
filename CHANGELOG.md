@@ -96,6 +96,14 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   code bytes swap which plant each effect checks, so the Plant of Incubation
   adds the egg (Exotic Fish Eggs too) and the Plant of Nutrition rescues
   starving fish. Names, pictures, prices and saves are unchanged.
+- **Game Mechanics: every store item, upgrade and research explained.** Fish:
+  each medicine and chemical (doses, odds, which tank), every permanent item,
+  ornament and the Second Tank, and Fish Environment and Advertising in full.
+  Plant: Soil, Water, Shears, Net and Seed box upgrades one by one, every
+  chemical's reach, each nursery ornament's two scores, and the modded Legendary
+  Seeds, Radioactive Plant Formula and Fourth-Sixth Seed Boxes.
+- **Credits:** Plant Tycoon's new flower names are by Virtual_Lady and
+  Lorsieab2 (README, How to Use, the patcher window and the setting).
 - **Game Mechanics**: a new "Which tank counts" section (Fish) and "Where things count" section (Plant): magic fish only in their own tank, owned items and ornaments everywhere, food and Ick/Fungal treatment also reach the isolation fish, magic plants permanent once discovered, plants for sale still in their pot.
 - **Game Mechanics**: Fish Food research is explained in full (food
   duration per level, sickness odds, food look), and the starter-eggs entry

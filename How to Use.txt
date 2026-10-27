@@ -81,4 +81,7 @@ Plant Tycoon options:
   Storage title bar. Asks Yes/No, then sorts every seed by the plant it grows
   and its parents into your unlocked seed boxes, first box first.)
 
+Credits: Plant Tycoon's new flower names (Add unused flowers) are by
+Virtual_Lady and Lorsieab2.
+
 Have fun! -Lorsieab2 :)
