@@ -52,6 +52,7 @@ timestamped backup folder and modded output folder, then click
 Each option in the patcher describes exactly what it changes and where.
 
 Fish Tycoon options:
+- Fix Vanilla Bugs (swaps the two store plants' labels back)
 - Crimson Comet 20% curing fix
 - Unknown Chemical: 3 uses
 - Universal supply slots 2-4

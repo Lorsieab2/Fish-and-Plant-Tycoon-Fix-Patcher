@@ -46,7 +46,7 @@ class ManifestTests(unittest.TestCase):
         # The store writes no executable bytes: DS Fish's DLL loads its DLL.
         pins = self.manifest["patched_sha256_by_settings"]
         with_store = [key for key in pins if SETTING in key.split(",")]
-        self.assertEqual(len(with_store), 32)
+        self.assertEqual(len(with_store), 64)
         for key in with_store:
             enabled = set(key.split(","))
             self.assertIn("ds_fish", enabled)

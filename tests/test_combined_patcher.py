@@ -127,6 +127,7 @@ class CombinedPatcherTests(unittest.TestCase):
         self.assertEqual(
             list(combined.patch_settings("fish")),
             [
+                "fix_vanilla_bugs",
                 "crimson_comet_20_percent_cure",
                 "unknown_chemical_three_uses",
                 "universal_supply_slots",

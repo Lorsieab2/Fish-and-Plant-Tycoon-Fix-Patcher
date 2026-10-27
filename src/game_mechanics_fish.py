@@ -187,9 +187,9 @@ FOOD = (
     Fact(
         "Starving: at food 2 or less, food drops to 0 and the fish loses 1 health per step.",
         subs=(
-            "The plant the store calls \"Plant of Incubation\" rescues starving fish: "
-            f"{at_most(100, 20)} chance per step of food +5. (Its label and the Plant of "
-            "Nutrition's are swapped in the game: see Permanent store items.)",
+            "The $200 plant, which the unpatched store calls \"Plant of Incubation\", rescues "
+            f"starving fish: {at_most(100, 20)} chance per step of food +5. (Its label and the "
+            "Plant of Nutrition's are swapped in the game: see Permanent store items.)",
             "Magic Fish of Sustenance in the tank: the -1 health is never taken (see Magic fish).",
         ),
     ),
@@ -228,7 +228,8 @@ BREEDING = (
 EGGS = (
     Fact(
         "Every egg type hatches Random(2) + 3 babies (3 or 4, "
-        f"{chance(2, 1)} each), +1 with the plant the store calls \"Plant of Nutrition\", +1 on "
+        f"{chance(2, 1)} each), +1 with the $350 plant (the unpatched store calls it \"Plant of "
+        "Nutrition\"), +1 on "
         "Easy. Eggs hatch at age 1 in the tank you drop them in.",
     ),
     Fact(
@@ -247,7 +248,8 @@ EGGS = (
     ),
     Fact(
         "Exotic Fish Eggs: not in the unpatched game.",
-        patched=(("ds_store", "Exotic Fish Eggs ($2300, slot #4 only) hatch as many babies as the "
+        patched=(("ds_store", "Exotic Fish Eggs ($2300; slot #4, or any of slots 2-4 with Universal "
+                  "supply slots, where they stack like the other eggs) hatch as many babies as the "
                   "other eggs, each with a random DS-only body and a random DS-only fin (genes "
                   "23-29, 1 in 7 each)."),),
     ),
@@ -350,6 +352,9 @@ PERMANENT_ITEMS = (
         "The two plants' store labels are swapped. The one sold as \"Plant of Incubation\" ($200) "
         f"rescues starving fish ({at_most(100, 20)}, food +5 per step). The one sold as \"Plant of "
         "Nutrition\" ($350) adds 1 egg to every egg batch.",
+        patched=(("fix_vanilla_bugs", "the labels are swapped back: the $200 starvation rescue is the "
+                  "Plant of Nutrition and the $350 egg plant the Plant of Incubation, each with the "
+                  "matching description. Prices and effects are unchanged."),),
     ),
     Fact("Plant of Curing ($650): always halves the sickness odds."),
     Fact("Plant of Fertility ($1250): one extra baby per litter."),
@@ -372,7 +377,23 @@ RESEARCH = (
         "8 h 10 min or 12 h 15 min at 2x speed, Normal and 1/2 speed. Its timer is never capped, so "
         "time away counts in full; Stop Time throws the time away.",
     ),
-    Fact("Fish Food: food lasts longer (see Food) and the sickness odds drop (see Sickness)."),
+    Fact(
+        "Fish Food research: its level (state + 0x244) starts at 1; the first purchase ($200) raises "
+        "it to 2 and the second ($650) to 3, each after the research finishes. The level does three "
+        "things, and nothing else:",
+        subs=(
+            "Food lasts longer. Each age step a fish loses 1 food: at level 1 always, at level 2 on "
+            f"{at_most(100, 60)}, at level 3 on {at_most(100, 30)}. So one feeding (+50) lasts about 50 "
+            "steps at level 1, about 82 at level 2 and about 161 at level 3, and a full fish (100) "
+            "takes about 98, 160 or 316 steps to start starving (food 2 or less).",
+            "Adults get sick less often: the sickness roll's base X (out of 10000 per step) is, at "
+            "levels 1 / 2 / 3, common bodies 10 / 5 / 1, half-rare 20 / 10 / 3, rare 30 / 20 / 5 "
+            "(see Sickness for what else changes X).",
+            "The food looks different: flakes at level 1, pellets at level 2, live food at level 3. "
+            "Feeding still gives every fish +50 food, capped at 100, at every level.",
+            "It does not change health, breeding, prices or customers.",
+        ),
+    ),
     Fact("Fish Environment: only the rarity part of the health change (see Health)."),
     Fact(
         "Advertising: more customers and a higher chance that they walk to the tanks (see Selling "
@@ -446,7 +467,19 @@ NEW_GAME = (
     ),
     Fact(
         "Starter eggs: 7 babies if all three main tanks are empty, otherwise 3, all at age 4. The "
-        "first is always a Greenfin Spotanus, the Magic Fish of Fertility.",
+        "first is always a Greenfin Spotanus (body 20, fin 16), the Magic Fish of Fertility: the "
+        "code adds it with fixed genes and throws its Random(5) away (0x41FD7C).",
+        subs=(
+            "The other babies: the second has body and fin each Random(5) x 4 (0-16); the third body "
+            "Random(5) x 4 + 4 (4-20) and fin 0; the fourth body Random(5) x 4 and fin 20; the fifth "
+            "to seventh body and fin each Random(6) x 4 (0-20), where a roll of Greenfin Spotanus "
+            "becomes a Spined Spotanus (fin 12), so there is never a second one.",
+            "So a new game always gets one, but you can still end up without it: buying other eggs "
+            "before hatching the starter eggs replaces them (\"Replace eggs in slot #4?\"), a full "
+            "tank silently loses the baby, and the magic fish only counts (and is announced) once it "
+            "is an adult, so a Spotanus that starves, is sold or is trashed while young is never "
+            "found.",
+        ),
     ),
     Fact(
         "Answering Yes to \"Would you like HELP the first time?\" turns on the tutorial, sets 2x "
