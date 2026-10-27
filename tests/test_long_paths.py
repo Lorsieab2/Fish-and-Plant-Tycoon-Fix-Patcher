@@ -51,7 +51,7 @@ class LongPathTests(unittest.TestCase):
             self.assertEqual(str(long_paths.extended("C:\\a\\b")), "\\\\?\\C:\\a\\b")
             self.assertEqual(str(long_paths.extended("\\\\host\\share\\x")), "\\\\?\\UNC\\host\\share\\x")
             self.assertEqual(str(long_paths.plain("\\\\?\\UNC\\host\\share\\x")), "\\\\host\\share\\x")
-        self.assertEqual(long_paths.plain(long_paths.extended(self.root)), self.root.resolve())
+        self.assertEqual(long_paths.plain(long_paths.extended(self.root)), Path(os.path.abspath(self.root)))
 
     @unittest.skipUnless(os.name == "nt", "the 260-character limit is Windows'")
     def test_backup_and_restore_in_a_save_folder_past_260_characters(self) -> None:
