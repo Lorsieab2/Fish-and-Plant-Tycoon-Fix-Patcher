@@ -187,9 +187,9 @@ FOOD = (
     Fact(
         "Starving: at food 2 or less, food drops to 0 and the fish loses 1 health per step.",
         subs=(
-            "The $200 plant, which the unpatched store calls \"Plant of Incubation\", rescues "
-            f"starving fish: {at_most(100, 20)} chance per step of food +5. (Its label and the "
-            "Plant of Nutrition's are swapped in the game: see Permanent store items.)",
+            "The Plant of Incubation ($200) rescues starving fish: "
+            f"{at_most(100, 20)} chance per step of food +5. (The two plants do each other's job in "
+            "the game: see Permanent store items. With Fix Vanilla Bugs it is the Plant of Nutrition.)",
             "Magic Fish of Sustenance in the tank: the -1 health is never taken (see Magic fish).",
         ),
     ),
@@ -228,8 +228,8 @@ BREEDING = (
 EGGS = (
     Fact(
         "Every egg type hatches Random(2) + 3 babies (3 or 4, "
-        f"{chance(2, 1)} each), +1 with the $350 plant (the unpatched store calls it \"Plant of "
-        "Nutrition\"), +1 on "
+        f"{chance(2, 1)} each), +1 with the Plant of Nutrition ($350; the Plant of "
+        "Incubation with Fix Vanilla Bugs), +1 on "
         "Easy. Eggs hatch at age 1 in the tank you drop them in.",
     ),
     Fact(
@@ -349,12 +349,12 @@ PERMANENT_ITEMS = (
         ),
     ),
     Fact(
-        "The two plants' store labels are swapped. The one sold as \"Plant of Incubation\" ($200) "
-        f"rescues starving fish ({at_most(100, 20)}, food +5 per step). The one sold as \"Plant of "
-        "Nutrition\" ($350) adds 1 egg to every egg batch.",
-        patched=(("fix_vanilla_bugs", "the labels are swapped back: the $200 starvation rescue is the "
-                  "Plant of Nutrition and the $350 egg plant the Plant of Incubation, each with the "
-                  "matching description. Prices and effects are unchanged."),),
+        "The two plants do each other's job. The Plant of Incubation ($200, \"increases the "
+        f"viability of purchased eggs\") rescues starving fish ({at_most(100, 20)}, food +5 per "
+        "step). The Plant of Nutrition ($350) adds 1 egg to every egg batch.",
+        patched=(("fix_vanilla_bugs", "the effects are swapped back: the Plant of Incubation adds the "
+                  "egg (Exotic Fish Eggs too) and the Plant of Nutrition rescues starving fish. Names, "
+                  "pictures and prices are unchanged, and plants already owned switch over."),),
     ),
     Fact("Plant of Curing ($650): always halves the sickness odds."),
     Fact("Plant of Fertility ($1250): one extra baby per litter."),
@@ -525,8 +525,8 @@ INDEX = (
             f"{at_most(100, 30)}.",
             "Sickness: Random(10000) < X (see Sickness); fungus or ick "
             f"{chance(2, 1)}; Cleaning Snail {at_most(100, 49)}.",
-            f"Food: Fish Food L2 {at_most(100, 60)}, L3 {at_most(100, 30)}; \"Plant of Incubation\" "
-            f"{at_most(100, 20)}.",
+            f"Food: Fish Food L2 {at_most(100, 60)}, L3 {at_most(100, 30)}; Plant of Incubation "
+            f"(Nutrition with Fix Vanilla Bugs) {at_most(100, 20)}.",
             f"Growth fish {at_most(100, 10)}; Mutation fish {at_most(100, 15)}.",
             f"Unknown Chemical {at_most(100, 25)}, then {at_most(100, 49)} twice.",
             f"Ick and Fungal Treatment: {below(100, 70)} / {below(100, 40)} / {below(100, 25)}.",

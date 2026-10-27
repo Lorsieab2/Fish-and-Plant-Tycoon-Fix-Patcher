@@ -4,17 +4,15 @@
 
 Stock bugs fixed by data changes alone, each listed in VANILLA_FIXES:
 
-  * The two store plants' labels are swapped. Store record 12 ($200) is
-    named "Plant of Incubation" ("...increases the viability of purchased
-    eggs"), but its ownership dword (state + 0x168) is read only by the
-    starvation code (0x4205A1: a starving fish gets food +5 on
-    Random(100) <= 20). Record 13 ($350) is named "Plant of Nutrition", but
-    its dword (state + 0x17C) is read by the three egg-hatch paths
-    (0x4213DB, 0x4214AA, 0x42157D: +1 egg per batch). The records' name and
-    description string IDs (+0x2C, +0x30 of each 0x34-byte record in the
-    static store table at 0x457EF0) are swapped, so each plant is named for
-    what it does. Prices, pictures and effects stay with the record. The
-    store reads the table in place (0x4271AC), so saves need no change.
+  * The two store plants do each other's job. The $200 Plant of Incubation
+    ("...increases the viability of purchased eggs") sets the dword at
+    state + 0x168, but only the starvation code reads it (0x4205A1: a
+    starving fish gets food +5 on Random(100) <= 20). The $350 Plant of
+    Nutrition sets state + 0x17C, which the three egg-hatch paths read
+    (0x4213DB, 0x4214AA, 0x42157D: +1 egg per batch). The four reads swap
+    their offset, so each plant does what its name says. The store (names,
+    pictures, prices) and the plant drawn in the tank stay as they are, and
+    saves need no change: an owned plant keeps its dword.
 
 Then run scripts/pin_tank_expansion.py (it rebuilds the PE checksum record
 and pin of every byte-patch combination, this setting's included),
@@ -31,41 +29,39 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "data" / "fish_manifest.json"
 EXE = "Fish Tycoon.exe"
 SETTING_ID = "fix_vanilla_bugs"
-STORE_TABLE = 0x457EF0
-RECORD = 0x34
-NAME_IDS = 0x2C          # name string ID, then the description's
 
 SETTING = {
     "id": SETTING_ID,
     "name": "Fix Vanilla Bugs",
-    "summary": "Fixes stock bugs: the Plant of Incubation and Plant of Nutrition store labels are swapped back.",
+    "summary": "Fixes stock bugs: the Plant of Incubation and Plant of Nutrition do what their names say.",
     "description": (
-        "Fixes bugs in the base game. The store's two plants have each other's name and description: the "
-        "plant sold as \"Plant of Incubation\" ($200) actually rescues starving fish (on Random(100) <= 20 "
-        "per step, food +5), and the one sold as \"Plant of Nutrition\" ($350) actually adds 1 egg to every "
-        "egg batch. Each is now named and described for what it does: the $200 plant is the Plant of "
-        "Nutrition and the $350 plant the Plant of Incubation. Prices, pictures and effects are unchanged, "
-        "and plants already bought keep working as before."
+        "Fixes bugs in the base game. The store's two plants do each other's job: the Plant of Incubation "
+        "($200, \"increases the viability of purchased eggs\") actually rescues starving fish (on "
+        "Random(100) <= 20 per step, food +5), and the Plant of Nutrition ($350) actually adds 1 egg to "
+        "every egg batch. Their effects are swapped back: the Plant of Incubation adds the egg and the Plant "
+        "of Nutrition rescues starving fish. Names, pictures and prices are unchanged, and plants already "
+        "bought switch to their proper effect."
     ),
     "category": "main",
     "default": True,
 }
 
+STARVING_CHECK = 0x4205A1     # cmp dword ptr [eax + 0x168], ebx
+EGG_READS = (0x4213DB, 0x4214AA, 0x42157D)      # mov ecx, dword ptr [edi + 0x17c]
 
-def record_ids(index: int) -> int:
-    return STORE_TABLE + index * RECORD + NAME_IDS - 0x400000      # file offset = VA - image base
 
-
-def ids_hex(name: int, description: int) -> str:
-    return " ".join(f"{b:02X}" for b in name.to_bytes(4, "little") + description.to_bytes(4, "little"))
+def offset(va: int) -> int:
+    return va - 0x400000      # file offset = VA - image base
 
 
 # (patch id, file offset, expected, replacement, note)
 VANILLA_FIXES = [
-    ("fix_plant_labels_12", record_ids(12), ids_hex(198, 199), ids_hex(200, 201),
-     "Store record 12 ($200, the starvation rescue) gets the Plant of Nutrition's name and description."),
-    ("fix_plant_labels_13", record_ids(13), ids_hex(200, 201), ids_hex(198, 199),
-     "Store record 13 ($350, +1 egg per batch) gets the Plant of Incubation's name and description."),
+    ("fix_plant_effect_starving", offset(STARVING_CHECK), "39 98 68 01 00 00", "39 98 7C 01 00 00",
+     "The starvation rescue checks the Plant of Nutrition (state + 0x17C), not the Plant of Incubation."),
+] + [
+    (f"fix_plant_effect_eggs_{va:X}", offset(va), "8B 8F 7C 01 00 00", "8B 8F 68 01 00 00",
+     "The extra egg checks the Plant of Incubation (state + 0x168), not the Plant of Nutrition.")
+    for va in EGG_READS
 ]
 
 
