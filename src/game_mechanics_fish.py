@@ -233,6 +233,22 @@ SICKNESS = (
 
 SCOPE = (
     Fact(
+        "Quick answers: does it have to be in the selling tank (or any particular tank)?",
+        subs=(
+            "Ornaments: no. Each one owned adds a customer wherever it is, and it can never be "
+            "thrown away.",
+            "Golden Seahorse: no. Its 2 customers and walk-over points count from any tank, and "
+            "even after it is gone.",
+            "Magic fish: to be found, a live adult in any tank (then it counts for customers "
+            "forever, even if it dies). For its effect, yes: it must be a live adult in the same "
+            "tank as the fish it acts on (Fertility and Mutation: the tank where the mother gives "
+            "birth). Selling-tank fish only get it from a magic fish in the selling tank.",
+            "Plants, snail, aerator, regulator and research: no, they work in every tank.",
+        ),
+        patched=(("ds_store", "Puffer Fish, Sting Ray and Moray Eel: yes, each acts only on the "
+                  "fish in its own tank, and a creature in the selling tank is never sold."),),
+    ),
+    Fact(
         "Every update runs all four tanks together: the first tank, Tank Two, the selling tank and "
         "the isolation tank. A tank you are not looking at keeps going (0x41FE70, tanks 0-3).",
     ),
