@@ -50,6 +50,7 @@ def page() -> GamePage:
             Group("Chemicals", CHEMICALS),
             Group("Nursery ornaments", ORNAMENTS),
             Group("Magic plants", MAGIC),
+            Group("Everything together: a pot with every upgrade and magic plant", TOTALS),
             Group("Bugs", BUGS),
             Group("Goals, messages and statistics", GOALS),
             Group("Sorting seeds", SORTING,
@@ -73,6 +74,11 @@ SCOPE = (
             "Plants for sale: they stay in their greenhouse pots, and everything still reaches "
             "them.",
         ),
+    ),
+    Fact(
+        "Do duplicates stack? Magic plants: no; growing more plants of a magic species changes "
+        "nothing, the effect is on or off. Nursery ornaments and tool upgrades are owned or not "
+        "(one yes/no each), so there is nothing to stack. Plant Tycoon has no creatures.",
     ),
     Fact(
         "Where a plant stands never matters: no effect checks the pot, row or neighbours. All 15 "
@@ -709,6 +715,34 @@ SORTING = (
     ),
 )
 
+TOTALS = (
+    Fact(
+        "Health per age unit for a plant that is not infested and not too dry, with Soil from "
+        "Isola and the Fruit of Life found: class A +5 +2 = +7, class B +3 +2 = +5, class C +1 +2 "
+        "= +3, class D +1 +2 = +3 (capped at 100). Without the Fruit of Life on Common soil a class "
+        "D plant loses 10 a unit.",
+    ),
+    Fact(
+        "Pests with Water from Isola and the Fruit of Life: the odds X out of 10000 per unit are "
+        "class A 1, B 5, C 10, D 50, then divided by 3 by the Fruit of Life, which also cures any "
+        "pest every unit, so a plant is never infested for long.",
+    ),
+    Fact(
+        "Water with Water from Isola: a plant loses 6 + difficulty - 2 water per unit (5 on "
+        "Normal), and the watering can adds 12 per frame.",
+    ),
+    Fact(
+        "Flowers: the Fruit of Life adds 2 counted flowers when a plant flowers at age 21; the "
+        "Radioactive Plant Formula (patched) fills every flower spot.",
+    ),
+    Fact(
+        "Selling with everything: the visitor score S counts 2 per plant for sale, every ornament "
+        "(1 or 4 each), the six magic plants (12, the Rose of Joy 4 of them) and the full bug "
+        "collection (4); the visitor limit is 8 + 47 x S / 78, at most 55. The Golden Berries "
+        "make every price look a quarter lower. None of this depends on where a plant stands.",
+    ),
+)
+
 BUGS = (
     Fact(
         "Every 3 real-time seconds in the greenhouse, if no bug is out and time is running, a bug "
@@ -887,6 +921,7 @@ OTHER_GAME = (
     Fact("Magic fish and Magic fish one by one: see Magic plants (each one's own entry)."),
     Fact('Medicines and chemicals: see Chemicals and Mutation Liquid.'),
     Fact('Permanent store items: see Tools and shears (the upgrades) and Nursery ornaments.'),
+    Fact('Everything together: a tank with every upgrade, research and creature: see Everything together: a pot with every upgrade and magic plant (plants have no creatures).'),
     Fact('Research: not in Plant Tycoon; the tool upgrades take its place (see Tools and shears).'),
     Fact('Selling and customers: see Selling and visitors.'),
     Fact('Species and prices: see Prices.'),
