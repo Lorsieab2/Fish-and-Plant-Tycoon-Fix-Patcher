@@ -237,8 +237,9 @@ SCOPE = (
         subs=(
             "Ornaments: no. Each one owned adds a customer wherever it is, and it can never be "
             "thrown away.",
-            "Golden Seahorse: no. Its 2 customers and walk-over points count from any tank, and "
-            "even after it is gone.",
+            "Golden Seahorse: no for its stock effects (2 customers and walk-over points count from "
+            "any tank, even after it is gone); yes for its DS health bonus (only the fish in its "
+            "own tank, see Permanent store items).",
             "Magic fish: to be found, a live adult in any tank (then it counts for customers "
             "forever, even if it dies). For its effect, yes: it must be a live adult in the same "
             "tank as the fish it acts on (Fertility and Mutation: the tank where the mother gives "
@@ -610,6 +611,18 @@ PERMANENT_ITEMS = (
             ("ds_store", f"it also gives healthy, fed fish in its tank {below(100, 82)} chance of +1 "
              "health each step."),
         ),
+    ),
+    Fact(
+        "Does the Golden Seahorse have to be in a particular tank? Its stock effects (2 more "
+        "customers, 2 walk-over points) do not care: they come from owning it, from any tank, and "
+        "stay after it is gone.",
+        patched=(("ds_store", f"its DS health bonus does care: it works only in the tank the "
+                  f"seahorse is swimming in (Tank One, Tank Two or the selling tank; never the "
+                  f"isolation tank), and only while it is there. Each age step, every fish in that "
+                  f"tank that is not sick, has food above 5 and is alive gets {below(100, 82)} for "
+                  "+1 health (capped at 100); the seahorse itself and the other creatures get "
+                  "nothing. Two seahorses in one tank (with Buy Multiple Golden Seahorses) roll "
+                  "twice, and a Sting Ray in the same tank adds its own roll."),),
     ),
     Fact(
         "A Golden Seahorse in the selling tank is never sold in normal play. The stock sale code "
