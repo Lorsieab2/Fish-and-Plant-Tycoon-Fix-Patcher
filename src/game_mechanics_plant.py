@@ -64,6 +64,17 @@ def page() -> GamePage:
 
 SCOPE = (
     Fact(
+        "Quick answers: does it have to be in the nursery, or in a particular pot?",
+        subs=(
+            "Nursery ornaments: no placing at all; each one counts as soon as it is bought.",
+            "Magic plants: no. Once found (a plant of the species alive at age 24, or made with "
+            "Mutation Liquid) the effect is permanent and reaches every plant, even after your "
+            "plant dies or is sold; the nursery's golden-pot display is only a picture.",
+            "Plants for sale: they stay in their greenhouse pots, and everything still reaches "
+            "them.",
+        ),
+    ),
+    Fact(
         "Where a plant stands never matters: no effect checks the pot, row or neighbours. All 15 "
         "pots update together.",
     ),
