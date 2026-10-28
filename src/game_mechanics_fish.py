@@ -44,6 +44,7 @@ def page() -> GamePage:
             Group("Medicines and chemicals", CONSUMABLES),
             Group("Permanent store items", PERMANENT_ITEMS),
             Group("Research", RESEARCH),
+            Group("Everything together: a tank with every upgrade, research and creature", TOTALS),
             Group("Selling and customers", SELLING),
             Group("Species and prices", PRICES),
             Group("A new game", NEW_GAME),
@@ -237,9 +238,11 @@ SCOPE = (
         subs=(
             "Ornaments: no. Each one owned adds a customer wherever it is, and it can never be "
             "thrown away.",
-            "Golden Seahorse: no for its stock effects (2 customers and walk-over points count from "
-            "any tank, even after it is gone); yes for its DS health bonus (only the fish in its "
-            "own tank, see Permanent store items).",
+            "Golden Seahorse and customers: it does not need to be in the selling tank. Its 2 more "
+            "customers and walk-over points come from owning it, from any tank, even after it is "
+            "gone.",
+            "Golden Seahorse's DS-exclusive health bonus (with DS Store Items): it works only on "
+            "the fish in the tank the seahorse is swimming in (see Permanent store items).",
             "Magic fish: to be found, a live adult in any tank (then it counts for customers "
             "forever, even if it dies). For its effect, yes: it must be a live adult in the same "
             "tank as the fish it acts on (Fertility and Mutation: the tank where the mother gives "
@@ -248,6 +251,23 @@ SCOPE = (
         ),
         patched=(("ds_store", "Puffer Fish, Sting Ray and Moray Eel: yes, each acts only on the "
                   "fish in its own tank, and a creature in the selling tank is never sold."),),
+    ),
+    Fact(
+        "Do duplicates stack? (two or more of the same thing)",
+        subs=(
+            "Magic fish: no. Two of the same magic fish in a tank work exactly like one (the game "
+            "only checks whether at least one live adult is there): still one extra baby, still +1 "
+            "health, one Growth or Mutation roll.",
+            "Ornaments, plants, the snail, the aerator, the regulator and the Second Tank: each can "
+            "only be bought once, so there are no duplicates.",
+            "Golden Seahorse, stock effects: no. More seahorses (with Buy Multiple Golden "
+            "Seahorses) add no more customers or walk-over points; owning one is what counts.",
+        ),
+        patched=(("ds_store", f"the DS-exclusive effects: Golden Seahorse and Sting Ray stack, "
+                  f"each one in a tank gives its own {below(100, 82)} roll for +1 health; Puffer "
+                  f"Fish stack, each one gives +1 food and its own {below(100, 60)} roll for +1 "
+                  f"more (food and health still cap at 100); Moray Eels do not stack, a dying fish "
+                  f"gets one {below(10, 1)} roll however many eels are in the tank."),),
     ),
     Fact(
         "Every update runs all four tanks together: the first tank, Tank Two, the selling tank and "
@@ -729,6 +749,57 @@ RESEARCH = (
     ),
 )
 
+TOTALS = (
+    Fact(
+        "Health per age step for one fish that is not sick and has food 5 or more (above 5 for the "
+        "DS creatures), with Fish Environment level 3, the Aeration System and the Temperature "
+        "Regulator, on Medium:",
+        subs=(
+            f"Environment level 3: common genes +5, half-rare +3, rare 0. Aeration System and "
+            f"Temperature Regulator: {at_most(100, 40)} each for +1, so +0.82 on average.",
+            "A live adult Orange Snooper (Magic Fish of Health) in the same tank: +1 more.",
+            f"With DS Store Items, each Golden Seahorse and each Sting Ray swimming in the same "
+            f"tank: {below(100, 82)} for +1 more, so +0.82 on average each.",
+            "Averages with the Snooper: common +6.8, half-rare +4.8, rare +1.8 a step; add +0.82 "
+            "for each seahorse or Sting Ray. Health never goes above 100. On Easy add "
+            f"{at_most(100, 30)} for +1.",
+            "A sick fish gets none of the plus side and loses 1; a fish with food below 5 gets none "
+            "of it either.",
+        ),
+    ),
+    Fact(
+        "Food per age step with Fish Food level 3: -1 on " + at_most(100, 30) + " (-0.31 on "
+        "average). With DS Store Items, each Puffer Fish in the tank gives a healthy, fed fish +1 "
+        f"and {below(100, 60)} for +1 more (+1.60 on average), so with one Puffer food goes up by "
+        "about 1.29 a step instead of down (capped at 100). A starving fish (food 2 or less) with "
+        "the starvation plant owned gets " + at_most(100, 20) + " for +5 food, and with a "
+        "Speckled Leaffish (Magic Fish of Sustenance) in the tank it never loses health to "
+        "starvation.",
+    ),
+    Fact(
+        "Sickness with Fish Food level 3 and the Plant of Curing: the base odds out of 10000 per "
+        "step are common 1, half-rare 3, rare 5, halved by the Plant of Curing (the Cleaning Snail "
+        "adds nothing on top). Medicines cure as usual; the Crimson Comet only cures with its "
+        "patch.",
+    ),
+    Fact(
+        "Death: a fish whose health reaches 0 dies, unless (with DS Store Items) a Moray Eel is in "
+        f"the tank: then it survives at health 10 on {below(10, 1)}.",
+    ),
+    Fact(
+        "Breeding with everything: a litter is 3 babies (1, +1 Plant of Fertility, +1 Magic Fish "
+        "of Fertility in the mother's tank); eggs hatch 4 or 5 (+1 from the egg plant), 5 or 6 on "
+        "Easy.",
+    ),
+    Fact(
+        "Customers with everything: 4 + 6 ornaments + 2 for the Golden Seahorse + 6 x (adults in "
+        "the selling tank / 3, rounded down, + 2 or 3) with Advertising level 3, and each customer "
+        "walks to the tanks on Random(100) < 7 + 2 x 3 + 2 = up to 15 (15.01%) with all seven magic "
+        "fish found. None of this depends on which tank the ornaments, seahorse or magic fish are "
+        "in.",
+    ),
+)
+
 SELLING = (
     Fact(
         "Customers: 4 + 1 per ornament owned + 2 for the Golden Seahorse + 2 x Advertising level x "
@@ -1011,6 +1082,7 @@ OTHER_GAME = (
     Fact('Chemicals: see Medicines and chemicals.'),
     Fact('Nursery ornaments: see the ornaments in Permanent store items.'),
     Fact('Magic plants: see Magic fish and Magic fish one by one.'),
+    Fact('Everything together: a pot with every upgrade and magic plant: see Everything together: a tank with every upgrade, research and creature.'),
     Fact('Bugs (a collection): not in Fish Tycoon; the Trophy Case of magic fish is its only collection (see Goals and popups).'),
     Fact('Goals, messages and statistics: see Goals and popups.'),
     Fact("Sorting seeds: not in Fish Tycoon (the patcher's Sort Seeds button is Plant Tycoon only)."),
