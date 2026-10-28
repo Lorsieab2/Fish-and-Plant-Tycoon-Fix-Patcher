@@ -628,7 +628,9 @@ PERMANENT_ITEMS = (
     Fact(
         "Ornaments (Shell $20, Pagoda $50, Diver $350, Fancy Coral $950, Sunken Antique Column $1500, "
         "Sunken Ship $3500): each one owned brings 1 more customer to the selling scene, whichever "
-        "tank it is in. That is their only effect.",
+        "tank it is in: they do not need to be in the selling tank (the customer count reads only "
+        "which ornaments you own). That is their only effect. An ornament can never be thrown "
+        "away (the trash can ignores them), so once bought it counts for the rest of the game.",
         subs=(
             "A purchase drops it into the tank you are looking at; drag it to place it, or onto the "
             "Tank Two button to move it there (with the Second Tank). Each ornament can be bought "
