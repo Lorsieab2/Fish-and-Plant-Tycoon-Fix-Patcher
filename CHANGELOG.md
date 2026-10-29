@@ -104,14 +104,18 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
     keep their stock layout.
 - The release ZIP now packages every companion setting's files (New Flowers'
   were missing).
-- Fixed: Game Mechanics now explains why a new save can start with every
-  plant at the Flower of Knowledge (Nox Orchid) price, V + 3 x (V/4), though
-  it has not found the Nox Orchid. The stock new game (0x41EF30) prices every
-  species (0x41DBD0, called at 0x41EFB8) before it clears the magic plant flags
-  (0x41F170), so it uses the flag of the save loaded before it, and the game
-  loads your last save when it starts. Unused Flowers prices its 322 species
-  the same way. This is the stock game's own behaviour and is unchanged;
-  pinned by emulating the vanilla code (tests/test_knowledge_price_new_game.py).
+- **Fix Vanilla Bugs**, a new setting (as in Fish Tycoon), on by default.
+  Fixed: a new save no longer starts with every plant at the Flower of
+  Knowledge (Nox Orchid) price, V + 3 x (V/4), though it has not found the Nox
+  Orchid. The stock new game (0x41EF30) priced every species (0x41DBD0, called
+  at 0x41EFB8) before it cleared the magic plant flags (0x41F170), so it used
+  the flag of the save that was open, and the game opens your last save when
+  it starts. The call at 0x41EFB8 now goes through a few bytes in the zero tail
+  of .text (0x464950) that clear those same seven flags (state +
+  0x2180..0x2186) first. Finding the Flower of Knowledge still raises every
+  price, and Unused Flowers' 322 species follow suit. Only new games change:
+  saves, including ones already priced this way, keep their prices. Proven by
+  emulating the vanilla and patched code (tests/test_knowledge_price_new_game.py).
   Fish Tycoon has no such price.
 
 ### Both games

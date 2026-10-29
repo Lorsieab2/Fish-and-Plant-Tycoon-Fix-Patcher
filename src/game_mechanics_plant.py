@@ -443,8 +443,13 @@ PRICES = (
         "loads your last save when it starts, so starting a new slot right after opening the game "
         "is enough.",
         label="E",
-        patched=(("new_flowers", "the 322 new species are priced the same way, so they get the "
-                  "Flower of Knowledge price too."),),
+        patched=(("fix_vanilla_bugs", "the new game clears the magic plant flags (the same seven bytes, "
+                  "0x2180-0x2186) just before its price setup (0x41EFB8 calls 0x464950, which clears them "
+                  "and goes on to 0x41DBD0), so a new game always gets the normal prices. Finding the "
+                  "Flower of Knowledge still raises them. Saves already priced this way keep their "
+                  "prices."),
+                 ("new_flowers", "the 322 new species are priced the same way: the Flower of Knowledge "
+                  "price at a new game in the stock game, the normal prices with Fix Vanilla Bugs.")),
     ),
     Fact(
         "Discovering the Flower of Knowledge resets every asking price to V + 3 x (V/4 rounded "
@@ -620,7 +625,7 @@ MAGIC = (
             "is a one-time change: later prices you set stay.",
             "A new game started after a save that has it was loaded (the game loads your last save "
             "when it starts) begins with those raised prices, though the new game has not found it "
-            "(see Prices).",
+            "(see Prices). Fix Vanilla Bugs stops this.",
         ),
     ),
     Fact(

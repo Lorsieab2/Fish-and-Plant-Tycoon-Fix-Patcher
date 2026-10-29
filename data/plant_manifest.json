@@ -6,10 +6,15 @@
   "description": "Fixes the supported classic Windows Plant Tycoon build: stops the old-age random-death branch and restores sounds and images the LDW release is missing.",
   "patched_sha256": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046",
   "patched_sha256_by_settings": {
+    "fix_vanilla_bugs": "90FAEFD99AB619DF75EDA30BD194BAF0BCB8F24F3444FF5E2107A1825E348713",
     "new_flowers": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "no_old_age_plant_deaths": "BFF2115EDB34284E63B04363CC5E6FBDF4845DA489F8E98292C505CA5CD4C046",
     "seed_refresh_key": "645ED3D70BBEBFE95A72C711A1FAFBD10182708E3893632623C69E0A996383CE",
     "sort_seeds": "58D1F11E972B29B152A01B75AA3BF753E3605B87A65FE558105A63F59AB8BC8B",
+    "fix_vanilla_bugs,new_flowers": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "fix_vanilla_bugs,no_old_age_plant_deaths": "632FB437823E42C504F77664A96925D7814B440B2D5A71E3D2A4795B3CBA59B7",
+    "fix_vanilla_bugs,seed_refresh_key": "977C7B005E23211302CCE7381C21D5CCEF8315213ECA581A1FDBC7C1F708063E",
+    "fix_vanilla_bugs,sort_seeds": "798DEC58EB85B819428FBDDF15127D7A69BB1DAFC99D67EFE1E0E981F35F68A0",
     "new_flowers,no_old_age_plant_deaths": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "new_flowers,plant_upgrades": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "new_flowers,seed_refresh_key": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
@@ -18,6 +23,13 @@
     "no_old_age_plant_deaths,sort_seeds": "A5F03C0E921FB010444FB3B5019BE7F03FB843F25538FF78703B68FEBDA1CA76",
     "seed_refresh_key,sort_seeds": "39766F72A9029722555AD1A59467712B5EADABC16B633AA238DD63987D2FF837",
     "add_money,new_flowers,plant_upgrades": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "fix_vanilla_bugs,new_flowers,plant_upgrades": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "fix_vanilla_bugs,new_flowers,seed_refresh_key": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "fix_vanilla_bugs,new_flowers,sort_seeds": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "fix_vanilla_bugs,no_old_age_plant_deaths,seed_refresh_key": "ADE8F66C712FD0DB94222CF70A12DEED692946043130437D51FBB213690EF68B",
+    "fix_vanilla_bugs,no_old_age_plant_deaths,sort_seeds": "6129B876D7AF66BC558CCDEE7E2AEE8BE27D94AFFDCF4A842AA7B020D5B0585C",
+    "fix_vanilla_bugs,seed_refresh_key,sort_seeds": "0E0386B3A5B0409F455F3FC013E5F1AAD0B5F96B23A804FB1851745110DBED7E",
     "free_upgrades,new_flowers,plant_upgrades": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "new_flowers,no_old_age_plant_deaths,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
@@ -27,11 +39,21 @@
     "new_flowers,plant_upgrades,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "new_flowers,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "no_old_age_plant_deaths,seed_refresh_key,sort_seeds": "6B28F2029C6D1799163EAC13FD4B557DCB0AFC49654F0375295D1F4025B19CA8",
+    "add_money,fix_vanilla_bugs,new_flowers,plant_upgrades": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
     "add_money,free_upgrades,new_flowers,plant_upgrades": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "add_money,new_flowers,plant_upgrades,seed_refresh_key": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "add_money,new_flowers,plant_upgrades,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "add_money,new_flowers,plant_upgrades,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,seed_refresh_key": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,sort_seeds": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "fix_vanilla_bugs,new_flowers,plant_upgrades,seed_refresh_key": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "fix_vanilla_bugs,new_flowers,plant_upgrades,sort_seeds": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "fix_vanilla_bugs,new_flowers,plant_upgrades,time_warp": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "fix_vanilla_bugs,new_flowers,seed_refresh_key,sort_seeds": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "fix_vanilla_bugs,no_old_age_plant_deaths,seed_refresh_key,sort_seeds": "037D29A15F30771FDDAAFDADF00674A577B14B53C645F90201B2B1ECF1821723",
     "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "free_upgrades,new_flowers,plant_upgrades,seed_refresh_key": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "free_upgrades,new_flowers,plant_upgrades,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
@@ -43,6 +65,11 @@
     "new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "new_flowers,plant_upgrades,seed_refresh_key,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "new_flowers,plant_upgrades,sort_seeds,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "add_money,fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "add_money,fix_vanilla_bugs,new_flowers,plant_upgrades,seed_refresh_key": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "add_money,fix_vanilla_bugs,new_flowers,plant_upgrades,sort_seeds": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "add_money,fix_vanilla_bugs,new_flowers,plant_upgrades,time_warp": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
     "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "add_money,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "add_money,free_upgrades,new_flowers,plant_upgrades,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
@@ -53,6 +80,17 @@
     "add_money,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "add_money,new_flowers,plant_upgrades,seed_refresh_key,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "add_money,new_flowers,plant_upgrades,sort_seeds,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,sort_seeds": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,time_warp": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,seed_refresh_key,sort_seeds": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "fix_vanilla_bugs,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "fix_vanilla_bugs,new_flowers,plant_upgrades,seed_refresh_key,time_warp": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "fix_vanilla_bugs,new_flowers,plant_upgrades,sort_seeds,time_warp": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
     "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
@@ -63,6 +101,16 @@
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,sort_seeds": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,time_warp": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "add_money,fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "add_money,fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "add_money,fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "add_money,fix_vanilla_bugs,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "add_money,fix_vanilla_bugs,new_flowers,plant_upgrades,seed_refresh_key,time_warp": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "add_money,fix_vanilla_bugs,new_flowers,plant_upgrades,sort_seeds,time_warp": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
     "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
@@ -73,18 +121,50 @@
     "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "add_money,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,time_warp": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,sort_seeds,time_warp": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "fix_vanilla_bugs,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
     "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,time_warp": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,sort_seeds,time_warp": "45CF286E393323418D9115810D742593F2A8D919BD5488F76F2B013369E38320",
+    "add_money,fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "add_money,fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "add_money,fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "add_money,fix_vanilla_bugs,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
     "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "add_money,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
     "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
-    "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418"
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "852BDF06586AD5E28856DB6A53B84D3B4D1F3400D7384BC5ACB7ABCE402B74E3",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "401A4F443FFE65A922E5C26A46B1DBE37F221EC3D9F908D4B8656598E8865C3C",
+    "add_money,fix_vanilla_bugs,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D",
+    "add_money,fix_vanilla_bugs,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "97ED7391505279C36132880B648F76FD1419314D3D7BFBFC594EB807D5B30E3D"
   },
   "target": {
     "exe_name": "Plant Tycoon.exe",
@@ -108,6 +188,14 @@
     "upgrades_exe_name": "Plant Tycoon - Modded Upgrades.exe"
   },
   "settings": [
+    {
+      "id": "fix_vanilla_bugs",
+      "name": "Fix Vanilla Bugs",
+      "summary": "Fixes stock bugs: a new game no longer starts at the Flower of Knowledge (Nox Orchid) prices.",
+      "description": "Fixes bugs in the base game. A new game sets every plant's asking price before it forgets the magic plants of the save that was open (and the game opens your last save when it starts), so after a save that has found the Flower of Knowledge (Nox Orchid), a new game prices every plant at the Flower of Knowledge price, V + 3 x (V/4), though it has not found it. The magic plants are now forgotten first, so a new game gets the normal prices; finding the Flower of Knowledge still raises them. Only new games change: saves, including ones already priced this way, stay as they are.",
+      "category": "main",
+      "default": true
+    },
     {
       "id": "no_old_age_plant_deaths",
       "name": "No old-age plant deaths",
@@ -1905,6 +1993,42 @@
       "note": "VA 0x42E23B, one byte. The old-age branch rolls Random(1000) and kills the plant when the result is 0-9, a 1 percent chance per eligible update. The comparison operand changes from 9 to 0xFF, which as a signed compare leaves the range empty, so every roll 0-999 skips the health-zero write. The age check at VA 0x42E219 and the RNG call itself are untouched."
     },
     {
+      "id": "fix_new_game_knowledge_text_size",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x1f8",
+      "expected": "2F 39 06 00",
+      "replacement": "00 40 06 00",
+      "requires": [
+        "fix_vanilla_bugs"
+      ],
+      "excludes": [
+        "seed_refresh_key"
+      ],
+      "note": "The .text section's VirtualSize, 0x6392F -> 0x64000 (its raw size), so the zero tail that holds the new game's flag clear is mapped. R refreshes the seed shop makes the same change, so this copy applies only without it."
+    },
+    {
+      "id": "fix_new_game_knowledge_clear",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x64950",
+      "expected": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "replacement": "31 C0 89 81 80 21 00 00 89 81 83 21 00 00 E9 6D 92 FB FF",
+      "requires": [
+        "fix_vanilla_bugs"
+      ],
+      "note": "VA 0x464950 (the zero tail of .text): clear the seven magic plant flags, state + 0x2180..0x2186 (the bytes 0x41F170 clears later), then jump to the price setup 0x41DBD0."
+    },
+    {
+      "id": "fix_new_game_knowledge_call",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x1efb8",
+      "expected": "E8 13 EC FF FF",
+      "replacement": "E8 93 59 04 00",
+      "requires": [
+        "fix_vanilla_bugs"
+      ],
+      "note": "The new game's price setup call (0x41EFB8) goes through 0x464950, so the prices never read the Flower of Knowledge flag of the save that was open before."
+    },
+    {
       "id": "seed_refresh_text_size",
       "file_path": "Plant Tycoon.exe",
       "offset": "0x1f8",
@@ -1938,6 +2062,21 @@
       "note": "Case 4 of the store's character switch (jump table 0x4479E0), the ignored keys, now goes through the R key code at 0x464930 instead of straight to 'return 0'."
     },
     {
+      "id": "update_pe_checksum_fix_vanilla_bugs",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x150",
+      "expected": "BF 01 0B 00",
+      "replacement": "C1 FC 0A 00",
+      "requires": [
+        "fix_vanilla_bugs"
+      ],
+      "excludes": [
+        "no_old_age_plant_deaths",
+        "seed_refresh_key"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (fix_vanilla_bugs)."
+    },
+    {
       "id": "update_pe_checksum_no_old_age_plant_deaths",
       "file_path": "Plant Tycoon.exe",
       "offset": "0x150",
@@ -1947,6 +2086,7 @@
         "no_old_age_plant_deaths"
       ],
       "excludes": [
+        "fix_vanilla_bugs",
         "seed_refresh_key"
       ],
       "note": "PE optional-header CheckSum, recomputed for this exact combination (no_old_age_plant_deaths)."
@@ -1961,9 +2101,40 @@
         "seed_refresh_key"
       ],
       "excludes": [
+        "fix_vanilla_bugs",
         "no_old_age_plant_deaths"
       ],
       "note": "PE optional-header CheckSum, recomputed for this exact combination (seed_refresh_key)."
+    },
+    {
+      "id": "update_pe_checksum_fix_vanilla_bugs_no_old_age_plant_deaths",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x150",
+      "expected": "BF 01 0B 00",
+      "replacement": "C2 F2 0A 00",
+      "requires": [
+        "fix_vanilla_bugs",
+        "no_old_age_plant_deaths"
+      ],
+      "excludes": [
+        "seed_refresh_key"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (fix_vanilla_bugs, no_old_age_plant_deaths)."
+    },
+    {
+      "id": "update_pe_checksum_fix_vanilla_bugs_seed_refresh_key",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x150",
+      "expected": "BF 01 0B 00",
+      "replacement": "C6 72 0B 00",
+      "requires": [
+        "fix_vanilla_bugs",
+        "seed_refresh_key"
+      ],
+      "excludes": [
+        "no_old_age_plant_deaths"
+      ],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (fix_vanilla_bugs, seed_refresh_key)."
     },
     {
       "id": "update_pe_checksum_no_old_age_plant_deaths_seed_refresh_key",
@@ -1975,8 +2146,24 @@
         "no_old_age_plant_deaths",
         "seed_refresh_key"
       ],
-      "excludes": [],
+      "excludes": [
+        "fix_vanilla_bugs"
+      ],
       "note": "PE optional-header CheckSum, recomputed for this exact combination (no_old_age_plant_deaths, seed_refresh_key)."
+    },
+    {
+      "id": "update_pe_checksum_fix_vanilla_bugs_no_old_age_plant_deaths_seed_refresh_key",
+      "file_path": "Plant Tycoon.exe",
+      "offset": "0x150",
+      "expected": "BF 01 0B 00",
+      "replacement": "C7 68 0B 00",
+      "requires": [
+        "fix_vanilla_bugs",
+        "no_old_age_plant_deaths",
+        "seed_refresh_key"
+      ],
+      "excludes": [],
+      "note": "PE optional-header CheckSum, recomputed for this exact combination (fix_vanilla_bugs, no_old_age_plant_deaths, seed_refresh_key)."
     }
   ],
   "verification": {
