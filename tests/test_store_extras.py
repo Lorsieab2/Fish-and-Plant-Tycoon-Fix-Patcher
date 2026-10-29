@@ -100,6 +100,63 @@ def _needs(exe):
     return unittest.skipUnless(ready, "needs Unicorn, the pinned MSVC toolset and the vanilla executable")
 
 
+# The games' own bitmap fonts. A character a font lacks is drawn as a box (the owner's "□$1,000" on
+# Fish Tycoon's item title): every string the store DLLs draw in the game must use only drawable ones.
+
+def _glyph_table(exe: bytes, address: int) -> dict[int, tuple[int, int, int, int]]:
+    """A font's glyphs: {char, x0, y0, x1, y1} int records, char signed (0xE4 is -28), ended by 0."""
+    base, _size, sections, _imports = E.pe_image(exe)
+    at = next(raw + address - base - rva for rva, raw, size in sections if 0 <= address - base - rva < size)
+    table = {}
+    while True:
+        char, x0, y0, x1, y1 = struct.unpack_from("<5i", exe, at)
+        if char == 0:
+            return table
+        table[char & 0xFF] = (x0, y0, x1, y1)
+        at += 20
+
+
+def _drawable(sheet, table: dict) -> set[str]:
+    """The characters whose glyph is not the "missing" box (a hollow rectangle)."""
+    import numpy as np
+    alpha = np.asarray(sheet)[..., 3] > 128
+
+    def box(x0: int, y0: int, x1: int, y1: int) -> bool:
+        ink = alpha[y0:y1, x0:x1]
+        ys, xs = np.nonzero(ink)
+        if len(xs) == 0:
+            return False
+        ink = ink[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+        if ink.shape[0] < 6 or ink.shape[1] < 4:
+            return False
+        edge = np.concatenate([ink[0], ink[-1], ink[:, 0], ink[:, -1]]).mean()
+        return edge > 0.9 and ink[2:-2, 2:-2].mean() < 0.1
+    return {chr(c) for c, rect in table.items() if not box(*rect)} | {" ", "\n"}
+
+
+def fish_fonts() -> dict[str, set[str]]:
+    """The three fonts the game loads (0x4180B0): paddington_tt_18, paddington_tt_30 (the store's item
+    title, font 1 at 0x42719F) and font_triplex_sanslightlin_bold_16pt."""
+    import io
+    import zipfile
+    from PIL import Image
+    exe = FISH_EXE.read_bytes()
+    fonts = {}
+    with zipfile.ZipFile(FISH_EXE.parent / "Assets" / "ft.dat") as archive:
+        for name, table in (("paddington_tt_18", 0x458580), ("paddington_tt_30", 0x458DC8),
+                            ("font_triplex_sanslightlin_bold_16pt", 0x4544B8)):
+            sheet = Image.open(io.BytesIO(archive.read(name + ".png"))).convert("RGBA")
+            fonts[name] = _drawable(sheet, _glyph_table(exe, table))
+    return fonts
+
+
+def plant_font() -> set[str]:
+    """PTfontsmall, the only font the game loads (0x412D9F)."""
+    from PIL import Image
+    sheet = Image.open(PLANT_EXE.parent / "Images" / "PTfontsmall.png").convert("RGBA")
+    return _drawable(sheet, _glyph_table(PLANT_EXE.read_bytes(), 0x47A550))
+
+
 # ------------------------------------------------------------------ Fish Tycoon
 
 S_MONEY, S_SPENT, S_EGG_COUNT = 0x38C, 0x24, 0x314
@@ -245,6 +302,74 @@ class FishStoreTests(unittest.TestCase):
         self.select(emu, "warp")
         self.assertEqual(emu.read32(emu.sym("_selected"), signed=True), -1)
 
+    def test_drawn_strings_fit_the_game_fonts(self) -> None:
+        fonts = fish_fonts()
+        self.assertNotIn("+", fonts["paddington_tt_30"])           # why "+$1,000" showed a box
+        self.assertIn("+", fonts["font_triplex_sanslightlin_bold_16pt"])
+        self.assertLessEqual(set("$,.:!()-09AZaz\xC4\xD6\xDC\xE4\xF6\xFC"), fonts["paddington_tt_30"])
+        allowed = set.intersection(*fonts.values())                # title or text: fits all three
+        drawn = set()
+        for lang in (0, 1):
+            for free in (False, True):
+                for item in FISH_CELLS:
+                    emu = self.store(5000, free=free)
+                    language = emu.alloc(4)
+                    emu.write32(language, lang)
+                    emu.write32(0x0045B314, language)
+                    self.select(emu, item)
+                    emu.call(emu.sym("@on_overlay@8"), ecx=emu.scene)
+                    drawn |= {c[1] for c in emu.calls if c[0] == "text"}
+        self.assertLessEqual({"Add $1,000", "Plus 1.000 $", "Time Warp", "Zeitsprung", "Price:  $0"}, drawn)
+        for text in drawn:
+            self.assertLessEqual(set(text), allowed, text)
+
+    # --- Time Warp's "done" message
+    def warp(self, money: int, free: bool, hours: int = 12, speed: int = 10, answer_yes: bool = True):
+        """Buy the Time Warp with a tank open: the popup answers `hours`, the question Yes/No."""
+        emu = self.store(money, free)
+        emu.write32(emu.state + 0x1E168, speed)
+        emu.write32(emu.sym("_tank_scene"), emu.alloc(0x40))
+
+        def message(e):
+            e.calls.append(("message", e.wstring(e.arg(1)), self.money(e), updates(e)))
+            return 6 if answer_yes else 7                                         # IDYES / IDNO
+        def updates(e):
+            return sum(1 for c in e.calls if c[0] == "update")
+        def ask_hours(e):
+            e.write32(e.arg(4) + 4, hours)                                        # tw_dialog_data.hours
+            return 1
+        emu.hook_import("MessageBoxW", message, 16)
+        emu.hook_import("DialogBoxIndirectParamW", ask_hours, 20)
+        emu.hook(0x0041FE70, lambda e: (e.calls.append(("update", self.money(e))), 0)[1], 0)   # the fish update
+        self.buy(emu, "warp")
+        return emu, [c for c in emu.calls if c[0] == "message"]
+
+    def test_warp_done_message_after_the_warp(self) -> None:
+        emu, messages = self.warp(5000, free=False)
+        self.assertEqual(messages[-1][1], "Time Warp done: 12 hours played (72 age steps). $500 paid.")
+        self.assertEqual(messages[-1][2], 4500)                    # paid before it shows
+        self.assertEqual(messages[-1][3], 4)                       # after the real-time update and all 3 chunks
+        self.assertEqual(len([c for c in emu.calls if c[0] == "update"]), 4)
+        self.assertEqual(len(messages), 2)                         # the Yes/No question, then the message
+
+    def test_warp_done_message_counts_the_steps_at_each_speed(self) -> None:
+        for speed, hours, steps in ((5, 1, "12 age steps"), (10, 72, "432 age steps"), (15, 5, "20 age steps")):
+            _emu, messages = self.warp(500, free=False, hours=hours, speed=speed)
+            unit = "hour" if hours == 1 else "hours"
+            self.assertEqual(messages[-1][1], f"Time Warp done: {hours} {unit} played ({steps}). $500 paid.")
+
+    def test_warp_done_message_free(self) -> None:
+        emu, messages = self.warp(0, free=True, hours=3)
+        self.assertEqual(messages[-1][1], "Time Warp done: 3 hours played (18 age steps). $0 paid.")
+        self.assertEqual(self.money(emu), 0)
+
+    def test_no_warp_done_message_on_a_refusal(self) -> None:
+        for money, speed, answer_yes in ((499, 10, True), (5000, 10 + 9999, True), (5000, 10, False)):
+            emu, messages = self.warp(money, free=False, speed=speed, answer_yes=answer_yes)
+            self.assertFalse([m for m in messages if m[1].startswith("Time Warp done")], (money, speed, answer_yes))
+            self.assertFalse([c for c in emu.calls if c[0] == "update"])
+            self.assertEqual(self.money(emu), money)
+
 
 # ------------------------------------------------------------------ Plant Tycoon
 
@@ -361,7 +486,7 @@ class PlantStoreTests(unittest.TestCase):
             tips = [c[1] for c in emu.calls if c[0] == "tip"]
             prices = ("5000", "10000", "1000", "500", "950")
             for price, title in zip(prices, ("Legendary Seeds", "Radioactive", "Fourth Seed Box", "Time Warp",
-                                             "+$1,000")):
+                                             "Add $1,000")):
                 tip = next(t for t in tips if t.startswith(title))
                 self.assertTrue(tip.endswith(f"Price: $ {'0' if free else price}"), tip)
 
@@ -409,6 +534,70 @@ class PlantStoreTests(unittest.TestCase):
         emu = self.store(5000, False, answer_yes=False)
         self.click(emu, 380, 310)
         self.assertEqual(self.cash(emu), 5000)
+
+    def test_drawn_strings_fit_the_game_font(self) -> None:
+        font = plant_font()
+        self.assertLessEqual(set("+$,.:!()-09AZaz"), font)
+        drawn = set()
+        for free in (False, True):
+            emu = self.store(0, free)
+            emu.call(emu.sym("_on_activate"), emu.scene, 1)
+            drawn |= {c[1] for c in emu.calls if c[0] == "tip"}
+        self.assertIn("Add $1,000\nPrice: $ 950", drawn)
+        self.assertGreater(len(drawn), 10)
+        for text in drawn:
+            self.assertLessEqual(set(text), font, text)
+
+    # --- Time Warp's "done" message
+    def warp(self, cash: int, free: bool, hours: int = 12, speed: int = 10, answer_yes: bool = True):
+        """Click the Time Warp clock: the popup answers `hours`, the question Yes/No."""
+        emu = self.store(cash, free, answer_yes=answer_yes)
+        emu.write32(emu.state + 0x534, speed)
+        now = 1_000_000
+        pot = emu.state + 0x2188                                                  # pot 0: a live plant
+        emu.write32(pot + 0x04, now - 30)
+        emu.write32(pot + 0x24, 50)
+        emu.write32(pot + 0x4C, 1)
+
+        def message(e):
+            e.calls.append(("MessageBoxW", e.wstring(e.arg(1)), self.cash(e), e.read32(pot + 0x04),
+                            sum(1 for c in e.calls if c[0] == "update")))
+            return 6 if answer_yes else 7
+        def ask_hours(e):
+            e.write32(e.arg(4) + 4, hours)
+            return 1
+        emu.hook_import("MessageBoxW", message, 16)
+        emu.hook_import("DialogBoxIndirectParamW", ask_hours, 20)
+        emu.hook(0x00403430, lambda e: now, 0)                                    # the game's clock
+        emu.hook(0x0041D810, emu.record("update"), 0)                             # the plant update
+        self.click(emu, 310, 310)
+        return emu, [c for c in emu.calls if c[0] == "MessageBoxW"], now - 30
+
+    def test_warp_done_message_after_the_warp(self) -> None:
+        emu, messages, stamp = self.warp(5000, False)
+        self.assertEqual(messages[-1][1], "Time Warp done: 12 hours played (72 age units). $500 paid.")
+        self.assertEqual(messages[-1][2], 4500)                    # paid
+        self.assertEqual(messages[-1][3], stamp - 12 * 3600)       # the pot's clock moved back
+        self.assertEqual(messages[-1][4], 1)                       # and the plant update has run
+        self.assertEqual(len(messages), 2)                         # the Yes/No question, then the message
+
+    def test_warp_done_message_counts_the_units_at_each_speed(self) -> None:
+        for speed, hours, units in ((2, 1, "30 age units"), (10, 72, "432 age units"), (15, 5, "20 age units")):
+            _emu, messages, _stamp = self.warp(500, False, hours=hours, speed=speed)
+            unit = "hour" if hours == 1 else "hours"
+            self.assertEqual(messages[-1][1], f"Time Warp done: {hours} {unit} played ({units}). $500 paid.")
+
+    def test_warp_done_message_free(self) -> None:
+        emu, messages, _stamp = self.warp(0, True, hours=3)
+        self.assertEqual(messages[-1][1], "Time Warp done: 3 hours played (18 age units). $0 paid.")
+        self.assertEqual(self.cash(emu), 0)
+
+    def test_no_warp_done_message_on_a_refusal(self) -> None:
+        for cash, speed, answer_yes in ((499, 10, True), (5000, 10 + 9999, True), (5000, 10, False)):
+            emu, messages, _stamp = self.warp(cash, False, speed=speed, answer_yes=answer_yes)
+            self.assertFalse([m for m in messages if m[1].startswith("Time Warp done")], (cash, speed, answer_yes))
+            self.assertFalse([c for c in emu.calls if c[0] == "update"])
+            self.assertEqual(self.cash(emu), cash)
 
     def test_add_money_hidden_without_its_setting(self) -> None:
         emu = self.store(5000, False, add_money=False)

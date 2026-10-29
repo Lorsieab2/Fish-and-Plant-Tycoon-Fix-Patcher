@@ -40,6 +40,8 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   times. Money stops at the game's maximum: $2,147,483,647 in Fish Tycoon (a
   signed 32-bit int), $4,000,000,000 in Plant Tycoon (its own cash code,
   0x41ED70).
+  The item is labelled "Add $1,000" (German "Plus 1.000 $"): Fish Tycoon's title
+  font has no "+" and drew a box instead.
 
 ### Plant Tycoon
 
@@ -50,6 +52,9 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   fish update; Plant Tycoon moves each plant's clock and runs its own plant
   update, and the seed-restock timer moves too. Refused while time is stopped.
   Live-tested in both games (Normal, 2x / Fast, Stop Time, cancel, no money).
+  After the warp has been played, an OK box says what it did, e.g. "Time Warp
+  done: 12 hours played (72 age steps). $500 paid." (age units in Plant Tycoon;
+  $0 paid with Free upgrades); a refusal shows no such box.
 - **R refreshes the seed shop**, a new setting, on by default. Press R in the
   Supplies store to restock the seed shelves at once (Legendary Seeds too),
   through the game's own restock roll (0x41DC60). Three byte changes: the
