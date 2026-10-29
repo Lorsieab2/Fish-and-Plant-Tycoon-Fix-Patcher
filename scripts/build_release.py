@@ -66,8 +66,9 @@ def pinned_assets() -> list[tuple[str, int, str]]:
 
 
 def bundled_asset_files() -> list[str]:
-    """Every pinned asset file, as a repo-relative path, for the release ZIP."""
-    return [relative for relative, _size, _digest in pinned_assets()]
+    """Every pinned asset file, as a repo-relative path, for the release ZIP.
+    A file two settings share (Time Warp.ini, in both games' manifests) is listed once."""
+    return list(dict.fromkeys(relative for relative, _size, _digest in pinned_assets()))
 
 
 def main() -> int:
@@ -86,6 +87,8 @@ def main() -> int:
     with zipfile.ZipFile(target) as archive:
         if sorted(archive.namelist()) != sorted(FILES):
             raise RuntimeError("release archive manifest mismatch")
+        if len(set(archive.namelist())) != len(archive.namelist()):
+            raise RuntimeError("release archive has a duplicate entry")
         bad = archive.testzip()
         if bad:
             raise RuntimeError(f"release archive CRC failure: {bad}")
