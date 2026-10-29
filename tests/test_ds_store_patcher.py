@@ -45,7 +45,8 @@ class ManifestTests(unittest.TestCase):
     def test_every_combination_is_pinned_as_the_same_one_without_it(self) -> None:
         # The store writes no executable bytes: DS Fish's DLL loads its DLL.
         pins = self.manifest["patched_sha256_by_settings"]
-        with_store = [key for key in pins if SETTING in key.split(",") and "time_warp" not in key.split(",")]
+        screen_items = {"time_warp", "free_upgrades", "add_money"}       # tests/test_store_extras.py
+        with_store = [key for key in pins if SETTING in key.split(",") and not screen_items & set(key.split(","))]
         self.assertEqual(len(with_store), 64)
         for key in with_store:
             enabled = set(key.split(","))
@@ -57,7 +58,8 @@ class ManifestTests(unittest.TestCase):
         self.assertFalse(companion.get("startup_loader", False))
         destinations = {f["destination"] for f in companion["files"]}
         self.assertIn(f"{ds_fish_loader.PATCHER_FILES_FOLDER}/DS Store Items.dll", destinations)
-        self.assertEqual(len([d for d in destinations if d.startswith("Images/")]), 14)
+        self.assertEqual(len([d for d in destinations if d.startswith("Images/")]), 15)
+        self.assertIn("Images/ITEM_ADD_MONEY.png", destinations)
         self.assertIn("Images/DS_PUFFER_PUFF_Grid.png", destinations)
         self.assertIn("Images/SuppliesUpgradesButton.png", destinations)
         for entry in companion["files"]:

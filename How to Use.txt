@@ -68,6 +68,12 @@ Fish Tycoon options:
   its rock before turning it off again.)
 - Time Warp (off by default; a $500 clock on the store's Upgrades screen:
   type 1-72 hours in a Windows popup and the game plays them as time away)
+- Free upgrades (off by default; turns on the store's Upgrades screen:
+  every item on that screen costs $0. The game's own store items keep
+  their prices)
+- Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
+  screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
+  and adds $1,000 each time)
 
 Plant Tycoon options:
 - No old-age plant deaths
@@ -86,6 +92,12 @@ Plant Tycoon options:
   and its parents into your unlocked seed boxes, first box first.)
 - Time Warp (off by default; a $500 clock on the store's Upgrades screen:
   type 1-72 hours in a Windows popup and the game plays them as time away)
+- Free upgrades (off by default; turns on the store's Upgrades screen:
+  every item on that screen costs $0. The game's own store items keep
+  their prices)
+- Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
+  screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
+  and adds $1,000 each time)
 
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.

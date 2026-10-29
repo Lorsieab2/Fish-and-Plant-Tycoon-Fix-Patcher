@@ -28,6 +28,8 @@ FILES = [
     "docs/fish-tycoon-tank-expansion.md",
     "docs/plant-tycoon-new-flowers-design.md",
     "docs/plant-tycoon-upgrades-design.md",
+    "docs/images/add-money-fish.png",
+    "docs/images/add-money-plant.png",
     "docs/plant-tycoon-technical-details.md",
     "docs/golden-seahorse-defects.md",
     "docs/QA.md",
