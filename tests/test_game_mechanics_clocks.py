@@ -68,7 +68,7 @@ class ParityTests(unittest.TestCase):
     """Fish and Plant Tycoon cover the same topics: each page maps every group of the other."""
 
     SHARED = {"Clocks", "Time away (catch-up)", "Ages and stages", "A new game",
-              "Hidden keys, clicks and cheats", "Chance and timer index"}
+              "Hidden keys, clicks and cheats", "Chance and timer index", "Time Warp (patcher)"}
 
     def test_every_topic_of_the_other_game_is_mapped(self) -> None:
         titles = {gid: [group.title for group in gm.load_page(gid).groups] for gid in gm.GAMES}

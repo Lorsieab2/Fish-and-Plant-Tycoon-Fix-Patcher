@@ -30,6 +30,13 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Plant Tycoon
 
+- **Time Warp**, a new setting (both games), off by default. A clock (the owner's
+  icon) on the store's Upgrades screen: a flat $500 to play 1-72 real-time hours
+  as time away, typed into a small Windows popup and confirmed Yes/No. No
+  catch-up cap: Fish Tycoon feeds the hours in 4-hour pieces through its own
+  fish update; Plant Tycoon moves each plant's clock and runs its own plant
+  update, and the seed-restock timer moves too. Refused while time is stopped.
+  Live-tested in both games (Normal, 2x / Fast, Stop Time, cancel, no money).
 - **R refreshes the seed shop**, a new setting, on by default. Press R in the
   Supplies store to restock the seed shelves at once (Legendary Seeds too),
   through the game's own restock roll (0x41DC60). Three byte changes: the

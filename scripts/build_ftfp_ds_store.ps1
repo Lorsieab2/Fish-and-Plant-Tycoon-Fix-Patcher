@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 # Regenerate native/ftfp_ds_store/store_sites.h and store_data.h first with
 # scripts/build_ds_store_headers.py. Shipped from assets\fish_tycoon_ds_store.
 # Same toolchain and flags as the Virtual Villagers Fun Patcher's companions:
-# MSVC x86, static CRT, kernel32 only, /Brepro for a byte-identical rebuild.
+# MSVC x86, static CRT, kernel32 and user32 (Time Warp's popups), /Brepro for a byte-identical rebuild.
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $nativeRoot = Join-Path $projectRoot "native\ftfp_ds_store"
@@ -42,7 +42,8 @@ New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
     ("/OUT:" + (Join-Path $outputRoot "DS Store Items.dll")) `
     /RELEASE `
     /SAFESEH:NO `
-    kernel32.lib
+    kernel32.lib `
+    user32.lib
 if ($LASTEXITCODE -ne 0) {
     throw "DS Store Items.dll compilation failed."
 }

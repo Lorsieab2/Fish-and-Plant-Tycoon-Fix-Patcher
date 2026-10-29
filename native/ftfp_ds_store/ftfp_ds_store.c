@@ -36,6 +36,7 @@
 #include <string.h>
 #include "../ftfp_ds_fish/install_sites.h"
 #include "store_sites.h"
+#include "../common/time_warp_popup.h"
 #include "store_data.h"
 
 #define STATE_GLOBAL 0x0045ABDCu
@@ -115,7 +116,8 @@
 #define SPR_HOME_BACK (STORE_SPRITE_BASE + 10)
 #define SPR_HOME_FRONT (STORE_SPRITE_BASE + 11)
 #define SPR_PUFF (STORE_SPRITE_BASE + 12)
-#define STORE_SPRITES 13
+#define SPR_ITEM_WARP (STORE_SPRITE_BASE + 13)
+#define STORE_SPRITES 14
 
 typedef struct sprite_entry {
     int id;
@@ -145,6 +147,7 @@ static const struct { const char *name; int cols, rows; } SPRITE_FILES[STORE_SPR
     { "DS_EEL_HOME_BACK_Grid.png", HOME_COLS, HOME_FRAMES / HOME_COLS },
     { "DS_EEL_HOME_FRONT_Grid.png", HOME_COLS, HOME_FRAMES / HOME_COLS },
     { "DS_PUFFER_PUFF_Grid.png", 4, 2 },        /* the puffer puffed up: left, then right */
+    { "ITEM_TIME_WARP.png", 0, 0 },             /* the Time Warp clock (the owner's icon) */
 };
 
 /* ------------------------------------------------------------ the game */
@@ -295,8 +298,11 @@ static int owned(char *state, int fin) {
    redirect_golden_seahorse_store_blocker) puts this jump at 0x4282B2. */
 static const unsigned char REPURCHASE_JUMP[10] = { 0xE9, 0x49, 0x75, 0x01, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90 };
 
+#define FIN_WARP (-1)                       /* the Time Warp item: not an animal */
+
 static int sold_out(char *state, int fin) {
     static int repurchase = -1;
+    if (fin == FIN_WARP) return 0;
     if (repurchase < 0) repurchase = ftfp_site_holds(0x004282B2u, REPURCHASE_JUMP, sizeof REPURCHASE_JUMP);
     return fin != 0 && !repurchase && owned(state, fin);
 }
@@ -778,7 +784,9 @@ typedef struct store_item {
     const char *text[2];
 } store_item;
 
-#define ITEMS 4
+#define ITEMS 5                     /* the fifth, Time Warp, only with the Time Warp setting */
+static int warp_on = 0;
+static int item_count(void) { return warp_on ? ITEMS : ITEMS - 1; }
 static const store_item ITEM[ITEMS] = {
     { FIN_PUFFER, 1250, 44, 83, 85, 70, SPR_ITEM_PUFFER, 80, 60,
       { "Magic Pufferfish", "Magischer Kugelfisch" },
@@ -796,6 +804,10 @@ static const store_item ITEM[ITEMS] = {
       { "Exotic Fish Eggs", "Exotische Fischeier" },
       { "These special eggs were extremely hard\nto obtain. Research FISH ENVIRONMENT\nbefore you try to hatch these.",
         "Diese besonderen Eier waren extrem\nschwer zu bekommen. Erforsche\nLEBENSBEDINGUNGEN, bevor du\nversuchst, sie auszubr\xFCten." } },
+    { FIN_WARP, 500, 411, 100, 79, 66, SPR_ITEM_WARP, 65, 64,
+      { "Time Warp", "Zeitsprung" },
+      { "Skip ahead in time! Choose how many\nhours (1-72) pass, as if you had been\naway that long. Your fish age, eat and\nresearch goes on.",
+        "Spring in der Zeit voraus! W\xE4hle, wie\nviele Stunden (1-72) vergehen, als w\xE4rst\ndu so lange weg gewesen. Deine Fische\naltern, fressen, und die Forschung l\xE4uft." } },
 };
 
 static int page_upgrades = 0;
@@ -836,7 +848,7 @@ static void add_button(void *scene) {
 
 static int hit_item(int x, int y) {
     int i;
-    for (i = 0; i < ITEMS; ++i) {
+    for (i = 0; i < item_count(); ++i) {
         if (inside(x, y, ITEM[i].x, ITEM[i].y, ITEM[i].x + ITEM[i].w, ITEM[i].y + ITEM[i].h)) return i;
     }
     return -1;
@@ -856,7 +868,7 @@ static void draw_page(void *scene) {
     int i, lang = german(), pulse;
     DWORD t = GetTickCount() % 1600u;
     pulse = 0x30 + (int)((t < 800u ? t : 1600u - t) * 0x50u / 800u);
-    for (i = 0; i < ITEMS; ++i) {
+    for (i = 0; i < item_count(); ++i) {
         const store_item *it = &ITEM[i];
         void *img = (void *)(UINT_PTR)SPRITE_GET(P(impl, 0x14), NULL, it->sprite);
         int x = it->x + (it->w - it->icon_w) / 2, y = it->y + (it->h - it->icon_h) / 2;
@@ -959,6 +971,73 @@ static void buy_exotic_universal(char *impl, char *state, int price) {
     *I(r, SR_X) = slot * 0x30 + 0x1E;
 }
 
+/* ------------------------------------------------------------ time warp */
+
+/* The Time Warp setting ships "Time Warp.ini" beside this DLL.  Buying the
+   item asks for the hours (1-72) in a Windows popup, confirms, charges $500,
+   and then plays those hours exactly as time away: each live fish's banked
+   time (+0x04) and each running research's banked time get the seconds, at
+   most 4 hours at a time so the stock catch-up caps (32400 / 25200 / 18000 s
+   at 2x / Normal / 1/2 speed, 0x41FF1D) never cut them, and the stock fish
+   update 0x41FE70 runs after each chunk.  Its `this` is the tank screen,
+   remembered by the hook on its activation call (0x421AAA). */
+#define WARP_CHUNK 14400u
+#define S_SPEED_FISH 0x1E168
+#define FISH_RECORD(state, tank, slot) ((state) + 0x390 + (tank) * 0x51EC + (slot) * SLOT_STRIDE)
+#define TANK_SLOTS (*(const unsigned char *)(UINT_PTR)0x004206B3u)      /* 21, or 26 with Bigger tanks */
+typedef void (__fastcall *fish_update_fn)(void *tank, int edx);
+static const fish_update_fn fish_update = (fish_update_fn)0x0041FE70u;
+static void *volatile tank_scene = NULL;
+
+static void warp_chunk(char *state, unsigned int seconds) {
+    int tank, slot, r, slots = TANK_SLOTS;
+    if (slots > 26) slots = 26;
+    for (tank = 0; tank < 4; ++tank) {
+        for (slot = 0; slot < slots; ++slot) {
+            char *f = FISH_RECORD(state, tank, slot);
+            if (*I(f, 0x00) == 0 || *I(f, 0x3C) <= 0 || *I(f, 0x4C) == BODY_SEAHORSE) continue;
+            *(unsigned int *)(f + 0x04) += seconds;
+        }
+    }
+    for (r = 0x17; r <= 0x19; ++r) {                    /* Fish Food, Environment, Advertising */
+        if (*I(state, r * 20 + 0x7C) != 0) *(unsigned int *)(state + r * 20 + 0x84) += seconds;
+    }
+}
+
+static void time_warp(char *impl, char *state) {
+    wchar_t text[256];
+    unsigned int left;
+    int hours;
+    if (*I(state, S_SPEED_FISH) > 100) {
+        tw_tell(L"Time is stopped. Turn time back on in Options, then warp.");
+        return;
+    }
+    if (*I(state, S_MONEY) < 500) {
+        HINT(P(impl, 0xC), NULL, 2);                 /* "You can't afford to buy this yet!" */
+        return;
+    }
+    if (tank_scene == NULL) {
+        tw_tell(L"Open a tank first, then come back to the store to warp.");
+        return;
+    }
+    hours = tw_ask_hours(L"Costs $500. Your fish age, eat and breed, and research goes on, as if you had "
+                         L"been away.");
+    if (hours <= 0) return;
+    swprintf_s(text, 256, L"Warp %d hour%s for $500?\n\nYour fish will age %d hour%s, as if you had been "
+               L"away that long. This cannot be undone.", hours, hours == 1 ? L"" : L"s", hours,
+               hours == 1 ? L"" : L"s");
+    if (!tw_confirm(text)) return;
+    if (*I(state, S_MONEY) < 500) return;
+    charge(state, 500);
+    fish_update(tank_scene, 0);                         /* the real time so far, by the stock rules */
+    for (left = (unsigned int)hours * 3600u; left > 0;) {
+        unsigned int c = left > WARP_CHUNK ? WARP_CHUNK : left;
+        left -= c;
+        warp_chunk(state, c);
+        fish_update(tank_scene, 0);
+    }
+}
+
 static void buy(void *scene) {
     char *impl = store_impl(scene);
     char *state = (char *)P(impl, 0x10);
@@ -966,6 +1045,10 @@ static void buy(void *scene) {
     void *hint = P(impl, 0xC);
     if (selected < 0 || state == NULL) return;
     it = &ITEM[selected];
+    if (it->fin == FIN_WARP) {
+        time_warp(impl, state);
+        return;
+    }
     if (sold_out(state, it->fin)) {
         HINT(hint, NULL, 0x1C);                      /* "You already own this!" */
         return;
@@ -1418,7 +1501,7 @@ __declspec(naked) static void stub_ornament_drop(void) {
 /* ----------------------------------------------------------------- install */
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 22
+#define TOTAL_SITES 23
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -1435,6 +1518,17 @@ static void view_limit(ftfp_site_write *w, unsigned int va, const unsigned char 
     w->expect = ftfp_site_holds(va, bigger, 3) ? bigger : stock;
     memcpy(w->bytes, w->expect, 3);
     w->bytes[2] = RECORDS;
+}
+
+static const DWORD k_fish_update = 0x0041FE70u;
+static const unsigned char TANK_UPDATE_CALL[5] = { 0xE8, 0xC1, 0xE3, 0xFF, 0xFF };   /* 0x421AAA: call 0x41FE70 */
+
+/* 0x421AAA, the tank screen's activation: remember the tank, then the stock update. */
+__declspec(naked) static void stub_tank_update(void) {
+    __asm {
+        mov dword ptr [tank_scene], ecx
+        jmp dword ptr [k_fish_update]
+    }
 }
 
 static int prepare(void) {
@@ -1461,6 +1555,7 @@ static int prepare(void) {
     SLOT(w++, STATE_LOAD, on_state_load);
     view_limit(w++, SITE_VIEW_BUILD_SLOTS_VA, SITE_VIEW_BUILD_SLOTS_EXPECT, SITE_VIEW_BUILD_SLOTS_EXPECT_26);
     view_limit(w++, SITE_VIEW_REFRESH_SLOTS_VA, SITE_VIEW_REFRESH_SLOTS_EXPECT, SITE_VIEW_REFRESH_SLOTS_EXPECT_26);
+    ftfp_site_branch(w++, 0x00421AAAu, 5, TANK_UPDATE_CALL, 0xE8, CODE_ADDR(stub_tank_update));
     return (int)(w - writes) == TOTAL_SITES;
 }
 
@@ -1553,11 +1648,14 @@ static void install_use_gate(void) {
     exotic_any_slot = ftfp_install_sites(use_gate, 1);
 }
 
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+
 /* Called once by DS Exclusive Fish.dll, after its own install, before WinMain. */
 int __stdcall FtfpStoreStartup(const ftfp_store_host *host) {
     if (installed) return 1;
     __try {
         host_ok = name_sprites(host);
+        warp_on = tw_enabled((HMODULE)&__ImageBase);
         if (host_ok && prepare() && ftfp_install_sites(writes, TOTAL_SITES)) {
             installed = 1;
             install_use_gate();

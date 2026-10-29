@@ -56,6 +56,7 @@ def page() -> GamePage:
             Group("Sorting seeds", SORTING,
                   note="Only with the Sort Seeds button setting: a \"Sort Seeds\" button on the Seed Storage "
                        "title bar."),
+            Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (off by default), which also turns on the store's Upgrades screen it lives on."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Fish Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
@@ -906,8 +907,8 @@ HIDDEN = (
         "The patcher's own key: R (or r) in the Supplies store restocks the seed shelves "
         "(R refreshes the seed shop, on by default; nothing on any other screen). The patcher's "
         "other additions are clicks, not keys: the Upgrades link in the Supplies store "
-        "and the gold box arrows (Add new store upgrades and items), and the Sort Seeds button "
-        "(Sort Seeds button).",
+        "and the gold box arrows (Add new store upgrades and items), the Sort Seeds button "
+        "(Sort Seeds button), and the Time Warp clock (Time Warp).",
     ),
 )
 
@@ -927,6 +928,46 @@ OTHER_GAME = (
     Fact('Species and prices: see Prices.'),
     Fact('Goals and popups: see Goals, messages and statistics.'),
     Fact("DS store animals: not in Plant Tycoon. The patcher's new Plant Tycoon items are in Shop seeds (Legendary Seeds), Chemicals (Radioactive Plant Formula) and Tools and shears (Fourth to Sixth Seed Box)."),
+)
+
+TIME_WARP = (
+    Fact(
+        "Not in the unpatched game.",
+        patched=(("time_warp", "a clock on the Nursery shelf of the Supplies store's Upgrades view "
+                  "(its tooltip shows the price). Clicking it opens a small Windows popup: type how many "
+                  "real-time hours should pass (1-72), then Yes/No. It costs a flat $500, whatever the "
+                  "hours. It is refused, with nothing charged, while time is stopped (Stop Time) or "
+                  "with less than $500."),),
+    ),
+    Fact(
+        "How much game time a warp gives depends on the speed setting, because the hours are "
+        "real-time hours turned into age units exactly as time away is:",
+        subs=(
+            "Fast: 30 age units per hour, so 72 hours = 2160 units.",
+            "Normal: 6 age units per hour, so 72 hours = 432 units.",
+            "Slow: 4 age units per hour, so 72 hours = 288 units.",
+            "Stop Time: refused (a stopped game throws time away).",
+        ),
+        patched=(("time_warp", "live check: at Normal, a 2-hour warp aged every plant 12 units and "
+                  "moved the seed shop's restock 7200 real-time seconds closer; at Fast, a 1-hour warp "
+                  "aged them 30 units."),),
+    ),
+    Fact(
+        "What it does: exactly what time away does (Plant Tycoon has no catch-up cap). Every live "
+        "plant's clock moves back by the hours and the game's own plant update runs at once, so "
+        "each plant gets every age unit's water, health, pest, size, seed-ripening and old-age "
+        "checks.",
+        subs=(
+            "Like a long time away, the whole warp is one catch-up, with its quirks (see Time away): "
+            "age tests use the final age, so a long warp at Fast that ends past age 1720 rolls old age "
+            "for every unit.",
+            "The seed shop's restock time moves the same hours closer, so it restocks once at the "
+            "next greenhouse check if it is due. The Sundial's Real Hours Played moves too.",
+            "Not affected: nursery sales and visitors, bugs and the autosave. Dead plants and empty "
+            "pots are left alone.",
+            "Plants can dry out or die along the way, as they would while you were away.",
+        ),
+    ),
 )
 
 INDEX = (

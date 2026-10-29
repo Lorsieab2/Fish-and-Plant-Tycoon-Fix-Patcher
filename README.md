@@ -78,6 +78,12 @@ never needs the internet.
   [docs/fish-tycoon-ds-store-items-design.md](docs/fish-tycoon-ds-store-items-design.md).
   Trash the store animals, and let the eel out of its rock, before turning it
   off again.
+- Time Warp (off by default; turns on the store's Upgrades screen it lives on).
+  A clock item on the Upgrades screen: pay a flat $500, type 1-72 real-time
+  hours in a small Windows popup, confirm Yes, and the game plays those hours as
+  if you had been away, with no catch-up cap. At Normal speed 1 hour is 6 age
+  steps/units; at 2x (Fish) 12 and Fast (Plant) 30; at 1/2 speed / Slow 4.
+  Refused while time is stopped.
 
 ### Plant Tycoon
 
@@ -136,6 +142,12 @@ never needs the internet.
   - Click Supplies in the bottom bar to go back.
   - Design:
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
+- Time Warp (off by default; turns on the store's Upgrades screen it lives on).
+  A clock item on the Upgrades screen: pay a flat $500, type 1-72 real-time
+  hours in a small Windows popup, confirm Yes, and the game plays those hours as
+  if you had been away, with no catch-up cap. At Normal speed 1 hour is 6 age
+  steps/units; at 2x (Fish) 12 and Fast (Plant) 30; at 1/2 speed / Slow 4.
+  Refused while time is stopped.
 - Sort Seeds button (off by default). A "Sort Seeds" button on the Seed
   Storage title bar. After a Yes/No question it sorts every seed in the
   unlocked seed box space by the class of the plant it grows, its foliage and
