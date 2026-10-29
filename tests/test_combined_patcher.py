@@ -135,12 +135,13 @@ class CombinedPatcherTests(unittest.TestCase):
                 "bigger_tanks",
                 "ds_fish",
                 "ds_store",
+                "time_warp",
             ],
         )
         self.assertEqual(
             list(combined.patch_settings("plant")),
             ["no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets", "new_flowers", "plant_upgrades",
-             "sort_seeds"],
+             "sort_seeds", "time_warp"],
         )
 
     def test_unknown_chemical_text_is_corrected_in_both_languages(self) -> None:
@@ -413,7 +414,7 @@ class SectionLayoutTests(unittest.TestCase):
             ]
             # DS Fish and DS Store Items patch no manifest bytes: DS Fish's
             # startup loader recomputes the checksum itself, after every other change.
-            expected = 0 if not (enabled - {"ds_fish", "ds_store"}) else 1
+            expected = 0 if not (enabled - {"ds_fish", "ds_store", "time_warp"}) else 1
             self.assertEqual(
                 len(checksum_patches),
                 expected,

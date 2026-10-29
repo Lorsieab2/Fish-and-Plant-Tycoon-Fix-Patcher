@@ -124,7 +124,7 @@ class ManifestTests(unittest.TestCase):
 
     def test_every_combination_with_ds_fish_is_pinned(self) -> None:
         # DS Store Items builds on DS Fish; tests/test_ds_store_patcher.py pins those.
-        others = [s["id"] for s in self.manifest["settings"] if s["id"] not in (SETTING, "ds_store")]
+        others = [s["id"] for s in self.manifest["settings"] if s["id"] not in (SETTING, "ds_store", "time_warp")]
         pins = self.manifest["patched_sha256_by_settings"]
         for count in range(len(others) + 1):
             for combo in itertools.combinations(others, count):

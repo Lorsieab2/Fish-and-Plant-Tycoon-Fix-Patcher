@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 # Regenerate native/ftfp_plant_upgrades/upgrade_sites.h first with
 # scripts/build_plant_upgrades_headers.py. Shipped from assets\plant_tycoon_upgrades.
 # Same toolchain and flags as the Virtual Villagers Fun Patcher's companions:
-# MSVC x86, static CRT, kernel32 only, /Brepro for a byte-identical rebuild.
+# MSVC x86, static CRT, kernel32 and user32 (Time Warp's popups), /Brepro for a byte-identical rebuild.
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $nativeRoot = Join-Path $projectRoot "native\ftfp_plant_upgrades"
@@ -42,7 +42,8 @@ New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
     ("/OUT:" + (Join-Path $outputRoot "Store Upgrades and Items.dll")) `
     /RELEASE `
     /SAFESEH:NO `
-    kernel32.lib
+    kernel32.lib `
+    user32.lib
 if ($LASTEXITCODE -ne 0) {
     throw "Store Upgrades and Items.dll compilation failed."
 }

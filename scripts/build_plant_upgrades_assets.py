@@ -88,11 +88,17 @@ def formula_bottle(images: Path) -> Image.Image:
     stock = Image.open(images / "Chemicals_Grid.png").convert("RGBA")
     if stock.size != (2 * CHEM_CELL, CHEM_ROWS * CHEM_CELL):
         raise SystemExit(f"Chemicals_Grid.png is {stock.size}, expected the stock 140 x 630")
-    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 1) * CHEM_CELL))
+    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 2) * CHEM_CELL))
     sheet.paste(stock, (0, 0))
     for column in (0, 1):
         box = (column * CHEM_CELL, MUTATION_ROW * CHEM_CELL, (column + 1) * CHEM_CELL, (MUTATION_ROW + 1) * CHEM_CELL)
         sheet.paste(prismatic(stock.crop(box), only_coloured=True), (column * CHEM_CELL, CHEM_ROWS * CHEM_CELL))
+    # Row 10 (frames 20 and 21): the Time Warp clock, the owner's icon, centred in its cell.
+    clock = Image.open(ROOT / "assets" / "time_warp" / "time_warp_icon_source.png").convert("RGBA")
+    clock.thumbnail((CHEM_CELL - 6, CHEM_CELL - 6), Image.LANCZOS)
+    for column in (0, 1):
+        at = (column * CHEM_CELL + (CHEM_CELL - clock.width) // 2, (CHEM_ROWS + 1) * CHEM_CELL + (CHEM_CELL - clock.height) // 2)
+        sheet.alpha_composite(clock, at)
     return sheet
 
 

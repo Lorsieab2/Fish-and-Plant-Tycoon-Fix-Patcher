@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include "../ftfp_ds_fish/install_sites.h"
 #include "upgrade_sites.h"
+#include "../common/time_warp_popup.h"
 
 #define FOLIAGES 23
 #define FIRST_NEW_FLOWER 24
@@ -339,6 +340,73 @@ static const RECT FORMULA_RECT = { 610, 63, 655, 115 };
 static const RECT LINK_RECT = { LINK_X - 2, LINK_Y - 2, LINK_X + LINK_W + 2, LINK_Y + LINK_H + 2 };
 static RECT box_rect(int box) { RECT r = { 471, 52 + 70 * box, 528, 113 + 70 * box }; return r; }
 
+/* ------------------------------------------------------------ time warp */
+
+/* The Time Warp setting ships "Time Warp.ini" beside this DLL.  The item sits
+   on the Upgrades view's empty Nursery shelf; its picture is frame 20 (row 10)
+   of the chemicals sheet this DLL already extends.  Clicking it asks for the
+   hours in a Windows popup, confirms, charges $500 and moves every live pot's
+   time stamp back that far, then runs the game's own plant update (0x41D810,
+   the call the Options screen makes), exactly as if the player had been away:
+   the catch-up has no cap.  The seed shop's restock time (state+0x5A0) and
+   the Sundial's start (state+0x30) move back too. */
+#define WARP_PRICE 500
+#define WARP_FRAME 20
+#define WARP_X 300
+#define WARP_Y 296
+#define S_CASH 0x217C
+#define S_SPEED 0x534
+#define S_RESTOCK 0x5A0
+#define S_STARTED 0x30
+#define POTS 15
+#define POT(state, k) ((state) + 0x2188 + (k) * 0x5600)
+typedef unsigned int (__cdecl *mono_clock_fn)(void);
+typedef void (__fastcall *plants_update_fn)(void *state, int edx);
+static const mono_clock_fn mono_clock = (mono_clock_fn)0x00403430u;
+static const plants_update_fn update_plants = (plants_update_fn)0x0041D810u;
+static const RECT WARP_RECT = { WARP_X, WARP_Y, WARP_X + 64, WARP_Y + 64 };
+static int warp_on = 0;
+static char *warp_tip = NULL;
+static const char WARP_TIP[] = "Time Warp\nPrice: $ 500";
+
+static void time_warp(char *scene) {
+    char *state = SCENE_STATE(scene);
+    wchar_t text[256];
+    unsigned int now, dt;
+    int hours, k;
+    if (state == NULL) return;
+    if (AT(state, S_SPEED, int) > 100) {
+        tw_tell(L"Time is stopped. Turn time back on in Options, then warp.");
+        return;
+    }
+    if (AT(state, S_CASH, int) < WARP_PRICE) {
+        tw_tell(L"You can't afford to buy this yet! A Time Warp costs $500.");
+        return;
+    }
+    hours = tw_ask_hours(L"Costs $500. Your plants grow, ripen seeds and need water, and the seed shop "
+                         L"restocks if due, as if you had been away.");
+    if (hours <= 0) return;
+    swprintf_s(text, 256, L"Warp %d hour%s for $500?\n\nYour plants will age %d hour%s, as if you had been "
+               L"away that long. This cannot be undone.", hours, hours == 1 ? L"" : L"s", hours,
+               hours == 1 ? L"" : L"s");
+    if (!tw_confirm(text)) return;
+    if (AT(state, S_CASH, int) < WARP_PRICE) return;
+    add_cash(state, 0, -WARP_PRICE);
+    play_sound(SCENE_SOUND(scene), 0, SOUND_BUTTON);
+    now = mono_clock();
+    dt = (unsigned int)hours * 3600u;
+    for (k = 0; k < POTS; ++k) {
+        char *pot = POT(state, k);
+        unsigned int stamp = AT(pot, 0x04, unsigned int);
+        if (AT(pot, 0x4C, int) == 0 || stamp == 0 || AT(pot, 0x24, int) <= 0) continue;
+        if (stamp > now) stamp = now;                  /* a fresh seed's stamp is a second ahead */
+        AT(pot, 0x04, unsigned int) = stamp - dt;
+    }
+    AT(state, S_RESTOCK, unsigned int) -= dt;          /* the greenhouse's next 3-s check restocks if due */
+    if (AT(state, S_STARTED, unsigned int) > dt) AT(state, S_STARTED, unsigned int) -= dt;
+    update_plants(state, 0);
+}
+
 static void box_tip_text(int box) {
     if (boxes != NULL && boxes->owned(box)) sprintf_s(tip_text[TIP_BOXES + box], 64, "%s", BOX_TITLES[box]);
     else sprintf_s(tip_text[TIP_BOXES + box], 64, "%s\nPrice: $ %i", BOX_TITLES[box], BOX_PRICE);
@@ -359,6 +427,7 @@ static void set_tooltips(char *scene) {
         }
         AT(tips[i], 8, unsigned char) = (unsigned char)(upgrades_view && shown);
     }
+    if (warp_tip != NULL) AT(warp_tip, 8, unsigned char) = (unsigned char)upgrades_view;
 }
 
 static void make_tooltips(char *scene) {
@@ -374,6 +443,13 @@ static void make_tooltips(char *scene) {
         tooltip_ctor(tip, 0, 54 + i, &r, scene, tip_text[i], TOOLTIP_FONT, 0, 0);
         add_control(scene, 0, tip);
         tips[i] = tip;
+    }
+    if (warp_on && warp_tip == NULL) {
+        char *tip = (char *)game_new(0x10);
+        if (tip == NULL) return;
+        tooltip_ctor(tip, 0, 54 + TIPS, &WARP_RECT, scene, WARP_TIP, TOOLTIP_FONT, 0, 0);
+        add_control(scene, 0, tip);
+        warp_tip = tip;
     }
 }
 
@@ -411,6 +487,10 @@ static int __cdecl on_draw(char *scene) {
         draw_shadow(mgr, 0, SHEET_SHADOW, x + 0x19, y + 0x1E, 1.0f, 100);
         draw_sprite(mgr, 0, SHEET_TOOLS, i * 5 + 4, x, y, 1.0f, 100, 1);
         if (boxes->owned(i)) draw_shadow(mgr, 0, SHEET_TICK, x + 19, y + 22, 1.0f, 100);
+    }
+    if (warp_on) {
+        draw_shadow(mgr, 0, SHEET_SHADOW, WARP_X + 0x19, WARP_Y + 0x1E, 1.0f, 100);
+        draw_sprite(mgr, 0, SHEET_CHEMICALS, WARP_FRAME, WARP_X, WARP_Y, 1.0f, 100, 1);
     }
     return 1;
 }
@@ -471,6 +551,7 @@ static int __cdecl on_click(char *scene, int x, int y) {
         RECT r = box_rect(i);
         if (inside(&r, x, y)) open_box_dialog(scene, i);
     }
+    if (warp_on && inside(&WARP_RECT, x, y)) time_warp(scene);
     return 1;
 }
 
@@ -979,7 +1060,7 @@ static void site_data(ftfp_site_write *w, unsigned int va, int length, const uns
 static int prepare(void) {
     ftfp_site_write *w = writes;
     DWORD seed_file = (DWORD)(UINT_PTR)SEED_SHEET_FILE, chem_file = (DWORD)(UINT_PTR)CHEM_SHEET_FILE;
-    DWORD seed_rows = 8, chem_rows = 10;
+    DWORD seed_rows = 8, chem_rows = 11;           /* row 10: the Time Warp clock */
     DWORD link[6];
     unsigned char bound = SITE_CHEM_PICTURE_BOUND_NEW;
     link[0] = LINK_SPRITE;
@@ -1101,6 +1182,7 @@ const ftfp_upgrades_events *__stdcall FtfpUpgradesStartup(void) {
             installed = 0;
         }
         if (installed) {
+            warp_on = tw_enabled((HMODULE)&__ImageBase);
             __try {
                 prepare_shapes();
             } __except (EXCEPTION_EXECUTE_HANDLER) {

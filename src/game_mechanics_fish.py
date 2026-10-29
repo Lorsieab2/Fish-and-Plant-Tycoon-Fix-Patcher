@@ -52,6 +52,7 @@ def page() -> GamePage:
             Group("DS store animals", DS_ANIMALS,
                   note="Only with the DS Store Items setting. The store calls them \"magically enhancing\"; "
                        "these are their real effects."),
+            Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (off by default), which also turns on the store's Upgrades screen it lives on."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Plant Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
@@ -1062,8 +1063,8 @@ HIDDEN = (
         "batch per supply slot), each permanent item and ornament once, and one research at a "
         "time; asking prices change only on the species screen.",
     ),
-    Fact("The patcher adds no keys. Its additions are clicks: the store's Upgrades button and "
-         "the DS animals (with DS Store Items)."),
+    Fact("The patcher adds no keys. Its additions are clicks: the store's Upgrades button, the DS "
+         "animals (with DS Store Items) and the Time Warp clock (with Time Warp)."),
 )
 
 OTHER_GAME = (
@@ -1086,6 +1087,45 @@ OTHER_GAME = (
     Fact('Bugs (a collection): not in Fish Tycoon; the Trophy Case of magic fish is its only collection (see Goals and popups).'),
     Fact('Goals, messages and statistics: see Goals and popups.'),
     Fact("Sorting seeds: not in Fish Tycoon (the patcher's Sort Seeds button is Plant Tycoon only)."),
+)
+
+TIME_WARP = (
+    Fact(
+        "Not in the unpatched game.",
+        patched=(("time_warp", "a clock on the Supplies store's Upgrades page (next to the Exotic Fish "
+                  "Eggs). Buy opens a small Windows popup: type how many real-time hours should pass "
+                  "(1-72), then Yes/No. It costs a flat $500, whatever the hours. It is refused, with "
+                  "nothing charged, while time is stopped (Stop Time), with less than $500, or before a "
+                  "tank has been opened since the game started."),),
+    ),
+    Fact(
+        "How much game time a warp gives depends on the speed setting, because the hours are "
+        "real-time hours turned into age steps exactly as time away is:",
+        subs=(
+            "2x speed: 12 age steps per hour, so 72 hours = 864 steps.",
+            "Normal: 6 age steps per hour, so 72 hours = 432 steps.",
+            "1/2 speed: 4 age steps per hour, so 72 hours = 288 steps.",
+            "Stop Time: refused (a stopped game throws time away).",
+        ),
+        patched=(("time_warp", "live check: at Normal, a 12-hour warp aged new babies from age 4 to "
+                  "76 (72 steps); at 2x speed, a 6-hour warp did the same and finished Fish Food "
+                  "research."),),
+    ),
+    Fact(
+        "What it does: exactly what time away does, but with no catch-up cap (the stock game would "
+        "cut 7-72 real-time hours down to 7 hours' worth of age steps at Normal, see Time away).",
+        subs=(
+            "The hours go in 4-hour pieces, each followed by the game's own fish update, so every "
+            "fish in all four tanks gets every age step's health, sickness, food, pregnancy and death "
+            "checks, babies are born, magic fish can be found, and running research gains its 2 "
+            "points per step (it finishes at most one level per 4-hour piece).",
+            "A Growth fish (Oriental Goldbulb) gets one roll per step plus one per piece, fewer than "
+            "in live play, the same as a long time away.",
+            "Not affected: selling and customers (nothing sells during a warp), the autosave, and "
+            "the Real Hours Played statistic.",
+            "Fish can starve or die along the way, as they would while you were away.",
+        ),
+    ),
 )
 
 INDEX = (

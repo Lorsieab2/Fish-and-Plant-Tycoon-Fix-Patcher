@@ -22,13 +22,21 @@
     "new_flowers,no_old_age_plant_deaths,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "new_flowers,plant_upgrades,seed_refresh_key": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "new_flowers,plant_upgrades,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "new_flowers,plant_upgrades,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "new_flowers,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "no_old_age_plant_deaths,seed_refresh_key,sort_seeds": "6B28F2029C6D1799163EAC13FD4B557DCB0AFC49654F0375295D1F4025B19CA8",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "new_flowers,no_old_age_plant_deaths,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
-    "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418"
+    "new_flowers,plant_upgrades,seed_refresh_key,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "new_flowers,plant_upgrades,sort_seeds,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418"
   },
   "target": {
     "exe_name": "Plant Tycoon.exe",
@@ -1713,8 +1721,8 @@
           {
             "path": "Store Upgrades and Items.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Store Upgrades and Items.dll",
-            "size": 133632,
-            "sha256": "F059B55E2A2D6A9B30D989318FB56C3EFCABE8856110D35452681A9530B814C1"
+            "size": 146432,
+            "sha256": "A6E912EF20AE9D04FAA9C8D789EF19EF4FCC72A37A150F8121D397DD9F9F2908"
           },
           {
             "path": "Extra Seed Boxes.dll",
@@ -1725,8 +1733,8 @@
           {
             "path": "Images/Chemicals_Grid_upgrades.png",
             "destination": "Images/Chemicals_Grid_upgrades.png",
-            "size": 50793,
-            "sha256": "A00DAA7620EB7559CDA4E9AF033AC817C9EEB06A91B23346CB00D2ACE1711758"
+            "size": 58091,
+            "sha256": "5803245044B119ED5862F60C43C02E5B894F1E6312D8CB35719C8992BC709545"
           },
           {
             "path": "Images/seed_grid_legendary.png",
@@ -1765,6 +1773,28 @@
             "destination": "Images/sort_seeds_button.png",
             "size": 2873,
             "sha256": "DF57E04B182D77E51397260A827EDA37B66B66D15084BFB159BF59E6EF3BDE47"
+          }
+        ]
+      }
+    },
+    {
+      "id": "time_warp",
+      "name": "Time Warp",
+      "summary": "Adds a Time Warp item to the store's Upgrades screen: $500 to skip 1-72 hours, as if you had been away.",
+      "description": "Adds a Time Warp item (a clock) to the Supplies store's Upgrades view (Add new store upgrades and items), which this setting turns on. Clicking it asks, in a small Windows popup, how many hours should pass (1 to 72), then asks Yes/No and charges a flat $500. Then every plant ages with every check (water, health, pests, seeds ripening, old age), and the seed shop restocks if it is due, exactly as if you had been away that many real-life hours, with no catch-up cap. Plants or fish can starve, dry out or die along the way, as they would while you were away. Refused while time is stopped. Saves keep their layout.",
+      "category": "main",
+      "default": false,
+      "requires_settings": [
+        "plant_upgrades"
+      ],
+      "companion": {
+        "source": "assets/time_warp",
+        "files": [
+          {
+            "path": "Time Warp.ini",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Time Warp.ini",
+            "size": 206,
+            "sha256": "6B450432FCF5F35CDCBEFA3A5A60F470C7546E6C4F9B061CAD07D5112FFA146D"
           }
         ]
       }

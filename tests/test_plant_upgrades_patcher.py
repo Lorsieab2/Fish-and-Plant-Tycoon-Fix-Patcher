@@ -56,7 +56,7 @@ class ManifestTests(unittest.TestCase):
     def test_every_combination_is_pinned_as_the_same_one_without_them(self) -> None:
         # It writes no executable bytes: the flowers' DLL loads the Upgrades DLL, which loads the boxes'.
         pins = self.manifest["patched_sha256_by_settings"]
-        added = [key for key in pins if "plant_upgrades" in key.split(",")]
+        added = [key for key in pins if "plant_upgrades" in key.split(",") and "time_warp" not in key.split(",")]
         self.assertEqual(len(added), 8)          # with and without Sort Seeds and the R key
         for key in added:
             enabled = set(key.split(","))
@@ -91,7 +91,7 @@ class ManifestTests(unittest.TestCase):
             data = path.read_bytes()
             lowered = data.lower()
             self.assertIn(b"kernel32.dll", lowered)
-            for other in (b"user32.dll", b"msvcr", b"vcruntime"):
+            for other in (b"msvcr", b"vcruntime"):   # user32: Time Warp's popups
                 self.assertNotIn(other, lowered, other)
             self.assertIn(export, data)
 
@@ -173,7 +173,7 @@ class CommittedDllTests(unittest.TestCase):
                 f"/LIBPATH:{SDK / 'Lib' / SDK_VERSION / 'um' / 'x86'}",
                 f"/LIBPATH:{SDK / 'Lib' / SDK_VERSION / 'ucrt' / 'x86'}",
                 f"/IMPLIB:{out / f'{name}.lib'}", f"/OUT:{out / 'rebuilt.dll'}",
-                "/RELEASE", "/SAFESEH:NO", "kernel32.lib",
+                "/RELEASE", "/SAFESEH:NO", "kernel32.lib", "user32.lib",
             ]
             result = subprocess.run(command, cwd=out, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

@@ -45,7 +45,7 @@ class ManifestTests(unittest.TestCase):
     def test_every_combination_is_pinned_as_the_same_one_without_it(self) -> None:
         # The store writes no executable bytes: DS Fish's DLL loads its DLL.
         pins = self.manifest["patched_sha256_by_settings"]
-        with_store = [key for key in pins if SETTING in key.split(",")]
+        with_store = [key for key in pins if SETTING in key.split(",") and "time_warp" not in key.split(",")]
         self.assertEqual(len(with_store), 64)
         for key in with_store:
             enabled = set(key.split(","))
@@ -57,7 +57,7 @@ class ManifestTests(unittest.TestCase):
         self.assertFalse(companion.get("startup_loader", False))
         destinations = {f["destination"] for f in companion["files"]}
         self.assertIn(f"{ds_fish_loader.PATCHER_FILES_FOLDER}/DS Store Items.dll", destinations)
-        self.assertEqual(len([d for d in destinations if d.startswith("Images/")]), 13)
+        self.assertEqual(len([d for d in destinations if d.startswith("Images/")]), 14)
         self.assertIn("Images/DS_PUFFER_PUFF_Grid.png", destinations)
         self.assertIn("Images/SuppliesUpgradesButton.png", destinations)
         for entry in companion["files"]:
@@ -69,7 +69,7 @@ class ManifestTests(unittest.TestCase):
         data = (STORE / "DS Store Items.dll").read_bytes()
         lowered = data.lower()
         self.assertIn(b"kernel32.dll", lowered)
-        for other in (b"user32.dll", b"msvcr", b"vcruntime"):
+        for other in (b"msvcr", b"vcruntime"):   # user32: Time Warp's popups
             self.assertNotIn(other, lowered, other)
         self.assertIn(b"FtfpStoreStartup", data)
 
@@ -150,7 +150,7 @@ class CommittedDllTests(unittest.TestCase):
                 f"/LIBPATH:{SDK / 'Lib' / SDK_VERSION / 'um' / 'x86'}",
                 f"/LIBPATH:{SDK / 'Lib' / SDK_VERSION / 'ucrt' / 'x86'}",
                 f"/IMPLIB:{out / 'ftfp_ds_store.lib'}", f"/OUT:{out / 'rebuilt.dll'}",
-                "/RELEASE", "/SAFESEH:NO", "kernel32.lib",
+                "/RELEASE", "/SAFESEH:NO", "kernel32.lib", "user32.lib",
             ]
             result = subprocess.run(command, cwd=out, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

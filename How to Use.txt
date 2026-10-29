@@ -66,6 +66,8 @@ Fish Tycoon options:
   Moray Eel and Exotic Fish Eggs. The animals never take a fish's place.
   Trash the animals and let the eel out of
   its rock before turning it off again.)
+- Time Warp (off by default; a $500 clock on the store's Upgrades screen:
+  type 1-72 hours in a Windows popup and the game plays them as time away)
 
 Plant Tycoon options:
 - No old-age plant deaths
@@ -82,6 +84,8 @@ Plant Tycoon options:
 - Sort Seeds button (off by default; a "Sort Seeds" button on the Seed
   Storage title bar. Asks Yes/No, then sorts every seed by the plant it grows
   and its parents into your unlocked seed boxes, first box first.)
+- Time Warp (off by default; a $500 clock on the store's Upgrades screen:
+  type 1-72 hours in a Windows popup and the game plays them as time away)
 
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.
