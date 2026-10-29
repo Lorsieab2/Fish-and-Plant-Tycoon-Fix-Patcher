@@ -101,6 +101,11 @@ never needs the internet.
 
 ### Plant Tycoon
 
+- Fix Vanilla Bugs (on by default): a new game no longer starts with every
+  plant at the Flower of Knowledge (Nox Orchid) price when the save open
+  before it had found the Nox Orchid (the game had priced the new game before
+  forgetting the old one's magic plants). Saves already priced that way keep
+  their prices.
 - No old-age plant deaths. The original age check and `Random(1000)` call remain;
   the eligible death range is empty.
 - R refreshes the seed shop (on by default). Pressing R (or r) in the Supplies

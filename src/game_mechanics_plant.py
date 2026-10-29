@@ -435,6 +435,23 @@ PRICES = (
         f"{at_most(100, 50)}, otherwise V plus d, with d = Random(V/2).",
     ),
     Fact(
+        "Except after a save that has found the Flower of Knowledge: then a new game prices "
+        "every species at V + 3 x (V/4 rounded down), the Flower of Knowledge price, though the "
+        "new game has not found it. The new game (0x41EF30) prices every species (0x41DBD0, "
+        "called at 0x41EFB8) before it clears the magic plant flags (0x41F170), so the price "
+        "setup reads the Flower of Knowledge flag of the save that was loaded before it. The game "
+        "loads your last save when it starts, so starting a new slot right after opening the game "
+        "is enough.",
+        label="E",
+        patched=(("fix_vanilla_bugs", "the new game clears the magic plant flags (the same seven bytes, "
+                  "0x2180-0x2186) just before its price setup (0x41EFB8 calls 0x464950, which clears them "
+                  "and goes on to 0x41DBD0), so a new game always gets the normal prices. Finding the "
+                  "Flower of Knowledge still raises them. Saves already priced this way keep their "
+                  "prices."),
+                 ("new_flowers", "the 322 new species are priced the same way: the Flower of Knowledge "
+                  "price at a new game in the stock game, the normal prices with Fix Vanilla Bugs.")),
+    ),
+    Fact(
         "Discovering the Flower of Knowledge resets every asking price to V + 3 x (V/4 rounded "
         "down), once, "
         "overwriting prices you set.",
@@ -606,8 +623,9 @@ MAGIC = (
             "Effect: when it is found, every species' asking price is set once to V + 3 x (V/4 "
             "rounded down), overwriting prices you set. Its message says \"from now on\", but it "
             "is a one-time change: later prices you set stay.",
-            "A Start Over from a game that has it begins the new game with those raised prices "
-            "(code order, not tried live).",
+            "A new game started after a save that has it was loaded (the game loads your last save "
+            "when it starts) begins with those raised prices, though the new game has not found it "
+            "(see Prices). Fix Vanilla Bugs stops this.",
         ),
     ),
     Fact(
