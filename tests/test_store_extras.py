@@ -160,6 +160,7 @@ def plant_font() -> set[str]:
 # ------------------------------------------------------------------ Fish Tycoon
 
 S_MONEY, S_SPENT, S_EGG_COUNT = 0x38C, 0x24, 0x314
+ANIMAL_RECORD = 0x390 + 26 * 0x288          # Tank 1's first animal slot
 FISH_CELLS = {"puffer": (80, 110), "ray": (180, 130), "eel": (270, 130),"eggs": (350, 130), "warp": (450, 130), "money": (540, 130)}
 
 
@@ -322,6 +323,69 @@ class FishStoreTests(unittest.TestCase):
         self.assertLessEqual({"Add $1,000", "Plus 1.000 $", "Time Warp", "Zeitsprung", "Price:  $0"}, drawn)
         for text in drawn:
             self.assertLessEqual(set(text), allowed, text)
+
+    # --- the store animals' meters: full when bought, filled when a save loads
+    def buy_animal(self, item: str):
+        emu = self.store(5000, free=False)
+        emu.hook(0x004160A0, lambda e: e.alloc(0x100), 0)                      # the sprite helper
+        emu.hook(0x00415390, emu.record("sprites"), 12)
+        emu.hook(0x004032C0, lambda e: 1234, 0)                                # the state's clock
+        emu.hook(0x00419C00, emu.record("rock", args=2), 8)                    # the eel's rock, added
+        self.buy(emu, item)
+        return emu
+
+    def test_bought_animals_have_full_health_and_food(self) -> None:
+        for item, fin in (("puffer", 30), ("ray", 31), ("eel", 32)):
+            emu = self.buy_animal(item)
+            rec = emu.state + ANIMAL_RECORD
+            self.assertEqual((emu.read32(rec + 0x4C), emu.read32(rec + 0x50)), (22, fin), item)
+            self.assertEqual((emu.read32(rec + 0x3C), emu.read32(rec + 0x44)), (100, 100), item)
+            self.assertEqual(self.money(emu), 5000 - 1250, item)
+
+    def load_save(self, body: bytes) -> bytes:
+        """The DLL's Load (the vtable slot at 0x4424D0): the game's own load, then the animals."""
+        emu = E.Emulator(FISH_EXE, self.dll, self.symbols)
+        emu.hook_fish_save_read(body)
+        state = emu.alloc(0x1E3C8 + 0x1000)
+        self.assertEqual(emu.call(emu.sym("@on_state_load@12"), 1, ecx=state) & 0xFF, 1)
+        return bytes(emu.uc.mem_read(state, 0x1E3C8 + 8))
+
+    @staticmethod
+    def put(body: bytearray, tank: int, slot: int, fin: int, health: int, food: int, kind: int = 22) -> int:
+        """A live record in a save's body (the state from +8); animals carry the "FTCA" mark."""
+        at = 0x390 + tank * 0x51EC + slot * 0x288 - 8
+        struct.pack_into("<I", body, at, 99)
+        mark = (struct.unpack("<I", b"FTCA")[0], fin) if kind == 22 else (0, 0)
+        struct.pack_into("<II", body, at + 0x14, *mark)
+        struct.pack_into("<i", body, at + 0x3C, health)
+        struct.pack_into("<i", body, at + 0x40, 0)
+        struct.pack_into("<i", body, at + 0x44, food)
+        struct.pack_into("<ii", body, at + 0x4C, kind, fin)
+        return at
+
+    def test_loading_a_save_fills_the_animals_and_nothing_else(self) -> None:
+        body = bytearray(0x1E3C8)
+        for i in range(0, 0x390 - 8):                               # the state's other fields: a pattern
+            body[i] = (i * 7 + 3) & 0xFF
+        filled = [self.put(body, 0, 26, 30, 50, 20),                # a half-fed Puffer Fish
+                  self.put(body, 1, 27, 31, 60, 100)]               # a Sting Ray
+        self.put(body, 2, 28, 22, 40, 10)                           # the Golden Seahorse: Fix Vanilla Bugs' job
+        self.put(body, 0, 4, 4, 40, 20, kind=3)                     # a fish
+        rock = 0x5208 + 2 * 0x51EC + 0x2C - 8                       # the selling tank's second ornament
+        body[rock:rock + 4] = bytes([1, 70, 30, 0xE1])              # the eel at home: health 70, food 30
+        struct.pack_into("<i", body, rock + 0x24, 229)
+        state = self.load_save(bytes(body))
+        expected = bytearray(body)
+        for at in filled:
+            struct.pack_into("<i", expected, at + 0x3C, 100)
+            struct.pack_into("<i", expected, at + 0x44, 100)
+        expected[rock + 1:rock + 3] = bytes([100, 100])
+        self.assertEqual(state[8:], bytes(expected))
+
+    def test_loading_a_save_with_full_animals_changes_nothing(self) -> None:
+        body = bytearray(0x1E3C8)
+        self.put(body, 0, 26, 32, 100, 100)
+        self.assertEqual(self.load_save(bytes(body))[8:], bytes(body))
 
     # --- Time Warp's "done" message
     def warp(self, money: int, free: bool, hours: int = 12, speed: int = 10, answer_yes: bool = True):

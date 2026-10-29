@@ -84,7 +84,7 @@ def pe_image(data: bytes) -> tuple[int, int, list[tuple[int, int, int]], int]:
 
 
 class Emulator:
-    def __init__(self, exe: Path, dll: Path, symbols: dict[str, int]) -> None:
+    def __init__(self, exe: Path, dll: Path | None, symbols: dict[str, int]) -> None:
         self.uc = Uc(UC_ARCH_X86, UC_MODE_32)
         self.symbols = symbols
         self.hooks: dict[int, tuple[Callable[["Emulator"], int], int]] = {}
@@ -96,7 +96,7 @@ class Emulator:
         self.uc.mem_map(THUNKS, THUNK_SIZE)
         self.uc.mem_write(THUNKS, b"\xC3" * THUNK_SIZE)
         self._map(exe.read_bytes())
-        self.imports = self._map(dll.read_bytes(), resolve=True)
+        self.imports = self._map(dll.read_bytes(), resolve=True) if dll is not None else {}
         self.uc.hook_add(UC_HOOK_CODE, self._on_code)
         self.hook_import("VirtualQuery", Emulator._virtual_query, 12)
 
@@ -236,6 +236,22 @@ class Emulator:
         self.uc.reg_write(X.UC_X86_REG_ESP, STACK + STACK_SIZE - 0x1000)
         self.uc.reg_write(X.UC_X86_REG_ESI, esi)
         self.uc.emu_start(start, stop, count=100_000)
+
+    # ---------------------------------------------------------- Fish Tycoon's save load
+    def hook_fish_save_read(self, body: bytes) -> None:
+        """Fish Tycoon's Load (0x41AE70) reads `body` (a save file without its 0x18-byte header):
+        the file read 0x403350 (thiscall buffer, size, slot) and the CRT memcpy 0x42CB10."""
+        def read(emu: "Emulator") -> int:
+            buffer, size = emu.arg(0), emu.arg(1)
+            emu.uc.mem_write(buffer, bytes(body[:size]))
+            return 1
+
+        def memcpy(emu: "Emulator") -> int:
+            target, source, size = emu.arg(0), emu.arg(1), emu.arg(2)
+            emu.uc.mem_write(target, bytes(emu.uc.mem_read(source, size)))
+            return target
+        self.hook(0x00403350, read, 12)
+        self.hook(0x0042CB10, memcpy, 0)
 
     # ---------------------------------------------------------- the CRT's printf
     def hook_printf(self) -> None:
