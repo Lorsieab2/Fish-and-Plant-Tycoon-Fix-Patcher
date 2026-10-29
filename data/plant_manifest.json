@@ -17,6 +17,8 @@
     "no_old_age_plant_deaths,seed_refresh_key": "CC4144431DE20CD1F8660F66713DAF913BFA90E2CB3BB716B0059FBA97DF3F9C",
     "no_old_age_plant_deaths,sort_seeds": "A5F03C0E921FB010444FB3B5019BE7F03FB843F25538FF78703B68FEBDA1CA76",
     "seed_refresh_key,sort_seeds": "39766F72A9029722555AD1A59467712B5EADABC16B633AA238DD63987D2FF837",
+    "add_money,new_flowers,plant_upgrades": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "free_upgrades,new_flowers,plant_upgrades": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "new_flowers,no_old_age_plant_deaths,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "new_flowers,no_old_age_plant_deaths,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
@@ -25,6 +27,15 @@
     "new_flowers,plant_upgrades,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "new_flowers,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "no_old_age_plant_deaths,seed_refresh_key,sort_seeds": "6B28F2029C6D1799163EAC13FD4B557DCB0AFC49654F0375295D1F4025B19CA8",
+    "add_money,free_upgrades,new_flowers,plant_upgrades": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "add_money,new_flowers,plant_upgrades,seed_refresh_key": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "add_money,new_flowers,plant_upgrades,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "add_money,new_flowers,plant_upgrades,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "free_upgrades,new_flowers,plant_upgrades,seed_refresh_key": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "free_upgrades,new_flowers,plant_upgrades,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "free_upgrades,new_flowers,plant_upgrades,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
@@ -32,11 +43,48 @@
     "new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "new_flowers,plant_upgrades,seed_refresh_key,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
     "new_flowers,plant_upgrades,sort_seeds,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "add_money,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "add_money,free_upgrades,new_flowers,plant_upgrades,sort_seeds": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "add_money,free_upgrades,new_flowers,plant_upgrades,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "add_money,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "add_money,new_flowers,plant_upgrades,seed_refresh_key,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "add_money,new_flowers,plant_upgrades,sort_seeds,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "free_upgrades,new_flowers,plant_upgrades,sort_seeds,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
     "new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
     "new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
-    "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418"
+    "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "add_money,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "add_money,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "add_money,free_upgrades,new_flowers,plant_upgrades,sort_seeds,time_warp": "4E2E8A332B20D276DCEF27EA96843BEE96870E7EC9DDE169C45AAFA9C550ECAA",
+    "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "add_money,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,sort_seeds,time_warp": "92776C2E53513AC83762C0DE4826B8B18B4B8158350EB2413234EC3187D0DE41",
+    "add_money,free_upgrades,new_flowers,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "F899DAA58432AD01EC4C41200B802D93CF8931C57B7ECEF7A30720DD8C369D16",
+    "add_money,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418",
+    "add_money,free_upgrades,new_flowers,no_old_age_plant_deaths,plant_upgrades,seed_refresh_key,sort_seeds,time_warp": "7764E2BB5D1776FF33F2B9ABF91C0530A6E8DB57DF91165FF6CB9DBC922D6418"
   },
   "target": {
     "exe_name": "Plant Tycoon.exe",
@@ -1721,8 +1769,8 @@
           {
             "path": "Store Upgrades and Items.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Store Upgrades and Items.dll",
-            "size": 146432,
-            "sha256": "A6E912EF20AE9D04FAA9C8D789EF19EF4FCC72A37A150F8121D397DD9F9F2908"
+            "size": 146944,
+            "sha256": "8A7A24AD25DB02F41D487BD190CE99C2929FB883642F06624B03840A4EA0E3B4"
           },
           {
             "path": "Extra Seed Boxes.dll",
@@ -1733,8 +1781,8 @@
           {
             "path": "Images/Chemicals_Grid_upgrades.png",
             "destination": "Images/Chemicals_Grid_upgrades.png",
-            "size": 58091,
-            "sha256": "5803245044B119ED5862F60C43C02E5B894F1E6312D8CB35719C8992BC709545"
+            "size": 65720,
+            "sha256": "6267CBD2FA217DB0A52EBCE9C1223671A1C5F38DE0CCC9C92757E293E3D4CA88"
           },
           {
             "path": "Images/seed_grid_legendary.png",
@@ -1795,6 +1843,50 @@
             "destination": "Plant Tycoon Fix Patcher DLLs/Time Warp.ini",
             "size": 206,
             "sha256": "6B450432FCF5F35CDCBEFA3A5A60F470C7546E6C4F9B061CAD07D5112FFA146D"
+          }
+        ]
+      }
+    },
+    {
+      "id": "free_upgrades",
+      "name": "Free upgrades",
+      "summary": "Every item on the store's Upgrades screen costs $0.",
+      "description": "Every item on the Supplies store's Upgrades view (Add new store upgrades and items), which this setting turns on, costs $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the Fourth, Fifth and Sixth Seed Box ($1000 each), and the Time Warp clock ($500) and Add Money ($950) when those settings are on. The price shown says $0 and no money is taken. Everything else stays: Legendary Seeds are still three a day and need room in the seed tray, the formula needs room in the chemical tray, and the seed boxes are still bought in order, once each. The game's own store items keep their prices. Saves keep their layout.",
+      "category": "main",
+      "default": false,
+      "requires_settings": [
+        "plant_upgrades"
+      ],
+      "companion": {
+        "source": "assets/free_upgrades",
+        "files": [
+          {
+            "path": "Free Upgrades.ini",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Free Upgrades.ini",
+            "size": 180,
+            "sha256": "C0BC2D28CF9CB1187451A0D44A4546901917A222C689E208F5A071CCDE5FC3D8"
+          }
+        ]
+      }
+    },
+    {
+      "id": "add_money",
+      "name": "Add Money cheat ($1,000)",
+      "summary": "Adds a +$1,000 item to the store's Upgrades screen: pay $950, get $1,000, as often as you like.",
+      "description": "Adds a pile of gold coins, +$1,000, on the Nursery shelf next to the Time Warp clock on the Supplies store's Upgrades view (Add new store upgrades and items), which this setting turns on. It costs $950 ($0 with Free upgrades), is bought like the other items there (the price is shown, you need the money, and you confirm), and then adds $1,000 to your money: $50 more each time, or $1,000 with Free upgrades. It can be bought any number of times. Money never goes past the game's own maximum. Saves keep their layout.",
+      "category": "main",
+      "default": false,
+      "requires_settings": [
+        "plant_upgrades"
+      ],
+      "companion": {
+        "source": "assets/money_cheat",
+        "files": [
+          {
+            "path": "Add Money.ini",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Add Money.ini",
+            "size": 189,
+            "sha256": "2F9CF1A30EA5A4E1772393824970C6083335C8D052C9AB109034507B97D4F078"
           }
         ]
       }

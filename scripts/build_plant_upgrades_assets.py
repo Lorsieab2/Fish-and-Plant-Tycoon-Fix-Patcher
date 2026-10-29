@@ -14,7 +14,8 @@ Writes, under assets/plant_tycoon_upgrades/Images:
   70 x 70: each chemical upright, then pouring) with a 10th row for the
   Radioactive Plant Formula (chemical id 36): the Mutation Liquid bottle (row
   7) made prismatic on its coloured parts only, so the white bottle stays
-  white (the owner's pick). The DLL points the chemical sheet record at it.
+  white (the owner's pick), an 11th with the Time Warp clock and a 12th with
+  Add Money's gold coins. The DLL points the chemical sheet record at it.
 * upgrades_link.png: the store's "Upgrades" link, two frames side by side
   (normal white, hover yellow), set from the game's own font (PTfontsmall.png
   and its glyph table in the executable) and drawn at 80% of the shelf-sign
@@ -30,6 +31,8 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+
+import build_money_cheat_assets
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "plant_tycoon_upgrades" / "Images"
@@ -88,7 +91,7 @@ def formula_bottle(images: Path) -> Image.Image:
     stock = Image.open(images / "Chemicals_Grid.png").convert("RGBA")
     if stock.size != (2 * CHEM_CELL, CHEM_ROWS * CHEM_CELL):
         raise SystemExit(f"Chemicals_Grid.png is {stock.size}, expected the stock 140 x 630")
-    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 2) * CHEM_CELL))
+    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 3) * CHEM_CELL))
     sheet.paste(stock, (0, 0))
     for column in (0, 1):
         box = (column * CHEM_CELL, MUTATION_ROW * CHEM_CELL, (column + 1) * CHEM_CELL, (MUTATION_ROW + 1) * CHEM_CELL)
@@ -99,6 +102,11 @@ def formula_bottle(images: Path) -> Image.Image:
     for column in (0, 1):
         at = (column * CHEM_CELL + (CHEM_CELL - clock.width) // 2, (CHEM_ROWS + 1) * CHEM_CELL + (CHEM_CELL - clock.height) // 2)
         sheet.alpha_composite(clock, at)
+    # Row 11 (frames 22 and 23): Add Money, the owner's pile of gold coins, in the clock's 64 px box.
+    pile = build_money_cheat_assets.coins(build_money_cheat_assets.PLANT_ICON_BOX)
+    for column in (0, 1):
+        at = (column * CHEM_CELL + (CHEM_CELL - pile.width) // 2, (CHEM_ROWS + 2) * CHEM_CELL + (CHEM_CELL - pile.height) // 2)
+        sheet.alpha_composite(pile, at)
     return sheet
 
 

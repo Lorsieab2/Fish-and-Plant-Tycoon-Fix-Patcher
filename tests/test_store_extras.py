@@ -1,0 +1,421 @@
+"""Free upgrades and the Add Money cheat ($1,000), both games.
+
+Both settings live on the store's Upgrades screen (DS Store Items in Fish
+Tycoon, Add new store upgrades and items in Plant Tycoon), which they turn on,
+as Time Warp does; each ships one ".ini" file beside the store DLL. The
+emulation tests run the store DLL's own code against the vanilla executable
+in Unicorn (tests/store_emulator.py): prices, purchases, the money cap.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import struct
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "tests"))
+
+import fish_patcher  # noqa: E402
+import tycoon_fix_patcher as combined  # noqa: E402
+
+try:
+    import store_emulator as E
+except ImportError:          # Unicorn is not installed
+    E = None
+
+NEW = ("free_upgrades", "add_money")
+SCREEN = {"fish": "ds_store", "plant": "plant_upgrades"}
+FISH_EXE = (E.VANILLA / "Fish Tycoon" / "Fish Tycoon.exe") if E else None
+PLANT_EXE = (E.VANILLA / "Plant Tycoon" / "Plant Tycoon.exe") if E else None
+
+
+class ManifestTests(unittest.TestCase):
+    def test_off_by_default_and_need_the_upgrades_screen(self) -> None:
+        for game, screen in SCREEN.items():
+            settings = combined.patch_settings(game)
+            for setting_id in NEW:
+                setting = settings[setting_id]
+                self.assertFalse(setting["default"], (game, setting_id))
+                self.assertEqual(setting["requires_settings"], [screen], (game, setting_id))
+                self.assertIn("which this setting turns on", setting["description"])
+            self.assertEqual(settings["add_money"]["name"], "Add Money cheat ($1,000)")
+            self.assertEqual(settings["free_upgrades"]["name"], "Free upgrades")
+            for text in ("$950", "+$1,000", "$0 with Free upgrades", "maximum"):
+                self.assertIn(text, settings["add_money"]["description"] + settings["add_money"]["summary"])
+
+    def test_needs_its_screen_from_the_command_line(self) -> None:
+        for game, screen in SCREEN.items():
+            manifest = combined.load_manifest(game)
+            for setting_id in NEW:
+                with self.assertRaisesRegex(fish_patcher.PatchError, "needs"):
+                    fish_patcher.check_setting_requirements(manifest, {setting_id})
+
+    def test_each_ships_only_its_ini_beside_the_store_dll(self) -> None:
+        folders = {"fish": "Fish Tycoon Fix Patcher DLLs", "plant": "Plant Tycoon Fix Patcher DLLs"}
+        files = {"free_upgrades": "Free Upgrades.ini", "add_money": "Add Money.ini"}
+        for game in SCREEN:
+            settings = combined.patch_settings(game)
+            for setting_id, name in files.items():
+                companion = settings[setting_id]["companion"]
+                self.assertEqual([f["destination"] for f in companion["files"]], [f"{folders[game]}/{name}"])
+                for entry in companion["files"]:
+                    data = (ROOT / companion["source"] / entry["path"]).read_bytes()
+                    self.assertEqual(len(data), entry["size"])
+                    self.assertEqual(hashlib.sha256(data).hexdigest().upper(), entry["sha256"])
+
+    def test_every_combination_is_pinned_as_the_same_one_without_them(self) -> None:
+        # Neither writes executable bytes: each pin equals the pin without them.
+        for game, screen in SCREEN.items():
+            pins = combined.load_manifest(game)["patched_sha256_by_settings"]
+            with_new = [k for k in pins if set(NEW) & set(k.split(","))]
+            self.assertTrue(with_new)
+            bases = [k for k in pins if screen in k.split(",") and not set(NEW) & set(k.split(","))]
+            self.assertEqual(len(with_new), 3 * len(bases), game)
+            for key in with_new:
+                enabled = set(key.split(","))
+                self.assertIn(screen, enabled)
+                self.assertEqual(pins[key], pins[",".join(sorted(enabled - set(NEW)))], key)
+
+    def test_the_coins_are_pinned_with_the_upgrades_art(self) -> None:
+        store = combined.patch_settings("fish")["ds_store"]["companion"]
+        self.assertIn("Images/ITEM_ADD_MONEY.png", {f["destination"] for f in store["files"]})
+        def png_size(path: Path) -> tuple[int, int]:
+            data = path.read_bytes()
+            self.assertEqual(data[12:16], b"IHDR")
+            return struct.unpack(">II", data[16:24])
+        icon = ROOT / "assets" / "fish_tycoon_ds_store" / "Images" / "ITEM_ADD_MONEY.png"
+        self.assertEqual(png_size(icon), (74, 60))     # the DLL's icon_w / icon_h for the item
+        sheet = ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png"
+        self.assertEqual(png_size(sheet), (140, 12 * 70))   # row 11: the coins (chem_rows = 12 in the DLL)
+        self.assertEqual(png_size(ROOT / "assets" / "money_cheat" / "coins_source.png"), (195, 159))
+
+
+def _needs(exe):
+    ready = E is not None and E.toolchain_ready() and exe is not None and exe.is_file()
+    return unittest.skipUnless(ready, "needs Unicorn, the pinned MSVC toolset and the vanilla executable")
+
+
+# ------------------------------------------------------------------ Fish Tycoon
+
+S_MONEY, S_SPENT, S_EGG_COUNT = 0x38C, 0x24, 0x314
+FISH_CELLS = {"puffer": (80, 110), "ray": (180, 130), "eel": (270, 130),"eggs": (350, 130), "warp": (450, 130), "money": (540, 130)}
+
+
+@_needs(FISH_EXE)
+class FishStoreTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.dll, cls.symbols = E.build_with_map(
+            "ftfp_ds_store", ROOT / "assets" / "fish_tycoon_ds_store" / "DS Store Items.dll", Path(cls.tmp.name))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.tmp.cleanup()
+
+    def store(self, money: int, free: bool, add_money: bool = True, warp: bool = True, answer_yes: bool = True):
+        emu = E.Emulator(FISH_EXE, self.dll, self.symbols)
+        emu.hook_printf()
+        for name, pop in (("MessageBoxW", 16), ("GetActiveWindow", 0), ("GetForegroundWindow", 0),
+                          ("GetModuleHandleW", 4), ("GetTickCount", 0)):
+            emu.hook_import(name, emu.record(name, 6 if name == "MessageBoxW" else 0, args=4), pop)
+        emu.hook(0x00417FA0, emu.record("hint", args=1), 4)                       # HINT
+        emu.hook(0x004221A0, emu.record("dialog", args=1), 8)                     # DIALOG_INIT(string id, 1)
+        emu.hook(0x00401D00, emu.record("run", 0 if answer_yes else 1), 8)        # DIALOG_RUN: 0 = Yes
+        emu.hook(0x00422440, emu.record("free"), 0)
+        emu.hook(0x00425120, emu.record("sounds"), 0)
+        emu.hook(0x004251A0, emu.record("sound"), 4)                              # no sound object: none played
+        table, price = emu.alloc(16), emu.text("Price:")
+        emu.hook(0x00427060, lambda e: table, 0)
+        emu.hook(0x00427050, lambda e: price, 4)
+        emu.hook(0x0041BE70, lambda e: 1, 4)                                       # SPRITE_GET
+        emu.hook(0x00408A40, emu.record("draw"), 12)
+        emu.hook(0x00408AE0, emu.record("draw"), 24)
+        emu.hook(0x00408B80, lambda e: (e.calls.append(("text", e.cstring(e.arg(0)).decode("latin-1"))), 0)[1], 20)
+        state, impl, scene = emu.alloc(0x40000), emu.alloc(0x100), emu.alloc(0x100)
+        emu.write32(scene + 8, impl)
+        emu.write32(impl + 0x10, state)
+        emu.write32(impl + 0x0C, emu.alloc(0x40))
+        emu.write32(state + S_MONEY, money)
+        for name, on in (("_free_on", free), ("_money_on", add_money), ("_warp_on", warp), ("_page_upgrades", 1)):
+            emu.write32(emu.sym(name), int(on))
+        emu.state, emu.scene = state, scene
+        return emu
+
+    def select(self, emu, item: str) -> None:
+        x, y = FISH_CELLS[item]
+        emu.call(emu.sym("@on_mouse@20"), 3, x, y, ecx=emu.scene)
+
+    def buy(self, emu, item: str) -> None:
+        self.select(emu, item)
+        emu.call(emu.sym("_buy"), emu.scene)
+
+    def money(self, emu) -> int:
+        return emu.read32(emu.state + S_MONEY, signed=True)
+
+    def shown_price(self, emu, item: str) -> str:
+        self.select(emu, item)
+        emu.call(emu.sym("@on_overlay@8"), ecx=emu.scene)
+        return [c[1] for c in emu.calls if c[0] == "text" and c[1].startswith("Price:")][-1]
+
+    def test_every_item_shows_its_price_or_zero(self) -> None:
+        for item, normal in (("puffer", 1250), ("eggs", 2300), ("warp", 500), ("money", 950)):
+            self.assertEqual(self.shown_price(self.store(0, free=False), item), f"Price:  ${normal}")
+            self.assertEqual(self.shown_price(self.store(0, free=True), item), "Price:  $0")
+        for animal in ("ray", "eel"):
+            self.assertEqual(self.shown_price(self.store(0, free=False), animal), "Price:  $1250")
+            self.assertEqual(self.shown_price(self.store(0, free=True), animal), "Price:  $0")
+
+    def test_eggs_bought_free_take_no_money_and_still_fill_the_slot(self) -> None:
+        emu = self.store(0, free=True)
+        self.buy(emu, "eggs")
+        self.assertEqual(self.money(emu), 0)
+        self.assertEqual(emu.read32(emu.state + S_SPENT), 0)
+        self.assertEqual(emu.read32(emu.state + S_EGG_COUNT), 3)
+        emu = self.store(2300, free=False)
+        self.buy(emu, "eggs")
+        self.assertEqual(self.money(emu), 0)
+        self.assertEqual(emu.read32(emu.state + S_SPENT), 2300)
+        self.assertEqual(emu.read32(emu.state + S_EGG_COUNT), 3)
+
+    def test_animals_are_affordable_free_and_still_confirmed(self) -> None:
+        emu = self.store(0, free=False)
+        self.buy(emu, "puffer")
+        self.assertIn(("hint", (2,)), emu.calls)                   # "You can't afford to buy this yet!"
+        emu = self.store(0, free=True, answer_yes=False)
+        self.buy(emu, "puffer")
+        self.assertNotIn(("hint", (2,)), emu.calls)
+        self.assertIn(("dialog", (0xEC,)), emu.calls)              # the stock purchase question, answered No
+        self.assertEqual(self.money(emu), 0)
+
+    def test_time_warp_is_free(self) -> None:
+        emu = self.store(0, free=False)
+        self.buy(emu, "warp")
+        self.assertIn(("hint", (2,)), emu.calls)
+        emu = self.store(0, free=True)
+        self.buy(emu, "warp")                                     # past the price: no tank opened yet
+        self.assertNotIn(("hint", (2,)), emu.calls)
+        self.assertTrue(any(c[0] == "MessageBoxW" for c in emu.calls))
+        self.assertEqual(self.money(emu), 0)
+
+    def test_add_money_costs_950_and_adds_1000_every_time(self) -> None:
+        emu = self.store(1000, free=False)
+        for expected in (1050, 1100, 1150):
+            self.buy(emu, "money")
+            self.assertEqual(self.money(emu), expected)
+        self.assertEqual(emu.read32(emu.state + S_SPENT), 3 * 950)
+
+    def test_add_money_refused_below_950(self) -> None:
+        emu = self.store(949, free=False)
+        self.buy(emu, "money")
+        self.assertEqual(self.money(emu), 949)
+        self.assertIn(("hint", (2,)), emu.calls)
+
+    def test_add_money_free_adds_1000(self) -> None:
+        emu = self.store(0, free=True)
+        self.buy(emu, "money")
+        self.buy(emu, "money")
+        self.assertEqual(self.money(emu), 2000)
+        self.assertEqual(emu.read32(emu.state + S_SPENT), 0)
+
+    def test_add_money_stops_at_the_signed_32_bit_maximum(self) -> None:
+        emu = self.store(0x7FFFFFFF - 10, free=True)
+        self.buy(emu, "money")
+        self.assertEqual(self.money(emu), 0x7FFFFFFF)
+        self.buy(emu, "money")
+        self.assertEqual(self.money(emu), 0x7FFFFFFF)
+        emu = self.store(0x7FFFFFFF - 10, free=False)
+        self.buy(emu, "money")
+        self.assertEqual(self.money(emu), 0x7FFFFFFF)
+
+    def test_add_money_answered_no_changes_nothing(self) -> None:
+        emu = self.store(5000, free=False, answer_yes=False)
+        self.buy(emu, "money")
+        self.assertEqual(self.money(emu), 5000)
+
+    def test_items_hidden_without_their_settings(self) -> None:
+        emu = self.store(5000, free=False, add_money=False, warp=False)
+        self.select(emu, "money")
+        self.assertEqual(emu.read32(emu.sym("_selected"), signed=True), -1)
+        self.select(emu, "warp")
+        self.assertEqual(emu.read32(emu.sym("_selected"), signed=True), -1)
+
+
+# ------------------------------------------------------------------ Plant Tycoon
+
+S_CASH = 0x217C
+TOOL_RECORD = 0x6E8
+
+
+@_needs(PLANT_EXE)
+class PlantStoreTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.dll, cls.symbols = E.build_with_map(
+            "ftfp_plant_upgrades", ROOT / "assets" / "plant_tycoon_upgrades" / "Store Upgrades and Items.dll",
+            Path(cls.tmp.name))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.tmp.cleanup()
+
+    def store(self, cash: int, free: bool, add_money: bool = True, answer_yes: bool = True):
+        emu = E.Emulator(PLANT_EXE, self.dll, self.symbols)
+        emu.hook_printf()
+
+        def message(e):
+            e.calls.append(("MessageBoxW", e.wstring(e.arg(1))))
+            return 6 if answer_yes else 7                                         # IDYES / IDNO
+        emu.hook_import("MessageBoxW", message, 16)
+        emu.hook_import("DialogBoxIndirectParamW", emu.record("hours dialog"), 20)  # cancelled
+        for name, pop in (("GetActiveWindow", 0), ("GetForegroundWindow", 0), ("GetModuleHandleW", 4),
+                          ("GetProcAddress", 8)):
+            emu.hook_import(name, emu.record(name), pop)
+        emu.hook(0x0044A580, emu.record("sound"), 4)
+        emu.hook(0x0044E894, lambda e: e.alloc(e.arg(0)), 0)                      # operator new
+        emu.hook(0x00409870, lambda e: (e.calls.append(("tip", e.cstring(e.arg(3)).decode("latin-1"))), 0)[1], 0x1C)
+        emu.hook(0x00409AA0, lambda e: (e.calls.append(("tip", e.cstring(e.arg(0)).decode("latin-1"))), 0)[1], 0x10)
+        emu.hook(0x0040B400, emu.record("control"), 4)
+        state = emu.alloc(0x60000)
+
+        def box_dialog(e):
+            e.calls.append(("dialog", e.arg(0), e.read32(state + TOOL_RECORD + 4 * 0x20)))
+            return 0
+        emu.hook(0x00432E90, box_dialog, 4)
+        emu.hook(0x00401C90, emu.record("run"), 8)
+        emu.hook(0x004307A0, emu.record("dtor"), 0)
+        scene = emu.alloc(0x400)
+        emu.write32(scene + 0x1BC, state)
+        emu.write32(state + S_CASH, cash)
+        events = emu.alloc(0x20)
+        zero = emu.thunk()
+        emu.hook(zero, lambda e: 0, 0)                                            # owned(box) = no, set_owned
+        emu.write32(events, 1)
+        for k in range(1, 7):
+            emu.write32(events + 4 * k, zero)
+        emu.write32(emu.sym("_boxes"), events)
+        emu.write8(emu.sym("_free_upgrades"), int(free))
+        emu.write32(emu.sym("_money_on"), int(add_money))
+        emu.write32(emu.sym("_warp_on"), 1)
+        emu.state, emu.scene = state, scene
+        return emu
+
+    def click(self, emu, x: int, y: int) -> None:
+        emu.write32(emu.sym("_upgrades_view"), 1)
+        emu.call(emu.sym("_on_click"), emu.scene, x, y)
+
+    def cash(self, emu) -> int:
+        return emu.read32(emu.state + S_CASH)
+
+    def test_legendary_seed_price(self) -> None:
+        for free, expected in ((False, 5000), (True, 0)):
+            for stub, back in (("_stub_price_buyable", 0x00430CB2), ("_stub_price_poor", 0x0043101F),
+                               ("_stub_price_tray_full", 0x00431378)):
+                emu = self.store(0, free)
+                dialog = emu.alloc(0x400)
+                emu.write8(emu.sym("_building_legendary"), 1)
+                emu.run_until(emu.sym(stub), back, esi=dialog)
+                self.assertEqual(emu.read32(dialog + 0x84), expected, (stub, free))
+                emu = self.store(0, free)                       # a stock Extinct packet keeps $2000
+                emu.run_until(emu.sym(stub), back, esi=dialog)
+                self.assertEqual(emu.read32(dialog + 0x84), 2000)
+
+    def test_formula_price(self) -> None:
+        for free, expected in ((False, 10000), (True, 0)):
+            emu = self.store(0, free)
+            emu.write8(emu.sym("_building_formula"), 1)
+            emu.run_until(emu.sym("_stub_chem_price"), 0x00432721, esi=emu.alloc(0x100))
+            self.assertEqual(emu.uc.reg_read(E.X.UC_X86_REG_EDX), expected)
+
+    def test_buying_a_free_legendary_packet_still_empties_its_shelf(self) -> None:
+        emu = self.store(0, True)
+        emu.hook(0x00430900, lambda e: 0, 0)                     # the first free tray slot: 0
+        legendary = emu.sym("_legendary")
+        emu.write32(legendary + 6 * 4, 1)                        # packet 0 on the shelf
+        dialog = emu.alloc(0x400)
+        emu.write32(dialog + 0xB8, 52)
+        emu.write32(dialog + 0x74, emu.state)
+        emu.write32(dialog + 0x84, 0)
+        emu.call(emu.sym("_buy_legendary"), dialog)
+        self.assertEqual(emu.read32(legendary + 6 * 4) & 0xFF, 0)  # sold: back with the daily restock
+        self.assertEqual(emu.read32(emu.state + 0x52B88 + 6 * 4) & 0xFF, 1)
+        self.assertEqual(self.cash(emu), 0)
+
+    def test_seed_box_price(self) -> None:
+        for free, expected in ((False, 1000), (True, 0)):
+            emu = self.store(0, free)
+            self.click(emu, 480, 60)                              # the Fourth Seed Box
+            self.assertEqual([c for c in emu.calls if c[0] == "dialog"], [("dialog", 14, expected)])
+            self.assertEqual(emu.read32(emu.state + TOOL_RECORD + 4 * 0x20), 0)   # stock record put back
+
+    def test_tooltips_show_the_price(self) -> None:
+        for free in (False, True):
+            emu = self.store(0, free)
+            emu.call(emu.sym("_on_activate"), emu.scene, 1)
+            tips = [c[1] for c in emu.calls if c[0] == "tip"]
+            prices = ("5000", "10000", "1000", "500", "950")
+            for price, title in zip(prices, ("Legendary Seeds", "Radioactive", "Fourth Seed Box", "Time Warp",
+                                             "+$1,000")):
+                tip = next(t for t in tips if t.startswith(title))
+                self.assertTrue(tip.endswith(f"Price: $ {'0' if free else price}"), tip)
+
+    def test_time_warp_is_free(self) -> None:
+        emu = self.store(0, False)
+        self.click(emu, 310, 310)
+        self.assertIn("can't afford", emu.calls[-1][1])
+        emu = self.store(0, True)
+        self.click(emu, 310, 310)
+        self.assertEqual(emu.calls[-1][0], "hours dialog")       # past the price; cancelled
+        self.assertEqual(self.cash(emu), 0)
+
+    def test_add_money_costs_950_and_adds_1000_every_time(self) -> None:
+        emu = self.store(1000, False)
+        for expected in (1050, 1100, 1150):
+            self.click(emu, 380, 310)
+            self.assertEqual(self.cash(emu), expected)
+        self.assertIn("Buy +$1,000 for $950?", [c[1] for c in emu.calls if c[0] == "MessageBoxW"])
+
+    def test_add_money_refused_below_950(self) -> None:
+        emu = self.store(949, False)
+        self.click(emu, 380, 310)
+        self.assertEqual(self.cash(emu), 949)
+        self.assertIn("can't afford", emu.calls[-1][1])
+
+    def test_add_money_free_adds_1000(self) -> None:
+        emu = self.store(0, True)
+        self.click(emu, 380, 310)
+        self.click(emu, 380, 310)
+        self.assertEqual(self.cash(emu), 2000)
+        self.assertIn("Buy +$1,000 for $0?", [c[1] for c in emu.calls if c[0] == "MessageBoxW"])
+
+    def test_add_money_stops_at_the_games_own_maximum(self) -> None:
+        # The game's cash function 0x41ED70 keeps cash at most 4,000,000,000 (the double at 0x467F78).
+        exe = PLANT_EXE.read_bytes()
+        self.assertEqual(struct.unpack_from("<d", exe, 0x467F78 - 0x465000 + 0x65000)[0], 4_000_000_000.0)
+        for free in (False, True):
+            emu = self.store(4_000_000_000 - 10, free)
+            self.click(emu, 380, 310)
+            self.assertEqual(self.cash(emu), 4_000_000_000)
+            self.click(emu, 380, 310)
+            self.assertEqual(self.cash(emu), 4_000_000_000)
+
+    def test_add_money_answered_no_changes_nothing(self) -> None:
+        emu = self.store(5000, False, answer_yes=False)
+        self.click(emu, 380, 310)
+        self.assertEqual(self.cash(emu), 5000)
+
+    def test_add_money_hidden_without_its_setting(self) -> None:
+        emu = self.store(5000, False, add_money=False)
+        self.click(emu, 380, 310)
+        self.assertEqual(self.cash(emu), 5000)
+        self.assertFalse([c for c in emu.calls if c[0] == "MessageBoxW"])
+
+
+if __name__ == "__main__":
+    unittest.main()

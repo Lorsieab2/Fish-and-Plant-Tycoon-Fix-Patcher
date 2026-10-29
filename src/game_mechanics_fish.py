@@ -391,7 +391,8 @@ EGGS = (
         patched=(("ds_store", "Exotic Fish Eggs ($2300; slot #4, or any of slots 2-4 with Universal "
                   "supply slots, where they stack like the other eggs) hatch as many babies as the "
                   "other eggs, each with a random DS-only body and a random DS-only fin (genes "
-                  "23-29, 1 in 7 each)."),),
+                  "23-29, 1 in 7 each)."),
+                 ("free_upgrades", "Exotic Fish Eggs cost $0."),),
     ),
 )
 
@@ -924,7 +925,9 @@ DS_ANIMALS = (
         "Golden Seahorse: they never age, eat, get sick, breed or get sold, and customers ignore "
         "them. Their effects count only in the tank they are in. \"Healthy, fed\" means not sick "
         "and food above 5.",
-        patched=(("ds_store", "the effects below apply."),),
+        patched=(("ds_store", "the effects below apply."),
+                 ("free_upgrades", "they cost $0 (still one of each in your tanks, unless Buy Multiple "
+                  "Golden Seahorses is on)."),),
     ),
     Fact(f"Sting Ray: healthy, fed fish in its tank get {below(100, 82)} chance of +1 health each "
          "step."),
@@ -955,6 +958,14 @@ HIDDEN = (
             "nothing: no magic fish is found or saved, and any click or key goes back to the "
             "tank.",
         ),
+    ),
+    Fact(
+        "Add Money: not in the unpatched game. Money is a signed 32-bit number (state+0x38C), "
+        "so it cannot go past $2,147,483,647; the stock sale (0x424074) and the c cheat add to it "
+        "with no check.",
+        patched=(("add_money", "a pile of gold coins on the Supplies store's Upgrades page, next to the "
+                  "Time Warp clock: $950 ($0 with Free upgrades), the game's purchase question, then "
+                  "+$1,000, any number of times. It stops at $2,147,483,647 and never wraps."),),
     ),
     Fact(
         "Hidden click on the tank screen: the strip at the top of the tank, from (212, 4) to (480, "
@@ -1096,7 +1107,8 @@ TIME_WARP = (
                   "Eggs). Buy opens a small Windows popup: type how many real-time hours should pass "
                   "(1-72), then Yes/No. It costs a flat $500, whatever the hours. It is refused, with "
                   "nothing charged, while time is stopped (Stop Time), with less than $500, or before a "
-                  "tank has been opened since the game started."),),
+                  "tank has been opened since the game started."),
+                 ("free_upgrades", "a warp costs $0."),),
     ),
     Fact(
         "How much game time a warp gives depends on the speed setting, because the hours are "

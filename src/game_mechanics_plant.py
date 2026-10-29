@@ -363,7 +363,9 @@ SHOP_SEEDS = (
                   f"Random(23) + 1 (1-16 {each(23, 0)} each, 17-23 {each(23, 22)} each), flower one "
                   f"of the 14 new flowers 24-37 (24-31 {each(14, 0)} each, 32-37 {each(14, 13)} "
                   "each), so class D. Besides these, only Mutation Liquid and breeding from a "
-                  "new-flower plant give the new flowers."),),
+                  "new-flower plant give the new flowers."),
+                 ("free_upgrades", "they cost $0, still three per restock, each needing room in the "
+                  "seed tray."),),
     ),
 )
 
@@ -487,6 +489,7 @@ TOOLS = (
                   "the store's Upgrades view) open a second 120-seed chest: gold arrows on the Seed "
                   "Storage title bar switch between boxes 1-3 and 4-6, and the greenhouse fills "
                   "boxes 4-6 once 1-3 are full."),
+                 ("free_upgrades", "the Fourth, Fifth and Sixth Seed Box cost $0, still in order."),
                  ("sort_seeds", "a Sort Seeds button sorts every unlocked box (see Sorting seeds).")),
     ),
     Fact(
@@ -526,7 +529,8 @@ CHEMICALS = (
                   "branch of its shape grown, size 110 (the largest), grown to age 28 (full bloom), "
                   "flowers on every flower spot of every live, uncut part (its spots filled up to 6 "
                   "per part), no later dead leaves, and, if it is already pollinated, all 5 of its "
-                  "seeds (pollinating it later gives the usual 5, 4 or 3). A dead plant stays dead."),),
+                  "seeds (pollinating it later gives the usual 5, 4 or 3). A dead plant stays dead."),
+                 ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
 )
 
@@ -789,6 +793,13 @@ HIDDEN = (
         ),
     ),
     Fact(
+        "Add Money: not in the unpatched game. Every change of cash goes through 0x41ED70, which "
+        "keeps it between $0 and $4,000,000,000 (the double at 0x467F78).",
+        patched=(("add_money", "a pile of gold coins on the Nursery shelf of the Supplies store's "
+                  "Upgrades view, next to the Time Warp clock: $950 ($0 with Free upgrades), Yes/No, "
+                  "then +$1,000 through 0x41ED70, any number of times. Cash stops at $4,000,000,000."),),
+    ),
+    Fact(
         "Keys on the other screens:",
         subs=(
             "Seed Storage: 1 or m greenhouse, 3 or p store, 4 or c Collections, 5 or n Nursery; "
@@ -937,7 +948,8 @@ TIME_WARP = (
                   "(its tooltip shows the price). Clicking it opens a small Windows popup: type how many "
                   "real-time hours should pass (1-72), then Yes/No. It costs a flat $500, whatever the "
                   "hours. It is refused, with nothing charged, while time is stopped (Stop Time) or "
-                  "with less than $500."),),
+                  "with less than $500."),
+                 ("free_upgrades", "a warp costs $0."),),
     ),
     Fact(
         "How much game time a warp gives depends on the speed setting, because the hours are "

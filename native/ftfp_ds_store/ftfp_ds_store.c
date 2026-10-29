@@ -9,7 +9,10 @@
        animation, head peeking out); moving the rock then moves the eel.
        A click on its head lets it out again;
      * Exotic Fish Eggs: eggs for slot #4 that hatch only DS-exclusive
-       bodies and fins (genes 23-29, even odds), as many as the other eggs.
+       bodies and fins (genes 23-29, even odds), as many as the other eggs;
+     * with their settings ("<name>.ini" beside this DLL): the Time Warp
+       clock, and Add Money ($950 for +$1,000, any number of times).  With
+       Free upgrades every item on this page costs $0.
    Effects, per tank, rescaled from the DS (docs/fish-tycoon-ds-store-items-design.md),
    for healthy fish (no disease, food above 5), each age step:
      * Golden Seahorse (its PC effects stay) and Sting Ray: 82% chance of +1 health;
@@ -117,7 +120,8 @@
 #define SPR_HOME_FRONT (STORE_SPRITE_BASE + 11)
 #define SPR_PUFF (STORE_SPRITE_BASE + 12)
 #define SPR_ITEM_WARP (STORE_SPRITE_BASE + 13)
-#define STORE_SPRITES 14
+#define SPR_ITEM_MONEY (STORE_SPRITE_BASE + 14)
+#define STORE_SPRITES 15
 
 typedef struct sprite_entry {
     int id;
@@ -148,6 +152,7 @@ static const struct { const char *name; int cols, rows; } SPRITE_FILES[STORE_SPR
     { "DS_EEL_HOME_FRONT_Grid.png", HOME_COLS, HOME_FRAMES / HOME_COLS },
     { "DS_PUFFER_PUFF_Grid.png", 4, 2 },        /* the puffer puffed up: left, then right */
     { "ITEM_TIME_WARP.png", 0, 0 },             /* the Time Warp clock (the owner's icon) */
+    { "ITEM_ADD_MONEY.png", 0, 0 },             /* Add Money: the owner's pile of gold coins */
 };
 
 /* ------------------------------------------------------------ the game */
@@ -299,10 +304,11 @@ static int owned(char *state, int fin) {
 static const unsigned char REPURCHASE_JUMP[10] = { 0xE9, 0x49, 0x75, 0x01, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90 };
 
 #define FIN_WARP (-1)                       /* the Time Warp item: not an animal */
+#define FIN_MONEY (-2)                      /* the Add Money item: not an animal */
 
 static int sold_out(char *state, int fin) {
     static int repurchase = -1;
-    if (fin == FIN_WARP) return 0;
+    if (fin == FIN_WARP || fin == FIN_MONEY) return 0;
     if (repurchase < 0) repurchase = ftfp_site_holds(0x004282B2u, REPURCHASE_JUMP, sizeof REPURCHASE_JUMP);
     return fin != 0 && !repurchase && owned(state, fin);
 }
@@ -784,9 +790,15 @@ typedef struct store_item {
     const char *text[2];
 } store_item;
 
-#define ITEMS 5                     /* the fifth, Time Warp, only with the Time Warp setting */
-static int warp_on = 0;
-static int item_count(void) { return warp_on ? ITEMS : ITEMS - 1; }
+/* Time Warp and Add Money show only with their settings; with Free upgrades
+   every item here costs $0 (the stock store keeps its prices). */
+#define ITEMS 6
+#define ITEM_WARP 4
+#define ITEM_MONEY 5
+#define MONEY_GAIN 1000
+#define MONEY_MAX 0x7FFFFFFF       /* money is a signed 32-bit int (state+0x38C); the stock sale adds to it unclamped (0x424074) */
+static int warp_on = 0, money_on = 0, free_on = 0;
+static int item_shown(int i) { return i == ITEM_WARP ? warp_on : i == ITEM_MONEY ? money_on : 1; }
 static const store_item ITEM[ITEMS] = {
     { FIN_PUFFER, 1250, 44, 83, 85, 70, SPR_ITEM_PUFFER, 80, 60,
       { "Magic Pufferfish", "Magischer Kugelfisch" },
@@ -808,7 +820,13 @@ static const store_item ITEM[ITEMS] = {
       { "Time Warp", "Zeitsprung" },
       { "Skip ahead in time! Choose how many\nhours (1-72) pass, as if you had been\naway that long. Your fish age, eat and\nresearch goes on.",
         "Spring in der Zeit voraus! W\xE4hle, wie\nviele Stunden (1-72) vergehen, als w\xE4rst\ndu so lange weg gewesen. Deine Fische\naltern, fressen, und die Forschung l\xE4uft." } },
+    { FIN_MONEY, 950, 503, 100, 79, 66, SPR_ITEM_MONEY, 74, 60,
+      { "+$1,000", "+1.000 $" },
+      { "A pile of gold coins! Each one you buy\nadds $1,000 to your money.\nBuy as many as you like.",
+        "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
 };
+
+static int price_of(const store_item *it) { return free_on ? 0 : it->price; }
 
 static int page_upgrades = 0;
 static int selected = -1, hovered = -1;
@@ -848,8 +866,8 @@ static void add_button(void *scene) {
 
 static int hit_item(int x, int y) {
     int i;
-    for (i = 0; i < item_count(); ++i) {
-        if (inside(x, y, ITEM[i].x, ITEM[i].y, ITEM[i].x + ITEM[i].w, ITEM[i].y + ITEM[i].h)) return i;
+    for (i = 0; i < ITEMS; ++i) {
+        if (item_shown(i) && inside(x, y, ITEM[i].x, ITEM[i].y, ITEM[i].x + ITEM[i].w, ITEM[i].y + ITEM[i].h)) return i;
     }
     return -1;
 }
@@ -868,11 +886,11 @@ static void draw_page(void *scene) {
     int i, lang = german(), pulse;
     DWORD t = GetTickCount() % 1600u;
     pulse = 0x30 + (int)((t < 800u ? t : 1600u - t) * 0x50u / 800u);
-    for (i = 0; i < item_count(); ++i) {
+    for (i = 0; i < ITEMS; ++i) {
         const store_item *it = &ITEM[i];
         void *img = (void *)(UINT_PTR)SPRITE_GET(P(impl, 0x14), NULL, it->sprite);
         int x = it->x + (it->w - it->icon_w) / 2, y = it->y + (it->h - it->icon_h) / 2;
-        if (img == NULL) continue;
+        if (img == NULL || !item_shown(i)) continue;
         if (i == selected) {
             DRAW_ALPHA(P(impl, 0x18), NULL, (int)(UINT_PTR)img, x, y, pulse, 1, 0);
         } else if (i == hovered) {
@@ -890,7 +908,7 @@ static void draw_page(void *scene) {
         } else {
             char line[64];
             const char *label = game_string(0xAD);                            /* "Price:" */
-            int n = 0, v = it->price, d = 0;
+            int n = 0, v = price_of(it), d = 0;
             char digits[12];
             while (*label && n < 40) line[n++] = *label++;
             line[n++] = ' ';
@@ -974,7 +992,7 @@ static void buy_exotic_universal(char *impl, char *state, int price) {
 /* ------------------------------------------------------------ time warp */
 
 /* The Time Warp setting ships "Time Warp.ini" beside this DLL.  Buying the
-   item asks for the hours (1-72) in a Windows popup, confirms, charges $500,
+   item asks for the hours (1-72) in a Windows popup, confirms, charges $500 ($0 with Free upgrades),
    and then plays those hours exactly as time away: each live fish's banked
    time (+0x04) and each running research's banked time get the seconds, at
    most 4 hours at a time so the stock catch-up caps (32400 / 25200 / 18000 s
@@ -1007,12 +1025,12 @@ static void warp_chunk(char *state, unsigned int seconds) {
 static void time_warp(char *impl, char *state) {
     wchar_t text[256];
     unsigned int left;
-    int hours;
+    int hours, price = price_of(&ITEM[ITEM_WARP]);
     if (*I(state, S_SPEED_FISH) > 100) {
         tw_tell(L"Time is stopped. Turn time back on in Options, then warp.");
         return;
     }
-    if (*I(state, S_MONEY) < 500) {
+    if (*I(state, S_MONEY) < price) {
         HINT(P(impl, 0xC), NULL, 2);                 /* "You can't afford to buy this yet!" */
         return;
     }
@@ -1020,15 +1038,16 @@ static void time_warp(char *impl, char *state) {
         tw_tell(L"Open a tank first, then come back to the store to warp.");
         return;
     }
-    hours = tw_ask_hours(L"Costs $500. Your fish age, eat and breed, and research goes on, as if you had "
-                         L"been away.");
+    swprintf_s(text, 256, L"Costs $%d. Your fish age, eat and breed, and research goes on, as if you had "
+               L"been away.", price);
+    hours = tw_ask_hours(text);
     if (hours <= 0) return;
-    swprintf_s(text, 256, L"Warp %d hour%s for $500?\n\nYour fish will age %d hour%s, as if you had been "
-               L"away that long. This cannot be undone.", hours, hours == 1 ? L"" : L"s", hours,
+    swprintf_s(text, 256, L"Warp %d hour%s for $%d?\n\nYour fish will age %d hour%s, as if you had been "
+               L"away that long. This cannot be undone.", hours, hours == 1 ? L"" : L"s", price, hours,
                hours == 1 ? L"" : L"s");
     if (!tw_confirm(text)) return;
-    if (*I(state, S_MONEY) < 500) return;
-    charge(state, 500);
+    if (*I(state, S_MONEY) < price) return;
+    charge(state, price);
     fish_update(tank_scene, 0);                         /* the real time so far, by the stock rules */
     for (left = (unsigned int)hours * 3600u; left > 0;) {
         unsigned int c = left > WARP_CHUNK ? WARP_CHUNK : left;
@@ -1038,13 +1057,27 @@ static void time_warp(char *impl, char *state) {
     }
 }
 
+/* Add Money: the price is paid as for any item, then $1,000 goes into the
+   money the way a stock sale adds it (0x424074), never past MONEY_MAX. */
+static int money_after_gain(int money) {
+    return money > MONEY_MAX - MONEY_GAIN ? MONEY_MAX : money + MONEY_GAIN;
+}
+
+static void add_money(char *impl, char *state, int price) {
+    if (!confirm(impl, 0xEC)) return;
+    charge(state, price);
+    *I(state, S_MONEY) = money_after_gain(*I(state, S_MONEY));
+}
+
 static void buy(void *scene) {
     char *impl = store_impl(scene);
     char *state = (char *)P(impl, 0x10);
     const store_item *it;
     void *hint = P(impl, 0xC);
+    int price;
     if (selected < 0 || state == NULL) return;
     it = &ITEM[selected];
+    price = price_of(it);
     if (it->fin == FIN_WARP) {
         time_warp(impl, state);
         return;
@@ -1053,17 +1086,21 @@ static void buy(void *scene) {
         HINT(hint, NULL, 0x1C);                      /* "You already own this!" */
         return;
     }
-    if (it->price > *I(state, S_MONEY)) {
+    if (price > *I(state, S_MONEY)) {
         HINT(hint, NULL, 2);                         /* "You can't afford to buy this yet!" */
         return;
     }
+    if (it->fin == FIN_MONEY) {
+        add_money(impl, state, price);
+        return;
+    }
     if (it->fin == 0 && exotic_any_slot) {
-        buy_exotic_universal(impl, state, it->price);
+        buy_exotic_universal(impl, state, price);
         return;
     }
     if (it->fin == 0) {
         if (!confirm(impl, *I(state, S_EGG_PRESENT) ? 0xED : 0xEC)) return;
-        charge(state, it->price);
+        charge(state, price);
         *I(state, S_EGG_ITEM) = EXOTIC_ITEM;
         *I(state, S_EGG_PRESENT) = 1;
         *I(state, S_EGG_COUNT) = 3;
@@ -1105,7 +1142,7 @@ static void buy(void *scene) {
             *I(rock, O_SPRITE) = SPR_ROCK;
             GAME(this2_fn, 0x00419C00u)(state, NULL, rock_tank, (int)(UINT_PTR)rock);
         }
-        charge(state, it->price);
+        charge(state, price);
     }
 }
 
@@ -1656,6 +1693,8 @@ int __stdcall FtfpStoreStartup(const ftfp_store_host *host) {
     __try {
         host_ok = name_sprites(host);
         warp_on = tw_enabled((HMODULE)&__ImageBase);
+        money_on = ftfp_setting_on((HMODULE)&__ImageBase, L"Add Money.ini");
+        free_on = ftfp_setting_on((HMODULE)&__ImageBase, L"Free Upgrades.ini");
         if (host_ok && prepare() && ftfp_install_sites(writes, TOTAL_SITES)) {
             installed = 1;
             install_use_gate();

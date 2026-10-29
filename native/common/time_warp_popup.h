@@ -12,6 +12,7 @@
 
 #include <windows.h>
 #include <wchar.h>
+#include "setting_file.h"
 
 #define TW_MIN_HOURS 1
 #define TW_MAX_HOURS 72
@@ -124,28 +125,22 @@ static int tw_ask_hours(const wchar_t *line2) {
     return r == 1 ? data.hours : 0;
 }
 
-/* Yes / No. */
-static int tw_confirm(const wchar_t *text) {
+/* Yes / No, with the item's name as the caption. */
+static int tw_confirm_as(const wchar_t *caption, const wchar_t *text) {
     tw_keep_game_open();
-    return MessageBoxW(tw_game_window(), text, L"Time Warp",
+    return MessageBoxW(tw_game_window(), text, caption,
                        MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1 | MB_TOPMOST | MB_SETFOREGROUND) == IDYES;
 }
 
-static void tw_tell(const wchar_t *text) {
+static void tw_tell_as(const wchar_t *caption, const wchar_t *text) {
     tw_keep_game_open();
-    MessageBoxW(tw_game_window(), text, L"Time Warp", MB_OK | MB_ICONINFORMATION | MB_TOPMOST | MB_SETFOREGROUND);
+    MessageBoxW(tw_game_window(), text, caption, MB_OK | MB_ICONINFORMATION | MB_TOPMOST | MB_SETFOREGROUND);
 }
 
+static int tw_confirm(const wchar_t *text) { return tw_confirm_as(L"Time Warp", text); }
+static void tw_tell(const wchar_t *text) { tw_tell_as(L"Time Warp", text); }
+
 /* "<folder of this DLL>\Time Warp.ini" exists: the Time Warp setting is on. */
-static int tw_enabled(HMODULE self) {
-    wchar_t path[1024];
-    wchar_t *slash;
-    DWORD n = GetModuleFileNameW(self, path, 1024);
-    if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return 0;
-    slash[1] = L'\0';
-    if (wcslen(path) + 20 >= 1024) return 0;
-    wcscat_s(path, 1024, L"Time Warp.ini");
-    return GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES;
-}
+static int tw_enabled(HMODULE self) { return ftfp_setting_on(self, L"Time Warp.ini"); }
 
 #endif

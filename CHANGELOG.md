@@ -27,6 +27,19 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 - **Game Mechanics** (Tools tab): how both games really work, read from their
   code, with every random roll's exact odds and what each patcher setting
   changes. It is read-only.
+- **Free upgrades**, a new setting (both games), off by default; it needs
+  the store's Upgrades screen (DS Store Items / Add new store upgrades and
+  items) and turns it on, as Time Warp does. Every item on that screen costs
+  $0 (shown as $0, no money taken); stock limits, the purchase questions and
+  what each item does are unchanged, and the game's own store items keep their
+  prices. Checked by running the store DLLs' own code against the vanilla
+  executables in Unicorn (tests/test_store_extras.py).
+- **Add Money cheat ($1,000)**, a new setting (both games), off by default,
+  with the same dependency. A pile of gold coins (the owner's picture) on the
+  Upgrades screen: $950, or $0 with Free upgrades, then +$1,000, any number of
+  times. Money stops at the game's maximum: $2,147,483,647 in Fish Tycoon (a
+  signed 32-bit int), $4,000,000,000 in Plant Tycoon (its own cash code,
+  0x41ED70).
 
 ### Plant Tycoon
 

@@ -16,7 +16,10 @@
        Legendary seed art too.
      * the Fourth, Fifth and Sixth Seed Box (upper left, the seed-box column
        of the tool upgrades), when "Extra Seed Boxes.dll" is beside this DLL;
-       that DLL holds the boxes, this one sells them through the stock dialog.
+       that DLL holds the boxes, this one sells them through the stock dialog;
+     * with their settings ("<name>.ini" beside this DLL): the Time Warp
+       clock and Add Money ($950 for +$1,000); with Free upgrades every item
+       on this view costs $0 (the stock store keeps its prices).
    The link is hidden on the Upgrades view; the bottom bar's "Supplies" plate
    leads back.  docs/plant-tycoon-upgrades-design.md has every address.
 
@@ -56,6 +59,11 @@
 #define BOX_PRICE 1000
 #define BOX_TITLE_ID 0x1F1                  /* 0x1F1..0x1F3 the box names, 0x1F4 their description */
 #define BOX_DESC_ID 0x1F4
+
+/* Free upgrades ("Free Upgrades.ini" beside this DLL): every item on the
+   Upgrades view costs $0.  The stock store keeps its prices. */
+static volatile unsigned char free_upgrades = 0;
+static int price(int normal) { return free_upgrades ? 0 : normal; }
 
 #define SHEET_SEEDS 0x2E
 #define SHEET_SHADOW 0xB0
@@ -367,31 +375,32 @@ static const plants_update_fn update_plants = (plants_update_fn)0x0041D810u;
 static const RECT WARP_RECT = { WARP_X, WARP_Y, WARP_X + 64, WARP_Y + 64 };
 static int warp_on = 0;
 static char *warp_tip = NULL;
-static const char WARP_TIP[] = "Time Warp\nPrice: $ 500";
+static char warp_tip_text[64];
 
 static void time_warp(char *scene) {
     char *state = SCENE_STATE(scene);
     wchar_t text[256];
     unsigned int now, dt;
-    int hours, k;
+    int hours, k, cost = price(WARP_PRICE);
     if (state == NULL) return;
     if (AT(state, S_SPEED, int) > 100) {
         tw_tell(L"Time is stopped. Turn time back on in Options, then warp.");
         return;
     }
-    if (AT(state, S_CASH, int) < WARP_PRICE) {
+    if (AT(state, S_CASH, unsigned int) < (unsigned int)cost) {        /* the game's cash is unsigned (0x430D13) */
         tw_tell(L"You can't afford to buy this yet! A Time Warp costs $500.");
         return;
     }
-    hours = tw_ask_hours(L"Costs $500. Your plants grow, ripen seeds and need water, and the seed shop "
-                         L"restocks if due, as if you had been away.");
+    swprintf_s(text, 256, L"Costs $%d. Your plants grow, ripen seeds and need water, and the seed shop "
+               L"restocks if due, as if you had been away.", cost);
+    hours = tw_ask_hours(text);
     if (hours <= 0) return;
-    swprintf_s(text, 256, L"Warp %d hour%s for $500?\n\nYour plants will age %d hour%s, as if you had been "
-               L"away that long. This cannot be undone.", hours, hours == 1 ? L"" : L"s", hours,
+    swprintf_s(text, 256, L"Warp %d hour%s for $%d?\n\nYour plants will age %d hour%s, as if you had been "
+               L"away that long. This cannot be undone.", hours, hours == 1 ? L"" : L"s", cost, hours,
                hours == 1 ? L"" : L"s");
     if (!tw_confirm(text)) return;
-    if (AT(state, S_CASH, int) < WARP_PRICE) return;
-    add_cash(state, 0, -WARP_PRICE);
+    if (AT(state, S_CASH, unsigned int) < (unsigned int)cost) return;
+    add_cash(state, 0, -cost);
     play_sound(SCENE_SOUND(scene), 0, SOUND_BUTTON);
     now = mono_clock();
     dt = (unsigned int)hours * 3600u;
@@ -407,9 +416,43 @@ static void time_warp(char *scene) {
     update_plants(state, 0);
 }
 
+/* ------------------------------------------------------------ add money */
+
+/* The Add Money setting ships "Add Money.ini" beside this DLL.  A pile of
+   gold coins (frame 22, row 11 of the chemicals sheet) sits beside the Time
+   Warp clock: $950, or $0 with Free upgrades, then +$1,000, any number of
+   times.  Both go through the game's own cash function (0x41ED70), which
+   keeps the cash between $0 and $4,000,000,000 (the double at 0x467F78). */
+#define MONEY_PRICE 950
+#define MONEY_GAIN 1000
+#define MONEY_FRAME 22
+#define MONEY_X 370
+#define MONEY_Y 296
+static const RECT MONEY_RECT = { MONEY_X, MONEY_Y, MONEY_X + 64, MONEY_Y + 64 };
+static int money_on = 0;
+static char *money_tip = NULL;
+static char money_tip_text[64];
+
+static void add_money(char *scene) {
+    char *state = SCENE_STATE(scene);
+    wchar_t text[128];
+    int cost = price(MONEY_PRICE);
+    if (state == NULL) return;
+    if (AT(state, S_CASH, unsigned int) < (unsigned int)cost) {
+        tw_tell_as(L"+$1,000", L"You can't afford to buy this yet! +$1,000 costs $950.");
+        return;
+    }
+    swprintf_s(text, 128, L"Buy +$1,000 for $%d?", cost);
+    if (!tw_confirm_as(L"+$1,000", text)) return;
+    if (AT(state, S_CASH, unsigned int) < (unsigned int)cost) return;
+    add_cash(state, 0, -cost);
+    add_cash(state, 0, MONEY_GAIN);
+    play_sound(SCENE_SOUND(scene), 0, SOUND_BUTTON);
+}
+
 static void box_tip_text(int box) {
     if (boxes != NULL && boxes->owned(box)) sprintf_s(tip_text[TIP_BOXES + box], 64, "%s", BOX_TITLES[box]);
-    else sprintf_s(tip_text[TIP_BOXES + box], 64, "%s\nPrice: $ %i", BOX_TITLES[box], BOX_PRICE);
+    else sprintf_s(tip_text[TIP_BOXES + box], 64, "%s\nPrice: $ %i", BOX_TITLES[box], price(BOX_PRICE));
 }
 
 static void set_tooltips(char *scene) {
@@ -428,6 +471,15 @@ static void set_tooltips(char *scene) {
         AT(tips[i], 8, unsigned char) = (unsigned char)(upgrades_view && shown);
     }
     if (warp_tip != NULL) AT(warp_tip, 8, unsigned char) = (unsigned char)upgrades_view;
+    if (money_tip != NULL) AT(money_tip, 8, unsigned char) = (unsigned char)upgrades_view;
+}
+
+static char *make_tooltip(char *scene, int id, const RECT *r, const char *text) {
+    char *tip = (char *)game_new(0x10);
+    if (tip == NULL) return NULL;
+    tooltip_ctor(tip, 0, id, r, scene, text, TOOLTIP_FONT, 0, 0);
+    add_control(scene, 0, tip);
+    return tip;
 }
 
 static void make_tooltips(char *scene) {
@@ -437,19 +489,20 @@ static void make_tooltips(char *scene) {
         RECT r = i < LEGENDARY_COUNT ? seed_rect(i) : i == TIP_FORMULA ? FORMULA_RECT : box_rect(i - TIP_BOXES);
         char *tip = (char *)game_new(0x10);
         if (tip == NULL) return;
-        if (i < LEGENDARY_COUNT) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", LEGENDARY_TITLE, LEGENDARY_PRICE);
-        else if (i == TIP_FORMULA) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", FORMULA_TITLE, FORMULA_PRICE);
+        if (i < LEGENDARY_COUNT) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", LEGENDARY_TITLE, price(LEGENDARY_PRICE));
+        else if (i == TIP_FORMULA) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", FORMULA_TITLE, price(FORMULA_PRICE));
         else box_tip_text(i - TIP_BOXES);
         tooltip_ctor(tip, 0, 54 + i, &r, scene, tip_text[i], TOOLTIP_FONT, 0, 0);
         add_control(scene, 0, tip);
         tips[i] = tip;
     }
     if (warp_on && warp_tip == NULL) {
-        char *tip = (char *)game_new(0x10);
-        if (tip == NULL) return;
-        tooltip_ctor(tip, 0, 54 + TIPS, &WARP_RECT, scene, WARP_TIP, TOOLTIP_FONT, 0, 0);
-        add_control(scene, 0, tip);
-        warp_tip = tip;
+        sprintf_s(warp_tip_text, sizeof warp_tip_text, "Time Warp\nPrice: $ %i", price(WARP_PRICE));
+        if ((warp_tip = make_tooltip(scene, 54 + TIPS, &WARP_RECT, warp_tip_text)) == NULL) return;
+    }
+    if (money_on && money_tip == NULL) {
+        sprintf_s(money_tip_text, sizeof money_tip_text, "+$1,000\nPrice: $ %i", price(MONEY_PRICE));
+        money_tip = make_tooltip(scene, 55 + TIPS, &MONEY_RECT, money_tip_text);
     }
 }
 
@@ -492,6 +545,10 @@ static int __cdecl on_draw(char *scene) {
         draw_shadow(mgr, 0, SHEET_SHADOW, WARP_X + 0x19, WARP_Y + 0x1E, 1.0f, 100);
         draw_sprite(mgr, 0, SHEET_CHEMICALS, WARP_FRAME, WARP_X, WARP_Y, 1.0f, 100, 1);
     }
+    if (money_on) {
+        draw_shadow(mgr, 0, SHEET_SHADOW, MONEY_X + 0x19, MONEY_Y + 0x1E, 1.0f, 100);
+        draw_sprite(mgr, 0, SHEET_CHEMICALS, MONEY_FRAME, MONEY_X, MONEY_Y, 1.0f, 100, 1);
+    }
     return 1;
 }
 
@@ -511,7 +568,7 @@ static void open_box_dialog(char *scene, int box) {
     for (i = 0; i < EXTRA_BOXES; ++i) {
         char *record = TOOL_RECORD(state, 4 + 5 * i);
         memcpy(stock[i], record, 0x20);
-        AT(record, 0x00, int) = BOX_PRICE;
+        AT(record, 0x00, int) = price(BOX_PRICE);
         AT(record, 0x04, unsigned char) = (unsigned char)boxes->owned(i);
         AT(record, 0x0C, int) = BOX_DESC_ID;
         AT(record, 0x10, int) = BOX_TITLE_ID + i;
@@ -552,6 +609,7 @@ static int __cdecl on_click(char *scene, int x, int y) {
         if (inside(&r, x, y)) open_box_dialog(scene, i);
     }
     if (warp_on && inside(&WARP_RECT, x, y)) time_warp(scene);
+    if (money_on && inside(&MONEY_RECT, x, y)) add_money(scene);
     return 1;
 }
 
@@ -771,13 +829,18 @@ __declspec(naked) static void stub_picture(void) {
     }
 }
 
-/* The Extinct path's three price writes: $5000 for a Legendary packet. */
+/* The Extinct path's three price writes: $5000 for a Legendary packet, $0
+   with Free upgrades (the stock compare that follows, unsigned cash against
+   this price at 0x430D13, then always finds it affordable). */
 #define PRICE_STUB(NAME, BACK)                              \
     __declspec(naked) static void NAME(void) {              \
         __asm { mov dword ptr [esi + 0x84], 2000 }          \
         __asm { cmp byte ptr [building_legendary], 0 }      \
         __asm { je done }                                   \
         __asm { mov dword ptr [esi + 0x84], LEGENDARY_PRICE } \
+        __asm { cmp byte ptr [free_upgrades], 0 }           \
+        __asm { je done }                                   \
+        __asm { mov dword ptr [esi + 0x84], 0 }             \
         __asm { done: jmp BACK }                            \
     }
 PRICE_STUB(stub_price_buyable, k_price_buyable_back)
@@ -819,6 +882,10 @@ __declspec(naked) static void stub_chem_price(void) {
         cmp byte ptr [building_formula], 0
         je stock
         mov edx, FORMULA_PRICE
+        cmp byte ptr [free_upgrades], 0
+        je priced
+        xor edx, edx
+    priced:
         mov ecx, [esi + 0x78]
         push FORMULA_ID
         jmp k_chem_price_back
@@ -1060,7 +1127,7 @@ static void site_data(ftfp_site_write *w, unsigned int va, int length, const uns
 static int prepare(void) {
     ftfp_site_write *w = writes;
     DWORD seed_file = (DWORD)(UINT_PTR)SEED_SHEET_FILE, chem_file = (DWORD)(UINT_PTR)CHEM_SHEET_FILE;
-    DWORD seed_rows = 8, chem_rows = 11;           /* row 10: the Time Warp clock */
+    DWORD seed_rows = 8, chem_rows = 12;           /* row 10: the Time Warp clock, row 11: Add Money's coins */
     DWORD link[6];
     unsigned char bound = SITE_CHEM_PICTURE_BOUND_NEW;
     link[0] = LINK_SPRITE;
@@ -1183,6 +1250,8 @@ const ftfp_upgrades_events *__stdcall FtfpUpgradesStartup(void) {
         }
         if (installed) {
             warp_on = tw_enabled((HMODULE)&__ImageBase);
+            money_on = ftfp_setting_on((HMODULE)&__ImageBase, L"Add Money.ini");
+            free_upgrades = (unsigned char)ftfp_setting_on((HMODULE)&__ImageBase, L"Free Upgrades.ini");
             __try {
                 prepare_shapes();
             } __except (EXCEPTION_EXECUTE_HANDLER) {

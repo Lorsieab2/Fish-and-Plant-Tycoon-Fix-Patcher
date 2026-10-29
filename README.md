@@ -84,6 +84,19 @@ never needs the internet.
   if you had been away, with no catch-up cap. At Normal speed 1 hour is 6 age
   steps/units; at 2x (Fish) 12 and Fast (Plant) 30; at 1/2 speed / Slow 4.
   Refused while time is stopped.
+- Free upgrades (off by default; **needs DS Store Items, which it turns on**).
+  Every item on the Supplies store's Upgrades screen costs $0: the Puffer Fish,
+  Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), and the Time
+  Warp clock ($500) and Add Money ($950) when they are on. The price shows $0
+  and no money is taken; everything else (one of each animal, the egg slot,
+  the game's purchase question) stays. The game's own store items keep their
+  prices.
+- Add Money cheat ($1,000) (off by default; **needs DS Store Items, which it
+  turns on**). A pile of gold coins on the Upgrades screen, next to the Time
+  Warp clock: $950 ($0 with Free upgrades), bought like the other items, adds
+  $1,000 to your money, as often as you like. Money stops at the largest
+  value the game holds ($2,147,483,647). Picture:
+  [docs/images/add-money-fish.png](docs/images/add-money-fish.png).
 
 ### Plant Tycoon
 
@@ -148,6 +161,19 @@ never needs the internet.
   if you had been away, with no catch-up cap. At Normal speed 1 hour is 6 age
   steps/units; at 2x (Fish) 12 and Fast (Plant) 30; at 1/2 speed / Slow 4.
   Refused while time is stopped.
+- Free upgrades (off by default; **needs Add new store upgrades and items,
+  which it turns on**). Every item on the Supplies store's Upgrades view costs
+  $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the
+  Fourth, Fifth and Sixth Seed Box ($1000 each), and the Time Warp clock ($500)
+  and Add Money ($950) when they are on. The price shows $0 and no money is
+  taken; everything else (three Legendary Seeds a day, room in the trays, the
+  boxes in order) stays. The game's own store items keep their prices.
+- Add Money cheat ($1,000) (off by default; **needs Add new store upgrades and
+  items, which it turns on**). A pile of gold coins on the Upgrades view's
+  Nursery shelf, next to the Time Warp clock: $950 ($0 with Free upgrades),
+  asked Yes/No, adds $1,000 to your money through the game's own cash code, as
+  often as you like. Cash stops at the game's own maximum, $4,000,000,000.
+  Picture: [docs/images/add-money-plant.png](docs/images/add-money-plant.png).
 - Sort Seeds button (off by default). A "Sort Seeds" button on the Seed
   Storage title bar. After a Yes/No question it sorts every seed in the
   unlocked seed box space by the class of the plant it grows, its foliage and
