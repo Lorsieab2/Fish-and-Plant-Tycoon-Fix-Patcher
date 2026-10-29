@@ -30,6 +30,18 @@ drag them between tanks. They are never selected for the isolation tank,
 mutated, bred, aged or sold, and they show the seahorse's health and food
 meters.
 
+Their meters (owner's request, 2026-10-29): a bought animal has health 100
+and food 100, the game's cap for both (0x41E0FE, 0x4121CB) and its full bar
+(0x41BF10); earlier builds copied the seahorse's `Random(15) + 80` and 50.
+After a save loads (`on_state_load`, after `settle_animals`), every Puffer
+Fish, Sting Ray and Moray Eel, and an eel at home in its rock (its spare
+bytes), is set to 100 and 100. No code lowers a seahorse-type record's
+meters: the age step skips body 22 (0x42043F, so no food loss, health tick
+or death), overfeeding skips it (0x4121F4), and only feeding (0x4121A3, +50)
+and one supply item (0x42125C) raise them. So filling them on every load
+fills each creature once, and no sidecar is kept. The stock Golden Seahorse
+gets the same, from Fix Vanilla Bugs (`scripts/pin_vanilla_fixes.py`).
+
 How: each is a fish record built exactly like the Golden Seahorse's
 (`0x427DBA`), with the seahorse's body gene 22. So every place the game
 special-cases the seahorse applies to it unchanged:

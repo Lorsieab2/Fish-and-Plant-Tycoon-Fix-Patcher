@@ -3,7 +3,8 @@
    WHAT.  An "Upgrades" button in the Supplies store opens a second page:
      * Puffer Fish, Sting Ray and Moray Eel: tank companions like the
        Golden Seahorse (they swim, can be dragged between tanks, never age,
-       breed or get sold, and show the seahorse's health and food meters);
+       breed or get sold, and show the seahorse's health and food meters,
+       full when bought and filled whenever a save loads);
      * the Moray Eel comes with its rock, a decoration moved like the shell
        or pagoda.  Drop the eel on its rock and it goes home (the DS in-rock
        animation, head peeking out); moving the rock then moves the eel.
@@ -315,6 +316,10 @@ static int sold_out(char *state, int fin) {
 
 static int clamp100(int v) { return v < 0 ? 0 : v > 100 ? 100 : v; }
 
+/* A full health or food meter: the game caps both at 100 (0x41E0FE, 0x4121CB,
+   0x4205E9, 0x42060F) and draws a full bar at 100 (0x41BF10). */
+#define FULL_METER 100
+
 /* After the game's own health tick for one fish, one age step. */
 static void __cdecl companion_effects(char *f, int tank) {
     char *state = game_state();
@@ -510,8 +515,8 @@ static int __cdecl eel_click(char *impl, int x, int y) {
         oy = *I(o, O_Y);
         if (!inside(x, y, ox + HEAD_BOX[0], oy + HEAD_BOX[1], ox + HEAD_BOX[2], oy + HEAD_BOX[3])) continue;
         make_companion(state, rec, FIN_EEL,
-                       o[O_HOME_FLAG] == HOME_FLAG && o[O_HOME_HEALTH] > 0 ? o[O_HOME_HEALTH] : 80,
-                       o[O_HOME_FLAG] == HOME_FLAG ? o[O_HOME_FOOD] : 50);
+                       o[O_HOME_FLAG] == HOME_FLAG && o[O_HOME_HEALTH] > 0 ? o[O_HOME_HEALTH] : FULL_METER,
+                       o[O_HOME_FLAG] == HOME_FLAG ? o[O_HOME_FOOD] : FULL_METER);
         slot = place_animal(state, tank, rec);
         if (slot < 0) {
             HINT(P(impl, 0x44), NULL, 6);          /* "The tank is full!" */
@@ -1129,7 +1134,7 @@ static void buy(void *scene) {
             return;
         }
         if (!confirm(impl, 0xEC)) return;
-        make_companion(state, rec, it->fin, 80 + RANDOM(15), 50);
+        make_companion(state, rec, it->fin, FULL_METER, FULL_METER);
         if (place_animal(state, fish_tank, rec) < 0) {
             HINT(hint, NULL, 6);
             return;
@@ -1203,11 +1208,41 @@ static void settle_animals(char *state) {
     }
 }
 
+/* After a save loads: every store animal's health and food are full, the eel's
+   at home in its rock too.  Nothing in the game lowers a seahorse-type record's
+   meters (its age step skips them, 0x42043F, and so does overfeeding, 0x4121F4;
+   only feeding, 0x4121A3, and one supply item, 0x42125C, raise them), so this
+   fills them once. */
+static void fill_animals(char *state) {
+    int t, s, k;
+    for (t = 0; t <= 3; ++t) {
+        for (s = 0; s < RECORDS; ++s) {
+            char *f = fish(state, t, s);
+            if (is_kind(f, s, FIN_PUFFER) || is_kind(f, s, FIN_RAY) || is_kind(f, s, FIN_EEL)) {
+                *I(f, F_HEALTH) = FULL_METER;
+                *I(f, F_FOOD) = FULL_METER;
+            }
+        }
+    }
+    for (t = 0; t <= 2; ++t) {
+        for (k = 0; k < ORN_SLOTS; ++k) {
+            unsigned char *o = ornament(state, t, k);
+            if (is_home_rock(o) && o[O_HOME_FLAG] == HOME_FLAG) {
+                o[O_HOME_HEALTH] = FULL_METER;
+                o[O_HOME_FOOD] = FULL_METER;
+            }
+        }
+    }
+}
+
 typedef int (__fastcall *load_fn)(void *state, void *edx, int slot);
 
 static int __fastcall on_state_load(char *state, void *edx, int slot) {
     int ok = GAME(load_fn, SITE_STATE_LOAD_HOLDS)(state, edx, slot) & 0xFF;
-    if (ok && slot != 0 && slot != 0xB) settle_animals(state);
+    if (ok && slot != 0 && slot != 0xB) {
+        settle_animals(state);
+        fill_animals(state);
+    }
     return ok;
 }
 

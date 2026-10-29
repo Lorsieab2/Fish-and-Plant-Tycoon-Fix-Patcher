@@ -635,6 +635,15 @@ PERMANENT_ITEMS = (
         ),
     ),
     Fact(
+        "The Golden Seahorse's health and food meters (shown while you hold it) start at health "
+        "80-94 (80 + Random(15)) and food 50. Nothing in the game lowers "
+        "them: its age step is skipped, so it never goes hungry, loses health or dies, and "
+        "overfeeding never hurts it. Feeding its tank raises its food by 50, up to 100, as for a fish.",
+        patched=(("fix_vanilla_bugs", "it arrives with health 100 and food 100, and a seahorse already "
+                  "in a save is filled to 100 and 100 the first time the save is loaded; it then stays "
+                  "full."),),
+    ),
+    Fact(
         "Does the Golden Seahorse have to be in a particular tank? Its stock effects (2 more "
         "customers, 2 walk-over points) do not care: they come from owning it, from any tank, and "
         "stay after it is gone.",
@@ -942,6 +951,14 @@ DS_ANIMALS = (
     ),
     Fact(f"Two Sting Rays or Puffer Fish in a tank each roll separately; extra Moray Eels add "
          f"nothing (one {below(10, 1)} roll per dying fish)."),
+    Fact(
+        "Their health and food meters work like the Golden Seahorse's: nothing in the game lowers "
+        "them, and feeding their tank raises their food. A Moray Eel in its rock keeps its meters "
+        "in the rock.",
+        patched=(("ds_store", "they arrive with health 100 and food 100, and every Puffer Fish, Sting "
+                  "Ray and Moray Eel already in a save (an eel in its rock too) is filled to 100 and 100 "
+                  "the first time the save is loaded; they then stay full."),),
+    ),
 )
 
 HIDDEN = (

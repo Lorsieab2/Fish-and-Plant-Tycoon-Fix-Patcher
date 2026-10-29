@@ -32,6 +32,10 @@ never needs the internet.
 
 - Fix Vanilla Bugs (on by default): the Plant of Incubation and Plant of
   Nutrition do what their names say (the game had their effects swapped).
+  The Golden Seahorse arrives with full health and food (100 and 100; the
+  game gave it health 80-94 and food 50), and a seahorse already in a save is
+  filled up the first time the save is loaded with the patch. The game never
+  lowers its meters, so it stays full.
 - Crimson Comet 20% curing fix.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and
@@ -70,7 +74,10 @@ never needs the internet.
   home, move the rock and the eel goes with it, and drag it out by its head.
   Trashing the eel trashes its rock, and the other way round. The animals,
   the Golden Seahorse included, never take a fish's place: each tank has 5
-  animal slots of its own. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
+  animal slots of its own. The store animals arrive with full health and
+  food (100 and 100), and ones already in a save (the eel in its rock too)
+  are filled up the first time the save is loaded with the patch; nothing in
+  the game lowers their meters. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
   The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
   second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
   loaded by DS Fish's; everything it adds is kept in the game's own save.

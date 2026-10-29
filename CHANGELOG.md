@@ -139,6 +139,19 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   code bytes swap which plant each effect checks, so the Plant of Incubation
   adds the egg (Exotic Fish Eggs too) and the Plant of Nutrition rescues
   starving fish. Names, pictures, prices and saves are unchanged.
+- **Tank creatures have full meters** (owner's request). With Fix Vanilla
+  Bugs the Golden Seahorse is bought with health 100 and food 100 (stock:
+  health 80-94, food 50), and with DS Store Items so are the Puffer Fish,
+  Sting Ray and Moray Eel (they copied the seahorse's 80-94 and 50). A
+  creature already in a save, the eel in its rock included, is filled to
+  100 and 100 the first time the save is loaded with the patch, by the game's
+  own load before anything reads the meters; the game saves it as usual.
+  Nothing in the game ever lowers these meters (the age step skips them, and
+  overfeeding never hurts them), so they stay full and no sidecar is needed.
+  Only the two meters change: fish and everything else in the save load
+  exactly as before. Proven by emulating the game's purchase and load code,
+  stock and patched, and the DS Store Items DLL's (tests/test_vanilla_fixes.py,
+  tests/test_store_extras.py).
 - **Game Mechanics: every magic fish and magic plant, one by one.** How to get
   each (eggs or shop seeds with exact odds, breeding pairs, the Unknown Chemical
   or Mutation Liquid), its value and what finding it does, plus the win screens,
