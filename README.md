@@ -83,7 +83,8 @@ never needs the internet.
   hours in a small Windows popup, confirm Yes, and the game plays those hours as
   if you had been away, with no catch-up cap. At Normal speed 1 hour is 6 age
   steps/units; at 2x (Fish) 12 and Fast (Plant) 30; at 1/2 speed / Slow 4.
-  Refused while time is stopped.
+  Refused while time is stopped. Once the hours have been played, an OK box says
+  so: "Time Warp done: 12 hours played (72 age steps). $500 paid." ($0 paid with Free upgrades).
 - Free upgrades (off by default; **needs DS Store Items, which it turns on**).
   Every item on the Supplies store's Upgrades screen costs $0: the Puffer Fish,
   Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), and the Time
@@ -160,7 +161,8 @@ never needs the internet.
   hours in a small Windows popup, confirm Yes, and the game plays those hours as
   if you had been away, with no catch-up cap. At Normal speed 1 hour is 6 age
   steps/units; at 2x (Fish) 12 and Fast (Plant) 30; at 1/2 speed / Slow 4.
-  Refused while time is stopped.
+  Refused while time is stopped. Once the hours have been played, an OK box says
+  so: "Time Warp done: 12 hours played (72 age units). $500 paid." ($0 paid with Free upgrades).
 - Free upgrades (off by default; **needs Add new store upgrades and items,
   which it turns on**). Every item on the Supplies store's Upgrades view costs
   $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the

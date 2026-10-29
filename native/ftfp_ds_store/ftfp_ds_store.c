@@ -821,7 +821,7 @@ static const store_item ITEM[ITEMS] = {
       { "Skip ahead in time! Choose how many\nhours (1-72) pass, as if you had been\naway that long. Your fish age, eat and\nresearch goes on.",
         "Spring in der Zeit voraus! W\xE4hle, wie\nviele Stunden (1-72) vergehen, als w\xE4rst\ndu so lange weg gewesen. Deine Fische\naltern, fressen, und die Forschung l\xE4uft." } },
     { FIN_MONEY, 950, 503, 100, 79, 66, SPR_ITEM_MONEY, 74, 60,
-      { "+$1,000", "+1.000 $" },
+      { "Add $1,000", "Plus 1.000 $" },               /* the title font has no "+" (paddington_tt_30) */
       { "A pile of gold coins! Each one you buy\nadds $1,000 to your money.\nBuy as many as you like.",
         "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
 };
@@ -998,7 +998,8 @@ static void buy_exotic_universal(char *impl, char *state, int price) {
    most 4 hours at a time so the stock catch-up caps (32400 / 25200 / 18000 s
    at 2x / Normal / 1/2 speed, 0x41FF1D) never cut them, and the stock fish
    update 0x41FE70 runs after each chunk.  Its `this` is the tank screen,
-   remembered by the hook on its activation call (0x421AAA). */
+   remembered by the hook on its activation call (0x421AAA).  Once the last
+   chunk has been played, an OK box says the hours, age steps and price. */
 #define WARP_CHUNK 14400u
 #define S_SPEED_FISH 0x1E168
 #define FISH_RECORD(state, tank, slot) ((state) + 0x390 + (tank) * 0x51EC + (slot) * SLOT_STRIDE)
@@ -1055,6 +1056,9 @@ static void time_warp(char *impl, char *state) {
         warp_chunk(state, c);
         fish_update(tank_scene, 0);
     }
+    /* What the update made of those seconds: one age step per 60 x speed seconds (0x41FFE9); a
+       chunk plus a fish's banked part of a step stays under every cap, so none of it was cut. */
+    tw_done(hours, (unsigned int)hours * 3600u / (60u * (unsigned int)*I(state, S_SPEED_FISH)), L"age step", price);
 }
 
 /* Add Money: the price is paid as for any item, then $1,000 goes into the

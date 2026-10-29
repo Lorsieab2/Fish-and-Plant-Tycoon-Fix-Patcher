@@ -3,7 +3,7 @@
    tw_ask_hours() shows a small modal dialog built in memory (no resources):
    a line of text, a digits-only box (1-72) and OK / Cancel.  It returns the
    hours, or 0 when the player cancels.  tw_confirm() is a Yes / No message
-   box.  Both are parented to the game's window, so they stay in front of it,
+   box, tw_tell() and tw_done() OK message boxes.  All are parented to the game's window, so they stay in front of it,
    and SDL is asked not to minimise a fullscreen game when the popup takes the
    focus (SDL2's SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, when SDL2.dll is the
    game's SDL; best effort, nothing happens if it is not). */
@@ -139,6 +139,16 @@ static void tw_tell_as(const wchar_t *caption, const wchar_t *text) {
 
 static int tw_confirm(const wchar_t *text) { return tw_confirm_as(L"Time Warp", text); }
 static void tw_tell(const wchar_t *text) { tw_tell_as(L"Time Warp", text); }
+
+/* After the warp has been played: the hours, the game time they made and the
+   price taken, e.g. "Time Warp done: 12 hours played (72 age steps). $500
+   paid."  unit is the game's word in the singular ("age step" / "age unit"). */
+static void tw_done(int hours, unsigned int steps, const wchar_t *unit, int paid) {
+    wchar_t text[160];
+    swprintf_s(text, 160, L"Time Warp done: %d hour%s played (%d %s%s). $%d paid.", hours, hours == 1 ? L"" : L"s",
+               (int)steps, unit, steps == 1 ? L"" : L"s", paid);
+    tw_tell(text);
+}
 
 /* "<folder of this DLL>\Time Warp.ini" exists: the Time Warp setting is on. */
 static int tw_enabled(HMODULE self) { return ftfp_setting_on(self, L"Time Warp.ini"); }

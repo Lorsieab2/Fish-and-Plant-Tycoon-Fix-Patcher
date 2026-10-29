@@ -357,7 +357,8 @@ static RECT box_rect(int box) { RECT r = { 471, 52 + 70 * box, 528, 113 + 70 * b
    time stamp back that far, then runs the game's own plant update (0x41D810,
    the call the Options screen makes), exactly as if the player had been away:
    the catch-up has no cap.  The seed shop's restock time (state+0x5A0) and
-   the Sundial's start (state+0x30) move back too. */
+   the Sundial's start (state+0x30) move back too.  Once the update has run,
+   an OK box says the hours, age units and price. */
 #define WARP_PRICE 500
 #define WARP_FRAME 20
 #define WARP_X 300
@@ -414,6 +415,9 @@ static void time_warp(char *scene) {
     AT(state, S_RESTOCK, unsigned int) -= dt;          /* the greenhouse's next 3-s check restocks if due */
     if (AT(state, S_STARTED, unsigned int) > dt) AT(state, S_STARTED, unsigned int) -= dt;
     update_plants(state, 0);
+    /* One age unit per 60 x speed seconds, and the catch-up has no cap: every unit of dt was played. */
+    tw_done(hours, AT(state, S_SPEED, int) > 0 ? dt / (60u * (unsigned int)AT(state, S_SPEED, int)) : 0,
+            L"age unit", cost);
 }
 
 /* ------------------------------------------------------------ add money */
@@ -439,11 +443,11 @@ static void add_money(char *scene) {
     int cost = price(MONEY_PRICE);
     if (state == NULL) return;
     if (AT(state, S_CASH, unsigned int) < (unsigned int)cost) {
-        tw_tell_as(L"+$1,000", L"You can't afford to buy this yet! +$1,000 costs $950.");
+        tw_tell_as(L"Add $1,000", L"You can't afford to buy this yet! +$1,000 costs $950.");
         return;
     }
     swprintf_s(text, 128, L"Buy +$1,000 for $%d?", cost);
-    if (!tw_confirm_as(L"+$1,000", text)) return;
+    if (!tw_confirm_as(L"Add $1,000", text)) return;
     if (AT(state, S_CASH, unsigned int) < (unsigned int)cost) return;
     add_cash(state, 0, -cost);
     add_cash(state, 0, MONEY_GAIN);
@@ -501,7 +505,7 @@ static void make_tooltips(char *scene) {
         if ((warp_tip = make_tooltip(scene, 54 + TIPS, &WARP_RECT, warp_tip_text)) == NULL) return;
     }
     if (money_on && money_tip == NULL) {
-        sprintf_s(money_tip_text, sizeof money_tip_text, "+$1,000\nPrice: $ %i", price(MONEY_PRICE));
+        sprintf_s(money_tip_text, sizeof money_tip_text, "Add $1,000\nPrice: $ %i", price(MONEY_PRICE));
         money_tip = make_tooltip(scene, 55 + TIPS, &MONEY_RECT, money_tip_text);
     }
 }
