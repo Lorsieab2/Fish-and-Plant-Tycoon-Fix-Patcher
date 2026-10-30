@@ -7,6 +7,25 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Both games
 
+- **Tank and greenhouse counts** (on by default, both games). Fish Tycoon's
+  tank screen shows, at the top left of the water, "Fish: 12 of 21 (8 adults,
+  3 teens, 1 baby)" for the tank on screen (of 26 with Bigger tanks), its
+  creatures ("Creatures: Golden Seahorse, Moray Eel") and "Isolation tank: 1
+  of 1 (1 adult)"; Plant Tycoon's greenhouse shows "Plants: 9 of 15 (5
+  mature, 2 with buds, 2 seedlings)" along the top. The stages are the games'
+  own: a fish is a baby at age 1-5, a teen at 6-19 and an adult from 20 (the
+  view builder's picture thresholds, 0x413F1C and 0x413F65); a plant is a
+  seedling before age 21 and has buds until 24, when it is mature (the
+  selected plant's countdowns, 0x4237E3 and 0x423866). Dead fish and plants
+  are shown apart as "Dead: n"; Fish Tycoon follows the game's German. Drawn
+  every frame in each game's own font right after the screen's background,
+  so nothing is ever covered, and display only. Each game's companion DLL
+  (`Tank Counts.dll`, `Greenhouse Counts.dll`) is loaded first by the startup
+  loader and loads the DLL the loader loaded before, so every combination
+  without the counts keeps its pin. Pictures:
+  [docs/images/tank-counts-fish.png](docs/images/tank-counts-fish.png),
+  [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png).
+
 - No path is too long: the patcher's staging copy and the save backups use
   Windows' extended-length paths, so a deep output or save folder never fails
   with "path too long"; the staging folder's name is also shorter.

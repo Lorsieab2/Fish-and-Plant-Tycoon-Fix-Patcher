@@ -77,8 +77,23 @@ FISH_WINDOW = replace(
 )
 
 
+# With the counts on, the loader loads "Tank Counts.dll", which first loads
+# the DLL the loader would load without it (DS Exclusive Fish, else the
+# Maximizable Window), so their pins are untouched.
+COUNTS_SETTING = "tank_greenhouse_counts"
+FISH_COUNTS = replace(
+    FISH, dll_name="Tank Counts.dll",
+    what_it_installs="That first loads DS Exclusive Fish.dll or Maximizable Window.dll when their settings are "
+                     "on, then checks the one place it changes in the running game (the tank screen's call of "
+                     "its background, 0x422013) and writes it or nothing; native/ftfp_tank_counts/"
+                     "ftfp_tank_counts.c describes it.",
+)
+
+
 def fish_profile(enabled: set[str]) -> LoaderProfile:
     """The DLL Fish Tycoon's loader loads for these settings."""
+    if COUNTS_SETTING in enabled:
+        return FISH_COUNTS
     return FISH if "ds_fish" in enabled else FISH_WINDOW
 
 
@@ -100,8 +115,21 @@ PLANT_SORT = replace(
 )
 
 
+# With the counts on, "Greenhouse Counts.dll" is loaded first and loads
+# Unused Flowers, else Sort Seeds, itself.
+PLANT_COUNTS = replace(
+    PLANT, dll_name="Greenhouse Counts.dll",
+    what_it_installs="That first loads Unused Flowers.dll or Sort Seeds.dll when their settings are on, then "
+                     "wraps one slot of the greenhouse screen's table (its background draw) after checking it "
+                     "holds the stock function, or writes nothing; native/ftfp_greenhouse_counts/"
+                     "ftfp_greenhouse_counts.c describes it.",
+)
+
+
 def plant_profile(enabled: set[str]) -> LoaderProfile:
     """The DLL Plant Tycoon's loader loads for these settings."""
+    if COUNTS_SETTING in enabled:
+        return PLANT_COUNTS
     return PLANT if "new_flowers" in enabled else PLANT_SORT
 
 PATH_WCHARS = 0x208

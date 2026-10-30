@@ -58,7 +58,7 @@ class ManifestTests(unittest.TestCase):
         pins = self.manifest["patched_sha256_by_settings"]
         screen_items = {"time_warp", "free_upgrades", "add_money"}       # tests/test_store_extras.py
         added = [key for key in pins if "plant_upgrades" in key.split(",") and not screen_items & set(key.split(","))]
-        self.assertEqual(len(added), 16)         # with and without Sort Seeds, the R key and Fix Vanilla Bugs
+        self.assertEqual(len(added), 32)         # with and without Sort Seeds, the R key, Fix Vanilla Bugs and the counts
         for key in added:
             enabled = set(key.split(","))
             self.assertIn("new_flowers", enabled)
