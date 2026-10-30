@@ -240,6 +240,10 @@ class SheetTests(unittest.TestCase):
             self.assertTrue(bg.detect_extras("fish", saves, 2, [root / "Games"])[0])
 
 
+def bg_root() -> Path:
+    return ROOT
+
+
 def tk_root():
     """A hidden Tk root, or None with no display. Tk's start-up now and then fails once on
     Windows right after another root was destroyed, so it gets three tries."""
@@ -525,6 +529,56 @@ class WindowTests(unittest.TestCase):
             bg.MODEL_MODULES.clear()
             bg.MODEL_MODULES.update(saved)
             bg._MODELS.clear()
+
+    def test_every_tab_has_a_scrolling_details_pane(self) -> None:
+        """Both games, every tab: a ttk.Scrollbar beside the details pane (the Tools tab's
+        style), and long text scrolls."""
+        for game in ("Fish Tycoon", "Plant Tycoon"):
+            self.guide.game_var.set(game)
+            self.guide.spoilers_var.set(True)
+            self.root.update()
+            for sheet_id in self.guide.tab_ids:
+                self.select(self.tabs()[self.guide.tab_ids.index(sheet_id)])
+                text = self.guide.details[sheet_id]
+                self.assertIsInstance(text.scrollbar, tk.ttk.Scrollbar, sheet_id)
+                self.assertEqual(str(text.scrollbar.cget("orient")), "vertical")
+                self.guide._set_details(sheet_id, "\n".join(f"line {i}" for i in range(200)))
+                self.root.update()
+                self.assertLess(text.yview()[1], 1.0, sheet_id)
+                text.yview_scroll(20, "units")
+                self.root.update()
+                self.assertGreater(text.yview()[0], 0.0, sheet_id)
+                self.assertAlmostEqual(text.scrollbar.get()[0], text.yview()[0], places=3)
+
+    def test_three_effects_buttons_on_both_tabs_in_both_games(self) -> None:
+        for game, mutation in (("Fish Tycoon", "Wasp Grouper"), ("Plant Tycoon", "Mutation Liquid")):
+            self.guide.game_var.set(game)
+            self.guide.spoilers_var.set(True)
+            self.root.update()
+            for buttons in (self.guide.calc_effect_buttons, self.guide.plan_effect_buttons):
+                self.assertEqual([b.cget("text") for b in buttons],
+                                 ["0 effects", "Max effects, without", f"Max effects, with {mutation}"])
+                self.assertEqual([b.cget("value") for b in buttons], ["none", "max", "max_mutation"])
+            tree = self.guide.trees["calculator"]
+            counts = {}
+            for value in ("none", "max", "max_mutation"):
+                self.guide.calc_effects_var.set(value)
+                counts[value] = [tree.item(i, "values") for i in tree.get_children()]
+                pane = self.guide.details["calculator"].get("1.0", "end")
+                self.assertEqual(" ".join(self.guide.model.effects_text(value)), pane.strip())
+            self.assertIn(mutation, " ".join(self.guide.model.effects_text("max_mutation")))
+            self.assertEqual(counts["none"], counts["max"])
+            self.assertNotEqual(counts["max"], counts["max_mutation"])
+            self.guide.calc_effects_var.set("none")
+
+    def test_the_planner_tab_is_renamed_everywhere(self) -> None:
+        self.assertIn("Breeding Planner", self.tabs())
+        self.assertNotIn("Have to Want", self.tabs())
+        self.assertIn("Breeding Planner", " ".join(bg.HELP[1]))
+        for name in ("README.md", "How to Use.txt", "CHANGELOG.md"):
+            text = (bg_root() / name).read_text(encoding="utf-8")
+            self.assertIn("Breeding Planner", text, name)
+            self.assertNotIn("Have to Want", text, name)
 
     def test_fits_the_screen(self) -> None:
         window = self.guide.window

@@ -351,13 +351,14 @@ class EmulatedTests(unittest.TestCase):
         weight = {25: bf.P_CHEMICAL, 26: 1 - bf.P_CHEMICAL}
         half = {49: bf.P_BODY, 50: 1 - bf.P_BODY}
         cases = [(b, 5) for b in bf.PC_GENES] + [(5, f) for f in bf.PC_GENES] + [(0, 20), (20, 0), (20, 20), (0, 0)]
+        state, holder = self.emu.alloc(0x1E510), self.emu.alloc(0x40)       # reused: the heap is small
+        self.emu.write32(holder + 0x34, state)
         for body, fin in cases:
             got: dict[tuple[int, int], float] = {}
             for r1 in (25, 26):
                 for r2 in ((49, 50) if r1 == 25 else (None,)):
                     for r3 in ((49, 50) if r1 == 25 else (None,)):
-                        state, holder = self.emu.alloc(0x1E510), self.emu.alloc(0x40)
-                        self.emu.write32(holder + 0x34, state)
+                        self.emu.uc.mem_write(state, bytes(0x1E510))
                         fish = state + 0x390
                         self.emu.write32(fish, 1)
                         self.emu.write32(fish + 0x3C, 100)

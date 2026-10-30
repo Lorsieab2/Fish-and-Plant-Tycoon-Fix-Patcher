@@ -389,7 +389,7 @@ class GameTablesTests(unittest.TestCase):
         self.assertEqual((code[:2], struct.unpack_from("<II", code, 2)), (b"\xC7\x81", (0x8C8 + 7 * 0x20, 1000)))
         self.assertEqual(B.MUTATION_LIQUID_PRICE, 1000)
         for word, (address, text) in B.RARITY_STRINGS.items():
-            self.assertEqual(emu.cstring(address).decode("latin-1"), text)
+            self.assertEqual(emu.cstring(address).decode("latin-1"), text + "\n")      # the store's title line
             self.assertEqual(text, f"{word} Seeds")
 
     def test_mutation_liquid(self) -> None:
