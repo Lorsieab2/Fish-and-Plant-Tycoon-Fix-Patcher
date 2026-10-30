@@ -118,6 +118,7 @@ class HormoneTests(unittest.TestCase):
     def store(self, money: int, free: bool = False, universal: bool = False, answer_yes: bool = True):
         emu = E.Emulator(FISH_EXE, self.dll, self.symbols)
         emu.hook_import("GetTickCount", lambda e: 0, 0)                           # the selection's pulse
+        emu.hook_import("GetModuleHandleW", lambda e: 0, 4)                       # no Extra Tanks.dll loaded
         emu.hook(0x00417FA0, emu.record("hint", args=1), 4)                       # HINT
         emu.hook(0x004221A0, emu.record("dialog", args=1), 8)                     # DIALOG_INIT(string id, 1)
         emu.hook(0x00401D00, emu.record("run", 0 if answer_yes else 1), 8)        # DIALOG_RUN: 0 = Yes

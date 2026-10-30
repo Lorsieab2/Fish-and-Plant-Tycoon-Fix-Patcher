@@ -112,6 +112,8 @@ class ManifestTests(unittest.TestCase):
             self.assertEqual(len(with_it), len(without) + ("" not in pins), game)
             for key in with_it:
                 self.assertRegex(pins[key], r"^[0-9A-F]{64}$")
+                if {"extra_greenhouses", "extra_nurseries"} & set(key.split(",")):
+                    continue        # Extra Greenhouses.dll starts the counts' DLL itself: the same loader
                 self.assertNotEqual(pins[key], pins.get(",".join(sorted(set(key.split(",")) - {SETTING}))), key)
 
     @unittest.skipUnless(FISH_EXE is not None and FISH_EXE.is_file() and PLANT_EXE.is_file(),
@@ -182,7 +184,33 @@ class _DllFixture:
         emu.hook_import("GetFileAttributesW", self._file_attributes, 4)
         emu.hook_import("LoadLibraryW", self._load_library, 4)
         emu.hook_import("GetProcAddress", self._get_proc, 8)
+        emu.hook_import("GetModuleHandleW", self._module_handle, 4)
+        emu.hook_import("VirtualQuery", self._virtual_query, 12)
         self.text_draws: list[tuple] = []
+        # Other companions already loaded: {module name: handle} and {(handle, export): address}.
+        self.modules: dict[str, int] = {}
+        self.exports: dict[tuple[int, str], int] = {}
+
+    OTHER_MODULE = 0x6B000000                 # a loaded companion DLL's image (VirtualQuery's AllocationBase)
+
+    def _module_handle(self, e) -> int:
+        if e.arg(0) == 0:
+            return 0x400000
+        return self.modules.get(e.wstring(e.arg(0)), 0)
+
+    def _virtual_query(self, e) -> int:
+        address, info = e.arg(0), e.arg(1)
+        base = self.OTHER_MODULE if self.OTHER_MODULE <= address < self.OTHER_MODULE + 0x100000 else 0x400000
+        e.uc.mem_write(info, struct.pack("<IIIIIII", address & ~0xFFF, base, 0x20, 0x1000, 0x1000, 0x20, 0x1000000))
+        return 28
+
+    def export(self, module: str, name: str, handler, stack: int) -> int:
+        """A companion `module` loaded with the export `name` (a thunk running handler)."""
+        handle = self.modules.setdefault(module, 0x6C000000 + 0x10000 * len(self.modules))
+        address = self.emu.thunk()
+        self.emu.hook(address, handler, stack)
+        self.exports[(handle, name)] = address
+        return address
 
     FOLDER = "C:\\Games\\Game\\Patcher DLLs\\"
 
@@ -213,6 +241,8 @@ class _DllFixture:
     def _get_proc(self, e) -> int:
         name = e.cstring(e.arg(1)).decode()
         self.calls.append(("GetProcAddress", e.arg(0), name))
+        if (e.arg(0), name) in self.exports:
+            return self.exports[(e.arg(0), name)]
         return self.next_startup if name == "FtfpStartup" else 0
 
     def named(self, name: str) -> list[tuple]:
@@ -277,6 +307,24 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         emu.hook(FONT_MANAGER, lambda e: MANAGER)
         emu.hook(FONT_GET, self._font_get, 4)
         emu.hook(DRAW_TEXT, self._draw_text, 0x14)
+        # DS Store Items keeps each tank's 5 animals in records of its own (FtfpStoreAnimals).
+        self.animals = emu.alloc(3 * 5 * SLOT_STRIDE)
+        emu.uc.mem_write(self.animals, bytes(3 * 5 * SLOT_STRIDE))
+        self.export("DS Store Items.dll", "FtfpStoreAnimals", self._store_animals, 8)
+
+    def _store_animals(self, e) -> int:
+        tank = e.arg(1)
+        return self.animals + tank * 5 * SLOT_STRIDE if e.arg(0) == self.state and 0 <= tank <= 2 else 0
+
+    def animal(self, tank: int, k: int, fin: int, mark: int = 0x41435446) -> None:
+        """DS Store Items' animal k (0-4) of a tank: a body-22 record marked "FTCA"."""
+        at = self.animals + (tank * 5 + k) * SLOT_STRIDE
+        self.emu.write32(at + 0x00, 1000)
+        self.emu.write32(at + 0x0C, 21)
+        self.emu.write32(at + 0x14, mark)
+        self.emu.write32(at + 0x3C, 100)
+        self.emu.write32(at + 0x4C, 22)
+        self.emu.write32(at + 0x50, fin)
 
     def _font_get(self, e) -> int:
         self.calls.append(("font", e.uc.reg_read(E.X.UC_X86_REG_ECX), e.arg(0)))
@@ -341,7 +389,8 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         self.fish(0, 8, 30, health=0)                       # dead adult
         self.fish(0, 9, 2, health=-3)                       # dead baby
         self.fish(0, 10, 21, body=22, fin=22)               # the stock Golden Seahorse in a fish slot
-        self.fish(0, 26, 21, body=22, fin=30, mark=0x41435446)   # DS Store Items' puffer
+        self.animal(0, 0, fin=30)                           # DS Store Items' puffer
+        self.fish(0, 26, 21, body=22, fin=30, mark=0x41435446)   # an earlier build's record: not shown, not counted
         self.fish(0, 27, 21, body=22, fin=31)               # not marked: a leftover, not an animal
         self.rock(0, 2, 229)                                # the eel at home in its rock
         self.rock(0, 3, 228)                                # an empty rock
@@ -356,8 +405,9 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         self.fish(0, 1, 7)
         self.fish(0, 2, 3)
         self.fish(0, 3, 21, body=22, fin=22)
-        self.fish(0, 26, 21, body=22, fin=22, mark=0x41435446)
-        self.fish(0, 27, 21, body=22, fin=32, mark=0x41435446)
+        self.animal(0, 0, fin=22)
+        self.animal(0, 3, fin=32)
+        self.animal(1, 1, fin=31)                           # another tank's
         self.assertEqual(self.lines()[:2], ["Fish: 3 of 21 (1 adult, 1 teen, 1 baby)",
                                             "Creatures: Golden Seahorse x2, Moray Eel"])
 
@@ -373,16 +423,41 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         self.assertEqual(self.lines(1)[0], "Fish: 3 of 21 (3 babies)")
         self.assertEqual(self.lines(2)[0], "Fish: 1 of 21 (1 teen)")
 
-    def test_bigger_tanks_room_is_26(self) -> None:
+    def test_bigger_tanks_room_is_30(self) -> None:
         for slot in range(23):
             self.fish(0, slot, 40)
         self.assertEqual(self.lines()[0], "Fish: 21 of 21 (21 adults)")       # slots 21-22 are not the tank's
-        self.emu.write8(0x4206B3, 0x1A)                                       # the Bigger tanks bound
-        self.assertEqual(self.lines()[0], "Fish: 23 of 26 (23 adults)")
-        for slot in range(23, 26):
+        self.emu.write8(0x4206B3, 0x1E)                                       # the Bigger tanks bound
+        self.assertEqual(self.lines()[0], "Fish: 23 of 30 (23 adults)")
+        for slot in range(23, 30):
             self.fish(0, slot, 40)
-        self.fish(0, 26, 40)                                                   # an animal slot: never a fish
-        self.assertEqual(self.lines()[0], "Fish: 26 of 26 (26 adults)")
+        self.fish(0, 30, 40)                                                   # record 30: never a fish
+        self.assertEqual(self.lines()[0], "Fish: 30 of 30 (30 adults)")
+
+    def test_without_ds_store_items_no_animals_are_asked_for(self) -> None:
+        self.exports.clear()
+        self.modules.clear()
+        self.fish(0, 0, 25)
+        self.assertEqual(self.lines(), ["Fish: 1 of 21 (1 adult)", "Isolation tank: 0 of 1"])
+
+    def test_with_extra_tanks_the_lines_go_under_the_name_and_for_sale_button(self) -> None:
+        self.export("Extra Tanks.dll", "FtfpExtraTanksInstalled", lambda e: 1, 0)
+        self.fish(0, 0, 25)
+        self.lines()
+        self.assertEqual([t[3] for t in self.named("text") if t[4] == 0xFFFFFFFF], [136, 156])
+
+    def test_chains_another_companions_background_call(self) -> None:
+        """Extra Tanks.dll (loaded first) already wraps 0x422013: the counts call its wrapper."""
+        wrapper = self.OTHER_MODULE + 0x1230
+        self.emu.uc.mem_map(self.OTHER_MODULE, 0x10000)
+        self.emu.hook(wrapper, self._log("extra tanks' background", 0, 0))
+        self.emu.uc.mem_write(0x422013, b"\xE8" + struct.pack("<i", wrapper - 0x422018))
+        self.assertEqual(self.startup(), 1)
+        self.fish(0, 0, 25)
+        lines = self.lines()
+        self.assertEqual(self.calls[0], ("extra tanks' background",))
+        self.assertEqual(self.named("background"), [])
+        self.assertEqual(lines[0], "Fish: 1 of 21 (1 adult)")
 
     def test_the_isolation_tank(self) -> None:
         self.fish(3, 0, 33)
@@ -402,7 +477,7 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         self.fish(0, 2, 7)
         self.fish(0, 3, 1)
         self.fish(0, 4, 50, health=0)
-        self.fish(0, 26, 21, body=22, fin=32, mark=0x41435446)
+        self.animal(0, 4, fin=32)
         self.fish(3, 0, 20)
         self.assertEqual(self.lines(), [
             "Fische: 4 von 21 (2 ausgewachsen, 1 halbw\xfcchsig, 1 jung)  Tot: 1",
@@ -430,7 +505,7 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
     def test_nothing_is_written_to_the_state(self) -> None:
         for slot, age in enumerate((1, 8, 30)):
             self.fish(0, slot, age)
-        self.fish(0, 26, 21, body=22, fin=30, mark=0x41435446)
+        self.animal(0, 2, fin=30)
         self.fish(3, 0, 20)
         self.rock(0, 0, 229)
         self.emu.write32(self.state + 0x384, 0)
@@ -455,7 +530,7 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
                 self.fish(0, slot, age)
             self.fish(0, 6, 5, health=0)
             for k, fin in enumerate((22, 30, 31, 32, 22)):
-                self.fish(0, 26 + k, 21, body=22, fin=fin, mark=0x41435446)
+                self.animal(0, k, fin=fin)
             self.fish(3, 0, 25)
             out += self.lines()
             self.fish(0, 0, 1, clock=0)
@@ -550,6 +625,17 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
         self.assertEqual(self.calls[0], ("background",))
         self.assertEqual([(t[2], t[3], t[4], t[5], t[6]) for t in self.named("text")], [
             (237, 5, 0xFF000000, 0, GRAPHICS), (236, 4, 0xFFFFFFFF, 0, GRAPHICS)])
+
+    def test_under_the_extra_greenhouses_arrows_once_one_is_bought(self) -> None:
+        """5 extra greenhouses draws gold arrows at the top (y 10-59) once one is bought: the line
+        goes under them; with none bought (or the setting off: -1) it stays at the top."""
+        owned = [0]
+        self.export("Extra Greenhouses.dll", "FtfpExtraGreenhousesOwned", lambda e: owned[0], 0)
+        self.pot(0, 25.0)
+        for count, y in ((0, 4), (-1, 4), (1, 62), (5, 62)):
+            owned[0] = count
+            self.lines()
+            self.assertEqual([t[3] for t in self.named("text")], [y + 1, y], count)
 
     def test_nothing_is_written_to_the_state(self) -> None:
         for k, age in enumerate((1.0, 22.0, 30.0)):

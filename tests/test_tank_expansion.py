@@ -71,7 +71,7 @@ class ManifestTests(unittest.TestCase):
         self.assertFalse(self.setting["default"])
         self.assertEqual(self.setting["name"], "Bigger tanks: 30 fish")
         self.assertIn("30 fish", self.setting["summary"])
-        self.assertIn("selling tank too", self.setting["summary"])
+        self.assertIn("Sale Tank too", self.setting["summary"])
         self.assertIn("down to 21", self.setting["warning"])
         self.assertIn("isolation tank still holds one fish", self.setting["description"])
 

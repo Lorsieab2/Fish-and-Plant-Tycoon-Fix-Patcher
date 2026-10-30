@@ -32,6 +32,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zlib
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -51,6 +52,8 @@ MANIFEST = ROOT / "data" / "fish_manifest.json"
 
 STATE_SIZE = 0x1E600
 FISH_BASE, TANK, SLOT = 0x390, 0x51EC, 0x288
+ANIMALS = 5                                            # DS Store Items' animal records per tank
+HELD = TANK + ANIMALS * SLOT                           # a held block and its tank's animals after it
 STEP = 600                                             # Normal speed: one age step every 600 s
 
 _BUILT: dict = {}
@@ -116,6 +119,55 @@ class Rig:
         emu.write32(symbols["_owner"], self.state)
         emu.write32(symbols["_shown"], 0xFFFFFFFF)
         emu.write32(symbols["_owned"], 3)                   # all three bought, unless a test says otherwise
+        # DS Store Items, as its DLL keeps the animals: 5 records per stock place (0-2) of its own,
+        # each reached by the game's own slot arithmetic through a slot number past the fish slots.
+        self.modules: dict[str, int] = {"DS Store Items.dll": 0x6C000000}
+        self.exports: dict[tuple[int, str], int] = {}
+        self.animal_area = []
+        for place in range(3):
+            raw = emu.alloc(ANIMALS * SLOT + 16)
+            base = self.state + FISH_BASE + place * TANK
+            raw += (base - raw) % 8                         # a multiple of 8 from the tank's records
+            emu.uc.mem_write(raw, bytes(ANIMALS * SLOT))
+            self.animal_area.append(raw)
+        self.export("DS Store Items.dll", "FtfpStoreAnimals",
+                    lambda e: self.animal_area[e.arg(1)] if e.arg(0) == self.state and 0 <= e.arg(1) <= 2 else 0, 8)
+        self.export("DS Store Items.dll", "FtfpStoreAnimalRecord", self._animal_record, 12)
+        emu.hook_import("GetModuleHandleW", lambda e: self.modules.get(e.wstring(e.arg(0)), 0) if e.arg(0) else 0x400000, 4)
+        emu.hook_import("GetProcAddress", lambda e: self.exports.get((e.arg(0), e.cstring(e.arg(1)).decode()), 0), 8)
+
+    def export(self, module: str, name: str, handler, pop: int) -> None:
+        handle = self.modules.setdefault(module, 0x6C000000 + 0x10000 * len(self.modules))
+        address = self.emu.thunk()
+        self.emu.hook(address, handler, pop)
+        self.exports[(handle, name)] = address
+
+    def animal_slot(self, place: int, k: int) -> int:
+        """The slot number DS Store Items gives animal k of a place: state + 0x390 + place * 0x51EC
+        + slot * 0x288 lands on its record (mod 2^32), as in ftfp_ds_store.c animal_slot."""
+        d = (self.animal_area[place] + k * SLOT - (self.state + FISH_BASE + place * TANK)) & 0xFFFFFFFF
+        return ((d >> 3) * pow(81, -1, 1 << 32)) & 0x1FFFFFFF
+
+    def _animal_record(self, e) -> int:
+        state, place, slot = e.arg(0), e.arg(1), e.arg(2)
+        if state != self.state or not 0 <= place <= 2:
+            return 0
+        for k in range(ANIMALS):
+            if self.animal_slot(place, k) == slot:
+                return self.animal_area[place] + k * SLOT
+        return 0
+
+    def animals(self, place: int) -> bytes:
+        return bytes(self.emu.uc.mem_read(self.animal_area[place], ANIMALS * SLOT))
+
+    def put_animals(self, place: int, data: bytes) -> None:
+        self.emu.uc.mem_write(self.animal_area[place], data)
+
+    def extra_animals(self, e: int) -> bytes:
+        return bytes(self.emu.uc.mem_read(self.sym["_store"] + e * HELD + TANK, ANIMALS * SLOT))
+
+    def put_extra_animals(self, e: int, data: bytes) -> None:
+        self.emu.uc.mem_write(self.sym["_store"] + e * HELD + TANK, data)
 
     # ------------------------------------------------------------ helpers
     def _random(self, emu) -> int:
@@ -138,10 +190,10 @@ class Rig:
         self.emu.uc.mem_write(self.state + FISH_BASE + t * TANK, data)
 
     def extra(self, e: int) -> bytes:
-        return bytes(self.emu.uc.mem_read(self.sym["_store"] + e * TANK, TANK))
+        return bytes(self.emu.uc.mem_read(self.sym["_store"] + e * HELD, TANK))
 
     def put_extra(self, e: int, data: bytes) -> None:
-        self.emu.uc.mem_write(self.sym["_store"] + e * TANK, data)
+        self.emu.uc.mem_write(self.sym["_store"] + e * HELD, data)
 
     def var(self, name: str, value: int | None = None) -> int:
         if value is not None:
@@ -639,6 +691,28 @@ class Screen:
         self.rig.var("_page", 1 if target >= 3 else 0)
         return BUTTON_CENTRES[target % 3]
 
+    def animals(self, tank: int) -> bytes:
+        rig, shown = self.rig, self.rig.var("_shown")
+        if tank == 0:
+            return rig.extra_animals(shown) if shown >= 0 else rig.animals(0)
+        if tank < 3:
+            return rig.animals(tank)
+        return rig.animals(0) if shown == tank - 3 else rig.extra_animals(tank - 3)
+
+    def put_animals(self, tank: int, data: bytes) -> None:
+        rig, shown = self.rig, self.rig.var("_shown")
+        if tank == 0:
+            if shown >= 0:
+                rig.put_extra_animals(shown, data)
+            else:
+                rig.put_animals(0, data)
+        elif tank < 3:
+            rig.put_animals(tank, data)
+        elif shown == tank - 3:
+            rig.put_animals(0, data)
+        else:
+            rig.put_extra_animals(tank - 3, data)
+
     def hold_fish(self, source: int, slot: int) -> None:
         rig = self.rig
         entry = rig.view + 0x1080 + 3 * 0x84
@@ -674,8 +748,7 @@ class MovingBetweenAnyTwoTanks(unittest.TestCase):
         screen.put(source, block_with({slot: rec}))
         screen.hold_fish(source, slot)
         screen.release(*screen.control(source, target))
-        where = 26 if slot >= 26 else 0
-        self.assertEqual(screen.block(target)[where * SLOT: (where + 1) * SLOT], rec, f"{kind} {source}->{target}")
+        self.assertEqual(screen.block(target)[:SLOT], rec, f"{kind} {source}->{target}")
         self.assertEqual(struct.unpack_from("<I", screen.block(source), slot * SLOT)[0], 0, f"{kind} left {source}")
 
     def test_fish_and_the_golden_seahorse(self) -> None:
@@ -685,14 +758,60 @@ class MovingBetweenAnyTwoTanks(unittest.TestCase):
                     self.move_fish(kind, rec, source, target)
 
     def test_ds_store_animals(self) -> None:
-        """Into the target's animal slots (26-30). The stock buttons of Tank Two and the Sale Tank
-        (a stock tank in its own place) are DS Store Items' own drop, as before; every other way\n        is this DLL's."""
+        """A DS store animal swims with a slot number DS Store Items gives it (past the fish slots,
+        landing on its own record): it goes into the target's animal records and leaves its own by
+        the game's REMOVE_FISH. The stock buttons of Tank Two and Tank 3 (a stock tank in its own
+        place) are DS Store Items' own drop, as before; every other way is this DLL's."""
         for fin in (30, 31, 32):
             for source, target in PAIRS:
                 if target < 3 and (target - source) % 6 not in (1, 5) and not (target == 0 and source >= 3):
                     continue
                 with self.subTest(fin=fin, source=source, target=target):
-                    self.move_fish(f"animal {fin}", animal(NOW, fin), source, target, slot=27)
+                    rig = Rig()
+                    screen = Screen(rig)
+                    screen.show(source)
+                    rec = animal(NOW, fin)
+                    other = animal(NOW, 22)
+                    screen.put_animals(source, bytes(SLOT) + rec + bytes(3 * SLOT))
+                    screen.put_animals(target, other + bytes(4 * SLOT))
+                    place = 0 if source >= 3 else source
+                    screen.hold_fish(source, rig.animal_slot(place, 1))
+                    screen.release(*screen.control(source, target))
+                    self.assertEqual(screen.animals(target), other + rec + bytes(3 * SLOT), "into its first free record")
+                    self.assertEqual(struct.unpack_from("<I", screen.animals(source), SLOT)[0], 0, "it left its tank")
+                    self.assertNotIn(("hint", 6), rig.calls)
+
+    def test_ds_store_animals_into_a_full_tank_are_refused(self) -> None:
+        rig = Rig()
+        screen = Screen(rig)
+        screen.show(0)
+        rec = animal(NOW, 30)
+        screen.put_animals(0, rec + bytes(4 * SLOT))
+        screen.put_animals(3, b"".join(animal(NOW, 31) for _ in range(ANIMALS)))
+        screen.hold_fish(0, rig.animal_slot(0, 0))
+        screen.release(*screen.control(0, 3))
+        self.assertIn(("hint", 6), rig.calls)
+        self.assertEqual(screen.animals(0)[:SLOT], rec)
+
+    def test_animals_follow_their_tank_on_and_off_screen(self) -> None:
+        """Showing Tank 5 puts its block and its animals in Tank 1's place; Tank 1's wait with its block."""
+        rig = Rig()
+        tank_one, tank_five = animal(NOW, 30) + bytes(4 * SLOT), animal(NOW, 32) + bytes(4 * SLOT)
+        rig.put_animals(0, tank_one)
+        rig.put_extra_animals(1, tank_five)
+        mouse = rig.sym["@mouse_hook@20"]
+        rig.var("_page", 1)
+        for kind in (2, 3):                                       # Tank 5's button, pressed and let go
+            rig.emu.call(mouse, kind, *BUTTON_CENTRES[1], ecx=rig.impl)
+        self.assertEqual(rig.var("_shown"), 1)
+        self.assertEqual(rig.animals(0), tank_five)
+        self.assertEqual(rig.extra_animals(1), tank_one)
+        rig.var("_page", 0)
+        rig.emu.write8(rig.impl + 0xC8, 1)                        # Tank 1's button pressed
+        rig.emu.call(mouse, 3, *BUTTON_CENTRES[0], ecx=rig.impl)
+        self.assertEqual(rig.var("_shown"), -1)
+        self.assertEqual(rig.animals(0), tank_one)
+        self.assertEqual(rig.extra_animals(1), tank_five)
 
     def test_ornaments_and_the_eels_rock(self) -> None:
         kinds = {"shell": ornament(177), "the eel at home in its rock": ornament(229, bytes((90, 80, 0xE1))),
@@ -951,8 +1070,16 @@ class UpgradesScreenItem(unittest.TestCase):
             self.owned += 1
             return self.owned
         emu.hook(buy_fn, buy, 0)
-        emu.hook_import("GetProcAddress", lambda e: {"FtfpExtraTanksOwned": owned_fn, "FtfpExtraTanksBuy": buy_fn}
-                        .get(e.cstring(e.arg(1)).decode(), 0), 8)
+        held_fn, update_fn = emu.thunk(), emu.thunk()
+        self.held = [emu.alloc(HELD) for _ in range(3)]
+        for b in self.held:
+            emu.uc.mem_write(b, bytes(HELD))
+        emu.hook(held_fn, lambda e: self.held[e.arg(0)] if 0 <= e.arg(0) < 3 else 0, 4)
+        self.updates = []
+        emu.hook(update_fn, lambda e: self.updates.append(e.arg(0)) or 0, 4)
+        exports = {"FtfpExtraTanksOwned": owned_fn, "FtfpExtraTanksBuy": buy_fn, "FtfpExtraTanksHeld": held_fn,
+                   "FtfpExtraTanksUpdate": update_fn}
+        emu.hook_import("GetProcAddress", lambda e: exports.get(e.cstring(e.arg(1)).decode(), 0), 8)
         for name, pop in (("GetTickCount", 0),):
             emu.hook_import(name, emu.record(name), pop)
         emu.hook(0x00417FA0, emu.record("hint", args=1), 4)
@@ -1016,6 +1143,44 @@ class UpgradesScreenItem(unittest.TestCase):
         emu = self.store(25_000, free=False, owned=None)
         self.select(emu)
         self.assertEqual(emu.read32(emu.sym("_selected"), signed=True), -1)
+
+    def test_one_of_each_sees_the_animals_in_tanks_4_to_6(self) -> None:
+        """With "Buy Multiple Golden Seahorses" off an animal is sold out while one is in a tank:
+        Tanks 4-6 (held by Extra Tanks.dll, each block with its animal records after it) count."""
+        emu = self.store(25_000, free=False, owned=3)
+        sold_out = emu.sym("_sold_out")
+        for fin in (30, 31, 32):
+            self.assertEqual(emu.call(sold_out, emu.state, fin), 0, fin)
+        emu.uc.mem_write(self.held[1] + TANK + 2 * SLOT, animal(NOW, 31))       # a Sting Ray in Tank 5
+        self.assertEqual(emu.call(sold_out, emu.state, 31), 1)
+        self.assertEqual(emu.call(sold_out, emu.state, 30), 0)
+        rock = self.held[2] + (0x5208 - FISH_BASE) + 3 * 0x2C                    # the eel at home in Tank 6
+        emu.uc.mem_write(rock, ornament(229, bytes((90, 80, 0xE1))))
+        self.assertEqual(emu.call(sold_out, emu.state, 32), 1)
+
+    def test_time_warp_reaches_tanks_4_to_6(self) -> None:
+        """Each warp chunk banks the seconds into the held tanks' live fish too (never an animal or a
+        dead fish), and Extra Tanks.dll's own update pass runs after each stock update."""
+        emu = self.store(25_000, free=False, owned=3)
+        emu.write32(emu.state + 0x1E168, 10)                              # Normal speed
+        emu.uc.mem_write(self.held[0], fish(NOW, 4, 4, 25) + fish(NOW, 5, 5, 25, health=0))
+        emu.uc.mem_write(self.held[0] + 2 * SLOT, animal(NOW, 30))
+        emu.uc.mem_write(self.held[2] + 29 * SLOT, fish(NOW, 6, 6, 25))
+        emu.write8(0x004206B3, 30)                                        # Bigger tanks: 30 slots
+        scene = emu.alloc(0x100)
+        emu.write32(emu.sym("_tank_scene"), scene)
+        stock_updates = []
+        emu.hook(0x0041FE70, lambda e: stock_updates.append(e.uc.reg_read(E.X.UC_X86_REG_ECX)) or 0, 0)
+        emu.hook(emu.sym("_tw_ask_hours"), lambda e: 5, 0)
+        emu.hook_import("MessageBoxW", lambda e: 6, 16)                  # Yes / OK
+        for name in ("GetActiveWindow", "GetForegroundWindow"):
+            emu.hook_import(name, lambda e: 0, 0)
+        emu.call(emu.sym("_time_warp"), emu.read32(emu.scene + 8), emu.state)
+        banked = lambda b, s: emu.read32(b + s * SLOT + 4)              # noqa: E731
+        self.assertEqual([banked(self.held[0], s) for s in range(3)], [5 * 3600, 0, 0])
+        self.assertEqual(banked(self.held[2], 29), 5 * 3600)
+        self.assertEqual(len(stock_updates), 3, "the time so far, then two chunks (4 h + 1 h)")
+        self.assertEqual(self.updates, [scene] * 3, "Extra Tanks' pass after each stock update")
 
 
 @unittest.skipUnless(HAVE_UNICORN and EXE.is_file() and DLL.is_file() and E.toolchain_ready(),
@@ -1469,6 +1634,10 @@ class SavesAndSidecar(unittest.TestCase):
         rig.put_extra(1, tank_one)
         rig.put_extra(0, extras[0])
         rig.put_extra(2, extras[2])
+        tails = [b"".join(animal(NOW, fin) if k == e else bytes(SLOT) for k in range(ANIMALS))
+                 for e, fin in enumerate((30, 31, 32))]
+        for e in range(3):
+            rig.put_extra_animals(e, tails[e])
         rig.var("_shown", 1)
         rig.var("_owned", 2)
         rig.var("_selling", 0b011)
@@ -1476,24 +1645,46 @@ class SavesAndSidecar(unittest.TestCase):
         self.assertEqual(saved, [(3, tank_one)], "the save got Tank One in its own place")
         self.assertEqual(rig.tank(0), extras[1], "the extra is back on screen after the save")
         data = files.files[self.PATH]
-        self.assertEqual(len(data), 28 + 3 * TANK)
-        self.assertEqual(struct.unpack_from("<7I", data)[:2], (0x54585446, 3))
+        self.assertEqual(len(data), 28 + 3 * HELD)
+        self.assertEqual(struct.unpack_from("<7I", data)[:2], (0x54585446, 4))
         self.assertEqual(struct.unpack_from("<I", data, 20)[0], 2, "two bought")
         self.assertEqual(struct.unpack_from("<I", data, 24)[0], 0b011, "For sale on Tanks 3 and 4")
-        self.assertEqual(data[28:], b"".join(extras))
+        self.assertEqual(data[28:], b"".join(extras[e] + tails[e] for e in range(3)), "each block, then its animals")
         self.assertNotIn(self.PATH + ".tmp", files.files)
         # Load: the extras come back from the file; Tank One is the save's.
         for e in range(3):
             rig.put_extra(e, bytes(TANK))
+            rig.put_extra_animals(e, bytes(ANIMALS * SLOT))
         rig.put_tank(0, tank_one)
         rig.var("_owned", 0)
         rig.var("_selling", 0)
         rig.emu.call(rig.sym["@load_hook@12"], 3, ecx=rig.state)
         self.assertEqual(rig.var("_selling"), 0b011)
         self.assertEqual([rig.extra(e) for e in range(3)], extras)
+        self.assertEqual([rig.extra_animals(e) for e in range(3)], tails)
         self.assertEqual(rig.var("_owned"), 2)
         self.assertEqual(rig.var("_shown"), -1)
         self.assertEqual(rig.var("_owner"), rig.state)
+
+    def test_a_version_3_file_has_its_animals_moved_to_their_records(self) -> None:
+        """Version 3 (before DS Store Items had animal records of its own) kept a tank's animals in
+        its records 26-30: on load they move to the block's animal records, the fish stay."""
+        rig, files, _ = self.rig()
+        blocks = [block_with({0: fish(NOW, 3, 3, 25), 27: animal(NOW, 31), 29: animal(NOW, 22)}),
+                  block_with({1: fish(NOW, 4, 4, 25)}), block_with({26: animal(NOW, 32)})]
+        payload = b"".join(blocks)
+        header = struct.pack("<7I", 0x54585446, 3, 3, TANK, zlib.crc32(payload), 2, 0b001)
+        files.files[self.PATH] = header + payload
+        rig.emu.call(rig.sym["@load_hook@12"], 3, ecx=rig.state)
+        self.assertEqual(rig.var("_owned"), 2)
+        self.assertEqual(rig.var("_selling"), 1)
+        self.assertEqual(rig.extra(0), block_with({0: fish(NOW, 3, 3, 25)}))
+        self.assertEqual(rig.extra_animals(0), animal(NOW, 31) + animal(NOW, 22) + bytes(3 * SLOT))
+        self.assertEqual(rig.extra(1), blocks[1])
+        self.assertEqual(rig.extra_animals(1), bytes(ANIMALS * SLOT))
+        self.assertEqual(rig.extra(2), bytes(TANK))
+        self.assertEqual(rig.extra_animals(2), animal(NOW, 32) + bytes(4 * SLOT))
+        self.assertIn(self.PATH, files.files, "a good file is never set aside")
 
     def test_settings_slot_is_not_ours(self) -> None:
         rig, files, saved = self.rig()
@@ -1502,7 +1693,7 @@ class SavesAndSidecar(unittest.TestCase):
 
     def test_damaged_file_is_set_aside_and_extras_start_empty(self) -> None:
         rig, files, _ = self.rig()
-        good = 28 + 3 * TANK
+        good = 28 + 3 * HELD
         files.files[self.PATH] = b"FTXT" + bytes(good - 4)
         rig.put_extra(0, block_with({0: fish(NOW, 1, 1, 22)}))
         rig.emu.call(rig.sym["@load_hook@12"], 3, ecx=rig.state)
@@ -1701,20 +1892,18 @@ class Manifest(unittest.TestCase):
                 self.assertIn("ds_store", key.split(","), f"{key}: the setting needs DS Store Items")
 
     def test_off_leaves_every_other_pin_unchanged(self) -> None:
-        """With the setting off the output is byte-identical to the build before it: no
-        manifest patch needs it, and no pin without it changed."""
+        """With the setting off nothing of it is in the build: no manifest patch needs it and the
+        loader of every combination without it never names Extra Tanks.dll (so those pins are what
+        they would be without this setting; test_pins_match_a_fresh_build checks the pins).
+        Comparing with origin/main's pins stopped working once other settings in the same release
+        moved pins of their own (Bigger tanks at 30, the loaders chaining several DLLs)."""
+        import ds_fish_loader
         for patch in self.manifest["patches"]:
             self.assertNotIn("extra_tanks", patch.get("requires", []))
-        try:
-            base = subprocess.run(["git", "show", "origin/main:data/fish_manifest.json"], cwd=ROOT,
-                                  capture_output=True, text=True, encoding="utf-8", check=True).stdout
-        except (OSError, subprocess.CalledProcessError):
-            self.skipTest("no origin/main to compare with")
-        before = json.loads(base)["patched_sha256_by_settings"]
-        pins = self.manifest["patched_sha256_by_settings"]
-        for key, value in before.items():
-            if key in pins:
-                self.assertEqual(pins[key], value, key)
+        for key in self.manifest["patched_sha256_by_settings"]:
+            enabled = set(key.split(",")) - {""}
+            names = ds_fish_loader.fish_profile(enabled).dll_names
+            self.assertEqual("Extra Tanks.dll" in names, "extra_tanks" in enabled, key)
 
     @unittest.skipUnless(EXE.is_file(), "needs the vanilla Fish Tycoon.exe")
     def test_pins_match_a_fresh_build(self) -> None:
