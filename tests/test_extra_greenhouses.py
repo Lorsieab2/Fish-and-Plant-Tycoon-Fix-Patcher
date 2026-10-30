@@ -1087,7 +1087,10 @@ class ExtraNurseryTests(unittest.TestCase):
         game.show(0, active=0)
         self.assertEqual({(g, k): game.pot_bytes(g, k) for g in range(EXTRA + 1) for k in range(POTS)}, records)
 
-    def test_the_arrows_page_through_the_bought_nurseries_as_the_game_opens_them(self) -> None:
+    def test_the_arrows_page_through_the_bought_nurseries_and_keep_the_customers(self) -> None:
+        """A switch changes only the plants on the stands: the nursery is neither closed nor opened again,
+        and the whole nursery scene and its visitor list (places, states, timers, the visitor limit, the
+        browsing count) are byte for byte as they were."""
         for nurseries, expected in ((0, [0, 0, 0]), (2, [1, 2, 0])):
             game = self.game(nurseries)
             emu = game.emu
@@ -1096,13 +1099,71 @@ class ExtraNurseryTests(unittest.TestCase):
             emu.hook(thunk, lambda e: opened.append(e.arg(0)) or 0, 4)
             emu.write32(emu.sym("_next_nu_activate"), thunk)
             emu.hook(0x00449F00, lambda e: e.alloc(0x10))
-            nursery = emu.alloc(0xB00)
+            nursery, visitors = emu.alloc(0xB00), emu.alloc(0x170000)
+            noise = random.Random(nurseries).randbytes(0xB00)
+            emu.uc.mem_write(nursery, noise)
+            emu.write32(nursery + 0xA3C, game.state)
+            emu.write32(nursery + 0xA4C, visitors)
+            emu.uc.mem_write(visitors, random.Random(5).randbytes(0x170000))
+            scene_before = bytes(emu.uc.mem_read(nursery, 0xB00))
+            visitors_before = bytes(emu.uc.mem_read(visitors, 0x170000))
             seen = []
             for _ in range(3):
                 emu.call(emu.sym("@nu_command@16"), 8, 41, ecx=nursery)
                 seen.append(emu.read32(emu.sym("_nursery_shown")))
+                self.assertEqual(bytes(emu.uc.mem_read(nursery, 0xB00)), scene_before)
+                self.assertEqual(bytes(emu.uc.mem_read(visitors, 0x170000)), visitors_before)
             self.assertEqual(seen, expected)
-            self.assertEqual(opened, [0, 1] * 3 if nurseries else [])           # closed, then opened: stock
+            self.assertEqual(opened, [])                                         # never closed or reopened
+            if nurseries:
+                self.assertEqual(emu.read32(emu.sym("_arranged")), 100)          # Nursery 1's plants again
+
+    def test_a_switch_with_a_sold_or_held_plant_is_safe(self) -> None:
+        """A plant sold in Nursery 1 stays sold on its stand when you come back (paid once), and a plant
+        held to rearrange the nursery is put back before the stands change."""
+        game = self.game(1)
+        emu = game.emu
+        limits = NurseryLimitTests()
+        for k in range(POTS):
+            limits.toggle(game, 1, k)
+        limits.toggle(game, 3, 2)                                               # Nursery 2
+        emu.hook(0x00449F00, lambda e: e.alloc(0x10))
+        nursery = emu.alloc(0xB00)
+        game.show(0, active=2)
+        sold = game.state + POTS_AT + 4 * POT                                   # a sale on stand 4: 0x435C70's marks
+        emu.write8(sold + 0x9E, 1)
+        emu.write8(sold + FOR_SALE, 0)
+        record = bytes(emu.uc.mem_read(sold, POT))
+        cash = emu.read32(game.state + 0x217C)
+        emu.write32(game.state + HELD, HELD_POT + 7)                            # a plant held in the nursery
+        emu.call(emu.sym("@nu_command@16"), 8, 41, ecx=nursery)
+        self.assertEqual(emu.read32(game.state + HELD), 0)
+        stands = [bytes(emu.uc.mem_read(game.state + POTS_AT + j * POT, POT)) for j in range(POTS)]
+        self.assertEqual(sum(r[FOR_SALE] for r in stands), 1)                   # Nursery 2's one plant
+        self.assertNotIn(record, stands)                                        # the sold one is not shown here
+        emu.call(emu.sym("@nu_command@16"), 8, 40, ecx=nursery)
+        self.assertEqual(bytes(emu.uc.mem_read(sold, POT)), record)             # back on its stand, still sold
+        self.assertEqual(emu.read32(game.state + 0x217C), cash)                 # nothing paid by switching
+
+    def test_closing_the_nursery_empties_every_nurserys_sold_pots(self) -> None:
+        game = self.game(1)
+        emu = game.emu
+        limits = NurseryLimitTests()
+        for k in range(POTS):
+            limits.toggle(game, 1, k)
+        limits.toggle(game, 3, 2)
+        for g, k in ((1, 4), (3, 2)):                                           # one sold in each nursery
+            at = game.pot(g, k)
+            emu.write8(at + 0x9E, 1)
+            emu.write8(at + FOR_SALE, 0)
+        nursery = emu.alloc(0xB00)
+        emu.write32(nursery + 0xA3C, game.state)
+        emu.write32(nursery + 0xA44, game.manager)
+        game.show(0, active=2)
+        emu.call(emu.sym("@nu_activate@12"), 0, ecx=nursery)                    # the stock close, then the others
+        for g, k in ((1, 4), (3, 2)):
+            self.assertEqual(emu.read32(game.pot(g, k) + FOLIAGE), 0, (g, k))
+        self.assertEqual(emu.read32(game.pot(1, 5) + FOLIAGE), 5)               # unsold plants stay
 
     def test_a_plant_in_the_second_nursery_sells_like_a_stock_one(self) -> None:
         game = self.game(1)

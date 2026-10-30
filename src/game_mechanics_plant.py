@@ -1192,9 +1192,13 @@ EXTRA_NURSERIES = (
         "Each nursery is the stock nursery screen, run by the game's own code, with its own 15 spots. Gold "
         "arrows at the top (the game's own) page through Nursery 1, the stock one, and the ones you own; each "
         "screen is named \"Nursery 1\" to \"Nursery 6\" (\" of m\" once you own more than one). Switching is "
-        "leaving one nursery and entering the next, exactly as the stock game does it: sold plants leave their "
-        "pots, and the next nursery counts its own plants for sale for its visitor limit (2 per plant, see "
-        "Selling and visitors).",
+        "instant and changes only the plants on the 15 stands: the visitors stay exactly as they are (where "
+        "they walk, what they do, their timers), and so do the visitor limit counted when you entered the "
+        "nursery (2 per plant for sale, see Selling and visitors) and the number browsing that the buy rolls "
+        "use. Visitors never hold a plant: a comment looks at a stand's plant there and then, so after a switch "
+        "they look at the new nursery's plants. A plant sold on a stand stays there, marked sold, until you "
+        "leave the nursery; leaving empties the sold pots of every nursery, as the stock nursery empties its "
+        "own. A plant you were dragging to rearrange the nursery goes back to its stand.",
         subs=(
             "Every sale rule (the buy roll, prices, visitors, comments) is the stock one, per nursery.",
             "All bought nurseries sell at once, but only while you are in the nursery (the stock game sells "
