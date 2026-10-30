@@ -78,6 +78,9 @@ SITES = [
     # (0x41E120, adults only) and before the sickness costs it a pregnancy (0x4204EE), its food
     # drops and the starvation test (0x42055E).
     ("auto_step", 0x4204B3, ["mov edx, dword ptr [esi + 0x34]", "cmp dword ptr [edi + edx + 0x3d0], ebx"]),
+    # The feeding's overfeeding test (a fish whose food passed 100): with the Auto-Feeder owned no
+    # fish loses health there, as the seahorse never does.
+    ("overfeed", 0x4121F4, ["cmp dword ptr [edx + ebx + 0x3dc], 0x16", "je 0x41220d"]),
 ]
 
 # The Supplies scene's vtable (0x44C294): slot address -> the function it holds.

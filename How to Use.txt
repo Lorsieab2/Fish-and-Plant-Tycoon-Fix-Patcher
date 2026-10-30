@@ -82,7 +82,7 @@ Fish Tycoon options:
   stay babies), the Revival Potion (revives the
   tank's dead fish), ClonaFish (clones every unique fish), and the
   Auto-Feeder and Auto-Healer ($10,000 each, bought once: every live fish in
-  every tank stays fed at 50 food, never overfed, and is cured and kept at
+  every tank stays full at 100 food (feeding by hand never hurts it), and is cured and kept at
   full health; dead fish are left alone. Click an owned one again and answer
   Yes to unpurchase it: it switches off, no refund, buying it again costs the
   full price; kept in "Auto Upgrades <slot>.dat"). The animals

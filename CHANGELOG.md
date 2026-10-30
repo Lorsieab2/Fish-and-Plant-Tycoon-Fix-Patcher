@@ -471,8 +471,8 @@ Auto-Feeder, Automatic Sprinklers and Auto-Healers, a Tools tab, and fixes.
   upgrades), bought once with the same Yes / No as Add Money. At the top of
   every age unit of every live potted plant (every greenhouse, Greenhouses 2-6
   too, time away and the Time Warp unit by unit; hooks at 0x42E134 and
-  0x42E2DF) and after each update: water 500 (the band that is never dry, below
-  100, and never triples the pest odds, above 900); pests cleared (one Plants
+  0x42E2DF) and after each update: water 800 (never dry, below 100, and below
+  the 900 above which the pest odds triple); pests cleared (one Plants
   Cured each) and health 100. A dead plant is never touched; a plant that dies of
   old age during a catch-up stays as the game leaves it. Dead branches from the
   age-7 roll are part of growth and stay.
@@ -742,8 +742,9 @@ Auto-Feeder, Automatic Sprinklers and Auto-Healers, a Tools tab, and fixes.
   (Tanks 1-2, the Sale Tank, the isolation tank, all 30 slots with Bigger
   tanks, Tanks 4-6 with 3 extra tanks, on screen or not, time away and the Time
   Warp included), right after the sickness roll (a new hook at 0x4204B3): the
-  Auto-Feeder sets food to 50 (never below 5, never starving, and a feeding by
-  hand reaches 100 at most, so it never overfeeds); the Auto-Healer clears
+  Auto-Feeder keeps food full at 100 (never below 5, never starving; while it is
+  owned a feeding by hand never costs health for overfeeding, a hook at
+  0x4121F4); the Auto-Healer clears
   fungus and ick (one Fish Cured each) and sets health to 100, again at the
   step's death test. A dead fish is never touched. The owner's art: the green
   feeder and the same machine in hot pink (scripts/build_auto_healer_source.py),

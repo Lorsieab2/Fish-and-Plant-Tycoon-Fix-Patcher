@@ -27,10 +27,15 @@
        health (overfeeding, 0x4121CB-0x412237; the seahorse is spared), which
        can kill it.  That is the only harm food does: the game keeps no water
        quality or pollution, and the falling food is only drawn;
-     * so the Auto-Feeder keeps food at 50: never 5 or less (no lost health
-       gain, no starvation), and a feeding by hand on top of it reaches 100 at
-       most, never more (no overfeeding).  It writes the field, as a feeding
-       would, without the feeding's +50, so it can never overfeed;
+     * nothing else treats a full meter badly: food is read only by the
+       health tick (below 5), the starvation test (2 or less), the clamps,
+       the info panel's meter (0x41D8EC, 0x41D876) and the feeding;
+     * so the Auto-Feeder keeps food full, at 100 (the owner, 2026-10-30): never
+       below 5 (no lost health gain, no starvation).  It writes the field, as a
+       feeding would, without the feeding's +50, so it never overfeeds; and
+       while it is owned a feeding by hand never costs health either (the fish
+       is full: the stock overfeeding test at 0x4121F4 goes the way it goes for
+       the seahorse, food still set to 100).  Without it, feeding is stock;
      * sickness is +0x40 (1 fungus, 2 ick), rolled each step for adults
        (0x41E120); a sick fish gains no health and loses 1 more a step (0x41DF50),
        loses its pregnancy (0x4204EE), spreads its sickness (+6 to the odds of
@@ -41,7 +46,7 @@
    The hook runs in each step right after the sickness roll, before the
    sickness can cost a pregnancy and before the food drops: the Auto-Healer
    clears +0x40 (one Fish Cured each, as the medicines count) and sets health
-   100; the Auto-Feeder sets food 50.  At the step's death test the Auto-Healer
+   100; the Auto-Feeder sets food 100.  At the step's death test the Auto-Healer
    sets health 100 again (only a fish whose health is above 0 there: one at 0
    is dying, and is left to die).  On a purchase every live fish of every
    tank gets the same at once.
@@ -54,7 +59,7 @@
 
 #define AUTO_FEEDER 0
 #define AUTO_HEALER 1
-#define FEED_LEVEL 50                       /* + a feeding's 50 = 100, never more: no overfeeding */
+#define FEED_LEVEL 100                      /* full; the overfeeding hook spares a hand feeding on top */
 
 static volatile unsigned char auto_owned[2];
 
@@ -226,6 +231,23 @@ __declspec(noinline) static void auto_new_game(void) { auto_owned[AUTO_FEEDER] =
 /* ------------------------------------------------------------------- stubs */
 
 static const DWORD k_auto_step_back = SITE_AUTO_STEP_VA + SITE_AUTO_STEP_LEN;
+static const DWORD k_overfeed_spared = 0x0041220Du;       /* past the -2 health, as for the seahorse */
+static const DWORD k_overfeed_back = SITE_OVERFEED_VA + SITE_OVERFEED_LEN;
+
+/* 0x4121F4 in the feeding (0x412160), a fish whose food passed 100 (now set to 100): with the
+   Auto-Feeder owned it is spared the overfeeding's -2 health, as the stock code spares the
+   seahorse; otherwise the stock test (body 22 spared). edx + ebx is the record's offset. */
+__declspec(naked) static void stub_overfeed(void) {
+    __asm {
+        cmp byte ptr [auto_owned + AUTO_FEEDER], 0
+        jne spared
+        cmp dword ptr [edx + ebx + 0x3DC], 0x16
+        je spared
+        jmp k_overfeed_back
+    spared:
+        jmp k_overfeed_spared
+    }
+}
 
 /* 0x4204B3, in the step loop after the sickness roll: esi = the tank screen, edi = the record's
    offset in the state (+ 0x390), ebx = 0. */

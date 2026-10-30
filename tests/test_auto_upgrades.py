@@ -348,6 +348,7 @@ class FishTests(unittest.TestCase):
         emu.write32(0x0045ABDC, state)
         jump(emu, 0x004204B3, emu.sym("_stub_auto_step"), 10)
         jump(emu, 0x00420622, emu.sym("_stub_death"), 10)
+        jump(emu, 0x004121F4, emu.sym("_stub_overfeed"), 10)
         emu.uc.mem_write(emu.sym("_auto_owned"), bytes(owned))
         emu.state, emu.impl, emu.view = state, impl, view
         return emu
@@ -373,7 +374,7 @@ class FishTests(unittest.TestCase):
             for place, at in hungry.items():
                 self.assertEqual(self.field(emu, at, F_HEALTH), 100, place)
                 self.assertEqual(self.field(emu, at, F_DISEASE), 0, place)
-                self.assertIn(self.field(emu, at, F_FOOD), (49, 50), place)    # never 2 or less, never above 50
+                self.assertIn(self.field(emu, at, F_FOOD), (99, 100), place)  # full: never 2 or less
                 self.assertEqual(self.field(emu, at, F_AGE), 25 + 40, place)   # alive through every step
             self.assertEqual(emu.read32(emu.state + S_CURED), len(places))    # one Fish Cured per cure
 
@@ -393,7 +394,7 @@ class FishTests(unittest.TestCase):
         emu = self.tanks((1, 0))                                                # the feeder only
         at = self.put(emu, 0, 0, fish_record(body=4, fin=8, health=60, food=3, disease=1, steps=3))
         self.update(emu)
-        self.assertIn(self.field(emu, at, F_FOOD), (49, 50))
+        self.assertIn(self.field(emu, at, F_FOOD), (99, 100))
         self.assertEqual(self.field(emu, at, F_DISEASE), 1)                    # still sick
         emu = self.tanks((0, 1))                                                # the healer only
         at = self.put(emu, 0, 0, fish_record(health=60, food=40, disease=1, steps=3))
@@ -410,19 +411,37 @@ class FishTests(unittest.TestCase):
         emu.call(emu.sym("_auto_tend_all"), emu.state)                          # nor at a purchase
         self.assertEqual(bytes(emu.uc.mem_read(at, REC)), dead)
 
-    def test_feeding_by_hand_on_top_never_overfeeds(self) -> None:
-        emu = self.tanks((1, 0))
-        at = self.put(emu, 0, 0, fish_record(health=80, food=90, steps=1))
-        self.update(emu)
-        food = self.field(emu, at, F_FOOD)
-        self.assertLessEqual(food, 50)
-        health = self.field(emu, at, F_HEALTH)
-        emu.write32(emu.view + 0x5DD8, 1)                                       # one swimming fish: this one
+    def feed_by_hand(self, emu) -> None:
+        emu.write32(emu.view + 0x5DD8, 1)                                       # one swimming fish: slot 0 of tank 0
         emu.write32(emu.view + 0x1144, 0)
         emu.write32(emu.view + 0x1148, 0)
         emu.call(0x00412160, 400, 300, ecx=emu.view)                            # the game's feeding
-        self.assertEqual(self.field(emu, at, F_FOOD), food + 50)                # at most 100
-        self.assertEqual(self.field(emu, at, F_HEALTH), health)                 # no overfeeding harm
+
+    def test_feeding_by_hand_with_the_feeder_never_costs_health(self) -> None:
+        emu = self.tanks((1, 0))
+        at = self.put(emu, 0, 0, fish_record(body=4, fin=8, health=80, food=30, steps=1))
+        self.update(emu)
+        self.assertIn(self.field(emu, at, F_FOOD), (99, 100))                  # kept full
+        health = self.field(emu, at, F_HEALTH)
+        for _ in range(3):                                                      # fed again and again on top
+            self.feed_by_hand(emu)
+            self.assertEqual(self.field(emu, at, F_FOOD), 100)
+            self.assertEqual(self.field(emu, at, F_HEALTH), health)            # no overfeeding harm
+
+    def test_feeding_by_hand_without_the_feeder_is_stock(self) -> None:
+        for owned in ((0, 0), (0, 1)):                                          # the healer alone changes nothing here
+            emu = self.tanks(owned)
+            at = self.put(emu, 0, 0, fish_record(body=4, fin=8, health=80, food=90, steps=0))
+            self.feed_by_hand(emu)
+            self.assertEqual((self.field(emu, at, F_FOOD), self.field(emu, at, F_HEALTH)), (100, 78), owned)
+            emu = self.tanks(owned)
+            at = self.put(emu, 0, 0, fish_record(body=4, fin=8, health=80, food=40, steps=0))
+            self.feed_by_hand(emu)                                              # 90: not overfed
+            self.assertEqual((self.field(emu, at, F_FOOD), self.field(emu, at, F_HEALTH)), (90, 80), owned)
+        emu = self.tanks((1, 0))                                                # the seahorse: spared, as stock
+        at = self.put(emu, 0, 0, fish_record(body=22, fin=22, health=80, food=90, steps=0))
+        self.feed_by_hand(emu)
+        self.assertEqual(self.field(emu, at, F_HEALTH), 80)
 
     def test_a_purchase_reaches_every_tank_and_the_extra_tanks_off_screen(self) -> None:
         emu = self.tanks((1, 1))
@@ -439,7 +458,7 @@ class FishTests(unittest.TestCase):
         emu.call(emu.sym("_auto_tend_all"), emu.state)
         for at in places:
             self.assertEqual((self.field(emu, at, F_HEALTH), self.field(emu, at, F_DISEASE),
-                              self.field(emu, at, F_FOOD)), (100, 0, 50))
+                              self.field(emu, at, F_FOOD)), (100, 0, 100))
 
     def test_an_extra_tank_updated_off_screen(self) -> None:
         # Extra Tanks.dll plays Tanks 4-6 by moving each one's block into a stock tank's place and
@@ -456,7 +475,7 @@ class FishTests(unittest.TestCase):
         f = block[9 * REC:10 * REC]
         health, disease, food = struct.unpack_from("<iii", f, F_HEALTH)
         self.assertEqual((health, disease), (100, 0))
-        self.assertIn(food, (49, 50))
+        self.assertIn(food, (99, 100))
 
 
 # ------------------------------------------------------------------ Plant Tycoon
@@ -672,8 +691,8 @@ class PlantTests(unittest.TestCase):
             self.watch_rolls(emu, pot)
             self.run_update(emu, obj)
             self.assertEqual(len(emu.seen), 40, where)                           # every unit played
-            self.assertEqual(set(emu.seen), {500}, where)                        # never above 900, never dry
-            self.assertEqual(self.read(emu, pot, P_WATER), 500, where)
+            self.assertEqual(set(emu.seen), {800}, where)                        # never above 900, never dry
+            self.assertEqual(self.read(emu, pot, P_WATER), 800, where)
             self.assertEqual(self.read(emu, pot, P_HEALTH), 100, where)          # class A, Common soil: +1 a unit
         stock = self.greenhouse((0, 0))
         pot = stock.state + POT0
@@ -737,7 +756,7 @@ class PlantTests(unittest.TestCase):
         emu.call(emu.sym("_auto_tend_all"), emu.state)
         for place, pot in banks.items():
             self.assertEqual((self.read(emu, pot, P_HEALTH), self.read(emu, pot, P_PESTS),
-                              self.read(emu, pot, P_WATER)), (100, 0, 500), place)
+                              self.read(emu, pot, P_WATER)), (100, 0, 800), place)
         self.assertEqual(emu.read32(emu.state + S_PLANTS_CURED), 90)
 
 

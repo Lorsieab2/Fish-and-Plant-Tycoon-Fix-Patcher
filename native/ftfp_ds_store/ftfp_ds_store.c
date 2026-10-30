@@ -2587,7 +2587,7 @@ __declspec(naked) static void stub_state_save(void) {
 }
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 30
+#define TOTAL_SITES 31
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -2639,6 +2639,7 @@ static int prepare(void) {
     ftfp_site_branch(w++, 0x00421AAAu, 5, TANK_UPDATE_CALL, 0xE8, CODE_ADDR(stub_tank_update));
     CALL(w++, SUPPLY_DROP, stub_supply_drop);
     JMP(w++, AUTO_STEP, stub_auto_step);
+    JMP(w++, OVERFEED, stub_overfeed);
     return (int)(w - writes) == TOTAL_SITES;
 }
 
