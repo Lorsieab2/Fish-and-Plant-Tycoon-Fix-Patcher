@@ -59,7 +59,7 @@ class ManifestTests(unittest.TestCase):
         screen_items = {"time_warp", "free_upgrades", "add_money",       # tests/test_store_extras.py
                         "extra_greenhouses", "extra_nurseries"}          # tests/test_extra_greenhouses.py
         added = [key for key in pins if "plant_upgrades" in key.split(",") and not screen_items & set(key.split(","))]
-        self.assertEqual(len(added), 32)         # with and without Sort Seeds, the R key, Fix Vanilla Bugs and Optimize Prices
+        self.assertEqual(len(added), 64)         # with and without Sort Seeds, the R key, Fix Vanilla Bugs, Optimize Prices and the counts
         for key in added:
             enabled = set(key.split(","))
             self.assertIn("new_flowers", enabled)
