@@ -70,32 +70,7 @@ import struct
 from dataclasses import dataclass
 from pathlib import Path
 
-try:                                    # the GUI agent's module, when it is there
-    from breeding_guide import Part, Prices, Species  # type: ignore
-except ImportError:                     # the interface's dataclasses, defined identically
-    @dataclass(frozen=True)
-    class Part:
-        kind: str
-        index: int
-        name: str
-        patcher: bool
-        how: str
-
-    @dataclass(frozen=True)
-    class Species:
-        key: tuple[int, int]
-        name: str
-        parts: tuple[Part, Part]
-        patcher: bool
-        rarity: str
-        value: int
-
-    @dataclass(frozen=True)
-    class Prices:
-        best_per_day: int
-        best_per_day_income: float
-        highest_selling: int
-        note: str
+from breeding_guide import Part, Prices, Species        # the interface's dataclasses, defined once
 
 
 GAME = "plant"

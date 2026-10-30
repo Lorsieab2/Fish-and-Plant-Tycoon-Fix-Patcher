@@ -50,10 +50,11 @@ past it, 0x4246E3) give the prices.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 import struct
+
+from breeding_guide import Part, Prices, Species        # the interface's dataclasses, defined once
 
 GAME = "fish"
 
@@ -197,6 +198,18 @@ EFFECTS = {
 }
 
 
+@lru_cache(maxsize=None)
+def best_asking_price(base: int, crowds: tuple[int, ...]) -> tuple[int, float]:
+    """The asking price (1 to 2B - 1) with the most money per real day, averaged over the
+    crowd sizes (each equally likely); the lowest such price on a tie."""
+    best_price, best_income = 0, 0.0
+    for price in range(1, 2 * base):
+        income = sum(income_per_day(price, base, n) for n in crowds) / len(crowds)
+        if income > best_income + 1e-9:
+            best_price, best_income = price, income
+    return best_price, best_income
+
+
 def advertised(base: int, level: int) -> int:
     """B after the Advertising research levels have finished: level 2 adds B / 10, level 3
     then adds B / 7 (0x420AE6, 0x420A82; rounded down, as the game's integer division)."""
@@ -205,36 +218,6 @@ def advertised(base: int, level: int) -> int:
     if level >= 3:
         base += base // 7
     return base
-
-
-# ------------------------------------------------------------------ the interface
-
-
-@dataclass(frozen=True)
-class Part:
-    kind: str
-    index: int
-    name: str
-    patcher: bool
-    how: str
-
-
-@dataclass(frozen=True)
-class Species:
-    key: tuple[int, int]
-    name: str
-    parts: tuple[Part, Part]
-    patcher: bool
-    rarity: str
-    value: int
-
-
-@dataclass(frozen=True)
-class Prices:
-    best_per_day: int
-    best_per_day_income: float
-    highest_selling: int
-    note: str
 
 
 def is_ds(gene: int) -> bool:
@@ -269,10 +252,10 @@ def gene_down(gene: int) -> int:
 def _how(kind: str, gene: int) -> str:
     noun = "body" if kind == "body" else "fin"
     if is_ds(gene):
-        before = "20 (" + (BODY_NAMES[20] if kind == "body" else FIN_NAMES[20]) + ")" if gene == DS_FIRST \
-            else f"{gene - 1} ({_part_name(kind, gene - 1)})"
+        before = PC_LAST if gene == DS_FIRST else gene - 1
         return (f"DS Exclusive Fish only. The Unknown Chemical ($650), or the Magic Fish of Mutation at a "
-                f"birth, steps a {noun} at {before} up into it; breeding, with at least one DS parent; "
+                f"birth, steps a {noun} at {before} up into it (20, then 23 to 29); breeding, with at least "
+                f"one DS parent; "
                 f"Exotic Fish Eggs ($2300, with DS Store Items). Never from two PC parents.")
     if gene % 2:
         return (f"Breeding only: no egg lays it. Two parents whose {noun}s add up to {2 * gene} or "
@@ -398,6 +381,11 @@ class FishModel:
 
     def part_label(self, kind: str) -> str:
         return {"body": "Body", "fin": "Fin"}[kind]
+
+    def part_rarity(self, part: Part) -> str:
+        """The gene's tier (0x41DF99; DS genes by the DLL's gene_tier): a fish is as rare as
+        its rarer part."""
+        return TIER_NAMES[gene_tier(part.index)]
 
     # ---- breeding
     def _gene_child(self, a: int, b: int) -> tuple[int, int, bool]:
@@ -580,11 +568,7 @@ class FishModel:
         setup = EFFECTS[effects]
         base = advertised(base_price(*key), setup["advertising"])
         crowds = setup["browsing"]
-        best_price, best_income = 0, 0.0
-        for price in range(1, 2 * base):
-            income = sum(income_per_day(price, base, n) for n in crowds) / len(crowds)
-            if income > best_income + 1e-9:
-                best_price, best_income = price, income
+        best_price, best_income = best_asking_price(base, crowds)
         if effects == "max":
             note = (f"B {base} after Advertising levels 2 and 3; {crowds[0]} or {crowds[1]} customers "
                     f"browsing (6 ornaments, the Golden Seahorse, Advertising level 3, a full selling "
