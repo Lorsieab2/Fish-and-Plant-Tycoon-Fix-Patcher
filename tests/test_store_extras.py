@@ -91,7 +91,7 @@ class ManifestTests(unittest.TestCase):
         icon = ROOT / "assets" / "fish_tycoon_ds_store" / "Images" / "ITEM_ADD_MONEY.png"
         self.assertEqual(png_size(icon), (74, 60))     # the DLL's icon_w / icon_h for the item
         sheet = ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png"
-        self.assertEqual(png_size(sheet), (140, 12 * 70))   # row 11: the coins (chem_rows = 12 in the DLL)
+        self.assertEqual(png_size(sheet), (140, 15 * 70))   # row 14: the coins (chem_rows = 15 in the DLL)
         self.assertEqual(png_size(ROOT / "assets" / "money_cheat" / "coins_source.png"), (195, 159))
 
 
@@ -161,7 +161,8 @@ def plant_font() -> set[str]:
 
 S_MONEY, S_SPENT, S_EGG_COUNT = 0x38C, 0x24, 0x314
 ANIMAL_RECORD = 0x390 + 26 * 0x288          # Tank 1's first animal slot
-FISH_CELLS = {"puffer": (80, 110), "ray": (180, 130), "eel": (270, 130),"eggs": (350, 130), "warp": (450, 130), "money": (540, 130)}
+FISH_CELLS = {"puffer": (80, 110), "ray": (180, 130), "eel": (270, 130),"eggs": (350, 130), "warp": (450, 130), "money": (540, 130),
+              "hormone": (630, 125), "revival": (725, 125), "clonafish": (86, 200)}
 
 
 @_needs(FISH_EXE)
@@ -222,7 +223,7 @@ class FishStoreTests(unittest.TestCase):
         return [c[1] for c in emu.calls if c[0] == "text" and c[1].startswith("Price:")][-1]
 
     def test_every_item_shows_its_price_or_zero(self) -> None:
-        for item, normal in (("puffer", 1250), ("eggs", 2300), ("warp", 500), ("money", 950)):
+        for item, normal in (("puffer", 1250), ("eggs", 2300), ("warp", 500), ("money", 950), ("hormone", 10000)):
             self.assertEqual(self.shown_price(self.store(0, free=False), item), f"Price:  ${normal}")
             self.assertEqual(self.shown_price(self.store(0, free=True), item), "Price:  $0")
         for animal in ("ray", "eel"):
@@ -320,7 +321,13 @@ class FishStoreTests(unittest.TestCase):
                     self.select(emu, item)
                     emu.call(emu.sym("@on_overlay@8"), ecx=emu.scene)
                     drawn |= {c[1] for c in emu.calls if c[0] == "text"}
-        self.assertLessEqual({"Add $1,000", "Plus 1.000 $", "Time Warp", "Zeitsprung", "Price:  $0"}, drawn)
+        self.assertLessEqual({"Add $1,000", "Plus 1.000 $", "Time Warp", "Zeitsprung", "Price:  $0",
+                              "Radioactive Growth Hormone", "Radioaktive Wachstumshormone",
+                              "Revival Potion", "Wiederbelebungstrank", "ClonaFish", "Price:  $10000", "Price:  $2500",
+                              "A wonder drug that instantly clones all\nunique fish in the tank. Make sure\n"
+                              "there's enough space in the tank!\nContains 3 doses.",
+                              "This magical potion instantly revives\ndead fish and restores them to full\n"
+                              "health. Contains 3 doses."}, drawn)
         for text in drawn:
             self.assertLessEqual(set(text), allowed, text)
 
@@ -516,11 +523,17 @@ class PlantStoreTests(unittest.TestCase):
                 self.assertEqual(emu.read32(dialog + 0x84), 2000)
 
     def test_formula_price(self) -> None:
-        for free, expected in ((False, 10000), (True, 0)):
-            emu = self.store(0, free)
-            emu.write8(emu.sym("_building_formula"), 1)
-            emu.run_until(emu.sym("_stub_chem_price"), 0x00432721, esi=emu.alloc(0x100))
-            self.assertEqual(emu.uc.reg_read(E.X.UC_X86_REG_EDX), expected)
+        # The formula $10,000, the Revival Potion $10,000, Revita-Seed $2,500, $0 with Free upgrades;
+        # the tray-room check (0x4164B0) is asked about the chemical's own id, and eax is kept.
+        for chemical, normal in ((36, 10000), (37, 10000), (38, 2500)):
+            for free, expected in ((False, normal), (True, 0)):
+                emu = self.store(0, free)
+                emu.write8(emu.sym("_building_chem"), chemical)
+                emu.uc.reg_write(E.X.UC_X86_REG_EAX, 0x1234)
+                emu.run_until(emu.sym("_stub_chem_price"), 0x00432721, esi=emu.alloc(0x100))
+                self.assertEqual(emu.uc.reg_read(E.X.UC_X86_REG_EDX), expected, (chemical, free))
+                self.assertEqual(emu.read32(emu.uc.reg_read(E.X.UC_X86_REG_ESP)), chemical)
+                self.assertEqual(emu.uc.reg_read(E.X.UC_X86_REG_EAX), 0x1234)
 
     def test_buying_a_free_legendary_packet_still_empties_its_shelf(self) -> None:
         emu = self.store(0, True)

@@ -35,7 +35,7 @@ DLL_NAME = "DS Store Items.dll"
 SETTING = {
     "id": SETTING_ID,
     "name": "DS Store Items",
-    "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, and Exotic Fish Eggs that hatch only DS fish. Needs DS Exclusive Fish.",
+    "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, and ClonaFish, which clones every unique fish. Needs DS Exclusive Fish.",
     "description": (
         "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. "
         "The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: "
@@ -45,7 +45,15 @@ SETTING = {
         "move: drop the eel on its rock to send it home, and drag it out by its head. Trashing "
         "the eel trashes its rock, and the other way round. The animals never take a fish's "
         "place: each tank has 5 animal slots of its own, the Golden Seahorse's included. "
-        "Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Golden "
+        "Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive "
+        "Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way, on every "
+        "live fish in the tank you use it on, any age: each pregnant one "
+        "gives birth at once, as at the end of a pregnancy, then each of them, the newborns too, "
+        "becomes an adult at once if younger, gets full health and is cured of any sickness. The "
+        "Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at "
+        "full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every unique fish in the "
+        "tank you use it on (a fish no other fish there shares its body and fin with), until the "
+        "tank is full. The Golden "
         "Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish."
     ),
     "warning": (

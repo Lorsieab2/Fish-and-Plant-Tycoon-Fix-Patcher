@@ -603,6 +603,52 @@ CONSUMABLES = (
              "same odds; 29 is the new end."),
         ),
     ),
+    Fact(
+        "Radioactive Growth Hormone: not in the unpatched game.",
+        patched=(("ds_store", "Radioactive Growth Hormone ($10,000, 3 doses), on the store's Upgrades "
+                  "page: a chemical for slot #3 (any of slots 2-4 with Universal supply slots, where "
+                  "each purchase adds 3 doses), used on a tank like Growth Hormone. Each dose reaches "
+                  "every live fish in the tank you use it on, any age, fry included (Growth Hormone "
+                  "itself stops at 40 and is unchanged). First every pregnant one gives birth at once, "
+                  "exactly as at the end of a pregnancy: the same litter (1, +1 with a Magic Fish of "
+                  "Fertility, +1 with the Plant of Fertility), the Magic Fish's 16% mutation of the "
+                  "father's genes, and no baby where the tank has no room; the babies are born aged 1, "
+                  "and tank 3 never gives birth, as in the game. Then each fish, the newborns too, so "
+                  "the whole litter comes out adult: a fish under 20 becomes 20 (an adult) at once, "
+                  "older fish keep their age, and every one gets health 100 and is cured of ick or "
+                  "fungus (each cure counts under Fish Cured). On every difficulty, Hard included, only "
+                  "one step's health, sickness and food checks run at the next update (as Growth "
+                  "Hormone does on Easy and Medium), so the skipped steps never make the fish ill or "
+                  "hungry. Dead fish, the other tanks and the store animals (Golden Seahorse included, "
+                  "in their own slots 26-30) get nothing."),
+                 ("free_upgrades", "the Radioactive Growth Hormone costs $0."),),
+    ),
+    Fact(
+        "Revival Potion: not in the unpatched game.",
+        patched=(("ds_store", "Revival Potion ($10,000, 3 doses), on the store's Upgrades page: a "
+                  "chemical for slot #3 like the Radioactive Growth Hormone. Each dose revives every "
+                  "dead fish in the tank you use it on, at health 100. In the game a dead fish is only "
+                  "a fish at health 0: it stays in the tank, drawn dead on the bottom, until you throw "
+                  "it away (nothing removes it), and it no longer ages, eats or gets sick. Revived, it "
+                  "keeps its age, food, sickness and pregnancy, and the time it lay dead is not played "
+                  "as time away. Every fish slot of the tank is reached (with Bigger tanks too); the "
+                  "other tanks and the store animals are not."),
+                 ("free_upgrades", "the Revival Potion costs $0."),),
+    ),
+    Fact(
+        "ClonaFish: not in the unpatched game.",
+        patched=(("ds_store", "ClonaFish ($2,500, 3 doses), on the store's Upgrades page: a chemical "
+                  "for slot #3 like the Radioactive Growth Hormone. Each dose clones every unique fish "
+                  "in the tank you use it on once: a live fish whose body and fin together no other "
+                  "live fish in that tank has (two fish with the same fin but different bodies are "
+                  "both unique; two of the same species are not). The clone is an exact copy, the "
+                  "same species, age, health, food, sickness, gender and pregnancy, added through the "
+                  "game's own add-fish code into the first free slot. Unique fish are cloned in slot "
+                  "order until the tank is full; the rest get no clone. If not one clone fits, the "
+                  "game's \"The tank is full!\" shows. Dead fish, the Golden Seahorse and the store "
+                  "animals are never cloned. The dose is used either way."),
+                 ("free_upgrades", "ClonaFish costs $0."),),
+    ),
     Fact("Common, Unusual and Rare Fish Eggs: see Eggs."),
 )
 
@@ -638,7 +684,8 @@ PERMANENT_ITEMS = (
             ("golden_seahorse_repurchase", "it can be bought any number of times, even while one "
              "is in a tank; extra ones add no customers or walk-over points."),
             ("ds_store", f"it also gives healthy, fed fish in its tank {below(100, 82)} chance of +1 "
-             "health each step."),
+             "health each step. It lives in its tank's animal slots (26-30), which Growth Hormone "
+             "never reaches, so its age number stays."),
         ),
     ),
     Fact(

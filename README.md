@@ -128,6 +128,31 @@ never needs the internet.
   food (100 and 100), and ones already in a save (the eel in its rock too)
   are filled up the first time the save is loaded with the patch; nothing in
   the game lowers their meters. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
+  The Radioactive Growth Hormone ($10,000, 3 doses; $0 with Free upgrades) is
+  the stock Growth Hormone recoloured green, bought into supply slot #3 and
+  used on a tank like the stock chemicals (Universal supply slots apply). Each
+  dose reaches every fish in the tank on screen, any age, fry included (the
+  stock Growth Hormone stops at 40 and stays stock): every pregnant one gives
+  birth at once, through the game's own birth rules (the same litter, Magic
+  Fish mutation, Plant of Fertility and "no room" as a natural birth); then
+  younger ones, the newborns too, become adults (age 20), and every one gets
+  full health (100) and is cured of ick or fungus. Other tanks and the store
+  animals are left alone. Picture:
+  [docs/images/radioactive-growth-hormone-fish.png](docs/images/radioactive-growth-hormone-fish.png).
+  The Revival Potion ($10,000, 3 doses; $0 with Free upgrades), the owner's
+  amber flask, is a slot-#3 chemical like the hormone: each dose revives every
+  dead fish in the tank on screen at full health; its age, food, sickness and
+  pregnancy stay as they were, and the time it lay dead is not played as time
+  away. Dead fish stay in the tank until you throw them away (the game never
+  removes them), so every dead fish still there can be revived. ClonaFish
+  ($2,500, 3 doses; $0 with Free upgrades), the owner's magenta bottle: each
+  dose adds one exact copy of every unique fish in the tank on screen (a live
+  fish no other live fish there shares both its body and its fin with), in
+  slot order, through the game's own add-fish code, until the tank is full;
+  if there was no room for even one, the game's "The tank is full!" shows.
+  Both work in every tank slot the game uses (Bigger tanks, and more) and in
+  every tank the game updates. Picture:
+  [docs/images/revival-potion-fish.png](docs/images/revival-potion-fish.png).
   The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
   second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
   loaded by DS Fish's; everything it adds is kept in the game's own save.
@@ -144,9 +169,11 @@ never needs the internet.
   so: "Time Warp done: 12 hours played (72 age steps). $500 paid." ($0 paid with Free upgrades).
 - Free upgrades (off by default; **needs DS Store Items, which it turns on**).
   Every item on the Supplies store's Upgrades screen costs $0: the Puffer Fish,
-  Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), and the Time
-  Warp clock ($500) and Add Money ($950) when they are on. The price shows $0
-  and no money is taken; everything else (one of each animal, the egg slot,
+  Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the
+  Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000),
+  ClonaFish ($2,500), and the Time Warp clock ($500) and Add Money ($950) when
+  they are on. The price shows $0 and no money is taken;
+  everything else (one of each animal, the supply slots,
   the game's purchase question) stays. The game's own store items keep their
   prices.
 - Add Money cheat ($1,000) (off by default; **needs DS Store Items, which it
@@ -229,6 +256,18 @@ never needs the internet.
     full bloom, a flower on every spot of every branch and leaf (hundreds on a
     big plant), no dead or brown leaves, full health, and 5 seeds when
     pollinated.
+  - Radioactive Plant Formula Bomb under the formula: $30,000, 3 bombs; the
+    stock Fertilizer Bomb made rainbow. One bomb gives every live plant in the
+    greenhouse on screen exactly one Radioactive Plant Formula dose (the
+    plants the Fertilizer Bomb reaches, in whichever greenhouse is shown).
+  - Revival Potion beside the formula: $10,000, 3 doses, the owner's amber
+    flask. Dropped on a dead plant, it comes back to life at full health; the
+    parts that were already dead before it died stay dead (prune them or use
+    the formula), and the seeds it lost when it died stay lost.
+  - Revita-Seed beside that: $2,500, 3 doses, the owner's teal bottle.
+    Dropped on a plant that has given all its seeds, it can be pollinated
+    again and give seeds again, exactly like a fresh plant.
+  - Picture: [docs/images/revival-potion-plant.png](docs/images/revival-potion-plant.png).
   - The Fourth, Fifth and Sixth Seed Box with the tool upgrades: $1000
     each, bought in order like the stock ones. Each opens a 40-seed drawer in
     a second chest; the gold arrows on the Seed Storage title bar switch
@@ -247,6 +286,7 @@ never needs the internet.
 - Free upgrades (off by default; **needs Add new store upgrades and items,
   which it turns on**). Every item on the Supplies store's Upgrades view costs
   $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the
+  Formula Bomb ($30,000), the Revival Potion ($10,000), Revita-Seed ($2,500), the
   Fourth, Fifth and Sixth Seed Box ($1000 each), and the Time Warp clock ($500)
   and Add Money ($950) when they are on. The price shows $0 and no money is
   taken; everything else (three Legendary Seeds a day, room in the trays, the

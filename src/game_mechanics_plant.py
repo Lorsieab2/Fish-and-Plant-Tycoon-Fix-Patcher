@@ -244,7 +244,10 @@ HEALTH = (
         "class A, Endangered B, Extinct C or D.",
     ),
     Fact("A plant at health 0 dies and is never updated again; its ripe seeds can still be "
-         "collected. \"Unhealthy\" shows below 30."),
+         "collected, its unripe ones are lost, and its value and price become 0. It stays in its pot "
+         "until you dig it up. \"Unhealthy\" shows below 30.",
+         patched=(("plant_upgrades", "the Revival Potion brings a dead plant back at health 100 (see "
+                   "Chemicals)."),)),
 )
 
 PESTS = (
@@ -299,7 +302,10 @@ FLOWERS = (
 SEEDS = (
     Fact(
         "Pollen can go from a live mature plant (24+) to another live mature plant that is not "
-        "pollinated yet. It gives 5, 4 or 3 seeds (33.33% each), or 1 if the target is infested.",
+        "pollinated yet. It gives 5, 4 or 3 seeds (33.33% each), or 1 if the target is infested. A "
+        "plant is pollinated only once: when its seeds are all picked it gives no more.",
+        patched=(("plant_upgrades", "Revita-Seed makes a plant that has given all its seeds a fresh "
+                  "plant again for seeds (see Chemicals)."),),
     ),
     Fact(
         "Seeds ripen one per age unit: the first 3, 4, 5 or 7 units after pollination (5, 4, 3 "
@@ -563,6 +569,35 @@ CHEMICALS = (
                   "flowers on every flower spot of every live, uncut part (its spots filled up to 6 "
                   "per part), no later dead leaves, and, if it is already pollinated, all 5 of its "
                   "seeds (pollinating it later gives the usual 5, 4 or 3). A dead plant stays dead."),
+                 ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
+    ),
+    Fact(
+        "Radioactive Plant Formula Bomb: not in the unpatched game.",
+        patched=(("plant_upgrades", "on the store's Upgrades view, under the formula, $30,000, 3 bombs; "
+                  "the Fertilizer Bomb's art made rainbow. Used like the Fertilizer Bomb: one bomb gives "
+                  "every pot the Fertilizer Bomb reaches (every live plant in the greenhouse on screen) "
+                  "exactly one Radioactive Plant Formula dose, with all of its effects."),
+                 ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
+    ),
+    Fact(
+        "Revival Potion: not in the unpatched game.",
+        patched=(("plant_upgrades", "on the store's Upgrades view, beside the formula, $10,000, 3 doses, "
+                  "one pot per dose. On a dead plant: alive again at health 100. Its age clock restarts "
+                  "from now (the time it lay dead is not played as time away), and its value and price "
+                  "are set again by the game's own rules (they were 0 while it was dead). Parts that were "
+                  "dead before it died stay dead, as with the game's own healing (prune them or use the "
+                  "formula); seeds that had not ripened when it died stay lost; a plant that was on sale "
+                  "must be put on sale again. On a live plant it does nothing (the dose is used)."),
+                 ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
+    ),
+    Fact(
+        "Revita-Seed: not in the unpatched game.",
+        patched=(("plant_upgrades", "on the store's Upgrades view, beside the Revival Potion, $2,500, 3 "
+                  "doses, one pot per dose. On a plant that has given all its seeds (pollinated, and "
+                  "all 5 seed places used, by picking or by the infested and 4-or-3-seed rolls): it is "
+                  "a fresh plant again for seeds, so it can be pollinated again and gives 5, 4 or 3 "
+                  "seeds (1 if infested) by the usual rules. On any other plant it does nothing (the "
+                  "dose is used)."),
                  ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
 )
