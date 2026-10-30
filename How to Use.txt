@@ -60,6 +60,9 @@ Fish Tycoon options:
 - Buy Multiple Golden Seahorses
 - Bigger tanks: 26 fish (off by default; every tank holds 26 fish instead
   of 21. Sell or move fish down to 21 per tank before turning it off.)
+- Optimize Prices button (on by default; an "Optimize Prices" button on the
+  Species Chart. Asks Yes/No, then sets every discovered species to its best
+  price per day for your shop as it is now, as in the Breeding Guide.)
 - DS Exclusive Fish (off by default; adds the DS version's 7 bodies and
   7 fins. Sell or trash every DS fish before turning it off again.)
 - DS Store Items (off by default; needs DS Exclusive Fish. Adds an
@@ -94,6 +97,9 @@ Plant Tycoon options:
 - Sort Seeds button (off by default; a "Sort Seeds" button on the Seed
   Storage title bar. Asks Yes/No, then sorts every seed by the plant it grows
   and its parents into your unlocked seed boxes, first box first.)
+- Optimize Prices button (on by default; an "Optimize Prices" button in the
+  Nursery. Asks Yes/No, then sets every discovered species to its best price
+  per day for your nursery as it is now, as in the Breeding Guide.)
 - Time Warp (off by default; a $500 clock on the store's Upgrades screen:
   type 1-72 hours in a Windows popup and the game plays them as time away)
 - Free upgrades (off by default; turns on the store's Upgrades screen:

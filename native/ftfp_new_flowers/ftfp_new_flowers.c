@@ -822,6 +822,16 @@ int __stdcall FtfpStartup(void) {
 
 int __stdcall FtfpNewFlowersInstalled(void) { return installed; }
 
+/* For "Optimize Prices.dll": a new species' value and asking price cell (the
+   one the game's own price writes reach) and whether it is discovered (1 or
+   0), or -1 when the mod is not in or the genes are not a new species. */
+int __stdcall FtfpNewFlowersSpecies(int foliage, int flower, int *v, int **asking) {
+    if (!installed || !valid_foliage(foliage) || !is_new(flower)) return -1;
+    if (v != NULL) *v = value[foliage][flower - FIRST_NEW];
+    if (asking != NULL) *asking = &price[foliage][flower - FIRST_NEW];
+    return discovered[foliage][flower - FIRST_NEW] != 0;
+}
+
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     (void)reserved;
     if (reason == DLL_PROCESS_ATTACH) DisableThreadLibraryCalls(instance);

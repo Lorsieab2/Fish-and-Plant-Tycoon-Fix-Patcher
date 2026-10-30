@@ -1,0 +1,4 @@
+LIBRARY "Optimize Prices"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpOptimizePricesInstalled = _FtfpOptimizePricesInstalled@0

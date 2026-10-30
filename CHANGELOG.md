@@ -16,6 +16,28 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   the modded copy: DS Exclusive Fish.dll, DS Store Items.dll, Unused
   Flowers.dll, Store Upgrades and Items.dll, Extra Seed Boxes.dll.
 
+- **Optimize Prices button** (new setting, on by default in both games, in
+  the plain "- Modded" copy). Fish Tycoon: an "Optimize Prices" button on the
+  Species Chart's bottom bar, left of Done; Plant Tycoon: one on the Nursery's
+  bottom bar, at the right. It asks "Set every discovered species to its best
+  price per day?" (the game's own Yes/No box); on Yes every discovered
+  species' asking price becomes the Breeding Guide's "best per day" price for
+  the shop as it is now, and an OK box says "N prices set." Fish: each
+  species' base price (with the Advertising rises), the ornaments owned, the
+  Golden Seahorse and the Advertising level, with a full selling tank (21,
+  or 26 with Bigger tanks). Plant: each species' value, the Golden Berries
+  of Wealth, and the visitor limit from the ornaments owned, the magic plants
+  found and the bug collection with all 15 sale spots filled, for a healthy,
+  flowering plant. The maths is the guide's own, ported to C
+  (`native/common/price_math.h`) and checked against the Python for
+  thousands of inputs. Only discovered species' price cells are written
+  (the ones the game's own price controls write, so the screens and saves
+  agree); the DS species and the Unused Flowers are included when those
+  settings are on, through new lookups in their DLLs. A companion DLL,
+  "Optimize Prices.dll", which the startup loader now loads after any other
+  companion; it wraps two slots of the screen's table after checking both
+  are the stock ones, or changes nothing.
+
 - **Tools** tab, laid out like the Virtual Villagers Fun Patcher's: links
   for the game on the One Game tab and for each game, each with a "?" guide,
   opening Back Up Saves, Restore Saves, Rename Players and Game Mechanics

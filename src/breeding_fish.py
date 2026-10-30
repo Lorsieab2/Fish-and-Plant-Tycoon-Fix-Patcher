@@ -236,13 +236,22 @@ def sale_chance(price: int, base: int, browsing: int) -> float:
     return rand_count(SALE_ROLL, t + 1) / RAND_PERIOD
 
 
+def power(x: float, n: int) -> float:
+    """x to the whole power n, one multiplication at a time: the Optimize Prices DLL
+    (native/common/price_math.h) does the same steps, so both get the same doubles."""
+    result = 1.0
+    for _ in range(n):
+        result *= x
+    return result
+
+
 def income_per_day(price: int, base: int, browsing: int, fish: int = SELLING_TANK) -> float:
     """Money per real-time day at this asking price: the rolls go through the selling tank
     in slot order until one sells, then 5 seconds pass without a roll."""
     p = sale_chance(price, base, browsing)
     if p <= 0 or price <= 0:
         return 0.0
-    q = 1.0 - (1.0 - p) ** fish
+    q = 1.0 - power(1.0 - p, fish)
     return price * DAY_SECONDS / (SALE_PAUSE + 1.0 / q)
 
 
@@ -252,23 +261,36 @@ def crowd(ornaments: int, seahorse: bool, advertising: int, adults: int, extra: 
     return 4 + ornaments + (2 if seahorse else 0) + 2 * advertising * (adults // 3 + extra + 2)
 
 
+def shop_crowds(ornaments: int, seahorse: bool, advertising: int, tank: int = SELLING_TANK) -> tuple[int, int]:
+    """The two crowds (Random(2) gives 0 or 1) a full selling tank of `tank` adults draws."""
+    return tuple(crowd(ornaments, seahorse, advertising, tank, r) for r in (0, 1))
+
+
 EFFECTS = {
     # what each column assumes: Advertising level, customers browsing per crowd roll
     "none": {"advertising": 1, "browsing": (0,)},
-    "max": {"advertising": 3, "browsing": tuple(crowd(6, True, 3, SELLING_TANK, r) for r in (0, 1))},
+    "max": {"advertising": 3, "browsing": shop_crowds(6, True, 3)},
 }
 
 
 @lru_cache(maxsize=None)
-def best_asking_price(base: int, crowds: tuple[int, ...]) -> tuple[int, float]:
+def best_asking_price(base: int, crowds: tuple[int, ...], fish: int = SELLING_TANK) -> tuple[int, float]:
     """The asking price (1 to 2B - 1) with the most money per real day, averaged over the
     crowd sizes (each equally likely); the lowest such price on a tie."""
     best_price, best_income = 0, 0.0
     for price in range(1, 2 * base):
-        income = sum(income_per_day(price, base, n) for n in crowds) / len(crowds)
+        income = sum(income_per_day(price, base, n, fish) for n in crowds) / len(crowds)
         if income > best_income + 1e-9:
             best_price, best_income = price, income
     return best_price, best_income
+
+
+def shop_best_price(base: int, ornaments: int, seahorse: bool, advertising: int, tank: int = SELLING_TANK) -> int:
+    """The Optimize Prices button's price for a species of base price B (entry + 0x24, which
+    already has the Advertising rises): the Breeding Guide's best per day for the shop as it is,
+    its ornaments, Golden Seahorse and Advertising level, with a full selling tank of `tank`
+    adults (21, or 26 with Bigger tanks)."""
+    return best_asking_price(base, shop_crowds(ornaments, seahorse, advertising, tank), tank)[0]
 
 
 def advertised(base: int, level: int) -> int:

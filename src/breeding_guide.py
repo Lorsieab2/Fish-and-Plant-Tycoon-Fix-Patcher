@@ -688,6 +688,12 @@ HELP = (
         "highest price that sells. With Mutation Liquid a chain can be long (the fewest generations first): "
         "its length is shown and the list scrolls. Each species' details list the exact "
         "assumptions.",
+        "In the game: with the patcher's Optimize Prices button setting (on by default), an \"Optimize "
+        "Prices\" button (Fish Tycoon: on the Species Chart; Plant Tycoon: in the Nursery) sets every "
+        "discovered species to its best price per day, worked out with this guide's own maths for your shop "
+        "as it is at that moment (Fish: your ornaments, Golden Seahorse and Advertising level, a full selling "
+        "tank; Plant: your ornaments, magic plants, Golden Berries and bug collection, all 15 sale spots "
+        "filled, a healthy flowering plant). Undiscovered species keep their prices.",
         "Click a column header to sort, and type in Search to filter. Export saves the open sheet as .xlsx or "
         ".csv. The Breeding Calculator lists every child two parents can give, with its odds; the Breeding "
         "Planner finds the shortest breeding chain from the species you have to the one you want. The pane "

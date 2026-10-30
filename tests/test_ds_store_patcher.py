@@ -47,7 +47,7 @@ class ManifestTests(unittest.TestCase):
         pins = self.manifest["patched_sha256_by_settings"]
         screen_items = {"time_warp", "free_upgrades", "add_money"}       # tests/test_store_extras.py
         with_store = [key for key in pins if SETTING in key.split(",") and not screen_items & set(key.split(","))]
-        self.assertEqual(len(with_store), 128)        # 64, each with and without the Maximizable window
+        self.assertEqual(len(with_store), 256)        # 64, each with and without the Maximizable window and Optimize Prices
         for key in with_store:
             enabled = set(key.split(","))
             self.assertIn("ds_fish", enabled)

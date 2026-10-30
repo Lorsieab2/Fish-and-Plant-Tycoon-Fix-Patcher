@@ -60,6 +60,21 @@ never needs the internet.
   "Fish Tycoon - Modded" copy; nothing is saved. How it works, with every
   address: `native/ftfp_fish_window/ftfp_fish_window.c`. Plant Tycoon draws
   through SDL2, a different renderer, so this setting is Fish Tycoon's only.
+- Optimize Prices button (on by default). An "Optimize Prices" button on the
+  Species Chart's bottom bar, left of Done (where you set prices). It asks
+  "Set every discovered species to its best price per day?"; on Yes, every
+  species you have discovered gets the Breeding Guide's "best per day"
+  asking price (the price that earns the most money over time), worked out
+  in the game with the guide's own maths for your shop as it is now: each
+  species' base price (with the Advertising rises), the ornaments you own,
+  the Golden Seahorse and your Advertising level, with a full selling tank
+  (26 fish with Bigger tanks). Then it says "N prices set." Undiscovered
+  species keep their prices and nothing else changes; the prices are the
+  ones you would type yourself, saved with the game as usual. The DS species
+  are included with DS Exclusive Fish. It runs as a companion DLL
+  (`Fish Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the plain
+  "Fish Tycoon - Modded" copy. Picture:
+  [docs/images/optimize-prices-fish.png](docs/images/optimize-prices-fish.png).
 - DS Exclusive Fish (off by default). Adds the Nintendo DS version's seven
   extra bodies (Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang, Idle)
   and seven extra fins (Small Fin, Roundy, Angel, Clown, Yellow, Blue,
@@ -210,6 +225,21 @@ never needs the internet.
   flower, then its parents (unknown first), and packs them from the first
   slot: boxes 1-3 fill before 4-6, and locked drawers stay empty. It checks
   that exactly the same seeds come out as went in before writing anything.
+- Optimize Prices button (on by default). An "Optimize Prices" button on the
+  Nursery's bottom bar, at the right. It asks "Set every discovered species
+  to its best price per day?"; on Yes, every species you have discovered gets
+  the Breeding Guide's "best per day" asking price (the price that earns the
+  most money over time), worked out in the game with the guide's own maths
+  for your nursery as it is now: each species' value, the Golden Berries of
+  Wealth, and the visitors your ornaments, magic plants and bug collection
+  bring with all 15 sale spots filled, for a healthy, flowering plant without
+  Plant Food or pruning. Then it says "N prices set." Undiscovered species
+  keep their prices and nothing else changes; the prices are the ones the
+  "Set species price" box would write, saved with the game as usual. The 322
+  Unused Flowers species are included when that setting is on. It runs as a
+  companion DLL (`Plant Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the
+  plain "Plant Tycoon - Modded" copy. Picture:
+  [docs/images/optimize-prices-plant.png](docs/images/optimize-prices-plant.png).
 
 ## Use
 
