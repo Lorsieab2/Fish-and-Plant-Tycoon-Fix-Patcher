@@ -531,11 +531,13 @@ def apply_manifest(args: argparse.Namespace) -> int:
     patched, patch_summary = apply_patch_bytes(original, patches)
     loader_summary: list[dict[str, str]] = []
     if needs_startup_loader(manifest, enabled):
-        # The DS Fish companion's loader goes on last, over the patched bytes:
-        # one new read/execute section and the C runtime's call of WinMain
-        # routed through it (src/ds_fish_loader.py).
+        # The companions' loader goes on last, over the patched bytes: one
+        # new read/execute section and the C runtime's call of WinMain routed
+        # through it (src/ds_fish_loader.py). It loads DS Fish's DLL when that
+        # is on (which loads the Maximizable window's), else the window's.
         try:
-            patched, loader_summary = ds_fish_loader.append_startup_loader(patched)
+            patched, loader_summary = ds_fish_loader.append_startup_loader(
+                patched, ds_fish_loader.fish_profile(enabled))
         except ds_fish_loader.LoaderError as exc:
             raise PatchError(f"Startup loader: {exc}.") from exc
     expected_hash = expected_patched_hash(manifest, enabled)
