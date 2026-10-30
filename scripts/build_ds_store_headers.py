@@ -71,6 +71,9 @@ SITES = [
     ("view_refresh_next", 0x41589E, ["jl 0x415533"]),
     ("save_call_game", 0x41A663, ["call 0x419100"]),
     ("save_call_settings", 0x41A66B, ["call 0x419100"]),
+    # The release of a held supply (0x421B20 calls the use 0x420B70): the store's own supplies
+    # let go on the trash can are thrown away.
+    ("supply_drop", 0x421B52, ["call 0x420b70"]),
 ]
 
 # The Supplies scene's vtable (0x44C294): slot address -> the function it holds.

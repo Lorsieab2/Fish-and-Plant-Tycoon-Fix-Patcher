@@ -18797,8 +18797,8 @@
           {
             "path": "DS Store Items.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
-            "size": 147456,
-            "sha256": "C9131E4E0272812D70A7AD800BA30F7920F4752487DE261059F7FBCDC0713EC2"
+            "size": 147968,
+            "sha256": "750F96D090A5E8A383E06538916CCD6C0DB07AEBDDC60B843F63899CB391CF7B"
           },
           {
             "path": "Images/DS_EEL_Grid.png",

@@ -112,6 +112,8 @@ a New Flowers site).
 | store_draw | 0x447DA2 | draws the link, or the Upgrades view instead of the stock grids (then 0x447FF8) |
 | store_click | 0x448173 | button-down: the link, the Supplies plate, the Upgrades items (the dialog is run from the DLL: ctor 0x432E90, modal 0x401C90, dtor 0x4307A0) |
 | store_hover | 0x448433 | hover for the link |
+| trash_drop | 0x425FF2 | the greenhouse mouse-up's `call 0x424680` (the stock trash): a held chemical 36-39 let go on the bin is thrown away (tray record present byte 0, held 0, sound 0x23), else the stock trash |
+| trash_press | 0x4272DC | the press off the pots: the same for a held chemical 36-39 pressed on the bin, ending through 0x42739C, so the selected plant is never asked about or emptied |
 | chem_picture_bound | 0x4308D3 | immediate 0x24 -> 0x28: the dialog draws chemicals 36-39 |
 | seed/chem sheet records, link record | 0x485F4C, 0x485F5C, 0x4875A4, 0x4875B4, 0x4882D4 | the sprite records above |
 

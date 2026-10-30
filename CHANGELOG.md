@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased
+
+### Both games
+
+- **What the patcher adds goes in the trash.** The stock trash can (Fish: bottom
+  right of the tank screen; Plant: the Trash bin by the cash) takes fish, seeds
+  and plants, never a supply, chemical or ornament. Audited every item the
+  patcher adds; the ones it did not take now go:
+  - Fish (DS Store Items): Exotic Fish Eggs, the Radioactive Growth Hormone,
+    the Revival Potion and ClonaFish let go on the trash can are thrown away,
+    the whole slot with every dose or hatch left (the slot emptied as the game
+    empties a used-up one), with the fish trash's sound and no question (the
+    game asks only about a live fish). New site 0x421B52 (the release's call
+    of the supply use).
+  - Fish (DS Store Items): the Moray Eel and its rock now go together also
+    when one of them is in Tanks 4-6 and the other is not (3 extra tanks'
+    held tanks are searched after the stock ones).
+  - Plant (Add new store upgrades and items): the Radioactive Plant Formula,
+    the Formula Bomb, the Revival Potion and Revita-Seed, held from the
+    chemical tray and let go or clicked on the bin, are thrown away with
+    every dose left, with the bin's sound and no question, as a seed packet
+    (the bottle leaves the tray as the game empties a used-up one). A plant
+    selected at the time is never asked about or deleted. New sites 0x425FF2
+    (the mouse-up's trash call) and 0x4272DC (the press off the pots).
+  - Already taken, unchanged: Multiple ornaments' copies (after the game's
+    question, any tank, Tanks 4-6 too; never the original), the DS store
+    animals and the Golden Seahorse (the fish trash), anything in Tanks 4-6
+    and Greenhouses 2-6 (shown in a stock place, so the stock trash runs),
+    Legendary and new-flower seeds (sold for their value).
+  - Never taken, as stock: the tools (Fish: the food; Plant: the watering
+    can, shears, net and the other rack tools) and the game's own medicines,
+    chemicals and eggs.
+  - Tests: tests/test_trash_patcher_items.py runs every case on the vanilla
+    executables in Unicorn (dropped on the can, by one pixel off it, in a
+    maximized window, Tanks 1-6, the tools and stock supplies kept).
+
 ## v1.0.17
 
 New content for both games (DS fish, fins and store animals; the 14 unused

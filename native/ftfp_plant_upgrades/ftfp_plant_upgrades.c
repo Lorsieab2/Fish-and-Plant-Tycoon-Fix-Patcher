@@ -1040,6 +1040,60 @@ static void __cdecl on_new_game(void) {
     if (boxes != NULL) boxes->new_game();
 }
 
+/* -------------------------------------------------- the new chemicals in the trash */
+
+/* The stock greenhouse trash (0x424680) takes seeds (sold for their value,
+   no question, the trash bin's sound 0x23) and plants ("Delete this
+   plant?"), never a chemical: a chemical let go there stays on the cursor.
+   The four chemicals of the Upgrades view (36-39) held there are thrown away
+   instead, the way the trash takes a seed packet: the bottle leaves the tray
+   as the stock tray empties a used-up one (0x416500: the record's present
+   byte 0), with every dose it still held; nothing is held any more (state
+   +0x56C = 0, scene +0x105 = 0, as 0x424777); the trash bin's sound plays.
+   The hit area is the stock trash's (0x4246DE, the game's own 0x435FF0).
+   Only a held chemical-tray bottle of 36-39 is ever thrown away: the tools
+   (held 1-4, which the stock trash never takes: 0x425FCC, 0x427317), pollen,
+   the stock chemicals, seeds and plants go on to the stock code as before.
+   A held item is state +0x56C: 5-8 = chemical-tray slot 0-3, whose record
+   is state + 0x53F84 + slot * 0xC: present (byte), chemical id, doses. */
+#define HELD_ITEM 0x56C
+#define CHEM_TRAY 0x53F84
+#define CHEM_TRAY_STRIDE 0xC
+#define FIRST_TRAY_HELD 5
+#define LAST_TRAY_HELD 8
+#define TRASH_LEFT 0xAE
+#define TRASH_TOP 0x20D
+#define TRASH_W 0x38
+#define TRASH_H 0x4B
+#define SOUND_TRASH_BIN 0x23                 /* close_trash_bin.ogg (the sound table at 0x4495D1) */
+#define GH_STATE(scene) AT(scene, 0x68, char *)
+#define GH_SOUND(scene) AT(scene, 0x74, void *)
+#define GH_DRAGGING(scene) AT(scene, 0x105, unsigned char)
+
+typedef int (__fastcall *hit_fn)(void *scene, int edx, int x, int y, int left, int top, int w, int h);
+static const hit_fn hit_rect = (hit_fn)0x00435FF0u;
+
+static int is_new_chemical(int id) {
+    return id == FORMULA_ID || id == REVIVAL_ID || id == REVITA_ID || id == BOMB_ID;
+}
+
+/* 1 = a new chemical was held and is thrown away. */
+static int __cdecl chem_trash(char *scene, int x, int y) {
+    char *state = GH_STATE(scene), *bottle;
+    int held;
+    if (state == NULL) return 0;
+    held = AT(state, HELD_ITEM, int);
+    if (held < FIRST_TRAY_HELD || held > LAST_TRAY_HELD) return 0;
+    bottle = state + CHEM_TRAY + (held - FIRST_TRAY_HELD) * CHEM_TRAY_STRIDE;
+    if (bottle[0] == 0 || !is_new_chemical(AT(bottle, 4, int))) return 0;
+    if ((hit_rect(scene, 0, x, y, TRASH_LEFT, TRASH_TOP, TRASH_W, TRASH_H) & 0xFF) == 0) return 0;
+    bottle[0] = 0;
+    AT(state, HELD_ITEM, int) = 0;
+    GH_DRAGGING(scene) = 0;
+    if (GH_SOUND(scene) != NULL) play_sound(GH_SOUND(scene), 0, SOUND_TRASH_BIN);
+    return 1;
+}
+
 /* ------------------------------------------------------------------- stubs */
 
 static const DWORD k_roll_back_unused = 0;
@@ -1551,6 +1605,57 @@ __declspec(naked) static void stub_hover(void) {
     }
 }
 
+/* 0x425FF2, `call 0x424680` (thiscall greenhouse; x, y; ret 8, al = handled),
+   the mouse-up off the pots: a new chemical in the trash is thrown away and
+   the stock "handled" (al = 1) returned, else the stock trash runs. */
+static const DWORD k_trash = 0x00424680u;
+
+__declspec(naked) static void stub_trash_drop(void) {
+    __asm {
+        push ecx
+        push dword ptr [esp + 0x0C]
+        push dword ptr [esp + 0x0C]
+        push ecx
+        call chem_trash
+        add esp, 12
+        pop ecx
+        test eax, eax
+        jz stock
+        mov al, 1
+        ret 8
+    stock:
+        jmp dword ptr [k_trash]
+    }
+}
+
+/* 0x4272DC in the press (0x426040), the press off the pots: esi = greenhouse,
+   ebx = x, ebp = y.  Stock goes on to the selected plant's trash ("Delete this
+   plant?", then the pot emptied, 0x42733B) or the put-back (0x427362).  A new
+   chemical held on the trash is thrown away instead and the press ends
+   through its own exit (0x42739C: al = 1), no plant asked about or emptied. */
+static const DWORD k_press_back = SITE_TRASH_PRESS_BACK;
+static const DWORD k_press_done = 0x0042739Cu;
+
+__declspec(naked) static void stub_trash_press(void) {
+    __asm {
+        pushad
+        push ebp
+        push ebx
+        push esi
+        call chem_trash
+        add esp, 12
+        mov [esp + 28], eax
+        popad
+        test eax, eax
+        jnz handled
+        mov ecx, [esi + 0x68]
+        mov eax, [ecx + 0x63E58]
+        jmp dword ptr [k_press_back]
+    handled:
+        jmp dword ptr [k_press_done]
+    }
+}
+
 /* ----------------------------------------------------------------- install */
 
 static const char SEED_SHEET_FILE[] = "seed_grid_legendary.png";
@@ -1558,13 +1663,14 @@ static const char CHEM_SHEET_FILE[] = "Chemicals_Grid_upgrades.png";
 static const char LINK_FILE[] = "upgrades_link.png";
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 19
+#define CODE_SITES 21
 #define DATA_SITES 6
 #define TOTAL_SITES (CODE_SITES + DATA_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 
 #define JMP(W, NAME, TO) ftfp_site_branch((W), SITE_##NAME##_VA, SITE_##NAME##_LEN, SITE_##NAME##_EXPECT, 0xE9, CODE_ADDR(TO))
+#define CALL(W, NAME, TO) ftfp_site_branch((W), SITE_##NAME##_VA, SITE_##NAME##_LEN, SITE_##NAME##_EXPECT, 0xE8, CODE_ADDR(TO))
 
 static void site_data(ftfp_site_write *w, unsigned int va, int length, const unsigned char *expect,
                       const void *bytes, int count) {
@@ -1606,6 +1712,8 @@ static int prepare(void) {
     JMP(w++, STORE_CLICK, stub_click);
     JMP(w++, STORE_HOVER, stub_hover);
     JMP(w++, JOINT_FREE, stub_joint_free);
+    CALL(w++, TRASH_DROP, stub_trash_drop);
+    JMP(w++, TRASH_PRESS, stub_trash_press);
     site_data(w++, SITE_CHEM_PICTURE_BOUND_VA, SITE_CHEM_PICTURE_BOUND_LEN, SITE_CHEM_PICTURE_BOUND_EXPECT, NULL, 0);
     writes[CODE_SITES].bytes[SITE_CHEM_PICTURE_BOUND_IMM_AT] = bound;
     site_data(w++, SITE_SEED_SHEET_FILE_VA, SITE_SEED_SHEET_FILE_LEN, SITE_SEED_SHEET_FILE_EXPECT, &seed_file, 4);

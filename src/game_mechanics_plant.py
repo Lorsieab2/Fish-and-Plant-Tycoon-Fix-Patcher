@@ -561,6 +561,23 @@ TOOLS = (
 CHEMICALS = (
     Fact("A chemical dose is used up before its effect is checked: using one where it cannot work "
          "wastes the dose."),
+    Fact(
+        "The Trash bin (by the cash) takes seeds and plants only. Seeds held from the seed tray "
+        "or taken from a plant are sold for their value with the bin's sound, no question; a plant "
+        "(selected, or dragged there) goes after \"Delete this plant?\" while it lives, at once when "
+        "it is dead. A chemical bottle let go or clicked on the bin stays on the cursor, and the tools "
+        "(the watering can, the shears, the net and the other tools on the rack) never reach the bin: "
+        "neither can be thrown away. "
+        "Clicking the bin while holding anything but a tool, with a plant selected, asks about that "
+        "plant.",
+        patched=(("plant_upgrades", "the Radioactive Plant Formula, the Formula Bomb, the Revival Potion "
+                  "and Revita-Seed, held from the chemical tray and let go or clicked on the bin, are "
+                  "thrown away with every dose left in the bottle, with the bin's sound and no question, "
+                  "as a seed packet is (no money back: chemicals have no trash value). Only that bottle "
+                  "goes: another bottle of the same chemical stays, and a selected plant is not asked "
+                  "about or deleted. The game's own chemicals and the tools still never go in the bin. "
+                  "The tray is shared by every greenhouse, so this is the same in Greenhouses 2-6."),),
+    ),
     Fact("Most chemicals act on the one pot you use them on, which must hold a plant (a plant for "
          "sale too). The Fertilizer Bomb and the Insta-Grow Vaporbomb act on every pot with a live "
          "plant."),
@@ -1150,7 +1167,9 @@ EXTRA_GREENHOUSES = (
             "trash in any greenhouse, and they are the seeds of the plant they came from. Dropped anywhere "
             "else they go back to that plant.",
             "Seeds from the seed tray (Legendary Seeds too), tools and chemicals: carried, and they work on the "
-            "new greenhouse's pots.",
+            "new greenhouse's pots. The Trash bin is the same in every greenhouse: seeds and plants go in it, "
+            "and so do the four chemicals of the Upgrades view (see Chemicals); the tools and the game's own "
+            "chemicals never do.",
             "Nursery ornaments are never placed: each counts as soon as it is bought, so there is nothing to "
             "move.",
         ),

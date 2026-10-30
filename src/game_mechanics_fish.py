@@ -590,6 +590,22 @@ CONSUMABLES = (
         "advice.",
     ),
     Fact(
+        "The trash can (bottom right of the tank screen) takes only fish: a fish dropped on it is "
+        "thrown away after \"Delete this fish?\" while it lives (a dead one at once), with the trash "
+        "sound, and counts under Fish Trashed. Food, medicines, chemicals and eggs let go anywhere "
+        "outside the tank, the trash can included, go back to their slot with a hint, and an "
+        "ornament dropped on it just rests there: none of them can be thrown away.",
+        patched=(("ds_store", "Exotic Fish Eggs, the Radioactive Growth Hormone, the Revival Potion and "
+                  "ClonaFish let go on the trash can are thrown away with everything left in their slot "
+                  "(every dose, or every hatch of a stack), with the trash sound and no question (the "
+                  "game asks only about a fish). Only that slot is emptied. The food and the game's own "
+                  "medicines, chemicals and eggs still go back to their slot. The slots belong to no "
+                  "tank, so this is the same on Tanks 4-6. The Moray Eel and its rock go together: "
+                  "trashing either takes the other, from whichever tank it is in, Tanks 4-6 included."),
+                 ("multiple_ornaments", "the extra copies can be thrown away (see Ornaments); the "
+                  "original still cannot."),),
+    ),
+    Fact(
         "Ick Treatment ($30, 3 doses): every fish with ick in the tank you use it on, and the fish in "
         "the isolation tank, is cured on Random(100) < C: Easy 70 "
         f"({chance(100, 70)}), Medium 40 ({chance(100, 40)}), Hard 25 ({chance(100, 25)}). Each fish "
@@ -1124,6 +1140,9 @@ EXTRA_TANKS = (
             "hatch in the tank on screen. The isolation tank has no button: drop a fish on it as "
             "usual. Store purchases go to the tank on screen (the stock Golden Seahorse to Tank 1 "
             "first).",
+            "The trash can works on Tanks 4-6 as on any tank: fish, the store animals, Multiple "
+            "ornaments' copies and DS Store Items' eggs and chemicals go in it (see Consumables); the "
+            "Moray Eel and its rock go together even when one is in Tanks 4-6 and the other is not.",
         ),
     ),
     Fact(

@@ -672,6 +672,46 @@ static int __cdecl eel_click(char *impl, int x, int y) {
     return 0;
 }
 
+/* The tanks "Extra Tanks.dll" holds (Tanks 4-6, or Tank 1 while one of them is on
+   screen): an empty rock among their ornaments, or a swimming eel among their
+   animals, so an eel and its rock go together wherever the two are. */
+static unsigned char *held_ornament(unsigned char *b, int k) { return b + (ORN_BASE - FISH_BASE) + k * ORN_STRIDE; }
+static char *held_animal(unsigned char *b, int k) { return (char *)b + TANK_STRIDE + k * SLOT_STRIDE; }
+
+static int remove_held_rock(void) {
+    int e, k;
+    for (e = 0; e < HELD_TANKS; ++e) {
+        unsigned char *b = held_block(e);
+        if (b == NULL) return 0;
+        for (k = 0; k < ORN_SLOTS; ++k) {
+            unsigned char *o = held_ornament(b, k);
+            if (o[0] != 0 && *I(o, O_SPRITE) == SPR_ROCK) {
+                memset(o, 0, ORN_STRIDE);
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* REMOVE_FISH clears these fields of a record at state + 0x390 + tank * 0x51EC +
+   slot * 0x288; a held record is cleared the same way, as the record of slot 0
+   of tank 0 of a state 0x390 bytes before it. */
+static int remove_held_eel(void) {
+    int e, k;
+    for (e = 0; e < HELD_TANKS; ++e) {
+        unsigned char *b = held_block(e);
+        if (b == NULL) return 0;
+        for (k = 0; k < ANIMAL_SLOTS; ++k) {
+            char *f = held_animal(b, k);
+            if (!is_kind(f, FIN_EEL)) continue;
+            REMOVE_FISH(f - FISH_BASE, NULL, 0, 0);
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int remove_out_rock(char *state, int tank) {
     int t, k, pass;
     for (pass = 0; pass < 2; ++pass) {
@@ -686,7 +726,7 @@ static int remove_out_rock(char *state, int tank) {
             }
         }
     }
-    return 0;
+    return remove_held_rock();                                 /* then Tanks 4-6 */
 }
 
 /* 0x41E809, the trash after its "throw away?" answer: an eel takes a rock with it. */
@@ -700,7 +740,7 @@ static int confirm_in(void *parent, int string_id);
 
 /* An ornament dropped (the stock game only moves them): the eel's rock on the
    trash can is thrown away, with its eel (inside it, or the one swimming in
-   the same tank, else another).  1 = handled. */
+   the same tank, else another, in Tanks 4-6 last).  1 = handled. */
 static int __cdecl rock_trash(char *impl, int x, int y) {
     char *state = (char *)P(impl, 0x34);
     int tank, k = *I(impl, 0x28), t, s, pass, done = 0;
@@ -727,6 +767,7 @@ static int __cdecl rock_trash(char *impl, int x, int y) {
                 }
             }
         }
+        if (!done) remove_held_eel();                       /* then Tanks 4-6 */
     }
     memset(o, 0, ORN_STRIDE);
     *I(impl, 0x28) = 0x63;
@@ -1108,6 +1149,45 @@ static int __cdecl new_chemical(char *impl, int item) {
     case CLONA_ITEM: clona_dose(impl); return 1;
     default: return 0;
     }
+}
+
+/* ---------------------------------------------------- the store supplies in the trash */
+
+/* The stock game never throws a supply away: a supply let go outside the tank
+   (0x420B70 tests the tank at impl+0xA8..+0xB4 first) gets a hint and goes
+   back to its slot (0x42165C).  This store's own supplies -- Exotic Fish Eggs,
+   the Radioactive Growth Hormone, the Revival Potion and ClonaFish -- let go
+   on the trash can (impl+0x88..+0x94, the hit area the fish trash tests at
+   0x41F31E) are thrown away instead: the slot is emptied as the stock tail
+   empties a used-up one (0x420D9B: item, present, count, icon and cursor
+   0), with every dose or hatch it still held, nothing is held any more
+   (impl+0x1C = 0x63), and the fish trash's sound (4) plays.  The stock game
+   asks only before a live fish goes ("Delete this fish?"), so nothing is
+   asked.  Food (slot #1) and the stock supplies are never touched: they go
+   back to their slot as stock.  1 = thrown away. */
+#define HELD_SUPPLY 0x1C
+#define NO_SUPPLY 0x63
+
+static int is_store_supply(int item) {
+    return item == EXOTIC_ITEM || item == RGH_ITEM || item == REVIVAL_ITEM || item == CLONA_ITEM;
+}
+
+static int __cdecl supply_trash(char *impl, int x, int y) {
+    char *state = (char *)P(impl, 0x34), *r;
+    int k = *I(impl, HELD_SUPPLY);
+    if (state == NULL || k < 1 || k > 3) return 0;
+    r = SLOT_RECORD(state, k);
+    if (*I(r, SR_ICON) == 0 || !is_store_supply(*I(r, SR_ITEM))) return 0;
+    if (inside(x, y, *I(impl, 0xA8), *I(impl, 0xAC), *I(impl, 0xB0), *I(impl, 0xB4))) return 0;
+    if (!inside(x, y, *I(impl, 0x88), *I(impl, 0x8C), *I(impl, 0x90), *I(impl, 0x94))) return 0;
+    *I(r, SR_ITEM) = 0;
+    *I(r, SR_PRESENT) = 0;
+    *I(r, SR_COUNT) = 0;
+    *I(r, SR_ICON) = 0;
+    *I(r, SR_CURSOR) = 0;
+    *I(impl, HELD_SUPPLY) = NO_SUPPLY;
+    play_sound(4);
+    return 1;
 }
 
 /* ------------------------------------------------------- creature names */
@@ -2367,6 +2447,28 @@ __declspec(naked) static void stub_ornament_drop(void) {
     }
 }
 
+/* 0x421B52 `call 0x420B70` (thiscall impl; x, y; ret 8), the release of a held
+   supply: the store's supplies on the trash can are thrown away, else the
+   stock use (or its Universal supply slots trampoline) runs as before. */
+static const DWORD k_supply_use = 0x00420B70u;
+
+__declspec(naked) static void stub_supply_drop(void) {
+    __asm {
+        push ecx
+        push dword ptr [esp + 0x0C]
+        push dword ptr [esp + 0x0C]
+        push ecx
+        call supply_trash
+        add esp, 12
+        pop ecx
+        test eax, eax
+        jz stock
+        ret 8
+    stock:
+        jmp dword ptr [k_supply_use]
+    }
+}
+
 /* ----------------------------------------------------------------- install */
 
 static const DWORD k_build_top = 0x00413DC4u, k_build_after = 0x004140D6u;
@@ -2433,7 +2535,7 @@ __declspec(naked) static void stub_state_save(void) {
 }
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 28
+#define TOTAL_SITES 29
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -2483,6 +2585,7 @@ static int prepare(void) {
     CALL(w++, SAVE_CALL_SETTINGS, stub_state_save);
     SLOT(w++, STATE_SAVE, stub_state_save);
     ftfp_site_branch(w++, 0x00421AAAu, 5, TANK_UPDATE_CALL, 0xE8, CODE_ADDR(stub_tank_update));
+    CALL(w++, SUPPLY_DROP, stub_supply_drop);
     return (int)(w - writes) == TOTAL_SITES;
 }
 

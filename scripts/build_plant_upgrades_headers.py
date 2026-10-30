@@ -54,6 +54,11 @@ SITES = [
     # "is this flower spot free?" (a spot on a joint is taken while a branch grows there): the
     # formula's flowering skips that test, so every spot on every branch flowers.
     ("joint_free", 0x42D330, ["mov eax, dword ptr [esp + 0xc]", "mov edx, dword ptr [esp + 8]"]),
+    # The greenhouse trash: the mouse-up's call of the stock trash (0x424680, a held item let go
+    # off the pots), and the press off the pots (0x426040 at 0x4272DC, before the selected plant's
+    # trash or the put-back): the new chemicals held there are thrown away.
+    ("trash_drop", 0x425FF2, ["call 0x424680"]),
+    ("trash_press", 0x4272DC, ["mov ecx, dword ptr [esi + 0x68]", "mov eax, dword ptr [ecx + 0x63e58]"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).

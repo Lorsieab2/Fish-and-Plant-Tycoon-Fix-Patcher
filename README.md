@@ -168,7 +168,8 @@ never needs the internet.
   environment of your fish (the Tools tab's Game Mechanics lists the exact
   effects). The Moray Eel comes with its rock: drop the eel on it to send it
   home, move the rock and the eel goes with it, and drag it out by its head.
-  Trashing the eel trashes its rock, and the other way round. The animals,
+  Trashing the eel trashes its rock, and the other way round, wherever the
+  other one is (Tanks 4-6 included). The animals,
   the Golden Seahorse included, never take a fish's place: each tank has 5
   animal slots of its own, kept in `Fish Tycoon Fix Patcher Data\Tank Animals
   <slot>.dat` beside the saves (with 3 extra tanks, the animals in Tanks 4-6
@@ -203,6 +204,11 @@ never needs the internet.
   Both work in every tank slot the game uses (Bigger tanks, and more) and in
   every tank the game updates. Picture:
   [docs/images/revival-potion-fish.png](docs/images/revival-potion-fish.png).
+  Exotic Fish Eggs and the three chemicals can be thrown away: let go on the
+  trash can, the whole slot (every dose or hatch left) goes, with the trash
+  sound and no question (the game only asks about a fish). The stock game
+  throws no supply away, so the food and the stock medicines, chemicals and
+  eggs still go back to their slot.
   The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
   second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
   loaded by DS Fish's; besides the game's own save it writes only the
@@ -319,6 +325,13 @@ never needs the internet.
     Dropped on a plant that has given all its seeds, it can be pollinated
     again and give seeds again, exactly like a fresh plant.
   - Picture: [docs/images/revival-potion-plant.png](docs/images/revival-potion-plant.png).
+  - The formula, the bomb, the Revival Potion and Revita-Seed can be thrown
+    in the Trash bin: held from the chemical tray and let go or clicked on
+    the bin, the bottle goes with every dose left, with the bin's sound and
+    no question, as a seed packet does (no money back). A selected plant is
+    not asked about. The stock game never bins a chemical or a tool, and
+    still doesn't for its own. Legendary Seeds and new-flower seeds go in the
+    bin like any seed (sold for their value).
   - The Fourth, Fifth and Sixth Seed Box with the tool upgrades: $1000
     each, bought in order like the stock ones. Each opens a 40-seed drawer in
     a second chest; the gold arrows on the Seed Storage title bar switch
