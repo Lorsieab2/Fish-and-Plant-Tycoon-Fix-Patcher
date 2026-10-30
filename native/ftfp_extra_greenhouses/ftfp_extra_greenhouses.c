@@ -563,11 +563,11 @@ static int __cdecl seed_put_back(void) {
 
 /* Sold plants leave their pots when the greenhouse opens (0x4231E0); the
    other greenhouses' sold plants leave theirs too, through the same call. */
-NOINLINE static void clear_sold_elsewhere(char *state) {
+static void clear_sold(char *state, int skip) {
     int g, k, keep = arranged;
     if (MANAGER == NULL) return;
     for (g = 0; g < GREENHOUSES; ++g) {
-        if (g == shown) continue;
+        if (g == skip) continue;
         arrange(state, g);
         for (k = 0; k < POTS; ++k) {
             char *pot = state_pot(state, k);
@@ -576,6 +576,11 @@ NOINLINE static void clear_sold_elsewhere(char *state) {
     }
     arrange(state, keep);
 }
+
+NOINLINE static void clear_sold_elsewhere(char *state) { clear_sold(state, shown); }
+
+/* The nursery closes: as the stock close empties its sold pots (0x4363A3), every nursery's go. */
+NOINLINE static void clear_sold_everywhere(char *state) { clear_sold(state, -1); }
 
 /* A held plant dropped on an arrow: into the same pot place of that
    greenhouse if it is empty, else its first empty pot. */
@@ -808,11 +813,20 @@ static void show_nursery_arrows(void) {
 
 /* Another nursery: the stock nursery closes (its sold plants leave their pots) and the next one
    opens with its own plants for sale, visitors and prices, exactly as on entering a nursery. */
+/* Another nursery: only the plants on the 15 stands change.  The visitors, their places, states and
+   timers, the visitor limit and the browsing count the buy rolls use all stay exactly as they are:
+   nothing of the nursery scene is touched.  No visitor holds a plant: a visitor's comment picks a
+   stand and reads its plant there and then (0x4399D5), a buy roll goes stand by stand (0x436BE0),
+   and a sale pays and marks its pot at once (0x435C70), so the new plants are simply what the
+   visitors find on the stands.  A plant held to rearrange the nursery is put back first (its index
+   is a stand of this nursery), as the stock close does (0x4363C3). */
 NOINLINE static void show_nursery(char *s, int e, int n) {
-    next_nu_activate(s, e, 0);
+    char *state = GAME_STATE;
+    (void)s;
+    (void)e;
+    if (state != NULL && AT(state, STATE_HELD, int) >= HELD_POT) AT(state, STATE_HELD, int) = 0;
     nursery_shown = nursery_wrap(n);
     enter(2);
-    next_nu_activate(s, e, 1);
 }
 
 static int __fastcall nu_command(char *s, int e, int m, int id) {
@@ -859,8 +873,10 @@ static void __fastcall nu_activate(char *s, int e, int on) {
         }
         show_nursery_arrows();
     } else {
+        char *state = GAME_STATE;
         next_nu_activate(s, e, on);
         leave(2);
+        if (state != NULL && nurseries_on && nurseries > 0) clear_sold_everywhere(state);
     }
 }
 

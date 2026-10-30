@@ -216,10 +216,19 @@ same code:
   (`at_pos` / `where_home`). Any place can be moved into any state spot, and
   every move is taken back, last first.
 - **Switching:** the stock gold arrows (ids 40/41 on the nursery scene, at
-  220/530 in the sky band) and "Nursery n" in the game's font. A switch runs
-  the stock nursery close (`activate(0)`: sold plants leave their pots), the
-  rearrangement, then the stock open (`activate(1)`: the new nursery's
-  visitor limit). This is exactly leaving one nursery and entering another.
+  220/530 in the sky band) and "Nursery n" in the game's font. A switch only
+  rearranges the 15 pots (the owner: switching must not reset the customers).
+  It does not close or reopen the nursery, and the nursery scene and its
+  visitor list are not touched, so the visitors, their timers, the visitor
+  limit and the browsing count all stay.
+  - Why it is safe: no visitor holds a plant. A comment picks a stand and
+    reads its plant at that moment (0x4399D5), the buy roll goes stand by
+    stand, and a sale pays and marks its pot at once.
+  - A plant held to rearrange the nursery is put back first, as the stock
+    close does (0x4363C3).
+  - Sold plants keep their stand on their own nursery. When the nursery
+    closes, the stock close empties the screen's sold pots and the DLL
+    empties every other nursery's.
 - **Limit:** 15 × (1 + nurseries owned). Button 6 refuses the next one with
   "Your nurseries are full! Only N plants ...", and button 9 stops at the
   limit.
