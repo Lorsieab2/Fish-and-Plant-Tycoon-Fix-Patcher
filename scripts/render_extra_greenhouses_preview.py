@@ -132,7 +132,10 @@ def main() -> int:
             pot = pots.crop((0, style * frame_h, pots.width, (style + 1) * frame_h))
             screen.alpha_composite(pot, (323 + 93 * column - 28, 117 + 144 * row - 15))
     arrows(screen, images, constant("LEFT_X"), constant("RIGHT_X"), constant("ARROW_Y"))
-    centred(screen, words(folder, exe, "Greenhouse 2 of 3"), constant("LABEL_X"), constant("LABEL_Y"))
+    centred(screen, words(folder, exe, "Greenhouse 1 of 6"), constant("LABEL_X"), constant("LABEL_Y"))
+    # The greenhouse counts (native/ftfp_greenhouse_counts) as they stand with the arrows shown.
+    screen.alpha_composite(words(folder, exe, "Counts: On"), (646, 4))
+    screen.alpha_composite(words(folder, exe, "Plants: 15 of 15 (15 mature, 0 with buds, 0 seedlings)"), (236, 62))
     save(screen, "extra-greenhouses-switch.png")
 
     # The stock nursery screen as its draw lays it out (0x437183..0x437880 and 0x4375EC): the
