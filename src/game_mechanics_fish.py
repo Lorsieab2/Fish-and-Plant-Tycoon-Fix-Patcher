@@ -814,6 +814,40 @@ PERMANENT_ITEMS = (
         "ornaments and magic fish. You can drop fish and ornaments on its button to move them.",
         patched=(("bigger_tanks", "it holds 30 fish, like Tank One and the selling tank."),),
     ),
+    Fact(
+        "Auto-Feeder: not in the unpatched game.",
+        patched=(("ds_store", "Auto-Feeder ($10,000), on the store's Upgrades page, bought once: every age step of "
+                  "every live fish in every tank (Tank One, Tank Two, the selling tank and the isolation "
+                  "tank; every fish slot, 30 with Bigger tanks; time away and the Time Warp step by step, "
+                  "on screen or not) sets its food to 50, right after the step's sickness roll and before "
+                  "the step's food drop (so food rests at 49-50). Below 5 food a fish gains no health and "
+                  "at 2 or less it starves (food 0, -1 health a step): at 50 neither happens. Feeding by hand "
+                  "gives +50 and costs 2 health when it would pass 100 (overfeeding): from 50 it reaches "
+                  "100 at most, so it never hurts. The game keeps no water quality or pollution; the "
+                  "falling food is only drawn. Dead fish, the Golden Seahorse and the store animals are "
+                  "never touched. A purchase feeds every fish at once. Units of Food Given counts only "
+                  "food you drop. Click it again on the Upgrades page (once it is selected) and answer Yes "
+                  "to unpurchase it: it stops at once, nothing it did is undone, there is no refund and "
+                  "buying it again costs the full price. Kept per save slot in \"Fish Tycoon Fix Patcher "
+                  "Data\\Auto Upgrades <slot>.dat\"; a new game starts without it."),
+                 ("extra_tanks", "Tanks 4-6 too, on screen or not."),
+                 ("free_upgrades", "the Auto-Feeder costs $0."),),
+    ),
+    Fact(
+        "Auto-Healer: not in the unpatched game.",
+        patched=(("ds_store", "Auto-Healer ($10,000), on the store's Upgrades page, bought once: every age step of "
+                  "every live fish in every tank (as the Auto-Feeder), right after the sickness roll, "
+                  "clears fungus or ick (each cure counts under Fish Cured, as the medicines count) and "
+                  "sets health to 100, and again at the step's end (after the clamps, before the death "
+                  "test). So a fish never stays sick: no lost pregnancy, no health loss, no spreading, no "
+                  "lost sales. It never revives: a fish at health 0 is dead, and one whose health reaches "
+                  "0 within a step is left to die (that can only happen to a fish that was nearly dead "
+                  "when it was bought: the purchase heals every live fish at once). The Golden Seahorse "
+                  "and the store animals are never touched. Unpurchase as the Auto-Feeder. Kept in the "
+                  "same \"Auto Upgrades <slot>.dat\"."),
+                 ("extra_tanks", "Tanks 4-6 too, on screen or not."),
+                 ("free_upgrades", "the Auto-Healer costs $0."),),
+    ),
 )
 
 RESEARCH = (

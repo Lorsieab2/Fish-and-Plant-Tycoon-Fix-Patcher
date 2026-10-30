@@ -251,3 +251,32 @@ cannot show any tooltip, stock ones included).
   drawers could change). The window is the few seconds the dialog is open.
 - Like New Flowers, the sidecars follow the slot number, not the game's backup
   rotation.
+
+## Automatic Sprinklers and the Auto-Healer
+
+`native/ftfp_plant_upgrades/auto_upgrades.h`. Two permanent items, $10,000 each
+($0 with Free upgrades), drawn from chemical-sheet rows 16 and 17 (frames 32 and
+34, upright only; row 15 is the Extra Greenhouse's): the sprinklers at (409, 111)
+on the tool shelf under the Extra Greenhouse, the healer at (655, 116) beside the
+Formula Bomb, each with the owned tick. Click: Yes / No to buy; owned, Yes / No to
+unpurchase (no refund). Tooltips: "<name>\nPrice: $ 10000" or "<name>\nOwned,
+click to unpurchase".
+
+Hooks (upgrade_sites.h): `unit_top` 0x42E134 (`cmp [edi+0x28], ebp; jne 0x42E144`,
+the top of the plant update's age-unit loop, edi = the pot, esi = the plant) and
+`units_done` 0x42E2DF (after the loop). Both call auto_tend: water (+0x20) = 500,
+pests (+0x28) = 0 with one Plants Cured (state + 0x40), health (+0x24) = 100. A pot
+at health 0 is never touched, and once one is seen at 0 within an update the rest
+of that update leaves it (the stock loop can lift a plant that died of old age
+back above 0). Extra Greenhouses runs the stock update once per greenhouse with its
+pots moved in, so every greenhouse gets the same. A purchase tends every live pot
+at once (FtfpExtraGreenhousesPot for Greenhouses 2-6).
+
+Water: each unit drops 6 + difficulty - the water upgrade (cacti 3 less); below
+100 after the drop is too dry (-1 health, no gain, size loss before 21); above 900
+the pest roll (0x42CB9E) triples. 500 sits in the middle of 108-900.
+
+Ownership: "Plant Tycoon Fix Patcher Data\Auto Upgrades <slot>.dat", 16 bytes
+("PPAU", version 1, sprinklers, healer), written with the save through a .tmp;
+read at load (no file: neither owned; a bad file is set aside as .unreadable);
+deleted with the slot; a new game clears both. Tests: tests/test_auto_upgrades.py.

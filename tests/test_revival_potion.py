@@ -82,8 +82,8 @@ class ArtAndManifestTests(unittest.TestCase):
         for text in ("Revival Potion", "Revita-Seed", "$2,500", "Radioactive Plant Formula Bomb", "$30,000",
                      "every live plant in the greenhouse"):
             self.assertIn(text, upgrades["description"])
-        self.assertEqual(png_size(PLANT_SHEET), (140, 16 * 70))     # rows 10-12 new; 13 Time Warp, 14 Add Money,
-                                                                     # 15 the Extra Greenhouse
+        self.assertEqual(png_size(PLANT_SHEET), (140, 18 * 70))     # rows 10-12 new; 13 Time Warp, 14 Add Money,
+                                                                     # 15 the Extra Greenhouse, 16-17 the Auto items
         free = combined.patch_settings("plant")["free_upgrades"]["description"]
         for text in ("the Revival Potion ($10,000)", "Revita-Seed ($2,500)", "the Formula Bomb ($30,000)"):
             self.assertIn(text, free)

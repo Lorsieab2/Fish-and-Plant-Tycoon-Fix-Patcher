@@ -469,3 +469,29 @@ to keep using them:
 - Not yet checked in the running game (emulated only, tests/test_ds_store_animals.py):
   the animals' own records and "Tank Animals <slot>.dat" (2026-10-30). The
   live checks above were made when they sat in records 26-30.
+
+## The Auto-Feeder and the Auto-Healer
+
+`native/ftfp_ds_store/auto_upgrades.h`. Two permanent items, $10,000 each ($0 with
+Free upgrades), in row 2 of the net beside ClonaFish (cells 141,165 and 234,165),
+sprites 244 and 245 (ITEM_AUTO_FEEDER.png, ITEM_AUTO_HEALER.png, 73 x 65, 57 px
+visible). Buy: the game's purchase question (0xEC); owned: "You already own
+this!" (0x1C) and the panel's "Owned. Click it again to unpurchase."; a click on
+the selected owned item asks to unpurchase (Yes / No popup), no refund.
+
+Hooks: `auto_step` 0x4204B3 (store_sites.h; in the fish update's step loop, after
+the sickness roll 0x41E120, before the pregnancy loss 0x4204EE and the food drop):
+the feeder sets food (+0x44) to 50, the healer clears sickness (+0x40, one Fish
+Cured, state + 0x34) and sets health (+0x3C) to 100. The death hook 0x420622 sets
+health 100 again for a fish above 0. A fish at health 0 is never touched. Every
+tank the update runs (0-3, and Tanks 4-6 through Extra Tanks' second run) and every
+slot it reaches gets it. A purchase tends every live fish at once (and the blocks
+FtfpExtraTanksHeld returns).
+
+Food: feeding gives +50 and costs 2 health when food would pass 100 (0x4121CB); at
+50 a feeding by hand reaches 100 at most. Below 5 health gains are lost; at 2 or
+less the fish starves. The game has no water quality.
+
+Ownership: "Fish Tycoon Fix Patcher Data\Auto Upgrades <slot>.dat", 16 bytes
+("FTAU", version 1, feeder, healer), written before the game's save through a
+.tmp; read after a load; a new game clears both. Tests: tests/test_auto_upgrades.py.

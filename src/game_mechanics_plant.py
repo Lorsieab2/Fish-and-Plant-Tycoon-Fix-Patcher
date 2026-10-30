@@ -557,6 +557,40 @@ TOOLS = (
         "On a green part or a flower: Dull -10 to -24, Sharp -7 to -13, Golden no damage. Pruning "
         "can kill a plant.",
     ),
+    Fact(
+        "Automatic Sprinklers: not in the unpatched game.",
+        patched=(("plant_upgrades", "Automatic Sprinklers ($10,000), on the store's Upgrades view (the tool "
+                  "shelf, under the Extra Greenhouse), bought once: at the top of every age unit of every "
+                  "live potted plant (time away and the Time Warp unit by unit, before that unit's pest "
+                  "roll reads the water) and after each update, the water is set to 500. The best band is "
+                  "108-900: below 100 after a unit's drop (6 + difficulty - the water upgrade, at most 8) "
+                  "the plant is too dry (-1 health, no health gain, size loss before age 21); above 900 "
+                  "the pest odds triple; nothing else reads the water, so 500 is never dry and never too "
+                  "wet (it rests at 492-500). Water you add by hand above 900 is back at 500 before the "
+                  "next pest roll. Dead plants and empty pots are never watered. A purchase waters every "
+                  "live plant at once. Click it again on the Upgrades view and answer Yes to unpurchase "
+                  "it: it stops at once, nothing it did is undone, there is no refund and buying it again "
+                  "costs the full price. Kept per save slot in \"Plant Tycoon Fix Patcher Data\\Auto "
+                  "Upgrades <slot>.dat\"; a new game starts without it."),
+                 ("extra_greenhouses", "Greenhouses 2-6 too, on screen or not."),
+                 ("free_upgrades", "Automatic Sprinklers cost $0."),),
+    ),
+    Fact(
+        "Auto-Healer: not in the unpatched game.",
+        patched=(("plant_upgrades", "Auto-Healer ($10,000), on the store's Upgrades view (the chemicals "
+                  "shelf, beside the Formula Bomb), bought once: at the top of every age unit of every "
+                  "live potted plant and after each update, pests are cleared (each cure counts under "
+                  "Plants Cured, as Insect Poison counts) and health is set to 100. Pests and health "
+                  "(Dead, Infested, Unhealthy) are the game's only plant problems; dead parts come from "
+                  "the age-7 branch roll, part of how the plant grows, and stay (the Radioactive Plant "
+                  "Formula brings them back). It never revives a plant: one at health 0 is dead (the "
+                  "Revival Potion's job), and one that dies of old age during a catch-up is left as the "
+                  "game leaves it. Old age still ends a plant's life (No old age plant deaths stops "
+                  "that). A purchase heals every live plant at once. Unpurchase as the sprinklers; kept "
+                  "in the same \"Auto Upgrades <slot>.dat\"."),
+                 ("extra_greenhouses", "Greenhouses 2-6 too, on screen or not."),
+                 ("free_upgrades", "the Auto-Healer costs $0."),),
+    ),
 )
 
 CHEMICALS = (

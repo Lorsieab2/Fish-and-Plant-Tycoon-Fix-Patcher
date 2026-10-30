@@ -74,6 +74,10 @@ SITES = [
     # The release of a held supply (0x421B20 calls the use 0x420B70): the store's own supplies
     # let go on the trash can are thrown away.
     ("supply_drop", 0x421B52, ["call 0x420b70"]),
+    # The Auto-Feeder and Auto-Healer: each fish's age step, right after its sickness roll
+    # (0x41E120, adults only) and before the sickness costs it a pregnancy (0x4204EE), its food
+    # drops and the starvation test (0x42055E).
+    ("auto_step", 0x4204B3, ["mov edx, dword ptr [esi + 0x34]", "cmp dword ptr [edi + edx + 0x3d0], ebx"]),
 ]
 
 # The Supplies scene's vtable (0x44C294): slot address -> the function it holds.

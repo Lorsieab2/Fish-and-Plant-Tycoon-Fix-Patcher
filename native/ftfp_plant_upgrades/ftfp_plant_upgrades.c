@@ -25,6 +25,9 @@
      * the Fourth, Fifth and Sixth Seed Box (upper left, the seed-box column
        of the tool upgrades), when "Extra Seed Boxes.dll" is beside this DLL;
        that DLL holds the boxes, this one sells them through the stock dialog;
+     * Automatic Sprinklers and the Auto-Healer ($10,000 each, bought once):
+       every live potted plant in every greenhouse kept at the best water
+       level, and free of pests at full health (auto_upgrades.h);
      * with their settings ("<name>.ini" beside this DLL): the Time Warp
        clock and Add Money ($950 for +$1,000); with Free upgrades every item
        on this view costs $0 (the stock store keeps its prices).
@@ -775,6 +778,8 @@ static void load_extras(void) {
     }
 }
 
+#include "auto_upgrades.h"            /* Automatic Sprinklers and the Auto-Healer */
+
 static void box_tip_text(int box) {
     if (boxes != NULL && boxes->owned(box)) sprintf_s(tip_text[TIP_BOXES + box], 64, "%s", BOX_TITLES[box]);
     else sprintf_s(tip_text[TIP_BOXES + box], 64, "%s\nPrice: $ %i", BOX_TITLES[box], price(BOX_PRICE));
@@ -803,6 +808,7 @@ static void set_tooltips(char *scene) {
         tooltip_text(extra_tip[i], 0, extra_tip_text[i], TOOLTIP_COLOUR, 0, 0);
         AT(extra_tip[i], 8, unsigned char) = (unsigned char)upgrades_view;
     }
+    auto_set_tips(upgrades_view);
 }
 
 static char *make_tooltip(char *scene, int id, const RECT *r, const char *text) {
@@ -844,6 +850,7 @@ static void make_tooltips(char *scene) {
         extra_tip_set(i);
         extra_tip[i] = make_tooltip(scene, 56 + TIPS + i, &EXTRA_ITEM[i].rect, extra_tip_text[i]);
     }
+    auto_make_tips(scene);
 }
 
 static void switch_view(char *scene, int on) {
@@ -902,6 +909,7 @@ static int __cdecl on_draw(char *scene) {
         draw_sprite(mgr, 0, it->sprite, it->frame, it->x, it->y, it->scale, 100, 1);
         if (extra_owned[i]() >= EXTRA_COUNT) draw_shadow(mgr, 0, SHEET_TICK, it->tick_x, it->tick_y, 1.0f, 100);
     }
+    auto_draw(mgr);
     return 1;
 }
 
@@ -971,6 +979,7 @@ static int __cdecl on_click(char *scene, int x, int y) {
     for (i = 0; i < EXTRA_ITEMS; ++i) {
         if (extra_on(i) && inside(&EXTRA_ITEM[i].rect, x, y)) buy_extra(scene, i);
     }
+    auto_click(scene, x, y);
     return 1;
 }
 
@@ -1021,6 +1030,7 @@ static void __cdecl on_save(char *state, int slot) {
     HANDLE file;
     DWORD header[3], written;
     if (boxes != NULL) boxes->save(state, slot);
+    if (slot > 0) auto_save(slot);
     if (slot <= 0 || !sidecar_path(slot, path, 1024, 1)) return;
     wcscpy_s(temp, 1100, path);
     wcscat_s(temp, 1100, L".tmp");
@@ -1059,6 +1069,7 @@ static void __cdecl on_load(const char *state, int slot) {
     int ok = 0;
     seed_record body[LEGENDARY_COUNT];
     if (slot <= 0) return;
+    auto_load(slot);
     if (sidecar_path(slot, path, 1024, 0)) {
         file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (file != INVALID_HANDLE_VALUE) {
@@ -1082,10 +1093,12 @@ static void __cdecl on_load(const char *state, int slot) {
 static void __cdecl on_delete(int slot) {
     wchar_t path[1024];
     if (slot > 0 && sidecar_path(slot, path, 1024, 0)) DeleteFileW(path);
+    if (slot > 0) auto_delete(slot);
     if (boxes != NULL) boxes->remove(slot);
 }
 
 static void __cdecl on_new_game(void) {
+    auto_new_game();
     if (boxes != NULL) boxes->new_game();
 }
 
@@ -1723,7 +1736,7 @@ static const char CHEM_SHEET_FILE[] = "Chemicals_Grid_upgrades.png";
 static const char LINK_FILE[] = "upgrades_link.png";
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 22
+#define CODE_SITES 24
 #define DATA_SITES 6
 #define TOTAL_SITES (CODE_SITES + DATA_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -1744,8 +1757,9 @@ static void site_data(ftfp_site_write *w, unsigned int va, int length, const uns
 static int prepare(void) {
     ftfp_site_write *w = writes;
     DWORD seed_file = (DWORD)(UINT_PTR)SEED_SHEET_FILE, chem_file = (DWORD)(UINT_PTR)CHEM_SHEET_FILE;
-    DWORD seed_rows = 8, chem_rows = 16;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money,
-                                                      15: the Extra Greenhouse */
+    DWORD seed_rows = 8, chem_rows = 18;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money,
+                                                      15: the Extra Greenhouse, 16: Automatic Sprinklers,
+                                                      17: Auto-Healer */
     DWORD link[6];
     unsigned char bound = SITE_CHEM_PICTURE_BOUND_NEW;
     link[0] = LINK_SPRITE;
@@ -1776,6 +1790,8 @@ static int prepare(void) {
     JMP(w++, PLANT_SEED, stub_plant_seed);
     CALL(w++, TRASH_DROP, stub_trash_drop);
     JMP(w++, TRASH_PRESS, stub_trash_press);
+    JMP(w++, UNIT_TOP, stub_unit_top);
+    JMP(w++, UNITS_DONE, stub_units_done);
     site_data(w++, SITE_CHEM_PICTURE_BOUND_VA, SITE_CHEM_PICTURE_BOUND_LEN, SITE_CHEM_PICTURE_BOUND_EXPECT, NULL, 0);
     writes[CODE_SITES].bytes[SITE_CHEM_PICTURE_BOUND_IMM_AT] = bound;
     site_data(w++, SITE_SEED_SHEET_FILE_VA, SITE_SEED_SHEET_FILE_LEN, SITE_SEED_SHEET_FILE_EXPECT, &seed_file, 4);

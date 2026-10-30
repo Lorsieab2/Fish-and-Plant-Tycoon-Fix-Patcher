@@ -62,6 +62,10 @@ SITES = [
     # trash or the put-back): the new chemicals held there are thrown away.
     ("trash_drop", 0x425FF2, ["call 0x424680"]),
     ("trash_press", 0x4272DC, ["mov ecx, dword ptr [esi + 0x68]", "mov eax, dword ptr [ecx + 0x63e58]"]),
+    # Automatic Sprinklers and the Auto-Healer: the top of the plant update's age-unit loop (each
+    # caught-up unit, edi = the pot) and the code right after the loop (esi = the plant object).
+    ("unit_top", 0x42E134, ["cmp dword ptr [edi + 0x28], ebp", "jne 0x42e144"]),
+    ("units_done", 0x42E2DF, ["mov ecx, dword ptr [esi + 0xc]", "cmp byte ptr [ecx + 0x53f27], 0"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).

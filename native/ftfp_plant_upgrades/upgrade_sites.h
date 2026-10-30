@@ -82,6 +82,22 @@ static const unsigned char SITE_JOINT_FREE_EXPECT[] = { 0x8B, 0x44, 0x24, 0x0C, 
 #define SITE_PLANT_SEED_LEN 7
 static const unsigned char SITE_PLANT_SEED_EXPECT[] = { 0x89, 0x56, 0x78, 0xC6, 0x46, 0x6C, 0x00 };
 #define SITE_PLANT_SEED_BACK 0x0042FCE4u
+#define SITE_TRASH_DROP_VA 0x00425FF2u
+#define SITE_TRASH_DROP_LEN 5
+static const unsigned char SITE_TRASH_DROP_EXPECT[] = { 0xE8, 0x89, 0xE6, 0xFF, 0xFF };
+#define SITE_TRASH_DROP_BACK 0x00425FF7u
+#define SITE_TRASH_PRESS_VA 0x004272DCu
+#define SITE_TRASH_PRESS_LEN 9
+static const unsigned char SITE_TRASH_PRESS_EXPECT[] = { 0x8B, 0x4E, 0x68, 0x8B, 0x81, 0x58, 0x3E, 0x06, 0x00 };
+#define SITE_TRASH_PRESS_BACK 0x004272E5u
+#define SITE_UNIT_TOP_VA 0x0042E134u
+#define SITE_UNIT_TOP_LEN 5
+static const unsigned char SITE_UNIT_TOP_EXPECT[] = { 0x39, 0x6F, 0x28, 0x75, 0x0B };
+#define SITE_UNIT_TOP_BACK 0x0042E139u
+#define SITE_UNITS_DONE_VA 0x0042E2DFu
+#define SITE_UNITS_DONE_LEN 10
+static const unsigned char SITE_UNITS_DONE_EXPECT[] = { 0x8B, 0x4E, 0x0C, 0x80, 0xB9, 0x27, 0x3F, 0x05, 0x00, 0x00 };
+#define SITE_UNITS_DONE_BACK 0x0042E2E9u
 #define SITE_CHEM_PICTURE_BOUND_VA 0x004308D1u
 #define SITE_CHEM_PICTURE_BOUND_LEN 3
 static const unsigned char SITE_CHEM_PICTURE_BOUND_EXPECT[] = { 0x83, 0xF8, 0x24 };

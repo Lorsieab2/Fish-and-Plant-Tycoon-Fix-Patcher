@@ -95,6 +95,42 @@
   - Tests: tests/test_trash_patcher_items.py runs every case on the vanilla
     executables in Unicorn (dropped on the can, by one pixel off it, in a
     maximized window, Tanks 1-6, the tools and stock supplies kept).
+### Fish Tycoon
+
+- **Auto-Feeder and Auto-Healer** on DS Store Items' Upgrades page, beside
+  ClonaFish: $10,000 each ($0 with Free upgrades), bought once with the
+  game's purchase question. In each age step of every live fish in every tank
+  (Tanks 1-2, the Sale Tank, the isolation tank, all 30 slots with Bigger
+  tanks, Tanks 4-6 with 3 extra tanks, on screen or not, time away and the Time
+  Warp included), right after the sickness roll (a new hook at 0x4204B3): the
+  Auto-Feeder sets food to 50 (never below 5, never starving, and a feeding by
+  hand reaches 100 at most, so it never overfeeds); the Auto-Healer clears
+  fungus and ick (one Fish Cured each) and sets health to 100, again at the
+  step's death test. A dead fish is never touched. The owner's art: the green
+  feeder and the same machine in hot pink (scripts/build_auto_healer_source.py),
+  57 px tall like the store's other pictures (scripts/build_auto_upgrades_assets.py;
+  DS Exclusive Fish lends two more sprite entries, 244 and 245).
+- Clicking an owned one again asks "Unpurchase ...?" (Yes / No): Yes switches it
+  off at once, no refund; buying it again costs the full price.
+- Ownership per slot in "Fish Tycoon Fix Patcher Data\Auto Upgrades <slot>.dat",
+  written with the save (a .tmp renamed over); a new game owns neither.
+
+### Plant Tycoon
+
+- **Automatic Sprinklers and Auto-Healer** on the store's Upgrades view (the
+  sprinklers on the tool shelf under the Extra Greenhouse, the healer beside the
+  Formula Bomb; chemical sheet rows 16 and 17): $10,000 each ($0 with Free
+  upgrades), bought once with the same Yes / No as Add Money. At the top of
+  every age unit of every live potted plant (every greenhouse, Greenhouses 2-6
+  too, time away and the Time Warp unit by unit; hooks at 0x42E134 and
+  0x42E2DF) and after each update: water 500 (the band that is never dry, below
+  100, and never triples the pest odds, above 900); pests cleared (one Plants
+  Cured each) and health 100. A dead plant is never touched; a plant that dies of
+  old age during a catch-up stays as the game leaves it. Dead branches from the
+  age-7 roll are part of growth and stay.
+- Unpurchase as in Fish Tycoon; ownership in "Plant Tycoon Fix Patcher
+  Data\Auto Upgrades <slot>.dat".
+- Mockups: docs/images/auto-upgrades-fish.png, docs/images/auto-upgrades-plant.png.
 
 ## v1.0.17
 

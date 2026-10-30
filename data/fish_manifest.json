@@ -18642,7 +18642,7 @@
             "path": "DS Exclusive Fish.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Exclusive Fish.dll",
             "size": 105984,
-            "sha256": "46D508B986EA0C2576A950B275A6E9D3EBECE07527995970E1E836F94A97B015"
+            "sha256": "FFE6FD722C2820378053A833D9E9F9DD9F60F7BF34B9EE441FD954050E015577"
           },
           {
             "path": "Images/FISH_23_body_Grid.png",
@@ -18788,8 +18788,8 @@
     {
       "id": "ds_store",
       "name": "DS Store Items",
-      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, and ClonaFish, which clones every unique fish. Needs DS Exclusive Fish.",
-      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal places of its own, the Golden Seahorse's included, kept beside the save in \"Tank Animals <slot>.dat\" (a save from an earlier build has its animals moved there the first time it loads); with 3 extra tanks, the animals in Tanks 4-6 move with their tank and are kept with it in \"Extra Tanks <slot>.dat\". Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way, on every live fish in the tank you use it on, any age: each pregnant one gives birth at once, as at the end of a pregnancy (the babies stay babies, as born), then each fish that was there before the births becomes an adult at once if younger, gets full health and is cured of any sickness. The Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every unique fish in the tank you use it on (a fish no other fish there shares its body and fin with), until the tank is full. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
+      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, ClonaFish, which clones every unique fish, and the Auto-Feeder and Auto-Healer, which keep every fish in every tank fed and healthy. Needs DS Exclusive Fish.",
+      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal places of its own, the Golden Seahorse's included, kept beside the save in \"Tank Animals <slot>.dat\" (a save from an earlier build has its animals moved there the first time it loads); with 3 extra tanks, the animals in Tanks 4-6 move with their tank and are kept with it in \"Extra Tanks <slot>.dat\". Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way, on every live fish in the tank you use it on, any age: each pregnant one gives birth at once, as at the end of a pregnancy, then each of them, the newborns too, becomes an adult at once if younger, gets full health and is cured of any sickness. The Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every unique fish in the tank you use it on (a fish no other fish there shares its body and fin with), until the tank is full. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work on every live fish in every tank (Tanks 1-2, the Sale Tank, the isolation tank and Tanks 4-6, on screen or not, through time away and the Time Warp too): the Auto-Feeder keeps each fish's food at 50, so it never starves and feeding by hand on top never overfeeds it; the Auto-Healer cures fungus and ick (each cure counts under Fish Cured) and keeps health at 100. Neither touches a dead fish. Unpurchase: click an owned one again and answer Yes; it switches off at once, with no refund (buying it again costs the full price). Ownership is kept beside the save in \"Auto Upgrades <slot>.dat\"; a new game starts without them. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
       "warning": "Turning this off hides the store animals and the Golden Seahorse: they wait in \"Tank Animals <slot>.dat\" beside the save and come back when it is on again. The eel's rock stays in the tank as a sprite the game cannot draw; trash the eel (its rock goes with it) before switching it off if you mind.",
       "category": "main",
       "default": false,
@@ -18803,8 +18803,8 @@
           {
             "path": "DS Store Items.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
-            "size": 147968,
-            "sha256": "B460A17DDEA456DD4A333CDD3F5084CEF8C0561CC527995BE007B2DFB38ECEF0"
+            "size": 151552,
+            "sha256": "3B0F9D9172DF103A1223C315C4FF01E0DAC3D4FE1EA02429FB25331FA99D4EB1"
           },
           {
             "path": "Images/DS_EEL_Grid.png",
@@ -18853,6 +18853,18 @@
             "destination": "Images/ITEM_ADD_MONEY.png",
             "size": 9313,
             "sha256": "EF46FDA4D0AAFD9CCED3805CF2E5FA18D5A9FF6BC12002287A4E42B3167BA9CF"
+          },
+          {
+            "path": "Images/ITEM_AUTO_FEEDER.png",
+            "destination": "Images/ITEM_AUTO_FEEDER.png",
+            "size": 8099,
+            "sha256": "B995487155A0C5A360709E772C2B9736BA992786E4F4A754B0E56FF74E7F9E24"
+          },
+          {
+            "path": "Images/ITEM_AUTO_HEALER.png",
+            "destination": "Images/ITEM_AUTO_HEALER.png",
+            "size": 8211,
+            "sha256": "5176539829637FD59DFB7BE0E03EE6A48D133CC9E4D0DA0ED7F621AAB469A539"
           },
           {
             "path": "Images/ITEM_CLONAFISH.png",
@@ -18979,7 +18991,7 @@
       "id": "free_upgrades",
       "name": "Free upgrades",
       "summary": "Every item on the store's Upgrades screen costs $0.",
-      "description": "Every item on the Supplies store's Upgrades page (DS Store Items), which this setting turns on, costs $0: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000), ClonaFish ($2,500), and the Time Warp clock ($500), Add Money ($950) and the Extra Tank ($10,000 each) when those settings are on. The price shown says $0 and no money is taken. Everything else stays: The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy Multiple Golden Seahorses is on), the eggs and the chemicals still go in a supply slot, the extra tanks are still bought in order (Tank 4, then 5, then 6), and the game's own purchase confirmations are still asked. The game's own store items keep their prices. Saves keep their layout.",
+      "description": "Every item on the Supplies store's Upgrades page (DS Store Items), which this setting turns on, costs $0: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000), ClonaFish ($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), and the Time Warp clock ($500), Add Money ($950) and the Extra Tank ($10,000 each) when those settings are on. The price shown says $0 and no money is taken. Everything else stays: The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy Multiple Golden Seahorses is on), the eggs and the chemicals still go in a supply slot, the extra tanks are still bought in order (Tank 4, then 5, then 6), and the game's own purchase confirmations are still asked. The game's own store items keep their prices. Saves keep their layout.",
       "category": "main",
       "default": false,
       "requires_settings": [
