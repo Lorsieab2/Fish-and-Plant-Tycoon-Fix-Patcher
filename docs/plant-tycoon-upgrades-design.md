@@ -291,7 +291,7 @@ click to unpurchase".
 
 Hooks (upgrade_sites.h): `unit_top` 0x42E134 (`cmp [edi+0x28], ebp; jne 0x42E144`,
 the top of the plant update's age-unit loop, edi = the pot, esi = the plant) and
-`units_done` 0x42E2DF (after the loop). Both call auto_tend: water (+0x20) = 500,
+`units_done` 0x42E2DF (after the loop). Both call auto_tend: water (+0x20) = 800,
 pests (+0x28) = 0 with one Plants Cured (state + 0x40), health (+0x24) = 100. A pot
 at health 0 is never touched, and once one is seen at 0 within an update the rest
 of that update leaves it (the stock loop can lift a plant that died of old age
@@ -301,7 +301,7 @@ at once (FtfpExtraGreenhousesPot for Greenhouses 2-6).
 
 Water: each unit drops 6 + difficulty - the water upgrade (cacti 3 less); below
 100 after the drop is too dry (-1 health, no gain, size loss before 21); above 900
-the pest roll (0x42CB9E) triples. 500 sits in the middle of 108-900.
+the pest roll (0x42CB9E) triples. 800 sits high in 108-900, below the 900 pest line; nothing in the update raises the water.
 
 Ownership: "Plant Tycoon Fix Patcher Data\Auto Upgrades <slot>.dat", 16 bytes
 ("PPAU", version 1, sprinklers, healer), written with the save through a .tmp;

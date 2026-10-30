@@ -25,9 +25,12 @@
        top of the unit by the infestation roll (vtable +0x0C, 0x42CAA0).  Nothing
        else reads the water: there is no other overwatering harm;
      * so the best level is anything from 100 + the largest drop (8) to 900.
-       The sprinklers write WATER_TARGET (500, the middle of that band) at the
-       top of every unit, before the roll reads it, and after the loop; the
-       next drop leaves 492 or more.  They never write more than 900;
+       The sprinklers write WATER_TARGET (800, high in that band and below the
+       900 pest line: the owner, 2026-10-30) at the top of every unit, before
+       the roll reads it, and after the loop; the next drop leaves 792 or more.
+       Nothing in the update raises the water (only the watering can, between
+       updates), and the next unit's top writes 800 again before its roll, so
+       the roll never sees more than 900 while they run;
      * pests: +0x28 (1 = infested, set by the roll at 0x42CBCF with +0x3C).  An
        infested plant loses 1 + difficulty health a unit, 50% a unit of size -1
        (0x42E144-0x42E16B), and gains no health (0x42CCDA).  Insect Poison clears
@@ -57,7 +60,7 @@
 #define AUTO_ITEMS 2
 #define AUTO_SPRINKLERS 0
 #define AUTO_HEALER 1
-#define WATER_TARGET 500
+#define WATER_TARGET 800
 #define WATER_WET 900                       /* above this the pest odds triple (0x42CB9E) */
 #define POT_WATER 0x20
 #define POT_PESTS 0x28

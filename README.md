@@ -219,8 +219,9 @@ never needs the internet.
   upgrades), the owner's green feeder and the same machine in hot pink, beside
   ClonaFish: in every tank (Tanks 1-2, the Sale Tank, the isolation tank, and
   Tanks 4-6 with 3 extra tanks, on screen or not, through time away and the
-  Time Warp step by step), every live fish's food is kept at 50 (never hungry,
-  never starving, and feeding by hand on top never overfeeds), and every live
+  Time Warp step by step), every live fish's food is kept full, at 100 (never
+  hungry, never starving, and while it is owned feeding by hand never costs
+  health for overfeeding), and every live
   fish is cured of ick and fungus (each counted under Fish Cured) and kept at
   health 100. Neither touches a dead fish. Click an owned one again and answer
   Yes to unpurchase it: it switches off at once, with no refund (buying it
@@ -360,8 +361,8 @@ never needs the internet.
     owner's sprinkler head, and the Fish Tycoon healer machine in hot pink).
     In every greenhouse (Greenhouses 2-6 too, on screen or not, through time
     away and the Time Warp unit by unit), the sprinklers keep every live
-    plant's water at 500 (never too dry, never so wet that pests come three
-    times as often), and the Auto-Healer clears pests (each counted under
+    plant's water at 800 (never too dry, and below the 900 at which pests
+    come three times as often), and the Auto-Healer clears pests (each counted under
     Plants Cured) and keeps health at 100. Neither touches a dead plant (the
     Revival Potion's job), and old age still ends a plant's life. Click an
     owned one and answer Yes to unpurchase it: it switches off at once, with

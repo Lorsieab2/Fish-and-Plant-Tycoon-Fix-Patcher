@@ -481,15 +481,16 @@ the selected owned item asks to unpurchase (Yes / No popup), no refund.
 
 Hooks: `auto_step` 0x4204B3 (store_sites.h; in the fish update's step loop, after
 the sickness roll 0x41E120, before the pregnancy loss 0x4204EE and the food drop):
-the feeder sets food (+0x44) to 50, the healer clears sickness (+0x40, one Fish
+the feeder sets food (+0x44) to 100, the healer clears sickness (+0x40, one Fish
 Cured, state + 0x34) and sets health (+0x3C) to 100. The death hook 0x420622 sets
 health 100 again for a fish above 0. A fish at health 0 is never touched. Every
 tank the update runs (0-3, and Tanks 4-6 through Extra Tanks' second run) and every
 slot it reaches gets it. A purchase tends every live fish at once (and the blocks
 FtfpExtraTanksHeld returns).
 
-Food: feeding gives +50 and costs 2 health when food would pass 100 (0x4121CB); at
-50 a feeding by hand reaches 100 at most. Below 5 health gains are lost; at 2 or
+Food: feeding gives +50 and costs 2 health when food would pass 100 (0x4121CB). Hook
+`overfeed` 0x4121F4: while the Auto-Feeder is owned that test goes the seahorse's way
+(food 100, no health lost); without it, stock. Below 5 health gains are lost; at 2 or
 less the fish starves. The game has no water quality.
 
 Ownership: "Fish Tycoon Fix Patcher Data\Auto Upgrades <slot>.dat", 16 bytes

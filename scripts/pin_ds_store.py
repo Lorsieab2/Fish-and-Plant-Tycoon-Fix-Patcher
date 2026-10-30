@@ -59,7 +59,7 @@ SETTING = {
         "tank is full. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work "
         "on every live fish in every tank (Tanks 1-2, the Sale Tank, the isolation tank and Tanks 4-6, "
         "on screen or not, through time away and the Time Warp too): the Auto-Feeder keeps each fish's "
-        "food at 50, so it never starves and feeding by hand on top never overfeeds it; the Auto-Healer "
+        "food full at 100, so it never starves, and while it is owned feeding by hand never costs health; the Auto-Healer "
         "cures fungus and ick (each cure counts under Fish Cured) and keeps health at 100. Neither "
         "touches a dead fish. Unpurchase: click an owned one again and answer Yes; it switches off at "
         "once, with no refund (buying it again costs the full price). Ownership is kept beside the save "
