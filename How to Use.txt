@@ -220,7 +220,13 @@ your save has discovered only; tick Show Spoilers under Options to see
 everything. The pane under each sheet scrolls. Click a column to sort, type
 in Search to filter, and Export saves the open sheet as .xlsx or .csv. It
 never changes a save. Its "?" button explains the rules and what the prices
-assume.
+assume. The picture tabs (Fin, Body, Egg; Flower, Foliage, Seed Pictures)
+use the game's own art: the first time the guide finds your game (the game
+folder on the Game tab, or the "- Modded" / "- Modded Upgrades" copies) it
+copies the pictures into a "Breeding Guide Pictures" folder beside the
+patcher and shows them from there for every save and player. If a picture
+tab says it has no pictures yet, click "Find game..." and pick your game
+folder. Your game folder and saves are only read.
 
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.
