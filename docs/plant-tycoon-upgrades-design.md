@@ -161,7 +161,8 @@ Boxes DLL.
 | Radioactive Plant Formula Bomb | 39 / row 12 | $30,000, 3 bombs | (598, 116) |
 
 The Time Warp clock moved to row 13 (frame 26) and Add Money's coins to row
-14 (frame 28); the sheet has 15 rows. The game draws chemical c as frame
+14 (frame 28), and the Extra Greenhouse item is row 15 (frame 30); the sheet
+has 16 rows. The game draws chemical c as frame
 2c - 54, so a chemical's row is c - 27. Dialog indices 37-51 are stock store
 items, so 37-39 are these chemicals only while a dialog opened from the
 Upgrades view is up (`upgrade_dialog`): the dialog entry rides the Vaporbomb

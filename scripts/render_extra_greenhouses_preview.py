@@ -13,9 +13,11 @@ writes, in docs/images:
   bar, nurseryUI.png), the arrows and "Nursery 2 of 3";
 * extra-greenhouses-store.png: the Supplies store's background (Store_BG.jpg)
   with the two new Upgrades items where Store Upgrades and Items.dll draws
-  them: the Extra Greenhouse (greenhouse1.png at 0.29) on the tool shelf and
-  the Extra Nursery (goldpot.png at 0.84) on the Nursery shelf, with their
-  tooltips' text below.
+  them: the Extra Greenhouse (frame 30 of the mod's Chemicals_Grid_upgrades.png,
+  built by scripts/build_plant_upgrades_assets.py) on the tool shelf beside the
+  Fourth-Sixth Seed Boxes, and the Extra Nursery (goldpot.png at 0.84) on the
+  Nursery shelf beside Time Warp and Add Money. Their tooltips pop up only
+  under the mouse, so the picture leaves them out (their glyphs are checked).
 
 Every word is set from the game's own font (PTfontsmall.png with the glyph
 table at 0x47A550); a missing glyph stops the script. No plant art: the
@@ -120,7 +122,8 @@ def main() -> int:
     folder = Path(sys.argv[1])
     exe = (folder / "Plant Tycoon.exe").read_bytes()
     images = folder / "Images"
-    for text in ("Greenhouse 6 of 6", "Nursery 6 of 6", "Extra Greenhouse 5 of 5", "Extra Nursery", "Sold out"):
+    for text in ("Greenhouse 6 of 6", "Nursery 6 of 6", "Extra Greenhouse 5 of 5", "Extra Nursery", "Sold out",
+                 "Price: $ 10000"):
         words(folder, exe, text)                         # every label the DLLs can draw has its glyphs
 
     screen = Image.open(images / "main_bg.png").convert("RGBA")
@@ -165,13 +168,28 @@ def main() -> int:
         centred(screen, words(folder, exe, f"Nursery {page} of 3"), constant("NU_LABEL_X"), constant("NU_LABEL_Y"))
         save(screen, "extra-nurseries-switch.png" if page == 2 else "extra-nurseries-nursery-1.png")
 
+    # The Upgrades view as Store Upgrades and Items.dll draws it (on_draw): each item's shadow
+    # (peep_shadow1.png), then its picture. The tool shelf: the Extra Greenhouse (frame 30 of the mod's
+    # chemicals sheet, at scale 1) beside the Fourth-Sixth Seed Boxes (Tools_Grid.png frame 4, 9, 14 at
+    # 461, 50 + 61 i). The Nursery shelf: Time Warp and Add Money (frames 26 and 28) and the Extra
+    # Nursery (goldpot.png at 0.84).
     screen = Image.open(images / "Store_BG.jpg").convert("RGBA")
-    for picture, scale, x, y, tip in (("greenhouse1.png", 0.29, 404 + 6, 50, "Extra Greenhouse 2 of 5"),
-                                      ("goldpot.png", 0.84, 440 + 6, 296, "Extra Nursery 1 of 5")):
-        item = scaled(images / picture, scale)
-        screen.alpha_composite(item, (x, y))
-        centred(screen, words(folder, exe, tip), x + item.width // 2, y + item.height + 4)
-        centred(screen, words(folder, exe, "Price: $ 10000"), x + item.width // 2, y + item.height + 20)
+    shadow = Image.open(images / "peep_shadow1.png").convert("RGBA")
+    chems = Image.open(ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png").convert("RGBA")
+    tools = Image.open(images / "Tools_Grid.png").convert("RGBA")
+    chem = lambda frame: chems.crop(((frame % 2) * 70, (frame // 2) * 70, (frame % 2) * 70 + 70, (frame // 2) * 70 + 70))
+    for i in range(3):
+        x, y = 233 + 57 * 4, 50 + 61 * i
+        screen.alpha_composite(shadow, (x + 0x19, y + 0x1E))
+        screen.alpha_composite(tools.crop((4 * 80, i * 80, 5 * 80, i * 80 + 80)), (x, y))
+    for frame, x in ((26, 300), (28, 370)):
+        screen.alpha_composite(shadow, (x + 0x19, 296 + 0x1E))
+        screen.alpha_composite(chem(frame), (x, 296))
+    screen.alpha_composite(shadow, (408, 80))
+    screen.alpha_composite(chem(30), (404, 50))
+    screen.alpha_composite(shadow, (440 + 0x19, 296 + 0x1E))
+    pot = scaled(images / "goldpot.png", 0.84)
+    screen.alpha_composite(pot, (440 + 6, 296))
     save(screen, "extra-greenhouses-store.png")
     return 0
 
