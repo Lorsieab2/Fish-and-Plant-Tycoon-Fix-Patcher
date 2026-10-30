@@ -42,6 +42,7 @@ from tkinter import filedialog, messagebox, ttk
 from xml.sax.saxutils import escape
 import zipfile
 
+import breeding_pictures
 import save_tools
 
 TITLES = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
@@ -691,6 +692,9 @@ HELP = (
         ".csv. The Breeding Calculator lists every child two parents can give, with its odds; the Breeding "
         "Planner finds the shortest breeding chain from the species you have to the one you want. The pane "
         "under each sheet shows the picked row's details and what the effects choice assumes; it scrolls.",
+        "Picture tabs show every fin, body and egg (Fish Tycoon) or flower, foliage and seed packet (Plant "
+        "Tycoon), grouped by rarity, drawn from your own game copy's images (nothing is copied or changed). "
+        "With spoilers off an undiscovered part is a \"?\".",
     ],
 )
 
@@ -769,6 +773,7 @@ class BreedingGuide:
         self.sheets: dict[str, Sheet] = {}
         self.trees: dict[str, ttk.Treeview] = {}
         self.details: dict[str, tk.Text] = {}           # each tab's scrolling details pane
+        self.pictures: dict[str, dict] = {}             # the picture tabs, as built
         self.shown_rows: dict[str, list[int]] = {}
         # A sheet's sort, by its column's title: a refresh can rebuild a sheet with other
         # columns (Discovered only shows with spoilers), so the title is looked up again.
@@ -885,6 +890,7 @@ class BreedingGuide:
         folder, slot = self.current_folder(), self.current_slot()
         extras, self.extras_reason = detect_extras(self.game_id, folder, slot, self.game_parents)
         copy = find_game_copy(folder, self.game_parents) if folder is not None else None
+        self.game_copy = copy
         self.model = load_model(self.game_id, copy, extras)
         self.discovered: set | None = None
         self.read_problem = ""
@@ -924,6 +930,7 @@ class BreedingGuide:
             child.destroy()
         self.trees.clear()
         self.details.clear()
+        self.pictures.clear()
         self.sheets.clear()
         self.shown_rows.clear()
         self.build_errors = []
@@ -955,6 +962,8 @@ class BreedingGuide:
             ("calculator", "Breeding Calculator", lambda: self._add_calculator(picks.get("parents"))),
             ("planner", PLANNER, lambda: self._add_planner(picks.get("have"), picks.get("want"))),
         ]
+        builds += [(tab_id, title, lambda t=tab_id: self._add_pictures(t))
+                   for tab_id, title in breeding_pictures.TABS.get(self.model.game, ())]
         for sheet_id, title, build in builds:
             # one tab that cannot be built never stops the others: it shows what went wrong
             tabs_before = len(self.notebook.tabs())
@@ -1019,6 +1028,74 @@ class BreedingGuide:
         tree.bind("<<TreeviewSelect>>", lambda _e, s=sheet_id: self._show_details(s))
         self._fill(sheet_id)
         self._set_details(sheet_id, sheet.intro)
+
+    # ---- picture tabs
+    COLUMNS = 7
+
+    def _add_pictures(self, tab_id: str) -> None:
+        """A picture tab: every part (or egg, seed packet) drawn from the game copy's own
+        images, grouped by rarity, name and rarity under each, in a grid that scrolls. A
+        missing or unreadable image never stops the tab: it says so."""
+        title = dict(breeding_pictures.TABS[self.model.game])[tab_id]
+        tab = ttk.Frame(self.notebook, padding=6)
+        self.notebook.add(tab, text=title)
+        groups = breeding_pictures.items_for(self.view, tab_id)
+        source = self.art_source()
+        message = ttk.Label(tab, text=source.problem, foreground="#a01010", wraplength=1050, justify="left")
+        message.pack(anchor="w")
+        area = ttk.Frame(tab)
+        area.pack(fill="both", expand=True)
+        style = ttk.Style(self.window)
+        canvas = tk.Canvas(area, borderwidth=0, highlightthickness=0,
+                           background=style.lookup("TFrame", "background") or "#f0f0f0")
+        scroll = ttk.Scrollbar(area, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+        inner = ttk.Frame(canvas)
+        canvas.create_window((0, 0), window=inner, anchor="nw")
+        inner.bind("<Configure>", lambda _e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        def wheel(event) -> None:
+            canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
+        canvas.bind("<Enter>", lambda _e: canvas.bind_all("<MouseWheel>", wheel))
+        canvas.bind("<Leave>", lambda _e: canvas.unbind_all("<MouseWheel>"))
+        cache: dict = {}
+        cells, missing = [], 0
+        row = 0
+        for group in groups:
+            ttk.Label(inner, text=group.tier, font=("Segoe UI", 10, "bold")).grid(
+                row=row, column=0, columnspan=self.COLUMNS, sticky="w", pady=(8, 2))
+            row += 1
+            for n, item in enumerate(group.items):
+                cell = ttk.Frame(inner, padding=4)
+                cell.grid(row=row + n // self.COLUMNS, column=n % self.COLUMNS, sticky="n")
+                image = None
+                if item.hidden:
+                    picture = ttk.Label(cell, text="?", font=("Segoe UI", 28, "bold"), foreground="#9a9a9a",
+                                        width=4, anchor="center")
+                else:
+                    image = breeding_pictures.photo(tk, self.window, source, item.art, cache) if not source.problem else None
+                    if image is None:
+                        missing += 1
+                        picture = ttk.Label(cell, text="(no picture)", foreground="#7a7a7a", width=14, anchor="center")
+                    else:
+                        picture = ttk.Label(cell, image=image)
+                        picture.image = image
+                picture.pack()
+                label = (item.name or "Undiscovered") + "\n" + item.tier
+                ttk.Label(cell, text=label, justify="center", wraplength=130).pack()
+                cells.append((item, image, label))
+            row += (len(group.items) + self.COLUMNS - 1) // self.COLUMNS
+        source.close()
+        if missing and not source.problem:
+            message.configure(text=f"{missing} picture(s) could not be read from {source.copy}.")
+        canvas.scrollbar = scroll
+        self.pictures[tab_id] = {"groups": groups, "cells": cells, "message": message, "canvas": canvas,
+                                 "cache": cache}
+
+    def art_source(self):
+        return breeding_pictures.ArtSource(getattr(self, "game_copy", None))
 
     def _add_sheet_tab(self, sheet_id: str, sheet: Sheet) -> None:
         tab = ttk.Frame(self.notebook, padding=6)
@@ -1266,7 +1343,9 @@ class BreedingGuide:
     # ---- export
     def export(self, fmt: str, path: str | None = None) -> str | None:
         sheet_id = self.current_sheet_id()
-        if sheet_id is None:
+        if sheet_id is None or sheet_id not in self.sheets:      # a picture tab has no sheet
+            if sheet_id is not None and path is None:
+                messagebox.showinfo("Breeding Guide", "A picture tab has no sheet to export.", parent=self.window)
             return None
         sheet = self.sheets[sheet_id]
         if path is None:

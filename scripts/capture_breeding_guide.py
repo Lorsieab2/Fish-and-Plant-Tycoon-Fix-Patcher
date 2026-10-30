@@ -27,6 +27,30 @@ import breeding_guide as bg  # noqa: E402
 from test_breeding_guide import make_documents  # noqa: E402
 
 OUT = ROOT / "docs" / "images"
+# Local game copies, only read (the picture tabs draw from their own images; none are shipped).
+VANILLA = Path.home() / "Downloads" / "Current Modded LDW Games and Dumps" / "Vanilla Games"
+
+
+class Chain:
+    """Several game folders read in order, standing in for a patched copy: the vanilla game,
+    then the patcher's own files as it installs them in the copy's Images folder."""
+
+    def __init__(self, *folders) -> None:
+        import breeding_pictures
+        self.sources = [breeding_pictures.ArtSource(f) for f in folders]
+        self.copy = folders[0]
+        self.problem = self.sources[0].problem
+
+    def read(self, name):
+        for source in self.sources:
+            data = source.read(name)
+            if data is not None:
+                return data
+        return None
+
+    def close(self) -> None:
+        for source in self.sources:
+            source.close()
 
 
 def print_window(window) -> Image.Image:
@@ -119,11 +143,32 @@ def main() -> int:
         guide.plan()
         guide.wait_for_plan()
         grab(guide, "fish-have-to-want")
+        pictures = VANILLA.is_dir()
+        if pictures:                          # the picture tabs, read from a local game copy (read only)
+            guide.art_source = lambda: Chain(VANILLA / "Fish Tycoon", ROOT / "assets" / "fish_tycoon_ds",
+                                             ROOT / "assets" / "fish_tycoon_ds_store")
+            guide._refresh()
+            for title, name in (("Fin Pictures", "fish-fin-pictures"), ("Body Pictures", "fish-body-pictures"),
+                                ("Egg Pictures", "fish-egg-pictures")):
+                select(guide, title)
+                grab(guide, name)
+            guide.spoilers_var.set(False)
+            select(guide, "Fin Pictures")
+            grab(guide, "fish-fin-pictures-spoilers-off")
+            guide.spoilers_var.set(True)
         guide.game_var.set("Plant Tycoon")
         select(guide, "Flowers")
         grab(guide, "plant-flowers")
         select(guide, "All Species")
         grab(guide, "plant-all-species")
+        if pictures:
+            guide.art_source = lambda: Chain(VANILLA / "Plant Tycoon", ROOT / "assets" / "plant_tycoon_upgrades")
+            guide._refresh()
+            for title, name in (("Flower Pictures", "plant-flower-pictures"),
+                                ("Foliage Pictures", "plant-foliage-pictures"),
+                                ("Seed Pictures", "plant-seed-pictures")):
+                select(guide, title)
+                grab(guide, name)
         guide.close()
     root.destroy()
     return 0

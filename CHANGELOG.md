@@ -45,7 +45,15 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   discovered parts and counts the rest ("and 4 pairs with undiscovered
   fins"). No text in the guide shows internal gene numbers, sums or index
   ranges any more (the parts sheets' Index column is gone). A scrolling
-  details pane sits under every sheet. It reads the chosen save
+  details pane sits under every sheet. Picture tabs: Fin, Body and Egg
+  Pictures (Fish Tycoon), Flower, Foliage and Seed Pictures (Plant Tycoon),
+  each grouped by rarity in the game's words, with the name and rarity under
+  every picture in a scrolling grid. The pictures are read at run time from
+  the chosen save's own game copy (its Images folder, then Fish Tycoon's
+  ft.dat, as the game loads them), the patcher's DS sheets, Exotic Fish Eggs
+  and Legendary Seeds included; no game art is shipped. With spoilers off an
+  undiscovered part is a "?" with no name, and a copy whose images are
+  missing or unreadable says so. It reads the chosen save
   and player only, opens on the species that save has discovered (each
   species' own discovered flag; a species merely made of seen parts is not
   listed, suggested or planned through), and Show Spoilers (remembered)
