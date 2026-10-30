@@ -12,6 +12,7 @@ use handler 0x420B70, AddFish 0x419C50) in Unicorn (tests/store_emulator.py).
 
 from __future__ import annotations
 
+import importlib.util
 import io
 import struct
 import sys
@@ -86,6 +87,7 @@ class ArtAndManifestTests(unittest.TestCase):
         for text in ("the Revival Potion ($10,000)", "Revita-Seed ($2,500)", "the Formula Bomb ($30,000)"):
             self.assertIn(text, free)
 
+    @unittest.skipUnless(importlib.util.find_spec("PIL"), "needs Pillow")
     def test_the_icons_match_their_neighbours_visible_size(self) -> None:
         # The owner: not cell-sized. The stock Growth Hormone shows 57 px in the store and 31 on the shelf.
         for name in ("ITEM_REVIVAL_POTION.png", "ITEM_CLONAFISH.png", "ITEM_RADIOACTIVE_GROWTHHORMONE.png"):
