@@ -119,7 +119,7 @@ TIME_AWAY = (
     Fact(
         "Every update covers all four tanks (Tank One, Tank Two, the selling tank and the "
         "isolation tank), whichever is on screen.",
-        patched=(("extra_tanks", "and Tank Three, Tank Four and Tank Five, with the same catch-up."),),
+        patched=(("extra_tanks", "and Tank 4, Tank 5 and Tank 6, with the same catch-up."),),
     ),
     Fact(
         "An update turns each fish's banked real time into age steps and runs every step's "
@@ -283,7 +283,7 @@ SCOPE = (
     Fact(
         "Every update runs all four tanks together: the first tank, Tank Two, the selling tank and "
         "the isolation tank. A tank you are not looking at keeps going (0x41FE70, tanks 0-3).",
-        patched=(("extra_tanks", "Tank Three, Tank Four and Tank Five too, by a second run of the same "
+        patched=(("extra_tanks", "Tank 4, Tank 5 and Tank 6 too, by a second run of the same "
                   "update (see 3 extra tanks)."),),
     ),
     Fact(
@@ -1061,26 +1061,26 @@ DS_ANIMALS = (
 
 EXTRA_TANKS = (
     Fact(
-        "Tank Three, Tank Four and Tank Five are full tanks like Tank One and Tank Two. The game itself "
-        "has room for four tanks only (Tank One, Tank Two, the Sale Tank and the isolation tank, each a "
+        "Tank 4, Tank 5 and Tank 6 are full tanks like Tank 1 and Tank 2. The game itself "
+        "has room for four tanks only (Tank 1, Tank 2, the Sale Tank and the isolation tank, each a "
         "0x51EC-byte block of the game's state at 0x390 + tank x 0x51EC, the species table straight after), "
         "so the patcher keeps three more blocks of the same layout and runs the game's own code on them.",
         label="E",
     ),
     Fact(
         "How to get them: on the Supplies store's Upgrades screen (DS Store Items), the Extra Tank "
-        "item, $10,000 each ($0 with Free upgrades), bought one after the other: Tank Three, then Four, "
+        "item, $10,000 each ($0 with Free upgrades), bought one after the other: Tank 4, then Four, "
         "then Five. Until then a tank's button is greyed out, a click or a drop on it says \"You don't "
         "own this tank yet!\" (and the fish swims back), and the arrows skip it. A new game owns none. "
-        "Tank Three looks like Tank One, Tank Four like Tank Two and Tank Five like the Sale Tank without "
+        "Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank 6 like the Sale Tank without "
         "its For Sale sign (the game's own background and decorations, 0x41D140 and 0x41D340).",
         label="E",
     ),
     Fact(
-        "How to reach them: either of the two small arrows left of the Tank One button switches the three "
-        "tank buttons to Tank Three, Tank Four and Tank Five, and back. Click a button to look at that tank. "
+        "How to reach them: either of the two small arrows left of the Tank 1 button switches the three "
+        "tank buttons to Tank 4, Tank 5 and Tank 6, and back. Click a button to look at that tank. "
         "Drag a fish, animal or ornament onto a button to move it there, or onto the left or right arrow to "
-        "move it to the previous or next tank (Tank One, Tank Two, the Sale Tank, Tank Three, Four, Five, "
+        "move it to the previous or next tank (Tank 1, Tank 2, the Sale Tank, Tank 4, Four, Five, "
         "and round again, skipping a tank not bought): into the first free place, up to the tank's size (21 fish, or more with the "
         "tank size setting; six ornaments), by the game's own code, and \"The tank is full!\" when there "
         "is none, as on the stock buttons.",
@@ -1095,17 +1095,17 @@ EXTRA_TANKS = (
         "placement, six per tank.",
         label="E",
         subs=(
-            "A full tank: \"The tank is full!\", and it goes back; Tank Two not bought: \"You don't "
+            "A full tank: \"The tank is full!\", and it goes back; Tank 2 not bought: \"You don't "
             "own a second tank yet!\" (both as the stock buttons).",
             "Not moved this way: food, medicines, chemicals and eggs held on the cursor are used in the "
             "tank on screen, and switching tanks puts them back (the stock switch, 0x421940). Eggs "
             "hatch in the tank on screen. The isolation tank has no button: drop a fish on it as "
-            "usual. Store purchases go to the tank on screen (the stock Golden Seahorse to Tank One "
+            "usual. Store purchases go to the tank on screen (the stock Golden Seahorse to Tank 1 "
             "first).",
         ),
     ),
     Fact(
-        "The tank you look at is put in Tank One's place while you look at it (Tank One waits in the "
+        "The tank you look at is put in Tank 1's place while you look at it (Tank 1 waits in the "
         "patcher), so everything you use acts on it exactly as on a stock tank: food (the isolation fish "
         "fed too), the Ick and Fungal Treatments, Vitamins, Growth Hormone, the Unknown Chemical, eggs, "
         "ornaments and the trash.",
@@ -1113,7 +1113,7 @@ EXTRA_TANKS = (
     ),
     Fact(
         "How they tick: each fish update, the game's own update runs once more with the three blocks the "
-        "patcher holds in the places of Tank One, Tank Two and the Sale Tank and an empty isolation tank. "
+        "patcher holds in the places of Tank 1, Tank 2 and the Sale Tank and an empty isolation tank. "
         "Every fish keeps its own clock, so an extra tank's fish age, eat, heal, get sick, breed, give "
         "birth and die exactly as in a stock tank, also after time away (the same 72-hour cap). Magic "
         "fish, the Wasp Grouper and DS store animals count only in their own tank; research, the plants "
@@ -1121,14 +1121,14 @@ EXTRA_TANKS = (
         label="E",
     ),
     Fact(
-        "Selling: each of Tank Three, Four and Five has a \"For sale: Off/On\" button under its name "
+        "Selling: each of Tank 4, 5 and 6 has a \"For sale: Off/On\" button under its name "
         "(Off in a new game and when bought). On, it shows the Sale Tank's \"For Sale!\" sign (the "
         "game's own forsale.png and its shadow, at the Sale Tank's places) and its fish are for sale "
         "together with the Sale Tank's. The game's own sale code does all of it:",
         label="E",
         subs=(
             "Once a real-time second the game's sale roll (0x424240) runs over the Sale Tank, then over each "
-            "tank with For sale On (Tank Three, Four, Five), each lent the Sale Tank's place, until a fish sells: "
+            "tank with For sale On (Tank 4, Four, Five), each lent the Sale Tank's place, until a fish sells: "
             "every adult gets the game's own roll, with the same price rules and odds, and still at most one "
             "sale a second, then the 5-second pause. The fish is sold out of the tank it is really in.",
             "When the sale scene opens, its fish pictures and the \"Fish for sale\" number count every "
@@ -1140,11 +1140,11 @@ EXTRA_TANKS = (
     ),
     Fact(
         "Every tank screen shows its name under the top bar: Tank 1, Tank 2, Sale Tank, Tank 3, Tank 4, "
-        "Tank 5 (Becken 1, Becken 2, Verkaufsbecken, Becken 3-5 in the German game).",
+        "Tank 5 (Becken 1-6 in the German game).",
         label="E",
     ),
     Fact(
-        "Game-wide effects work in Tanks 3-5 exactly as in the stock tanks, because they are read from "
+        "Game-wide effects work in Tanks 4-6 exactly as in the stock tanks, because they are read from "
         "the game's state by the game's own code, whatever tank is updated or sold from:",
         label="E",
         subs=(
@@ -1159,20 +1159,20 @@ EXTRA_TANKS = (
     ),
     Fact(
         "Effects that are per tank in the stock game stay per tank: a live adult magic fish, the Wasp "
-        "Grouper, a DS store animal and sick fish spreading sickness count only in their own tank, Tank 3-5 "
+        "Grouper, a DS store animal and sick fish spreading sickness count only in their own tank, Tank 4-6 "
         "included (0x41DE90 and the sickness count read the tank being updated).",
         label="E",
     ),
     Fact(
         "Saved per save slot in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside the "
         "saves, written whenever the game saves (on quitting and the 30-minute autosave), after the "
-        "save itself; the save file keeps its stock layout, with Tank One in its place. A missing file "
+        "save itself; the save file keeps its stock layout, with Tank 1 in its place. A missing file "
         "means empty extra tanks; a damaged one is set aside, never deleted, and a new game empties them.",
         label="E",
     ),
     Fact(
         "The starter eggs count a fish in an extra tank as a fish in a tank (3 eggs, not 7). The stock "
-        "Golden Seahorse still goes to Tank One first (with DS Store Items, to the tank you came from).",
+        "Golden Seahorse still goes to Tank 1 first (with DS Store Items, to the tank you came from).",
         label="E",
     ),
     Fact(

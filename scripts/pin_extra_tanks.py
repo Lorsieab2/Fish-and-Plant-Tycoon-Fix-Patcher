@@ -40,15 +40,15 @@ DLL_NAME = ds_fish_loader.FISH_EXTRA_TANKS.dll_name
 SETTING = {
     "id": SETTING_ID,
     "name": "3 extra tanks",
-    "summary": "EXPERIMENTAL - USE AT OWN RISK. Three more full tanks for breeding, Tank Three, Tank Four and Tank Five, bought on the store's Upgrades screen for $10,000 each and reached with two arrows beside the tank buttons. Needs DS Store Items.",
+    "summary": "EXPERIMENTAL - USE AT OWN RISK. Three more full tanks for breeding, Tank 4, Tank 5 and Tank 6, bought on the store's Upgrades screen for $10,000 each and reached with two arrows beside the tank buttons. Needs DS Store Items.",
     "description": (
-        "EXPERIMENTAL - USE AT OWN RISK. Adds Tank Three, Tank Four and Tank Five: full tanks exactly like Tank One and Tank Two, made from the "
+        "EXPERIMENTAL - USE AT OWN RISK. Adds Tank 4, Tank 5 and Tank 6: full tanks exactly like Tank 1 and Tank 2, made from the "
         "game's own tank and run by the game's own code. Buy them on the Supplies store's Upgrades screen "
-        "(Extra Tank, $10,000 each, $0 with Free upgrades), one after the other; Tank Three looks like Tank One, "
-        "Tank Four like Tank Two and Tank Five like the Sale Tank (without its sign). Fish live, age, eat, get sick, breed and give birth in "
+        "(Extra Tank, $10,000 each, $0 with Free upgrades), one after the other; Tank 4 looks like Tank 1, "
+        "Tank 5 like Tank 2 and Tank 6 like the Sale Tank (without its sign). Fish live, age, eat, get sick, breed and give birth in "
         "them; food, medicines, chemicals, eggs, ornaments, research, the plants, the magic fish, the Golden "
         "Seahorse and the DS store animals work there as in any tank, and Bigger tanks applies to them too. A "
-        "Two small arrows left of the Tank One button switch the tank buttons to the three new tanks and back; "
+        "Two small arrows left of the Tank 1 button switch the tank buttons to the three new tanks and back; "
         "drag a fish, animal or ornament onto a button to move it there, or onto an arrow to move it to the "
         "previous or next tank. The extra tanks never sell: only the Sale Tank does, with the stock game's "
         "limits. "
@@ -57,7 +57,7 @@ SETTING = {
         "the saves. Needs DS Store Items, which it turns on (the Upgrades screen it is sold on)."
     ),
     "warning": (
-        "Empty Tank Three, Tank Four and Tank Five (move every fish, animal and ornament out) before turning this "
+        "Empty Tank 4, Tank 5 and Tank 6 (move every fish, animal and ornament out) before turning this "
         "off: without it the game cannot reach them. Nothing is deleted (they come back if you turn it on "
         "again), but until then they are out of the game."
     ),

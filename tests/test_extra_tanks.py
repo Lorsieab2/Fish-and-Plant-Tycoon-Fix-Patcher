@@ -1284,6 +1284,96 @@ class SellingTanks(unittest.TestCase):
                 self.assertEqual((stock, own), (drawn_stock, drawn_own))
 
 
+@unittest.skipUnless(HAVE_UNICORN and EXE.is_file() and DLL.is_file() and E.toolchain_ready(),
+                     "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and the built DLL")
+class SameLookAsTheStockTank(unittest.TestCase):
+    """Tank 4/5/6 (extra 0/1/2) draw exactly as Tank 1/2/3 (the Sale Tank): the game's own background,
+    decorations, snail, aerator and heater, and the tank's own ornaments, every draw call the same;
+    Tank 6 with For sale Off lacks only the sign and its shadow, Tanks 4/5 with it On add only them.
+    (The name label and the For sale button are drawn by the DLL's overlay, after these.)"""
+
+    DRAWS = ((0x0041D140, "_prev_background", "@background_hook@8"), (0x0041D1B0, "_prev_snail", "@snail_hook@8"),
+             (0x0041D340, "_prev_decor", "@decor_hook@8"), (0x0041EE60, "_prev_equipment", "@equipment_hook@8"))
+
+    def ornaments(self, sprites) -> bytes:
+        data = bytearray(TANK)
+        for k, (sprite, x) in enumerate(sprites):
+            data[0x4E78 + k * 0x2C: 0x4E78 + (k + 1) * 0x2C] = ornament(sprite)
+            struct.pack_into("<i", data, 0x4E78 + k * 0x2C + 4, x)
+        return bytes(data)
+
+    def screen(self, tank: int, extra: bool, selling: bool) -> list:
+        rig = Rig()
+        emu = rig.emu
+        drawn: list = []
+        for flag in (0x118, 0x12C, 0x140, 0x168, 0x17C, 0x190, 0x1A4):     # every owned item and plant
+            rig.set(flag, 1)
+        emu.hook(0x0041BE70, lambda e: 0x5000 + e.arg(0), 4)
+        emu.hook(0x0041BCA0, lambda e: 0x6000 + e.arg(0), 4)
+        for va, pop, args in ((0x00408A40, 12, 3), (0x00408AA0, 16, 4), (0x00408AE0, 24, 6), (0x00408D60, 4, 1),
+                              (0x00408B80, 20, 5)):
+            emu.hook(va, lambda e, va=va, n=args: drawn.append((va,) + tuple(e.arg(i) for i in range(n))) or 0, pop)
+        emu.hook(0x0041A940, lambda e: drawn.append(("tip", e.arg(0))) or 0, 4)
+        own = self.ornaments(((177, 100), (180, 400)))
+        other = self.ornaments(((181, 250),))
+        for site, prev, hook in ((0x41D44A, "_prev_sale_shadow", "@sale_shadow_hook@20"),
+                                 (0x41D467, "_prev_sale_sign", "@sale_sign_hook@20")):
+            emu.write32(rig.sym[prev], 0x00408A40)                        # the two sign sites, as installed
+            emu.uc.mem_write(site, b"\xE8" + struct.pack("<i", rig.sym[hook] - (site + 5)))
+        if extra:
+            rig.var("_shown", tank)
+            rig.var("_selling", int(selling) << tank)
+            rig.set(0x384, 0)
+            rig.put_tank(0, own)                                          # the extra, on screen
+            if tank:
+                rig.put_tank(tank, other)                                 # the real Tank 2 / Sale Tank
+            for va, prev, hook in self.DRAWS:
+                emu.write32(rig.sym[prev], va)
+                emu.call(rig.sym[hook], ecx=rig.impl)
+        else:
+            rig.set(0x384, tank)
+            rig.put_tank(tank, own)
+            for va, _prev, _hook in self.DRAWS:
+                emu.call(va, ecx=rig.impl)
+        rig.set(0x1E1D8, 0)
+        return drawn
+
+    SIGN = [(0x00408A40, 0x5003, 580, 415), (0x00408A40, 0x5004, 620, 360)]
+
+    def test_tank_6_with_for_sale_on_is_the_sale_tank(self) -> None:
+        stock = self.screen(2, extra=False, selling=False)
+        self.assertTrue(set(self.SIGN) <= set(stock), "the Sale Tank draws its sign and shadow")
+        self.assertEqual(self.screen(2, extra=True, selling=True), stock)
+
+    def test_tank_6_with_for_sale_off_lacks_only_the_sign(self) -> None:
+        stock = [d for d in self.screen(2, extra=False, selling=False) if d not in self.SIGN]
+        self.assertEqual(self.screen(2, extra=True, selling=False), stock)
+
+    def test_tank_4_and_5_are_tank_1_and_2(self) -> None:
+        for tank in (0, 1):
+            with self.subTest(tank=tank):
+                stock = self.screen(tank, extra=False, selling=False)
+                self.assertTrue(any(d[0] == 0x00408D60 for d in stock), "a background was drawn")
+                self.assertEqual(self.screen(tank, extra=True, selling=False), stock)
+                with_sign = self.screen(tank, extra=True, selling=True)
+                self.assertEqual([d for d in with_sign if d not in self.SIGN], stock)
+                self.assertEqual([d for d in with_sign if d in self.SIGN], self.SIGN)
+
+    def test_the_bubbles_rise_where_the_tank_number_puts_them(self) -> None:
+        rig = Rig()
+        rig.emu.write32(0x0045ABDC, rig.state)
+        seen = []
+        for va, prev, hook, args in ((0x00416BB0, "_prev_bubbles", "@bubbles_hook@8", ()),
+                                     (0x00416B90, "_prev_bubbles_start", "@bubbles_start_hook@12", (150,))):
+            rig.emu.write32(rig.sym[prev], va)
+            rig.emu.hook(va, lambda e: seen.append(rig.get(0x384)) or 0, 4 * len(args))
+            for shown in (-1, 2):
+                rig.var("_shown", shown)
+                rig.emu.call(rig.sym[hook], *args, ecx=rig.holder)
+        self.assertEqual(seen, [0, 2, 0, 2])
+        self.assertEqual(rig.get(0x384), 0)
+
+
 class FakeFiles:
     """CreateFileW / ReadFile / WriteFile / MoveFileExW / ... over a dict."""
 
@@ -1450,7 +1540,8 @@ class SavesAndSidecar(unittest.TestCase):
                      "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and the built DLL")
 class AllOrNone(unittest.TestCase):
     SITES = (0x4218FF, 0x421AAA, 0x421D43, 0x421FFB, 0x42208E, 0x41A663, 0x41AAC3, 0x421646, 0x427B30,
-             0x422013, 0x42203F, 0x41D44A, 0x41D467, 0x4246FB, 0x415131, 0x423F52, 0x423FEE, 0x423927)
+             0x422013, 0x42203F, 0x41D44A, 0x41D467, 0x4246FB, 0x415131, 0x423F52, 0x423FEE, 0x423927,
+             0x422026, 0x422062, 0x4220E7, 0x421AF7)
     SLOTS = (0x4424D0, 0x4424D4)
 
     def rig(self, other_module: int = 0):

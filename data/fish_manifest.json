@@ -6509,7 +6509,7 @@
             "path": "DS Store Items.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
             "size": 146944,
-            "sha256": "7AF742A0FE0E4543F44FED8CA0B6BDABA1F2840FF7C27533C8E00C07474458FD"
+            "sha256": "2DFE7550D3362F96BC31D3BAA4E51C66D49E3D372F719F745C81E4C261C81AB1"
           },
           {
             "path": "Images/DS_EEL_Grid.png",
@@ -6727,9 +6727,9 @@
     {
       "id": "extra_tanks",
       "name": "3 extra tanks",
-      "summary": "EXPERIMENTAL - USE AT OWN RISK. Three more full tanks for breeding, Tank Three, Tank Four and Tank Five, bought on the store's Upgrades screen for $10,000 each and reached with two arrows beside the tank buttons. Needs DS Store Items.",
-      "description": "EXPERIMENTAL - USE AT OWN RISK. Adds Tank Three, Tank Four and Tank Five: full tanks exactly like Tank One and Tank Two, made from the game's own tank and run by the game's own code. Buy them on the Supplies store's Upgrades screen (Extra Tank, $10,000 each, $0 with Free upgrades), one after the other; Tank Three looks like Tank One, Tank Four like Tank Two and Tank Five like the Sale Tank (without its sign). Fish live, age, eat, get sick, breed and give birth in them; food, medicines, chemicals, eggs, ornaments, research, the plants, the magic fish, the Golden Seahorse and the DS store animals work there as in any tank, and Bigger tanks applies to them too. A Two small arrows left of the Tank One button switch the tank buttons to the three new tanks and back; drag a fish, animal or ornament onto a button to move it there, or onto an arrow to move it to the previous or next tank. The extra tanks never sell: only the Sale Tank does, with the stock game's limits. Runs as a companion DLL the game loads at start; the save files keep their stock layout, and each save slot keeps its extra tanks in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside the saves. Needs DS Store Items, which it turns on (the Upgrades screen it is sold on).",
-      "warning": "Empty Tank Three, Tank Four and Tank Five (move every fish, animal and ornament out) before turning this off: without it the game cannot reach them. Nothing is deleted (they come back if you turn it on again), but until then they are out of the game.",
+      "summary": "EXPERIMENTAL - USE AT OWN RISK. Three more full tanks for breeding, Tank 4, Tank 5 and Tank 6, bought on the store's Upgrades screen for $10,000 each and reached with two arrows beside the tank buttons. Needs DS Store Items.",
+      "description": "EXPERIMENTAL - USE AT OWN RISK. Adds Tank 4, Tank 5 and Tank 6: full tanks exactly like Tank 1 and Tank 2, made from the game's own tank and run by the game's own code. Buy them on the Supplies store's Upgrades screen (Extra Tank, $10,000 each, $0 with Free upgrades), one after the other; Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank 6 like the Sale Tank (without its sign). Fish live, age, eat, get sick, breed and give birth in them; food, medicines, chemicals, eggs, ornaments, research, the plants, the magic fish, the Golden Seahorse and the DS store animals work there as in any tank, and Bigger tanks applies to them too. A Two small arrows left of the Tank 1 button switch the tank buttons to the three new tanks and back; drag a fish, animal or ornament onto a button to move it there, or onto an arrow to move it to the previous or next tank. The extra tanks never sell: only the Sale Tank does, with the stock game's limits. Runs as a companion DLL the game loads at start; the save files keep their stock layout, and each save slot keeps its extra tanks in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside the saves. Needs DS Store Items, which it turns on (the Upgrades screen it is sold on).",
+      "warning": "Empty Tank 4, Tank 5 and Tank 6 (move every fish, animal and ornament out) before turning this off: without it the game cannot reach them. Nothing is deleted (they come back if you turn it on again), but until then they are out of the game.",
       "category": "main",
       "default": false,
       "separate_output": true,
@@ -6743,26 +6743,26 @@
           {
             "path": "Extra Tanks.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Extra Tanks.dll",
-            "size": 103936,
-            "sha256": "8E6397CC7B49D12FFD2D7794DE36DACA5AF242EF23F7870C9E765575C393EF58"
+            "size": 104960,
+            "sha256": "0DA925BD3A1A288CDF10769D5063F388CCC37478F7D9E7BC0528ED2E2ACF4722"
           },
           {
             "path": "Images/ExtraTank1Button.png",
             "destination": "Images/ExtraTank1Button.png",
-            "size": 42189,
-            "sha256": "1B772CB8400D7BBD74238E138668DA3A81C2D69E6F2BA286A0467105C168B4F9"
+            "size": 41384,
+            "sha256": "10BE2204837619C577790FF0A1C495CE99C98BCF3E51E2194910FD288834D679"
           },
           {
             "path": "Images/ExtraTank2Button.png",
             "destination": "Images/ExtraTank2Button.png",
-            "size": 42180,
-            "sha256": "9FAF167F63FF1EC04AD9ECA194AD2FA147E302877C86F8FC47A8A1AD0035B52A"
+            "size": 40914,
+            "sha256": "2D6BB0761C9D30B45B3A3F4C6CAC3E175848B4D3D1FF08D2271CAC288C91493E"
           },
           {
             "path": "Images/ExtraTank3Button.png",
             "destination": "Images/ExtraTank3Button.png",
-            "size": 40670,
-            "sha256": "454760B653D99E5705A6DE0AAB52EF886D1EA40382F7868046FF92D47E4FB2D8"
+            "size": 40795,
+            "sha256": "AC958D8DF1D2929E00F34A8AB03FD7A4ADA07C1F6E2FC34A5CA9FB346E5772A8"
           },
           {
             "path": "Images/ForSaleOff.png",
@@ -6867,16 +6867,16 @@
             "sha256": "400FCF8001B9EBA30695E4C673E8876721D367F735D1BD6B66905627FED71714"
           },
           {
-            "path": "Images/TankNameSale.png",
-            "destination": "Images/TankNameSale.png",
-            "size": 5548,
-            "sha256": "52E483E2D5655A4BBCFBC3C6CE11C23274EB98D50CF5AB2C8D8A1CA14890923A"
+            "path": "Images/TankName6.png",
+            "destination": "Images/TankName6.png",
+            "size": 3936,
+            "sha256": "A6225BE1E657AFED8E7D7E54E29F4539801498C255A36E015F785C83EE15C358"
           },
           {
-            "path": "Images/TankNameSale_de.png",
-            "destination": "Images/TankNameSale_de.png",
-            "size": 10124,
-            "sha256": "D0504FBEB5A7D8E7E1F5CE882582FD64CC725889A7E0D9C55FA7C29365A6105E"
+            "path": "Images/TankName6_de.png",
+            "destination": "Images/TankName6_de.png",
+            "size": 5424,
+            "sha256": "CCE0532DC6F448FFEF485331D7C105CDDE9D610C3F3811BC3759734F4DEE425E"
           }
         ]
       }
