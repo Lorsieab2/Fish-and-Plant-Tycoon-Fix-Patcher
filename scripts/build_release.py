@@ -52,6 +52,8 @@ FILES = [
     "docs/images/radioactive-growth-hormone-fish.png",
     "docs/images/revival-potion-fish.png",
     "docs/images/revival-potion-plant.png",
+    "docs/images/tank-counts-fish-off.png",
+    "docs/images/greenhouse-counts-plant-off.png",
     "docs/images/breeding-guide-fish-discovered-species.png",
     "docs/images/multiple-ornaments-tank.png",
     "docs/breeding-guide-interface.md",

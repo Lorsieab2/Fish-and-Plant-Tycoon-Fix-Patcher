@@ -223,8 +223,13 @@ AGES = (
         patched=(("tank_greenhouse_counts", "one line along the top of the greenhouse on screen: \"Plants: "
                   "9 of 15 (5 mature, 2 with buds, 2 seedlings)\", the pots holding a living plant, with "
                   "these same stages (a seedling before age 21, buds from 21, mature from 24); dead plants "
-                  "are shown apart as \"Dead: n\". With 5 extra greenhouses it counts Greenhouses 2-6 too, "
-                  "and once one is bought (the gold arrows show) the line sits under the arrows (y 62). "
+                  "are shown apart as \"Dead: n\"; a second line \"Infested: 2  Unhealthy: 1\" counts living plants "
+                  "as the status panel names them (pest flag +0x28 set, else Unhealthy below health 30, "
+                  "0x428551). A \"Counts: On/Off\" button on the wall (694, 26) hides them, remembered in "
+                  "Greenhouse Counts.ini beside the DLL, never the save. With 5 extra greenhouses it counts "
+                  "Greenhouses 2-6 too, "
+                  "and once one is bought (the gold arrows show) the lines sit under the arrows (y 62) and the "
+                  "button moves to (646, 4), left of the right arrow. "
                   "Drawn every frame behind the plants; display only."),),
     ),
 )

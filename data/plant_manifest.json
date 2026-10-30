@@ -4208,8 +4208,8 @@
     {
       "id": "tank_greenhouse_counts",
       "name": "Tank and greenhouse counts",
-      "summary": "Shows how many of the 15 pots of the greenhouse on screen hold a living plant, and how many are mature, have buds or are seedlings, in the game's own font.",
-      "description": "Adds one line along the top of the greenhouse screen: \"Plants: 9 of 15 (5 mature, 2 with buds, 2 seedlings)\", counting the pots of the greenhouse you are looking at (Greenhouse 1 to Greenhouse 6 with 5 extra greenhouses) that hold a living plant; once you own an extra greenhouse the line sits under the gold arrows. The stages are the game's own: a plant is a seedling before age 21 (its countdown says \"Buds in ... Min.\"), has buds from 21 (\"Mature in ... Min.\") and is mature from 24. Dead plants are left out of the count and shown after it as \"Dead: 1\" until you trash them. The line updates every frame and sits behind the plants, so no plant, pot or tool is ever covered. Display only: nothing in the game or your saves changes. Runs as a companion DLL the game loads at start.",
+      "summary": "Shows how many of the 15 pots of the greenhouse on screen hold a living plant, how many are mature, have buds or are seedlings, and which are infested or unhealthy, in the game's own font, with an in-game on/off button.",
+      "description": "Adds a line along the top of the greenhouse screen: \"Plants: 9 of 15 (5 mature, 2 with buds, 2 seedlings)\", counting the pots of the greenhouse you are looking at (Greenhouse 1 to Greenhouse 6 with 5 extra greenhouses) that hold a living plant, and under it \"Infested: 2  Unhealthy: 1\" when any plant is (the game's own status words: one pest, the small black insects, and Unhealthy below health 30). The stages are the game's own: a plant is a seedling before age 21 (its countdown says \"Buds in ... Min.\"), has buds from 21 (\"Mature in ... Min.\") and is mature from 24. Dead plants are left out of the count and shown after it as \"Dead: 1\" until you trash them. A \"Counts: On\" button at the top right hides or shows them (hidden, only the button stays); the game remembers your choice in \"Greenhouse Counts.ini\" beside the DLL, never in a save. Once you own an extra greenhouse the lines sit under the gold arrows and the button moves left of the right arrow. The lines update every frame and sit behind the plants, so no plant, pot or tool is ever covered. Display only: nothing in the game or your saves changes. Runs as a companion DLL the game loads at start.",
       "category": "main",
       "default": true,
       "companion": {
@@ -4219,8 +4219,8 @@
           {
             "path": "Greenhouse Counts.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Greenhouse Counts.dll",
-            "size": 89600,
-            "sha256": "396F76981663252112C199A0058A23332703BBFE80E1031B35BBC02298F6567E"
+            "size": 93184,
+            "sha256": "5F1161F29DC3940AA66F4DC685E5CD66294EA2782CD3688D565091CBF84C98FB"
           }
         ]
       }

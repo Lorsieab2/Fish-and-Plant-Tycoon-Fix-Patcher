@@ -175,7 +175,12 @@ AGES = (
         patched=(("tank_greenhouse_counts", "three lines at the top left of the water, for the tank on "
                   "screen: \"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (of 30 with Bigger tanks) with "
                   "these same stages, then its creatures (the Golden Seahorse and DS Store Items' animals, "
-                  "read from their own animal records), then \"Isolation tank: 1 of 1 (1 adult)\". Dead "
+                  "read from their own animal records), then \"Isolation tank: 1 of 1 (1 adult)\". A line "
+                  "\"Sick: 2 fungus, 1 ick  Low Health: 3\" shows when live fish are sick (+0x40: 1 fungus, 2 "
+                  "ick) or have Low Health (health 1-25, exactly when the game draws the health bar red, "
+                  "0x41BF33; German \"Niedrige Gesundheit\"); the isolation line gets it too. A \"Counts: "
+                  "On/Off\" button at the water's top right (694, 60) hides them, remembered in Tank Counts.ini "
+                  "beside the DLL, never the save. Dead "
                   "fish are shown apart as \"Dead: n\". With 3 extra tanks it counts Tanks 4-6 too, and the "
                   "lines sit lower (y 136), under the tank's name and For sale button. Drawn every frame "
                   "behind the fish; display only."),),
