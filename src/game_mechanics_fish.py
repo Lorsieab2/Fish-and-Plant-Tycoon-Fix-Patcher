@@ -971,7 +971,8 @@ PRICES = (
         "After that the asking price never changes by itself: only the species screen's arrows "
         "and keypad (0 to 9999) change it, and only Advertising changes B.",
         patched=(("optimize_prices", "an \"Optimize Prices\" button on the Species Chart's bottom bar, left "
-                  "of Done, asks Yes/No and then sets every discovered species' asking price to the Breeding "
+                  "of Done, and the same button on the Fish Store screen (opened with Sell Fish), on its bottom "
+                  "bar left of Done (544-693 x 547-596), asks Yes/No and then sets every discovered species' asking price to the Breeding "
                   "Guide's best price per day: the price P from 1 to 2B - 1 with the most money per real "
                   "day, the average over the two crowds 4 + ornaments owned + 2 for the Golden Seahorse + "
                   "2 x Advertising level x (a full selling tank / 3 + 2 or 3), each customer counted as "
@@ -1340,10 +1341,14 @@ HIDDEN = (
         "has a stock or a timer: medicines, chemicals and eggs can be bought at any time (one "
         "batch per supply slot), each permanent item and ornament once, and one research at a "
         "time; asking prices change only on the species screen.",
+        patched=(("optimize_prices", "the Fish Store screen (the selling shop, opened with Sell Fish) has an "
+                  "Optimize Prices button, left of Done, that also sets asking prices: every discovered "
+                  "species', exactly as the Species Chart's button does. The shop's customers and sales are "
+                  "unchanged."),),
     ),
     Fact("The patcher adds no keys. Its additions are clicks: the store's Upgrades button, the DS "
          "animals and new chemicals (with DS Store Items), the Time Warp clock (with Time Warp), the "
-         "Optimize Prices button (on the Species Chart), and the tank arrows and For sale buttons "
+         "Optimize Prices button (on the Species Chart and the Fish Store screen), and the tank arrows and For sale buttons "
          "(with 3 extra tanks)."),
 )
 

@@ -46,6 +46,7 @@ FILES = [
     "docs/images/add-money-fish.png",
     "docs/images/add-money-plant.png",
     "docs/images/optimize-prices-fish.png",
+    "docs/images/optimize-prices-fish-store.png",
     "docs/images/optimize-prices-plant.png",
     "docs/images/tank-counts-fish.png",
     "docs/images/greenhouse-counts-plant.png",

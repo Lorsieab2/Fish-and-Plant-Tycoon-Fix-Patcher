@@ -99,7 +99,10 @@ never needs the internet.
   address: `native/ftfp_fish_window/ftfp_fish_window.c`. Plant Tycoon draws
   through SDL2, a different renderer, so this setting is Fish Tycoon's only.
 - Optimize Prices button (on by default). An "Optimize Prices" button on the
-  Species Chart's bottom bar, left of Done (where you set prices). It asks
+  Species Chart's bottom bar, left of Done (where you set prices), and the
+  same button on the Fish Store screen (opened with Sell Fish), on its bottom
+  bar left of Done, so it can be used any time: the Species Chart only opens
+  with a fish in the isolation tank. Both do the same. It asks
   "Set every discovered species to its best price per day?"; on Yes, every
   species you have discovered gets the Breeding Guide's "best per day"
   asking price (the price that earns the most money over time), worked out
@@ -111,8 +114,9 @@ never needs the internet.
   ones you would type yourself, saved with the game as usual. The DS species
   are included with DS Exclusive Fish. It runs as a companion DLL
   (`Fish Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the plain
-  "Fish Tycoon - Modded" copy. Picture:
-  [docs/images/optimize-prices-fish.png](docs/images/optimize-prices-fish.png).
+  "Fish Tycoon - Modded" copy. Pictures:
+  [docs/images/optimize-prices-fish.png](docs/images/optimize-prices-fish.png),
+  [docs/images/optimize-prices-fish-store.png](docs/images/optimize-prices-fish-store.png).
 - Tank and greenhouse counts (on by default). Lines in the game's own font
   at the top left of the water on the tank screen, for the tank you are
   looking at, Tanks 4-6 too with 3 extra tanks: "Fish: 12 of 21 (8 adults,

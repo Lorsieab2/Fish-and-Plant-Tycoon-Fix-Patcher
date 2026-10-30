@@ -1,8 +1,12 @@
-/* Optimize Prices -- an "Optimize Prices" button on Fish Tycoon's Species Chart.
+/* Optimize Prices -- an "Optimize Prices" button on Fish Tycoon's Species
+   Chart and on its Fish Store screen.
 
    WHAT.  The Species Chart is where the player sets a species' asking price
    (its arrows and keypad).  The button sits on its bottom bar, left of Done.
-   It asks "Set every discovered species to its best price per day?" (Yes /
+   The Species Chart opens only with a fish in the isolation tank, so the
+   same button is also on the Fish Store screen (the sale scene, opened with
+   Sell Fish on the tank screen), on its bottom bar between "Your cash" and
+   Done; a click there does exactly what the chart's does.  It asks "Set every discovered species to its best price per day?" (Yes /
    No, the game's own question box).  On Yes, every discovered species' asking
    price becomes the Breeding Guide's "best per day" price for the shop as it
    is now: the species' base price B (entry + 0x24, which already has the
@@ -21,10 +25,15 @@
    cells the game's own index arithmetic reaches.
 
    HOW.  The startup loader loads this DLL after any other companion and
-   calls FtfpStartup() before WinMain.  It wraps two slots of the Species
-   Chart's vtable (0x443C90), command and activate, after checking both still
-   hold the stock functions, or writes neither: activate adds the button
-   once, command runs it for the button's id. */
+   calls FtfpStartup() before WinMain.  It wraps four vtable slots, command
+   and activate of the Species Chart (0x443C90) and of the Fish Store
+   (0x443B08), after checking all four still hold the stock functions, or
+   writes none.  No other companion writes these slots (Extra Tanks changes
+   calls inside the sale scene's code -- its roll, crowd, pictures and "Fish
+   for sale" text -- which the stock functions called here still run).
+   Activate adds the button once per screen, command runs it for the
+   button's id.  The button is a stock image button: the game draws it and
+   routes its click to command. */
 #include <windows.h>
 #include <string.h>
 #include "../common/price_math.h"
@@ -82,6 +91,21 @@ typedef unsigned char *(__stdcall *ds_entry_fn)(char *state, int body, int fin);
 #define SPECIES_VT_ACTIVATE 0x00443CB4u
 #define SPECIES_ACTIVATE_STOCK 0x00401C90u
 
+/* The Fish Store, the sale scene (vtable 0x443B08, built at 0x424500): its
+   one button is Done (1, at 701, 547); its command is the chart's own
+   0x425B00 (Done goes back to the tank), its activate 0x424160 runs the
+   scene's opening 0x423E00 (customers, pictures, the "Fish for sale" count);
+   its impl (scene + 8) keeps the game state at +0x70 (0x4241B1). */
+#define SALE_VT_COMMAND 0x00443B14u
+#define SALE_COMMAND_STOCK 0x00425B00u
+#define SALE_VT_ACTIVATE 0x00443B2Cu
+#define SALE_ACTIVATE_STOCK 0x00424160u
+#define SALE_IMPL_STATE 0x70
+#define SALE_BUTTON_ID 7
+#define SALE_BUTTON_X 544               /* 544-693 x 547-596: the bar between "Your cash" (to 300) and Done */
+#define SALE_BUTTON_Y 547
+#define SALE_BUTTON_IMAGE "OptimizePricesStoreButton.png"
+
 /* The string table (0x426FD0 looks ids up here): { id, English, German }. */
 #define STRINGS 0x00457340u
 #define STRING_COUNT 0xF9
@@ -90,7 +114,10 @@ typedef unsigned char *(__stdcall *ds_entry_fn)(char *state, int body, int fin);
 
 static command_fn next_command = NULL;
 static activate_fn next_activate = NULL;
+static command_fn next_sale_command = NULL;
+static activate_fn next_sale_activate = NULL;
 static void *button_scene = NULL;
+static void *sale_button_scene = NULL;
 static int installed = 0;
 
 /* ------------------------------------------------------------ the prices */
@@ -214,53 +241,80 @@ static char *scene_state(void *scene) {
     return impl != NULL ? AT(impl, 4, char *) : NULL;
 }
 
-static void run_button(void *scene) {
-    char *state = scene_state(scene);
+static char *sale_state(void *scene) {
+    char *impl = AT(scene, 8, char *);
+    return impl != NULL ? AT(impl, SALE_IMPL_STATE, char *) : NULL;
+}
+
+/* The button's click, the same on both screens: the question, the prices,
+   the count; `scene` is the dialogs' parent. */
+static void run_button(void *scene, char *state) {
     int set;
     if (state == NULL || !ask(scene, STR_QUESTION, 1, QUESTION_EN, QUESTION_DE)) return;
     set = optimize(state);
     tell_count(scene, set);
 }
 
+static void click(void *scene, char *(*state_of)(void *)) {
+    __try {
+        run_button(scene, state_of(scene));
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+}
+
 static int __fastcall scene_command(void *scene, void *edx, int msg, int id) {
     if (msg == 8 && id == BUTTON_ID) {
-        __try {
-            run_button(scene);
-        } __except (EXCEPTION_EXECUTE_HANDLER) {
-        }
+        click(scene, scene_state);
         return 1;
     }
     return next_command(scene, edx, msg, id);
 }
 
-static void add_button(void *scene) {
+static int __fastcall sale_command(void *scene, void *edx, int msg, int id) {
+    if (msg == 8 && id == SALE_BUTTON_ID) {
+        click(scene, sale_state);
+        return 1;
+    }
+    return next_sale_command(scene, edx, msg, id);
+}
+
+static int add_button(void *scene, int id, const char *image, int x, int y) {
     void *button = OPERATOR_NEW(0x14), *sound;
-    if (button == NULL) return;
-    button = (void *)(UINT_PTR)BUTTON_INIT(button, NULL, BUTTON_ID, (int)(UINT_PTR)BUTTON_IMAGE, BUTTON_X, BUTTON_Y,
-                                           (int)(UINT_PTR)scene, 0);
-    if (button == NULL) return;
+    if (button == NULL) return 0;
+    button = (void *)(UINT_PTR)BUTTON_INIT(button, NULL, id, (int)(UINT_PTR)image, x, y, (int)(UINT_PTR)scene, 0);
+    if (button == NULL) return 0;
     sound = (void *)(UINT_PTR)SOUND_GET(SOUND_MANAGER(), NULL, SOUND_CLICK);
     BUTTON_SOUND(button, NULL, (int)(UINT_PTR)sound, 0);
     ADD_CONTROL(scene, NULL, (int)(UINT_PTR)button);
-    button_scene = scene;
+    return 1;
+}
+
+/* Adds the button once to `scene` (remembered in *added). */
+static void add_once(void *scene, int on, void **added, int id, const char *image, int x, int y) {
+    if (!(on & 0xFF) || *added == scene) return;
+    __try {
+        if (add_button(scene, id, image, x, y)) *added = scene;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
 }
 
 static void __fastcall scene_activate(void *scene, void *edx, int on) {
     next_activate(scene, edx, on);
-    if ((on & 0xFF) && button_scene != scene) {
-        __try {
-            add_button(scene);
-        } __except (EXCEPTION_EXECUTE_HANDLER) {
-        }
-    }
+    add_once(scene, on, &button_scene, BUTTON_ID, BUTTON_IMAGE, BUTTON_X, BUTTON_Y);
+}
+
+static void __fastcall sale_activate(void *scene, void *edx, int on) {
+    next_sale_activate(scene, edx, on);
+    add_once(scene, on, &sale_button_scene, SALE_BUTTON_ID, SALE_BUTTON_IMAGE, SALE_BUTTON_X, SALE_BUTTON_Y);
 }
 
 /* ---------------------------------------------------------------- install */
 
-static int slot_holds(unsigned int va, unsigned int stock) {
+/* The slot's function, or 0 when the slot is not committed memory. */
+static DWORD slot_value(unsigned int va) {
     MEMORY_BASIC_INFORMATION info;
     if (VirtualQuery((const void *)(UINT_PTR)va, &info, sizeof info) != sizeof info || info.State != MEM_COMMIT) return 0;
-    return *(const DWORD *)(UINT_PTR)va == stock;
+    return *(const DWORD *)(UINT_PTR)va;
 }
 
 static int write_slot(unsigned int va, const void *to) {
@@ -273,8 +327,9 @@ static int write_slot(unsigned int va, const void *to) {
 
 static void write_install_log(void) {
     wchar_t path[1024];
-    const char *line = installed ? "Optimize Prices: installed\r\n"
-                                 : "Optimize Prices: NOT installed (the Species Chart is not the stock one)\r\n";
+    const char *line = installed ? "Optimize Prices: installed (Species Chart and Fish Store)\r\n"
+                                 : "Optimize Prices: NOT installed (the Species Chart or the Fish Store is not "
+                                   "the stock one)\r\n";
     DWORD n = GetModuleFileNameW(NULL, path, 1024), written;
     wchar_t *slash;
     HANDLE file;
@@ -288,18 +343,41 @@ static void write_install_log(void) {
     CloseHandle(file);
 }
 
+#define SLOTS 4
+
+/* Checks all four slots, then writes them in order; a refused write puts
+   the ones already written back, so it is all of them or none. */
+static int install(void) {
+    static const unsigned int va[SLOTS] = { SPECIES_VT_COMMAND, SPECIES_VT_ACTIVATE, SALE_VT_COMMAND, SALE_VT_ACTIVATE };
+    const void *to[SLOTS];
+    DWORD was[SLOTS];
+    int k;
+    to[0] = (const void *)(UINT_PTR)scene_command;
+    to[1] = (const void *)(UINT_PTR)scene_activate;
+    to[2] = (const void *)(UINT_PTR)sale_command;
+    to[3] = (const void *)(UINT_PTR)sale_activate;
+    for (k = 0; k < SLOTS; ++k) was[k] = slot_value(va[k]);
+    if (was[0] != SPECIES_COMMAND_STOCK || was[1] != SPECIES_ACTIVATE_STOCK
+        || was[2] != SALE_COMMAND_STOCK || was[3] != SALE_ACTIVATE_STOCK)
+        return 0;
+    next_command = (command_fn)(UINT_PTR)was[0];
+    next_activate = (activate_fn)(UINT_PTR)was[1];
+    next_sale_command = (command_fn)(UINT_PTR)was[2];
+    next_sale_activate = (activate_fn)(UINT_PTR)was[3];
+    for (k = 0; k < SLOTS; ++k) {
+        if (!write_slot(va[k], to[k])) {
+            while (k-- > 0) write_slot(va[k], (const void *)(UINT_PTR)was[k]);
+            return 0;
+        }
+    }
+    return 1;
+}
+
 /* Called once before WinMain by the startup loader, after any other companion. */
 int __stdcall FtfpStartup(void) {
     if (installed) return 1;
     __try {
-        if (slot_holds(SPECIES_VT_COMMAND, SPECIES_COMMAND_STOCK) && slot_holds(SPECIES_VT_ACTIVATE, SPECIES_ACTIVATE_STOCK)) {
-            next_command = (command_fn)(UINT_PTR)SPECIES_COMMAND_STOCK;
-            next_activate = (activate_fn)(UINT_PTR)SPECIES_ACTIVATE_STOCK;
-            if (write_slot(SPECIES_VT_COMMAND, (const void *)(UINT_PTR)scene_command)) {
-                if (write_slot(SPECIES_VT_ACTIVATE, (const void *)(UINT_PTR)scene_activate)) installed = 1;
-                else write_slot(SPECIES_VT_COMMAND, (const void *)(UINT_PTR)SPECIES_COMMAND_STOCK);
-            }
-        }
+        installed = install();
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         installed = 0;
     }
