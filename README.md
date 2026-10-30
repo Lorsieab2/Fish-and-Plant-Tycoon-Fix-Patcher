@@ -67,10 +67,10 @@ never needs the internet.
   all work as in a stock tank, because the game's own code runs them. Two
   small arrows left of the Tank 1 button switch the tank buttons to the
   three new tanks and back. Drag a fish, a DS store animal or an ornament
-  onto a button to move it to that tank, or onto an arrow to move it to the
-  previous or next tank (Tank 1, Tank 2, the Sale Tank, then the extra
-  tanks you own, and round again); a full tank refuses it as in the stock
-  game. Each extra tank has a "For sale" button (Off at first): On, it shows
+  onto a button to move it to that tank; carry it over an arrow and the
+  buttons switch to the other three tanks, so you can drop it on any of the
+  six (letting go on the arrow itself keeps it where it was); a full tank
+  refuses it as in the stock game. Each extra tank has a "For sale" button (Off at first): On, it shows
   the Sale Tank's For Sale! sign and its fish sell together with the Sale
   Tank's, by the game's own sale code (one sale a second, the same prices,
   odds and effects; the sale scene's pictures and "Fish for sale" number count

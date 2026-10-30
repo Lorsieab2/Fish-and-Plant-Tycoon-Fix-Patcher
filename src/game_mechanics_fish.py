@@ -1093,7 +1093,7 @@ EXTRA_TANKS = (
         "How to get them: on the Supplies store's Upgrades screen (DS Store Items), the Extra Tank "
         "item, $10,000 each ($0 with Free upgrades), bought one after the other: Tank 4, then Tank 5, "
         "then Tank 6. Until then a tank's button is greyed out, a click or a drop on it says \"You don't "
-        "own this tank yet!\" (and the fish swims back), and the arrows skip it. A new game owns none. "
+        "own this tank yet!\" just under the top bar (and the fish swims back). A new game owns none. "
         "Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank 6 like the Sale Tank without "
         "its For Sale sign (the game's own background and decorations, 0x41D140 and 0x41D340).",
         label="E",
@@ -1101,9 +1101,10 @@ EXTRA_TANKS = (
     Fact(
         "How to reach them: either of the two small arrows left of the Tank 1 button switches the three "
         "tank buttons to Tank 4, Tank 5 and Tank 6, and back. Click a button to look at that tank. "
-        "Drag a fish, animal or ornament onto a button to move it there, or onto the left or right arrow to "
-        "move it to the previous or next tank (Tank 1, Tank 2, the Sale Tank, Tank 4, Tank 5, Tank 6, "
-        "and round again, skipping a tank not bought): into the first free place, up to the tank's size (21 fish, 30 with "
+        "Drag a fish, animal or ornament onto a button to move it there; carried over either arrow, the "
+        "buttons switch to the other three tanks (once each time it comes onto an arrow), so it can be "
+        "dropped on any of the six, and let go on an arrow itself it stays where it was: into the first "
+        "free place, up to the tank's size (21 fish, 30 with "
         "Bigger tanks; six ornaments), by the game's own code, and \"The tank is full!\" when there "
         "is none, as on the stock buttons.",
         label="E",
@@ -1111,8 +1112,8 @@ EXTRA_TANKS = (
     Fact(
         "Moving things between tanks: fish of any age, sick or not (a pregnant fish keeps her pregnancy), "
         "the Golden Seahorse, the DS store animals, ornaments, the Moray Eel's rock (the eel goes with it "
-        "when it is home) and Multiple ornaments' copies move by dropping them on a tank's button or on an "
-        "arrow (left: the previous tank, right: the next, round the six). The game's own move code places "
+        "when it is home) and Multiple ornaments' copies move by dropping them on a tank's button, carrying "
+        "them over an arrow to reach the other page of buttons. The game's own move code places "
         "them: fish by AddFish, the store animals into the tank's own 5 animal places, ornaments by the ornament "
         "placement, six per tank.",
         label="E",

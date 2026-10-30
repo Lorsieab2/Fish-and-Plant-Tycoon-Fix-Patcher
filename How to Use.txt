@@ -107,11 +107,13 @@ Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
   pregnancy), the Golden Seahorse, the DS store animals (Puffer Fish,
   Sting Ray, Moray Eel), ornaments, the Moray Eel's rock (with the eel
   inside it when it is home), and Multiple ornaments' extra copies.
-- How: pick it up and drop it on a tank's button, or on an arrow: the left
-  arrow is the previous tank and the right arrow the next one, in the order
-  Tank 1, Tank 2, Sale Tank, then the extra tanks you have bought, and
-  round again. Click an arrow to see the other three buttons. A tank not
-  bought yet is greyed out: "You don't own this tank yet!".
+- How: pick it up and drop it on a tank's button. To reach the other
+  three buttons (Tank 1, Tank 2, Sale Tank or Tank 4, Tank 5, Tank 6),
+  carry it over one of the small arrows left of the buttons: the buttons
+  switch, and you drop it on the tank you want. Letting go on an arrow
+  itself keeps it where it was. Click an arrow to see the other three
+  buttons. A tank not bought yet is greyed out: "You don't own this tank
+  yet!" just under the top bar.
 - A full tank: "The tank is full!" and the fish swims back (or the
   ornament stays). Tank 2 not bought yet: "You don't own a second tank
   yet!". Exactly as on the game's own buttons.

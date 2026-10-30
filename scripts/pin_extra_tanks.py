@@ -50,8 +50,8 @@ SETTING = {
         "them; food, medicines, chemicals, eggs, ornaments, research, the plants, the magic fish, the Golden "
         "Seahorse and the DS store animals work there as in any tank, and with Bigger tanks they hold 30 fish "
         "too. Two small arrows left of the Tank 1 button switch the tank buttons to the three new tanks and "
-        "back; drag a fish, animal or ornament onto a button to move it there, or onto an arrow to move it to "
-        "the previous or next tank. Every tank screen shows its name (Tank 1 to Tank 6; Tank 3 is the Sale "
+        "back; drag a fish, animal or ornament onto a button to move it there (carry it over an arrow to "
+        "switch the buttons to the other three tanks). Every tank screen shows its name (Tank 1 to Tank 6; Tank 3 is the Sale "
         "Tank). Each extra tank has a \"For sale\" button, Off at first: On, it shows the Sale Tank's For "
         "Sale! sign and its fish sell together with the Sale Tank's, through the game's own sale (one sale a "
         "second, the same prices and odds, and never a bigger crowd than the stock game's most). "
@@ -96,7 +96,12 @@ def main() -> int:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     setting = dict(SETTING)
     setting["companion"] = {"source": SOURCE, "startup_loader": True, "files": companion_files()}
-    manifest["settings"] = [s for s in manifest["settings"] if s["id"] != SETTING_ID] + [setting]
+    # Kept in its place (the patcher lists settings in manifest order); appended only the first time.
+    ids = [s["id"] for s in manifest["settings"]]
+    if SETTING_ID in ids:
+        manifest["settings"][ids.index(SETTING_ID)] = setting
+    else:
+        manifest["settings"].append(setting)
 
     pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items() if SETTING_ID not in k.split(",")}
     added = 0
