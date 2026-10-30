@@ -79,10 +79,15 @@
 #define ARROW_NEXT 41
 #define ARROW_W 50
 #define ARROW_H 50
-#define LEFT_X 222
-#define RIGHT_X 748
-#define ARROW_Y 10
-#define LABEL_X 510
+/* The greenhouse's name and arrows, on the top wall between the stock left panel (to about x 240)
+   and the camera button (from about x 760).  The name is centred at LABEL_X; at its widest,
+   "Greenhouse 6 of 6", it is 154 px of PTfontsmall (x 423-577, y 26-47).  The arrows stand at
+   fixed places just outside that, vertically centred on the text (x 367-416 and 583-632, y 11-60),
+   clear of the greenhouse counts' "Counts: On" (x 646-744, y 4-24) and Plants line (y 62). */
+#define LEFT_X 367
+#define RIGHT_X 583
+#define ARROW_Y 11
+#define LABEL_X 500
 #define LABEL_Y 26
 #define NU_LEFT_X 220                    /* the nursery's arrows and label, in its sky */
 #define NU_RIGHT_X 530

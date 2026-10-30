@@ -49,6 +49,19 @@ HELD, SELECTED, HELD_POT = 0x56C, 0x63E58, 0x3E8
 FOR_SALE, PLANTED, FOLIAGE, FLOWER, AGE, HEALTH = 0x9D, 0x38, 0x4C, 0x50, 0x10, 0x24
 HOME, NURSERY = 0, 100
 
+SOURCE = ROOT / "native" / "ftfp_extra_greenhouses" / "ftfp_extra_greenhouses.c"
+
+
+def constant(name: str) -> int:
+    """A #define of the DLL's source (the arrows' and labels' places)."""
+    import re
+    return int(re.search(rf"#define {name} (\d+)", SOURCE.read_text(encoding="utf-8")).group(1))
+
+
+# The middle of each greenhouse arrow, where a click or a drop lands.
+LEFT_ARROW = (constant("LEFT_X") + 25, constant("ARROW_Y") + 25)
+RIGHT_ARROW = (constant("RIGHT_X") + 25, constant("ARROW_Y") + 25)
+
 HAVE = E is not None and PLANT_EXE.is_file() and E.toolchain_ready()
 needs_game = unittest.skipUnless(HAVE, "needs Unicorn, the vanilla Plant Tycoon.exe and the pinned MSVC toolset")
 
@@ -398,7 +411,7 @@ class MoveTests(unittest.TestCase):
     def drop_on_arrow(self, game: Game, right: bool, k: int) -> None:
         emu = game.emu
         emu.write32(game.state + HELD, HELD_POT + k)
-        emu.call(emu.sym("@gh_mouse@20"), 3, 760 if right else 230, 30, ecx=game.scene)
+        emu.call(emu.sym("@gh_mouse@20"), 3, *(RIGHT_ARROW if right else LEFT_ARROW), ecx=game.scene)
 
     def test_a_pot_dragged_onto_an_arrow_moves_to_the_same_place_in_that_greenhouse(self) -> None:
         game = grow(0, 4, ((4, 13, 13),), (7200,))
@@ -872,7 +885,7 @@ class OwnershipTests(unittest.TestCase):
         emu.hook(0x004273D0, lambda e: 0, 0xC)               # the stock mouse: the plant goes back to its pot
         game.show(0)
         emu.write32(game.state + HELD, HELD_POT + 4)
-        emu.call(emu.sym("@gh_mouse@20"), 3, 230, 30, ecx=game.scene)      # the left arrow's place
+        emu.call(emu.sym("@gh_mouse@20"), 3, *LEFT_ARROW, ecx=game.scene)  # the left arrow's place
         game.show(0, active=0)
         self.assertEqual(game.pot_bytes(0, 4), plant)
         self.assertTrue(all(game.emu.read32(game.pot(g, k) + FOLIAGE) == 0
@@ -881,7 +894,7 @@ class OwnershipTests(unittest.TestCase):
         emu.write32(emu.sym("_owned"), 2)
         game.show(0)
         emu.write32(game.state + HELD, HELD_POT + 4)
-        emu.call(emu.sym("@gh_mouse@20"), 3, 230, 30, ecx=game.scene)
+        emu.call(emu.sym("@gh_mouse@20"), 3, *LEFT_ARROW, ecx=game.scene)
         game.show(0, active=0)
         self.assertEqual(game.pot_bytes(2, 4), plant)
 
@@ -1330,6 +1343,43 @@ class BackupTests(unittest.TestCase):
         self.save_backup.restore_backup("plant", self.folder, backup, 2, self.processes())
         self.assertEqual((self.data / "Extra Greenhouses 2.dat").read_bytes(), b"greenhouses 2")
         self.assertEqual((self.data / "Extra Greenhouses 1.dat").read_bytes(), b"later 1")
+
+
+class ArrowLayoutTests(unittest.TestCase):
+    """The greenhouse arrows stand on the top wall beside the name, where the player can see and click them:
+    clear of the stock left panel (to x 240), the camera button (from x 760), the name at its widest
+    ("Greenhouse 6 of 6") and the greenhouse counts ("Counts: On" at 646-744 x 4-24, the Plants line from y 62)."""
+
+    @staticmethod
+    def rect(x: int, y: int, w: int, h: int) -> tuple[int, int, int, int]:
+        return x, y, x + w, y + h
+
+    @staticmethod
+    def apart(a, b) -> bool:
+        return a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1]
+
+    @unittest.skipUnless(PLANT_EXE.is_file(), "needs the vanilla Plant Tycoon.exe (its font)")
+    def test_the_arrows_are_beside_the_name_and_clear_of_the_stock_ui(self) -> None:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import render_extra_greenhouses_preview as R
+        folder = PLANT_EXE.parent
+        exe = PLANT_EXE.read_bytes()
+        widest = R.words(folder, exe, "Greenhouse 6 of 6")
+        x, y = constant("LABEL_X") - widest.width // 2, constant("LABEL_Y")
+        name = (x, y, x + widest.width, y + widest.height)
+        left = self.rect(constant("LEFT_X"), constant("ARROW_Y"), 50, 50)
+        right = self.rect(constant("RIGHT_X"), constant("ARROW_Y"), 50, 50)
+        free = (240, 0, 760, 62)                                        # the top wall, panel to camera, above the Plants line
+        for arrow in (left, right):
+            self.assertTrue(free[0] <= arrow[0] and arrow[2] <= free[2] and free[1] <= arrow[1] and arrow[3] <= free[3], arrow)
+            self.assertTrue(self.apart(arrow, name), arrow)
+            self.assertTrue(self.apart(arrow, (646, 4, 744, 24)), arrow)  # "Counts: On"
+        self.assertLess(left[2], name[0])
+        self.assertGreater(right[0], name[2])
+        self.assertLessEqual(name[0] - left[2], 12)                     # just beside the name
+        self.assertLessEqual(right[0] - name[2], 12)
+        middle = (name[1] + name[3]) / 2
+        self.assertLessEqual(abs((left[1] + left[3]) / 2 - middle), 2)  # centred on the text
 
 
 class ManifestTests(unittest.TestCase):
