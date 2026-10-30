@@ -141,8 +141,69 @@ MAGIC = {
 }
 MUTATION_FISH = (13, 6)
 
-TIER_NAMES = {1: "Common", 2: "Half-rare", 3: "Rare"}
+# The tiers in the game's own words. The game prints no tier label, so each is the word the
+# exe itself uses for exactly those genes: "Common Fish Eggs" (string 0x4457C8) lay exactly
+# the tier 1 genes 0, 4 ... 20 (Random(6) x 4, 0x4213F8), "Unusual Fish Eggs" (0x4456F4)
+# exactly the tier 2 genes 2, 6 ... 18 (Random(5) x 4 + 2, 0x4214C7), and the odd genes,
+# which no egg lays, are the "Extremely rare hybrids" (0x4469D8). Pinned by
+# tests/test_breeding_fish.py (test_tier_words_are_the_exes).
+TIER_NAMES = {1: "Common", 2: "Unusual", 3: "Rare"}
+TIER_STRINGS = {1: (0x4457C8, "Common Fish Eggs"), 2: (0x4456F4, "Unusual Fish Eggs"),
+                3: (0x4469D8, "Extremely rare hybrids are extremely fragile.")}
 NAME_FIELD = 31                    # the species entry's name is 0x20 bytes with its 0
+
+# ------------------------------------------------------------------ how parts are obtained
+
+# The store's eggs: (name, price, Random(n), multiplier, add) - each baby's body and fin are
+# each Random(n) x multiplier + add, rolled separately (hatch code 0x4213F8 / 0x4214C7 /
+# 0x4215A0; prices set by the new-game store table, 0x419A88 / 0x419A92 / 0x419A9C).
+STORE_EGGS = (
+    ("Common Fish Eggs", 120, 6, 4, 0),
+    ("Unusual Fish Eggs", 450, 5, 4, 2),
+    ("Rare Fish Eggs", 1200, 10, 2, 0),
+)
+EGG_ADDRESSES = {"Common Fish Eggs": (0x4213D1, 0x421437), "Unusual Fish Eggs": (0x4214A0, 0x42150A),
+                 "Rare Fish Eggs": (0x421573, 0x4215DB)}
+UNKNOWN_CHEMICAL_PRICE = 650       # 0x419A7E
+P_CHEMICAL = chance_at_most(100, 25)  # 26.03%: each live fish in the tank is changed (0x420EE3)
+EXOTIC_EGGS = ("Exotic Fish Eggs", 2300, 7)   # DS Store Items (ftfp_ds_store.c: price 2300, DS_GENES 7)
+# The starter eggs of a new game (0x41FC90): babies 1-7 (7 in a new game, the tanks empty).
+# (body, fin) for each, as sets: the first is fixed, the fifth to seventh remap (20, 16) to (20, 12).
+STARTER_BABIES = (
+    ({20}, {16}),
+    ({4 * r for r in range(5)}, {4 * r for r in range(5)}),
+    ({4 * r + 4 for r in range(5)}, {0}),
+    ({4 * r for r in range(5)}, {20}),
+) + (({4 * r for r in range(6)}, {4 * r for r in range(6)}),) * 3
+
+
+def random_is(n: int, value: int) -> float:
+    """The exact chance that Random(n) gives `value`."""
+    return (rand_count(n, value + 1) - rand_count(n, value)) / RAND_PERIOD
+
+
+def egg_chance(n: int, mul: int, add: int, gene: int) -> float:
+    """The chance an egg baby's body (or fin) is `gene`, for genes Random(n) x mul + add."""
+    r, rest = divmod(gene - add, mul)
+    return random_is(n, r) if rest == 0 and 0 <= r < n else 0.0
+
+
+def chemical_steps(gene: int, extras: bool) -> list[tuple[int, float]]:
+    """Where one Unknown Chemical step (0x420EFB body / 0x420F27 fin, which test the gene's own
+    value) takes a gene: always down at the top end (20, or 29 with DS Exclusive Fish's
+    step_gene), always up at 0, else up on Random(100) <= 49."""
+    top = DS_LAST if extras else PC_LAST
+    up = gene_up(gene) if extras else gene + 1
+    down = gene_down(gene) if extras else gene - 1
+    if gene == top:
+        return [(down, 1.0)]
+    if gene == 0:
+        return [(up, 1.0)]
+    return [(up, P_UP), (down, 1.0 - P_UP)]
+
+
+def _pct(p: float) -> str:
+    return "always" if p >= 1.0 else f"{100 * p:.2f}%"
 
 # ------------------------------------------------------------------ the selling model
 
@@ -233,7 +294,7 @@ def exe_gene(index: int) -> int:
 
 
 def gene_tier(gene: int) -> int:
-    """1 common, 2 half-rare, 3 rare: the game's lists (0x41DF99), the DS genes by the same
+    """1 Common, 2 Unusual, 3 Rare (TIER_NAMES): the game's lists (0x41DF99), the DS genes by the same
     rule on their DS index (DLL gene_tier)."""
     d = ds_index(gene)
     if d % 2:
@@ -249,24 +310,64 @@ def gene_down(gene: int) -> int:
     return PC_LAST if gene == DS_FIRST else gene - 1
 
 
-def _how(kind: str, gene: int) -> str:
+def egg_sources(kind: str, gene: int, extras: bool) -> list[tuple[str, int, float]]:
+    """(egg, price, chance per baby) for every egg that can hatch a baby with this body (fin)."""
+    out = [(name, price, egg_chance(n, mul, add, gene)) for name, price, n, mul, add in STORE_EGGS]
+    if extras:
+        name, price, n = EXOTIC_EGGS
+        out.append((name, price, egg_chance(n, 1, DS_FIRST, gene)))
+    return [e for e in out if e[2] > 0]
+
+
+def starter_gives(kind: str, gene: int) -> bool:
+    slot = 0 if kind == "body" else 1
+    return any(gene in baby[slot] for baby in STARTER_BABIES)
+
+
+def chemical_sources(gene: int, extras: bool) -> list[tuple[int, float]]:
+    """(gene before, chance its step lands on `gene`) for one Unknown Chemical step."""
+    genes = PC_GENES + (DS_GENES if extras else ())
+    return [(g, p) for g in genes for new, p in chemical_steps(g, extras) if new == gene]
+
+
+def breeding_sums(gene: int) -> tuple[int, ...]:
+    """The PC parent totals whose rounded-down average is `gene` (0x41FAAB)."""
+    return tuple(s for s in (2 * gene, 2 * gene + 1) if s <= 2 * PC_LAST)
+
+
+def _how(kind: str, gene: int, extras: bool = False) -> str:
+    """How a body (fin) is first obtained, each route with its exact odds from the game's code
+    (and, for the DS genes, the DS Fish and DS Store DLLs' source)."""
     noun = "body" if kind == "body" else "fin"
-    if is_ds(gene):
-        before = PC_LAST if gene == DS_FIRST else gene - 1
-        return (f"DS Exclusive Fish only. The Unknown Chemical ($650), or the Magic Fish of Mutation at a "
-                f"birth, steps a {noun} at {before} up into it (20, then 23 to 29); breeding, with at least "
-                f"one DS parent; "
-                f"Exotic Fish Eggs ($2300, with DS Store Items). Never from two PC parents.")
-    if gene % 2:
-        return (f"Breeding only: no egg lays it. Two parents whose {noun}s add up to {2 * gene} or "
-                f"{2 * gene + 1} (for example {gene - 1} + {gene + 1}); or the Unknown Chemical ($650), "
-                f"or the Magic Fish of Mutation at a birth, stepping a {noun} at {gene - 1} or {gene + 1}.")
-    if gene == 20:
-        return ("Common Fish Eggs ($120, 1 in 6 each) and the starter eggs; Rare Fish Eggs never lay 20. "
-                f"Breeding: both parents' {noun}s at 20.")
-    if gene % 4 == 0:
-        return "Common Fish Eggs ($120, 1 in 6), Rare Fish Eggs ($1200, 1 in 10) and the starter eggs."
-    return "Unusual Fish Eggs ($450, 1 in 5) and Rare Fish Eggs ($1200, 1 in 10)."
+    nouns = "bodies" if kind == "body" else "fins"
+    parts = []
+    eggs = egg_sources(kind, gene, extras)
+    if eggs:
+        parts.append("Eggs: " + "; ".join(
+            f"{name} (${price}), {_pct(p)} of the babies" + (" (with DS Store Items)" if name == EXOTIC_EGGS[0] else "")
+            for name, price, p in eggs) + ".")
+    elif not is_ds(gene):
+        parts.append("No egg lays it.")
+    if starter_gives(kind, gene):
+        parts.append("The starter eggs of a new game.")
+    sums = breeding_sums(gene) if not is_ds(gene) else ()
+    if sums:
+        parts.append(f"Breeding: two parents whose {nouns} add up to " + " or ".join(map(str, sums))
+                     + f" (the baby's {noun} is the average, rounded down).")
+    if extras:
+        parts.append(f"With a DS parent the {nouns} average in the order 0-20, 23-29, an odd total rounding "
+                     "up or down (50%)." + (" Never from two PC parents." if is_ds(gene) else ""))
+    chem = chemical_sources(gene, extras)
+    if chem:
+        parts.append(f"Unknown Chemical (${UNKNOWN_CHEMICAL_PRICE}): each live fish in the tank changes on "
+                     f"{_pct(P_CHEMICAL)} a dose, its body on {_pct(P_BODY)} (else its fin), one step; a {noun} "
+                     + " or ".join(f"at {g} " + ("always steps" if p >= 1 else f"steps on {_pct(p)}")
+                                   + f" {'up' if ds_index(g) < ds_index(gene) else 'down'} to {gene}"
+                                   for g, p in chem) + ".")
+    parts.append(f"The Magic Fish of Mutation (Wasp Grouper) in the mother's tank: {_pct(P_MUTATE)} a litter "
+                 "the father's body or fin steps one place before the average (the Breeding Calculator's "
+                 "\"Max effects, with Wasp Grouper\").")
+    return " ".join(parts)
 
 
 def _part_name(kind: str, gene: int) -> str:
@@ -353,7 +454,7 @@ class FishModel:
         self.extras = bool(extras)
         self.genes = PC_GENES + (DS_GENES if self.extras else ())
         self._parts = {
-            kind: [Part(kind, g, _part_name(kind, g), is_ds(g), _how(kind, g)) for g in self.genes]
+            kind: [Part(kind, g, _part_name(kind, g), is_ds(g), _how(kind, g, self.extras)) for g in self.genes]
             for kind in ("body", "fin")
         }
         self._part_by = {(p.kind, p.index): p for kind in self._parts for p in self._parts[kind]}
@@ -399,7 +500,7 @@ class FishModel:
 
     def _father_variants(self, father: tuple[int, int], effects: str) -> list[tuple[tuple[int, int], float]]:
         fb, ff = father
-        if effects != "max":
+        if effects != "max_mutation":            # only the Wasp Grouper steps the father
             return [((fb, ff), 1.0)]
         out: dict[tuple[int, int], float] = {}
 
@@ -463,7 +564,7 @@ class FishModel:
 
     def _could_give(self, mother_gene: int, father_gene: int, target: int, effects: str) -> bool:
         fathers = {father_gene}
-        if effects == "max":
+        if effects == "max_mutation":
             fathers |= {gene_up(father_gene), gene_down(father_gene), father_gene + 1, father_gene - 1}
         for g in fathers:
             if g in self.genes:
@@ -509,16 +610,22 @@ class FishModel:
                     out.append((x, y, p))
         return out
 
-    def plan(self, have, want: tuple[int, int], effects: str) -> list[dict]:
+    def plan(self, have, want: tuple[int, int], effects: str, allowed=None) -> list[dict]:
+        """The shortest chain from `have` to `want`. With `allowed`, every species the chain
+        breeds is in it (the spoiler-free planner uses only discovered species)."""
         want = tuple(want)
         owned = {tuple(k) for k in have if tuple(k) in self._by_key}
         if want in owned or not owned or want not in self._by_key:
             return []
+        if allowed is not None:
+            allowed = {tuple(k) for k in allowed}
+            if want not in allowed:
+                return []
         order = sorted(owned)
         frontier = set(owned)
         found: dict[tuple[int, int], tuple[float, tuple, tuple]] = {}
         cost = {k: 0 for k in owned}           # breeding steps needed to have each species
-        ordered = effects == "max"
+        ordered = effects == "max_mutation"    # only then does which parent is the father matter
         while frontier and want not in found:
             # breadth first, so the chain is as short (in generations) as it can be; among
             # the pairs that give a new species, the one needing the fewest steps, then the
@@ -533,7 +640,7 @@ class FishModel:
                         continue
                     steps_needed = 1 + cost[m] + (cost[f] if f != m else 0)
                     for child, odds in self.children(m, f, effects):
-                        if child in owned:
+                        if child in owned or (allowed is not None and child not in allowed):
                             continue
                         have_best = new.get(child)
                         if have_best is None or (steps_needed, -odds) < (new_cost[child], -have_best[0] - 1e-15):
@@ -565,6 +672,9 @@ class FishModel:
 
     # ---- prices
     def prices(self, key: tuple[int, int], effects: str) -> Prices:
+        # The Wasp Grouper changes no price: the sale roll (0x424240) and the base prices
+        # (0x418B10, Advertising 0x420A6B) never read it, so "max_mutation" prices are "max"'s.
+        effects = "max" if effects == "max_mutation" else effects
         cache_key = (tuple(key), effects)
         cached = self._prices.get(cache_key)
         if cached is not None:
@@ -584,13 +694,36 @@ class FishModel:
         self._prices[cache_key] = result
         return result
 
+    # The three effects choices: (value, label). "max" is every other effect at its best with no
+    # mutation; "max_mutation" adds the Wasp Grouper.
+    effects_choices = (("none", "0 effects"), ("max", "Max effects, without"),
+                       ("max_mutation", "Max effects, with Wasp Grouper"))
+    mutation_name = "Wasp Grouper"
+
+    def effects_text(self, effects: str) -> list[str]:
+        """What an effects choice assumes, in words."""
+        if effects == "none":
+            return ["No magic fish, research or ornaments: Advertising level 1 and nobody browsing; "
+                    "each baby's body and fin are its parents' averages."]
+        out = []
+        if effects == "max_mutation":
+            out.append("Breeding: a live adult Magic Fish of Mutation (Wasp Grouper) in the mother's tank: "
+                       f"{100 * P_MUTATE:.2f}% per litter to step the father's body or fin one place before the "
+                       "babies are made.")
+        else:
+            out.append("Breeding: no Magic Fish of Mutation (Wasp Grouper), so no mutation chance; each baby's "
+                       "body and fin are its parents' averages.")
+        return out + self._max_rest()
+
     def effects_max(self) -> list[str]:
+        return self.effects_text("max_mutation")
+
+    def _max_rest(self) -> list[str]:
         return [
-            "Breeding: a live adult Magic Fish of Mutation (Wasp Grouper) in the mother's tank: "
-            f"{100 * P_MUTATE:.2f}% per litter to step the father's body or fin one place before the "
-            "babies are made. The Magic Fish and Plant of Fertility add babies (up to 3 a litter) but do "
-            "not change the odds of each baby.",
-            "Prices: Advertising research levels 2 and 3 (every base price + 1/10, then + 1/7).",
+            "The Magic Fish and Plant of Fertility add babies (up to 3 a litter) but do not change the odds "
+            "of each baby.",
+            "Prices: Advertising research levels 2 and 3 (every base price + 1/10, then + 1/7); the Wasp "
+            "Grouper changes no price.",
             "Customers: all 6 ornaments, the Golden Seahorse and Advertising level 3, with a full "
             f"selling tank: {EFFECTS['max']['browsing'][0]} or {EFFECTS['max']['browsing'][1]} customers, "
             "all counted as browsing.",

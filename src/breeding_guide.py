@@ -8,16 +8,21 @@ filterable sheet that exports to .xlsx or .csv:
 * the parts (Fish: Fins and Bodies; Plant: Flowers and Foliage): how each is
   obtained, its rarity and the species that have it;
 * Discovered Species (All Species with spoilers): the pairs that breed each
-  species, by each part, and its prices with 0 and with max effects;
+  species, by each part, and its prices with 0 and with Max effects;
 * Breeding Calculator: every child two parents can give, with its odds;
-* Have -> Want: the shortest breeding chain from the species you have.
+* Breeding Planner: the shortest breeding chain from the species you have.
+
+Every tab has a scrolling details pane under its sheet. The calculator and
+the planner each have three effects choices: 0 effects, Max effects without
+the mutation (the Wasp Grouper / Mutation Liquid) and Max effects with it.
 
 It reads one save slot and never writes anything but an export the player
-asks for. With Show Spoilers off it shows the save's discovered species and
-only what they reveal: their parts, and species made of parts already seen;
-anything else is "Undiscovered species". The patcher's own species (DS
-Exclusive Fish, Unused Flowers) are in only when the chosen game copy was
-patched with that setting.
+asks for. With Show Spoilers off it shows only the species the save has
+discovered (each one's own discovered flag) and only their parts; parent
+suggestions and the planner use only those species, and anything else is
+"Undiscovered species". The patcher's own species (DS Exclusive Fish,
+Unused Flowers) are in only when the chosen game copy was patched with that
+setting.
 
 The sheets are plain data (build_* below), so the tests check them without a
 window; the window only draws them.
@@ -43,8 +48,21 @@ TITLES = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
 MODEL_MODULES = {"fish": "breeding_fish", "plant": "breeding_plant"}
 KIND_TITLES = {"body": "Bodies", "fin": "Fins", "foliage": "Foliage", "flower": "Flowers"}
 KIND_NAMES = {"body": "Body", "fin": "Fin", "foliage": "Foliage", "flower": "Flower"}
-EFFECTS = (("none", "0 effects"), ("max", "max effects"))
+# The default effects choices; each model names its own mutation (effects_choices).
+EFFECTS = (("none", "0 effects"), ("max", "Max effects, without"), ("max_mutation", "Max effects, with mutation"))
+PLANNER = "Breeding Planner"
 UNDISCOVERED = "Undiscovered species"
+
+
+def effects_choices(model) -> tuple:
+    return getattr(model, "effects_choices", EFFECTS)
+
+
+def effects_text(model, effects: str) -> str:
+    text = getattr(model, "effects_text", None)
+    if text is not None:
+        return " ".join(text(effects))
+    return " ".join(model.effects_max()) if effects != "none" else ""
 COMING = "Plant Tycoon's Breeding Guide is coming in this update."
 
 
@@ -174,6 +192,7 @@ class Sheet:
         self.keys = keys or [None] * len(rows)
         self.details = details or [""] * len(rows)
         self.message = message
+        self.intro = ""                                  # the details pane before a row is picked
 
 
 def column_width(title: str, kind: str) -> int:
@@ -250,11 +269,16 @@ class View:
             self.known_parts |= {(p.kind, p.index) for k in self.kinds for p in model.parts(k)}
 
     def revealed(self, key) -> bool:
-        """Spoiler-free to name: discovered, or made only of parts already seen."""
+        """Spoiler-free to name: only a species the save itself has discovered (its own
+        discovered flag), never one merely made of parts already seen."""
         if self.spoilers:
             return True
-        species = self.by_key.get(tuple(key))
-        return species is not None and all((p.kind, p.index) in self.known_parts for p in species.parts)
+        return tuple(key) in self.discovered
+
+    def allowed(self) -> set | None:
+        """The species parent suggestions and the planner may use: all with spoilers, else
+        only the discovered ones."""
+        return None if self.spoilers else set(self.discovered)
 
     def name(self, key) -> str:
         return self.by_key[tuple(key)].name if self.revealed(key) else UNDISCOVERED
@@ -267,7 +291,7 @@ class View:
         return sorted(self.shown, key=lambda s: s.name.casefold())
 
     def want_choices(self) -> list:
-        return sorted((s for s in self.all_species if self.revealed(s.key)), key=lambda s: s.name.casefold())
+        return sorted(self.shown, key=lambda s: s.name.casefold())
 
     # ---- parts
     def part_sheet(self, kind: str) -> Sheet:
@@ -344,11 +368,12 @@ class View:
         first = self.all_species[0]
         n0, n1 = _kind_name(model, first.parts[0].kind), _kind_name(model, first.parts[1].kind)
         note = getattr(model, "species_note", None)
+        # The prices stay 0 / Max: no mutation (Wasp Grouper, Mutation Liquid) changes a price.
         columns = ["Species", n0, n1, "Rarity", "Base value", f"Bred from ({n0.lower()})",
                    f"Bred from ({n1.lower()})",
                    "Best price per day (0 effects)", "Money per day (0 effects)",
-                   "Best price per day (max effects)", "Money per day (max effects)",
-                   "Highest price that sells (0 effects)", "Highest price that sells (max effects)",
+                   "Best price per day (Max effects)", "Money per day (Max effects)",
+                   "Highest price that sells (0 effects)", "Highest price that sells (Max effects)",
                    "Notes", "Patcher"]
         kinds = ["text", "text", "text", "text", "int", "text", "text",
                  "int", "money", "int", "money", "int", "int", "text", "text"]
@@ -381,8 +406,7 @@ class View:
         """The best parent pairs for a species that are spoiler-free to show: the model leaves
         out the other parents before it ranks and cuts the list, so a revealed pair is never
         pushed out by hidden ones."""
-        allowed = None if self.spoilers else {tuple(s.key) for s in self.all_species if self.revealed(s.key)}
-        return self.model.ways_to_breed(tuple(key), effects, limit=limit, allowed=allowed)
+        return self.model.ways_to_breed(tuple(key), effects, limit=limit, allowed=self.allowed())
 
     def species_details(self, s, p0, p1) -> str:
         lines = [f"{s.name}: {s.parts[0].name} {s.parts[0].kind}, {s.parts[1].name} {s.parts[1].kind}; "
@@ -392,7 +416,7 @@ class View:
         if shown:
             lines.append(f"Best parents ({labels[0].split(':')[0]} x {labels[1].split(':')[0]}), 0 effects:")
             lines.extend(f"  {self.name(m)} x {self.name(f)}: {100 * p:.2f}%" for m, f, p in shown[:10])
-        for label, prices in (("0 effects", p0), ("max effects", p1)):
+        for label, prices in (("0 effects", p0), ("Max effects", p1)):
             lines.append(f"Prices, {label}: best per day {prices.best_per_day} "
                          f"({prices.best_per_day_income:,.0f} a day), highest that sells "
                          f"{prices.highest_selling}. {prices.note}")
@@ -404,7 +428,8 @@ class View:
         n0, n1 = _kind_name(self.model, first.parts[0].kind), _kind_name(self.model, first.parts[1].kind)
         columns = ["Child", n0, n1, "Odds (%)", "Discovered"]
         kinds = ["text", "text", "text", "percent", "text"]
-        rows, tags, keys = [], [], []
+        rows, tags, keys, details = [], [], [], []
+        intro = effects_text(self.model, effects)
         if mother is not None and father is not None:
             for child, odds in self.model.children(tuple(mother), tuple(father), effects):
                 s = self.by_key[tuple(child)]
@@ -415,22 +440,38 @@ class View:
                 tags.append((("patcher",) if s.patcher and known else ())
                             + (("undiscovered",) if self.has_save and not found else ()))
                 keys.append(tuple(child))
-        return Sheet("Breeding Calculator", columns, rows, kinds=kinds, tags=tags, keys=keys)
+                if known:
+                    details.append(lambda s=s, odds=odds: (
+                        f"{100 * odds:.2f}%: " + self.species_details(
+                            s, prices_of(self.model, s.key, "none"), prices_of(self.model, s.key, "max"))
+                        + "\n\n" + intro))
+                else:
+                    details.append(f"{100 * odds:.2f}%: {UNDISCOVERED}. Tick Show Spoilers to see it.\n\n{intro}")
+        sheet = Sheet("Breeding Calculator", columns, rows, kinds=kinds, tags=tags, keys=keys, details=details)
+        sheet.intro = intro
+        return sheet
 
     def planner_sheet(self, have, want, effects: str) -> Sheet:
         labels = getattr(self.model, "parent_labels", ("Parent 1", "Parent 2"))
         columns = ["Step", "How", labels[0].split(":")[0], labels[1].split(":")[0], "Child", "Odds (%)"]
         kinds = ["int", "text", "text", "text", "text", "percent"]
-        rows, keys = [], []
+        rows, keys, details = [], [], []
         message = ""
+        intro = effects_text(self.model, effects)
         if want is not None and have:
             if tuple(want) in {tuple(k) for k in have}:
                 message = "You already have it."
             else:
-                steps = self.model.plan([tuple(k) for k in have], tuple(want), effects)
+                allowed = self.allowed()
+                if allowed is None:
+                    steps = self.model.plan([tuple(k) for k in have], tuple(want), effects)
+                else:
+                    steps = self.model.plan([tuple(k) for k in have], tuple(want), effects, allowed=allowed)
                 if not steps:
+                    mutation = dict(effects_choices(self.model)).get("max_mutation", "Max effects, with mutation")
                     message = ("No breeding chain reaches it from these species"
-                               + (" with 0 effects; try max effects." if effects == "none" else "."))
+                               + ("" if self.spoilers else " through the species you have discovered")
+                               + (f"; try {mutation}." if effects != "max_mutation" else "."))
                 else:
                     message = f"{len(steps)} step(s), the fewest generations first; scroll for all of them."
                 for number, step in enumerate(steps, start=1):
@@ -438,11 +479,16 @@ class View:
                     via = step.get("via", "breeding")
                     if via == "Mutation Liquid":          # one dose on a plant of the parent
                         row = [number, via, f"Mutation Liquid on {self.name(m)}", ""]
+                        text = f"Step {number}: one Mutation Liquid dose on a {self.name(m)}"
                     else:
                         row = [number, via.capitalize(), self.name(m), self.name(f)]
+                        text = f"Step {number}: {via} of {self.name(m)} and {self.name(f)}"
                     rows.append(row + [self.name(step["child"]), 100 * step["odds"]])
                     keys.append(tuple(step["child"]))
-        return Sheet("Have to Want", columns, rows, kinds=kinds, keys=keys, message=message)
+                    details.append(f"{text} gives {self.name(step['child'])}, {100 * step['odds']:.2f}%.\n\n{intro}")
+        sheet = Sheet(PLANNER, columns, rows, kinds=kinds, keys=keys, details=details, message=message)
+        sheet.intro = intro
+        return sheet
 
 
 # ------------------------------------------------------------------ export
@@ -579,18 +625,24 @@ HELP = (
         "flowers and foliage), how it is obtained, its rarity and the species that have it; and every species, "
         "the pairs of parts that breed it and its prices. Pick the game, a save folder and a player: it only "
         "reads that save and never changes it.",
-        "Spoilers: it opens on the save's discovered species and shows only what they reveal (their parts, "
-        "and species made of parts you have already seen). Under Options, Show Spoilers shows every species, "
-        "the full charts and every price; the choice is remembered.",
+        "Spoilers: it opens on the species your save has discovered and shows only those and their parts; "
+        "parent suggestions and the Breeding Planner use only them too. Under Options, Show Spoilers shows "
+        "every species, the full charts and every price; the choice is remembered.",
+        "Rarity, in the games' own words: Fish Tycoon parts are Common, Unusual or Rare (the Common and "
+        "Unusual Fish Eggs lay exactly the Common and Unusual genes; no egg lays a Rare one), a fish as rare "
+        "as its rarer part. Plant Tycoon parts are Common, Endangered or Extinct, the seed packets that "
+        "sell them (Legendary for the Unused Flowers), a plant as rare as its rarer part.",
         "Patcher species (DS Exclusive Fish, Unused Flowers) are listed only when the save's game copy was "
         "patched with that setting: its patch log beside the .exe says so, or the setting's data file is "
         "beside the save. They are marked in the Patcher column.",
         "Fish Tycoon breeding, from the game's code: the baby's body is the mother's and the father's bodies "
         "averaged and rounded down, and the same for the fin. The mother is the fish already in the isolation "
         "tank, the father the fish you drop on it. A pair with a DS gene uses the DS game's rule: an odd total "
-        "rounds up or down at random, one roll per litter shared by body and fin. Max effects adds a live adult "
-        "Magic Fish of Mutation in the mother's tank: 16.02% per litter to step the father's body or fin one "
-        "place first. The Fertility fish and plant add babies but do not change each baby's odds.",
+        "rounds up or down at random, one roll per litter shared by body and fin. Effects: \"0 effects\"; "
+        "\"Max effects, without\" (every other effect at its best, no mutation chance); \"Max effects, with "
+        "Wasp Grouper\" adds a live adult Magic Fish of Mutation in the mother's tank: 16.02% per litter to "
+        "step the father's body or fin one place first. The Fertility fish and plant add babies but do not "
+        "change each baby's odds, and no mutation changes a price, so the prices show 0 and Max effects.",
         "Prices, from the game's selling code: once a real-time second each adult in the selling tank rolls "
         "Random(900) <= T: T = 30K at half the base price B or less, 10K below B, 4K from B to 1.5B, K above, "
         "and never at 2B or more, with K = (customers browsing + 2) / 2; after a sale nothing sells for 5 "
@@ -602,14 +654,17 @@ HELP = (
         "all 6 ornaments and the Golden Seahorse, and the whole crowd (66 or 72 customers) browsing, the "
         "highest odds. Your shop is between the two.",
         "Plant Tycoon, from its code: breeding has no luck, each gene of the seed is the parents' average "
-        "rounded up; only Mutation Liquid adds odds, and with max effects a chain step can be \"Mutation "
-        "Liquid on\" a plant. Its prices assume every visitor up to the limit is browsing (an upper bound), "
-        "and because a plant keeps growing, its best price per day is its highest price that sells. With max "
-        "effects a chain can be long (the fewest generations, not the fewest steps): the step count is shown "
-        "and the list scrolls. Each species' details list the exact assumptions.",
+        "rounded up; only Mutation Liquid adds odds. With \"Max effects, with Mutation Liquid\" the Breeding "
+        "Calculator shows the seed after one dose, and a Breeding Planner step can be \"Mutation Liquid on\" a "
+        "plant; \"Max effects, without\" uses no Mutation Liquid. Its prices assume every visitor up to the "
+        "limit is browsing (an upper bound), and because a plant keeps growing, its best price per day is its "
+        "highest price that sells. With Mutation Liquid a chain can be long (the fewest generations, not the "
+        "fewest steps): the step count is shown and the list scrolls. Each species' details list the exact "
+        "assumptions.",
         "Click a column header to sort, and type in Search to filter. Export saves the open sheet as .xlsx or "
-        ".csv. The Breeding Calculator lists every child two parents can give, with its odds; Have to Want finds "
-        "the shortest breeding chain from the species you have to the one you want.",
+        ".csv. The Breeding Calculator lists every child two parents can give, with its odds; the Breeding "
+        "Planner finds the shortest breeding chain from the species you have to the one you want. The pane "
+        "under each sheet shows the picked row's details and what the effects choice assumes; it scrolls.",
     ],
 )
 
@@ -687,6 +742,7 @@ class BreedingGuide:
         self.view: View | None = None
         self.sheets: dict[str, Sheet] = {}
         self.trees: dict[str, ttk.Treeview] = {}
+        self.details: dict[str, tk.Text] = {}           # each tab's scrolling details pane
         self.shown_rows: dict[str, list[int]] = {}
         # A sheet's sort, by its column's title: a refresh can rebuild a sheet with other
         # columns (Discovered only shows with spoilers), so the title is looked up again.
@@ -841,6 +897,7 @@ class BreedingGuide:
         for child in self.body.winfo_children():
             child.destroy()
         self.trees.clear()
+        self.details.clear()
         self.sheets.clear()
         self.shown_rows.clear()
         self.build_errors = []
@@ -870,7 +927,7 @@ class BreedingGuide:
             ("species", "All Species" if self.view.spoilers else "Discovered Species",
              lambda: self._add_sheet_tab("species", self.view.species_sheet())),
             ("calculator", "Breeding Calculator", lambda: self._add_calculator(picks.get("parents"))),
-            ("planner", "Have to Want", lambda: self._add_planner(picks.get("have"), picks.get("want"))),
+            ("planner", PLANNER, lambda: self._add_planner(picks.get("have"), picks.get("want"))),
         ]
         for sheet_id, title, build in builds:
             # one tab that cannot be built never stops the others: it shows what went wrong
@@ -894,7 +951,7 @@ class BreedingGuide:
             self.notebook.select(self.notebook.tabs()[self.tab_ids.index(picks["tab"])])
         self.notebook.bind("<<NotebookTabChanged>>", lambda _e: self._refill_current())
 
-    def _sheet_frame(self, sheet_id: str, parent, sheet: Sheet, details: bool = True) -> None:
+    def _sheet_frame(self, sheet_id: str, parent, sheet: Sheet) -> None:
         frame = ttk.Frame(parent)
         frame.pack(fill="both", expand=True)
         message = ttk.Label(frame, text=sheet.message, foreground="#a01010")
@@ -921,12 +978,21 @@ class BreedingGuide:
         tree.message_label = message
         self.trees[sheet_id] = tree
         self.sheets[sheet_id] = sheet
-        if details:
-            text = tk.Text(frame, height=6, wrap="word", font=("Segoe UI", 9), relief="flat", borderwidth=1)
-            text.pack(fill="x", pady=(6, 0))
-            text.configure(state="disabled")
-            tree.bind("<<TreeviewSelect>>", lambda _e, s=sheet_id, t=text: self._show_details(s, t))
+        # The details pane, in every tab: long text scrolls, with a scroll bar like the Tools
+        # tab's (a ttk.Scrollbar on the right, filling the height).
+        pane = ttk.Frame(frame)
+        pane.pack(fill="x", pady=(6, 0))
+        text = tk.Text(pane, height=6, wrap="word", font=("Segoe UI", 9), relief="flat", borderwidth=1)
+        scroll = ttk.Scrollbar(pane, orient="vertical", command=text.yview)
+        text.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        text.pack(side="left", fill="both", expand=True)
+        text.configure(state="disabled")
+        text.scrollbar = scroll
+        self.details[sheet_id] = text
+        tree.bind("<<TreeviewSelect>>", lambda _e, s=sheet_id: self._show_details(s))
         self._fill(sheet_id)
+        self._set_details(sheet_id, sheet.intro)
 
     def _add_sheet_tab(self, sheet_id: str, sheet: Sheet) -> None:
         tab = ttk.Frame(self.notebook, padding=6)
@@ -936,16 +1002,20 @@ class BreedingGuide:
     def _species_label(self, s) -> str:
         return f"{s.name}  ({s.parts[0].name} / {s.parts[1].name})"
 
-    def _effects_row(self, parent, variable: tk.StringVar) -> None:
+    def _effects_row(self, parent, variable: tk.StringVar) -> list:
+        """The three effects choices (0 / Max without the mutation / Max with it). What the ticked
+        one assumes is in the details pane under the sheet."""
         row = ttk.Frame(parent)
-        row.pack(anchor="w", pady=(4, 0))
+        row.pack(anchor="w", pady=(4, 4))
         ttk.Label(row, text="Effects:").pack(side="left")
-        for value, label in EFFECTS:
-            ttk.Radiobutton(row, text=label.capitalize(), value=value, variable=variable).pack(
-                side="left", padx=(6, 0))
-        effects = " ".join(self.model.effects_max())
-        ttk.Label(parent, text=f"Max effects: {effects}", wraplength=1050, justify="left",
-                  foreground="#555555").pack(anchor="w", pady=(2, 4))
+        buttons = []
+        for value, label in effects_choices(self.model):
+            button = ttk.Radiobutton(row, text=label, value=value, variable=variable)
+            button.pack(side="left", padx=(6, 0))
+            buttons.append(button)
+        ttk.Label(row, text="(what each assumes: the pane under the sheet)", foreground="#555555").pack(
+            side="left", padx=(10, 0))
+        return buttons
 
     def _add_calculator(self, parents=None) -> None:
         tab = ttk.Frame(self.notebook, padding=6)
@@ -972,9 +1042,9 @@ class BreedingGuide:
                 box.current(min(row, len(values) - 1))
             self.calc_vars.append(var)
             self.calc_boxes.append(box)
-        self._effects_row(tab, self.calc_effects_var)
+        self.calc_effect_buttons = self._effects_row(tab, self.calc_effects_var)
         self.calc_tab = tab
-        self._sheet_frame("calculator", tab, self.view.calculator_sheet(None, None, "none"), details=False)
+        self._sheet_frame("calculator", tab, self.view.calculator_sheet(None, None, self.calc_effects_var.get()))
         self.calculate()
 
     def calculate(self) -> None:
@@ -989,7 +1059,7 @@ class BreedingGuide:
 
     def _add_planner(self, have=None, want=None) -> None:
         tab = ttk.Frame(self.notebook, padding=6)
-        self.notebook.add(tab, text="Have to Want")
+        self.notebook.add(tab, text=PLANNER)
         choices = self.view.species_choices()
         self.have_choices = choices
         wants = self.view.want_choices()
@@ -1030,8 +1100,8 @@ class BreedingGuide:
             side="left", padx=(8, 0))
         ttk.Button(buttons, text="Select None", command=lambda: self.have_list.selection_clear(0, "end")).pack(
             side="left", padx=(8, 0))
-        self._effects_row(tab, self.plan_effects_var)
-        self._sheet_frame("planner", tab, self.view.planner_sheet([], None, "none"), details=False)
+        self.plan_effect_buttons = self._effects_row(tab, self.plan_effects_var)
+        self._sheet_frame("planner", tab, self.view.planner_sheet([], None, self.plan_effects_var.get()))
 
     def plan(self) -> None:
         if self.view is None or "planner" not in self.trees:
@@ -1102,6 +1172,7 @@ class BreedingGuide:
         self.trees[sheet_id].message_label.configure(text=sheet.message)
         self.sort_state.pop(sheet_id, None)
         self._fill(sheet_id)
+        self._set_details(sheet_id, sheet.intro)
 
     # ---- filling, sorting, filtering
     def current_sheet_id(self) -> str | None:
@@ -1148,16 +1219,23 @@ class BreedingGuide:
         self.sort_state[sheet_id] = (title, descending)
         self._fill(sheet_id)
 
-    def _show_details(self, sheet_id: str, text: tk.Text) -> None:
+    def _show_details(self, sheet_id: str) -> None:
         tree, sheet = self.trees[sheet_id], self.sheets[sheet_id]
         picked = tree.selection()
-        body = sheet.details[int(picked[0])] if picked else ""
+        body = sheet.details[int(picked[0])] if picked else sheet.intro
         if callable(body):
             body = body()
+        self._set_details(sheet_id, body)
+
+    def _set_details(self, sheet_id: str, body: str) -> None:
+        text = self.details.get(sheet_id)
+        if text is None:
+            return
         text.configure(state="normal")
         text.delete("1.0", "end")
-        text.insert("1.0", body)
+        text.insert("1.0", body or "")
         text.configure(state="disabled")
+        text.yview_moveto(0)
 
     # ---- export
     def export(self, fmt: str, path: str | None = None) -> str | None:

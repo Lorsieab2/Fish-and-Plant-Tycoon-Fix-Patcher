@@ -196,7 +196,7 @@ class EmulatedTests(unittest.TestCase):
                             key = (self.emu.read32(state + 0x3A4), self.emu.read32(state + 0x3A8))
                             if p > 0:
                                 got[key] = got.get(key, 0.0) + p
-                expected = dict(model._father_variants((fb, ff), "max"))
+                expected = dict(model._father_variants((fb, ff), "max_mutation"))
                 self.assertEqual(set(got), set(expected), (fb, ff))
                 for key, p in expected.items():
                     self.assertAlmostEqual(got[key], p, places=12, msg=(fb, ff, key))
@@ -269,6 +269,124 @@ class EmulatedTests(unittest.TestCase):
             checked += 1
         self.assertGreater(checked, 0)
 
+    # ---- how each part is obtained, pinned to the game's code
+    def _random(self, values: dict | None = None, script: list | None = None, bounds: list | None = None):
+        def handler(emu) -> int:
+            n = emu.arg(0)
+            if bounds is not None:
+                bounds.append(n)
+            if script:
+                return script.pop(0)
+            return min(values.get(n, 0), n - 1) if values is not None else 0
+        self.emu.hook(RANDOM, handler, 0)
+
+    def test_store_eggs_are_the_games(self) -> None:
+        """Each egg's hatch code (0x4213D1 / 0x4214A0 / 0x421573): Random(2) + 3 babies, each
+        body and fin Random(n) x mul + add, exactly STORE_EGGS; and so each part's "how"."""
+        babies: list[tuple[int, int]] = []
+        self.emu.hook(0x41FA30, lambda emu: babies.append((emu.arg(0), emu.arg(1))) or 0, 56)
+        stock, ds = bf.load(None, False), bf.load(None, True)
+        for name, price, n, mul, add in bf.STORE_EGGS:
+            start, stop = bf.EGG_ADDRESSES[name]
+            got: dict[int, int] = {}
+            for r in range(n):
+                state, holder = self.emu.alloc(0x1E510), self.emu.alloc(0x40)
+                self.emu.write32(holder + 0x34, state)
+                self.emu.write32(state + 0x14, 1)                  # not Easy: no extra baby
+                bounds: list[int] = []
+                self._random(script=[0] + [r] * 6, bounds=bounds)
+                babies.clear()
+                self._run(start, stop, esi=holder, ebp=0)
+                self.assertEqual(bounds, [2] + [n] * 6, name)      # 3 babies, two rolls each
+                self.assertEqual(babies, [(r * mul + add, r * mul + add)] * 3, (name, r))
+                got[r * mul + add] = r
+            for model in (stock, ds):
+                for kind in ("body", "fin"):
+                    for part in model.parts(kind):
+                        chance = bf.egg_chance(n, mul, add, part.index)
+                        self.assertEqual(chance > 0, part.index in got, (name, part.index))
+                        if chance > 0:
+                            self.assertAlmostEqual(chance, bf.random_is(n, got[part.index]))
+                            self.assertIn(f"{name} (${price}), {100 * chance:.2f}% of the babies", part.how)
+                        else:
+                            self.assertNotIn(name, part.how)
+
+    def test_store_prices_are_the_games(self) -> None:
+        """The new-game store table (0x419A43..): mov dword [ecx + item], price."""
+        sites = {0x419A7E: (0xC4, bf.UNKNOWN_CHEMICAL_PRICE), 0x419A88: (0xD8, 120),
+                 0x419A92: (0xEC, 450), 0x419A9C: (0x100, 1200)}
+        for address, (field, price) in sites.items():
+            code = bytes(self.emu.uc.mem_read(address, 10))
+            self.assertEqual(code[:2], b"\xC7\x81", hex(address))
+            self.assertEqual(struct.unpack_from("<II", code, 2), (field, price), hex(address))
+        self.assertEqual([p for _n, p, *_r in bf.STORE_EGGS], [120, 450, 1200])
+
+    def test_starter_eggs_are_the_games(self) -> None:
+        """0x41FC90 in a new game (the tanks empty): 7 babies, each with the bodies and fins of
+        STARTER_BABIES, over every Random value."""
+        babies: list[tuple[int, int]] = []
+        self.emu.hook(0x41FA30, lambda emu: babies.append((emu.arg(0), emu.arg(1))) or 0, 56)
+        seen: list[tuple[set, set]] = [(set(), set()) for _ in range(7)]
+        for r in range(6):
+            state, holder = self.emu.alloc(0x1E510), self.emu.alloc(0x40)
+            self.emu.write32(holder + 0x34, state)
+            self._random(values={5: r, 6: r})
+            babies.clear()
+            self.emu.call(0x41FC90, ecx=holder)
+            self.assertEqual(len(babies), 7)
+            for i, (body, fin) in enumerate(babies):
+                seen[i][0].add(body)
+                seen[i][1].add(fin)
+        self.assertEqual(seen, [(set(b), set(f)) for b, f in bf.STARTER_BABIES])
+        model = bf.load(None, False)
+        for kind in ("body", "fin"):
+            for part in model.parts(kind):
+                given = any(part.index in s[0 if kind == "body" else 1] for s in seen)
+                self.assertEqual("starter eggs" in part.how, given, (kind, part.index))
+
+    def test_unknown_chemical_is_the_games(self) -> None:
+        """The Unknown Chemical's loop (0x420E93-0x42104F) on one live fish, every Random path
+        weighted by its exact count, against P_CHEMICAL, P_BODY and chemical_steps()."""
+        self.emu.hook(0x415DF0, lambda emu: 0, 12)
+        weight = {25: bf.P_CHEMICAL, 26: 1 - bf.P_CHEMICAL}
+        half = {49: bf.P_BODY, 50: 1 - bf.P_BODY}
+        cases = [(b, 5) for b in bf.PC_GENES] + [(5, f) for f in bf.PC_GENES] + [(0, 20), (20, 0), (20, 20), (0, 0)]
+        for body, fin in cases:
+            got: dict[tuple[int, int], float] = {}
+            for r1 in (25, 26):
+                for r2 in ((49, 50) if r1 == 25 else (None,)):
+                    for r3 in ((49, 50) if r1 == 25 else (None,)):
+                        state, holder = self.emu.alloc(0x1E510), self.emu.alloc(0x40)
+                        self.emu.write32(holder + 0x34, state)
+                        fish = state + 0x390
+                        self.emu.write32(fish, 1)
+                        self.emu.write32(fish + 0x3C, 100)
+                        self.emu.write32(fish + 0x4C, body)
+                        self.emu.write32(fish + 0x50, fin)
+                        self._random(script=[r for r in (r1, r2, r3) if r is not None])
+                        self._run(0x420E93, 0x42104F, esi=holder, eax=0)
+                        p = weight[r1] * (half[r2] * half[r3] if r1 == 25 else 1.0)
+                        key = (self.emu.read32(fish + 0x4C), self.emu.read32(fish + 0x50))
+                        got[key] = got.get(key, 0.0) + p
+            expected: dict[tuple[int, int], float] = {(body, fin): 1 - bf.P_CHEMICAL}
+            for new, q in bf.chemical_steps(body, False):
+                expected[(new, fin)] = expected.get((new, fin), 0.0) + bf.P_CHEMICAL * bf.P_BODY * q
+            for new, q in bf.chemical_steps(fin, False):
+                expected[(body, new)] = expected.get((body, new), 0.0) + bf.P_CHEMICAL * (1 - bf.P_BODY) * q
+            self.assertEqual(set(got), set(expected), (body, fin))
+            for key, p in expected.items():
+                self.assertAlmostEqual(got[key], p, places=12, msg=(body, fin, key))
+
+    def test_tier_words_are_the_exes(self) -> None:
+        """Each rarity word is the exe's own word for those genes (TIER_STRINGS)."""
+        for tier, (address, text) in bf.TIER_STRINGS.items():
+            self.assertEqual(self.emu.cstring(address).decode("latin-1"), text, hex(address))
+            self.assertIn(bf.TIER_NAMES[tier].casefold(), text.casefold().split())
+        model = bf.load(None, False)
+        self.assertEqual({model.part_rarity(p) for p in model.parts("fin") if p.index % 4 == 0}, {"Common"})
+        self.assertEqual({model.part_rarity(p) for p in model.parts("fin") if p.index % 4 == 2}, {"Unusual"})
+        self.assertEqual({model.part_rarity(p) for p in model.parts("fin") if p.index % 2}, {"Rare"})
+
     def _check_count(self, path: Path, slot: int, expected: int) -> None:
         data = path.read_bytes()
         state = self.emu.alloc(0x1E510)
@@ -326,11 +444,11 @@ class DsRulesTests(unittest.TestCase):
         self.assertEqual(children, {(23, 2): 0.5, (24, 2): 0.5})
 
     def test_mutation_step_with_ds(self) -> None:
-        variants = dict(self.model._father_variants((20, 29), "max"))
+        variants = dict(self.model._father_variants((20, 29), "max_mutation"))
         self.assertAlmostEqual(variants[(23, 29)], bf.P_MUTATE * bf.P_BODY * bf.P_UP)
         self.assertAlmostEqual(variants[(19, 29)], bf.P_MUTATE * bf.P_BODY * (1 - bf.P_UP))
         self.assertAlmostEqual(variants[(20, 28)], bf.P_MUTATE * (1 - bf.P_BODY))     # 29 always steps down
-        stock = dict(bf.load(None, False)._father_variants((20, 5), "max"))
+        stock = dict(bf.load(None, False)._father_variants((20, 5), "max_mutation"))
         self.assertAlmostEqual(stock[(19, 5)], bf.P_MUTATE * bf.P_BODY)               # 20 always steps down
         self.assertAlmostEqual(stock[(20, 4)], bf.P_MUTATE * (1 - bf.P_BODY))         # the fin tests the body
 
@@ -362,14 +480,14 @@ class ModelTests(unittest.TestCase):
         keys = [s.key for s in self.stock.species()]
         for a in keys:
             for b in keys:
-                for effects in ("none", "max"):
+                for effects in ("none", "max", "max_mutation"):
                     total = sum(p for _k, p in self.stock.children(a, b, effects))
                     self.assertAlmostEqual(total, 1.0, places=12)
         rng = random.Random(3)
         ds_keys = [s.key for s in self.ds.species()]
         for _ in range(4000):
             a, b = rng.choice(ds_keys), rng.choice(ds_keys)
-            for effects in ("none", "max"):
+            for effects in ("none", "max", "max_mutation"):
                 children = self.ds.children(a, b, effects)
                 self.assertAlmostEqual(sum(p for _k, p in children), 1.0, places=12)
                 self.assertTrue(all(k in {s.key for s in self.ds.species()} for k, _p in children))
@@ -388,7 +506,7 @@ class ModelTests(unittest.TestCase):
     def test_ways_to_breed(self) -> None:
         for model in (self.stock, self.ds):
             for key in [(7, 7), (20, 16), (11, 11), (0, 0)] + ([(29, 29), (23, 2)] if model.extras else []):
-                for effects in ("none", "max"):
+                for effects in ("none", "max", "max_mutation"):
                     ways = model.ways_to_breed(key, effects)
                     self.assertTrue(ways, (key, effects))
                     self.assertLessEqual(len(ways), 20)
@@ -405,7 +523,7 @@ class ModelTests(unittest.TestCase):
 
     def test_plan_is_a_valid_chain(self) -> None:
         rng = random.Random(11)
-        for model, effects in ((self.stock, "none"), (self.stock, "max"), (self.ds, "max")):
+        for model, effects in ((self.stock, "none"), (self.stock, "max_mutation"), (self.ds, "max_mutation")):
             keys = [s.key for s in model.species()]
             for _ in range(6):
                 have = rng.sample([k for k in keys if not bf.is_ds(k[0]) and not bf.is_ds(k[1])], 3)
@@ -428,7 +546,8 @@ class ModelTests(unittest.TestCase):
         # without mutation, two even PC genes never leave the range they span
         self.assertEqual(self.stock.plan([(0, 0), (4, 4)], (20, 20), "none"), [])
         self.assertEqual(self.ds.plan([(20, 20)], (23, 23), "none"), [])
-        self.assertTrue(self.ds.plan([(20, 20)], (23, 23), "max"))
+        self.assertEqual(self.ds.plan([(20, 20)], (23, 23), "max"), [])        # no Wasp Grouper
+        self.assertTrue(self.ds.plan([(20, 20)], (23, 23), "max_mutation"))
         steps = self.stock.plan([(4, 4), (10, 10)], (7, 7), "none")
         self.assertEqual(steps, [{"parents": ((4, 4), (10, 10)), "child": (7, 7), "odds": 1.0}])
 
@@ -464,9 +583,63 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(bodies[0].name, "Shark")
         self.assertTrue(all(p.how for p in bodies))
         self.assertEqual(self.ds.get((7, 7)).rarity, "Rare")
-        self.assertEqual(self.ds.get((2, 4)).rarity, "Half-rare")
+        self.assertEqual(self.ds.get((2, 4)).rarity, "Unusual")
         self.assertEqual(self.ds.get((26, 26)).rarity, "Common")       # Trigger / Clown: DS 24
         self.assertEqual(self.stock.species_note((20, 16)), "Magic Fish of Fertility")
+
+    def test_how_quotes_every_proven_route(self) -> None:
+        """Each part's "how" names exactly the routes the code gives it, with their odds: the
+        eggs (emulated in EmulatedTests), the Unknown Chemical's steps, the breeding totals,
+        and for the DS genes the DS Store's Exotic Fish Eggs (its source, pinned below)."""
+        for model in (self.stock, self.ds):
+            for kind in ("body", "fin"):
+                for part in model.parts(kind):
+                    g, how = part.index, part.how
+                    for g0, p in bf.chemical_sources(g, model.extras):
+                        word = "always steps" if p >= 1 else f"steps on {100 * p:.2f}%"
+                        self.assertIn(f"at {g0} {word}", how, (kind, g))
+                    self.assertIn(f"{100 * bf.P_CHEMICAL:.2f}% a dose", how)
+                    self.assertIn(f"{100 * bf.P_MUTATE:.2f}% a litter", how)
+                    if bf.is_ds(g):
+                        self.assertIn("Never from two PC parents", how)
+                        self.assertIn(f"Exotic Fish Eggs ($2300), {100 * bf.random_is(7, g - 23):.2f}%", how)
+                    else:
+                        self.assertNotIn("Exotic", how)
+                        for total in bf.breeding_sums(g):
+                            self.assertEqual((total // 2), g)
+                        self.assertIn("add up to " + " or ".join(map(str, bf.breeding_sums(g))), how)
+                    self.assertEqual("No egg lays it" in how, not bf.is_ds(g) and g % 2 == 1, (kind, g))
+        # breeding: every PC total that rounds down to the gene, and no other
+        for g in bf.PC_GENES:
+            self.assertEqual(set(bf.breeding_sums(g)), {a + b for a in bf.PC_GENES for b in bf.PC_GENES
+                                                        if (a + b) // 2 == g})
+
+    def test_ds_routes_are_the_dlls(self) -> None:
+        store = (ROOT / "native" / "ftfp_ds_store" / "ftfp_ds_store.c").read_text(encoding="utf-8")
+        for text in ("#define DS_FIRST_GENE 23", "#define DS_GENES 7", "int fin = DS_FIRST_GENE + RANDOM(DS_GENES);",
+                     "int body = DS_FIRST_GENE + RANDOM(DS_GENES);", "{ 0, 2300,", '{ "Exotic Fish Eggs",'):
+            self.assertIn(text, store)
+        dll = (ROOT / "native" / "ftfp_ds_fish" / "ftfp_ds_fish.c").read_text(encoding="utf-8")
+        for text in ("if (g == DS_LAST_GENE) {\n        *gene = gene_down(g);",
+                     "} else if (game_random(100) <= 49 || g == 0) {\n        *gene = gene_up(g);",
+                     "static int gene_up(int g) { return g == GENE_PC_LAST ? DS_FIRST_GENE : g + 1; }"):
+            self.assertIn(text, dll.replace("\r\n", "\n"))
+        self.assertEqual(bf.chemical_steps(20, True), [(23, bf.P_UP), (19, 1 - bf.P_UP)])
+        self.assertEqual(bf.chemical_steps(29, True), [(28, 1.0)])
+        self.assertEqual(bf.chemical_steps(20, False), [(19, 1.0)])
+
+    def test_effects_choices(self) -> None:
+        """0 effects, Max without the Wasp Grouper (no mutation: the same odds as 0 effects)
+        and Max with it (the odds change); prices are the same with and without it."""
+        self.assertEqual([v for v, _l in self.stock.effects_choices], ["none", "max", "max_mutation"])
+        self.assertEqual(dict(self.stock.effects_choices)["max_mutation"], "Max effects, with Wasp Grouper")
+        a, b = (20, 16), (20, 20)
+        self.assertEqual(self.stock.children(a, b, "max"), self.stock.children(a, b, "none"))
+        self.assertEqual(self.stock.children(a, b, "max"), [((20, 18), 1.0)])
+        self.assertGreater(len(self.stock.children(a, b, "max_mutation")), 1)
+        self.assertEqual(self.stock.prices((7, 7), "max_mutation"), self.stock.prices((7, 7), "max"))
+        self.assertIn("no mutation chance", " ".join(self.stock.effects_text("max")))
+        self.assertIn("Wasp Grouper", " ".join(self.stock.effects_text("max_mutation")))
 
     def test_discovered_from_a_save(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -56,9 +56,70 @@ class ModelTests(unittest.TestCase):
                     **{g: "Extinct" for g in (2, 4, 6, 8, 10, 12, 14, 16, 18, 19, 20, 21, 22, 23)}}
         for kind in ("foliage", "flower"):
             for part in self.extras.parts(kind):
-                want = "Patcher" if kind == "flower" and part.index >= 24 else expected[part.index]
+                want = "Legendary" if kind == "flower" and part.index >= 24 else expected[part.index]
                 self.assertEqual(self.extras.part_rarity(part), want, (kind, part.index))
-        self.assertEqual(sum(self.extras.part_rarity(p) == "Patcher" for p in self.extras.parts("flower")), 14)
+        self.assertEqual(sum(self.extras.part_rarity(p) == "Legendary" for p in self.extras.parts("flower")), 14)
+
+    def test_species_rarity_is_its_rarer_packet(self) -> None:
+        order = B.RARITY_ORDER
+        for s in self.extras.species():
+            words = [self.extras.part_rarity(p) for p in s.parts]
+            self.assertEqual(s.rarity, max(words, key=order.index))
+        self.assertEqual({s.rarity for s in self.extras.species()}, set(order))
+
+    def test_new_flower_routes_are_the_dlls(self) -> None:
+        """Legendary Seeds (ftfp_plant_upgrades.c): $5000, three a day, any foliage 1-23 with one
+        of the 14 new flowers; the word "Legendary" is its LEGENDARY_TITLE."""
+        source = (ROOT / "native" / "ftfp_plant_upgrades" / "ftfp_plant_upgrades.c").read_text(encoding="utf-8")
+        for text in ("#define LEGENDARY_COUNT 3", "#define LEGENDARY_PRICE 5000", "#define FOLIAGES 23",
+                     "#define NEW_FLOWERS 14", "#define FIRST_NEW_FLOWER 24",
+                     "s->foliage = game_random(FOLIAGES) + 1;",
+                     "s->flower = game_random(NEW_FLOWERS) + FIRST_NEW_FLOWER;", B.LEGENDARY_TITLE):
+            self.assertIn(text, source)
+        self.assertEqual((B.LEGENDARY_PRICE, B.LEGENDARY_A_DAY, B.NEW_FLOWER_COUNT), (5000, 3, 14))
+        for part in self.extras.parts("flower"):
+            if part.index >= 24:
+                self.assertIn(f"Legendary Seeds ($5000, 3 a day", part.how)
+                self.assertIn(f"{100 * B.random_is(14, part.index - 24):.2f}% of the packets", part.how)
+
+    def test_how_quotes_mutation_and_breeding(self) -> None:
+        """Each part's Mutation Liquid sources are exactly the genes one dose (mutation_steps,
+        emulated in test_mutation_liquid) turns into it, with their chances; its breeding totals
+        exactly those whose rounded-up average is it."""
+        for model in (self.stock, self.extras):
+            for kind in ("foliage", "flower"):
+                genes = [p.index for p in model.parts(kind)]
+                for part in model.parts(kind):
+                    g = part.index
+                    slot = 0 if kind == "foliage" else 1
+                    expected = {}
+                    for s in genes:
+                        key = (s, 1) if slot == 0 else (1, s)
+                        p = sum(q for new, q in B.mutation_steps(key, model.extras) if new[slot] == g and s != g)
+                        if p:
+                            expected[s] = p
+                    self.assertEqual(dict(B.mutation_sources(g, kind, model.extras)), expected, (kind, g))
+                    for s, p in expected.items():
+                        self.assertIn(f"{s}: {100 * p:.2f}%", part.how)
+                    totals = {a + b for a in genes for b in genes if (a + b + 1) // 2 == g}
+                    self.assertEqual(set(B.breeding_sums(g)) & set(range(2, 2 * max(genes) + 1)), totals, (kind, g))
+
+    def test_effects_choices(self) -> None:
+        """0 effects and Max without Mutation Liquid give the seed itself; Max with it gives the
+        seed after one dose (the odds change); prices are the same with and without it."""
+        self.assertEqual([v for v, _l in self.stock.effects_choices], ["none", "max", "max_mutation"])
+        self.assertEqual(dict(self.stock.effects_choices)["max_mutation"], "Max effects, with Mutation Liquid")
+        self.assertEqual(self.stock.children((5, 5), (7, 7), "max"), [((6, 6), 1.0)])
+        self.assertEqual(self.stock.children((5, 5), (7, 7), "none"), [((6, 6), 1.0)])
+        self.assertEqual(sorted(self.stock.children((5, 5), (7, 7), "max_mutation")),
+                         [((5, 6), 0.25), ((6, 5), 0.25), ((6, 7), 0.25), ((7, 6), 0.25)])
+        self.assertEqual(self.stock.prices((7, 7), "max_mutation"), self.stock.prices((7, 7), "max"))
+        self.assertIn("no mutation chance", " ".join(self.stock.effects_text("max")))
+        self.assertIn("Mutation Liquid", " ".join(self.stock.effects_text("max_mutation")))
+        ways = self.stock.ways_to_breed((5, 6), "max_mutation")
+        self.assertTrue(ways)
+        for a, b, odds in ways:
+            self.assertIn(((5, 6), odds), self.stock.children(a, b, "max_mutation"))
 
     def test_price_search_matches_a_full_scan_and_is_fast(self) -> None:
         """The cached search over the prices that can sell gives exactly what trying every
@@ -101,7 +162,7 @@ class ModelTests(unittest.TestCase):
         self.assertFalse(any(s.patcher for s in self.stock.species()))
         new = [s for s in self.extras.species() if s.patcher]
         self.assertEqual(sorted(s.key for s in new), NEW)
-        self.assertTrue(all(s.rarity == "D" for s in new))
+        self.assertTrue(all(s.rarity == "Legendary" for s in new))
         self.assertEqual(len(self.stock.parts("flower")), 23)
         self.assertEqual(len(self.extras.parts("flower")), 37)
         self.assertEqual(len(self.extras.parts("foliage")), 23)
@@ -113,7 +174,7 @@ class ModelTests(unittest.TestCase):
     def test_interface(self) -> None:
         self.assertEqual(self.stock.game, "plant")
         s = self.stock.species_by_key((4, 4))
-        self.assertEqual((s.name, s.rarity, s.value), ("Nox Orchid", "C", 95))
+        self.assertEqual((s.name, s.rarity, s.value), ("Nox Orchid", "Extinct", 95))
         self.assertEqual(tuple(p.kind for p in s.parts), ("foliage", "flower"))
         self.assertEqual(self.stock.species_by_key((9, 17)).name, "Citrus  Maranta")      # the exe's own two spaces
         self.assertEqual(self.stock.parts("flower")[16].name, "Citrus")
@@ -154,7 +215,7 @@ class ModelTests(unittest.TestCase):
             if step["via"] == "pollination":
                 self.assertIn((step["child"], step["odds"]), model.children(a, b, effects))
             else:
-                self.assertEqual(effects, "max")
+                self.assertEqual(effects, "max_mutation")
                 self.assertEqual(a, b)
                 self.assertIn((step["child"], step["odds"]), model.mutations(a))
             known.add(step["child"])
@@ -165,9 +226,9 @@ class ModelTests(unittest.TestCase):
             (self.stock, [(9, 17), (17, 9)], (13, 13), "none", 1),           # the two starting seeds
             (self.stock, [(9, 9), (9, 13), (13, 9)], (11, 10), "none", 2),     # the Fabled Lemonbush, Common only
             (self.stock, [(5, 5), (3, 3)], (4, 4), "none", 1),                 # Flower of Knowledge
-            (self.stock, [(10, 10)], (11, 10), "max", 1),                      # Mutation Liquid
+            (self.stock, [(10, 10)], (11, 10), "max_mutation", 1),                      # Mutation Liquid
             (self.extras, [(1, 1), (23, 37)], (12, 19), "none", None),
-            (self.extras, [(5, 23)], (5, 24), "max", 1),                       # a Tilia steps up into flower 24
+            (self.extras, [(5, 23)], (5, 24), "max_mutation", 1),                       # a Tilia steps up into flower 24
         ]
         for model, have, want, effects, length in cases:
             steps = model.plan(have, want, effects)
@@ -177,7 +238,8 @@ class ModelTests(unittest.TestCase):
                 self.assertEqual(len(steps), length, steps)
         self.assertEqual(self.stock.plan([(1, 1), (5, 5)], (11, 10), "none"), [])     # never leaves 1..5
         self.assertEqual(self.stock.plan([(1, 1)], (1, 1), "none"), [])
-        self.assertTrue(self.stock.plan([(1, 1), (5, 5)], (11, 10), "max"))
+        self.assertEqual(self.stock.plan([(1, 1), (5, 5)], (11, 10), "max"), [])        # no Mutation Liquid
+        self.assertTrue(self.stock.plan([(1, 1), (5, 5)], (11, 10), "max_mutation"))
 
     def test_prices(self) -> None:
         for key in ((1, 1), (13, 13), (4, 4), (11, 10), (7, 11)):
@@ -267,6 +329,68 @@ class GameTablesTests(unittest.TestCase):
                 emu.call(0x42CA80, ecx=obj)
                 self.assertEqual(bounds, [10000])
                 self.assertEqual(emu.read32(plant + 0x28), infested, key)
+
+    def test_shop_packets_are_the_games(self) -> None:
+        """The daily seed roll 0x41DC60: 3 packets per tier, Common Random(5) x 4 + 1, Endangered
+        Random(4) x 4 + 3, Extinct per gene Random(100) < 15 ? Random(6) + 18 : 2 Random(8) + 2;
+        packet_chance() and each part's "how" quote exactly those odds."""
+        tiers: dict[str, dict[int, float]] = {"Common": {}, "Endangered": {}, "Extinct": {}}
+        below = sum(B.random_is(100, v) for v in range(15))
+        for low in (0, 14, 15, 99):
+            for r in range(8):
+                emu = E.Emulator(PLANT_EXE, None, {})
+                bounds: list[int] = []
+
+                def handler(e, low=low, r=r):
+                    n = e.arg(0)
+                    bounds.append(n)
+                    return low if n == 100 else min(r, n - 1)
+                emu.hook(RANDOM, handler)
+                state = emu.alloc(0x1000)
+                emu.call(0x41DC60, ecx=state)
+                self.assertEqual(bounds[:12], [5, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4])
+                self.assertEqual(bounds[12:], [100, 6 if low < 15 else 8] * 6)
+                for tier, name in enumerate(("Common", "Endangered", "Extinct")):
+                    n, p_first = ((5, 1.0), (4, 1.0), (6, below) if low < 15 else (8, 1 - below))[tier]
+                    for k in range(3):
+                        at = state + 0x5B4 + 0x6C * tier + 0x24 * k
+                        genes = (emu.read32(at), emu.read32(at + 4))
+                        self.assertEqual(genes[0], genes[1])
+                        if r < n:
+                            tiers[name][genes[0]] = p_first * B.random_is(n, r)
+        self.assertEqual(sorted(tiers["Common"]), list(B.COMMON_GENES))
+        self.assertEqual(sorted(tiers["Endangered"]), list(B.ENDANGERED_GENES))
+        self.assertEqual(sorted(tiers["Extinct"]), sorted(B.EXTINCT_GENES))
+        model = B.load(None, extras=True)
+        for kind in ("foliage", "flower"):
+            for part in model.parts(kind):
+                if part.index >= 24:
+                    continue
+                name = model.part_rarity(part)
+                p = tiers[name][part.index]
+                self.assertEqual(B.packet_chance(part.index), (name, p))
+                self.assertIn(f"{name} Seeds (${B.PACKET_PRICES[name]}, 3 packets a day): {100 * p:.2f}%", part.how)
+
+    def test_prices_and_rarity_words_are_the_exes(self) -> None:
+        """The seed dialog's prices (0x430A34 / 0x430B8F / 0x430CA8: mov [esi + 0x84], price),
+        Mutation Liquid's (chemical 34: the apply switch's case 7 calls 0x42FA80; its price
+        0x41E2F2: mov [ecx + 0x8C8 + 7 x 0x20], 1000) and the packet names the store prints."""
+        emu = E.Emulator(PLANT_EXE, None, {})
+        for address, price in ((0x430A34, 50), (0x430B8F, 200), (0x430CA8, 2000)):
+            code = bytes(emu.uc.mem_read(address, 10))
+            self.assertEqual((code[:2], struct.unpack_from("<II", code, 2)), (b"\xC7\x86", (0x84, price)))
+        self.assertEqual(B.PACKET_PRICES, {"Common": 50, "Endangered": 200, "Extinct": 2000})
+        table = struct.unpack("<9I", bytes(emu.uc.mem_read(0x4273A8, 36)))
+        self.assertEqual(bytes(emu.uc.mem_read(0x4266AA, 3)), b"\x83\xC0\xE5")          # add eax, -0x1b
+        self.assertEqual(table[7], 0x426EF0)
+        code = bytes(emu.uc.mem_read(0x426EF5, 5))
+        self.assertEqual(0x426EF5 + 5 + struct.unpack_from("<i", code, 1)[0], 0x42FA80)
+        code = bytes(emu.uc.mem_read(0x41E2F2, 10))
+        self.assertEqual((code[:2], struct.unpack_from("<II", code, 2)), (b"\xC7\x81", (0x8C8 + 7 * 0x20, 1000)))
+        self.assertEqual(B.MUTATION_LIQUID_PRICE, 1000)
+        for word, (address, text) in B.RARITY_STRINGS.items():
+            self.assertEqual(emu.cstring(address).decode("latin-1"), text)
+            self.assertEqual(text, f"{word} Seeds")
 
     def test_mutation_liquid(self) -> None:
         for key in [(1, 1), (23, 23), (1, 14), (12, 23), (23, 1), (13, 12), (7, 7)]:

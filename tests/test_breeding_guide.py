@@ -51,14 +51,93 @@ class SheetTests(unittest.TestCase):
         fins = view.part_sheet("fin")
         self.assertEqual({k[1] for k in fins.keys}, {16, 0, 4, 10, 20})
         self.assertEqual(view.name((7, 7)), bg.UNDISCOVERED)          # Canary: never seen
-        self.assertEqual(view.name((4, 0)), "Silky Fatfish")          # made of parts already seen
+        self.assertEqual(view.name((4, 0)), bg.UNDISCOVERED)          # made of seen parts, not discovered
         for row in species.rows:                                      # no unseen part in the combos
             for cell in (row[5], row[6]):
                 for name in ("Canary", "Fire-Arrow", "Catfish", "Tiger"):
                     self.assertNotIn(name, cell)
         calc = view.calculator_sheet((0, 0), (4, 4), "none")
-        self.assertEqual(calc.rows[0][0], "Hornet Arrowfish" if view.revealed((2, 2)) else bg.UNDISCOVERED)
+        self.assertEqual(calc.rows[0][0], bg.UNDISCOVERED)              # Hornet Arrowfish: not discovered
         self.assertEqual(calc.rows[0][3], 100.0)
+
+    def test_spoilers_off_lists_exactly_the_discovered_species(self) -> None:
+        """Only species whose own discovered flag is set: Pink Fatfish (4, 4) and Silky Shark
+        (0, 0) are discovered, so their parts are seen, but the combinations Silky Fatfish
+        (4, 0) and Pink Shark (0, 4) are not and must not be listed, suggested or planned
+        through. The same in Plant Tycoon."""
+        import breeding_plant
+        cases = ((self.model, {(0, 0), (4, 4), (2, 2)}, [(4, 0), (0, 4)], "fin", {0, 4, 2}),
+                 (breeding_plant.load(None, extras=False), {(1, 1), (5, 5), (3, 3)}, [(1, 5), (5, 1)],
+                  "flower", {1, 5, 3}))
+        for model, found, seen_parts_only, kind, parts in cases:
+            view = bg.View(model, set(found), spoilers=False)
+            species = view.species_sheet()
+            self.assertEqual(set(species.keys), found)
+            self.assertEqual({tuple(s.key) for s in view.species_choices()}, found)
+            self.assertEqual({tuple(s.key) for s in view.want_choices()}, found)
+            self.assertEqual({k[1] for k in view.part_sheet(kind).keys}, parts)
+            names = [r[0] for r in species.rows]
+            for key in seen_parts_only:
+                self.assertEqual(view.name(key), bg.UNDISCOVERED)
+                self.assertNotIn(next(s.name for s in model.species() if tuple(s.key) == key), names)
+            for target in found:
+                for m, f, _p in view.best_parents(target, "none", limit=1000):
+                    self.assertIn(m, found)
+                    self.assertIn(f, found)
+            want = sorted(found)[1]
+            plan = view.planner_sheet(sorted(found - {want}), want, "none")
+            self.assertTrue(plan.rows, plan.message)
+            self.assertTrue(all(r[4] != bg.UNDISCOVERED for r in plan.rows))
+            # with spoilers the same species is named
+            self.assertNotEqual(bg.View(model, set(found), spoilers=True).name(seen_parts_only[0]), bg.UNDISCOVERED)
+
+    def test_the_planner_uses_only_discovered_species(self) -> None:
+        """Spoilers off: a chain may not breed through an undiscovered species even when that
+        is the only way (the model's `allowed`)."""
+        found = {(0, 0), (8, 8), (20, 20), (2, 2)}
+        # (0,0) x (8,8) -> (4,4), then (0,0) x (4,4) -> (2,2): (4,4) is undiscovered
+        sheet = bg.View(self.model, found, spoilers=False).planner_sheet([(0, 0), (8, 8)], (2, 2), "none")
+        self.assertEqual(sheet.rows, [])
+        self.assertIn("through the species you have discovered", sheet.message)
+        spoiled = bg.View(self.model, found, spoilers=True)
+        self.assertEqual(len(spoiled.planner_sheet([(0, 0), (8, 8)], (2, 2), "none").rows), 2)
+
+    def test_three_effects_choices(self) -> None:
+        """Both games: 0 effects and Max without the mutation give the same odds (none from a
+        mutation); Max with it changes them, in the calculator and in the planner."""
+        import breeding_plant
+        cases = ((self.model, (20, 16), (20, 20), "Wasp Grouper", [(20, 20)], (19, 20)),
+                 (breeding_plant.load(None, extras=False), (5, 5), (7, 7), "Mutation Liquid", [(10, 10)], (11, 10)))
+        for model, a, b, mutation, have, want in cases:
+            labels = [label for _v, label in bg.effects_choices(model)]
+            self.assertEqual(labels, ["0 effects", "Max effects, without", f"Max effects, with {mutation}"])
+            view = bg.View(model, set(), spoilers=True)
+            none, without, with_ = (view.calculator_sheet(a, b, e) for e in ("none", "max", "max_mutation"))
+            self.assertEqual(none.rows, without.rows)
+            self.assertEqual(len(without.rows), 1)
+            self.assertEqual(without.rows[0][3], 100.0)
+            self.assertGreater(len(with_.rows), 1)
+            self.assertAlmostEqual(sum(r[3] for r in with_.rows), 100.0)
+            self.assertIn("no mutation chance", without.intro)
+            self.assertIn(mutation, with_.intro)
+            self.assertEqual(view.planner_sheet(have, want, "max").rows, [])
+            self.assertTrue(view.planner_sheet(have, want, "max_mutation").rows)
+
+    def test_rarity_words(self) -> None:
+        """Fish: Common / Unusual / Rare (never "Half-rare"); Plant: the seed packet words."""
+        import breeding_plant
+        sheet = bg.View(bf.load(None, True), set(), spoilers=True).species_sheet()
+        self.assertEqual({r[sheet.columns.index("Rarity")] for r in sheet.rows}, {"Common", "Unusual", "Rare"})
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "all.csv"
+            bg.export_csv(out, sheet)
+            text = out.read_text(encoding="utf-8-sig")
+            self.assertIn("Unusual", text)
+            self.assertNotIn("Half", text)
+        sheet = bg.View(breeding_plant.load(None, extras=True), set(), spoilers=True).species_sheet()
+        self.assertEqual({r[sheet.columns.index("Rarity")] for r in sheet.rows},
+                         {"Common", "Endangered", "Extinct", "Legendary"})
+        self.assertNotIn("Half", " ".join(bg.HELP[1]))
 
     def test_revealed_parents_are_filtered_before_the_top_20(self) -> None:
         """Codex's repro: with Pink Fatfish (4,4), Golden Goldbulb (10,10) and Canary Fire-Arrow
@@ -212,7 +291,7 @@ class WindowTests(unittest.TestCase):
         self.root.update()
 
     def test_tabs_and_the_save(self) -> None:
-        self.assertEqual(self.tabs(), ["Fins", "Bodies", "Discovered Species", "Breeding Calculator", "Have to Want"])
+        self.assertEqual(self.tabs(), ["Fins", "Bodies", "Discovered Species", "Breeding Calculator", "Breeding Planner"])
         self.assertEqual(self.guide.folder_var.get(), "Fish Tycoon - Modded Upgrades")
         self.assertEqual(self.guide.slot_var.get(), "Player 1: Tester")
         # the save's DS data turns the patcher species on, and its DS species are read
@@ -280,16 +359,16 @@ class WindowTests(unittest.TestCase):
         tree = self.guide.trees["calculator"]
         rows = [tree.item(i, "values") for i in tree.get_children()]
         self.assertEqual(rows, [("Flagged Spotanus", "Spotanus", "Flagged", "100.00", "No")])
-        self.guide.calc_effects_var.set("max")          # recomputed at once, nothing else to press
+        self.guide.calc_effects_var.set("max_mutation")   # recomputed at once, nothing else to press
         odds = [float(tree.set(i, "c3")) for i in tree.get_children()]
         self.assertAlmostEqual(sum(odds), 100.0, places=6)
-        self.assertEqual(len(odds), len(self.guide.model.children((20, 16), (20, 20), "max")))
+        self.assertEqual(len(odds), len(self.guide.model.children((20, 16), (20, 20), "max_mutation")))
 
     def test_planner(self) -> None:
-        self.select("Have to Want")
+        self.select("Breeding Planner")
         self.guide.spoilers_var.set(True)
         self.root.update()
-        self.select("Have to Want")
+        self.select("Breeding Planner")
         names = [s.name for s in self.guide.have_choices]
         self.guide.have_list.selection_clear(0, "end")
         for name in ("Pink Fatfish", "Golden Goldbulb"):
@@ -320,8 +399,9 @@ class WindowTests(unittest.TestCase):
         self.guide.wait_for_plan()
         self.assertEqual(len(tree.get_children()), 1)                 # the calculator is unchanged
         self.assertEqual(self.guide.calc_effects_var.get(), "none")
-        self.guide.calc_effects_var.set("max")
-        self.assertEqual(len(tree.get_children()), len(self.guide.model.children((20, 16), (20, 20), "max")))
+        self.guide.calc_effects_var.set("max_mutation")
+        self.assertEqual(len(tree.get_children()),
+                         len(self.guide.model.children((20, 16), (20, 20), "max_mutation")))
         out = Path(self.tmp.name) / "calc.csv"
         self.select("Breeding Calculator")
         self.guide.export("csv", str(out))
@@ -427,7 +507,7 @@ class WindowTests(unittest.TestCase):
     def test_plant_model_loads(self) -> None:
         self.guide.game_var.set("Plant Tycoon")
         self.root.update()
-        self.assertEqual(self.tabs(), ["Flowers", "Foliage", "Discovered Species", "Breeding Calculator", "Have to Want"])
+        self.assertEqual(self.tabs(), ["Flowers", "Foliage", "Discovered Species", "Breeding Calculator", "Breeding Planner"])
         self.assertIsNotNone(self.guide.model)
         self.assertEqual(self.guide.model.game, "plant")
 

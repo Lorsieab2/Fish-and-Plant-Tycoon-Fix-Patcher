@@ -108,7 +108,7 @@ def main() -> int:
         guide.calc_boxes[1].current(names.index("Twin-Fin Spotanus"))
         guide.calc_effects_var.set("max")
         grab(guide, "fish-calculator")
-        select(guide, "Have to Want")
+        select(guide, "Breeding Planner")
         names = [s.name for s in guide.have_choices]
         guide.have_list.selection_clear(0, "end")
         for name in ("Silky Shark", "Pink Fatfish", "Greenfin Spotanus", "Twin-Fin Spotanus"):

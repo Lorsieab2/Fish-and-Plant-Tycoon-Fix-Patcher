@@ -17,9 +17,11 @@ Species and parts
     here are exactly the game's, part names are stripped.
     Value V: 0x41D870 writes state + ((foliage + 0x1D) * 26 + flower) * 4: the
     foliage's base plus the flower's add, with 8 fixed exceptions.
-    Class (rarity) A-D: the rule inlined in the pollination (0x424100), the
+    Class A-D (rarity()): the rule inlined in the pollination (0x424100), the
     pest check (0x42CAA6) and the shop (0x41DD54): D if either gene is above
     17; else C if either is even; else B if either is 3, 7, 11 or 15; else A.
+    The game never shows a class, so the guide's Rarity is the store's own
+    seed packet word for the rarer part (species_rarity, RARITY_STRINGS).
 
 Breeding (pollination 0x4240A0, target pot record esi, donor edi)
     The child's foliage is the parents' foliages averaged, an odd sum rounded
@@ -136,16 +138,63 @@ def is_new_flower(flower: int) -> bool:
     return 24 <= flower <= 37
 
 
+# The rarity words are the game's own seed packet names, as the store prints them: "Common
+# Seeds" (string 0x46FF58), "Endangered Seeds" (0x46FED4), "Extinct Seeds" (0x46FE48); the
+# new flowers are sold only as the patcher's "Legendary Seeds" (ftfp_plant_upgrades.c,
+# LEGENDARY_TITLE). Pinned by tests/test_breeding_plant.py (test_rarity_words_are_the_exes).
+RARITY_ORDER = ("Common", "Endangered", "Extinct", "Legendary")
+RARITY_STRINGS = {"Common": (0x46FF58, "Common Seeds"), "Endangered": (0x46FED4, "Endangered Seeds"),
+                  "Extinct": (0x46FE48, "Extinct Seeds")}
+LEGENDARY_TITLE = 'static const char LEGENDARY_TITLE[] = "Legendary Seeds\\n";'
+
+# Shop packet prices (the seed purchase dialog, 0x430960: tier = index / 3): Common 50
+# (0x430A34), Endangered 200 (0x430B8F), Extinct 2000 (0x430CA8); 3 packets of each tier a
+# day (0x41DC86, ebx = 3). Mutation Liquid is chemical 34 (switch 0x4266B6, case 7 calls
+# 0x42FA80), price 1000 (new-game table, 0x41E2F2). Legendary Seeds: ftfp_plant_upgrades.c.
+PACKET_PRICES = {"Common": 50, "Endangered": 200, "Extinct": 2000}
+PACKETS_A_DAY = 3
+MUTATION_LIQUID_PRICE = 1000
+LEGENDARY_PRICE, LEGENDARY_A_DAY, NEW_FLOWER_COUNT = 5000, 3, 14
+
+
 def part_rarity(gene: int, kind: str) -> str:
-    """A part's rarity: the shop seed packet tier that lays it (0x41DC60); the new flowers
-    are the patcher's (Unused Flowers)."""
+    """A part's rarity: the shop seed packet tier that lays it (0x41DC60), in the store's
+    words; the new flowers come only in Legendary Seeds (Unused Flowers)."""
     if kind == "flower" and is_new_flower(gene):
-        return "Patcher"
+        return "Legendary"
     if gene in COMMON_GENES:
         return "Common"
     if gene in ENDANGERED_GENES:
         return "Endangered"
     return "Extinct"
+
+
+def species_rarity(key: tuple[int, int]) -> str:
+    """A species' rarity: its rarer part's packet."""
+    return max(part_rarity(key[0], "foliage"), part_rarity(key[1], "flower"), key=RARITY_ORDER.index)
+
+
+_RAND = 32768
+
+
+def random_is(n: int, value: int) -> float:
+    """The exact chance Random(n) (rand() % n, rand() 0..32767) gives `value`."""
+    full, extra = divmod(_RAND, n)
+    return (full + (1 if value < extra else 0)) / _RAND if 0 <= value < n else 0.0
+
+
+def packet_chance(gene: int) -> tuple[str, float] | None:
+    """(packet, chance a packet of it has this gene as its foliage or as its flower), 0x41DC60."""
+    if gene in COMMON_GENES:
+        return "Common", random_is(5, (gene - 1) // 4)
+    if gene in ENDANGERED_GENES:
+        return "Endangered", random_is(4, (gene - 3) // 4)
+    low = sum(random_is(100, r) for r in range(15))             # Random(100) < 15
+    if 18 <= gene <= 23:
+        return "Extinct", low * random_is(6, gene - 18)
+    if gene in EXTINCT_GENES:
+        return "Extinct", (1 - low) * random_is(8, (gene - 2) // 2)
+    return None
 
 
 def rarity(key: tuple[int, int]) -> str:
@@ -319,16 +368,16 @@ class PlantModel:
         self.extras = extras
         self.source = source
         flowers = list(STOCK_FLOWERS) + (list(NEW_FLOWERS) if extras else [])
-        self._foliage_parts = {g: Part("foliage", g, FOLIAGE_WORD[g], False, _foliage_how(g))
+        self._foliage_parts = {g: Part("foliage", g, FOLIAGE_WORD[g], False, _gene_how(g, "foliage", extras))
                                for g in STOCK_FOLIAGES}
-        self._flower_parts = {g: Part("flower", g, FLOWER_WORD[g].strip(), is_new_flower(g), _flower_how(g))
-                              for g in flowers}
+        self._flower_parts = {g: Part("flower", g, FLOWER_WORD[g].strip(), is_new_flower(g),
+                                      _gene_how(g, "flower", extras)) for g in flowers}
         self._species = {}
         for f in STOCK_FOLIAGES:
             for fl in flowers:
                 key = (f, fl)
                 self._species[key] = Species(key, species_name(key), (self._foliage_parts[f], self._flower_parts[fl]),
-                                             is_new_flower(fl), rarity(key), value(key))
+                                             is_new_flower(fl), species_rarity(key), value(key))
         self._keys = sorted(self._species)
 
     # ------------------------------------------------------------ parts and species
@@ -363,15 +412,24 @@ class PlantModel:
 
     def children(self, a, b, effects: str = "none") -> list[tuple[tuple[int, int], float]]:
         """The seed two plants give when one pollinates the other (0x4240A0), with its chance.
-        Which plant is the target does not matter. `effects` changes nothing: no chemical or magic
-        plant enters the pollination (Mutation Liquid changes a planted plant: see mutations())."""
+        Which plant is the target does not matter. No chemical or magic plant enters the
+        pollination, so "none" and "max" give the seed itself; "max_mutation" is that seed
+        planted and given one Mutation Liquid dose (0x42FA80), every result with its chance."""
         a, b = self._check(a), self._check(b)
         foliage = a[0] if a[0] == b[0] else (a[0] + b[0] + 1) // 2
         total = a[1] + b[1]
         up = a[1] if a[1] == b[1] else (total + 1) // 2
         if self.extras and (is_new_flower(a[1]) or is_new_flower(b[1])) and total % 2:
-            return [((foliage, total // 2), 0.5), ((foliage, up), 0.5)]
-        return [((foliage, up), 1.0)]
+            seeds = [((foliage, total // 2), 0.5), ((foliage, up), 0.5)]
+        else:
+            seeds = [((foliage, up), 1.0)]
+        if effects != "max_mutation":
+            return seeds
+        out: dict[tuple[int, int], float] = {}
+        for seed, p in seeds:
+            for child, q in mutation_steps(seed, self.extras):
+                out[child] = out.get(child, 0.0) + p * q
+        return sorted(out.items(), key=lambda kv: (-kv[1], kv[0]))
 
     def mutations(self, key) -> list[tuple[tuple[int, int], float]]:
         """One Mutation Liquid dose on a plant of `key`: each result with its chance."""
@@ -389,20 +447,25 @@ class PlantModel:
             for b in keys[i:]:
                 if key in (a, b):
                     continue
-                for child, odds in self.children(a, b):
+                for child, odds in self.children(a, b, effects):
                     if child == key:
                         found.append((a, b, odds))
         found.sort(key=lambda t: (-t[2], _shop_cost(t[0], self.extras) + _shop_cost(t[1], self.extras), t[0], t[1]))
         return found[:limit]
 
-    def plan(self, have, want, effects: str = "none") -> list[dict]:
+    def plan(self, have, want, effects: str = "none", allowed=None) -> list[dict]:
         """The fewest generations from the species in `have` to `want`. Each step is
-        {"parents": (a, b), "child": key, "odds": float, "via": "pollination"}; with "max" effects a
-        step can be {"parents": (a, a), "via": "Mutation Liquid"} (one dose on a plant of a)."""
+        {"parents": (a, b), "child": key, "odds": float, "via": "pollination"}; with "max_mutation"
+        a step can be {"parents": (a, a), "via": "Mutation Liquid"} (one dose on a plant of a).
+        With `allowed`, every species the chain makes is in it (the spoiler-free planner)."""
         want = self._check(want)
         known: dict[tuple[int, int], dict | None] = {self._check(k): None for k in have}
         if want in known:
             return []
+        if allowed is not None:
+            allowed = {tuple(k) for k in allowed}
+            if want not in allowed:
+                return []
         frontier = list(known)
         while frontier:
             found: dict[tuple[int, int], dict] = {}
@@ -410,12 +473,14 @@ class PlantModel:
             for a in frontier:
                 for b in everyone:
                     for child, odds in self.children(a, b):
-                        if child not in known:
+                        if child not in known and (allowed is None or child in allowed):
                             step = {"parents": (a, b), "child": child, "odds": odds, "via": "pollination"}
                             if child not in found or odds > found[child]["odds"]:
                                 found[child] = step
-                if effects == "max":
+                if effects == "max_mutation":
                     for child, odds in self.mutations(a):
+                        if allowed is not None and child not in allowed:
+                            continue
                         if child not in known and (child not in found or odds > found[child]["odds"]):
                             found[child] = {"parents": (a, a), "child": child, "odds": odds, "via": "Mutation Liquid"}
             if not found:
@@ -430,6 +495,9 @@ class PlantModel:
     def prices(self, key, effects: str = "none") -> Prices:
         key = self._check(key)
         v = value(key)
+        # Mutation Liquid changes no price: the buy roll (0x436BE0) and the prices (0x41DBD0)
+        # never read it, so "max_mutation" prices are "max"'s.
+        effects = "max" if effects == "max_mutation" else effects
         if effects == "max":
             c, score = MAX_EFFECTS, ORNAMENT_POINTS + 2 * SALE_SPOTS + 4 + 2 * 5 + 4
         else:
@@ -450,11 +518,30 @@ class PlantModel:
                 f"Knowledge only resets the asking price to {knowledge_price(v)}; it does not change what visitors accept.")
         return Prices(best, best_income, highest, note)
 
+    effects_choices = (("none", "0 effects"), ("max", "Max effects, without"),
+                       ("max_mutation", "Max effects, with Mutation Liquid"))
+    mutation_name = "Mutation Liquid"
+
+    def effects_text(self, effects: str) -> list[str]:
+        """What an effects choice assumes, in words."""
+        if effects == "none":
+            return ["No effects: the seed is the parents' average; a healthy, flowering, unpruned plant with no "
+                    "Plant Food, alone for sale, no ornaments, magic plants or bug collection."]
+        if effects == "max_mutation":
+            first = ("Breeding: nothing changes a pollination's seed (0x4240A0 reads only the two parents' genes); "
+                     f"Mutation Liquid (${MUTATION_LIQUID_PRICE}) steps a planted plant's flower or foliage one gene "
+                     "up or down, each of the four 25% a dose. The Breeding Calculator shows the seed after one dose; "
+                     "the Breeding Planner uses a dose as a step. It changes no price.")
+        else:
+            first = ("Breeding: no Mutation Liquid, so no mutation chance; the seed is the parents' average "
+                     "(nothing else changes a pollination's seed).")
+        return [first] + self._max_rest()
+
     def effects_max(self) -> list[str]:
+        return self.effects_text("max_mutation")
+
+    def _max_rest(self) -> list[str]:
         return [
-            "Breeding: nothing changes a pollination's seed (0x4240A0 reads only the two parents' genes); "
-            "Mutation Liquid ($1000, 3 doses) steps a planted plant's flower or foliage one gene up or down, "
-            "each of the four 25%, used in the plan as a step.",
             "Golden Berries of Wealth (magic plant 2/14): visitors see every asking price a quarter lower "
             "(0x436E22), so a higher price still sells.",
             "Plant Food: 2 doses before age 21 make visitors see the price 1/5 lower, twice (0x42D650, plant + 0x84).",
@@ -477,25 +564,55 @@ class PlantModel:
 
 # ---------------------------------------------------------------- helpers
 
-def _foliage_how(g: int) -> str:
-    return _gene_how(g, "foliage")
+def _pct(p: float) -> str:
+    return f"{100 * p:.2f}%"
 
 
-def _flower_how(g: int) -> str:
-    if is_new_flower(g):
-        return ("Unused Flowers: Legendary Seeds ($5000, with Add new store upgrades and items), Mutation "
-                "Liquid stepping a Tilia (flower 23) up into the new flowers, or breeding with a new-flower parent")
-    return _gene_how(g, "flower")
+def mutation_sources(gene: int, kind: str, extras: bool) -> list[tuple[int, float]]:
+    """(gene before, chance per Mutation Liquid dose) for each gene one dose turns into `gene`
+    (0x42FA80, mutation_steps)."""
+    genes = list(STOCK_FOLIAGES) if kind == "foliage" else list(STOCK_FLOWERS) + (list(NEW_FLOWERS) if extras else [])
+    slot = 0 if kind == "foliage" else 1
+    out = []
+    for s in genes:
+        if s == gene:
+            continue
+        key = (s, 1) if slot == 0 else (1, s)
+        p = sum(q for new, q in mutation_steps(key, extras) if new[slot] == gene)
+        if p > 0:
+            out.append((s, p))
+    return out
 
 
-def _gene_how(g: int, kind: str) -> str:
-    if g in COMMON_GENES:
-        return f"Common seed packets ($50): {kind} 1, 5, 9, 13 or 17, 1 in 5 each"
-    if g in ENDANGERED_GENES:
-        return f"Endangered seed packets ($200): {kind} 3, 7, 11 or 15, 1 in 4 each"
-    if g >= 18:
-        return f"Extinct seed packets ($2000): {kind} 18-23 on Random(100) < 15, then 1 in 6 each"
-    return f"Extinct seed packets ($2000): {kind} 2-16 (even) on Random(100) >= 15, then 1 in 8 each"
+def breeding_sums(gene: int) -> tuple[int, ...]:
+    """The parent totals whose rounded-up average is `gene` (0x4240B5 / 0x4240DA)."""
+    return tuple(s for s in (2 * gene - 1, 2 * gene) if s >= 2)
+
+
+def _gene_how(g: int, kind: str, extras: bool = False) -> str:
+    """How a foliage (flower) is first obtained, each route with its exact odds from the game's
+    code (and, for the new flowers, the Unused Flowers and Store Upgrades DLLs' source)."""
+    parts = []
+    if kind == "flower" and is_new_flower(g):
+        parts.append(f"Unused Flowers only. Legendary Seeds (${LEGENDARY_PRICE}, {LEGENDARY_A_DAY} a day, with Add "
+                     f"new store upgrades and items): any foliage, {_pct(random_is(NEW_FLOWER_COUNT, g - 24))} of the "
+                     f"packets have this flower.")
+    else:
+        packet = packet_chance(g)
+        if packet is not None:
+            name, p = packet
+            parts.append(f"{name} Seeds (${PACKET_PRICES[name]}, {PACKETS_A_DAY} packets a day): {_pct(p)} of them "
+                         f"have {kind} {g}.")
+    sums = breeding_sums(g)
+    parts.append(f"Breeding: two parents whose {kind}s add up to " + " or ".join(map(str, sums))
+                 + f" (the seed's {kind} is the average, rounded up).")
+    if extras and kind == "flower":
+        parts.append("With a new-flower parent (24-37) an odd flower total rounds up or down (50%).")
+    sources = mutation_sources(g, kind, extras)
+    if sources:
+        parts.append(f"Mutation Liquid (${MUTATION_LIQUID_PRICE}), one dose on a planted plant whose {kind} is "
+                     + " or ".join(f"{s}: {_pct(p)}" for s, p in sources) + ".")
+    return " ".join(parts)
 
 
 def _shop_cost(key: tuple[int, int], extras: bool) -> int:
