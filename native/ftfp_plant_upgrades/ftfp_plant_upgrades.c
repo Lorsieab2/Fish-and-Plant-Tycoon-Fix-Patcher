@@ -460,6 +460,70 @@ static void add_money(char *scene) {
     play_sound(SCENE_SOUND(scene), 0, SOUND_BUTTON);
 }
 
+/* ------------------------------------------------------ extra greenhouses */
+
+/* "Extra Greenhouses.dll" (its own setting) sells Greenhouses 2-6 here, one
+   item bought in order like the Fourth-Sixth Seed Box: $10,000 each ($0 with
+   Free upgrades).  It stands on the tool shelf beside those boxes, drawn with
+   the game's own greenhouse picture (greenhouse1.png, sprite 0xC2), and gets
+   the stock tick once all five are owned.  Bought through the same Yes / No
+   as Add Money. */
+#define GREENHOUSE_PRICE 10000
+#define GREENHOUSE_SPRITE 0xC2
+#define GREENHOUSE_X 404
+#define GREENHOUSE_Y 50
+#define GREENHOUSE_SCALE 0.29f
+#define GREENHOUSES_EXTRA 5
+static const RECT GREENHOUSE_RECT = { GREENHOUSE_X, GREENHOUSE_Y + 2, GREENHOUSE_X + 57, GREENHOUSE_Y + 63 };
+typedef int (__cdecl *greenhouses_fn)(void);
+static greenhouses_fn greenhouses_owned = NULL, greenhouses_buy = NULL;
+static char *greenhouse_tip = NULL;
+static char greenhouse_tip_text[64];
+
+static void greenhouse_tip_set(void) {
+    int owned = greenhouses_owned();
+    if (owned >= GREENHOUSES_EXTRA) sprintf_s(greenhouse_tip_text, sizeof greenhouse_tip_text, "Extra Greenhouse\nSold out");
+    else sprintf_s(greenhouse_tip_text, sizeof greenhouse_tip_text, "Extra Greenhouse %i of %i\nPrice: $ %i",
+                   owned + 1, GREENHOUSES_EXTRA, price(GREENHOUSE_PRICE));
+}
+
+static void buy_greenhouse(char *scene) {
+    char *state = SCENE_STATE(scene);
+    wchar_t text[256];
+    int owned, cost = price(GREENHOUSE_PRICE);
+    if (state == NULL || greenhouses_owned == NULL) return;
+    owned = greenhouses_owned();
+    if (owned >= GREENHOUSES_EXTRA) {
+        tw_tell_as(L"Extra Greenhouse", L"You already have all five extra greenhouses!");
+        return;
+    }
+    if (AT(state, S_CASH, unsigned int) < (unsigned int)cost) {
+        tw_tell_as(L"Extra Greenhouse", L"You can't afford to buy this yet! An extra greenhouse costs $10,000.");
+        return;
+    }
+    swprintf_s(text, 256, L"Buy Greenhouse %d for $%d?\n\nIt has 15 empty pots. The arrows on the greenhouse "
+               L"screen lead to it.", owned + 2, cost);
+    if (!tw_confirm_as(L"Extra Greenhouse", text)) return;
+    if (AT(state, S_CASH, unsigned int) < (unsigned int)cost || greenhouses_owned() != owned) return;
+    add_cash(state, 0, -cost);
+    greenhouses_buy();
+    play_sound(SCENE_SOUND(scene), 0, SOUND_BUTTON);
+    greenhouse_tip_set();
+    if (greenhouse_tip != NULL) tooltip_text(greenhouse_tip, 0, greenhouse_tip_text, TOOLTIP_COLOUR, 0, 0);
+}
+
+static void load_greenhouses(void) {
+    HMODULE module = GetModuleHandleW(L"Extra Greenhouses.dll");
+    greenhouses_fn owned, buy;
+    if (module == NULL) return;
+    owned = (greenhouses_fn)GetProcAddress(module, "FtfpExtraGreenhousesOwned");
+    buy = (greenhouses_fn)GetProcAddress(module, "FtfpExtraGreenhousesBuy");
+    if (owned != NULL && buy != NULL) {
+        greenhouses_owned = owned;
+        greenhouses_buy = buy;
+    }
+}
+
 static void box_tip_text(int box) {
     if (boxes != NULL && boxes->owned(box)) sprintf_s(tip_text[TIP_BOXES + box], 64, "%s", BOX_TITLES[box]);
     else sprintf_s(tip_text[TIP_BOXES + box], 64, "%s\nPrice: $ %i", BOX_TITLES[box], price(BOX_PRICE));
@@ -482,6 +546,11 @@ static void set_tooltips(char *scene) {
     }
     if (warp_tip != NULL) AT(warp_tip, 8, unsigned char) = (unsigned char)upgrades_view;
     if (money_tip != NULL) AT(money_tip, 8, unsigned char) = (unsigned char)upgrades_view;
+    if (greenhouse_tip != NULL) {
+        greenhouse_tip_set();
+        tooltip_text(greenhouse_tip, 0, greenhouse_tip_text, TOOLTIP_COLOUR, 0, 0);
+        AT(greenhouse_tip, 8, unsigned char) = (unsigned char)upgrades_view;
+    }
 }
 
 static char *make_tooltip(char *scene, int id, const RECT *r, const char *text) {
@@ -513,6 +582,10 @@ static void make_tooltips(char *scene) {
     if (money_on && money_tip == NULL) {
         sprintf_s(money_tip_text, sizeof money_tip_text, "Add $1,000\nPrice: $ %i", price(MONEY_PRICE));
         money_tip = make_tooltip(scene, 55 + TIPS, &MONEY_RECT, money_tip_text);
+    }
+    if (greenhouses_owned != NULL && greenhouse_tip == NULL) {
+        greenhouse_tip_set();
+        greenhouse_tip = make_tooltip(scene, 56 + TIPS, &GREENHOUSE_RECT, greenhouse_tip_text);
     }
 }
 
@@ -558,6 +631,13 @@ static int __cdecl on_draw(char *scene) {
     if (money_on) {
         draw_shadow(mgr, 0, SHEET_SHADOW, MONEY_X + 0x19, MONEY_Y + 0x1E, 1.0f, 100);
         draw_sprite(mgr, 0, SHEET_CHEMICALS, MONEY_FRAME, MONEY_X, MONEY_Y, 1.0f, 100, 1);
+    }
+    if (greenhouses_owned != NULL) {
+        draw_shadow(mgr, 0, SHEET_SHADOW, GREENHOUSE_X + 0x19, GREENHOUSE_Y + 0x1E, 1.0f, 100);
+        draw_sprite(mgr, 0, GREENHOUSE_SPRITE, 0, GREENHOUSE_X + 6, GREENHOUSE_Y, GREENHOUSE_SCALE, 100, 1);
+        if (greenhouses_owned() >= GREENHOUSES_EXTRA) {
+            draw_shadow(mgr, 0, SHEET_TICK, GREENHOUSE_X + 19, GREENHOUSE_Y + 22, 1.0f, 100);
+        }
     }
     return 1;
 }
@@ -620,6 +700,7 @@ static int __cdecl on_click(char *scene, int x, int y) {
     }
     if (warp_on && inside(&WARP_RECT, x, y)) time_warp(scene);
     if (money_on && inside(&MONEY_RECT, x, y)) add_money(scene);
+    if (greenhouses_owned != NULL && inside(&GREENHOUSE_RECT, x, y)) buy_greenhouse(scene);
     return 1;
 }
 
@@ -1274,6 +1355,11 @@ const ftfp_upgrades_events *__stdcall FtfpUpgradesStartup(void) {
                 load_boxes();
             } __except (EXCEPTION_EXECUTE_HANDLER) {
                 boxes = NULL;
+            }
+            __try {
+                load_greenhouses();
+            } __except (EXCEPTION_EXECUTE_HANDLER) {
+                greenhouses_owned = greenhouses_buy = NULL;
             }
         }
     }

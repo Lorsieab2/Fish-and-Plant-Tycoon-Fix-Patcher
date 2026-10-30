@@ -115,6 +115,7 @@ class Game:
         emu.write32(STATE_GLOBAL, state)
         emu.write32(SPRITES_GLOBAL, emu.alloc(0x100))
         emu.write32(GRAPHICS_GLOBAL, emu.alloc(0x100))
+        emu.write32(emu.sym("_owned"), EXTRA)                         # all five bought (OwnershipTests buys them)
         manager = self.manager = emu.alloc(0x810A4)
         emu.write32(manager, state)
         emu.write32(manager + 4, emu.read32(SPRITES_GLOBAL))
@@ -726,8 +727,8 @@ class SidecarTests(unittest.TestCase):
         self.assertEqual(game.emu.read32(game.emu.sym("_arranged")), 4)          # back on screen
         self.assertEqual(list(disk), [self.NAME])
         data = bytes(disk[self.NAME])
-        self.assertEqual(struct.unpack_from("<5I", data), (0x47585450, 1, EXTRA, POTS, POT))
-        self.assertEqual(len(data), 20 + EXTRA * POTS * POT)
+        self.assertEqual(struct.unpack_from("<6I", data), (0x47585450, 1, EXTRA, POTS, POT, EXTRA))
+        self.assertEqual(len(data), 24 + EXTRA * POTS * POT)
         # a load of slot 4 brings every greenhouse back
         game.emu.call(game.emu.sym("_on_loaded"), game.state, 4)
         for g in range(1, EXTRA + 1):
@@ -752,6 +753,166 @@ class SidecarTests(unittest.TestCase):
         game.emu.call(game.emu.sym("_on_loaded"), game.state, 7)
         self.assertTrue(all(game.emu.read32(game.pot(g, k) + FOLIAGE) == 0
                             for g in range(1, EXTRA + 1) for k in range(POTS)))
+        self.assertEqual(game.emu.read32(game.emu.sym("_owned")), 0)               # none bought
+
+    def test_ownership_round_trip_and_a_new_game_resets_it(self) -> None:
+        game = Game(6)
+        emu = game.emu
+        disk = self.files(game)
+        emu.write32(emu.sym("_owned"), 2)
+        game.plant(2, 5, 4, 4)
+        emu.hook(0x00403690, lambda e: 1, 0xC)
+        emu.call(emu.sym("_stub_save"), 4, ecx=game.state, edx=4)
+        self.assertEqual(struct.unpack_from("<I", disk[self.NAME], 20)[0], 2)
+        emu.write32(emu.sym("_owned"), 0)
+        emu.call(emu.sym("_on_loaded"), game.state, 4)
+        self.assertEqual(emu.read32(emu.sym("_owned")), 2)
+        # the game's new game (0x41D3D0 calls 0x42F630 through the DLL): nothing owned, all empty
+        emu.call(emu.sym("@new_game_clear@8"), ecx=game.manager)
+        self.assertEqual(emu.read32(emu.sym("_owned")), 0)
+        self.assertEqual(emu.read32(game.pot(2, 5) + FOLIAGE), 0)
+
+    def test_a_greenhouse_with_plants_is_never_locked_away(self) -> None:
+        game = Game(6)
+        emu = game.emu
+        disk = self.files(game)
+        game.plant(4, 1, 4, 4)                                # greenhouse 5
+        emu.write32(emu.sym("_owned"), 1)                     # a file that says only one was bought
+        emu.hook(0x00403690, lambda e: 1, 0xC)
+        emu.call(emu.sym("_stub_save"), 4, ecx=game.state, edx=4)
+        emu.call(emu.sym("_on_loaded"), game.state, 4)
+        self.assertEqual(emu.read32(emu.sym("_owned")), 4)
+        self.assertTrue(disk)
+
+
+@needs_game
+class OwnershipTests(unittest.TestCase):
+    """Greenhouses 2-6 are bought in order on the store's Upgrades screen; until then they cannot be reached."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        _build()
+
+    def test_buying_unlocks_them_in_order(self) -> None:
+        game = Game(1)
+        emu = game.emu
+        emu.write32(emu.sym("_owned"), 0)
+        got = [emu.call(emu.sym("_FtfpExtraGreenhousesBuy")) for _ in range(7)]
+        self.assertEqual(got, [1, 2, 3, 4, 5, 5, 5])
+        self.assertEqual(emu.call(emu.sym("_FtfpExtraGreenhousesOwned")), 5)
+
+    def test_the_arrows_reach_only_bought_greenhouses(self) -> None:
+        for owned, expected in ((0, [0, 0, 0]), (1, [1, 0, 1]), (2, [1, 2, 0])):
+            game = Game(1)
+            emu = game.emu
+            emu.write32(emu.sym("_owned"), owned)
+            seen = []
+            for _ in range(3):
+                emu.call(emu.sym("@gh_command@16"), 8, 41, ecx=game.scene)
+                seen.append(emu.read32(emu.sym("_shown")))
+            self.assertEqual(seen, expected, owned)
+
+    def test_a_plant_cannot_be_dragged_into_a_locked_greenhouse(self) -> None:
+        game = grow(0, 4, ((4, 13, 13),), (7200,))
+        emu = game.emu
+        plant = game.pot_bytes(0, 4)
+        emu.write32(emu.sym("_owned"), 0)
+        emu.hook(0x004273D0, lambda e: 0, 0xC)               # the stock mouse: the plant goes back to its pot
+        game.show(0)
+        emu.write32(game.state + HELD, HELD_POT + 4)
+        emu.call(emu.sym("@gh_mouse@20"), 3, 230, 30, ecx=game.scene)      # the left arrow's place
+        game.show(0, active=0)
+        self.assertEqual(game.pot_bytes(0, 4), plant)
+        self.assertTrue(all(game.emu.read32(game.pot(g, k) + FOLIAGE) == 0
+                            for g in range(1, EXTRA + 1) for k in range(POTS)))
+        # with two bought, greenhouse 1's left arrow leads round to greenhouse 3, not 6
+        emu.write32(emu.sym("_owned"), 2)
+        game.show(0)
+        emu.write32(game.state + HELD, HELD_POT + 4)
+        emu.call(emu.sym("@gh_mouse@20"), 3, 230, 30, ecx=game.scene)
+        game.show(0, active=0)
+        self.assertEqual(game.pot_bytes(2, 4), plant)
+
+
+UPGRADES_DLL = ROOT / "assets" / "plant_tycoon_upgrades" / "Store Upgrades and Items.dll"
+
+
+@needs_game
+class StoreItemTests(unittest.TestCase):
+    """The Extra Greenhouse item on the Upgrades screen (Store Upgrades and Items.dll): $10,000 each, in order,
+    $0 with Free upgrades, through the same Yes / No as Add Money."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.dll, cls.symbols = E.build_with_map("ftfp_plant_upgrades", UPGRADES_DLL, Path(cls.tmp.name))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.tmp.cleanup()
+
+    def store(self, cash: int, free: bool, answer_yes: bool = True):
+        emu = E.Emulator(PLANT_EXE, self.dll, self.symbols)
+        emu.hook_printf()
+        emu.owned = 0
+
+        def message(e):
+            e.calls.append(("MessageBoxW", e.wstring(e.arg(1))))
+            return 6 if answer_yes else 7
+        emu.hook_import("MessageBoxW", message, 16)
+        for name, pop in (("GetActiveWindow", 0), ("GetForegroundWindow", 0), ("GetModuleHandleW", 4),
+                          ("GetProcAddress", 8)):
+            emu.hook_import(name, emu.record(name), pop)
+        emu.hook(0x0044A580, emu.record("sound"), 4)
+        emu.hook(0x00409AA0, lambda e: (e.calls.append(("tip", e.cstring(e.arg(0)).decode("latin-1"))), 0)[1], 0x10)
+        owned, buy = emu.thunk(), emu.thunk()
+        emu.hook(owned, lambda e: e.owned, 0)
+
+        def bought(e):
+            e.owned = min(e.owned + 1, EXTRA)
+            return e.owned
+        emu.hook(buy, bought, 0)
+        emu.write32(emu.sym("_greenhouses_owned"), owned)
+        emu.write32(emu.sym("_greenhouses_buy"), buy)
+        emu.write8(emu.sym("_free_upgrades"), int(free))
+        state, scene = emu.alloc(0x60000), emu.alloc(0x400)
+        emu.write32(scene + 0x1BC, state)
+        emu.write32(state + 0x217C, cash)
+        emu.write32(emu.sym("_upgrades_view"), 1)
+        emu.state, emu.scene = state, scene
+        return emu
+
+    def click(self, emu) -> None:
+        emu.call(emu.sym("_on_click"), emu.scene, 430, 80)
+
+    def test_each_costs_10000_in_order(self) -> None:
+        emu = self.store(25000, False)
+        self.click(emu)
+        self.assertEqual((emu.owned, emu.read32(emu.state + 0x217C)), (1, 15000))
+        self.assertIn("Buy Greenhouse 2 for $10000?", [c[1] for c in emu.calls if c[0] == "MessageBoxW"][-1])
+        self.assertEqual(emu.cstring(emu.sym("_greenhouse_tip_text")).decode("latin-1"),
+                         "Extra Greenhouse 2 of 5\nPrice: $ 10000")
+        self.click(emu)
+        self.assertEqual((emu.owned, emu.read32(emu.state + 0x217C)), (2, 5000))
+        self.click(emu)                                                       # $5000 left: refused
+        self.assertEqual((emu.owned, emu.read32(emu.state + 0x217C)), (2, 5000))
+        self.assertIn("can't afford", [c[1] for c in emu.calls if c[0] == "MessageBoxW"][-1])
+
+    def test_free_upgrades_make_them_free_and_the_sixth_is_sold_out(self) -> None:
+        emu = self.store(0, True)
+        for n in range(1, EXTRA + 1):
+            self.click(emu)
+            self.assertEqual(emu.owned, n)
+        self.assertEqual(emu.read32(emu.state + 0x217C), 0)
+        self.click(emu)
+        self.assertEqual(emu.owned, EXTRA)
+        self.assertIn("already have all five", [c[1] for c in emu.calls if c[0] == "MessageBoxW"][-1])
+        self.assertEqual(emu.cstring(emu.sym("_greenhouse_tip_text")).decode("latin-1"), "Extra Greenhouse\nSold out")
+
+    def test_answering_no_buys_nothing(self) -> None:
+        emu = self.store(50000, False, answer_yes=False)
+        self.click(emu)
+        self.assertEqual((emu.owned, emu.read32(emu.state + 0x217C)), (0, 50000))
 
 
 @needs_game
@@ -804,6 +965,7 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(s["name"], "5 extra greenhouses")
         self.assertFalse(s["default"])
         self.assertTrue(s["separate_output"])
+        self.assertEqual(s["requires_settings"], ["plant_upgrades"])        # sold on the Upgrades screen
         self.assertIn("empty", s["warning"].lower())
         self.assertTrue(s["companion"]["startup_loader"])
         files = {f["destination"]: f for f in s["companion"]["files"]}

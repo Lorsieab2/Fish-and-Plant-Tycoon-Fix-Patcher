@@ -58,7 +58,8 @@ def page() -> GamePage:
                        "title bar."),
             Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (off by default), which also turns on the store's Upgrades screen it lives on."),
             Group("Extra greenhouses (patcher)", EXTRA_GREENHOUSES,
-                  note="Only with the 5 extra greenhouses setting (off by default)."),
+                  note="Only with the 5 extra greenhouses setting (off by default), which also turns on the "
+                       "store's Upgrades screen the greenhouses are bought on."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Fish Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
@@ -1012,10 +1013,14 @@ TIME_WARP = (
 EXTRA_GREENHOUSES = (
     Fact(
         "Not in the unpatched game: one greenhouse of 15 pots.",
-        patched=(("extra_greenhouses", "six greenhouses of 15 pots, 90 pots in all. Gold arrows on the "
-                  "greenhouse screen (the game's own, as on the Seed Storage screen) page through Greenhouse 1, "
-                  "the stock one, to Greenhouse 6 and round again; the screen says \"Greenhouse n of 6\". "
-                  "Leaving the greenhouse and coming back shows the one you last looked at."),),
+        patched=(("extra_greenhouses", "up to six greenhouses of 15 pots, 90 pots in all. Greenhouses 2-6 are "
+                  "bought in order with the Extra Greenhouse item on the store's Upgrades screen (the tool "
+                  "shelf): $10,000 each, $0 with Free upgrades, ticked once all five are owned; a new game "
+                  "starts with none. Once one is owned, gold arrows on the greenhouse screen (the game's own, "
+                  "as on the Seed Storage screen) page through Greenhouse 1, the stock one, and the ones you "
+                  "own, round again; the screen says \"Greenhouse n of m\". A greenhouse not yet bought "
+                  "cannot be reached and takes no plant. Leaving the greenhouse and coming back shows the one "
+                  "you last looked at."),),
     ),
     Fact(
         "Every greenhouse is the stock greenhouse screen, and the game's own code runs on its pots, so "

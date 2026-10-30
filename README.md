@@ -210,11 +210,17 @@ never needs the internet.
   flower, then its parents (unknown first), and packs them from the first
   slot: boxes 1-3 fill before 4-6, and locked drawers stay empty. It checks
   that exactly the same seeds come out as went in before writing anything.
-- 5 extra greenhouses (off by default; in the "Modded Upgrades" copy). Six
-  greenhouses of 15 pots, 90 pots in all. The game's own gold arrows (as on the
-  Seed Storage screen) at the top of the greenhouse screen page through
-  Greenhouse 1, the stock one, to Greenhouse 6 and round again, and the screen
-  says "Greenhouse n of 6". Each greenhouse is the stock screen with the
+- 5 extra greenhouses (off by default; **needs Add new store upgrades and
+  items, which it turns on**; in the "Modded Upgrades" copy). Up to six
+  greenhouses of 15 pots, 90 pots in all. An Extra Greenhouse item on the
+  store's Upgrades screen (the tool shelf, beside the Fourth to Sixth Seed Box,
+  pictured with the game's own greenhouse) sells Greenhouses 2-6 in order,
+  $10,000 each ($0 with Free upgrades), and gets a tick once all five are
+  yours; a new game starts with none. Once you own one, the game's own gold
+  arrows (as on the Seed Storage screen) at the top of the greenhouse screen
+  page through Greenhouse 1, the stock one, and the ones you own, and the
+  screen says "Greenhouse 2 of 3". Greenhouses you have not bought cannot be
+  reached, and no plant can be moved into them. Each greenhouse is the stock screen with the
   game's own code running on its pots: plants grow, need water and care,
   flower, take pollen, give seeds, get pests and die exactly as in Greenhouse
   1, also while you look at another greenhouse, while you are away and through

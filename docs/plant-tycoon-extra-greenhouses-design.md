@@ -34,6 +34,32 @@ startup loader (`src/ds_fish_loader.py`, `PLANT_GREENHOUSES`).
 - Selling: the stock nursery's 15 spots and the stock limit. At most 15 plants
   are for sale at once, counted over all six greenhouses.
 
+## Buying the greenhouses (the owner's change)
+
+Greenhouses 2-6 are bought in order on the store's Upgrades screen, like the
+Fourth to Sixth Seed Box, so the setting needs Add new store upgrades and
+items (`requires_settings: plant_upgrades`).
+
+- **The item:** "Extra Greenhouse", drawn by `Store Upgrades and Items.dll`.
+  - Place: the tool shelf at (404, 50), the fourth tool column, beside the
+    Seed Boxes in the fifth. The chemical shelves, where the other branch's
+    Revival Potion, Revita-Seed and Formula Bomb go, are left free.
+  - Picture: the game's own greenhouse picture (`greenhouse1.png`, sprite
+    0xC2) at 0.29 scale.
+  - Sold out: the stock tick (sprite 0x25) once all five are owned.
+  - Tooltip: "Extra Greenhouse n of 5 / Price: $ 10000", or "Sold out".
+- **Buying:** the same Yes / No and "can't afford" boxes as Add Money.
+  - $10,000 each, through `price()`, so $0 with Free upgrades.
+  - The cash goes through the game's own 0x41ED70.
+  - Each purchase calls `FtfpExtraGreenhousesBuy` (one more owned, up to 5).
+    The Upgrades DLL finds it with `GetModuleHandleW(L"Extra Greenhouses.dll")`.
+- **Locked:** the arrows show only once one is owned, and page only through
+  Greenhouse 1 and the owned ones. A plant dropped on an arrow can go only to
+  an owned greenhouse. With none owned there are no arrows and no label.
+- **Stored:** the owned count is the sidecar header's sixth word. A new game
+  sets it to 0. A load reads it, and never locks away a greenhouse that has
+  plants.
+
 ## Phase 1: where the greenhouse is fixed at 15 pots
 
 Static analysis of the vanilla `Plant Tycoon.exe` (SHA-256 `D1F83E3E…D6F9`).
@@ -180,8 +206,8 @@ Ornaments are never placed (each counts once bought), so nothing moves.
 ## The sidecar
 
 `<Documents>\LDW\<exe name>\Plant Tycoon Fix Patcher Data\Extra Greenhouses <slot>.dat`:
-a 20-byte header (magic `PTXG`, version 1, greenhouses 5, pots 15, bytes per
-pot 0x5600) and the 75 pot records. Written with every save of the slot to
+a 24-byte header (magic `PTXG`, version 1, greenhouses 5, pots 15, bytes per
+pot 0x5600, greenhouses owned 0-5) and the 75 pot records. Written with every save of the slot to
 `.tmp`, flushed and renamed over the old file; read at load. A file of the
 wrong size or header is renamed `.unreadable` and never overwritten. No file
 means empty greenhouses (a save from before the setting).

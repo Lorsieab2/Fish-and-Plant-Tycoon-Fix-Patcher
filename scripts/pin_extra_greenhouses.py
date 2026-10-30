@@ -37,17 +37,22 @@ FOLDER = ds_fish_loader.PLANT.patcher_files_folder
 SETTING = {
     "id": SETTING_ID,
     "name": "5 extra greenhouses",
-    "summary": "Adds five more greenhouses of 15 pots (90 pots in all): gold arrows on the greenhouse screen page "
-               "through Greenhouse 1 to 6, and every pot works exactly like the stock ones.",
+    "summary": "Five more greenhouses of 15 pots (90 pots in all), bought one by one on the store's Upgrades "
+               "screen for $10,000 each; gold arrows on the greenhouse screen page through the ones you own, and "
+               "every pot works exactly like the stock ones. Needs Add new store upgrades and items.",
     "description": (
-        "Gold arrows (the game's own, as on the Seed Storage screen) on the greenhouse screen page through "
-        "Greenhouse 1, the stock one, to Greenhouse 6 and round again; the screen says \"Greenhouse 2 of 6\". "
+        "An Extra Greenhouse item on the store's Upgrades screen (tool shelf, beside the Fourth to Sixth Seed "
+        "Box) sells Greenhouses 2-6 in order, $10,000 each ($0 with Free upgrades), with a tick once all five "
+        "are yours. Once you own one, gold arrows (the game's own, as on the Seed Storage screen) on the "
+        "greenhouse screen page through Greenhouse 1, the stock one, and the ones you own, and the screen says "
+        "\"Greenhouse 2 of 3\". "
         "Each greenhouse is the stock greenhouse screen, and the game's own code runs on its 15 pots: plants "
         "grow, age, need water and care, flower, take pollen, give seeds, get pests and die exactly as in "
         "Greenhouse 1, also while you look at another greenhouse or another screen, while you are away "
         "(caught up when you come back) and through the Time Warp. Every chemical, tool, upgrade and magic "
         "plant works in every greenhouse. Drag a plant onto an arrow to move it to the same pot place in the "
-        "greenhouse that arrow leads to (or its first empty pot if that place is taken); pollen you take can be carried to another greenhouse. The nursery "
+        "greenhouse that arrow leads to (or its first empty pot if that place is taken); pollen and seeds you "
+        "take from a plant are carried along, and tools, chemicals and tray seeds stay in your hand. The nursery "
         "shows the plants for sale from every greenhouse in its 15 spots, and the game's limit holds: at most "
         "15 plants are for sale at once, counting every greenhouse. Greenhouses 2-6 are kept beside each save "
         "in \"Plant Tycoon Fix Patcher Data\\Extra Greenhouses <slot>.dat\"; the save itself keeps the stock "
@@ -61,6 +66,7 @@ SETTING = {
     "category": "main",
     "default": False,
     "separate_output": True,
+    "requires_settings": ["plant_upgrades"],
 }
 
 

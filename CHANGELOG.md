@@ -84,9 +84,13 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 ### Plant Tycoon
 
 - **5 extra greenhouses**, a new setting, off by default, in the "Modded
-  Upgrades" copy: six greenhouses of 15 pots, 90 pots in all. The game's own
-  gold arrows on the greenhouse screen page through Greenhouse 1 (the stock
-  one) to Greenhouse 6, and the screen says "Greenhouse n of 6". Every
+  Upgrades" copy (needs Add new store upgrades and items): up to six greenhouses of 15
+  pots, 90 pots in all. An Extra Greenhouse item on the store's Upgrades
+  screen sells Greenhouses 2-6 in order, $10,000 each ($0 with Free
+  upgrades), ticked when all five are owned; a new game starts with none.
+  The game's own gold arrows on the greenhouse screen page through
+  Greenhouse 1 (the stock one) and the ones you own, and the screen says
+  "Greenhouse n of m". Every
   greenhouse is the stock screen with the game's own code running on its
   pots, so every plant, chemical, tool, upgrade and magic plant works the same
   in each, and every greenhouse grows while you look elsewhere, while you are

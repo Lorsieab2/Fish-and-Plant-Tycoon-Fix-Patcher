@@ -131,7 +131,12 @@ static int undo_count = 0;
 #define HOME 0
 #define NURSERY 100
 static int arranged = HOME;     /* HOME, 1..EXTRA (that greenhouse is in the state), NURSERY */
-static int shown = 0;           /* the greenhouse on screen, 0..EXTRA */
+static int shown = 0;           /* the greenhouse on screen, 0..owned */
+static int owned = 0;           /* extra greenhouses bought (Store Upgrades and Items.dll), 0..EXTRA, in order */
+
+/* Greenhouse 1 and the ones bought: the arrows page through these only. */
+static int available(void) { return owned + 1; }
+static int wrap(int g) { return (g % available() + available()) % available(); }
 static unsigned char scene_on[4];   /* [1] greenhouse, [2] nursery, [3] snapshot open */
 static int current = 0;             /* the screen the game last drove */
 static int moved_this_frame = 0;
@@ -415,7 +420,7 @@ static void reset_hold(char *scene, char *state) {
 NOINLINE static void show_greenhouse(char *scene, int g) {
     char *state = AT(scene, SCENE_STATE, char *);
     reset_hold(scene, state);
-    shown = (g % GREENHOUSES + GREENHOUSES) % GREENHOUSES;
+    shown = wrap(g);
     ensure();
 }
 
@@ -496,9 +501,9 @@ static int target_pot(char *state, int g, int same) {
 NOINLINE static void carry_plant(char *scene, int to) {
     static char text[160];
     char *state = AT(scene, SCENE_STATE, char *);
-    int from = AT(state, STATE_HELD, int) - HELD_POT, g = (to % GREENHOUSES + GREENHOUSES) % GREENHOUSES, k;
+    int from = AT(state, STATE_HELD, int) - HELD_POT, g = wrap(to), k;
     ensure();
-    if (from < 0 || from >= POTS || arranged != shown) return;
+    if (from < 0 || from >= POTS || arranged != shown || g == shown) return;
     k = target_pot(state, g, from);
     if (k < 0) {
         int n = 0, i;
@@ -526,7 +531,7 @@ static int in_arrow(int i, int x, int y) {
 static int __fastcall gh_mouse(char *scene, int edx, int msg, int x, int y) {
     char *state = AT(scene, SCENE_STATE, char *);
     enter(1);
-    if (msg == MOUSE_UP && state != NULL && AT(state, STATE_HELD, int) >= HELD_POT
+    if (msg == MOUSE_UP && owned > 0 && state != NULL && AT(state, STATE_HELD, int) >= HELD_POT
         && AT(state, STATE_HELD, int) < HELD_POT + POTS) {
         int i;
         for (i = 0; i < 2; ++i) {
@@ -554,7 +559,7 @@ static int __fastcall gh_command(char *scene, int edx, int msg, int id) {
     char *state = AT(scene, SCENE_STATE, char *);
     enter(1);
     if (msg == 8 && (id == ARROW_PREV || id == ARROW_NEXT)) {
-        if (!moved_this_frame) {
+        if (!moved_this_frame && owned > 0) {                  /* hidden until one is bought */
             play_sound(AT(scene, SCENE_SOUND, void *), 0, SOUND_BUTTON);
             show_greenhouse(scene, shown + (id == ARROW_PREV ? -1 : 1));
         }
@@ -592,11 +597,12 @@ static int __fastcall gh_command(char *scene, int edx, int msg, int id) {
 static void __fastcall gh_overlay(char *scene, int edx) { enter(1); next_gh_overlay(scene, edx); }
 
 static void __fastcall gh_draw(char *scene, int edx) {
-    static char label[32] = "Greenhouse 1 of 6";
+    static char label[32] = "Greenhouse 1 of 6";      /* "of" the greenhouses owned */
     enter(1);
     next_gh_draw(scene, edx);
+    if (owned == 0) return;                           /* only the stock greenhouse: no arrows, no label */
     label[11] = (char)('1' + shown);
-    label[16] = (char)('0' + GREENHOUSES);
+    label[16] = (char)('0' + available());
     draw_text_centred(graphics(), 0, label, LABEL_X, LABEL_Y, TEXT_COLOUR, 0);
 }
 
@@ -607,6 +613,15 @@ static void __fastcall gh_tick(char *scene, int edx) {
     if (state != NULL && AT(state, STATE_HELD, int) != HELD_POT_SEEDS) seed_g = seed_k = -1;
     enter(1);
     next_gh_tick(scene, edx);
+}
+
+/* The arrows show once an extra greenhouse is owned (a control's +8 is its visible byte, as the
+   Seed Boxes DLL shows its arrows). */
+static void show_arrows(void) {
+    int i;
+    for (i = 0; i < 2; ++i) {
+        if (arrows[i] != NULL) AT(arrows[i], 8, unsigned char) = (unsigned char)(owned > 0);
+    }
 }
 
 static void __fastcall gh_activate(char *scene, int edx, int on) {
@@ -627,6 +642,7 @@ static void __fastcall gh_activate(char *scene, int edx, int on) {
                 arrows[i] = button;
             }
         }
+        show_arrows();
     } else {
         next_gh_activate(scene, edx, on);
         pollen_g = pollen_k = seed_g = seed_k = -1;
@@ -708,7 +724,7 @@ static int sidecar_path(int slot, wchar_t *out, DWORD cap, int make_folder) {
 }
 
 /* Header: magic, version, greenhouses kept, pots each, bytes per pot. */
-#define HEADER_WORDS 5
+#define HEADER_WORDS 6
 
 NOINLINE static int write_sidecar(int slot) {
     wchar_t path[1024], temp[1100];
@@ -725,6 +741,7 @@ NOINLINE static int write_sidecar(int slot) {
     header[2] = EXTRA;
     header[3] = POTS;
     header[4] = POT_BYTES;
+    header[5] = (DWORD)owned;
     ok = WriteFile(file, header, sizeof header, &written, NULL) && written == sizeof header
          && WriteFile(file, extra_pots, sizeof extra_pots, &written, NULL) && written == sizeof extra_pots
          && FlushFileBuffers(file);
@@ -748,7 +765,7 @@ NOINLINE static int read_sidecar(int slot) {
     ok = GetFileSizeEx(file, &size) && size.QuadPart == (LONGLONG)(sizeof header + sizeof body)
          && ReadFile(file, header, sizeof header, &got, NULL) && got == sizeof header
          && header[0] == SIDECAR_MAGIC && header[1] == SIDECAR_VERSION && header[2] == EXTRA
-         && header[3] == POTS && header[4] == POT_BYTES
+         && header[3] == POTS && header[4] == POT_BYTES && header[5] <= EXTRA
          && ReadFile(file, body, sizeof body, &got, NULL) && got == sizeof body;
     CloseHandle(file);
     if (!ok) {
@@ -759,6 +776,7 @@ NOINLINE static int read_sidecar(int slot) {
         return -1;
     }
     memcpy(extra_pots, body, sizeof body);
+    owned = (int)header[5];
     return 1;
 }
 
@@ -774,14 +792,31 @@ NOINLINE static void __cdecl before_save(char *state, int slot) {
 static void __cdecl after_save(void) { ensure(); }
 
 NOINLINE static void __cdecl on_loaded(char *state, int slot) {
+    int b;
     (void)state;
     reset_layout();
+    owned = 0;
     if (read_sidecar(slot) != 1) empty_banks();
+    for (b = EXTRA; b > owned; --b) {                     /* a greenhouse with plants is never locked away */
+        if (has_plants(b - 1)) owned = b;
+    }
+    show_arrows();
 }
 
 static void __cdecl on_new_game(void) {
     reset_layout();
+    owned = 0;
     empty_banks();
+    show_arrows();
+}
+
+/* For Store Upgrades and Items.dll: how many extra greenhouses are bought, and buy the next. */
+int __cdecl FtfpExtraGreenhousesOwned(void) { return owned; }
+
+int __cdecl FtfpExtraGreenhousesBuy(void) {
+    if (owned < EXTRA) ++owned;
+    show_arrows();
+    return owned;
 }
 
 static void __cdecl on_delete(int slot) {
