@@ -103,6 +103,16 @@ Plant Tycoon options:
   screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
   and adds $1,000 each time)
 
+Tools tab, Breeding Guide: pick the game, a save folder and a player. Tabs
+for each part (Fish: Fins and Bodies; Plant: Flowers and Foliage), the
+species with the pairs that breed them and their best prices, a Breeding
+Calculator (two parents: every child and its odds) and Have to Want (the
+breeding chain from the species you have to the one you want). It opens on
+the save's discovered species only; tick Show Spoilers under Options to see
+everything. Click a column to sort, type in Search to filter, and Export
+saves the open sheet as .xlsx or .csv. It never changes a save. Its "?"
+button explains the rules and what the prices assume.
+
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.
 

@@ -93,6 +93,8 @@ class App(tk.Tk):
             )
         )
         self.busy_controls: list[tk.Widget] = []
+        # The Breeding Guide's options (Show Spoilers), remembered with the rest.
+        self.breeding_settings: dict = {"show_spoilers": False}
         self._load_settings()
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._close)
@@ -985,6 +987,9 @@ class App(tk.Tk):
         if selected in GAMES:
             self.game_choice.set(selected)
         self.output_parent.set(str(data.get("output_parent", "")))
+        breeding = data.get("breeding_guide")
+        if isinstance(breeding, dict):
+            self.breeding_settings = {"show_spoilers": bool(breeding.get("show_spoilers", False))}
         game_data = data.get("games", {})
         for game_id in GAMES:
             saved = game_data.get(game_id, {}) if isinstance(game_data, dict) else {}
@@ -1026,6 +1031,7 @@ class App(tk.Tk):
                 }
                 for game_id in GAMES
             },
+            "breeding_guide": {"show_spoilers": bool(getattr(self, "breeding_settings", {}).get("show_spoilers", False))},
         }
         try:
             SETTINGS_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")

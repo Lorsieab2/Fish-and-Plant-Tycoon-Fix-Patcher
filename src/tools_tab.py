@@ -4,10 +4,11 @@ Back Up Saves, Restore Saves, Rename Tribe), for one consistent tool across
 the owner's patchers:
 
 * "The game chosen on the One Game tab": Back Up Saves, Restore Saves...,
-  Rename Players... and Game Mechanics..., each a link with a "?" guide.
-* "Each game": the same four for Fish Tycoon and Plant Tycoon, one row per
-  game, then Back Up Saves (Both)..., Rename Players... and Game Mechanics...
-  buttons.
+  Rename Players..., Game Mechanics... and Breeding Guide..., each a link
+  with a "?" guide.
+* "Each game": the same five for Fish Tycoon and Plant Tycoon, one row per
+  game, then Back Up Saves (Both)..., Rename Players..., Game Mechanics...
+  and Breeding Guide... buttons.
 * Back Up Saves lists the game's modded save folders (ticked: the patcher's
   own) and backs the ticked ones up, pausing a running game; Restore Saves
   lists every backup of the game, newest first, to restore whole or one slot,
@@ -23,6 +24,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import zipfile
 
+import breeding_guide
 import save_backup
 import save_tools
 
@@ -81,6 +83,7 @@ HELP = {
             "It never opens or changes a save or game file.",
         ],
     ),
+    "breeding_guide": breeding_guide.HELP,
 }
 
 
@@ -114,6 +117,7 @@ class ToolsTab:
             ("Restore Saves...", "restore_saves", lambda: self.restore(self.app.game_choice.get())),
             ("Rename Players...", "rename_players", lambda: self.rename(self.app.game_choice.get())),
             ("Game Mechanics...", "game_mechanics", lambda: self.mechanics(self.app.game_choice.get())),
+            ("Breeding Guide...", "breeding_guide", lambda: self.breeding(self.app.game_choice.get())),
         )):
             self._link(links, text, command).pack(side="left", padx=(0 if index == 0 else 18, 0))
             self._help(links, key).pack(side="left", padx=(3, 0))
@@ -127,6 +131,7 @@ class ToolsTab:
             ("restore_saves", "Restore saves...", self.restore),
             ("rename_players", "Rename players...", self.rename),
             ("game_mechanics", "Game mechanics...", self.mechanics),
+            ("breeding_guide", "Breeding guide...", self.breeding),
         )
         for column, (key, _text, _command) in enumerate(columns, start=1):
             self._help(grid, key).grid(row=0, column=column, padx=(12, 0), pady=(0, 2))
@@ -141,6 +146,7 @@ class ToolsTab:
             ("Back Up Saves (Both)...", "back_up_saves", lambda: self.back_up(list(GAMES))),
             ("Rename Players...", "rename_players", lambda: self.rename(None)),
             ("Game Mechanics...", "game_mechanics", lambda: self.mechanics(None)),
+            ("Breeding Guide...", "breeding_guide", lambda: self.breeding(None)),
         )):
             ttk.Button(buttons, text=text, command=command).pack(side="left", padx=(0 if index == 0 else 8, 0))
             self._help(buttons, key).pack(side="left", padx=(2, 0))
@@ -599,3 +605,19 @@ class ToolsTab:
         import game_mechanics_window
 
         game_mechanics_window.open_window(self.app, game_id or self.app.game_choice.get())
+
+    # --------------------------------------------------------------- breeding
+
+    def breeding(self, game_id: str | None) -> None:
+        """The Breeding Guide, told where the game copies may be (the patcher's output
+        folders) so it can see which settings a save's copy was patched with."""
+        app = self.app
+        parents = [app.output_parent.get().strip()]
+        for game in GAMES:
+            output = app.path_vars[game]["output"].get().strip()
+            if output:
+                parents.extend([output, str(Path(output).parent)])
+        breeding_guide.open_window(
+            app, game_id or app.game_choice.get(), settings=app.breeding_settings,
+            save_settings=app._save_settings, game_parents=[p for p in parents if p],
+        )

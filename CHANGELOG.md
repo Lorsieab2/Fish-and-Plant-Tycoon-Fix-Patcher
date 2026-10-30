@@ -24,6 +24,17 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   game is paused for it and resumed. A restore, with the game closed, puts
   back the whole folder or one player slot, after backing up the saves as they
   are now. Every change backs the save folder up first.
+- **Breeding Guide** (Tools tab), both games: a sortable, searchable sheet
+  per part (Fish: Fins and Bodies; Plant: Flowers and Foliage) with how each
+  is obtained, its rarity and its species; the species with the pairs that
+  breed them, the best price per day and the highest price that sells, each
+  with 0 and with max effects; a Breeding Calculator and a Have to Want
+  planner. It reads the chosen save and player only, opens on the discovered
+  species, and Show Spoilers (remembered) shows everything. DS Exclusive Fish
+  and Unused Flowers species appear only for a copy patched with them.
+  Export to .xlsx (written with the standard library) or .csv. The Fish
+  Tycoon rules and prices are checked against the vanilla executable in
+  Unicorn (tests/test_breeding_fish.py).
 - **Game Mechanics** (Tools tab): how both games really work, read from their
   code, with every random roll's exact odds and what each patcher setting
   changes. It is read-only.
