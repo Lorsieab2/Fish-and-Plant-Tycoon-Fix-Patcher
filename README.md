@@ -44,7 +44,7 @@ never needs the internet.
   Seahorses, in case you trash or lose it somehow. It shipped broken from
   v1.0.6 and was fixed in v1.0.12; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
-- Bigger tanks: 30 fish (off by default). Tank 1, Tank 2 and the Sale Tank
+- Bigger tanks: 30 fish (off by default; **EXPERIMENTAL - USE AT OWN RISK**). Tank 1, Tank 2 and the Sale Tank
   (Tank 3) hold 30 fish instead of 21 (the isolation tank still holds one;
   with 3 extra tanks, Tanks 4-6 hold 30 too), and
   fish 22-30 get everything fish 1-21 get. Every adult in the Sale Tank is
@@ -224,7 +224,7 @@ never needs the internet.
   $1,000 to your money, as often as you like. Money stops at the largest
   value the game holds ($2,147,483,647). Picture:
   [docs/images/add-money-fish.png](docs/images/add-money-fish.png).
-- Multiple ornaments (off by default). The Shell, Pagoda, Diver, Fancy Coral,
+- Multiple ornaments (off by default; **EXPERIMENTAL - USE AT OWN RISK**). The Shell, Pagoda, Diver, Fancy Coral,
   Sunken Antique Column and Sunken Ship can be bought again once you own
   them, at their normal price, up to 10 extra copies per tank. The copies are
   only for decorating: they are drawn, fall, and are dragged, placed and

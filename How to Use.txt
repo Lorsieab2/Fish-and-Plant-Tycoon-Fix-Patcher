@@ -58,7 +58,7 @@ Fish Tycoon options:
 - Unknown Chemical: 3 uses
 - Universal supply slots 2-4
 - Buy Multiple Golden Seahorses
-- Bigger tanks: 30 fish (off by default; Tank 1, Tank 2 and the Sale Tank
+- Bigger tanks: 30 fish (off by default; EXPERIMENTAL - USE AT OWN RISK; Tank 1, Tank 2 and the Sale Tank
   (Tank 3) hold 30 fish instead of 21, Tanks 4-6 too with 3 extra tanks,
   each fish selling with the stock odds; the isolation tank still holds one.
   Sell or move fish down to 21 per tank before turning it off.)
@@ -88,7 +88,7 @@ Fish Tycoon options:
   like the Sale Tank without its For Sale sign. The two small arrows
   left of the Tank 1 button switch the tank buttons to them and back.
   Empty the three tanks before turning it off again.)
-- Multiple ornaments (off by default; buy the six store ornaments again,
+- Multiple ornaments (off by default; EXPERIMENTAL - USE AT OWN RISK; buy the six store ornaments again,
   up to 10 extra copies per tank, for decoration only: the effect still
   counts once. Trash the copies before turning it off again.)
 - Time Warp (off by default; a $500 clock on the store's Upgrades screen:

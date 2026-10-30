@@ -9,6 +9,28 @@ and fixes.
 
 ### Both games
 
+- **Experimental settings.** 3 extra tanks, Bigger tanks: 30 fish, Multiple
+  ornaments, 5 extra greenhouses and 5 extra nurseries carry the owner's
+  "EXPERIMENTAL - USE AT OWN RISK" label: it is shown in red beside each name in
+  the patcher, their summaries and descriptions start with it, and they are off
+  by default ("Defaults" leaves them off; "Enable All" still turns them on).
+  One shared flag (`"experimental": true` in the manifests, src/experimental.py).
+
+- **Everything in one update.** The new settings work together:
+  - DS Store Items' animals (the Golden Seahorse with it, the Puffer, Ray and
+    Eel) move with their tank into Tanks 4-6 and are kept there in "Extra Tanks
+    <slot>.dat" (version 4: each tank's 5 animal records after its block; a
+    version-3 file has its animals in records 26-30 moved over when it loads).
+    Buying an animal again ("one of each" with Buy Multiple Golden Seahorses off)
+    sees the ones in Tanks 4-6.
+  - The Time Warp warps Tanks 4-6 too.
+  - Tank counts chain 3 extra tanks' wrapper of the tank background and count
+    the tank on screen, Tanks 4-6 included; the Optimize Prices button loads
+    before Extra Greenhouses, which chains its two Nursery slots.
+  - The Radioactive Growth Hormone, Revival Potion and ClonaFish reach all 30
+    slots with Bigger tanks (they read the game's own bounds, which Bigger tanks
+    rewrites), and the Optimize Prices button reads the 30-fish bound.
+
 - **Tank and greenhouse counts** (on by default, both games). Fish Tycoon's
   tank screen shows, at the top left of the water, "Fish: 12 of 21 (8 adults,
   3 teens, 1 baby)" for the tank on screen (of 30 with Bigger tanks), its
@@ -27,9 +49,10 @@ and fixes.
   are shown apart as "Dead: n"; Fish Tycoon follows the game's German. Drawn
   every frame in each game's own font right after the screen's background,
   so nothing is ever covered, and display only. Each game's companion DLL
-  (`Tank Counts.dll`, `Greenhouse Counts.dll`) is loaded first by the startup
-  loader and loads the DLL the loader loaded before, so every combination
-  without the counts keeps its pin. Pictures:
+  (`Tank Counts.dll`, `Greenhouse Counts.dll`) is loaded by the startup loader
+  (after Extra Tanks.dll, whose wrapper of the tank background it chains; Extra
+  Greenhouses.dll starts it itself) and loads the DLL the loader loaded before,
+  so every combination without the counts keeps its pin. Pictures:
   [docs/images/tank-counts-fish.png](docs/images/tank-counts-fish.png),
   [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png).
 
@@ -50,7 +73,8 @@ and fixes.
   species' asking price becomes the Breeding Guide's "best per day" price for
   the shop as it is now, and an OK box says "N prices set." Fish: each
   species' base price (with the Advertising rises), the ornaments owned, the
-  Golden Seahorse and the Advertising level, with a full selling tank.
+  Golden Seahorse and the Advertising level, with a full selling tank (21 fish,
+  or 30 with Bigger tanks; the crowd counts at most 21 adults, as the game does).
   Plant: each species' value, the Golden Berries
   of Wealth, and the visitor limit from the ornaments owned, the magic plants
   found and the bug collection with all 15 sale spots filled, for a healthy,
