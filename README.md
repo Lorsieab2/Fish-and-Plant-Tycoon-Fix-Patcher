@@ -273,7 +273,7 @@ other. `Documents` is wherever Windows keeps it, which is often
 The **Tools** tab is laid out and works like the Virtual Villagers Fun
 Patcher's: the tools for the game chosen on the One Game tab, then the same
 tools for each game (Back up saves, Restore saves..., Rename players...,
-Game mechanics...), and Back Up Saves (Both)... for both at once. Every tool
+Game mechanics..., Breeding guide...), and Back Up Saves (Both)... for both at once. Every tool
 has a "?" guide. They work on the modded copies' save folders ("- Modded",
 "- Modded Upgrades" and any other "<Game> - Modded..." folder; see "Where
 your saves go"). Every file operation uses Windows' long-path form, so a deep
@@ -308,6 +308,31 @@ folder never fails with "path too long".
   UNCONFIRMED. A "With the patcher" line marks what one of this patcher's
   settings changes. It never touches a save, so the games can stay open. See
   [docs/game-mechanics-window.md](docs/game-mechanics-window.md).
+- **Breeding Guide.** Spreadsheets of each game's breeding, for the save and
+  player you pick (read only; nothing is ever written to a save):
+  - a sheet per part (Fish Tycoon: Fins and Bodies; Plant Tycoon: Flowers and
+    Foliage): how each is obtained, its rarity and the species that have it;
+  - the species: the pairs of parts that breed each one, its base value, and
+    two prices each with 0 effects and with max effects: the best asking
+    price per day and the highest price that still sells;
+  - a Breeding Calculator (two parents: every child and its exact odds) and
+    Have to Want (the shortest breeding chain from the species you have to the
+    one you want).
+
+  It opens on the save's discovered species and shows only what they reveal;
+  **Show Spoilers** (under Options, remembered) shows every species, the full
+  charts and every price. The patcher's own species (DS Exclusive Fish,
+  Unused Flowers) appear only when the save's game copy was patched with that
+  setting, marked in a Patcher column. Columns sort with a click, a Search box
+  filters, and Export saves the open sheet as .xlsx or .csv. Every rule is the
+  game's own: the Fish Tycoon model (`src/breeding_fish.py`) is checked
+  against the vanilla executable in Unicorn by `tests/test_breeding_fish.py`
+  (base prices 0x418B10, Advertising 0x420A82, the baby's genes 0x41FAAB, the
+  Mutation fish 0x42014C, the sale odds 0x424240), and the Plant Tycoon model
+  is `src/breeding_plant.py`. The prices' assumptions (real time, a full
+  selling tank, how many customers browse) are in its "?" guide.
+  Pictures: [docs/images/breeding-guide-fish-discovered-species.png](docs/images/breeding-guide-fish-discovered-species.png)
+  and the other `docs/images/breeding-guide-*.png`.
 
 ## Safety
 

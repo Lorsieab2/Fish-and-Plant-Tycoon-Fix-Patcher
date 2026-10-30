@@ -175,6 +175,17 @@ class Sheet:
         self.message = message
 
 
+def column_width(title: str, kind: str) -> int:
+    """A column's starting width in pixels (every column can be dragged wider)."""
+    if title in ("Index", "Step", "Discovered", "Rarity", "Species with it", "Base value", "Odds (%)"):
+        return 90
+    if title.startswith(("Bred from", "How it", "Species", "Notes")) and title != "Species":
+        return 380 if title != "Notes" else 200
+    if title in ("Species", "Child", "Patcher", "How") or title.startswith(("Mother", "Father", "Parent")):
+        return 180 if title != "Patcher" else 130
+    return 110 if kind != "text" else 120
+
+
 def display(value, kind: str) -> str:
     if value is None or value == "":
         return ""
@@ -226,6 +237,7 @@ class View:
         self.spoilers = bool(spoilers)
         self.all_species = model.species()
         self.by_key = {tuple(s.key): s for s in self.all_species}
+        self.has_save = discovered is not None             # None: no save was read
         self.discovered = {tuple(k) for k in (discovered or set()) if tuple(k) in self.by_key}
         self.kinds = _kinds_order(model)
         if self.spoilers:
@@ -339,7 +351,7 @@ class View:
                    "Notes", "Patcher"]
         kinds = ["text", "text", "text", "text", "int", "text", "text",
                  "int", "money", "int", "money", "int", "int", "text", "text"]
-        if self.spoilers and self.discovered is not None:
+        if self.spoilers and self.has_save:
             columns.append("Discovered")
             kinds.append("text")
         rows, tags, keys, details = [], [], [], []
@@ -351,11 +363,11 @@ class View:
                    p1.best_per_day_income, p0.highest_selling, p1.highest_selling,
                    note(s.key) if note else "", patcher]
             found = tuple(s.key) in self.discovered
-            if self.spoilers and self.discovered is not None:
+            if self.spoilers and self.has_save:
                 row.append("Yes" if found else "No")
             rows.append(row)
             tag = ("patcher",) if s.patcher else ()
-            if self.spoilers and not found:
+            if self.spoilers and self.has_save and not found:
                 tag += ("undiscovered",)
             tags.append(tag)
             keys.append(tuple(s.key))
@@ -393,7 +405,8 @@ class View:
                 found = tuple(child) in self.discovered
                 rows.append([s.name if known else UNDISCOVERED, s.parts[0].name if known else "?",
                              s.parts[1].name if known else "?", 100 * odds, "Yes" if found else "No"])
-                tags.append((("patcher",) if s.patcher and known else ()) + (() if found else ("undiscovered",)))
+                tags.append((("patcher",) if s.patcher and known else ())
+                            + (("undiscovered",) if self.has_save and not found else ()))
                 keys.append(tuple(child))
         return Sheet("Breeding Calculator", columns, rows, kinds=kinds, tags=tags, keys=keys)
 
@@ -798,7 +811,7 @@ class BreedingGuide:
             return
         for button in (self.export_xlsx_button, self.export_csv_button):
             button.state(["!disabled"])
-        self.view = View(self.model, self.discovered or set(), self.spoilers_var.get())
+        self.view = View(self.model, self.discovered, self.spoilers_var.get())
         found = len(self.view.discovered)
         total = len(self.view.all_species)
         save = (f"{self.folder_var.get()}, {self.slot_var.get()}: {found} of {total} species discovered."
@@ -833,9 +846,7 @@ class BreedingGuide:
         grid.columnconfigure(0, weight=1)
         for i, title in enumerate(sheet.columns):
             tree.heading(f"c{i}", text=title, command=lambda c=i, s=sheet_id: self.sort(s, c))
-            width = 260 if sheet.kinds[i] == "text" and title not in ("Rarity", "Patcher", "Discovered", "?") else 110
-            if title in ("Index", "Step", "Discovered", "Rarity", "Patcher", "Species with it", "Base value"):
-                width = 90
+            width = column_width(title, sheet.kinds[i])
             tree.column(f"c{i}", width=width, minwidth=50, stretch=False,
                         anchor="w" if sheet.kinds[i] == "text" else "e")
         tree.tag_configure("patcher", foreground="#5a3d00")
@@ -865,7 +876,7 @@ class BreedingGuide:
         for value, label in EFFECTS:
             ttk.Radiobutton(row, text=label.capitalize(), value=value, variable=self.effects_var,
                             command=command).pack(side="left", padx=(6, 0))
-        effects = "; ".join(self.model.effects_max())
+        effects = " ".join(self.model.effects_max())
         ttk.Label(parent, text=f"Max effects: {effects}", wraplength=1050, justify="left",
                   foreground="#555555").pack(anchor="w", pady=(2, 4))
 

@@ -134,12 +134,18 @@ class SheetTests(unittest.TestCase):
 
 
 def tk_root():
-    try:
-        root = tk.Tk()
-    except tk.TclError:
-        return None
-    root.withdraw()
-    return root
+    """A hidden Tk root, or None with no display. Tk's start-up now and then fails once on
+    Windows right after another root was destroyed, so it gets three tries."""
+    import gc
+    for _attempt in range(3):
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            gc.collect()
+            continue
+        root.withdraw()
+        return root
+    return None
 
 
 class WindowTests(unittest.TestCase):

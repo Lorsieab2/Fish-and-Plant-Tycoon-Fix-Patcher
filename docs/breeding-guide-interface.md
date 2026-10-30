@@ -56,3 +56,13 @@ class Model:
 
 def load(game_folder_or_exe, extras: bool) -> Model: ...
 ```
+
+`Part`, `Species` and `Prices` are defined once, in `src/breeding_guide.py`;
+both models import them from there.
+
+Optional, used by the window when a model has them: `kinds` (the part tabs'
+order), `parent_labels`, `part_label(kind)`, `part_rarity(part)`,
+`part_combos(kind, index)` (the pairs of parts that give a part, as
+`(a, b, chance)`), `species_note(key)`. A `plan()` step may carry `"via"`:
+`"pollination"`, or `"Mutation Liquid"` with parents `(a, a)` (Plant Tycoon),
+shown as "Mutation Liquid on a".
