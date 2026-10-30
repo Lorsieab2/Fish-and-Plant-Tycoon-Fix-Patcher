@@ -65,6 +65,9 @@ static const unsigned char SITE_SAVE_CALL_GAME_EXPECT[] = { 0xE8, 0x98, 0xEA, 0x
 #define SITE_SAVE_CALL_SETTINGS_VA 0x0041A66Bu
 #define SITE_SAVE_CALL_SETTINGS_LEN 5
 static const unsigned char SITE_SAVE_CALL_SETTINGS_EXPECT[] = { 0xE8, 0x90, 0xEA, 0xFF, 0xFF };
+#define SITE_SUPPLY_DROP_VA 0x00421B52u
+#define SITE_SUPPLY_DROP_LEN 5
+static const unsigned char SITE_SUPPLY_DROP_EXPECT[] = { 0xE8, 0x19, 0xF0, 0xFF, 0xFF };
 #define SITE_VT_MOUSE_VA 0x0044C298u
 #define SITE_VT_MOUSE_LEN 4
 static const unsigned char SITE_VT_MOUSE_EXPECT[] = { 0x80, 0x79, 0x42, 0x00 };

@@ -160,7 +160,22 @@ back layer is merged into the front one, so it is drawn whole in front.
 
 Trashing goes both ways: the eel thrown away takes its rock with it, and the
 rock dropped on the trash can asks "Delete this fish?" and takes its eel
-(home in it, or swimming) with it.
+(home in it, or swimming) with it. The partner is looked for in the tank on
+screen, then the other stock tanks, then the tanks 3 extra tanks holds
+(`FtfpExtraTanksHeld`: Tanks 4-6, or Tank 1 while one of them is shown), so
+the two always go together.
+
+The store's supplies (Exotic Fish Eggs, items 28; the Radioactive Growth
+Hormone, Revival Potion and ClonaFish, items 29-31) let go on the trash can
+are thrown away: the release (`0x421B20`) calls the supply use `0x420B70`
+at `0x421B52`, and the DLL's call there empties the held slot (item,
+present, count, icon and cursor 0, as the stock tail `0x420D9B` empties a
+used-up one), sets nothing held (`impl+0x1C = 0x63`) and plays the fish
+trash's sound 4, when the drop is outside the tank rectangle
+(`impl+0xA8..0xB4`) and inside the trash can's (`impl+0x88..0x94`, the
+fish trash's hit area). No question: the game asks only about a live fish.
+Anything else (the food, every stock supply, any other point) goes on to the
+stock use, which outside the tank shows a hint and puts it back.
 
 The rock and the eel's home state need no sidecar:
 - The rock is one of the tank's six ornament records (sprite 228 with the

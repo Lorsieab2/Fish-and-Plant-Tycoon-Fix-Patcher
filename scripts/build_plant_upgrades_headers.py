@@ -57,6 +57,11 @@ SITES = [
     # Planting (0x42FC70, every new plant: new game, tray, pot seed): the new plant's +0x7C starts
     # at 0, so a formula mark left by the pot's last plant never carries over.
     ("plant_seed", 0x42FCDD, ["mov dword ptr [esi + 0x78], edx", "mov byte ptr [esi + 0x6c], 0"]),
+    # The greenhouse trash: the mouse-up's call of the stock trash (0x424680, a held item let go
+    # off the pots), and the press off the pots (0x426040 at 0x4272DC, before the selected plant's
+    # trash or the put-back): the new chemicals held there are thrown away.
+    ("trash_drop", 0x425FF2, ["call 0x424680"]),
+    ("trash_press", 0x4272DC, ["mov ecx, dword ptr [esi + 0x68]", "mov eax, dword ptr [ecx + 0x63e58]"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).
