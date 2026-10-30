@@ -98,6 +98,10 @@ static const unsigned char SITE_UNIT_TOP_EXPECT[] = { 0x39, 0x6F, 0x28, 0x75, 0x
 #define SITE_UNITS_DONE_LEN 10
 static const unsigned char SITE_UNITS_DONE_EXPECT[] = { 0x8B, 0x4E, 0x0C, 0x80, 0xB9, 0x27, 0x3F, 0x05, 0x00, 0x00 };
 #define SITE_UNITS_DONE_BACK 0x0042E2E9u
+#define SITE_DEAD_UNTAG_VA 0x0042DF91u
+#define SITE_DEAD_UNTAG_LEN 7
+static const unsigned char SITE_DEAD_UNTAG_EXPECT[] = { 0xC6, 0x80, 0x9D, 0x00, 0x00, 0x00, 0x00 };
+#define SITE_DEAD_UNTAG_BACK 0x0042DF98u
 #define SITE_CHEM_PICTURE_BOUND_VA 0x004308D1u
 #define SITE_CHEM_PICTURE_BOUND_LEN 3
 static const unsigned char SITE_CHEM_PICTURE_BOUND_EXPECT[] = { 0x83, 0xF8, 0x24 };

@@ -50,7 +50,7 @@ SETTING = {
         "branch and leaf, no dead or brown leaves, full health, and always 5 seeds: all 5 when it is "
         "pollinated later, or, if it is already pollinated, all its seeds ripe at once), the Revival "
         "Potion beside it ($10,000, 3 doses: a dead plant it is dropped on comes back to life at full "
-        "health), Revita-Seed beside that ($2,500, 3 doses: a plant that has given all its seeds can "
+        "health, and for sale again if it was for sale when it died), Revita-Seed beside that ($2,500, 3 doses: a plant that has given all its seeds can "
         "be pollinated again, as a fresh plant can), the Radioactive Plant Formula Bomb under the "
         "formula ($30,000, 3 doses: one Radioactive Plant Formula dose for every live plant in the "
         "greenhouse on screen, the pots the Fertilizer Bomb reaches), Automatic Sprinklers ($10,000) "

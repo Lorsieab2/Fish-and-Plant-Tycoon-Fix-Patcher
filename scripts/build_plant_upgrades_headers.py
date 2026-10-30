@@ -66,6 +66,9 @@ SITES = [
     # caught-up unit, edi = the pot) and the code right after the loop (esi = the plant object).
     ("unit_top", 0x42E134, ["cmp dword ptr [edi + 0x28], ebp", "jne 0x42e144"]),
     ("units_done", 0x42E2DF, ["mov ecx, dword ptr [esi + 0xc]", "cmp byte ptr [ecx + 0x53f27], 0"]),
+    # The plant update (0x42DF80) clears a dead plant's on-sale flag (+0x9D) every update: the DLL
+    # remembers it was for sale (+0x9F) so the Revival Potion can put it back on sale.
+    ("dead_untag", 0x42DF91, ["mov byte ptr [eax + 0x9d], 0"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).
