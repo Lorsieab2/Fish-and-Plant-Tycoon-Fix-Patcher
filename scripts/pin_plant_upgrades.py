@@ -39,7 +39,7 @@ FOLDER = ds_fish_loader.PLANT.patcher_files_folder
 SETTING = {
     "id": SETTING_ID,
     "name": "Add new store upgrades and items",
-    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula, and the Fourth, Fifth and Sixth Seed Box. Needs Add unused flowers.",
+    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula, the Revival Potion, Revita-Seed, and the Fourth, Fifth and Sixth Seed Box. Needs Add unused flowers.",
     "description": (
         "Adds an Upgrades link on the bricks at the left of the Supplies store. It opens a second "
         "view of the store with only the new items, each where it would sit in the store: "
@@ -47,7 +47,10 @@ SETTING = {
         "unused flowers; the stock seed packets keep their stock flowers), the Radioactive Plant "
         "Formula with the chemicals ($10,000, 3 doses, far beyond spamming Fertilizer Bombs and Plant "
         "Food: every branch grows, the largest size, full bloom, a flower on every spot of every "
-        "branch and leaf, no dead or brown leaves, full health, and 5 seeds when pollinated), and the Fourth, Fifth "
+        "branch and leaf, no dead or brown leaves, full health, and 5 seeds when pollinated), the Revival "
+        "Potion beside it ($10,000, 3 doses: a dead plant it is dropped on comes back to life at full "
+        "health), Revita-Seed beside that ($2,500, 3 doses: a plant that has given all its seeds can "
+        "be pollinated again, as a fresh plant can), and the Fourth, Fifth "
         "and Sixth Seed Box with the tool upgrades (\"Even more space for your seeds!\", $1000 each, "
         "bought in order like the stock boxes). Each new box opens a 40-seed drawer in a second "
         "chest on the Seed Storage screen; the gold arrows on its title bar switch between boxes "
@@ -57,9 +60,10 @@ SETTING = {
     ),
     "warning": (
         "Turning this off leaves bought Legendary seeds drawn as another seed packet, the formula "
-        "drawn as an Insta-Grow Vaporbomb that does nothing, boxes 4-6 hidden with their seeds, "
+        "drawn as an Insta-Grow Vaporbomb that does nothing (the Revival Potion and Revita-Seed as "
+        "the last stock chemical, doing nothing too), boxes 4-6 hidden with their seeds, "
         "and the extra flowers the formula grew drawn away from their plants. Plant or sell the "
-        "seeds, use up the formula, sell or compost the plants it was used on, and move seeds out "
+        "seeds, use up the formula, the Revival Potion and Revita-Seed, sell or compost the plants it was used on, and move seeds out "
         "of boxes 4-6 before switching it off."
     ),
     "category": "main",

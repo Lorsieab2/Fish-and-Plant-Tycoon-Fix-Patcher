@@ -12,10 +12,15 @@
      * Exotic Fish Eggs: eggs for slot #4 that hatch only DS-exclusive
        bodies and fins (genes 23-29, even odds), as many as the other eggs;
      * Radioactive Growth Hormone ($10,000, 3 doses): a chemical for slot #3,
-       used like the stock Growth Hormone and on exactly the fish it reaches
-       (each live fish aged 40 or less in the tank you look at, 0x4210F2):
-       each becomes an adult (age 20) if younger, gets full health (100) and
-       is cured of its sickness;
+       used like the stock Growth Hormone, on every live fish in the tank you
+       look at, any age (the stock one stops at 40, 0x421125): each pregnant one first gives birth through the stock birth rules,
+       then each (the newborns too) becomes an adult (age 20) if younger,
+       gets full health (100) and is cured of its sickness;
+     * Revival Potion ($10,000, 3 doses): a chemical for slot #3; each dose
+       revives every dead fish in the tank you look at, at full health;
+     * ClonaFish ($2,500, 3 doses): a chemical for slot #3; each dose adds an
+       exact copy of every unique fish in the tank you look at, through the
+       game's own AddFish, until the tank is full;
      * with their settings ("<name>.ini" beside this DLL): the Time Warp
        clock, and Add Money ($950 for +$1,000, any number of times).  With
        Free upgrades every item on this page costs $0.
@@ -26,7 +31,7 @@
      * Moray Eel: a fish that would die survives at health 10, 1 time in 10.
 
    HOW.  "DS Store Items.dll" sits beside "DS Exclusive Fish.dll", which loads it
-   after its own install and lends it sprite table entries 220-235.  Every
+   after its own install and lends it sprite table entries 220-243.  Every
    write into the game is in store_sites.h -- all of them or none.
 
    STATE.  Nothing new is saved.  An animal is a seahorse-type fish record
@@ -130,7 +135,13 @@
 #define SPR_ITEM_RGH (STORE_SPRITE_BASE + 15)
 #define SPR_TOOL_RGH (STORE_SPRITE_BASE + 16)        /* on the shelf, as the stock 0x7A */
 #define SPR_DROPPER_RGH (STORE_SPRITE_BASE + 17)     /* the cursor while used, as the stock 0x7B */
-#define STORE_SPRITES 18
+#define SPR_ITEM_REVIVAL (STORE_SPRITE_BASE + 18)
+#define SPR_TOOL_REVIVAL (STORE_SPRITE_BASE + 19)
+#define SPR_DROPPER_REVIVAL (STORE_SPRITE_BASE + 20)
+#define SPR_ITEM_CLONA (STORE_SPRITE_BASE + 21)
+#define SPR_TOOL_CLONA (STORE_SPRITE_BASE + 22)
+#define SPR_DROPPER_CLONA (STORE_SPRITE_BASE + 23)
+#define STORE_SPRITES 24
 
 typedef struct sprite_entry {
     int id;
@@ -165,6 +176,12 @@ static const struct { const char *name; int cols, rows; } SPRITE_FILES[STORE_SPR
     { "ITEM_RADIOACTIVE_GROWTHHORMONE.png", 0, 0 },   /* the stock Growth Hormone's art, green */
     { "TOOL_RADIOACTIVE_GROWTHHORMONE.png", 0, 0 },
     { "TOOL_dropper_RADIOACTIVE.png", 0, 0 },
+    { "ITEM_REVIVAL_POTION.png", 0, 0 },        /* the owner's amber flask */
+    { "TOOL_REVIVAL_POTION.png", 0, 0 },
+    { "TOOL_dropper_REVIVAL.png", 0, 0 },
+    { "ITEM_CLONAFISH.png", 0, 0 },             /* the owner's magenta bottle */
+    { "TOOL_CLONAFISH.png", 0, 0 },
+    { "TOOL_dropper_CLONAFISH.png", 0, 0 },
 };
 
 /* ------------------------------------------------------------ the game */
@@ -771,15 +788,83 @@ static void __cdecl exotic_hatch(char *impl, int x, int y) {
 #define RGH_ITEM 29
 #define RGH_DOSES 3
 #define ADULT_AGE 20                /* adults are 20 and up: 0x4200AC, 0x420498 (sickness), 0x42426F (sales) */
-#define GH_MAX_AGE 40               /* Growth Hormone reaches fish aged 40 or less: 0x421125 */
 #define S_CURED 0x34                /* "Fish Cured", which the stock medicine cure adds to (0x420D2B) */
 /* The end of the stock Growth Hormone's fish loop, `cmp ebx, 0x3528` at 0x42118E: 21 records, or 26 with
    "Bigger tanks", which rewrites this immediate. Read here, so the dose reaches the same records. */
 #define GH_LOOP_END (*(const int *)(UINT_PTR)0x00421190u)
+/* The fish update's own bounds (0x41FE70): slots `cmp ecx, 0x15` at 0x4206B1 (26 with "Bigger
+   tanks", which rewrites the byte at 0x4206B3) and tanks `cmp eax, 3` at 0x4206C5 (byte
+   0x4206C7).  Read, never assumed, so the potions reach every slot and tank the game updates. */
+#define UPDATE_SLOTS (*(const signed char *)(UINT_PTR)0x004206B3u)
+#define UPDATE_LAST_TANK (*(const signed char *)(UINT_PTR)0x004206C7u)
+/* The one tank where the update never lets a fish give birth (`cmp [esp+0x10], 3` at 0x42013D). */
+#define NO_BIRTH_TANK (*(const signed char *)(UINT_PTR)0x00420141u)
 
-/* One dose on the tank being looked at (0x384), on exactly the fish the stock Growth Hormone
-   reaches (0x421100-0x421194): live (+0x00), health not 0 (+0x3C), age (+0x0C) 40 or less.
-   Each one:
+static int last_tank(void) { return UPDATE_LAST_TANK; }
+
+/* The fish records the update reaches in a tank: never fewer than 1, never past the block's 31. */
+static int fish_slots(void) {
+    int n = UPDATE_SLOTS;
+    return n < 1 ? 1 : n > RECORDS ? RECORDS : n;
+}
+
+/* ---- Pregnancy and birth (vanilla 0x420113-0x4203DD, run once per fish per update):
+   +0x10 is the due age (0 = not pregnant; set at mating), +0x14/+0x18 the father's body and
+   fin, +0x1C-+0x38 the grandparents.  When the due age is below the age and the tank is not
+   tank 3 (0x42013D), the update gives birth:
+     * with a Magic Fish of kind 5 in the tank (0x41DE90(5, tank)): on Random(100) <= 15 the
+       father's genes mutate (+0x14 or +0x18 by one, 0x42015E-0x420210), clamped to 0-20;
+     * NewBaby 0x41FA30 (one AddFish 0x419C50: a full tank simply gets no baby), then one more
+       with a Magic Fish of kind 0 (fertility, 0x4202D9), one more with the Plant of Fertility
+       (state + 0x1A4, 0x420356); each baby's age is age - due age;
+     * the due age is cleared (0x4203D2).
+   stock_birth is that code, call for call, in the same order, so the same random rolls give
+   the same litter. */
+#define F_DUE F_PREGNANT
+#define F_MATE_BODY 0x14
+#define F_MATE_FIN 0x18
+#define S_PLANT_OF_FERTILITY 0x1A4
+#define MAGIC_IN_TANK GAME(this2_fn, 0x0041DE90u)       /* (kind, tank) -> al */
+
+static int magic_in_tank(char *impl, int kind, int tank) {
+    return MAGIC_IN_TANK(impl, NULL, kind, tank) & 0xFF;
+}
+
+static void stock_baby(char *impl, char *f, int age, int tank) {
+    NEW_BABY(impl, NULL, *I(f, F_BODY), *I(f, F_FIN), *I(f, F_MATE_BODY), *I(f, F_MATE_FIN),
+             *I(f, 0x1C), *I(f, 0x24), *I(f, 0x20), *I(f, 0x28), *I(f, 0x2C), *I(f, 0x30), *I(f, 0x34),
+             *I(f, 0x38), age, tank);
+}
+
+static void stock_birth(char *impl, char *f, int tank, int baby_age) {
+    char *state = (char *)P(impl, 0x34);
+    if (magic_in_tank(impl, 5, tank) && RANDOM(100) <= 15) {
+        int *mate_body = I(f, F_MATE_BODY), *mate_fin = I(f, F_MATE_FIN);
+        if (RANDOM(100) <= 49) {
+            if (*mate_body == 20) --*mate_body;
+            else if (RANDOM(100) <= 49 || *mate_body == 0) ++*mate_body;
+            else --*mate_body;
+        } else {
+            /* The stock code tests the father's body here but changes his fin (0x4201CC). */
+            if (*mate_body == 20) --*mate_fin;
+            else if (RANDOM(100) <= 49 || *mate_body == 0) ++*mate_fin;
+            else --*mate_fin;
+        }
+        if (*mate_body > 20) *mate_body = 20; else if (*mate_body < 0) *mate_body = 0;
+        if (*mate_fin > 20) *mate_fin = 20; else if (*mate_fin < 0) *mate_fin = 0;
+    }
+    stock_baby(impl, f, baby_age, tank);
+    if (magic_in_tank(impl, 0, tank)) stock_baby(impl, f, baby_age, tank);
+    if (*I(state, S_PLANT_OF_FERTILITY) != 0) stock_baby(impl, f, baby_age, tank);
+    *I(f, F_DUE) = 0;
+}
+
+/* One dose on the tank being looked at (0x384), on every fish of it, any age (the owner,
+   2026-10-30; the stock Growth Hormone, 0x421100-0x421194, stops at age 40): live (+0x00),
+   health not 0 (+0x3C), over the stock loop's records.  First every pregnant one of them (+0x10 not 0) gives birth at once, through stock_birth
+   (the owner, 2026-10-30), with the babies aged 1, as a birth on the due step is (age - due
+   age); tank 3 never gives birth, as stock.  Then each fish reached, the newborns included,
+   so the whole litter comes out adult:
      * younger than 20: age 20, written as the stock dose writes an age (0x42114F), and
        last-processed age 19 on every difficulty (the stock dose does this only off Hard,
        0x421157; the owner, 2026-10-30: the fish stay healthy on Hard too), so the next
@@ -787,18 +872,31 @@ static void __cdecl exotic_hatch(char *impl, int x, int y) {
      * health 100, the game's maximum (0x41E0FE, 0x42127E);
      * sickness (+0x40: 1 fungus, 2 ick, set at 0x41E120) cleared as the medicine clears it
        (0x420D1D / 0x420D57: +0x40 = 0, and one more Fish Cured).
-   Then the stock dose's next fish update, 7 seconds on (0x42117D). The animals (slots 26-30)
-   are past the loop's end, so they are never reached, as with the stock hormone. */
+   Then the stock dose's next fish update, 7 seconds on (0x42117D). The store animals are
+   never reached: they are past the stock loop's end (slots 26-30), and a marked animal record
+   is skipped wherever the loop end is moved. */
+static int gh_reaches(char *f) {
+    return *I(f, F_LIVE) != 0 && *I(f, F_HEALTH) != 0 && !is_animal(f);
+}
+
 static void __cdecl rgh_dose(char *impl) {
     char *state = (char *)P(impl, 0x34);
-    int tank, end = GH_LOOP_END, off;
+    int tank, end = GH_LOOP_END, off, born = 0;
     if (state == NULL) return;
     tank = *I(state, S_CURRENT_TANK);
-    if (tank < 0 || tank > 3) return;
-    if (end > ANIMAL_FIRST * SLOT_STRIDE) end = ANIMAL_FIRST * SLOT_STRIDE;
+    if (tank < 0 || tank > last_tank()) return;
+    if (end > RECORDS * SLOT_STRIDE) end = RECORDS * SLOT_STRIDE;
+    for (off = 0; off < end && tank != NO_BIRTH_TANK; off += SLOT_STRIDE) {
+        char *f = state + FISH_BASE + tank * TANK_STRIDE + off;
+        if (!gh_reaches(f) || *I(f, F_DUE) == 0) continue;
+        stock_birth(impl, f, tank, 1);
+        born = 1;
+    }
+    if (born && P(impl, 0x3C) != NULL)                       /* the newborns swim, as after a hatch */
+        VIEW_SYNC(P(impl, 0x3C), NULL, (int)(UINT_PTR)fish(state, tank, 0));
     for (off = 0; off < end; off += SLOT_STRIDE) {
         char *f = state + FISH_BASE + tank * TANK_STRIDE + off;
-        if (*I(f, F_LIVE) == 0 || *I(f, F_HEALTH) == 0 || *I(f, F_AGE) > GH_MAX_AGE) continue;
+        if (!gh_reaches(f)) continue;
         if (*I(f, F_AGE) < ADULT_AGE) {
             *I(f, F_AGE) = ADULT_AGE;
             *I(f, F_LAST_AGE) = ADULT_AGE - 1;
@@ -809,6 +907,100 @@ static void __cdecl rgh_dose(char *impl) {
             ++*I(state, S_CURED);
         }
         *I(impl, 0x30) = CLOCK_NOW() + 7;
+    }
+}
+
+/* ------------------------------------------------------- Revival Potion */
+
+/* Item 30, used like the hormone (slot #3, the stock splash, sparkle and tail).
+   How the vanilla game stores a dead fish: nothing but health (+0x3C) at 0.
+     * The death test (0x420622) only sets the age to the step it died on (0x420634),
+       so the step loop stops there; the record stays live (+0x00 is not cleared),
+       and it stays in the tank until it is thrown away: no timer removes it.
+     * Every update skips it (0x41FEC3: health <= 0), so its clock (+0x00, the time
+       of its last update, set at 0x41FFCA), its banked seconds (+0x04), age, food
+       and sickness stay as they were when it died.
+     * The tank view draws it dead (0x4146BF / 0x4146F6 / 0x414778: the dead teen
+       or adult picture), lets it sink (0x411D5F) and never swims it (0x414337),
+       all from that same health test.
+   A dose, on the tank being looked at, for every record the update reaches
+   (UPDATE_SLOTS, UPDATE_LAST_TANK) that is live with health 0 and not a store
+   animal: health 100, and the clock set to now (STATE_NOW 0x4032C0, as the update
+   sets it), so the next update counts from now and does not play the time it lay
+   dead as time away.  Age, food, sickness, pregnancy and banked seconds stay. */
+#define REVIVAL_ITEM 30
+#define CLONA_ITEM 31
+
+static void __cdecl revival_dose(char *impl) {
+    char *state = (char *)P(impl, 0x34);
+    int tank, s, slots = fish_slots(), now;
+    if (state == NULL) return;
+    tank = *I(state, S_CURRENT_TANK);
+    if (tank < 0 || tank > last_tank()) return;
+    now = STATE_NOW(state, NULL);
+    for (s = 0; s < slots; ++s) {
+        char *f = fish(state, tank, s);
+        if (*I(f, F_LIVE) == 0 || *I(f, F_HEALTH) > 0 || is_animal(f)) continue;
+        *I(f, F_HEALTH) = FULL_METER;
+        if (now != 0) *I(f, F_LIVE) = now;
+    }
+}
+
+/* ------------------------------------------------------------ ClonaFish */
+
+/* Item 31, used like the hormone.  A unique fish is a live one (+0x00 set,
+   health above 0) whose species, body (+0x4C) and fin (+0x50) together, no
+   other live fish in the tank shares.  Store animals and seahorse-type records
+   are never cloned and never count.  The unique fish are found first; then each
+   one, in slot order, is copied whole (all 0x288 bytes) and handed to the
+   game's own AddFish (0x419C50), which puts it in the first free record under
+   the tank's limit (0x419C72) or answers -1 when the tank is full: then the
+   dose stops, and the rest get no clone.  A record holds no slot number or id
+   of its own (AddFish is a plain copy), so the clone is the original exactly.
+   New fish swim at once (the hatch's view call); if the tank was full before
+   the first clone, the game's "The tank is full!" hint shows. */
+#define S_HINTS 0x44                 /* the tank scene's hint object (string 6: "The tank is full!") */
+static char clone_buffer[RECORDS][SLOT_STRIDE];
+
+static int counts_for_cloning(char *f) {
+    return *I(f, F_LIVE) != 0 && *I(f, F_HEALTH) > 0 && !is_animal(f) && *I(f, F_BODY) != BODY_SEAHORSE;
+}
+
+static void __cdecl clona_dose(char *impl) {
+    char *state = (char *)P(impl, 0x34);
+    int tank, s, t, slots = fish_slots(), unique = 0, added = 0, k;
+    if (state == NULL) return;
+    tank = *I(state, S_CURRENT_TANK);
+    if (tank < 0 || tank > last_tank()) return;
+    for (s = 0; s < slots; ++s) {
+        char *f = fish(state, tank, s);
+        int shared = 0;
+        if (!counts_for_cloning(f)) continue;
+        for (t = 0; t < slots && !shared; ++t) {
+            char *g = fish(state, tank, t);
+            shared = t != s && counts_for_cloning(g) && *I(g, F_BODY) == *I(f, F_BODY)
+                     && *I(g, F_FIN) == *I(f, F_FIN);
+        }
+        if (!shared) memcpy(clone_buffer[unique++], f, SLOT_STRIDE);
+    }
+    for (k = 0; k < unique; ++k) {
+        if (ADD_FISH(state, NULL, tank, (int)(UINT_PTR)clone_buffer[k]) < 0) break;
+        ++added;
+    }
+    if (added > 0 && P(impl, 0x3C) != NULL) {
+        VIEW_SYNC(P(impl, 0x3C), NULL, (int)(UINT_PTR)fish(state, tank, 0));
+    } else if (unique > 0 && added == 0 && P(impl, S_HINTS) != NULL) {
+        HINT(P(impl, S_HINTS), NULL, 6);
+    }
+}
+
+/* The chemical switch's new items: 1 = handled (then the stock sparkle and tail). */
+static int __cdecl new_chemical(char *impl, int item) {
+    switch (item) {
+    case RGH_ITEM: rgh_dose(impl); return 1;
+    case REVIVAL_ITEM: revival_dose(impl); return 1;
+    case CLONA_ITEM: clona_dose(impl); return 1;
+    default: return 0;
     }
 }
 
@@ -861,10 +1053,12 @@ typedef struct store_item {
 
 /* Time Warp and Add Money show only with their settings; with Free upgrades
    every item here costs $0 (the stock store keeps its prices). */
-#define ITEMS 7
+#define ITEMS 9
 #define ITEM_WARP 4
 #define ITEM_MONEY 5
 #define FIN_RGH (-3)                        /* the Radioactive Growth Hormone: not an animal */
+#define FIN_REVIVAL (-4)                    /* the Revival Potion */
+#define FIN_CLONA (-5)                      /* ClonaFish */
 #define MONEY_GAIN 1000
 #define MONEY_MAX 0x7FFFFFFF       /* money is a signed 32-bit int (state+0x38C); the stock sale adds to it unclamped (0x424074) */
 static int warp_on = 0, money_on = 0, free_on = 0;
@@ -896,8 +1090,17 @@ static const store_item ITEM[ITEMS] = {
         "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
     { FIN_RGH, 10000, 595, 90, 79, 72, SPR_ITEM_RGH, 48, 65,
       { "Radioactive Growth Hormone", "Radioaktive Wachstumshormone" },
-      { "Each dose makes every fish aged 40 or\nless in your tank an adult at once,\nwith full health and no sickness.\nEnough for 3 treatments.",
-        "Jede Behandlung macht jeden Fisch bis\nAlter 40 in deinem Becken sofort\nerwachsen, ganz gesund und heil.\nReicht f\xFCr 3 Behandlungen." } },
+      { "Every fish in your tank gets full\nhealth and no sickness, young ones grow\nup at once, and pregnant ones give\nbirth first. Enough for 3 treatments.",
+        "Jeder Fisch in deinem Becken wird\nganz gesund und heil, junge werden\nsofort erwachsen, tr\xE4" "chtige geb\xE4" "ren\nzuerst. Reicht f\xFCr 3 Behandlungen." } },
+    /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped to the panel. */
+    { FIN_REVIVAL, 10000, 687, 90, 79, 72, SPR_ITEM_REVIVAL, 48, 65,
+      { "Revival Potion", "Wiederbelebungstrank" },
+      { "This magical potion instantly revives\ndead fish and restores them to full\nhealth. Contains 3 doses.",
+        "Dieser magische Trank belebt tote\nFische sofort wieder und macht sie\nganz gesund. Reicht f\xFCr 3 Behandlungen." } },
+    { FIN_CLONA, 2500, 44, 165, 85, 72, SPR_ITEM_CLONA, 48, 65,
+      { "ClonaFish", "ClonaFish" },
+      { "A wonder drug that instantly clones all\nunique fish in the tank. Make sure\nthere's enough space in the tank!\nContains 3 doses.",
+        "Ein Wundermittel, das alle einzigartigen\nFische im Becken sofort klont. Achte\nauf genug Platz im Becken!\nReicht f\xFCr 3 Behandlungen." } },
 };
 
 static int price_of(const store_item *it) { return free_on ? 0 : it->price; }
@@ -1064,23 +1267,24 @@ static void buy_universal(char *impl, char *state, int price, int item, int icon
     *I(r, SR_X) = slot * 0x30 + 0x1E;
 }
 
-/* The hormone without universal slots, as the stock store buys a chemical
-   (0x428172, the writer 0x427540): "Replace chemical in slot #3?" (0xEE) if
-   slot #3 holds one, else the purchase question (0xEC); then slot #3 holds
-   it with 3 doses, whatever was there before is gone, as stock. */
-static void buy_hormone(char *impl, char *state, int price) {
+/* A new chemical (the hormone, the Revival Potion, ClonaFish) without
+   universal slots, as the stock store buys a chemical (0x428172, the writer
+   0x427540): "Replace chemical in slot #3?" (0xEE) if slot #3 holds one, else
+   the purchase question (0xEC); then slot #3 holds it with 3 doses, whatever
+   was there before is gone, as stock. */
+static void buy_chemical(char *impl, char *state, int price, int item, int icon, int cursor) {
     char *r = SLOT_RECORD(state, 2);
     if (exotic_any_slot) {
-        buy_universal(impl, state, price, RGH_ITEM, SPR_TOOL_RGH, SPR_DROPPER_RGH, RGH_DOSES);
+        buy_universal(impl, state, price, item, icon, cursor, RGH_DOSES);
         return;
     }
     if (!confirm(impl, *I(r, SR_ICON) != 0 ? 0xEE : 0xEC)) return;
     charge(state, price);
-    *I(r, SR_ITEM) = RGH_ITEM;
+    *I(r, SR_ITEM) = item;
     *I(r, SR_PRESENT) = 1;
     *I(r, SR_COUNT) = RGH_DOSES;
-    *I(r, SR_ICON) = SPR_TOOL_RGH;
-    *I(r, SR_CURSOR) = SPR_DROPPER_RGH;
+    *I(r, SR_ICON) = icon;
+    *I(r, SR_CURSOR) = cursor;
     *I(r, SR_X) = 2 * 0x30 + 0x1E;
 }
 
@@ -1194,7 +1398,15 @@ static void buy(void *scene) {
         return;
     }
     if (it->fin == FIN_RGH) {
-        buy_hormone(impl, state, price);
+        buy_chemical(impl, state, price, RGH_ITEM, SPR_TOOL_RGH, SPR_DROPPER_RGH);
+        return;
+    }
+    if (it->fin == FIN_REVIVAL) {
+        buy_chemical(impl, state, price, REVIVAL_ITEM, SPR_TOOL_REVIVAL, SPR_DROPPER_REVIVAL);
+        return;
+    }
+    if (it->fin == FIN_CLONA) {
+        buy_chemical(impl, state, price, CLONA_ITEM, SPR_TOOL_CLONA, SPR_DROPPER_CLONA);
         return;
     }
     if (it->fin == 0 && exotic_any_slot) {
@@ -1490,9 +1702,10 @@ __declspec(naked) static void stub_egg_confirm(void) {
     }
 }
 
-/* 0x420E6F, the chemical switch (esi = the tank scene): item 29 is the
-   Radioactive Growth Hormone, then the stock Growth Hormone's sparkle loop and
-   tail; any other item goes on to the stock `je 0x42120A` with its flags. */
+/* 0x420E6F, the chemical switch (esi = the tank scene): items 29-31 (the
+   Radioactive Growth Hormone, the Revival Potion, ClonaFish) run their dose,
+   then the stock Growth Hormone's sparkle loop and tail; any other item goes
+   on to the stock `je 0x42120A` with its flags. */
 static const DWORD k_chem_switch = 0x00420E7Bu, k_gh_sparkle = 0x0042119Au;
 
 __declspec(naked) static void stub_chem_use(void) {
@@ -1500,20 +1713,24 @@ __declspec(naked) static void stub_chem_use(void) {
         mov ecx, [esi + 0x34]
         mov eax, [ecx + 0x2F0]
         cmp eax, RGH_ITEM
-        je radioactive
-        sub eax, 2
-        jmp k_chem_switch
-    radioactive:
+        jb stock
+        cmp eax, CLONA_ITEM
+        ja stock
         pushad
+        push eax
         push esi
-        call rgh_dose
-        add esp, 4
+        call new_chemical
+        add esp, 8
         popad
         jmp k_gh_sparkle
+    stock:
+        sub eax, 2
+        jmp k_chem_switch
     }
 }
 
-/* Buying a stock chemical over the hormone asks "Replace chemical in slot #3?" too. */
+/* Buying a stock chemical over the hormone, the Revival Potion or ClonaFish asks
+   "Replace chemical in slot #3?" too. */
 static const DWORD k_chem_confirm_yes = 0x00428191u, k_chem_confirm_no = 0x004281D6u;
 
 __declspec(naked) static void stub_chem_confirm(void) {
@@ -1521,6 +1738,10 @@ __declspec(naked) static void stub_chem_confirm(void) {
         cmp ecx, 0xAA
         je chemical
         cmp ecx, SPR_TOOL_RGH
+        je chemical
+        cmp ecx, SPR_TOOL_REVIVAL
+        je chemical
+        cmp ecx, SPR_TOOL_CLONA
         je chemical
         jmp k_chem_confirm_no
     chemical:
@@ -1816,7 +2037,7 @@ static void write_install_log(void) {
     wcscat_s(path, 1024, L"Fish Tycoon Fix Patcher DLLs\\DS Store Items.log");
     if (installed) {
         len = append_text(line, len, exotic_any_slot
-                          ? "DS Store: installed (all sites); Exotic Eggs and the hormone use universal supply slots\r\n"
+                          ? "DS Store: installed (all sites); Exotic Eggs and the store chemicals use universal supply slots\r\n"
                           : "DS Store: installed (all sites)\r\n");
     } else if (!host_ok) {
         len = append_text(line, len, "DS Store: NOT installed; DS Exclusive Fish.dll is not the version this build expects\r\n");
@@ -1836,7 +2057,8 @@ static void write_install_log(void) {
 /* With "Universal supply slots": its use trampoline sends items 0-7 to their
    own slot (eggs 5-7 to slot #4) and lets anything else through untouched,
    at 0x43F593 `jmp 0x43F5DE`.  Exotic Eggs (item 28) join the eggs there and
-   the Radioactive Growth Hormone (item 29) the chemicals, so they work from
+   the Radioactive Growth Hormone, the Revival Potion and ClonaFish (items
+   29-31) the chemicals, so they work from
    any of slots 2-4.  Only written when that payload is in the executable; edx
    holds the item, the chemicals branch is 0x43F5A2 and the eggs' 0x43F5AC. */
 static const unsigned char USE_GATE_EXPECT[5] = { 0xE9, 0x46, 0x00, 0x00, 0x00 };
@@ -1848,7 +2070,10 @@ __declspec(naked) static void stub_use_gate(void) {
         cmp edx, EXOTIC_ITEM
         je eggs
         cmp edx, RGH_ITEM
-        je chemicals
+        jb other
+        cmp edx, CLONA_ITEM
+        jbe chemicals
+    other:
         jmp k_use_other
     eggs:
         jmp k_use_eggs

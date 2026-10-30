@@ -41,6 +41,7 @@ S_DIFFICULTY, S_CURED, S_SPENT, S_TANK, S_MONEY = 0x14, 0x34, 0x24, 0x384, 0x38C
 SLOT3 = 0x2B8 + 2 * 0x1C                     # supply slot #3: item, present, count, icon, cursor, x
 FISH, TANK, REC = 0x390, 0x51EC, 0x288
 F_LIVE, F_LAST_AGE, F_AGE, F_HEALTH, F_DISEASE, F_FOOD, F_BODY = 0x00, 0x08, 0x0C, 0x3C, 0x40, 0x44, 0x4C
+F_DUE, F_MATE_BODY, F_MATE_FIN, F_FIN = 0x10, 0x14, 0x18, 0x50
 CELL = (630, 125)                            # the seventh net cell
 
 
@@ -57,7 +58,8 @@ class ArtAndManifestTests(unittest.TestCase):
         for name, size in ART.items():
             self.assertIn(f"Images/{name}", destinations)
             self.assertEqual(png_size(IMAGES / name), size, name)          # the stock pictures' sizes
-        for text in ("Radioactive Growth Hormone", "$10,000", "aged 40 or less"):
+        for text in ("Radioactive Growth Hormone", "$10,000", "every live fish in the tank", "any age",
+                     "Revival Potion", "ClonaFish", "$2,500", "birth"):
             self.assertIn(text, store["description"])
         free = combined.patch_settings("fish")["free_upgrades"]["description"]
         self.assertIn("Radioactive Growth Hormone ($10,000)", free)
@@ -67,7 +69,7 @@ class ArtAndManifestTests(unittest.TestCase):
         store = (ROOT / "native" / "ftfp_ds_store" / "ftfp_ds_store.c").read_text(encoding="utf-8")
         lent = int(re.search(r"#define STORE_SPRITE_COUNT (\d+)", fish).group(1))
         named = int(re.search(r"#define STORE_SPRITES (\d+)", store).group(1))
-        self.assertEqual(named, 18)
+        self.assertEqual(named, 24)                 # with the Revival Potion's and ClonaFish's six
         self.assertGreaterEqual(lent, named)
 
     @unittest.skipUnless(FISH_EXE is not None and FISH_EXE.is_file(), "needs the vanilla executable")
@@ -226,7 +228,9 @@ class HormoneTests(unittest.TestCase):
 
     def test_universal_slots_send_it_to_the_chemicals(self) -> None:
         targets = (0x43F5A2, 0x43F5AC, 0x43F5DE)       # the payload's chemicals, eggs, anything else
-        for item, back in ((RGH_ITEM, 0x43F5A2), (28, 0x43F5AC), (30, 0x43F5DE)):
+        # 29-31: the hormone, the Revival Potion and ClonaFish go to the chemicals.
+        for item, back in ((RGH_ITEM, 0x43F5A2), (30, 0x43F5A2), (31, 0x43F5A2), (28, 0x43F5AC), (32, 0x43F5DE),
+                           (7, 0x43F5DE)):
             self.assertEqual(self.run_stub("_stub_use_gate", targets, edx=item), back, item)
 
     # ------------------------------------------------------- a dose
@@ -242,13 +246,21 @@ class HormoneTests(unittest.TestCase):
         emu.hook(0x0040AE20, emu.record("play"), 4)
         emu.hook(0x00413BD0, lambda e: 0, 4)                               # no fish on screen: no sparkles
         emu.hook(0x004020D0, lambda e: 5000, 0)                            # the clock
-        emu.hook(0x00403240, lambda e: 0, 0)                               # Random(n) = 0
+        emu.rolls = []                                                     # Random(n): these, then 0
+        emu.hook(0x00403240, lambda e: e.rolls.pop(0) if e.rolls else 0, 0)
+        emu.magic = set()                                                  # the Magic Fish kinds in the tank
+        emu.hook(0x0041DE90, lambda e: int(e.arg(0) in e.magic), 8)
+        emu.hook(0x004032C0, lambda e: 4321, 0)                            # the state's clock
+        emu.hook(0x00415DF0, lambda e: 0, 12)                              # NewBaby's sprite helper
+        emu.hook(0x00415E70, emu.record("view sync", args=1), 4)
+        emu.hook(0x0041A940, emu.record("tutorial", args=1), 4)
         state, impl = emu.alloc(0x40000), emu.alloc(0x100)
         for at in range(0, 0x1E3C8, 4):                                    # every field: a pattern
             emu.write32(state + at, (at * 2654435761) & 0x7FFFFFFF)
         emu.write32(state + S_TANK, 0)
         emu.write32(state + S_DIFFICULTY, 2 if hard else 1)
         emu.write32(state + S_CURED, 7)
+        emu.write32(state + 0x1A4, 0)                                      # no Plant of Fertility
         emu.uc.mem_write(state + SLOT3, struct.pack("<6i", item, 1, count, SPR_TOOL, SPR_DROPPER, 0x7E))
         for tank in range(4):                                              # every record empty
             for slot in range(31):
@@ -262,11 +274,12 @@ class HormoneTests(unittest.TestCase):
         emu.state, emu.impl = state, impl
         return emu
 
-    def fish(self, emu, slot: int, age: int, health: int, disease: int, tank: int = 0, body: int = 3) -> int:
+    def fish(self, emu, slot: int, age: int, health: int, disease: int, tank: int = 0, body: int = 3,
+             due: int = 0) -> int:
         at = emu.state + FISH + tank * TANK + slot * REC
         emu.write32(at + F_LIVE, 1234)
         for field, value in ((F_AGE, age), (F_LAST_AGE, age), (F_HEALTH, health), (F_DISEASE, disease),
-                             (F_BODY, body)):
+                             (F_BODY, body), (F_DUE, due)):
             emu.write32(at + field, value)
         return at
 
@@ -283,31 +296,32 @@ class HormoneTests(unittest.TestCase):
         teen = self.fish(emu, 1, 10, 20, 1)               # fungus
         adult = self.fish(emu, 2, 25, 70, 2)              # ick
         forty = self.fish(emu, 3, 40, 5, 1)               # the stock hormone's oldest
-        old = self.fish(emu, 4, 41, 30, 2)                # past the stock hormone: not reached
+        old = self.fish(emu, 4, 641, 30, 2)               # past the stock hormone: reached too (any age)
         dead = self.fish(emu, 5, 3, 0, 0)                 # dead: not reached
         other_tank = self.fish(emu, 0, 2, 10, 1, tank=1)  # another tank: not reached
         seahorse = self.fish(emu, 26, 21, 50, 0, body=22)   # an animal slot: not reached
         before = bytes(emu.uc.mem_read(emu.state, 0x1E3C8))
         self.dose(emu)
-        for at in (fry, teen, adult, forty):
+        for at in (fry, teen, adult, forty, old):
             self.assertGreaterEqual(self.field(emu, at, F_AGE), 20)
             self.assertEqual(self.field(emu, at, F_HEALTH), 100)
             self.assertEqual(self.field(emu, at, F_DISEASE), 0)
-        self.assertEqual([self.field(emu, at, F_AGE) for at in (fry, teen, adult, forty)], [20, 20, 25, 40])
-        self.assertEqual([self.field(emu, at, F_LAST_AGE) for at in (fry, teen, adult, forty)], [19, 19, 25, 40])
-        self.assertEqual(emu.read32(emu.state + S_CURED), 7 + 3)                   # Fish Cured, as the medicine
+        self.assertEqual([self.field(emu, at, F_AGE) for at in (fry, teen, adult, forty, old)], [20, 20, 25, 40, 641])
+        self.assertEqual([self.field(emu, at, F_LAST_AGE) for at in (fry, teen, adult, forty, old)], [19, 19, 25, 40, 641])
+        self.assertEqual(emu.read32(emu.state + S_CURED), 7 + 4)                   # Fish Cured, as the medicine
         self.assertEqual(emu.read32(emu.impl + 0x30), 5000 + 7)                    # the next update, as stock
         # Nothing else changed: the records not reached, and every other field of the state.
         expected = bytearray(before)
         for at, field, value in ((fry, F_AGE, 20), (fry, F_LAST_AGE, 19), (fry, F_HEALTH, 100),
                                  (teen, F_AGE, 20), (teen, F_LAST_AGE, 19), (teen, F_HEALTH, 100), (teen, F_DISEASE, 0),
                                  (adult, F_HEALTH, 100), (adult, F_DISEASE, 0),
-                                 (forty, F_HEALTH, 100), (forty, F_DISEASE, 0)):
+                                 (forty, F_HEALTH, 100), (forty, F_DISEASE, 0),
+                                 (old, F_HEALTH, 100), (old, F_DISEASE, 0)):
             struct.pack_into("<i", expected, at + field - emu.state, value)
-        struct.pack_into("<i", expected, S_CURED, 10)
+        struct.pack_into("<i", expected, S_CURED, 11)
         struct.pack_into("<i", expected, SLOT3 + 8, 2)                             # one dose spent
         self.assertEqual(bytes(emu.uc.mem_read(emu.state, 0x1E3C8)), bytes(expected))
-        for at in (old, dead, other_tank, seahorse):
+        for at in (dead, other_tank, seahorse):
             self.assertEqual(bytes(emu.uc.mem_read(at, REC)), before[at - emu.state:at - emu.state + REC])
 
     def test_no_catch_up_on_hard_while_the_stock_hormone_is_unchanged(self) -> None:
@@ -365,6 +379,140 @@ class HormoneTests(unittest.TestCase):
         weak = self.fish(emu, 0, 30, 40, 0)
         self.dose(emu)
         self.assertEqual(self.field(emu, weak, F_HEALTH), 46)
+
+    # ------------------------------------------------------- instant births
+    def mother(self, emu, slot: int = 2, age: int = 30, due: int = 33, mate=(7, 9), tank: int = 0) -> int:
+        at = self.fish(emu, slot, age, 60, 0, tank=tank, body=3, due=due)
+        for field, value in ((F_FIN, 5), (F_MATE_BODY, mate[0]), (F_MATE_FIN, mate[1])):
+            emu.write32(at + field, value)
+        for k, field in enumerate(range(0x1C, 0x3C, 4)):                  # the grandparents
+            emu.write32(at + field, 10 + k)
+        return at
+
+    def stock_birth(self, emu, slot: int = 2, tank: int = 0) -> None:
+        """The vanilla update's birth code (0x420113-0x420414) for one fish, as the update runs it."""
+        from unicorn import x86_const as X
+        esp = E.STACK + E.STACK_SIZE - 0x1000
+        emu.write32(esp + 0x10, tank)
+        emu.uc.reg_write(X.UC_X86_REG_ESP, esp)
+        emu.uc.reg_write(X.UC_X86_REG_ESI, emu.impl)
+        emu.uc.reg_write(X.UC_X86_REG_EDI, tank * TANK + slot * REC)
+        emu.uc.emu_start(0x420113, 0x420414, count=100_000)
+
+    def babies(self, emu) -> list[tuple[int, ...]]:
+        return [c[1] for c in emu.calls if c[0] == "baby"]
+
+    def test_the_litter_is_the_stock_birth_for_the_same_rolls(self) -> None:
+        # (Magic Fish kinds in the tank, Plant of Fertility, Random rolls, the father's genes)
+        cases = (((), 0, [], (7, 9)), ((5,), 0, [10, 20, 30], (7, 9)), ((5,), 0, [10, 20, 70], (0, 9)),
+                 ((5,), 0, [10, 70, 30], (7, 9)), ((5,), 0, [10, 70, 70], (7, 9)), ((5,), 0, [10, 5], (20, 3)),
+                 ((5,), 0, [10, 60], (20, 20)), ((5,), 0, [16], (7, 9)), ((0,), 1, [], (7, 9)),
+                 ((0, 5), 1, [3, 3, 3], (19, 0)))
+        for magic, plant, rolls, mate in cases:
+            runs = []
+            for natural in (True, False):
+                emu = self.tank()
+                emu.hook(0x0041FA30, emu.record("baby", args=14), 56)
+                emu.magic, emu.rolls = set(magic), list(rolls)
+                emu.write32(emu.state + 0x1A4, plant)
+                if natural:                                   # due on this step: age 30, due 29
+                    at = self.mother(emu, due=29, mate=mate)
+                    self.stock_birth(emu)
+                else:                                         # still pregnant (due 33): the dose
+                    at = self.mother(emu, due=33, mate=mate)
+                    self.dose(emu)
+                runs.append((self.babies(emu), [self.field(emu, at, f) for f in (F_DUE, F_MATE_BODY, F_MATE_FIN)]))
+            self.assertEqual(runs[1], runs[0], (magic, plant, rolls, mate))
+            self.assertEqual(len(runs[0][0]), 1 + (0 in magic) + plant)
+            self.assertEqual(runs[0][1][0], 0)                # no longer pregnant
+            self.assertEqual(runs[0][0][0][12:], (1, 0))      # babies aged 1, into tank 0
+
+    def test_pregnant_fish_give_birth_then_the_whole_litter_grows_up(self) -> None:
+        emu = self.tank()
+        emu.write32(emu.state + 0x1A4, 1)                     # Plant of Fertility: 2 babies
+        mom = self.mother(emu, slot=0)
+        self.dose(emu)
+        self.assertEqual(self.field(emu, mom, F_DUE), 0)
+        for slot in (1, 2):                                   # AddFish: the first free records
+            baby = emu.state + FISH + slot * REC
+            self.assertNotEqual(self.field(emu, baby, F_LIVE), 0, slot)
+            self.assertEqual((self.field(emu, baby, F_BODY), self.field(emu, baby, F_FIN)), (5, 7))  # (3+7)/2, (5+9)/2
+            self.assertEqual((self.field(emu, baby, F_AGE), self.field(emu, baby, F_LAST_AGE)), (20, 19))
+            self.assertEqual(self.field(emu, baby, F_HEALTH), 100)
+        self.assertEqual(self.field(emu, emu.state + FISH + 3 * REC, F_LIVE), 0)
+        self.assertIn(("view sync", (emu.state + FISH,)), emu.calls)   # the newborns swim at once
+
+    def test_a_full_tank_loses_the_babies_as_stock(self) -> None:
+        outcomes = []
+        for natural in (True, False):
+            emu = self.tank()
+            for slot in range(21):
+                self.fish(emu, slot, 30, 60, 0, body=4)
+            mom = self.mother(emu, slot=0, due=29 if natural else 33)
+            before = [bytes(emu.uc.mem_read(emu.state + FISH + s * REC, REC)) for s in range(1, 31)]
+            self.stock_birth(emu, slot=0) if natural else self.dose(emu)
+            after = [bytes(emu.uc.mem_read(emu.state + FISH + s * REC, REC)) for s in range(21, 31)]
+            outcomes.append((self.field(emu, mom, F_DUE), after == before[20:]))
+        self.assertEqual(outcomes, [(0, True), (0, True)])   # no room: no baby, the pregnancy ends
+
+    def test_fish_not_pregnant_or_not_reached_give_no_birth(self) -> None:
+        # Not pregnant, dead, or in another tank (any age is reached: test_old_mothers_give_birth_too).
+        emu = self.tank()
+        emu.hook(0x0041FA30, emu.record("baby", args=14), 56)
+        self.fish(emu, 0, 30, 60, 0)                           # not pregnant
+        dead = self.mother(emu, slot=3)
+        emu.write32(dead + F_HEALTH, 0)                        # dead
+        self.mother(emu, slot=0, tank=1)                       # another tank
+        self.dose(emu)
+        self.assertEqual(self.babies(emu), [])
+        self.assertNotIn("view sync", [c[0] for c in emu.calls])
+
+    def test_old_mothers_give_birth_too(self) -> None:
+        emu = self.tank()
+        emu.hook(0x0041FA30, emu.record("baby", args=14), 56)
+        mom = self.mother(emu, slot=0, age=300, due=305)
+        self.dose(emu)
+        self.assertEqual(len(self.babies(emu)), 1)
+        self.assertEqual((self.field(emu, mom, F_DUE), self.field(emu, mom, F_AGE)), (0, 300))
+        self.assertEqual(self.field(emu, mom, F_HEALTH), 100)
+
+    def test_tank_3_never_gives_birth_as_stock(self) -> None:
+        emu = self.tank()
+        emu.hook(0x0041FA30, emu.record("baby", args=14), 56)
+        emu.write32(emu.state + S_TANK, 3)
+        mom = self.mother(emu, slot=0, tank=3)
+        self.dose(emu)
+        self.assertEqual(self.babies(emu), [])
+        self.assertEqual(self.field(emu, mom, F_DUE), 33)
+        self.assertEqual(self.field(emu, mom, F_HEALTH), 100)  # the rest of the dose still works
+
+    def test_the_stock_growth_hormone_gives_no_birth(self) -> None:
+        emu = self.tank(item=3)
+        emu.hook(0x0041FA30, emu.record("baby", args=14), 56)
+        mom = self.mother(emu, slot=0)
+        self.dose(emu)
+        self.assertEqual(self.babies(emu), [])
+        self.assertEqual(self.field(emu, mom, F_DUE), 33)
+
+    def test_births_reach_30_per_tank_and_extra_tanks(self) -> None:
+        # The loop end and the tank count are read from the game (GH 0x421190, update 0x4206C7).
+        emu = self.tank()
+        emu.hook(0x0041FA30, emu.record("baby", args=14), 56)
+        emu.uc.mem_write(0x421190, struct.pack("<I", 30 * REC))
+        mom = self.mother(emu, slot=29)
+        self.dose(emu)
+        self.assertEqual(len(self.babies(emu)), 1)
+        self.assertEqual(self.field(emu, mom, F_DUE), 0)
+        emu = self.tank()
+        emu.hook(0x0041FA30, emu.record("baby", args=14), 56)
+        emu.uc.mem_write(0x4206C7, bytes([5]))                 # tanks 0-5
+        emu.write32(emu.state + S_TANK, 5)
+        for slot in range(31):
+            emu.write32(emu.state + FISH + 5 * TANK + slot * REC, 0)
+        mom = self.mother(emu, slot=0, tank=5)
+        self.dose(emu)
+        self.assertEqual([b[13] for b in self.babies(emu)], [5])
+        self.assertEqual(self.field(emu, mom, F_HEALTH), 100)
 
 
 if __name__ == "__main__":

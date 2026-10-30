@@ -424,7 +424,7 @@ typedef struct sprite_entry {
 #define DS_SPRITE_TEEN (GAME_SPRITES + 3 * DS_COUNT)
 #define DS_SPRITE_DEAD (DS_SPRITE_TEEN + 1)
 #define STORE_SPRITE_BASE (DS_SPRITE_DEAD + 1)        /* 220: lent to "DS Store Items.dll" */
-#define STORE_SPRITE_COUNT 20                         /* 220-239; the store names 18 of them */
+#define STORE_SPRITE_COUNT 24                         /* 220-243; the store names all 24 */
 #define ALL_SPRITES (STORE_SPRITE_BASE + STORE_SPRITE_COUNT)
 static sprite_entry sprites[ALL_SPRITES];
 
