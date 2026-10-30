@@ -102,8 +102,11 @@ class PatchBytesTests(unittest.TestCase):
         self.assertEqual(int(records["fix_loaded_knowledge_prices_code"]["offset"], 16), 0x64970)
 
     def test_the_code_writes_only_asking_prices(self) -> None:
-        from capstone import CS_ARCH_X86, CS_MODE_32, Cs
-        from capstone.x86 import X86_OP_MEM
+        try:
+            from capstone import CS_ARCH_X86, CS_MODE_32, Cs
+            from capstone.x86 import X86_OP_MEM
+        except ImportError:          # the disassembler is not installed (GitHub CI)
+            self.skipTest("needs capstone")
         md = Cs(CS_ARCH_X86, CS_MODE_32)
         md.detail = True
         writes = []
