@@ -392,10 +392,23 @@ static const unsigned char REPURCHASE_JUMP[10] = { 0xE9, 0x49, 0x75, 0x01, 0x00,
 
 #define FIN_WARP (-1)                       /* the Time Warp item: not an animal */
 #define FIN_MONEY (-2)                      /* the Add Money item: not an animal */
+#define FIN_TANK (-6)                       /* the Extra Tank item (the "3 extra tanks" setting); -3..-5 are the potions */
+
+/* "Extra Tanks.dll" (the "3 extra tanks" setting) sells its tanks here, in
+   order: how many are bought (0-3, -1 when it is not loaded or no game is
+   open), and one more bought (the new count, or -1). */
+typedef int (__stdcall *tanks_fn)(void);
+static int tanks_call(const char *name) {
+    HMODULE tanks = GetModuleHandleW(L"Extra Tanks.dll");
+    tanks_fn fn = tanks != NULL ? (tanks_fn)GetProcAddress(tanks, name) : NULL;
+    return fn != NULL ? fn() : -1;
+}
+#define EXTRA_TANKS 3
 
 static int sold_out(char *state, int fin) {
     static int repurchase = -1;
-    if (fin < 0) return 0;                  /* Time Warp, Add Money, the hormone: never sold out */
+    if (fin == FIN_TANK) return tanks_call("FtfpExtraTanksOwned") >= EXTRA_TANKS;
+    if (fin < 0) return 0;                  /* Time Warp, Add Money, the potions: never sold out */
     if (repurchase < 0) repurchase = ftfp_site_holds(0x004282B2u, REPURCHASE_JUMP, sizeof REPURCHASE_JUMP);
     return fin != 0 && !repurchase && owned(state, fin);
 }
@@ -1114,16 +1127,21 @@ typedef struct store_item {
 
 /* Time Warp and Add Money show only with their settings; with Free upgrades
    every item here costs $0 (the stock store keeps its prices). */
-#define ITEMS 9
+#define ITEMS 10
 #define ITEM_WARP 4
 #define ITEM_MONEY 5
 #define FIN_RGH (-3)                        /* the Radioactive Growth Hormone: not an animal */
 #define FIN_REVIVAL (-4)                    /* the Revival Potion */
 #define FIN_CLONA (-5)                      /* ClonaFish */
+#define ITEM_TANK 9
+#define SPR_STOCK_TANK2 157                 /* ITEM_TANK2.png: the stock store's Second Tank */
 #define MONEY_GAIN 1000
 #define MONEY_MAX 0x7FFFFFFF       /* money is a signed 32-bit int (state+0x38C); the stock sale adds to it unclamped (0x424074) */
 static int warp_on = 0, money_on = 0, free_on = 0;
-static int item_shown(int i) { return i == ITEM_WARP ? warp_on : i == ITEM_MONEY ? money_on : 1; }
+static int item_shown(int i) {
+    if (i == ITEM_TANK) return tanks_call("FtfpExtraTanksOwned") >= 0;
+    return i == ITEM_WARP ? warp_on : i == ITEM_MONEY ? money_on : 1;
+}
 static const store_item ITEM[ITEMS] = {
     { FIN_PUFFER, 1250, 44, 83, 85, 70, SPR_ITEM_PUFFER, 80, 60,
       { "Magic Pufferfish", "Magischer Kugelfisch" },
@@ -1162,6 +1180,10 @@ static const store_item ITEM[ITEMS] = {
       { "ClonaFish", "ClonaFish" },
       { "A wonder drug that instantly clones all\nunique fish in the tank. Make sure\nthere's enough space in the tank!\nContains 3 doses.",
         "Ein Wundermittel, das alle einzigartigen\nFische im Becken sofort klont. Achte\nauf genug Platz im Becken!\nReicht f\xFCr 3 Behandlungen." } },
+    { FIN_TANK, 10000, 598, 246, 160, 70, SPR_STOCK_TANK2, 150, 60,       /* two net cells, bottom right */
+      { "Extra Tank", "Weiteres Aquarium" },
+      { "Another tank for breeding! Each one\nyou buy opens the next of Tank Three,\nTank Four and Tank Five.",
+        "Noch ein Aquarium zum Z\xFC" "chten! Jeder\nKauf \xF6" "ffnet das n\xE4" "chste: Tank Drei,\nVier und F\xFCnf." } },
 };
 
 static int price_of(const store_item *it) { return free_on ? 0 : it->price; }
@@ -1468,6 +1490,12 @@ static void buy(void *scene) {
     }
     if (it->fin == FIN_CLONA) {
         buy_chemical(impl, state, price, CLONA_ITEM, SPR_TOOL_CLONA, SPR_DROPPER_CLONA);
+        return;
+    }
+    if (it->fin == FIN_TANK) {                       /* the next of Tank Three, Four and Five */
+        if (!confirm(impl, 0xEC)) return;
+        if (tanks_call("FtfpExtraTanksBuy") < 0) return;
+        charge(state, price);
         return;
     }
     if (it->fin == 0 && exotic_any_slot) {

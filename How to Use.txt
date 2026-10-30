@@ -20,7 +20,7 @@ FISH & PLANT TYCOON FIX PATCHER
 The patcher creates only "Fish Tycoon - Modded" and/or
 "Plant Tycoon - Modded" beneath the chosen location. Their executables use
 those exact names plus ".exe". With new content on (DS Exclusive Fish, DS
-Store Items, Add unused flowers, or Add new store upgrades and items) the copy
+Store Items, 3 extra tanks, Add unused flowers, or Add new store upgrades and items) the copy
 is "Fish Tycoon - Modded Upgrades" / "Plant Tycoon - Modded Upgrades" instead,
 so it never replaces the plain modded copy, and it keeps its own saves. The
 patcher remembers the chosen paths. The blue underlined paths open those
@@ -71,6 +71,14 @@ Fish Tycoon options:
   Moray Eel and Exotic Fish Eggs. The animals never take a fish's place.
   Trash the animals and let the eel out of
   its rock before turning it off again.)
+- 3 extra tanks (off by default; EXPERIMENTAL - USE AT OWN RISK; needs DS
+  Store Items, which it turns on. Tank Three, Tank Four and Tank Five, full
+  tanks like Tank One and Tank Two, bought on the store's Upgrades screen:
+  the Extra Tank item, $10,000 each ($0 with Free upgrades), one after the
+  other. Tank Three looks like Tank One, Tank Four like Tank Two and Tank
+  Five like the Sale Tank without its For Sale sign. The two small arrows
+  left of the Tank One button switch the tank buttons to them and back.
+  Empty the three tanks before turning it off again.)
 - Time Warp (off by default; a $500 clock on the store's Upgrades screen:
   type 1-72 hours in a Windows popup and the game plays them as time away)
 - Free upgrades (off by default; turns on the store's Upgrades screen:
@@ -79,6 +87,31 @@ Fish Tycoon options:
 - Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
   screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
   and adds $1,000 each time)
+
+Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
+- What moves: fish of any age, healthy or sick (a pregnant fish keeps her
+  pregnancy), the Golden Seahorse, the DS store animals (Puffer Fish,
+  Sting Ray, Moray Eel), ornaments, the Moray Eel's rock (with the eel
+  inside it when it is home), and Multiple ornaments' extra copies.
+- How: pick it up and drop it on a tank's button, or on an arrow: the left
+  arrow is the previous tank and the right arrow the next one, in the order
+  Tank One, Tank Two, Sale Tank, then the extra tanks you have bought, and
+  round again. Click an arrow to see the other three buttons. A tank not
+  bought yet is greyed out: "You don't own this tank yet!".
+- A full tank: "The tank is full!" and the fish swims back (or the
+  ornament stays). Tank Two not bought yet: "You don't own a second tank
+  yet!". Exactly as on the game's own buttons.
+- What does not move this way: food, medicines, chemicals and eggs on the
+  cursor are used in the tank you are looking at; switching tanks puts
+  them back, as the game always does. Eggs hatch in the tank on screen.
+  The isolation tank is not on the buttons or arrows: drop a fish on it
+  as usual. Things bought in the store go to the tank you came from (the
+  game's Golden Seahorse goes to Tank One first, as before).
+- Selling: Tank 3, 4 and 5 each have a "For sale" button under their name, Off
+  at first. On puts the For Sale! sign in that tank and sells its fish together
+  with the Sale Tank's, by the game's own sale (one sale a second, the same
+  prices and odds). Off: that tank never sells. Every tank shows its name
+  (Tank 1, Tank 2, Sale Tank, Tank 3, Tank 4, Tank 5) under the top bar.
 
 Plant Tycoon options:
 - Fix Vanilla Bugs (a new game no longer starts at the Nox Orchid prices;

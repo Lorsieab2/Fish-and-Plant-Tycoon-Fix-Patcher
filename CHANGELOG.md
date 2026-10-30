@@ -234,6 +234,37 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Fish Tycoon
 
+- **3 extra tanks**, a new setting, off by default, EXPERIMENTAL - USE AT OWN
+  RISK, in the "Fish Tycoon - Modded Upgrades" copy. It needs DS Store Items
+  (and turns it on): the tanks are bought on its Upgrades screen, the Extra
+  Tank item, $10,000 each ($0 with Free upgrades), Tank Three, then Four,
+  then Five; until then a tank's button is greyed out and refuses ("You
+  don't own this tank yet!"), and the arrows skip it. Tank Three looks like
+  Tank One, Tank Four like Tank Two, Tank Five like the Sale Tank without
+  its For Sale sign (the game's own background and decoration draws). Tank Three, Tank Four and Tank Five are full tanks
+  like Tank One and Tank Two, for breeding: fish live, age, eat, get sick,
+  breed and give birth in them, and food, medicines, chemicals, eggs,
+  ornaments, research, the plants, the magic fish, the Golden Seahorse, the
+  DS store animals and Bigger tanks work there exactly as in a stock tank. Two
+  small arrows left of the Tank One button page the tank buttons to the three
+  new tanks and back; drag a fish, animal or ornament onto a button to move it
+  there, or onto an arrow to move it to the previous or next tank (Tank One,
+  Tank Two, the Sale Tank, Tank Three, Four, Five, round). Each extra tank
+  has a "For sale" button (Off at first): On shows the Sale Tank's For Sale!
+  sign and sells its fish together with the Sale Tank's through the game's
+  own sale roll, each selling tank lent the Sale Tank's place in turn (one
+  sale a second, the same odds; the sale scene's pictures and "Fish for sale"
+  count cover every selling tank; the crowd stays within the stock maximum).
+  Every tank screen shows its name. The toggles are saved per slot. The game has room for four tanks
+  only, so a companion DLL (`Fish Tycoon Fix Patcher DLLs\Extra Tanks.dll`)
+  keeps three more tank blocks and runs the game's own code on them: the tank
+  on screen is swapped into Tank One's place, and every fish update runs the
+  game's own update once more over the other blocks. The saves keep their
+  stock layout; each slot's extra tanks are in `Fish Tycoon Fix Patcher
+  Data\Extra Tanks <slot>.dat`. Empty them before turning the setting off.
+  Checked tick for tick against a stock tank in emulation
+  (tests/test_extra_tanks.py). Design:
+  [docs/fish-tycoon-extra-tanks-design.md](docs/fish-tycoon-extra-tanks-design.md).
 - **Maximizable window**, a new setting, on by default, in the plain
   "Fish Tycoon - Modded" copy. In windowed mode the Maximize button works and
   the window can be resized by its edges. Fish Tycoon draws through SDL 1.2 at

@@ -52,6 +52,38 @@ never needs the internet.
   game's save already has room for them, so saves keep their layout. Sell or
   move fish down to 21 per tank before turning it off again. Design:
   [docs/fish-tycoon-tank-expansion.md](docs/fish-tycoon-tank-expansion.md).
+- 3 extra tanks (off by default; **EXPERIMENTAL - USE AT OWN RISK**; **needs
+  DS Store Items, which it turns on**). Tank Three, Tank Four and Tank Five:
+  three more full tanks for breeding, exactly like Tank One and Tank Two. Buy
+  them on the Supplies store's Upgrades screen: the Extra Tank item (the
+  game's own Second Tank picture), $10,000 each ($0 with Free upgrades), opens
+  the next tank each time, Tank Three first. Until then a tank's button is
+  greyed out and says "You don't own this tank yet!". Tank Three looks like
+  Tank One, Tank Four like Tank Two and Tank Five like the Sale Tank, without
+  its For Sale sign. Fish live, age, eat, get sick, breed and give birth
+  there; food, medicines, chemicals, eggs, ornaments, research, the plants,
+  the magic fish, the Golden Seahorse, the DS store animals and Bigger tanks
+  all work as in a stock tank, because the game's own code runs them. Two
+  small arrows left of the Tank One button switch the tank buttons to the
+  three new tanks and back. Drag a fish, a DS store animal or an ornament
+  onto a button to move it to that tank, or onto an arrow to move it to the
+  previous or next tank (Tank One, Tank Two, the Sale Tank, then the extra
+  tanks you own, and round again); a full tank refuses it as in the stock
+  game. Each extra tank has a "For sale" button (Off at first): On, it shows
+  the Sale Tank's For Sale! sign and its fish sell together with the Sale
+  Tank's, by the game's own sale code (one sale a second, the same prices,
+  odds and effects; the sale scene's pictures and "Fish for sale" number count
+  every selling tank; the crowd never passes the stock maximum). Every tank
+  screen shows its name (Tank 1, Tank 2, Sale Tank, Tank 3, Tank 4, Tank 5).
+  Mockups: [docs/images/extra-tank-3-selling-on.png](docs/images/extra-tank-3-selling-on.png)
+  and the other `extra-tank-*` pictures. It runs as a companion DLL the game loads at start
+  (`Fish Tycoon Fix Patcher DLLs\Extra Tanks.dll`), in the "Modded Upgrades"
+  copy; the saves keep their stock layout and each save slot keeps its extra
+  tanks, and how many are bought, in `Fish Tycoon Fix Patcher Data\Extra
+  Tanks <slot>.dat` beside the saves; a new game starts with none. Empty the
+  three tanks before turning it off again. Design and the emulated checks:
+  [docs/fish-tycoon-extra-tanks-design.md](docs/fish-tycoon-extra-tanks-design.md).
+  Pictures: [docs/images/extra-tanks-extra-page.png](docs/images/extra-tanks-extra-page.png).
 - Maximizable window (on by default). In windowed mode the window's Maximize
   button works, and its edges can be dragged to resize it. At any size other
   than the game's own, the picture is scaled to fill the window, keeping its
@@ -64,7 +96,6 @@ never needs the internet.
   "Fish Tycoon - Modded" copy; nothing is saved. How it works, with every
   address: `native/ftfp_fish_window/ftfp_fish_window.c`. Plant Tycoon draws
   through SDL2, a different renderer, so this setting is Fish Tycoon's only.
-<<<<<<< HEAD
 - Optimize Prices button (on by default). An "Optimize Prices" button on the
   Species Chart's bottom bar, left of Done (where you set prices). It asks
   "Set every discovered species to its best price per day?"; on Yes, every
@@ -80,7 +111,6 @@ never needs the internet.
   (`Fish Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the plain
   "Fish Tycoon - Modded" copy. Picture:
   [docs/images/optimize-prices-fish.png](docs/images/optimize-prices-fish.png).
-=======
 - Tank and greenhouse counts (on by default). Three lines in the game's own
   font at the top left of the water on the tank screen, for the tank you are
   looking at: "Fish: 12 of 21 (8 adults, 3 teens, 1 baby)" (of 26 with
@@ -101,7 +131,6 @@ never needs the internet.
   plain "Fish Tycoon - Modded" copy. How it works, with every address:
   `native/ftfp_tank_counts/ftfp_tank_counts.c`. Picture:
   [docs/images/tank-counts-fish.png](docs/images/tank-counts-fish.png).
->>>>>>> origin/feat/tank-greenhouse-counts
 - DS Exclusive Fish (off by default). Adds the Nintendo DS version's seven
   extra bodies (Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang, Idle)
   and seven extra fins (Small Fin, Roundy, Angel, Clown, Yellow, Blue,
@@ -307,7 +336,6 @@ never needs the internet.
   flower, then its parents (unknown first), and packs them from the first
   slot: boxes 1-3 fill before 4-6, and locked drawers stay empty. It checks
   that exactly the same seeds come out as went in before writing anything.
-<<<<<<< HEAD
 - Optimize Prices button (on by default). An "Optimize Prices" button on the
   Nursery's bottom bar, at the right. It asks "Set every discovered species
   to its best price per day?"; on Yes, every species you have discovered gets
@@ -323,7 +351,6 @@ never needs the internet.
   companion DLL (`Plant Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the
   plain "Plant Tycoon - Modded" copy. Picture:
   [docs/images/optimize-prices-plant.png](docs/images/optimize-prices-plant.png).
-=======
 - Tank and greenhouse counts (on by default). One line in the game's own font
   along the top of the greenhouse screen: "Plants: 9 of 15 (5 mature, 2 with
   buds, 2 seedlings)", counting the pots that hold a living plant. The stages
@@ -338,7 +365,6 @@ never needs the internet.
   Unused Flowers' or Sort Seeds' DLL when those are on). How it works:
   `native/ftfp_greenhouse_counts/ftfp_greenhouse_counts.c`. Picture:
   [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png).
->>>>>>> origin/feat/tank-greenhouse-counts
 
 ## Use
 
@@ -374,7 +400,7 @@ output folders named `Fish Tycoon - Modded` and `Plant Tycoon - Modded`.
 Their executables are named `Fish Tycoon - Modded.exe` and
 `Plant Tycoon - Modded.exe`. Original folders and executables are not replaced.
 With a setting that adds new content on (DS Exclusive Fish, DS Store Items,
-Multiple ornaments, Add unused flowers, Add new store upgrades and items), the copy is
+Multiple ornaments, 3 extra tanks, Add unused flowers, Add new store upgrades and items), the copy is
 `Fish Tycoon - Modded Upgrades` / `Plant Tycoon - Modded Upgrades` (folder and
 EXE) instead, beside the plain copy; the game names its save folder after the
 EXE, so it keeps its own saves.

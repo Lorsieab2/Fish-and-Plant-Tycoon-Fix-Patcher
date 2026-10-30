@@ -1008,6 +1008,8 @@ OTHER_GAME = (
     Fact('Species and prices: see Prices.'),
     Fact('Goals and popups: see Goals, messages and statistics.'),
     Fact("DS store animals: not in Plant Tycoon. The patcher's new Plant Tycoon items are in Shop seeds (Legendary Seeds), Chemicals (Radioactive Plant Formula) and Tools and shears (Fourth to Sixth Seed Box)."),
+    Fact("3 extra tanks (patcher): not in Plant Tycoon (plants have no tanks; the Fourth to Sixth Seed Box "
+         "add storage, see Tools and shears)."),
 )
 
 TIME_WARP = (
