@@ -86,13 +86,21 @@
 #define I_BUTTON 0x58
 #define I_PRESSED 0xC8
 
-/* The page arrow: in the top bar between the Magic Breeds silhouettes (x <= 495)
-   and the Tank One button (x >= 513); scripts/build_extra_tanks_assets.py ARROW_BOX. */
+/* The two arrows, one above the other, in the top bar between the Magic Breeds
+   silhouettes (x <= 495) and the Tank One button (x >= 513): left (previous) on
+   top, right (next) below; scripts/build_extra_tanks_assets.py ARROW_BOXES. */
 #define ARROW_X 495
-#define ARROW_Y 20
+#define ARROW_Y_LEFT 8
+#define ARROW_Y_RIGHT 31
 #define ARROW_W 18
 #define ARROW_H 15
-#define BUTTON_W 87
+#define LOGICAL 6                     /* Tank One, Tank Two, the Sale Tank, Tank Three, Four, Five */
+#define NONE 0x63                     /* the tank screen's "nothing held" (+0x1C item, +0x28 ornament) */
+#define I_ITEM 0x1C
+#define I_ORNAMENT 0x28
+#define ORN_BASE 0x5208
+#define ORN_STRIDE 0x2C
+#define ORN_SLOTS 6
 
 typedef int (__cdecl *new_fn)(unsigned int size);
 typedef int (__cdecl *mouse_pos_fn)(int *pt);
@@ -124,6 +132,10 @@ typedef int (__fastcall *this4_fn)(void *self, void *edx, int a, int b, int c, i
 #define IMAGE_NEW GAME(this1_fn, 0x00409540u)          /* (file name) */
 #define GRID_NEW GAME(this3_fn, 0x004096C0u)           /* (file name, columns, rows) */
 #define SPR_TANK1_BUTTON 0x89                          /* Tank1Button.png */
+#define PLACE_ORNAMENT GAME(this2_fn, 0x00419C00u)     /* (tank, record) -> ornament slot or -1 */
+#define LIFT_ORNAMENT GAME(this2_fn, 0x0041E980u)      /* impl (tank, slot): the ornament leaves its tank */
+#define SPREAD_ORNAMENT GAME(this2_fn, 0x0041E9C0u)    /* impl (tank, slot): a new x in its new tank */
+#define SETTLE_ORNAMENT GAME(this4_fn, 0x0041EA10u)    /* impl (x, y, tank, slot): falls or sits */
 
 static int *I(void *base, int offset) { return (int *)((char *)base + offset); }
 static void *P(void *base, int offset) { return *(void **)((char *)base + offset); }
@@ -360,10 +372,12 @@ static int inside(int x, int y, int left, int top, int right, int bottom) {
     return x >= left && x <= right && y >= top && y <= bottom;
 }
 
-static int in_arrow(int x, int y) {
-    return inside(x, y, ARROW_X, ARROW_Y, ARROW_X + ARROW_W - 1, ARROW_Y + ARROW_H - 1);
+/* 0 = the left arrow (previous), 1 = the right one (next), -1 = neither. */
+static int arrow_at(int x, int y) {
+    if (inside(x, y, ARROW_X, ARROW_Y_LEFT, ARROW_X + ARROW_W - 1, ARROW_Y_LEFT + ARROW_H - 1)) return 0;
+    if (inside(x, y, ARROW_X, ARROW_Y_RIGHT, ARROW_X + ARROW_W - 1, ARROW_Y_RIGHT + ARROW_H - 1)) return 1;
+    return -1;
 }
-
 /* The tank button (0-2) under (x, y), the stock rects; -1 = none. */
 static int button_at(char *impl, int x, int y) {
     int b;
@@ -400,8 +414,8 @@ static int extra_mouse(char *impl, char *state, int type, int x, int y) {
     int b;
     if (*(unsigned char *)impl != 0) return -1;                 /* dragging: the stock drop */
     if (type == 2) {
-        if (in_arrow(x, y)) {
-            arrow_down = 1;
+        if (arrow_at(x, y) >= 0) {
+            arrow_down = (unsigned char)(1 + arrow_at(x, y));
             return 0;
         }
         if (page == 1 && (b = button_at(impl, x, y)) >= 0) {
@@ -412,8 +426,9 @@ static int extra_mouse(char *impl, char *state, int type, int x, int y) {
     }
     if (type != 3) return -1;
     if (arrow_down) {
+        int was = arrow_down - 1;
         arrow_down = 0;
-        if (in_arrow(x, y)) {
+        if (arrow_at(x, y) == was) {                             /* two pages: either arrow turns it */
             page ^= 1;
             play_sound(impl, 1);
             return 0;
@@ -462,11 +477,48 @@ static char __fastcall mouse_hook(char *impl, void *edx, int type, int x, int y)
 
 /* ----------------------------------------------------------------- the drop */
 
+/* Tanks in page order: 0 Tank One, 1 Tank Two, 2 the Sale Tank, 3-5 Tank Three,
+   Four and Five.  The one on screen: */
+static int on_screen(char *state) {
+    int current = *I(state, S_CURRENT_TANK);
+    return current == 0 && shown >= 0 ? 3 + shown : current;
+}
+
+/* Where tank L's block is now: in its stock place (*place = 0-2), or held by
+   this DLL (*place = -1). */
+static unsigned char *where(char *state, int tank, int *place) {
+    *place = -1;
+    if (tank == 0 && shown >= 0) return store[shown];
+    if (tank < 3) {
+        *place = tank;
+        return block(state, tank);
+    }
+    if (shown == tank - 3) {
+        *place = 0;
+        return block(state, 0);
+    }
+    return store[tank - 3];
+}
+
+/* The tank a drop at (x, y) goes to, or -1 for the stock drop: the arrows
+   move to the previous or next tank in page order (round), the buttons on
+   page 1 to the extra tanks, Tank One's button to Tank One while an extra
+   tank is in its place. */
+static int drop_target(char *impl, char *state, int x, int y) {
+    int a = arrow_at(x, y), b;
+    if (a >= 0) return (on_screen(state) + (a ? 1 : LOGICAL - 1)) % LOGICAL;
+    b = button_at(impl, x, y);
+    if (b < 0) return -1;
+    if (page == 1) return 3 + b;
+    if (shown >= 0 && b == 0) return 0;
+    return -1;
+}
+
 static int is_animal(char *f) {
     return *I(f, F_LIVE) != 0 && *I(f, F_BODY) == BODY_SEAHORSE && *I(f, F_MARK) == ANIMAL_MARK;
 }
 
-/* A DS store animal into the first free animal slot (26-30) of a held block. */
+/* A DS store animal into the first free animal slot (26-30) of a block. */
 static int place_animal(unsigned char *dest, char *rec) {
     int s;
     for (s = ANIMAL_FIRST; s < RECORDS; ++s) {
@@ -489,21 +541,12 @@ static int add_into(char *state, unsigned char *dest, char *rec) {
     return slot;
 }
 
-/* Which held block a drop at (x, y) goes to: 0-2 an extra tank (page 1),
-   3 Tank One while an extra is on screen; -1 = the stock drop. */
-static int drop_target(char *impl, int x, int y) {
-    int b = button_at(impl, x, y);
-    if (b < 0) return -1;
-    if (page == 1) return b;
-    if (shown >= 0 && b == 0) return 3;
-    return -1;
-}
-
 /* As the stock drop on a tank button (0x41EFF0): the held fish into that
-   tank by AddFish, out of its own by REMOVE_FISH, "The tank is full!" else. */
-static void drop_on(char *impl, char *state, int target) {
+   tank by the game's own AddFish, out of its own by REMOVE_FISH; "You don't
+   own a second tank yet!" and "The tank is full!" as stock. */
+static void move_fish(char *impl, char *state, int target) {
     void *view = P(impl, I_VIEW);                               /* as the stock code: mov ecx, [esi + 0x3C] */
-    int entry = *I(state, S_HELD), tank, slot, placed;
+    int entry = *I(state, S_HELD), tank, slot, placed, place;
     unsigned char *dest;
     char rec[SLOT_STRIDE];
     *I(state, S_HELD) = -1;
@@ -514,38 +557,83 @@ static void drop_on(char *impl, char *state, int target) {
         *I(state, S_TUTORIAL_DROPS) += 1;
         if (*I(state, S_TUTORIAL_DROPS) >= 2) TUTORIAL(state, NULL, 2);
     }
-    if (target < 3 && shown == target) {                         /* its own button: back to swimming */
+    if (target == on_screen(state) || tank < 0 || tank > 3 || slot < 0 || slot >= RECORDS) {
+        VIEW_MOVE(view, NULL, entry, tank, 1, -1);               /* back to swimming */
+        return;
+    }
+    if (target == 1 && *I(state, S_SECOND_TANK) == 0) {
+        HINT(P(impl, I_HINTS), NULL, 8);                         /* "You don't own a second tank yet!" */
         VIEW_MOVE(view, NULL, entry, tank, 1, -1);
         return;
     }
-    if (tank < 0 || tank > 3 || slot < 0 || slot >= RECORDS) {
-        VIEW_MOVE(view, NULL, entry, tank, 1, -1);
-        return;
-    }
-    dest = target == 3 ? store[shown] : store[target];
+    dest = where(state, target, &place);
     memcpy(rec, record(state, tank, slot), SLOT_STRIDE);
-    placed = slot >= ANIMAL_FIRST && is_animal(rec) ? place_animal(dest, rec) : add_into(state, dest, rec);
+    if (slot >= ANIMAL_FIRST && is_animal(rec)) placed = place_animal(dest, rec);
+    else if (place >= 0) placed = ADD_FISH(state, NULL, place, (int)(UINT_PTR)rec);
+    else placed = add_into(state, dest, rec);
     if (placed < 0) {
         HINT(P(impl, I_HINTS), NULL, 6);                         /* "The tank is full!" */
         VIEW_MOVE(view, NULL, entry, tank, 1, -1);
         return;
     }
+    if (target == 2 && *I(rec, 0x0C) < 20) TUTORIAL(state, NULL, 0x19);   /* a young fish for sale (0x41F27F) */
     REMOVE_FISH(state, NULL, tank, slot);
+    if (target == 2 && *I(state, 0x1E1B4) == 1 && *I(state, 0x1E1B0) == 0) TUTORIAL(state, NULL, 0x11);
     VIEW_MOVE(view, NULL, entry, -1, 1, -1);
+}
+
+/* As the stock ornament drop on a tank button (0x41F660): the game's own
+   placement into that tank (0x419C00, at most six), the ornament lifted out of
+   the tank on screen (0x41E980) and given a place in its new tank (0x41E9C0,
+   0x41EA10); "The tank is full!" as stock.  A held block takes the place of a
+   stock tank other than the one on screen for the calls.  0 = not ours. */
+static int move_ornament(char *impl, char *state, int target, int x, int y) {
+    int current = *I(state, S_CURRENT_TANK), k = *I(impl, I_ORNAMENT), place, at, slot;
+    unsigned char *dest, *source;
+    if (k < 0 || k >= ORN_SLOTS || current < 0 || current > 2 || target == on_screen(state)) return 0;
+    source = (unsigned char *)state + ORN_BASE + current * TANK_STRIDE + k * ORN_STRIDE;
+    if (source[0] == 0) return 0;                                /* not a stock ornament: someone else's */
+    if (target == 1 && *I(state, S_SECOND_TANK) == 0) {
+        HINT(P(impl, I_HINTS), NULL, 8);
+        SETTLE_ORNAMENT(impl, NULL, x, y, current, k);
+        *I(impl, I_ORNAMENT) = NONE;
+        return 1;
+    }
+    dest = where(state, target, &place);
+    at = place >= 0 ? place : (current == 1 ? 2 : 1);
+    if (place < 0) swap_blocks(block(state, at), dest);
+    __try {
+        slot = PLACE_ORNAMENT(state, NULL, at, (int)(UINT_PTR)source);
+        if (slot < 0) {
+            HINT(P(impl, I_HINTS), NULL, 6);
+            SETTLE_ORNAMENT(impl, NULL, x, y, current, k);
+        } else {
+            LIFT_ORNAMENT(impl, NULL, current, k);
+            SPREAD_ORNAMENT(impl, NULL, at, slot);
+            SETTLE_ORNAMENT(impl, NULL, x, y, at, slot);
+        }
+    } __finally {
+        if (place < 0) swap_blocks(block(state, at), dest);
+    }
+    *I(impl, I_ORNAMENT) = NONE;
+    return 1;
 }
 
 static char __fastcall release_hook(char *impl, void *edx, int x, int y) {
     char *state = (char *)P(impl, I_STATE);
     int target;
     (void)edx;
-    if (ready(state) && *I(state, S_HELD) != -1 && (target = drop_target(impl, x, y)) >= 0
-        && (target < 3 || shown >= 0)) {
-        drop_on(impl, state, target);
-        return 1;
+    if (ready(state) && (target = drop_target(impl, state, x, y)) >= 0) {
+        if (*I(state, S_HELD) != -1) {
+            move_fish(impl, state, target);
+            return 1;
+        }
+        if (*I(impl, I_ITEM) == NONE && *I(impl, I_ORNAMENT) != NONE && move_ornament(impl, state, target, x, y)) {
+            return 1;
+        }
     }
     return (char)CALL_PREV2(prev_release, impl, x, y);
 }
-
 /* ---------------------------------------------------------------- drawing */
 
 static const char *const BUTTON_FILES[EXTRA] = { "ExtraTank1Button.png", "ExtraTank2Button.png", "ExtraTank3Button.png" };
@@ -582,9 +670,11 @@ static void draw_extras(char *impl) {
     MOUSE_POS(pt);
     off = *I(impl, I_YOFF);
     current = *I(state, S_CURRENT_TANK);
-    if (arrow_right != NULL && arrow_left != NULL) {
-        DRAW_CELL(gfx, NULL, (int)(UINT_PTR)(page == 0 ? arrow_right : arrow_left), ARROW_X, ARROW_Y + off,
-                  in_arrow(pt[0], pt[1]) ? 1 : 0);
+    if (arrow_left != NULL) {
+        DRAW_CELL(gfx, NULL, (int)(UINT_PTR)arrow_left, ARROW_X, ARROW_Y_LEFT + off, arrow_at(pt[0], pt[1]) == 0);
+    }
+    if (arrow_right != NULL) {
+        DRAW_CELL(gfx, NULL, (int)(UINT_PTR)arrow_right, ARROW_X, ARROW_Y_RIGHT + off, arrow_at(pt[0], pt[1]) == 1);
     }
     for (b = 0; b < 3; ++b) {
         int *r = I(impl, I_BUTTON + b * 0x10);
@@ -861,9 +951,10 @@ static void write_install_log(void) {
 
 /* The startup stub loads only this DLL when "3 extra tanks" is on, so this
    one first loads the companion the stub would have loaded otherwise, from
-   the same folder: "DS Exclusive Fish.dll" (which loads the Maximizable
-   window's and DS Store Items' own), else "Maximizable Window.dll".  They
-   install first; the two sites DS Store Items shares are then chained. */
+   the same folder: "Multiple Ornaments.dll" (which loads the next ones
+   itself), else "DS Exclusive Fish.dll" (which loads the Maximizable window's
+   and DS Store Items' own), else "Maximizable Window.dll".  They install
+   first; the two sites DS Store Items shares are then chained. */
 typedef int (__stdcall *startup_fn)(void);
 
 static int load_companion(const wchar_t *name) {
@@ -884,6 +975,25 @@ static int load_companion(const wchar_t *name) {
     return 1;
 }
 
+/* "Multiple Ornaments.dll" keeps decorative ornament copies per tank (0-7); it
+   asks which tank a stock tank shows.  Tank One's place shows Tank Three, Four
+   or Five while one is on screen. */
+typedef int (__cdecl *tank_map_fn)(int stock_tank);
+typedef void (__stdcall *set_tank_map_fn)(tank_map_fn map);
+
+static int __cdecl ornaments_tank_map(int stock_tank) {
+    if (stock_tank == 0 && shown >= 0) return 3 + shown;
+    return stock_tank;
+}
+
+static void tell_ornaments(void) {
+    HMODULE module = GetModuleHandleW(L"Multiple Ornaments.dll");
+    set_tank_map_fn set;
+    if (module == NULL) return;
+    set = (set_tank_map_fn)GetProcAddress(module, "FtfpOrnamentsSetTankMap");
+    if (set != NULL) set(ornaments_tank_map);
+}
+
 static unsigned int first_unwritable(void) {
     int i;
     for (i = 0; i < TANK_SITE_COUNT; ++i) {
@@ -898,7 +1008,9 @@ static unsigned int first_unwritable(void) {
 int __stdcall FtfpStartup(void) {
     if (installed) return 1;
     __try {
-        if (!load_companion(L"DS Exclusive Fish.dll")) load_companion(L"Maximizable Window.dll");
+        if (!load_companion(L"Multiple Ornaments.dll") && !load_companion(L"DS Exclusive Fish.dll")) {
+            load_companion(L"Maximizable Window.dll");
+        }
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
     __try {
@@ -911,6 +1023,7 @@ int __stdcall FtfpStartup(void) {
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         installed = 0;
     }
+    if (installed) tell_ornaments();
     write_install_log();
     return installed;
 }

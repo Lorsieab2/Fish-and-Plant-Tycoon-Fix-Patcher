@@ -3043,8 +3043,8 @@
     {
       "id": "extra_tanks",
       "name": "3 extra tanks",
-      "summary": "Three more full tanks for breeding: Tank Three, Tank Four and Tank Five, reached with an arrow beside the tank buttons.",
-      "description": "Adds Tank Three, Tank Four and Tank Five: full tanks exactly like Tank One and Tank Two, made from the game's own tank and run by the game's own code. Fish live, age, eat, get sick, breed and give birth in them; food, medicines, chemicals, eggs, ornaments, research, the plants, the magic fish, the Golden Seahorse and the DS store animals work there as in any tank, and Bigger tanks applies to them too. A small arrow left of the Tank One button switches the tank buttons to the three new tanks and back; drag a fish onto a button to move it there. Only the Sale Tank sells, with the stock game's limits. Runs as a companion DLL the game loads at start; the save files keep their stock layout, and each save slot keeps its extra tanks in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside the saves.",
+      "summary": "Three more full tanks for breeding: Tank Three, Tank Four and Tank Five, reached with two arrows beside the tank buttons.",
+      "description": "Adds Tank Three, Tank Four and Tank Five: full tanks exactly like Tank One and Tank Two, made from the game's own tank and run by the game's own code. Fish live, age, eat, get sick, breed and give birth in them; food, medicines, chemicals, eggs, ornaments, research, the plants, the magic fish, the Golden Seahorse and the DS store animals work there as in any tank, and Bigger tanks applies to them too. A Two small arrows left of the Tank One button switch the tank buttons to the three new tanks and back; drag a fish, animal or ornament onto a button to move it there, or onto an arrow to move it to the previous or next tank. The extra tanks never sell: only the Sale Tank does, with the stock game's limits. Runs as a companion DLL the game loads at start; the save files keep their stock layout, and each save slot keeps its extra tanks in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside the saves.",
       "warning": "Empty Tank Three, Tank Four and Tank Five (move every fish, animal and ornament out) before turning this off: without it the game cannot reach them. Nothing is deleted (they come back if you turn it on again), but until then they are out of the game.",
       "category": "main",
       "default": false,
@@ -3056,8 +3056,8 @@
           {
             "path": "Extra Tanks.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Extra Tanks.dll",
-            "size": 97792,
-            "sha256": "E8A83104B173280CB4B7EA35605E8E50A3C86EA97C9E901528A32D5230E7C454"
+            "size": 99328,
+            "sha256": "BA66089E57EEDA59C0D37A7CE8E14F8FDDEC19F5A4DAB9D8DBD4ADDE75CCBA80"
           },
           {
             "path": "Images/ExtraTank1Button.png",

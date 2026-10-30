@@ -39,14 +39,16 @@ DLL_NAME = ds_fish_loader.FISH_EXTRA_TANKS.dll_name
 SETTING = {
     "id": SETTING_ID,
     "name": "3 extra tanks",
-    "summary": "Three more full tanks for breeding: Tank Three, Tank Four and Tank Five, reached with an arrow beside the tank buttons.",
+    "summary": "Three more full tanks for breeding: Tank Three, Tank Four and Tank Five, reached with two arrows beside the tank buttons.",
     "description": (
         "Adds Tank Three, Tank Four and Tank Five: full tanks exactly like Tank One and Tank Two, made from the "
         "game's own tank and run by the game's own code. Fish live, age, eat, get sick, breed and give birth in "
         "them; food, medicines, chemicals, eggs, ornaments, research, the plants, the magic fish, the Golden "
         "Seahorse and the DS store animals work there as in any tank, and Bigger tanks applies to them too. A "
-        "small arrow left of the Tank One button switches the tank buttons to the three new tanks and back; "
-        "drag a fish onto a button to move it there. Only the Sale Tank sells, with the stock game's limits. "
+        "Two small arrows left of the Tank One button switch the tank buttons to the three new tanks and back; "
+        "drag a fish, animal or ornament onto a button to move it there, or onto an arrow to move it to the "
+        "previous or next tank. The extra tanks never sell: only the Sale Tank does, with the stock game's "
+        "limits. "
         "Runs as a companion DLL the game loads at start; the save files keep their stock layout, and each "
         "save slot keeps its extra tanks in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside "
         "the saves."

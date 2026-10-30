@@ -48,6 +48,26 @@ never needs the internet.
   21. The game's save already has room for them, so saves keep their layout.
   Sell or move fish down to 21 per tank before turning it off again. Design:
   [docs/fish-tycoon-tank-expansion.md](docs/fish-tycoon-tank-expansion.md).
+- 3 extra tanks (off by default). Tank Three, Tank Four and Tank Five: three
+  more full tanks for breeding, exactly like Tank One and Tank Two. Fish live,
+  age, eat, get sick, breed and give birth there; food, medicines,
+  chemicals, eggs, ornaments, research, the plants, the magic fish, the
+  Golden Seahorse, the DS store animals and Bigger tanks all work as in a
+  stock tank, because the game's own code runs them. Two small arrows left of
+  the Tank One button switch the tank buttons to the three new tanks and back.
+  Drag a fish, a DS store animal or an ornament onto a button to move it to
+  that tank, or onto an arrow to move it to the previous or next tank (Tank
+  One, Tank Two, the Sale Tank, Tank Three, Four, Five, and round again); a
+  full tank refuses it as in the stock game. The extra tanks never sell: only
+  the Sale Tank does, with the stock game's limits (its size follows the tank
+  size setting). It runs as a companion DLL the game loads at start
+  (`Fish Tycoon Fix Patcher DLLs\Extra Tanks.dll`), in the "Modded Upgrades"
+  copy; the saves keep their stock layout and each save slot keeps its extra
+  tanks in `Fish Tycoon Fix Patcher Data\Extra Tanks <slot>.dat` beside the
+  saves. Empty the three tanks before turning it off again. Design and the
+  emulated checks:
+  [docs/fish-tycoon-extra-tanks-design.md](docs/fish-tycoon-extra-tanks-design.md).
+  Pictures: [docs/images/extra-tanks-extra-page.png](docs/images/extra-tanks-extra-page.png).
 - Maximizable window (on by default). In windowed mode the window's Maximize
   button works, and its edges can be dragged to resize it. At any size other
   than the game's own, the picture is scaled to fill the window, keeping its
@@ -245,7 +265,7 @@ output folders named `Fish Tycoon - Modded` and `Plant Tycoon - Modded`.
 Their executables are named `Fish Tycoon - Modded.exe` and
 `Plant Tycoon - Modded.exe`. Original folders and executables are not replaced.
 With a setting that adds new content on (DS Exclusive Fish, DS Store Items,
-Add unused flowers, Add new store upgrades and items), the copy is
+3 extra tanks, Add unused flowers, Add new store upgrades and items), the copy is
 `Fish Tycoon - Modded Upgrades` / `Plant Tycoon - Modded Upgrades` (folder and
 EXE) instead, beside the plain copy; the game names its save folder after the
 EXE, so it keeps its own saves.

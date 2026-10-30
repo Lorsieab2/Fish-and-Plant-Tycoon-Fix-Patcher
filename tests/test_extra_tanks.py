@@ -402,6 +402,104 @@ class MovingFish(unittest.TestCase):
         self.assertEqual(rig.extra(0)[:SLOT], mother)
         self.assertEqual(struct.unpack_from("<I", rig.tank(3), 0)[0], 0)
 
+    # The arrows: left (previous) at (495-512, 8-22), right (next) at (495-512, 31-45).
+    LEFT, RIGHT = (500, 12), (500, 36)
+
+    def test_drag_onto_the_right_arrow_moves_to_the_next_tank(self) -> None:
+        rig = Rig()
+        mover = fish(NOW, 4, 8, 25, 77, 66)
+        rig.put_tank(1, block_with({2: mover}))
+        rig.set(0x384, 1)                                            # on Tank Two: next is the Sale Tank
+        self.hold(rig, 3, 1, 2)
+        rig.emu.call(rig.sym["@release_hook@16"], *self.RIGHT, ecx=rig.impl)
+        self.assertEqual(rig.tank(2)[:SLOT], mover, "the game's own AddFish put it in the Sale Tank")
+        self.assertEqual(struct.unpack_from("<I", rig.tank(1), 2 * SLOT)[0], 0)
+
+    def test_the_arrows_go_round_the_six_tanks(self) -> None:
+        # Tank One <- Tank Five (round), the Sale Tank -> Tank Three, Tank Three on screen -> Tank Four.
+        for current, shown, arrow, extra in ((0, -1, self.LEFT, 2), (2, -1, self.RIGHT, 0), (0, 0, self.RIGHT, 1)):
+            with self.subTest(current=current, shown=shown, arrow=arrow):
+                rig = Rig()
+                mover = fish(NOW, 6, 6, 24)
+                rig.put_tank(current, block_with({0: mover}))
+                rig.set(0x384, current)
+                rig.var("_shown", shown)
+                self.hold(rig, 1, current, 0)
+                rig.emu.call(rig.sym["@release_hook@16"], *arrow, ecx=rig.impl)
+                self.assertEqual(rig.extra(extra)[:SLOT], mover)
+
+    def test_left_arrow_from_an_extra_on_screen_goes_back_to_the_sale_tank(self) -> None:
+        rig = Rig()
+        mover = fish(NOW, 6, 6, 24)
+        rig.put_tank(0, block_with({0: mover}))                       # Tank Three on screen
+        rig.var("_shown", 0)
+        self.hold(rig, 1, 0, 0)
+        rig.emu.call(rig.sym["@release_hook@16"], *self.LEFT, ecx=rig.impl)
+        self.assertEqual(rig.tank(2)[:SLOT], mover)
+
+    def test_an_arrow_onto_a_full_tank_is_refused(self) -> None:
+        rig = Rig()
+        rig.put_tank(2, block_with({s: fish(NOW, 4, 4, 25) for s in range(21)}))
+        mover = fish(NOW, 6, 6, 25)
+        rig.put_tank(1, block_with({0: mover}))
+        rig.set(0x384, 1)
+        self.hold(rig, 1, 1, 0)
+        rig.emu.call(rig.sym["@release_hook@16"], *self.RIGHT, ecx=rig.impl)
+        self.assertIn(("hint", 6), rig.calls)
+        self.assertEqual(rig.tank(1)[:SLOT], mover)
+
+    def test_an_arrow_onto_an_unbought_tank_two_is_refused_as_stock(self) -> None:
+        rig = Rig()
+        rig.set(0x230, 0)
+        mover = fish(NOW, 6, 6, 25)
+        rig.put_tank(0, block_with({0: mover}))
+        self.hold(rig, 1, 0, 0)
+        rig.emu.call(rig.sym["@release_hook@16"], *self.RIGHT, ecx=rig.impl)
+        self.assertIn(("hint", 8), rig.calls)
+        self.assertEqual(rig.tank(1), bytes(TANK))
+
+    def test_an_ornament_moves_to_an_extra_tank(self) -> None:
+        rig = Rig()
+        rig.emu.hook(0x00407AB0, lambda e: 7000, 0)                    # the screen's clock, for the new x
+        ornament = bytearray(0x2C)
+        ornament[0] = 1
+        struct.pack_into("<II", ornament, 0x04, 300, 400)                 # x, y
+        struct.pack_into("<III", ornament, 0x1C, 60, 70, 177)             # h, w, sprite (the shell)
+        rig.emu.uc.mem_write(rig.state + 0x5208 + 0x51EC * 1 + 2 * 0x2C, bytes(ornament))
+        rig.set(0x384, 1)
+        rig.emu.write32(rig.impl + 0x1C, 0x63)
+        rig.emu.write32(rig.impl + 0x28, 2)
+        rig.var("_page", 1)
+        rig.emu.call(rig.sym["@release_hook@16"], 740, 20, ecx=rig.impl)      # Tank Five
+        self.assertEqual(rig.extra(2)[0x4E78], 1, "the ornament is in Tank Five's first ornament place")
+        self.assertEqual(rig.extra(2)[0x4E78 + 0x24: 0x4E78 + 0x28], struct.pack("<I", 177))
+        self.assertEqual(rig.tank(1)[0x4E78 + 2 * 0x2C], 0, "it left Tank Two")
+        self.assertEqual(rig.emu.read32(rig.impl + 0x28), 0x63)
+        self.assertEqual(rig.tank(2), bytes(TANK), "the stock tank lent for the call is back")
+
+    def test_page_zero_buttons_are_stock(self) -> None:
+        rig = Rig()
+        calls = []
+        rig.emu.write32(rig.sym["_prev_mouse"], 0x00421B80)
+        rig.emu.hook(0x00421B80, lambda e: calls.append((e.arg(0), e.arg(1), e.arg(2))) or 0, 12)
+        for kind in (2, 3):
+            rig.emu.call(rig.sym["@mouse_hook@20"], kind, 640, 20, ecx=rig.impl)
+        self.assertEqual(calls, [(2, 640, 20), (3, 640, 20)])
+
+    def test_either_arrow_turns_the_page(self) -> None:
+        rig = Rig()
+        for arrow, page in ((self.RIGHT, 1), (self.LEFT, 0), (self.LEFT, 1)):
+            rig.emu.call(rig.sym["@mouse_hook@20"], 2, *arrow, ecx=rig.impl)
+            rig.emu.call(rig.sym["@mouse_hook@20"], 3, *arrow, ecx=rig.impl)
+            self.assertEqual(rig.var("_page"), page)
+
+    def test_multiple_ornaments_is_told_which_tank_is_on_screen(self) -> None:
+        rig = Rig()
+        fn = rig.sym["_ornaments_tank_map"]
+        self.assertEqual([rig.emu.call(fn, t) for t in range(3)], [0, 1, 2])
+        rig.var("_shown", 1)
+        self.assertEqual([rig.emu.call(fn, t) for t in range(3)], [4, 1, 2])
+
     def test_stock_drops_stay_stock(self) -> None:
         rig = Rig()
         calls = []

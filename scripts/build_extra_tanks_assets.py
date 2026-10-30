@@ -15,9 +15,11 @@ drawn from scratch (owner: reuse the stock tanks' art):
   label).
 * Tank1ButtonNormal.png (87 x 53): the top bar under the Tank One button,
   drawn while an extra tank is on screen so Tank One does not look current.
-* TankArrowRight.png / TankArrowLeft.png (2 frames each, normal and hover):
-  the game's UP_ARROW.png turned on its side and scaled to fit the strip of
-  bar between the Magic Breeds silhouettes and the Tank One button.
+* TankArrowLeft.png / TankArrowRight.png (2 frames each, normal and hover):
+  the game's UP_ARROW.png turned on its side and scaled to fit, one above the
+  other, the strip of bar between the Magic Breeds silhouettes and the Tank
+  One button. Either one turns the page; a fish or ornament dropped on one
+  goes to the previous or next tank.
 
 Also writes docs/images/extra-tanks-*.png, the tank screen's top with each
 page of buttons, to show what the screen looks like.
@@ -42,8 +44,10 @@ BUTTONS = ((513, 2, 598, 54), (610, 2, 695, 54), (707, 2, 792, 54))
 FRAME_W, FRAME_H = 87, 53
 LABELS = ("Tank Three", "Tank Four", "Tank Five")
 STOCK_STRIPS = ("tank1button.png", "tank2button.png", "selltankbutton.png")
-# The arrow, in the bar between the last Magic Breeds silhouette (x <= 495) and Tank One (x >= 513).
-ARROW_BOX = (495, 20, 18, 15)           # x, y, w, h: ftfp_extra_tanks.c ARROW_X/Y/W/H
+# The two arrows, one above the other, in the bar between the last Magic Breeds silhouette
+# (x <= 495) and Tank One (x >= 513): ftfp_extra_tanks.c ARROW_X, ARROW_Y_LEFT/RIGHT, ARROW_W/H.
+ARROW_BOX = (495, 8, 18, 15)            # the left arrow; the right one is at y 31
+ARROW_RIGHT_Y = 31
 OUTLINE = (24, 24, 40)
 
 
@@ -208,8 +212,8 @@ def preview(game: Path, images: dict[str, Image.Image], page: int, current: int,
     screen = art["maintank1_bg_png.png"].crop((0, 0, 800, 120)).copy()
     screen.alpha_composite(art["ui_maintank_top_png.png"], (0, 0))
     x, y, w, h = ARROW_BOX
-    arrow = images["TankArrowRight.png" if page == 0 else "TankArrowLeft.png"]
-    screen.alpha_composite(arrow.crop((0, 0, w, h)), (x, y))
+    screen.alpha_composite(images["TankArrowLeft.png"].crop((0, 0, w, h)), (x, y))
+    screen.alpha_composite(images["TankArrowRight.png"].crop((0, 0, w, h)), (x, ARROW_RIGHT_Y))
     for b, (left, top, _r, _b) in enumerate(BUTTONS):
         if page == 1:
             sheet = images[f"ExtraTank{b + 1}Button.png"]

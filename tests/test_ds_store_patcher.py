@@ -45,7 +45,8 @@ class ManifestTests(unittest.TestCase):
     def test_every_combination_is_pinned_as_the_same_one_without_it(self) -> None:
         # The store writes no executable bytes: DS Fish's DLL loads its DLL.
         pins = self.manifest["patched_sha256_by_settings"]
-        screen_items = {"time_warp", "free_upgrades", "add_money"}       # tests/test_store_extras.py
+        # tests/test_store_extras.py; "3 extra tanks" has its own loader (tests/test_extra_tanks.py)
+        screen_items = {"time_warp", "free_upgrades", "add_money", "extra_tanks"}
         with_store = [key for key in pins if SETTING in key.split(",") and not screen_items & set(key.split(","))]
         self.assertEqual(len(with_store), 128)        # 64, each with and without the Maximizable window
         for key in with_store:

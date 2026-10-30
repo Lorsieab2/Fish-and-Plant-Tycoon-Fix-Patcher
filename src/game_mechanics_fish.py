@@ -52,6 +52,8 @@ def page() -> GamePage:
             Group("DS store animals", DS_ANIMALS,
                   note="Only with the DS Store Items setting. The store calls them \"magically enhancing\"; "
                        "these are their real effects."),
+            Group("3 extra tanks (patcher)", EXTRA_TANKS,
+                  note="Only with the 3 extra tanks setting (off by default)."),
             Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (off by default), which also turns on the store's Upgrades screen it lives on."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Plant Tycoon's topics here", OTHER_GAME),
@@ -117,6 +119,7 @@ TIME_AWAY = (
     Fact(
         "Every update covers all four tanks (Tank One, Tank Two, the selling tank and the "
         "isolation tank), whichever is on screen.",
+        patched=(("extra_tanks", "and Tank Three, Tank Four and Tank Five, with the same catch-up."),),
     ),
     Fact(
         "An update turns each fish's banked real time into age steps and runs every step's "
@@ -273,6 +276,8 @@ SCOPE = (
     Fact(
         "Every update runs all four tanks together: the first tank, Tank Two, the selling tank and "
         "the isolation tank. A tank you are not looking at keeps going (0x41FE70, tanks 0-3).",
+        patched=(("extra_tanks", "Tank Three, Tank Four and Tank Five too, by a second run of the same "
+                  "update (see 3 extra tanks)."),),
     ),
     Fact(
         "Magic fish work only in their own tank: a live adult (age 20 or more) of the species must "
@@ -958,6 +963,66 @@ DS_ANIMALS = (
         patched=(("ds_store", "they arrive with health 100 and food 100, and every Puffer Fish, Sting "
                   "Ray and Moray Eel already in a save (an eel in its rock too) is filled to 100 and 100 "
                   "the first time the save is loaded; they then stay full."),),
+    ),
+)
+
+EXTRA_TANKS = (
+    Fact(
+        "Tank Three, Tank Four and Tank Five are full tanks like Tank One and Tank Two. The game itself "
+        "has room for four tanks only (Tank One, Tank Two, the Sale Tank and the isolation tank, each a "
+        "0x51EC-byte block of the game's state at 0x390 + tank x 0x51EC, the species table straight after), "
+        "so the patcher keeps three more blocks of the same layout and runs the game's own code on them.",
+        label="E",
+    ),
+    Fact(
+        "How to reach them: either of the two small arrows left of the Tank One button switches the three "
+        "tank buttons to Tank Three, Tank Four and Tank Five, and back. Click a button to look at that tank. "
+        "Drag a fish, animal or ornament onto a button to move it there, or onto the left or right arrow to "
+        "move it to the previous or next tank (Tank One, Tank Two, the Sale Tank, Tank Three, Four, Five, "
+        "and round again): into the first free place, up to the tank's size (21 fish, or more with the "
+        "tank size setting; six ornaments), by the game's own code, and \"The tank is full!\" when there "
+        "is none, as on the stock buttons.",
+        label="E",
+    ),
+    Fact(
+        "The tank you look at is put in Tank One's place while you look at it (Tank One waits in the "
+        "patcher), so everything you use acts on it exactly as on a stock tank: food (the isolation fish "
+        "fed too), the Ick and Fungal Treatments, Vitamins, Growth Hormone, the Unknown Chemical, eggs, "
+        "ornaments and the trash. It is drawn with Tank One's background.",
+        label="E",
+    ),
+    Fact(
+        "How they tick: each fish update, the game's own update runs once more with the three blocks the "
+        "patcher holds in the places of Tank One, Tank Two and the Sale Tank and an empty isolation tank. "
+        "Every fish keeps its own clock, so an extra tank's fish age, eat, heal, get sick, breed, give "
+        "birth and die exactly as in a stock tank, also after time away (the same 72-hour cap). Magic "
+        "fish, the Wasp Grouper and DS store animals count only in their own tank; research, the plants "
+        "and owned items count everywhere, as in every tank. Research gains nothing from the second run.",
+        label="E",
+    ),
+    Fact(
+        "Selling is unchanged: only the Sale Tank sells, and the extra tanks are never in its place "
+        "while anything but the fish update runs. The number of fish for sale, customers and the sale "
+        "scene see the Sale Tank only, with the stock limit (the tank's size).",
+        label="E",
+    ),
+    Fact(
+        "Saved per save slot in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside the "
+        "saves, written whenever the game saves (on quitting and the 30-minute autosave), after the "
+        "save itself; the save file keeps its stock layout, with Tank One in its place. A missing file "
+        "means empty extra tanks; a damaged one is set aside, never deleted, and a new game empties them.",
+        label="E",
+    ),
+    Fact(
+        "The starter eggs count a fish in an extra tank as a fish in a tank (3 eggs, not 7). The stock "
+        "Golden Seahorse still goes to Tank One first (with DS Store Items, to the tank you came from).",
+        label="E",
+    ),
+    Fact(
+        "Not the same as a stock tank: the background (always Tank One's); with Buy Multiple Golden "
+        "Seahorses off, DS Store Items does not see a store animal kept in an extra tank you are not "
+        "looking at, so it can be bought again; the tutorial's sick-fish step can pick an extra tank's "
+        "fish while you look at it.",
     ),
 )
 
