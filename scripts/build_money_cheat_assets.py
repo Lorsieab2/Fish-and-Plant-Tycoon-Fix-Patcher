@@ -12,7 +12,7 @@ It writes
   game's Upgrades screen background with the items at their final size and
   place, to show what the screen looks like.
 
-Plant Tycoon's coins are row 11 of Chemicals_Grid_upgrades.png, written by
+Plant Tycoon's coins are row 14 of Chemicals_Grid_upgrades.png, written by
 scripts/build_plant_upgrades_assets.py with coins() from here (the Time Warp
 clock's 64 px box in a 70 px chemical cell). Downscaling is done on
 premultiplied alpha, so the transparent edge gets no dark fringe.
@@ -83,8 +83,8 @@ def plant_preview(game: Path) -> Image.Image:
             frame = i * 5 + 4
             box = ((frame % 5) * cell[0], (frame // 5) * cell[1])
             screen.alpha_composite(tools.crop((box[0], box[1], box[0] + cell[0], box[1] + cell[1])), (461, 50 + 61 * i))
-    screen.alpha_composite(chem(20), (300, 296))           # Time Warp
-    screen.alpha_composite(chem(22), (370, 296))           # Add Money
+    screen.alpha_composite(chem(26), (300, 296))           # Time Warp (row 13)
+    screen.alpha_composite(chem(28), (370, 296))           # Add Money (row 14)
     return screen
 
 

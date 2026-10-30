@@ -39,15 +39,17 @@ class ManifestTests(unittest.TestCase):
     def test_setting_is_off_by_default_needs_ds_fish_and_warns(self) -> None:
         self.assertFalse(self.setting["default"])
         self.assertEqual(self.setting["requires_settings"], ["ds_fish"])
-        self.assertIn("out of its rock", self.setting["warning"])
+        self.assertIn("Tank Animals <slot>.dat", self.setting["warning"])
+        self.assertIn("rock", self.setting["warning"])
         self.assertIn("Game Mechanics", self.setting["description"])
 
     def test_every_combination_is_pinned_as_the_same_one_without_it(self) -> None:
         # The store writes no executable bytes: DS Fish's DLL loads its DLL.
         pins = self.manifest["patched_sha256_by_settings"]
         screen_items = {"time_warp", "free_upgrades", "add_money"}       # tests/test_store_extras.py
+        screen_items |= {"multiple_ornaments", "extra_tanks"}   # their own loaders go first: tests/test_multiple_ornaments.py, tests/test_extra_tanks.py
         with_store = [key for key in pins if SETTING in key.split(",") and not screen_items & set(key.split(","))]
-        self.assertEqual(len(with_store), 128)        # 64, each with and without the Maximizable window
+        self.assertEqual(len(with_store), 512)        # 64, each with and without the window, Optimize Prices and the counts
         for key in with_store:
             enabled = set(key.split(","))
             self.assertIn("ds_fish", enabled)
@@ -58,7 +60,7 @@ class ManifestTests(unittest.TestCase):
         self.assertFalse(companion.get("startup_loader", False))
         destinations = {f["destination"] for f in companion["files"]}
         self.assertIn(f"{ds_fish_loader.PATCHER_FILES_FOLDER}/DS Store Items.dll", destinations)
-        self.assertEqual(len([d for d in destinations if d.startswith("Images/")]), 15)
+        self.assertEqual(len([d for d in destinations if d.startswith("Images/")]), 24)
         self.assertIn("Images/ITEM_ADD_MONEY.png", destinations)
         self.assertIn("Images/DS_PUFFER_PUFF_Grid.png", destinations)
         self.assertIn("Images/SuppliesUpgradesButton.png", destinations)

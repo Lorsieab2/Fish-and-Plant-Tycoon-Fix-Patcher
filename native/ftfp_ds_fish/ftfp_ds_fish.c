@@ -424,7 +424,7 @@ typedef struct sprite_entry {
 #define DS_SPRITE_TEEN (GAME_SPRITES + 3 * DS_COUNT)
 #define DS_SPRITE_DEAD (DS_SPRITE_TEEN + 1)
 #define STORE_SPRITE_BASE (DS_SPRITE_DEAD + 1)        /* 220: lent to "DS Store Items.dll" */
-#define STORE_SPRITE_COUNT 16
+#define STORE_SPRITE_COUNT 24                         /* 220-243; the store names all 24 */
 #define ALL_SPRITES (STORE_SPRITE_BASE + STORE_SPRITE_COUNT)
 static sprite_entry sprites[ALL_SPRITES];
 
@@ -1131,6 +1131,14 @@ int __stdcall FtfpStartup(void) {
 
 /* For the patcher's tests and the patch log. */
 int __stdcall FtfpDsFishInstalled(void) { return installed; }
+
+/* For "Optimize Prices.dll": the species entry of a DS body (its row is
+   here, in ds_rows), or NULL when the mod is not in or the genes are not a
+   species. */
+unsigned char *__stdcall FtfpDsFishEntry(char *state, int body, int fin) {
+    if (!installed || state == NULL || !is_ds(body) || !valid_gene(fin)) return NULL;
+    return entry(state, body, fin);
+}
 
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     (void)reserved;

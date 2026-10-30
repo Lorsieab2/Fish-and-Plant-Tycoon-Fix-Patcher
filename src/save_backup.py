@@ -23,7 +23,8 @@ Restore
     only after the current saves are backed up as "Backup <date> (before
     restore)", so every restore can be undone. A slot is its own files
     ("<Game><slot>.ldw" and the game's older generations "+20", and for Plant
-    Tycoon "+40") and the patcher's "<name> <slot>.dat" files. The settings
+    Tycoon "+40") and the patcher's "<name> <slot>.dat" files, with their
+    temporary, previous and set-aside copies. The settings
     file "<Game>0.ldw" is shared by every slot; a one-slot restore puts back
     only that slot's name in its player list and leaves the rest of it alone.
     On any failure every changed file is put back from the before-restore
@@ -496,7 +497,12 @@ def list_backups(game_id: str, save_folder: Path) -> list[BackupInfo]:
 
 # --------------------------------------------------------------------- restore
 
-_SIDE_FILE_SLOT = re.compile(r" ([1-5])\.dat(?:\.tmp|\.unreadable[^\\/]*)?$", re.I)
+# "<name> <n>.dat", its temporary and set-aside copies ("... 2.dat.tmp",
+# "... 2.dat.unreadable"), and the copies a DLL names before ".dat"
+# ("DS Fish 2.unreadable-1.dat", "Tank Animals 2.previous.dat"). <n> is the
+# game's own save number, so a DLL that writes beside each save also writes
+# beside the game's older generation (n + 20, and for Plant Tycoon n + 40).
+_SIDE_FILE_SLOT = re.compile(r" (\d+)(?:\.[a-z]+(?:-\d+)?)?\.dat(?:\.tmp|\.unreadable[^\\/]*)?$", re.I)
 
 
 def file_slot(game_id: str, relative: Path) -> int | str:
@@ -516,7 +522,10 @@ def file_slot(game_id: str, relative: Path) -> int | str:
     if relative.parts[0].casefold() == f"{fmt.title} Fix Patcher Data".casefold():
         match = _SIDE_FILE_SLOT.search(name)
         if match:
-            return int(match.group(1))
+            number = int(match.group(1))
+            for extra in fmt.slot_file_offsets:
+                if 1 <= number - extra <= fmt.slots:
+                    return number - extra
     return "unknown"
 
 

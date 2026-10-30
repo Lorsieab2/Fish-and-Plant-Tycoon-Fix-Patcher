@@ -343,6 +343,28 @@ def price_search(v: int, c: Condition, browsing: int) -> tuple[int, float, int]:
     return best, best_income, highest
 
 
+# The visitor score S (0x43FF00): each owned nursery ornament's points (ids 0x18-0x26 in
+# order, its jump table 0x440020), 2 per plant for sale, 4 for the Rose of Joy and 2 for each
+# other found magic plant, 4 for all 48 bugs.
+ORNAMENT_POINTS_BY_ID = (1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4, 1, 4)
+BUG_COUNT = 48
+
+
+def visitor_score(ornaments: tuple[bool, ...], rose_of_joy: bool, other_magic: int, all_bugs: bool,
+                  for_sale: int = SALE_SPOTS) -> int:
+    """S for the ornaments owned (one flag per id 0x18-0x26), the magic plants found and the bug
+    collection, with `for_sale` plants for sale (the Optimize Prices button: all 15 spots)."""
+    return (sum(p for p, owned in zip(ORNAMENT_POINTS_BY_ID, ornaments) if owned) + 2 * for_sale
+            + (4 if rose_of_joy else 0) + 2 * other_magic + (4 if all_bugs else 0))
+
+
+def shop_best_price(v: int, golden_berries: bool, score: int) -> int:
+    """The Optimize Prices button's price for a species of value V: the Breeding Guide's best per
+    day for a healthy, flowering, unpruned plant without Plant Food, the Golden Berries of Wealth
+    as found, and visitors at the limit for the score S, all browsing."""
+    return price_search(v, Condition(golden_berries=golden_berries), visitor_limit(score))[0]
+
+
 def mutation_steps(key: tuple[int, int], extras: bool) -> list[tuple[tuple[int, int], float]]:
     """One Mutation Liquid dose (0x42FA80): every result with its chance."""
     foliage, flower = key
@@ -507,9 +529,9 @@ class PlantModel:
         # never read it, so "max_mutation" prices are "max"'s.
         effects = "max" if effects == "max_mutation" else effects
         if effects == "max":
-            c, score = MAX_EFFECTS, ORNAMENT_POINTS + 2 * SALE_SPOTS + 4 + 2 * 5 + 4
+            c, score = MAX_EFFECTS, visitor_score((True,) * len(ORNAMENT_POINTS_BY_ID), True, 5, True)
         else:
-            c, score = NO_EFFECTS, 2
+            c, score = NO_EFFECTS, visitor_score((False,) * len(ORNAMENT_POINTS_BY_ID), False, 0, False, for_sale=1)
         browsing = visitor_limit(score)
         best, best_income, highest = price_search(v, c, browsing)
         what = ("every effect at its best: the Golden Berries of Wealth (price seen -1/4), 2 Plant Food doses "

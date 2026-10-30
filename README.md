@@ -44,10 +44,48 @@ never needs the internet.
   Seahorses, in case you trash or lose it somehow. It shipped broken from
   v1.0.6 and was fixed in v1.0.12; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
-- Bigger tanks: 26 fish (off by default). Every tank holds 26 fish instead of
-  21. The game's save already has room for them, so saves keep their layout.
-  Sell or move fish down to 21 per tank before turning it off again. Design:
+- Bigger tanks: 30 fish (off by default; **EXPERIMENTAL - USE AT OWN RISK**). Tank 1, Tank 2 and the Sale Tank
+  (Tank 3) hold 30 fish instead of 21 (the isolation tank still holds one;
+  with 3 extra tanks, Tanks 4-6 hold 30 too), and
+  fish 22-30 get everything fish 1-21 get. Every adult in the Sale Tank is
+  for sale with the stock odds per fish, one sale a second at most as in the
+  stock game; the crowd counts at most 21 adults, the stock game's most. The
+  game's save already has room for them, so saves keep their layout. Sell or
+  move fish down to 21 per tank before turning it off again. Design:
   [docs/fish-tycoon-tank-expansion.md](docs/fish-tycoon-tank-expansion.md).
+- 3 extra tanks (off by default; **EXPERIMENTAL - USE AT OWN RISK**; **needs
+  DS Store Items, which it turns on**). Tank 4, Tank 5 and Tank 6:
+  three more full tanks for breeding, exactly like Tank 1 and Tank 2. Buy
+  them on the Supplies store's Upgrades screen: the Extra Tank item (the
+  game's own Second Tank picture), $10,000 each ($0 with Free upgrades), opens
+  the next tank each time, Tank 4 first. Until then a tank's button is
+  greyed out and says "You don't own this tank yet!". Tank 4 looks like
+  Tank 1, Tank 5 like Tank 2 and Tank 6 like the Sale Tank, without
+  its For Sale sign. Fish live, age, eat, get sick, breed and give birth
+  there; food, medicines, chemicals, eggs, ornaments, research, the plants,
+  the magic fish, the Golden Seahorse, the DS store animals and Bigger tanks
+  all work as in a stock tank, because the game's own code runs them. Two
+  small arrows left of the Tank 1 button switch the tank buttons to the
+  three new tanks and back. Drag a fish, a DS store animal or an ornament
+  onto a button to move it to that tank, or onto an arrow to move it to the
+  previous or next tank (Tank 1, Tank 2, the Sale Tank, then the extra
+  tanks you own, and round again); a full tank refuses it as in the stock
+  game. Each extra tank has a "For sale" button (Off at first): On, it shows
+  the Sale Tank's For Sale! sign and its fish sell together with the Sale
+  Tank's, by the game's own sale code (one sale a second, the same prices,
+  odds and effects; the sale scene's pictures and "Fish for sale" number count
+  every selling tank; the crowd never passes the stock maximum). Every tank
+  screen shows its name (Tank 1, Tank 2, Tank 3 (the Sale Tank), Tank 4, Tank 5, Tank 6).
+  Mockups: [docs/images/extra-tank-4-selling-on.png](docs/images/extra-tank-4-selling-on.png)
+  and the other `extra-tank-*` pictures and the Sale Tank beside Tank 6: [docs/images/tank-3-sale-vs-tank-6-for-sale-on.png](docs/images/tank-3-sale-vs-tank-6-for-sale-on.png). It runs as a companion DLL the game loads at start
+  (`Fish Tycoon Fix Patcher DLLs\Extra Tanks.dll`), in the "Modded Upgrades"
+  copy; the saves keep their stock layout and each save slot keeps its extra
+  tanks, with their DS store animals and For sale buttons, and how many are
+  bought, in `Fish Tycoon Fix Patcher Data\Extra
+  Tanks <slot>.dat` beside the saves; a new game starts with none. Empty the
+  three tanks before turning it off again. Design and the emulated checks:
+  [docs/fish-tycoon-extra-tanks-design.md](docs/fish-tycoon-extra-tanks-design.md).
+  Pictures: [docs/images/extra-tanks-extra-page.png](docs/images/extra-tanks-extra-page.png).
 - Maximizable window (on by default). In windowed mode the window's Maximize
   button works, and its edges can be dragged to resize it. At any size other
   than the game's own, the picture is scaled to fill the window, keeping its
@@ -60,6 +98,43 @@ never needs the internet.
   "Fish Tycoon - Modded" copy; nothing is saved. How it works, with every
   address: `native/ftfp_fish_window/ftfp_fish_window.c`. Plant Tycoon draws
   through SDL2, a different renderer, so this setting is Fish Tycoon's only.
+- Optimize Prices button (on by default). An "Optimize Prices" button on the
+  Species Chart's bottom bar, left of Done (where you set prices). It asks
+  "Set every discovered species to its best price per day?"; on Yes, every
+  species you have discovered gets the Breeding Guide's "best per day"
+  asking price (the price that earns the most money over time), worked out
+  in the game with the guide's own maths for your shop as it is now: each
+  species' base price (with the Advertising rises), the ornaments you own,
+  the Golden Seahorse and your Advertising level, with a full selling tank.
+  Then it says "N prices set." Undiscovered
+  species keep their prices and nothing else changes; the prices are the
+  ones you would type yourself, saved with the game as usual. The DS species
+  are included with DS Exclusive Fish. It runs as a companion DLL
+  (`Fish Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the plain
+  "Fish Tycoon - Modded" copy. Picture:
+  [docs/images/optimize-prices-fish.png](docs/images/optimize-prices-fish.png).
+- Tank and greenhouse counts (on by default). Three lines in the game's own
+  font at the top left of the water on the tank screen, for the tank you are
+  looking at, Tanks 4-6 too with 3 extra tanks: "Fish: 12 of 21 (8 adults,
+  3 teens, 1 baby)" (of 30 with Bigger tanks), "Creatures: Golden Seahorse,
+  Moray Eel" when it has any, and "Isolation tank: 1 of 1 (1 adult)". With 3
+  extra tanks the lines sit lower, under the tank's name and For sale button.
+  The stages are the game's own: a baby
+  is age 1-5, a teen 6-19, an adult 20 and up (the ages at which the game
+  switches the fish's picture). Dead fish are left out of the count and shown
+  after it as "Dead: 2" until you throw them away; they, and a Golden
+  Seahorse the stock game put in a fish slot, still take a place in the tank.
+  The creatures are the Golden Seahorse and DS Store Items' animals (the
+  Moray Eel in its rock too). In German the game's own German words are used.
+  The counts update every frame and are drawn just after the tank's
+  background, so fish, ornaments and buttons are drawn over them and nothing
+  is covered; display only, nothing in the game or the saves changes. It runs
+  as a companion DLL the game loads at start
+  (`Fish Tycoon Fix Patcher DLLs\Tank Counts.dll`, which also loads DS
+  Exclusive Fish's or the Maximizable window's DLL when those are on), in the
+  plain "Fish Tycoon - Modded" copy. How it works, with every address:
+  `native/ftfp_tank_counts/ftfp_tank_counts.c`. Picture:
+  [docs/images/tank-counts-fish.png](docs/images/tank-counts-fish.png).
 - DS Exclusive Fish (off by default). Adds the Nintendo DS version's seven
   extra bodies (Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang, Idle)
   and seven extra fins (Small Fin, Roundy, Angel, Clown, Yellow, Blue,
@@ -86,13 +161,43 @@ never needs the internet.
   home, move the rock and the eel goes with it, and drag it out by its head.
   Trashing the eel trashes its rock, and the other way round. The animals,
   the Golden Seahorse included, never take a fish's place: each tank has 5
-  animal slots of its own. The store animals arrive with full health and
+  animal slots of its own, kept in `Fish Tycoon Fix Patcher Data\Tank Animals
+  <slot>.dat` beside the saves (with 3 extra tanks, the animals in Tanks 4-6
+  move with their tank and are kept in its `Extra Tanks <slot>.dat`). Without
+  Buy Multiple Golden Seahorses each animal is one of each, counting every
+  tank, Tanks 4-6 included. The store animals arrive with full health and
   food (100 and 100), and ones already in a save (the eel in its rock too)
   are filled up the first time the save is loaded with the patch; nothing in
   the game lowers their meters. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
+  The Radioactive Growth Hormone ($10,000, 3 doses; $0 with Free upgrades) is
+  the stock Growth Hormone recoloured green, bought into supply slot #3 and
+  used on a tank like the stock chemicals (Universal supply slots apply). Each
+  dose reaches every fish in the tank on screen, any age, fry included (the
+  stock Growth Hormone stops at 40 and stays stock): every pregnant one gives
+  birth at once, through the game's own birth rules (the same litter, Magic
+  Fish mutation, Plant of Fertility and "no room" as a natural birth); then
+  younger ones, the newborns too, become adults (age 20), and every one gets
+  full health (100) and is cured of ick or fungus. Other tanks and the store
+  animals are left alone. Picture:
+  [docs/images/radioactive-growth-hormone-fish.png](docs/images/radioactive-growth-hormone-fish.png).
+  The Revival Potion ($10,000, 3 doses; $0 with Free upgrades), the owner's
+  amber flask, is a slot-#3 chemical like the hormone: each dose revives every
+  dead fish in the tank on screen at full health; its age, food, sickness and
+  pregnancy stay as they were, and the time it lay dead is not played as time
+  away. Dead fish stay in the tank until you throw them away (the game never
+  removes them), so every dead fish still there can be revived. ClonaFish
+  ($2,500, 3 doses; $0 with Free upgrades), the owner's magenta bottle: each
+  dose adds one exact copy of every unique fish in the tank on screen (a live
+  fish no other live fish there shares both its body and its fin with), in
+  slot order, through the game's own add-fish code, until the tank is full;
+  if there was no room for even one, the game's "The tank is full!" shows.
+  Both work in every tank slot the game uses (Bigger tanks, and more) and in
+  every tank the game updates. Picture:
+  [docs/images/revival-potion-fish.png](docs/images/revival-potion-fish.png).
   The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
   second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
-  loaded by DS Fish's; everything it adds is kept in the game's own save.
+  loaded by DS Fish's; besides the game's own save it writes only the
+  animals' `Tank Animals <slot>.dat`.
   Design and live checks:
   [docs/fish-tycoon-ds-store-items-design.md](docs/fish-tycoon-ds-store-items-design.md).
   Trash the store animals, and let the eel out of its rock, before turning it
@@ -106,10 +211,12 @@ never needs the internet.
   so: "Time Warp done: 12 hours played (72 age steps). $500 paid." ($0 paid with Free upgrades).
 - Free upgrades (off by default; **needs DS Store Items, which it turns on**).
   Every item on the Supplies store's Upgrades screen costs $0: the Puffer Fish,
-  Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), and the Time
-  Warp clock ($500) and Add Money ($950) when they are on. The price shows $0
-  and no money is taken; everything else (one of each animal, the egg slot,
-  the game's purchase question) stays. The game's own store items keep their
+  Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the
+  Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000),
+  ClonaFish ($2,500), and the Time Warp clock ($500), Add Money ($950) and
+  the Extra Tank ($10,000 each) when they are on. The price shows $0 and no
+  money is taken; everything else (one of each animal, the supply slots,
+  Tanks 4-6 bought in order, the game's purchase question) stays. The game's own store items keep their
   prices.
 - Add Money cheat ($1,000) (off by default; **needs DS Store Items, which it
   turns on**). A pile of gold coins on the Upgrades screen, next to the Time
@@ -117,6 +224,21 @@ never needs the internet.
   $1,000 to your money, as often as you like. Money stops at the largest
   value the game holds ($2,147,483,647). Picture:
   [docs/images/add-money-fish.png](docs/images/add-money-fish.png).
+- Multiple ornaments (off by default; **EXPERIMENTAL - USE AT OWN RISK**). The Shell, Pagoda, Diver, Fancy Coral,
+  Sunken Antique Column and Sunken Ship can be bought again once you own
+  them, at their normal price, up to 10 extra copies per tank. The copies are
+  only for decorating: they are drawn, fall, and are dragged, placed and
+  moved to another tank's button by the game's own ornament code, exactly
+  like the original, and the trash can takes them (never the original). The
+  ornament's effect comes from owning it, once, game-wide, as in the stock
+  game: copies never add to it, and throwing copies away never removes it.
+  The copies are kept beside each save slot in `Fish Tycoon Fix Patcher
+  Data\Ornaments <slot>.dat`; the save itself is unchanged. It runs as a
+  companion DLL (`Fish Tycoon Fix Patcher DLLs\Multiple Ornaments.dll`), the
+  first one the game loads. Picture:
+  [docs/images/multiple-ornaments-tank.png](docs/images/multiple-ornaments-tank.png).
+  Trash the extra copies before turning it off again (with it off they are
+  not shown; they come back if you turn it on).
 
 ### Plant Tycoon
 
@@ -176,6 +298,18 @@ never needs the internet.
     full bloom, a flower on every spot of every branch and leaf (hundreds on a
     big plant), no dead or brown leaves, full health, and 5 seeds when
     pollinated.
+  - Radioactive Plant Formula Bomb under the formula: $30,000, 3 bombs; the
+    stock Fertilizer Bomb made rainbow. One bomb gives every live plant in the
+    greenhouse on screen exactly one Radioactive Plant Formula dose (the
+    plants the Fertilizer Bomb reaches, in whichever greenhouse is shown).
+  - Revival Potion beside the formula: $10,000, 3 doses, the owner's amber
+    flask. Dropped on a dead plant, it comes back to life at full health; the
+    parts that were already dead before it died stay dead (prune them or use
+    the formula), and the seeds it lost when it died stay lost.
+  - Revita-Seed beside that: $2,500, 3 doses, the owner's teal bottle.
+    Dropped on a plant that has given all its seeds, it can be pollinated
+    again and give seeds again, exactly like a fresh plant.
+  - Picture: [docs/images/revival-potion-plant.png](docs/images/revival-potion-plant.png).
   - The Fourth, Fifth and Sixth Seed Box with the tool upgrades: $1000
     each, bought in order like the stock ones. Each opens a 40-seed drawer in
     a second chest; the gold arrows on the Seed Storage title bar switch
@@ -194,10 +328,12 @@ never needs the internet.
 - Free upgrades (off by default; **needs Add new store upgrades and items,
   which it turns on**). Every item on the Supplies store's Upgrades view costs
   $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the
-  Fourth, Fifth and Sixth Seed Box ($1000 each), and the Time Warp clock ($500)
-  and Add Money ($950) when they are on. The price shows $0 and no money is
+  Formula Bomb ($30,000), the Revival Potion ($10,000), Revita-Seed ($2,500), the
+  Fourth, Fifth and Sixth Seed Box ($1000 each), and the Time Warp clock ($500),
+  Add Money ($950), the Extra Greenhouse ($10,000 each) and the Extra Nursery
+  ($10,000 each) when they are on. The price shows $0 and no money is
   taken; everything else (three Legendary Seeds a day, room in the trays, the
-  boxes in order) stays. The game's own store items keep their prices.
+  boxes, greenhouses and nurseries in order) stays. The game's own store items keep their prices.
 - Add Money cheat ($1,000) (off by default; **needs Add new store upgrades and
   items, which it turns on**). A pile of gold coins on the Upgrades view's
   Nursery shelf, next to the Time Warp clock: $950 ($0 with Free upgrades),
@@ -210,6 +346,88 @@ never needs the internet.
   flower, then its parents (unknown first), and packs them from the first
   slot: boxes 1-3 fill before 4-6, and locked drawers stay empty. It checks
   that exactly the same seeds come out as went in before writing anything.
+- Optimize Prices button (on by default). An "Optimize Prices" button on the
+  Nursery's bottom bar, at the right. It asks "Set every discovered species
+  to its best price per day?"; on Yes, every species you have discovered gets
+  the Breeding Guide's "best per day" asking price (the price that earns the
+  most money over time), worked out in the game with the guide's own maths
+  for your nursery as it is now: each species' value, the Golden Berries of
+  Wealth, and the visitors your ornaments, magic plants and bug collection
+  bring with all 15 sale spots filled, for a healthy, flowering plant without
+  Plant Food or pruning. Then it says "N prices set." Undiscovered species
+  keep their prices and nothing else changes; the prices are the ones the
+  "Set species price" box would write, saved with the game as usual. The 322
+  Unused Flowers species are included when that setting is on. It runs as a
+  companion DLL (`Plant Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the
+  plain "Plant Tycoon - Modded" copy. Picture:
+  [docs/images/optimize-prices-plant.png](docs/images/optimize-prices-plant.png).
+- Tank and greenhouse counts (on by default). One line in the game's own font
+  along the top of the greenhouse screen: "Plants: 9 of 15 (5 mature, 2 with
+  buds, 2 seedlings)", counting the pots of the greenhouse on screen
+  (Greenhouses 2-6 too, with 5 extra greenhouses) that hold a living plant;
+  once you own an extra greenhouse the line sits under the gold arrows. The stages
+  are the selected plant's own countdown: a seedling before age 21 ("Buds in
+  ... Min."), with buds from 21 ("Mature in ... Min."), mature from 24. Dead
+  plants are left out of the count and shown after it as "Dead: 1" until you
+  trash them. The line updates every frame and is drawn just after the
+  greenhouse's background, so plants, pots, tools and buttons are drawn over
+  it; display only, nothing in the game or the saves changes. It runs as a
+  companion DLL the game loads at start
+  (`Plant Tycoon Fix Patcher DLLs\Greenhouse Counts.dll`, which also loads
+  Unused Flowers' or Sort Seeds' DLL when those are on). How it works:
+  `native/ftfp_greenhouse_counts/ftfp_greenhouse_counts.c`. Picture:
+  [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png).
+- 5 extra greenhouses (**EXPERIMENTAL - USE AT OWN RISK**; off by default;
+  **needs Add new store upgrades and items, which it turns on**; in the
+  "Modded Upgrades" copy). Every greenhouse screen is named at the top in the
+  game's font ("Greenhouse 1" is the stock one). Up to six
+  greenhouses of 15 pots, 90 pots in all. An Extra Greenhouse item on the
+  store's Upgrades screen (the tool shelf, beside the Fourth to Sixth Seed Box,
+  pictured with the game's own greenhouse) sells Greenhouses 2-6 in order,
+  $10,000 each ($0 with Free upgrades), and gets a tick once all five are
+  yours; a new game starts with none. Once you own one, the game's own gold
+  arrows (as on the Seed Storage screen) at the top of the greenhouse screen
+  page through Greenhouse 1, the stock one, and the ones you own, and the
+  screen says "Greenhouse 2 of 3". Greenhouses you have not bought cannot be
+  reached, and no plant can be moved into them. Each greenhouse is the stock screen with the
+  game's own code running on its pots: plants grow, need water and care,
+  flower, take pollen, give seeds, get pests and die exactly as in Greenhouse
+  1, also while you look at another greenhouse, while you are away and through
+  the Time Warp, and every chemical, tool, upgrade and magic plant works in
+  each. Drag a plant onto an arrow to move it to the same pot place in the
+  greenhouse that arrow leads to (or its first empty pot if that place is
+  taken); pollen and seeds taken from a plant are carried across, and held
+  tools, chemicals and tray seeds stay in your hand. The nursery
+  shows the plants for sale from every greenhouse in its stock 15 spots, and
+  without 5 extra nurseries at most 15 plants can be for sale at once.
+  Greenhouses 2-6 are kept per slot in
+  "Plant Tycoon Fix Patcher Data\Extra Greenhouses <slot>.dat" beside the
+  saves (the save itself keeps its stock layout). **Empty Greenhouses 2-6
+  before switching it off.**
+  - Pictures: [docs/images/extra-greenhouses-switch.png](docs/images/extra-greenhouses-switch.png),
+    [docs/images/extra-greenhouses-store.png](docs/images/extra-greenhouses-store.png).
+  - Design:
+    [docs/plant-tycoon-extra-greenhouses-design.md](docs/plant-tycoon-extra-greenhouses-design.md).
+- 5 extra nurseries (**EXPERIMENTAL - USE AT OWN RISK**; off by default;
+  **needs Add new store upgrades and items, which it turns on**; in the
+  "Modded Upgrades" copy). Without any, the game's own limit holds: at most 15
+  plants are for sale at once. An Extra Nursery item on the Upgrades screen's
+  Nursery shelf (the game's own golden pot) sells Nurseries 2-6 in order,
+  $10,000 each ($0 with Free upgrades); each one bought adds 15 spots (90 with
+  all five). Each nursery is the stock nursery screen, run by the game's own
+  code, with its own 15 spots. While you are in the nursery, every nursery
+  you own sells at once through the game's own buy roll (only the one on
+  screen has visitors walking about; away from the nursery nothing sells, as
+  in the stock game). Every nursery screen is named at
+  the top ("Nursery 1" is the stock one), and gold arrows there page through
+  the ones you own. Plants are tagged for sale in the greenhouse as in the
+  stock game and fill the nurseries in order: Nursery 1 first (a Greenhouse 1
+  plant at its own pot's spot), then Nursery 2, and so on. The nurseries
+  bought are kept with the extra greenhouses in "Extra Greenhouses
+  <slot>.dat". **Take plants off sale until 15 or fewer are for sale before
+  switching it off.**
+  - Pictures: Nursery 2 [docs/images/extra-nurseries-switch.png](docs/images/extra-nurseries-switch.png)
+    beside the stock Nursery 1 [docs/images/extra-nurseries-nursery-1.png](docs/images/extra-nurseries-nursery-1.png).
 
 ## Use
 
@@ -245,7 +463,7 @@ output folders named `Fish Tycoon - Modded` and `Plant Tycoon - Modded`.
 Their executables are named `Fish Tycoon - Modded.exe` and
 `Plant Tycoon - Modded.exe`. Original folders and executables are not replaced.
 With a setting that adds new content on (DS Exclusive Fish, DS Store Items,
-Add unused flowers, Add new store upgrades and items), the copy is
+Multiple ornaments, 3 extra tanks, Add unused flowers, Add new store upgrades and items), the copy is
 `Fish Tycoon - Modded Upgrades` / `Plant Tycoon - Modded Upgrades` (folder and
 EXE) instead, beside the plain copy; the game names its save folder after the
 EXE, so it keeps its own saves.

@@ -45,6 +45,9 @@ SITES = [
     # Exotic Fish Eggs: the egg switch, and the stock "Replace eggs in slot #4?" test.
     ("egg_use", 0x421356, ["mov edx, dword ptr [esi + 0x34]", "mov eax, dword ptr [edx + 0x30c]"]),
     ("egg_confirm", 0x4281AF, ["cmp ecx, 0xac", "jne 0x4281d6"]),
+    # Radioactive Growth Hormone: the chemical switch, and the stock "Replace chemical in slot #3?" test.
+    ("chem_use", 0x420E6F, ["mov ecx, dword ptr [esi + 0x34]", "mov eax, dword ptr [ecx + 0x2f0]", "sub eax, 2"]),
+    ("chem_confirm", 0x428189, ["cmp ecx, 0xaa", "jne 0x4281d6"]),
     # The eel's rock: drawn with the ornaments; the eel goes home on a drop, out on a click.
     ("ornaments", 0x41EF1B, ["jmp 0x41d600"]),
     ("fish_drop", 0x41F064, ["mov ecx, dword ptr [esi + 0x34]", "mov eax, dword ptr [ecx + 0x384]"]),
@@ -60,14 +63,14 @@ SITES = [
     # The tank's info panel asks the species table for the held fish's name; seahorse-type
     # animals have none there, so the DLL names them.
     ("held_name", 0x41DA0A, ["call 0x419290"]),
-]
-
-# The two loops that build the swimming fish (the view) run over every slot up to this bound,
-# 21 stock or 26 with "Bigger tanks"; the DLL makes it 31 so the animals in 26-30 swim. These
-# share their byte with that setting's patches on purpose: the DLL accepts either value.
-VIEW_LIMITS = [
-    ("view_build_slots", 0x4140C5),
-    ("view_refresh_slots", 0x415893),
+    # The animals live in the DLL's own records (saved in "Tank Animals <slot>.dat"): the two loops
+    # that build and refresh the swimming fish (the view) go on from the last fish slot to the
+    # tank's animals at their `jl` back to the top (the bound itself, 21 or 30 with "Bigger tanks",
+    # stays the setting's), and the state's Save(slot) writes the animals' file first.
+    ("view_build_next", 0x4140D0, ["jl 0x413dc4"]),
+    ("view_refresh_next", 0x41589E, ["jl 0x415533"]),
+    ("save_call_game", 0x41A663, ["call 0x419100"]),
+    ("save_call_settings", 0x41A66B, ["call 0x419100"]),
 ]
 
 # The Supplies scene's vtable (0x44C294): slot address -> the function it holds.
@@ -77,6 +80,7 @@ VTABLE = [
     ("vt_overlay", 0x44C2B0, 0x41B5F0),
     ("vt_activate", 0x44C2B8, 0x427960),
     ("state_load", 0x4424D0, 0x41AE70),            # the state's vtable: Load(slot)
+    ("state_save", 0x4424D4, 0x419100),            # and Save(slot)
 ]
 
 
@@ -127,21 +131,6 @@ def main() -> int:
         if len(raw) < 5:
             raise SystemExit(f"{name} at 0x{va:X} is {len(raw)} bytes; a jump needs 5")
         emit(name, va, raw, True)
-
-    for name, va in VIEW_LIMITS:
-        got = disasm(data, va, 1)[0]
-        if text(got) != "cmp eax, 0x15":
-            raise SystemExit(f"{name} at 0x{va:X}: expected cmp eax, 0x15, found {text(got)}")
-        raw = bytes(got.bytes)
-        for start, end, other in used:
-            if va < end and start < va + len(raw):
-                raise SystemExit(f"{name} at 0x{va:X} overlaps {other}")
-        used.append((va, va + len(raw), name))
-        upper = name.upper()
-        lines.append(f"#define SITE_{upper}_VA 0x{va:08X}u")
-        lines.append(f"#define SITE_{upper}_LEN {len(raw)}")
-        lines.append(f"static const unsigned char SITE_{upper}_EXPECT[] = {{ {c_bytes(raw)} }};")
-        lines.append(f"static const unsigned char SITE_{upper}_EXPECT_26[] = {{ {c_bytes(raw[:-1] + bytes([0x1A]))} }};")
 
     for name, va, holds in VTABLE:
         raw = data[va - BASE: va - BASE + 4]

@@ -12,6 +12,13 @@
        3 doses, $10000.  On a plant: full health, every dead branch alive
        again, the largest size, as many flowers as the plant can hold,
        grown to full bloom, and a pollinated plant's full 5 seeds.
+     * Revival Potion (beside it): chemical 37, 3 doses, $10000.  On a dead
+       plant: alive again at full health.
+     * Revita-Seed (beside that): chemical 38, 3 doses, $2500.  On a plant
+       that has given all its seeds: it can be pollinated again.
+     * Radioactive Plant Formula Bomb (under the formula): chemical 39, 3
+       bombs, $30000.  The formula's full effect on every live plant of the
+       greenhouse on screen, the pots the stock Fertilizer Bomb reaches.
      * seeds bred from the new flowers (self-pollinated or crossed) get the
        Legendary seed art too.
      * the Fourth, Fifth and Sixth Seed Box (upper left, the seed-box column
@@ -53,6 +60,20 @@
 #define FORMULA_PRICE 10000
 #define FORMULA_DOSES 3
 #define FORMULA_NAME_ID 0x1F0               /* a string id above the game's last (0x1B2) */
+/* The two new chemicals: id = purchase-dialog index = tray id, and the game
+   draws chemical c as frame 2c - 54 of the chemical sheet (rows 10 and 11).
+   Dialog indices 37-51 are stock store items too, so 37-39 are only these
+   chemicals while a dialog opened from the Upgrades view is up (upgrade_dialog). */
+#define REVIVAL_ID 37
+#define REVIVAL_PRICE 10000
+#define REVITA_ID 38
+#define REVITA_PRICE 2500
+#define NEW_DOSES 3
+#define REVIVAL_NAME_ID 0x1F5
+#define REVITA_NAME_ID 0x1F6
+#define BOMB_ID 39                          /* the Radioactive Plant Formula Bomb: row 12 */
+#define BOMB_PRICE 30000
+#define BOMB_NAME_ID 0x1F7
 #define POT_SEEDS_HELD_BACK 0x7C            /* see on_pollinated */
 #define LINK_SPRITE 0x8B                    /* the one sprite id the game leaves free */
 #define EXTRA_BOXES 3
@@ -266,6 +287,138 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
     }
 }
 
+/* -------------------------------------------------------- Revival Potion */
+
+/* How the vanilla game stores a dead plant.  The plant's age step (0x42E244)
+   finds health (+0x24) at 0 or below and then, once:
+     * shows the first-death tutorial page (0xC5, once a game);
+     * +0x3C = 1, +0x24 = 0;
+     * +0x94 (seeds taken) = 5 - +0x90 (ripe seeds): the ripe seeds can still be
+       picked, the unripe ones are gone;
+     * +0x44 and +0x48 (the plant's price and value) = 0.
+   From then on the plant update (0x42DF80) returns at once while health <= 0
+   (0x42DFA6): its clock (+0x04) stops, and it clears +0x9D (the plant's on-sale
+   flag, the toggle at 0x427CDD) every update.  The greenhouse draws every part
+   brown while health <= 0 (0x42E7AE) and refuses it pollen (0x425E4E).  No
+   timer removes it: it stays until it is dug up.
+   A dose on a dead plant: health 100, +0x3C = 0, its clock set to now (the
+   game's clock 0x403430, as a planting sets it, 0x42FCAA), so the next update
+   does not play the time it lay dead as time away; its value through the
+   game's own value rule (0x42DD80, what every flowering ends with) and its
+   price through the planting rule (0x42FD11-0x42FD9E).  Kept as the death left
+   them, as the game's own healing would: parts that were dead before it died
+   stay dead (only health 0 drew the rest brown), the seeds it lost, and the
+   on-sale flag (put it on sale again).  On a live plant it does nothing. */
+#define POT_HEALTH 0x24
+#define POT_DIED 0x3C
+#define POT_PRICE 0x44
+#define POT_VALUE 0x48
+#define POT_CLOCK 0x04
+#define S_DIFFICULTY 0x518
+#define S_PRICE_BONUS 0x2181                /* the byte the planting rule tests (0x42FD77) */
+typedef void (__fastcall *plant_value_fn)(void *plant, int edx);
+static const plant_value_fn plant_value = (plant_value_fn)0x0042DD80u;
+typedef unsigned int (__cdecl *game_clock_fn)(void);
+static const game_clock_fn game_clock = (game_clock_fn)0x00403430u;
+
+static char *pot_at(char *greenhouse, int col, int row) {
+    return AT(greenhouse, 0x68, char *) + 0x2188 + (row * 5 + col) * 0x5600;    /* as the stock use, 0x426660 */
+}
+
+/* The planting rule's price: the value (1 if 0) spread by a fifth, third or half
+   by difficulty; with the bonus byte, value + 3 x value / 4. */
+static void price_as_planted(const char *state, char *pot) {
+    int value = AT(pot, POT_VALUE, int), base = value != 0 ? value : 1, spread;
+    switch (AT(state, S_DIFFICULTY, int)) {
+    case 0: spread = base / 5; break;
+    case 1: spread = base / 3; break;
+    default: spread = base / 2; break;
+    }
+    base += game_random(2 * spread) - spread;
+    AT(pot, POT_PRICE, int) = AT(state, S_PRICE_BONUS, unsigned char) ? value + 3 * (value / 4) : base;
+}
+
+static void apply_revival(char *greenhouse, int col, int row, char *plant) {
+    char *state = AT(greenhouse, 0x68, char *);
+    char *pot = pot_at(greenhouse, col, row);
+    if (AT(pot, POT_HEALTH, int) > 0) return;
+    AT(pot, POT_HEALTH, int) = 100;
+    AT(pot, POT_DIED, int) = 0;
+    AT(pot, POT_CLOCK, unsigned int) = game_clock();
+    if (plant != NULL && AT(plant, 8, char *) == pot) plant_value(plant, 0);
+    price_as_planted(state, pot);
+}
+
+/* ------------------------------------------------------------ Revita-Seed */
+
+/* How the vanilla game stores seed-giving: a fresh plant has +0x6C (pollinated,
+   a byte) 0.  Pollination (0x4240A0) sets it to 1 for good, with +0x98 the age
+   it was pollinated at, +0x90 = 0 ripe seeds and +0x94 = seeds taken already:
+   0-2 of 5 (the game gives 5, 4 or 3), or 4 if infested (1 seed); this DLL's
+   +0x7C keeps that held-back count (on_pollinated).  Each age step ripens
+   min(age - +0x98 - 2, 5) - +0x94 seeds into +0x90 (0x42E0C6); picking one
+   (0x426208) needs +0x94 below 5 ("no more seeds", 0x75) and a ripe seed, and
+   moves one from +0x90 to +0x94.  A pollinated plant is never pollinated again
+   ("already pollinated", 0x72, 0x425EA3).  So "depleted" is +0x6C set with
+   +0x94 at 5 or more.  A dose on a depleted plant puts back exactly the fresh
+   plant's state: +0x6C = 0 (pollen is taken again, by the game's own rules),
+   +0x90 = 0, +0x94 = 0, +0x7C = 0.  The rest of the old pollination (+0x54-+0x74,
+   +0x98) is only read while +0x6C is set and is rewritten by the next one.  On
+   a plant that is not depleted it does nothing. */
+#define POT_POLLINATED 0x6C
+#define POT_RIPE 0x90
+#define POT_TAKEN 0x94
+#define SEEDS_PER_POLLINATION 5
+
+static void apply_revita(char *greenhouse, int col, int row) {
+    char *pot = pot_at(greenhouse, col, row);
+    if (!AT(pot, POT_POLLINATED, unsigned char) || AT(pot, POT_TAKEN, int) < SEEDS_PER_POLLINATION) return;
+    AT(pot, POT_POLLINATED, unsigned char) = 0;
+    AT(pot, POT_RIPE, int) = 0;
+    AT(pot, POT_TAKEN, int) = 0;
+    AT(pot, POT_SEEDS_HELD_BACK, int) = 0;
+}
+
+/* ------------------------------------------- Radioactive Plant Formula Bomb */
+
+/* The stock Fertilizer Bomb (chemical 32, case 0x426BA8 of the switch at
+   0x4266B6) reaches every pot of the greenhouse on screen, wherever it is
+   dropped: rows of columns (`cmp edi, 0x1D1` at 0x426D3A, 0x5D a column: 5),
+   pots up to `cmp ebx, 0x50A00` at 0x426D54 (15 of 0x5600 bytes), each one
+   that holds a plant (+0x38) with health above 0 (+0x24), its plant object
+   from the greenhouse's plant table (0x42F6C0(row, col) on greenhouse + 0x70);
+   then the shared tail 0x42720B.  The Formula Bomb is chemical 39: the same
+   pots, read from those same two immediates, each given exactly one Formula
+   dose (apply_formula, the code the Formula runs).  The bomb is spent before
+   the switch, as every chemical's dose is. */
+#define BOMB_COLUMNS (*(const int *)(UINT_PTR)0x00426D3Cu / 0x5D)
+#define BOMB_POTS (*(const int *)(UINT_PTR)0x00426D56u / 0x5600)
+typedef char *(__fastcall *plant_at_fn)(void *plants, int edx, int row, int col);
+static const plant_at_fn plant_at = (plant_at_fn)0x0042F6C0u;
+
+static void apply_bomb(char *greenhouse) {
+    char *state = AT(greenhouse, 0x68, char *);
+    int k, columns = BOMB_COLUMNS, pots = BOMB_POTS;
+    if (columns <= 0) return;
+    for (k = 0; k < pots; ++k) {
+        char *pot = state + 0x2188 + k * 0x5600;
+        int row = k / columns, col = k % columns;
+        if (!AT(pot, 0x38, unsigned char) || AT(pot, POT_HEALTH, int) <= 0) continue;
+        apply_formula(greenhouse, col, row, plant_at(AT(greenhouse, 0x70, void *), 0, row, col));
+    }
+}
+
+/* The chemical-use switch's new chemicals (the dose is already spent, stock order). */
+static void __cdecl apply_chemical(char *greenhouse, int col, int row, char *plant, int id) {
+    switch (id) {
+    case FORMULA_ID: apply_formula(greenhouse, col, row, plant); break;
+    case REVIVAL_ID: apply_revival(greenhouse, col, row, plant); break;
+    case REVITA_ID: apply_revita(greenhouse, col, row); break;
+    case BOMB_ID: apply_bomb(greenhouse); break;
+    default: break;
+    }
+}
+
 /* After a pot's pollination (0x4240A0's tail, hooked by "Unused Flowers.dll"):
    * a seed with one of the new flowers gets its Legendary (prismatic) art;
    * the seeds the game held back (it gives 5, 4 or 3, or 1 if the plant is
@@ -315,6 +468,19 @@ static const char FORMULA_TITLE[] = "Radioactive Plant Formula\n";
 static const char FORMULA_DESC[] =
     "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves!\nContains 3 doses.\n";
 static const char FORMULA_NAME[] = "Radioactive Plant Formula";
+/* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped as the formula's. */
+static const char REVIVAL_TITLE[] = "Revival Potion\n";
+static const char REVIVAL_DESC[] =
+    "This magical potion instantly revives\ndead plants and restores them to full\nhealth. Contains 3 doses.\n";
+static const char REVIVAL_NAME[] = "Revival Potion";
+static const char REVITA_TITLE[] = "Revita-Seed\n";
+static const char REVITA_DESC[] =
+    "Revitalizes depleted plants so they\ncan produce more seeds.\nContains 3 doses.\n";
+static const char REVITA_NAME[] = "Revita-Seed";
+static const char BOMB_TITLE[] = "Radioactive Plant Formula Bomb\n";
+static const char BOMB_DESC[] =
+    "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nContains 3 bombs.\n";
+static const char BOMB_NAME[] = "Radioactive Plant Formula Bomb";
 static const char BOX_TITLE_4[] = "Fourth Seed Box";
 static const char BOX_TITLE_5[] = "Fifth Seed Box";
 static const char BOX_TITLE_6[] = "Sixth Seed Box";
@@ -322,7 +488,8 @@ static const char BOX_DESC[] = "Even more space for your seeds!";
 static const char *const BOX_TITLES[EXTRA_BOXES] = { BOX_TITLE_4, BOX_TITLE_5, BOX_TITLE_6 };
 
 static volatile unsigned char building_legendary = 0;     /* a Legendary dialog is being built */
-static volatile unsigned char building_formula = 0;       /* a formula dialog is being built */
+static volatile unsigned char building_chem = 0;          /* the new chemical (36-38) whose dialog is being built */
+static volatile unsigned char upgrade_dialog = 0;         /* a dialog opened from the Upgrades view is up */
 
 /* ------------------------------------------------------------- store view */
 
@@ -330,7 +497,10 @@ static int upgrades_view = 0;
 static int link_hover = 0;
 static int hover_x = -1, hover_y = -1;
 #define TIP_FORMULA LEGENDARY_COUNT
-#define TIP_BOXES (LEGENDARY_COUNT + 1)
+#define TIP_REVIVAL (LEGENDARY_COUNT + 1)
+#define TIP_REVITA (LEGENDARY_COUNT + 2)
+#define TIP_BOMB (LEGENDARY_COUNT + 3)
+#define TIP_BOXES (LEGENDARY_COUNT + 4)
 #define TIPS (TIP_BOXES + EXTRA_BOXES)
 static char *tips[TIPS];
 static char tip_text[TIPS][64];
@@ -345,13 +515,22 @@ static int inside(const RECT *r, int x, int y) { return x >= r->left && x <= r->
 
 static RECT seed_rect(int i) { RECT r = { 598 + 60 * i, 290, 648 + 60 * i, 355 }; return r; }
 static const RECT FORMULA_RECT = { 610, 63, 655, 115 };
+/* The chemical shelf's next two places, 57 px apart as the store's shelves are. */
+#define REVIVAL_X (598 + 57)
+#define REVITA_X (598 + 2 * 57)
+static const RECT REVIVAL_RECT = { REVIVAL_X + 12, 63, REVIVAL_X + 57, 115 };
+static const RECT REVITA_RECT = { REVITA_X + 12, 63, REVITA_X + 57, 115 };
+/* The bomb under the formula, on the shelf's second row (61 px down, as the stock shelves). */
+#define BOMB_X 598
+#define BOMB_Y (55 + 61)
+static const RECT BOMB_RECT = { BOMB_X + 12, BOMB_Y + 8, BOMB_X + 57, BOMB_Y + 60 };
 static const RECT LINK_RECT = { LINK_X - 2, LINK_Y - 2, LINK_X + LINK_W + 2, LINK_Y + LINK_H + 2 };
 static RECT box_rect(int box) { RECT r = { 471, 52 + 70 * box, 528, 113 + 70 * box }; return r; }
 
 /* ------------------------------------------------------------ time warp */
 
 /* The Time Warp setting ships "Time Warp.ini" beside this DLL.  The item sits
-   on the Upgrades view's empty Nursery shelf; its picture is frame 20 (row 10)
+   on the Upgrades view's empty Nursery shelf; its picture is frame 26 (row 13)
    of the chemicals sheet this DLL already extends.  Clicking it asks for the
    hours in a Windows popup, confirms, charges $500 and moves every live pot's
    time stamp back that far, then runs the game's own plant update (0x41D810,
@@ -360,7 +539,7 @@ static RECT box_rect(int box) { RECT r = { 471, 52 + 70 * box, 528, 113 + 70 * b
    the Sundial's start (state+0x30) move back too.  Once the update has run,
    an OK box says the hours, age units and price. */
 #define WARP_PRICE 500
-#define WARP_FRAME 20
+#define WARP_FRAME 26                       /* row 13: rows 10-12 are chemicals 37-39 */
 #define WARP_X 300
 #define WARP_Y 296
 #define S_CASH 0x217C
@@ -412,6 +591,12 @@ static void time_warp(char *scene) {
         if (stamp > now) stamp = now;                  /* a fresh seed's stamp is a second ahead */
         AT(pot, 0x04, unsigned int) = stamp - dt;
     }
+    {   /* "Extra Greenhouses.dll" (its own setting): the same for its pots. */
+        typedef void (__cdecl *extra_warp_fn)(unsigned int dt, unsigned int now);
+        HMODULE extra = GetModuleHandleW(L"Extra Greenhouses.dll");
+        extra_warp_fn extra_warp = extra ? (extra_warp_fn)GetProcAddress(extra, "FtfpExtraGreenhousesWarp") : NULL;
+        if (extra_warp != NULL) extra_warp(dt, now);
+    }
     AT(state, S_RESTOCK, unsigned int) -= dt;          /* the greenhouse's next 3-s check restocks if due */
     if (AT(state, S_STARTED, unsigned int) > dt) AT(state, S_STARTED, unsigned int) -= dt;
     update_plants(state, 0);
@@ -423,13 +608,13 @@ static void time_warp(char *scene) {
 /* ------------------------------------------------------------ add money */
 
 /* The Add Money setting ships "Add Money.ini" beside this DLL.  A pile of
-   gold coins (frame 22, row 11 of the chemicals sheet) sits beside the Time
+   gold coins (frame 28, row 14 of the chemicals sheet) sits beside the Time
    Warp clock: $950, or $0 with Free upgrades, then +$1,000, any number of
    times.  Both go through the game's own cash function (0x41ED70), which
    keeps the cash between $0 and $4,000,000,000 (the double at 0x467F78). */
 #define MONEY_PRICE 950
 #define MONEY_GAIN 1000
-#define MONEY_FRAME 22
+#define MONEY_FRAME 28                      /* row 14 */
 #define MONEY_X 370
 #define MONEY_Y 296
 static const RECT MONEY_RECT = { MONEY_X, MONEY_Y, MONEY_X + 64, MONEY_Y + 64 };
@@ -454,6 +639,93 @@ static void add_money(char *scene) {
     play_sound(SCENE_SOUND(scene), 0, SOUND_BUTTON);
 }
 
+/* ------------------------------------------- extra greenhouses and nurseries */
+
+/* "Extra Greenhouses.dll" (the 5 extra greenhouses and 5 extra nurseries
+   settings) sells Greenhouses 2-6 and Nurseries 2-6 here: two items, each
+   bought in order like the Fourth-Sixth Seed Box, $10,000 each ($0 with Free
+   upgrades), through the same Yes / No as Add Money, with the stock tick once
+   all five are owned.  The greenhouse stands on the tool shelf beside the seed
+   boxes, drawn with the game's own greenhouse picture (greenhouse1.png, sprite
+   0xC2); the nursery on the Nursery shelf beside Add Money, drawn with the
+   game's own golden pot (goldpot.png, sprite 0x2C, the nursery's display).
+   An item shows only while its setting is on (its Owned export says -1 when
+   it is off). */
+#define EXTRA_PRICE 10000
+#define EXTRA_COUNT 5
+#define EXTRA_ITEMS 2
+typedef int (__cdecl *extra_fn)(void);
+
+typedef struct extra_item {
+    const char *title;
+    const wchar_t *caption, *all_owned, *too_poor, *confirm;
+    const char *owned_export, *buy_export;
+    int sprite, x, y;
+    float scale;
+    RECT rect;
+} extra_item;
+
+static const extra_item EXTRA_ITEM[EXTRA_ITEMS] = {
+    { "Extra Greenhouse", L"Extra Greenhouse", L"You already have all five extra greenhouses!",
+      L"You can't afford to buy this yet! An extra greenhouse costs $10,000.",
+      L"Buy Greenhouse %d for $%d?\n\nIt has 15 empty pots. The arrows on the greenhouse screen lead to it.",
+      "FtfpExtraGreenhousesOwned", "FtfpExtraGreenhousesBuy", 0xC2, 404, 50, 0.29f, { 404, 52, 461, 113 } },
+    { "Extra Nursery", L"Extra Nursery", L"You already have all five extra nurseries!",
+      L"You can't afford to buy this yet! An extra nursery costs $10,000.",
+      L"Buy Nursery %d for $%d?\n\nIt holds 15 more plants for sale. The arrows on the nursery screen lead to it.",
+      "FtfpExtraNurseriesOwned", "FtfpExtraNurseriesBuy", 0x2C, 440, 296, 0.84f, { 440, 296, 504, 360 } },
+};
+static extra_fn extra_owned[EXTRA_ITEMS], extra_buy[EXTRA_ITEMS];
+static char *extra_tip[EXTRA_ITEMS];
+static char extra_tip_text[EXTRA_ITEMS][64];
+
+static int extra_on(int i) { return extra_owned[i] != NULL && extra_owned[i]() >= 0; }
+
+static void extra_tip_set(int i) {
+    int owned = extra_owned[i]();
+    if (owned >= EXTRA_COUNT) sprintf_s(extra_tip_text[i], 64, "%s\nSold out", EXTRA_ITEM[i].title);
+    else sprintf_s(extra_tip_text[i], 64, "%s %i of %i\nPrice: $ %i", EXTRA_ITEM[i].title, owned + 1, EXTRA_COUNT,
+                   price(EXTRA_PRICE));
+}
+
+static void buy_extra(char *scene, int i) {
+    char *state = SCENE_STATE(scene);
+    wchar_t text[256];
+    int owned, cost = price(EXTRA_PRICE);
+    if (state == NULL || !extra_on(i)) return;
+    owned = extra_owned[i]();
+    if (owned >= EXTRA_COUNT) {
+        tw_tell_as(EXTRA_ITEM[i].caption, EXTRA_ITEM[i].all_owned);
+        return;
+    }
+    if (AT(state, S_CASH, unsigned int) < (unsigned int)cost) {
+        tw_tell_as(EXTRA_ITEM[i].caption, EXTRA_ITEM[i].too_poor);
+        return;
+    }
+    swprintf_s(text, 256, EXTRA_ITEM[i].confirm, owned + 2, cost);
+    if (!tw_confirm_as(EXTRA_ITEM[i].caption, text)) return;
+    if (AT(state, S_CASH, unsigned int) < (unsigned int)cost || extra_owned[i]() != owned) return;
+    add_cash(state, 0, -cost);
+    extra_buy[i]();
+    play_sound(SCENE_SOUND(scene), 0, SOUND_BUTTON);
+    extra_tip_set(i);
+    if (extra_tip[i] != NULL) tooltip_text(extra_tip[i], 0, extra_tip_text[i], TOOLTIP_COLOUR, 0, 0);
+}
+
+static void load_extras(void) {
+    HMODULE module = GetModuleHandleW(L"Extra Greenhouses.dll");
+    int i;
+    if (module == NULL) return;
+    for (i = 0; i < EXTRA_ITEMS; ++i) {
+        extra_fn owned = (extra_fn)GetProcAddress(module, EXTRA_ITEM[i].owned_export);
+        extra_fn buy = (extra_fn)GetProcAddress(module, EXTRA_ITEM[i].buy_export);
+        if (owned != NULL && buy != NULL) {
+            extra_owned[i] = owned;
+            extra_buy[i] = buy;
+        }
+    }
+}
+
 static void box_tip_text(int box) {
     if (boxes != NULL && boxes->owned(box)) sprintf_s(tip_text[TIP_BOXES + box], 64, "%s", BOX_TITLES[box]);
     else sprintf_s(tip_text[TIP_BOXES + box], 64, "%s\nPrice: $ %i", BOX_TITLES[box], price(BOX_PRICE));
@@ -466,7 +738,7 @@ static void set_tooltips(char *scene) {
         if (tip != NULL) AT(tip, 8, unsigned char) = (unsigned char)!upgrades_view;
     }
     for (i = 0; i < TIPS; ++i) {
-        int shown = i < LEGENDARY_COUNT ? (legendary[i].present & 0xFF) : i == TIP_FORMULA ? 1 : boxes != NULL;
+        int shown = i < LEGENDARY_COUNT ? (legendary[i].present & 0xFF) : i < TIP_BOXES ? 1 : boxes != NULL;
         if (tips[i] == NULL) continue;
         if (i >= TIP_BOXES) {
             box_tip_text(i - TIP_BOXES);
@@ -476,6 +748,12 @@ static void set_tooltips(char *scene) {
     }
     if (warp_tip != NULL) AT(warp_tip, 8, unsigned char) = (unsigned char)upgrades_view;
     if (money_tip != NULL) AT(money_tip, 8, unsigned char) = (unsigned char)upgrades_view;
+    for (i = 0; i < EXTRA_ITEMS; ++i) {
+        if (extra_tip[i] == NULL) continue;
+        extra_tip_set(i);
+        tooltip_text(extra_tip[i], 0, extra_tip_text[i], TOOLTIP_COLOUR, 0, 0);
+        AT(extra_tip[i], 8, unsigned char) = (unsigned char)upgrades_view;
+    }
 }
 
 static char *make_tooltip(char *scene, int id, const RECT *r, const char *text) {
@@ -490,11 +768,15 @@ static void make_tooltips(char *scene) {
     int i;
     if (tips[0] != NULL) return;
     for (i = 0; i < TIPS; ++i) {
-        RECT r = i < LEGENDARY_COUNT ? seed_rect(i) : i == TIP_FORMULA ? FORMULA_RECT : box_rect(i - TIP_BOXES);
+        RECT r = i < LEGENDARY_COUNT ? seed_rect(i) : i == TIP_FORMULA ? FORMULA_RECT : i == TIP_REVIVAL ? REVIVAL_RECT
+                 : i == TIP_REVITA ? REVITA_RECT : i == TIP_BOMB ? BOMB_RECT : box_rect(i - TIP_BOXES);
         char *tip = (char *)game_new(0x10);
         if (tip == NULL) return;
         if (i < LEGENDARY_COUNT) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", LEGENDARY_TITLE, price(LEGENDARY_PRICE));
         else if (i == TIP_FORMULA) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", FORMULA_TITLE, price(FORMULA_PRICE));
+        else if (i == TIP_REVIVAL) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", REVIVAL_TITLE, price(REVIVAL_PRICE));
+        else if (i == TIP_REVITA) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", REVITA_TITLE, price(REVITA_PRICE));
+        else if (i == TIP_BOMB) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", BOMB_TITLE, price(BOMB_PRICE));
         else box_tip_text(i - TIP_BOXES);
         tooltip_ctor(tip, 0, 54 + i, &r, scene, tip_text[i], TOOLTIP_FONT, 0, 0);
         add_control(scene, 0, tip);
@@ -507,6 +789,11 @@ static void make_tooltips(char *scene) {
     if (money_on && money_tip == NULL) {
         sprintf_s(money_tip_text, sizeof money_tip_text, "Add $1,000\nPrice: $ %i", price(MONEY_PRICE));
         money_tip = make_tooltip(scene, 55 + TIPS, &MONEY_RECT, money_tip_text);
+    }
+    for (i = 0; i < EXTRA_ITEMS; ++i) {
+        if (!extra_on(i) || extra_tip[i] != NULL) continue;
+        extra_tip_set(i);
+        extra_tip[i] = make_tooltip(scene, 56 + TIPS + i, &EXTRA_ITEM[i].rect, extra_tip_text[i]);
     }
 }
 
@@ -539,6 +826,12 @@ static int __cdecl on_draw(char *scene) {
     }
     draw_shadow(mgr, 0, SHEET_SHADOW, 598 + 0x19, 55 + 0x1E, 1.0f, 100);
     draw_sprite(mgr, 0, SHEET_CHEMICALS, 2 * FORMULA_ID - 54, 598, 55, 1.0f, 100, 1);
+    draw_shadow(mgr, 0, SHEET_SHADOW, REVIVAL_X + 0x19, 55 + 0x1E, 1.0f, 100);
+    draw_sprite(mgr, 0, SHEET_CHEMICALS, 2 * REVIVAL_ID - 54, REVIVAL_X, 55, 1.0f, 100, 1);
+    draw_shadow(mgr, 0, SHEET_SHADOW, REVITA_X + 0x19, 55 + 0x1E, 1.0f, 100);
+    draw_sprite(mgr, 0, SHEET_CHEMICALS, 2 * REVITA_ID - 54, REVITA_X, 55, 1.0f, 100, 1);
+    draw_shadow(mgr, 0, SHEET_SHADOW, BOMB_X + 0x19, BOMB_Y + 0x1E, 1.0f, 100);
+    draw_sprite(mgr, 0, SHEET_CHEMICALS, 2 * BOMB_ID - 54, BOMB_X, BOMB_Y, 1.0f, 100, 1);
     for (i = 0; boxes != NULL && i < EXTRA_BOXES; ++i) {      /* where the stock store draws its seed boxes */
         int x = 233 + 57 * 4, y = 50 + 61 * i;
         draw_shadow(mgr, 0, SHEET_SHADOW, x + 0x19, y + 0x1E, 1.0f, 100);
@@ -553,15 +846,24 @@ static int __cdecl on_draw(char *scene) {
         draw_shadow(mgr, 0, SHEET_SHADOW, MONEY_X + 0x19, MONEY_Y + 0x1E, 1.0f, 100);
         draw_sprite(mgr, 0, SHEET_CHEMICALS, MONEY_FRAME, MONEY_X, MONEY_Y, 1.0f, 100, 1);
     }
+    for (i = 0; i < EXTRA_ITEMS; ++i) {
+        const extra_item *it = &EXTRA_ITEM[i];
+        if (!extra_on(i)) continue;
+        draw_shadow(mgr, 0, SHEET_SHADOW, it->x + 0x19, it->y + 0x1E, 1.0f, 100);
+        draw_sprite(mgr, 0, it->sprite, 0, it->x + 6, it->y, it->scale, 100, 1);
+        if (extra_owned[i]() >= EXTRA_COUNT) draw_shadow(mgr, 0, SHEET_TICK, it->x + 19, it->y + 22, 1.0f, 100);
+    }
     return 1;
 }
 
 static void open_dialog(char *scene, int index) {
     __declspec(align(16)) unsigned char dlg[0x400];
     memset(dlg, 0, sizeof dlg);
+    upgrade_dialog = 1;
     dialog_ctor(dlg, 0, index);
     dialog_run(dlg, 0, scene, 0);
     dialog_dtor(dlg, 0);
+    upgrade_dialog = 0;
     set_tooltips(scene);                                  /* a bought packet's tooltip goes */
 }
 
@@ -608,12 +910,18 @@ static int __cdecl on_click(char *scene, int x, int y) {
         }
     }
     if (inside(&FORMULA_RECT, x, y)) open_dialog(scene, FORMULA_ID);
+    if (inside(&REVIVAL_RECT, x, y)) open_dialog(scene, REVIVAL_ID);
+    if (inside(&REVITA_RECT, x, y)) open_dialog(scene, REVITA_ID);
+    if (inside(&BOMB_RECT, x, y)) open_dialog(scene, BOMB_ID);
     for (i = 0; boxes != NULL && i < EXTRA_BOXES; ++i) {
         RECT r = box_rect(i);
         if (inside(&r, x, y)) open_box_dialog(scene, i);
     }
     if (warp_on && inside(&WARP_RECT, x, y)) time_warp(scene);
     if (money_on && inside(&MONEY_RECT, x, y)) add_money(scene);
+    for (i = 0; i < EXTRA_ITEMS; ++i) {
+        if (extra_on(i) && inside(&EXTRA_ITEM[i].rect, x, y)) buy_extra(scene, i);
+    }
     return 1;
 }
 
@@ -778,13 +1086,23 @@ __declspec(naked) static void stub_roll(void) {
 }
 
 /* 0x430950 purchase-dialog helper(index): 52..54 ride the Extinct seed path
-   (6..8), 36 the Vaporbomb path (35), each with its flag set. */
+   (6..8); 36, and 37 or 38 from the Upgrades view, the Vaporbomb path (35),
+   each with its flag set. */
 __declspec(naked) static void stub_dialog(void) {
     __asm {
         mov eax, [esp + 4]
         cmp eax, FORMULA_ID
+        je chemical
+        cmp byte ptr [upgrade_dialog], 0
+        je seeds
+        cmp eax, REVIVAL_ID
+        je chemical
+        cmp eax, REVITA_ID
+        je chemical
+        cmp eax, BOMB_ID
         jne seeds
-        mov byte ptr [building_formula], 1
+    chemical:
+        mov byte ptr [building_chem], al
         mov dword ptr [esp + 4], 35
         jmp stock
     seeds:
@@ -801,10 +1119,26 @@ __declspec(naked) static void stub_dialog(void) {
     }
 }
 
-/* 0x430827 dialog picture: ecx = sprite manager, ebx/edi = picture position + 0x19. */
+/* 0x430827 dialog picture: ecx = sprite manager, ebx/edi = picture position + 0x19.
+   37 and 38 from the Upgrades view go straight to the chemicals' branch (stock
+   0x4308CC: 27 up to the raised bound draws frame 2 x id - 54), past the stock
+   test for items 37-51 at 0x43089E. */
+static const DWORD k_picture_chemicals = 0x004308CCu;
+
 __declspec(naked) static void stub_picture(void) {
     __asm {
         mov eax, [esi + 0xB8]
+        cmp byte ptr [upgrade_dialog], 0
+        je seed_picture
+        cmp eax, REVIVAL_ID
+        je chemical
+        cmp eax, REVITA_ID
+        je chemical
+        cmp eax, BOMB_ID
+        jne seed_picture
+    chemical:
+        jmp k_picture_chemicals
+    seed_picture:
         sub eax, FIRST_LEGENDARY_INDEX
         cmp eax, LEGENDARY_COUNT - 1
         ja stock
@@ -855,7 +1189,7 @@ PRICE_STUB(stub_price_tray_full, k_price_tray_full_back)
 __declspec(naked) static void stub_done(void) {
     __asm {
         mov byte ptr [building_legendary], 0
-        mov byte ptr [building_formula], 0
+        mov byte ptr [building_chem], 0
         cmp byte ptr [esi + 0xA8], 0
         jmp k_done_back
     }
@@ -880,18 +1214,37 @@ __declspec(naked) static void stub_buy(void) {
     }
 }
 
-/* 0x432716 chemical dialog: the formula's price, and room for chemical 36 in the tray. */
+/* 0x432716 chemical dialog: a new chemical's price, and room for it (its own id) in the tray. */
 __declspec(naked) static void stub_chem_price(void) {
     __asm {
-        cmp byte ptr [building_formula], 0
+        movzx edx, byte ptr [building_chem]
+        test edx, edx
         je stock
+        cmp edx, FORMULA_ID
+        jne revival
         mov edx, FORMULA_PRICE
+        jmp maybe_free
+    revival:
+        cmp edx, REVIVAL_ID
+        jne revita
+        mov edx, REVIVAL_PRICE
+        jmp maybe_free
+    revita:
+        cmp edx, REVITA_ID
+        jne bomb
+        mov edx, REVITA_PRICE
+        jmp maybe_free
+    bomb:
+        mov edx, BOMB_PRICE
+    maybe_free:
         cmp byte ptr [free_upgrades], 0
         je priced
         xor edx, edx
     priced:
         mov ecx, [esi + 0x78]
-        push FORMULA_ID
+        push eax
+        movzx eax, byte ptr [building_chem]
+        xchg eax, [esp]
         jmp k_chem_price_back
     stock:
         mov edx, [eax + ecx + 0x8C8]
@@ -901,11 +1254,20 @@ __declspec(naked) static void stub_chem_price(void) {
     }
 }
 
-/* 0x432E43 chemical Buy: the formula comes with 3 doses. */
+/* 0x432E43 chemical Buy: the formula, and the Upgrades view's 37 and 38, come with 3 doses. */
 __declspec(naked) static void stub_chem_doses(void) {
     __asm {
         cmp dword ptr [ebp + 0xB8], FORMULA_ID
+        je three
+        cmp byte ptr [upgrade_dialog], 0
+        je stock
+        cmp dword ptr [ebp + 0xB8], REVIVAL_ID
+        je three
+        cmp dword ptr [ebp + 0xB8], REVITA_ID
+        je three
+        cmp dword ptr [ebp + 0xB8], BOMB_ID
         jne stock
+    three:
         mov edx, FORMULA_DOSES
         jmp k_chem_doses_back
     stock:
@@ -914,20 +1276,24 @@ __declspec(naked) static void stub_chem_doses(void) {
     }
 }
 
-/* 0x4266A6 a chemical used on a pot: esi = greenhouse, ebx = col, ebp = row, [esp+0x14] = plant. */
+/* 0x4266A6 a chemical used on a pot: esi = greenhouse, ebx = col, ebp = row, [esp+0x14] = plant,
+   [esp+0x20] = the chemical.  36-38 run here, then the stock tail. */
 __declspec(naked) static void stub_apply(void) {
     __asm {
         mov eax, [esp + 0x20]
         cmp eax, FORMULA_ID
-        jne stock
-        mov eax, [esp + 0x14]
+        jb stock
+        cmp eax, BOMB_ID
+        ja stock
+        mov edx, [esp + 0x14]
         pushad
         push eax
+        push edx
         push ebp
         push ebx
         push esi
-        call apply_formula
-        add esp, 16
+        call apply_chemical
+        add esp, 20
         popad
         jmp k_apply_tail
     stock:
@@ -936,12 +1302,27 @@ __declspec(naked) static void stub_apply(void) {
     }
 }
 
-/* Chemical tray tooltips: the formula's name. */
+/* Chemical tray tooltips: the new chemicals' names (tray ids are chemical ids, 27-38). */
 __declspec(naked) static void stub_name_greenhouse(void) {
     __asm {
         cmp eax, FORMULA_ID
-        jne stock
+        jne revival
         mov eax, FORMULA_NAME_ID
+        jmp k_name_gh_back
+    revival:
+        cmp eax, REVIVAL_ID
+        jne revita
+        mov eax, REVIVAL_NAME_ID
+        jmp k_name_gh_back
+    revita:
+        cmp eax, REVITA_ID
+        jne bomb
+        mov eax, REVITA_NAME_ID
+        jmp k_name_gh_back
+    bomb:
+        cmp eax, BOMB_ID
+        jne stock
+        mov eax, BOMB_NAME_ID
         jmp k_name_gh_back
     stock:
         add eax, 0x189
@@ -952,8 +1333,23 @@ __declspec(naked) static void stub_name_greenhouse(void) {
 __declspec(naked) static void stub_name_store(void) {
     __asm {
         cmp edx, FORMULA_ID
-        jne stock
+        jne revival
         mov edx, FORMULA_NAME_ID
+        jmp k_name_store_back
+    revival:
+        cmp edx, REVIVAL_ID
+        jne revita
+        mov edx, REVIVAL_NAME_ID
+        jmp k_name_store_back
+    revita:
+        cmp edx, REVITA_ID
+        jne bomb
+        mov edx, REVITA_NAME_ID
+        jmp k_name_store_back
+    bomb:
+        cmp edx, BOMB_ID
+        jne stock
+        mov edx, BOMB_NAME_ID
         jmp k_name_store_back
     stock:
         add edx, 0x189
@@ -966,8 +1362,23 @@ __declspec(naked) static void stub_string(void) {
     __asm {
         mov eax, [esp + 4]
         cmp eax, FORMULA_NAME_ID
-        jne box_4
+        jne revival_name
         mov eax, offset FORMULA_NAME
+        ret 4
+    revival_name:
+        cmp eax, REVIVAL_NAME_ID
+        jne revita_name
+        mov eax, offset REVIVAL_NAME
+        ret 4
+    revita_name:
+        cmp eax, REVITA_NAME_ID
+        jne bomb_name
+        mov eax, offset REVITA_NAME
+        ret 4
+    bomb_name:
+        cmp eax, BOMB_NAME_ID
+        jne box_4
+        mov eax, offset BOMB_NAME
         ret 4
     box_4:
         cmp eax, BOX_TITLE_ID
@@ -1002,8 +1413,8 @@ __declspec(naked) static void stub_string(void) {
         mov eax, offset LEGENDARY_DESC
         ret 4
     formula_texts:
-        cmp byte ptr [building_formula], 0
-        je stock
+        cmp byte ptr [building_chem], FORMULA_ID
+        jne revival_texts
         cmp eax, 0x165
         jne formula_desc
         mov eax, offset FORMULA_TITLE
@@ -1012,6 +1423,42 @@ __declspec(naked) static void stub_string(void) {
         cmp eax, 0x166
         jne stock
         mov eax, offset FORMULA_DESC
+        ret 4
+    revival_texts:
+        cmp byte ptr [building_chem], REVIVAL_ID
+        jne revita_texts
+        cmp eax, 0x165
+        jne revival_desc
+        mov eax, offset REVIVAL_TITLE
+        ret 4
+    revival_desc:
+        cmp eax, 0x166
+        jne stock
+        mov eax, offset REVIVAL_DESC
+        ret 4
+    revita_texts:
+        cmp byte ptr [building_chem], REVITA_ID
+        jne bomb_texts
+        cmp eax, 0x165
+        jne revita_desc
+        mov eax, offset REVITA_TITLE
+        ret 4
+    revita_desc:
+        cmp eax, 0x166
+        jne stock
+        mov eax, offset REVITA_DESC
+        ret 4
+    bomb_texts:
+        cmp byte ptr [building_chem], BOMB_ID
+        jne stock
+        cmp eax, 0x165
+        jne bomb_desc
+        mov eax, offset BOMB_TITLE
+        ret 4
+    bomb_desc:
+        cmp eax, 0x166
+        jne stock
+        mov eax, offset BOMB_DESC
         ret 4
     stock:
         mov eax, [esp + 4]
@@ -1131,7 +1578,7 @@ static void site_data(ftfp_site_write *w, unsigned int va, int length, const uns
 static int prepare(void) {
     ftfp_site_write *w = writes;
     DWORD seed_file = (DWORD)(UINT_PTR)SEED_SHEET_FILE, chem_file = (DWORD)(UINT_PTR)CHEM_SHEET_FILE;
-    DWORD seed_rows = 8, chem_rows = 12;           /* row 10: the Time Warp clock, row 11: Add Money's coins */
+    DWORD seed_rows = 8, chem_rows = 15;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money */
     DWORD link[6];
     unsigned char bound = SITE_CHEM_PICTURE_BOUND_NEW;
     link[0] = LINK_SPRITE;
@@ -1268,6 +1715,12 @@ const ftfp_upgrades_events *__stdcall FtfpUpgradesStartup(void) {
                 load_boxes();
             } __except (EXCEPTION_EXECUTE_HANDLER) {
                 boxes = NULL;
+            }
+            __try {
+                load_extras();
+            } __except (EXCEPTION_EXECUTE_HANDLER) {
+                memset(extra_owned, 0, sizeof extra_owned);
+                memset(extra_buy, 0, sizeof extra_buy);
             }
         }
     }

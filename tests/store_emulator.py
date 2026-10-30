@@ -11,6 +11,7 @@ and the DLL's own machine code.
 from __future__ import annotations
 
 import re
+import gc
 import struct
 import subprocess
 import tempfile
@@ -84,7 +85,15 @@ def pe_image(data: bytes) -> tuple[int, int, list[tuple[int, int, int]], int]:
 
 
 class Emulator:
+    # An emulator's code hook refers back to it, so only the cycle collector frees one, and Unicorn's
+    # memory is not what makes Python collect: the full suite builds thousands and once ran out of
+    # memory (UC_ERR_NOMEM). Collect every so often.
+    _built = 0
+
     def __init__(self, exe: Path, dll: Path | None, symbols: dict[str, int]) -> None:
+        Emulator._built += 1
+        if Emulator._built % 16 == 0:
+            gc.collect()
         self.uc = Uc(UC_ARCH_X86, UC_MODE_32)
         self.symbols = symbols
         self.hooks: dict[int, tuple[Callable[["Emulator"], int], int]] = {}

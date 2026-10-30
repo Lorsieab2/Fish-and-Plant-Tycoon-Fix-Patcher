@@ -112,7 +112,7 @@ a New Flowers site).
 | store_draw | 0x447DA2 | draws the link, or the Upgrades view instead of the stock grids (then 0x447FF8) |
 | store_click | 0x448173 | button-down: the link, the Supplies plate, the Upgrades items (the dialog is run from the DLL: ctor 0x432E90, modal 0x401C90, dtor 0x4307A0) |
 | store_hover | 0x448433 | hover for the link |
-| chem_picture_bound | 0x4308D3 | immediate 0x24 -> 0x25: the dialog draws chemical 36's bottle |
+| chem_picture_bound | 0x4308D3 | immediate 0x24 -> 0x28: the dialog draws chemicals 36-39 |
 | seed/chem sheet records, link record | 0x485F4C, 0x485F5C, 0x4875A4, 0x4875B4, 0x4882D4 | the sprite records above |
 
 The Fourth-Sixth boxes are sold through the stock tool-upgrade dialog: while
@@ -150,6 +150,57 @@ the search returned. The second chest and the three purchases are kept in
 The New Flowers DLL passes its save (now with the game state), load, delete
 and new-game events to the Upgrades DLL, which passes them on to the Seed
 Boxes DLL.
+
+## Revival Potion, Revita-Seed and the Formula Bomb (owner, 2026-10-30)
+
+| Chemical | Id / sheet row | Price | Place on the Upgrades view |
+|---|---|---|---|
+| Radioactive Plant Formula | 36 / row 9 | $10,000, 3 doses | (598, 55) |
+| Revival Potion | 37 / row 10 | $10,000, 3 doses | (655, 55) |
+| Revita-Seed | 38 / row 11 | $2,500, 3 doses | (712, 55) |
+| Radioactive Plant Formula Bomb | 39 / row 12 | $30,000, 3 bombs | (598, 116) |
+
+The Time Warp clock moved to row 13 (frame 26) and Add Money's coins to row
+14 (frame 28); the sheet has 15 rows. The game draws chemical c as frame
+2c - 54, so a chemical's row is c - 27. Dialog indices 37-51 are stock store
+items, so 37-39 are these chemicals only while a dialog opened from the
+Upgrades view is up (`upgrade_dialog`): the dialog entry rides the Vaporbomb
+path for them, the picture stub jumps to the chemicals' branch (`0x4308CC`,
+its bound raised to 0x28), the price stub pushes the chemical's own id for
+the tray-room check, Buy gives 3 doses, the tray tooltips name them (string
+ids 0x1F5-0x1F7) and the use switch (`0x4266A6`) sends 36-39 to
+`apply_chemical`, then the stock tail.
+
+Revival Potion. A dead plant (age step `0x42E244`): health `+0x24` <= 0;
+once, `+0x3C` = 1, `+0x94` (seeds taken) = 5 - `+0x90` (ripe), `+0x44` and
+`+0x48` (price and value) = 0; the update returns while health <= 0
+(`0x42DFA6`) so its clock `+0x04` stops, and it clears `+0x9D` (on sale)
+each update; the greenhouse draws every part brown (`0x42E7AE`). A dose:
+health 100, `+0x3C` = 0, `+0x04` = the game clock (`0x403430`, as a
+planting, `0x42FCAA`), the value by `0x42DD80` and the price by the
+planting rule (`0x42FD11`-`0x42FD9E`). Parts dead before it died stay dead.
+
+Revita-Seed. Pollination (`0x4240A0`) sets `+0x6C` (byte) for good, `+0x98`
+the age, `+0x90` = 0, `+0x94` = 0-2 or 4; ripening (`0x42E0C6`) and picking
+(`0x426208`, refused at `+0x94` >= 5) use them; pollen is refused while
+`+0x6C` is set (`0x425EA3`). Depleted = `+0x6C` set and `+0x94` >= 5; a
+dose sets `+0x6C`, `+0x90`, `+0x94` and the DLL's `+0x7C` to 0.
+
+Formula Bomb. The Fertilizer Bomb (chemical 32, `0x426BA8`) reaches every
+pot of the greenhouse on screen with a plant (`+0x38`) and health above 0,
+rows of `0x1D1 / 0x5D` columns (`0x426D3C`) up to `0x50A00 / 0x5600` pots
+(`0x426D56`), with the plant object `0x42F6C0(row, col)`; the bomb reads
+those two immediates and gives each such pot one `apply_formula`. Its art is
+the Fertilizer Bomb's row (5) with its white glass turned rainbow and its
+yellow label white, the cap left grey (the owner's pick).
+
+Icons (scripts/build_potion_assets.py): upright at the Mutation Liquid
+flask's visible height (41 px) on its bottom line; pouring at the same scale.
+Preview: docs/images/revival-potion-plant.png. For the extra greenhouses:
+the pots are addressed as the stock chemicals address them
+(`state + 0x2188 + (row * 5 + col) * 0x5600`) and the bomb's range is the
+stock bomb's; an extra-greenhouse build that swaps its pots into those 15
+records is reached, one that does not must hook these the same way.
 
 ## Live checks (test copy with the sdlpoke test shim)
 

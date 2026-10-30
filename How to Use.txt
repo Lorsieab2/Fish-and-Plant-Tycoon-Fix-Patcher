@@ -20,7 +20,7 @@ FISH & PLANT TYCOON FIX PATCHER
 The patcher creates only "Fish Tycoon - Modded" and/or
 "Plant Tycoon - Modded" beneath the chosen location. Their executables use
 those exact names plus ".exe". With new content on (DS Exclusive Fish, DS
-Store Items, Add unused flowers, or Add new store upgrades and items) the copy
+Store Items, 3 extra tanks, Add unused flowers, or Add new store upgrades and items) the copy
 is "Fish Tycoon - Modded Upgrades" / "Plant Tycoon - Modded Upgrades" instead,
 so it never replaces the plain modded copy, and it keeps its own saves. The
 patcher remembers the chosen paths. The blue underlined paths open those
@@ -58,15 +58,39 @@ Fish Tycoon options:
 - Unknown Chemical: 3 uses
 - Universal supply slots 2-4
 - Buy Multiple Golden Seahorses
-- Bigger tanks: 26 fish (off by default; every tank holds 26 fish instead
-  of 21. Sell or move fish down to 21 per tank before turning it off.)
+- Bigger tanks: 30 fish (off by default; EXPERIMENTAL - USE AT OWN RISK; Tank 1, Tank 2 and the Sale Tank
+  (Tank 3) hold 30 fish instead of 21, Tanks 4-6 too with 3 extra tanks,
+  each fish selling with the stock odds; the isolation tank still holds one.
+  Sell or move fish down to 21 per tank before turning it off.)
+- Tank and greenhouse counts (on by default; at the top left of the water:
+  "Fish: 12 of 21 (8 adults, 3 teens, 1 baby)" for the tank on screen, of 30
+  with Bigger tanks, Tanks 4-6 too, its creatures and the isolation tank.
+  Display only.)
+- Optimize Prices button (on by default; an "Optimize Prices" button on the
+  Species Chart. Asks Yes/No, then sets every discovered species to its best
+  price per day for your shop as it is now, as in the Breeding Guide.)
 - DS Exclusive Fish (off by default; adds the DS version's 7 bodies and
   7 fins. Sell or trash every DS fish before turning it off again.)
 - DS Store Items (off by default; needs DS Exclusive Fish. Adds an
   Upgrades button to the Supplies store with the DS Puffer Fish, Sting Ray,
-  Moray Eel and Exotic Fish Eggs. The animals never take a fish's place.
-  Trash the animals and let the eel out of
+  Moray Eel and Exotic Fish Eggs, the Radioactive Growth Hormone (every fish
+  in the tank on screen: pregnant ones give birth, then all get full health,
+  are cured and young ones become adults), the Revival Potion (revives the
+  tank's dead fish) and ClonaFish (clones every unique fish). The animals
+  never take a fish's place: each tank has 5 animal places of its own, kept
+  in "Tank Animals <slot>.dat". Trash the animals and let the eel out of
   its rock before turning it off again.)
+- 3 extra tanks (off by default; EXPERIMENTAL - USE AT OWN RISK; needs DS
+  Store Items, which it turns on. Tank 4, Tank 5 and Tank 6, full
+  tanks like Tank 1 and Tank 2, bought on the store's Upgrades screen:
+  the Extra Tank item, $10,000 each ($0 with Free upgrades), one after the
+  other. Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank 6
+  like the Sale Tank without its For Sale sign. The two small arrows
+  left of the Tank 1 button switch the tank buttons to them and back.
+  Empty the three tanks before turning it off again.)
+- Multiple ornaments (off by default; EXPERIMENTAL - USE AT OWN RISK; buy the six store ornaments again,
+  up to 10 extra copies per tank, for decoration only: the effect still
+  counts once. Trash the copies before turning it off again.)
 - Time Warp (off by default; a $500 clock on the store's Upgrades screen:
   type 1-72 hours in a Windows popup and the game plays them as time away)
 - Free upgrades (off by default; turns on the store's Upgrades screen:
@@ -75,6 +99,31 @@ Fish Tycoon options:
 - Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
   screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
   and adds $1,000 each time)
+
+Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
+- What moves: fish of any age, healthy or sick (a pregnant fish keeps her
+  pregnancy), the Golden Seahorse, the DS store animals (Puffer Fish,
+  Sting Ray, Moray Eel), ornaments, the Moray Eel's rock (with the eel
+  inside it when it is home), and Multiple ornaments' extra copies.
+- How: pick it up and drop it on a tank's button, or on an arrow: the left
+  arrow is the previous tank and the right arrow the next one, in the order
+  Tank 1, Tank 2, Sale Tank, then the extra tanks you have bought, and
+  round again. Click an arrow to see the other three buttons. A tank not
+  bought yet is greyed out: "You don't own this tank yet!".
+- A full tank: "The tank is full!" and the fish swims back (or the
+  ornament stays). Tank 2 not bought yet: "You don't own a second tank
+  yet!". Exactly as on the game's own buttons.
+- What does not move this way: food, medicines, chemicals and eggs on the
+  cursor are used in the tank you are looking at; switching tanks puts
+  them back, as the game always does. Eggs hatch in the tank on screen.
+  The isolation tank is not on the buttons or arrows: drop a fish on it
+  as usual. Things bought in the store go to the tank you came from (the
+  game's Golden Seahorse goes to Tank 1 first, as before).
+- Selling: Tank 4, 5 and 6 each have a "For sale" button under their name, Off
+  at first. On puts the For Sale! sign in that tank and sells its fish together
+  with the Sale Tank's, by the game's own sale (one sale a second, the same
+  prices and odds). Off: that tank never sells. Every tank shows its name
+  (Tank 1, Tank 2, Tank 3 (the Sale Tank), Tank 4, Tank 5, Tank 6) under the top bar.
 
 Plant Tycoon options:
 - Fix Vanilla Bugs (a new game no longer starts at the Nox Orchid prices;
@@ -89,11 +138,20 @@ Plant Tycoon options:
   322 new species. Sell or compost them before turning it off again.)
 - Add new store upgrades and items (off by default; needs Add unused
   flowers. An Upgrades link in the Supplies store: Legendary Seeds, the
-  Radioactive Plant Formula and the Fourth, Fifth and Sixth Seed Box. Move
+  Radioactive Plant Formula and its Bomb (one dose for every plant in the
+  greenhouse on screen), the Revival Potion (revives a dead plant),
+  Revita-Seed (a plant that has given all its seeds can be pollinated
+  again) and the Fourth, Fifth and Sixth Seed Box. Move
   seeds out of boxes 4-6 before turning it off.)
+- Tank and greenhouse counts (on by default; "Plants: 9 of 15 (5 mature,
+  2 with buds, 2 seedlings)" along the top of the greenhouse on screen,
+  Greenhouses 2-6 too. Display only.)
 - Sort Seeds button (off by default; a "Sort Seeds" button on the Seed
   Storage title bar. Asks Yes/No, then sorts every seed by the plant it grows
   and its parents into your unlocked seed boxes, first box first.)
+- Optimize Prices button (on by default; an "Optimize Prices" button in the
+  Nursery. Asks Yes/No, then sets every discovered species to its best price
+  per day for your nursery as it is now, as in the Breeding Guide.)
 - Time Warp (off by default; a $500 clock on the store's Upgrades screen:
   type 1-72 hours in a Windows popup and the game plays them as time away)
 - Free upgrades (off by default; turns on the store's Upgrades screen:
@@ -102,6 +160,51 @@ Plant Tycoon options:
 - Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
   screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
   and adds $1,000 each time)
+- 5 extra greenhouses (EXPERIMENTAL - USE AT OWN RISK. Off by default;
+  turns on the store's Upgrades screen. Buy Greenhouses 2-6 there, in order,
+  $10,000 each ($0 with Free upgrades): the Extra Greenhouse item on the tool
+  shelf. Every greenhouse screen is named at the top ("Greenhouse 1" is the
+  stock one), and the gold arrows there page through the ones you own. Every
+  greenhouse works like the stock one and keeps growing while you look at
+  another. Empty Greenhouses 2-6 before turning it off.)
+- 5 extra nurseries (EXPERIMENTAL - USE AT OWN RISK. Off by default; turns
+  on the store's Upgrades screen. Without them at most 15 plants can be for
+  sale at once, as in the unpatched game. Buy Nurseries 2-6 on the Upgrades
+  screen, in order, $10,000 each ($0 with Free upgrades): the Extra Nursery
+  item on the Nursery shelf. Each one is another stock nursery screen with
+  15 more spots (90 plants for sale with all five). Every nursery screen is
+  named at the top ("Nursery 1" is the stock one), and the gold arrows there
+  page through the ones you own. Take plants off sale until 15 or fewer are
+  for sale before turning it off.)
+
+Moving things between greenhouses (5 extra greenhouses):
+- A plant: drag it onto the left or right arrow, as you would drag it to
+  another pot. It goes to the same pot place in that greenhouse, or to its
+  first empty pot if that place is taken. If that greenhouse is full, a box
+  says so and the plant stays where it was.
+- Pollen: take it as usual, click an arrow, and drop it on a plant there.
+  The seeds it makes are the same as within one greenhouse.
+- Seeds taken from a plant: click an arrow while holding them, then plant
+  them in an empty pot there, drop them on the seed box, or throw them away.
+  Dropped anywhere else they go back to the plant they came from.
+- Seeds from the seed tray (Legendary Seeds too), tools and chemicals stay in
+  your hand when you click an arrow and work in the new greenhouse. (Changing
+  to another screen, such as the store or the nursery, empties your hand as
+  in the unpatched game.)
+- Nursery ornaments are never placed anywhere: each counts as soon as it is
+  bought, so there is nothing to move.
+
+Getting a plant into a nursery (5 extra nurseries):
+- Tag it for sale in its greenhouse as usual (select it, then the nursery
+  button, or the button that tags them all). It stays in its pot.
+- Tagged plants fill the nurseries in order: Nursery 1 first (a Greenhouse 1
+  plant at its own pot's spot, as in the unpatched game), then Nursery 2, and
+  so on, Greenhouse 1's plants before Greenhouse 2's, pot by pot. When a
+  plant sells or is taken off sale, the ones after it move up.
+- Use the arrows on the nursery screen to see each nursery. While you are
+  in the nursery, all your nurseries sell at once (the visitors you see are
+  the ones of the nursery on screen). Away from the nursery nothing sells,
+  as in the unpatched game.
 
 Tools tab, Breeding Guide: pick the game, a save folder and a player. Tabs
 for each part (Fish: Fins and Bodies; Plant: Flowers and Foliage), the

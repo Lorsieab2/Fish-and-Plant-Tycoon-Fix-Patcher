@@ -57,6 +57,12 @@ def page() -> GamePage:
                   note="Only with the Sort Seeds button setting: a \"Sort Seeds\" button on the Seed Storage "
                        "title bar."),
             Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (off by default), which also turns on the store's Upgrades screen it lives on."),
+            Group("Extra greenhouses (patcher)", EXTRA_GREENHOUSES,
+                  note="Only with the 5 extra greenhouses setting (off by default), which also turns on the "
+                       "store's Upgrades screen the greenhouses are bought on."),
+            Group("Extra nurseries (patcher)", EXTRA_NURSERIES,
+                  note="Only with the 5 extra nurseries setting (off by default), which also turns on the "
+                       "store's Upgrades screen the nurseries are bought on."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Fish Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
@@ -212,6 +218,15 @@ AGES = (
         "min at Normal and 17 days 22 h at Slow.",
         patched=(("no_old_age_plant_deaths", "plants never die of old age."),),
     ),
+    Fact(
+        "The greenhouse screen shows no count of its plants or their stages.",
+        patched=(("tank_greenhouse_counts", "one line along the top of the greenhouse on screen: \"Plants: "
+                  "9 of 15 (5 mature, 2 with buds, 2 seedlings)\", the pots holding a living plant, with "
+                  "these same stages (a seedling before age 21, buds from 21, mature from 24); dead plants "
+                  "are shown apart as \"Dead: n\". With 5 extra greenhouses it counts Greenhouses 2-6 too, "
+                  "and once one is bought (the gold arrows show) the line sits under the arrows (y 62). "
+                  "Drawn every frame behind the plants; display only."),),
+    ),
 )
 
 WATER = (
@@ -244,7 +259,10 @@ HEALTH = (
         "class A, Endangered B, Extinct C or D.",
     ),
     Fact("A plant at health 0 dies and is never updated again; its ripe seeds can still be "
-         "collected. \"Unhealthy\" shows below 30."),
+         "collected, its unripe ones are lost, and its value and price become 0. It stays in its pot "
+         "until you dig it up. \"Unhealthy\" shows below 30.",
+         patched=(("plant_upgrades", "the Revival Potion brings a dead plant back at health 100 (see "
+                   "Chemicals)."),)),
 )
 
 PESTS = (
@@ -299,7 +317,10 @@ FLOWERS = (
 SEEDS = (
     Fact(
         "Pollen can go from a live mature plant (24+) to another live mature plant that is not "
-        "pollinated yet. It gives 5, 4 or 3 seeds (33.33% each), or 1 if the target is infested.",
+        "pollinated yet. It gives 5, 4 or 3 seeds (33.33% each), or 1 if the target is infested. A "
+        "plant is pollinated only once: when its seeds are all picked it gives no more.",
+        patched=(("plant_upgrades", "Revita-Seed makes a plant that has given all its seeds a fresh "
+                  "plant again for seeds (see Chemicals)."),),
     ),
     Fact(
         "Seeds ripen one per age unit: the first 3, 4, 5 or 7 units after pollination (5, 4, 3 "
@@ -467,6 +488,15 @@ PRICES = (
         "\"Set species price\": typed values above 9999 become 9999. The arrows step by 1, 5, 10, "
         "25 or 100 by price, never below 1 and with no top; they apply at once and Cancel does not "
         "undo them.",
+        patched=(("optimize_prices", "an \"Optimize Prices\" button on the Nursery's bottom bar asks Yes/No "
+                  "and then sets every discovered species' asking price to the Breeding Guide's best price per "
+                  "day: the price P (1 to 9999) with the most money per real day for one pot kept selling the "
+                  "species at Normal speed (24 age units to grow, then a nursery tick every 2 real-time seconds "
+                  "until it sells), for a healthy, flowering plant with no Plant Food or pruning, the price "
+                  "seen a quarter lower with the Golden Berries of Wealth, and visitors at the limit 8 + "
+                  "47 x S / 78, all browsing, S counting the ornaments owned, the magic plants found, the full "
+                  "bug collection and all 15 sale spots filled. It writes only the asking price of discovered "
+                  "species (the Unused Flowers too with that setting) and says how many it set."),),
     ),
 )
 
@@ -554,6 +584,35 @@ CHEMICALS = (
                   "flowers on every flower spot of every live, uncut part (its spots filled up to 6 "
                   "per part), no later dead leaves, and, if it is already pollinated, all 5 of its "
                   "seeds (pollinating it later gives the usual 5, 4 or 3). A dead plant stays dead."),
+                 ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
+    ),
+    Fact(
+        "Radioactive Plant Formula Bomb: not in the unpatched game.",
+        patched=(("plant_upgrades", "on the store's Upgrades view, under the formula, $30,000, 3 bombs; "
+                  "the Fertilizer Bomb's art made rainbow. Used like the Fertilizer Bomb: one bomb gives "
+                  "every pot the Fertilizer Bomb reaches (every live plant in the greenhouse on screen) "
+                  "exactly one Radioactive Plant Formula dose, with all of its effects."),
+                 ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
+    ),
+    Fact(
+        "Revival Potion: not in the unpatched game.",
+        patched=(("plant_upgrades", "on the store's Upgrades view, beside the formula, $10,000, 3 doses, "
+                  "one pot per dose. On a dead plant: alive again at health 100. Its age clock restarts "
+                  "from now (the time it lay dead is not played as time away), and its value and price "
+                  "are set again by the game's own rules (they were 0 while it was dead). Parts that were "
+                  "dead before it died stay dead, as with the game's own healing (prune them or use the "
+                  "formula); seeds that had not ripened when it died stay lost; a plant that was on sale "
+                  "must be put on sale again. On a live plant it does nothing (the dose is used)."),
+                 ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
+    ),
+    Fact(
+        "Revita-Seed: not in the unpatched game.",
+        patched=(("plant_upgrades", "on the store's Upgrades view, beside the Revival Potion, $2,500, 3 "
+                  "doses, one pot per dose. On a plant that has given all its seeds (pollinated, and "
+                  "all 5 seed places used, by picking or by the infested and 4-or-3-seed rolls): it is "
+                  "a fresh plant again for seeds, so it can be pollinated again and gives 5, 4 or 3 "
+                  "seeds (1 if infested) by the usual rules. On any other plant it does nothing (the "
+                  "dose is used)."),
                  ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
 )
@@ -944,7 +1003,9 @@ HIDDEN = (
         "(R refreshes the seed shop, on by default; nothing on any other screen). The patcher's "
         "other additions are clicks, not keys: the Upgrades link in the Supplies store "
         "and the gold box arrows (Add new store upgrades and items), the Sort Seeds button "
-        "(Sort Seeds button), and the Time Warp clock (Time Warp).",
+        "(Sort Seeds button), the Time Warp clock (Time Warp), the Optimize Prices button in the "
+        "Nursery (Optimize Prices button), and the gold arrows on the greenhouse and nursery screens "
+        "(5 extra greenhouses, 5 extra nurseries).",
     ),
 )
 
@@ -963,7 +1024,13 @@ OTHER_GAME = (
     Fact('Selling and customers: see Selling and visitors.'),
     Fact('Species and prices: see Prices.'),
     Fact('Goals and popups: see Goals, messages and statistics.'),
-    Fact("DS store animals: not in Plant Tycoon. The patcher's new Plant Tycoon items are in Shop seeds (Legendary Seeds), Chemicals (Radioactive Plant Formula) and Tools and shears (Fourth to Sixth Seed Box)."),
+    Fact("DS store animals: not in Plant Tycoon. The patcher's new Plant Tycoon items are in Shop seeds "
+         "(Legendary Seeds), Chemicals (the Radioactive Plant Formula and its Bomb, the Revival Potion and "
+         "Revita-Seed), Tools and shears (Fourth to Sixth Seed Box), Extra greenhouses and Extra "
+         "nurseries."),
+    Fact("3 extra tanks (patcher): not in Plant Tycoon (plants have no tanks). Its counterparts are 5 extra "
+         "greenhouses, Greenhouses 2-6 (see Extra greenhouses), and 5 extra nurseries (see Extra nurseries); "
+         "the Fourth to Sixth Seed Box add storage (see Tools and shears)."),
 )
 
 TIME_WARP = (
@@ -1004,6 +1071,151 @@ TIME_WARP = (
             "pots are left alone.",
             "Plants can dry out or die along the way, as they would while you were away.",
         ),
+    ),
+)
+
+EXTRA_GREENHOUSES = (
+    Fact(
+        "Not in the unpatched game: one greenhouse of 15 pots.",
+        patched=(("extra_greenhouses", "up to six greenhouses of 15 pots, 90 pots in all. Greenhouses 2-6 are "
+                  "bought in order with the Extra Greenhouse item on the store's Upgrades screen (the tool "
+                  "shelf): $10,000 each, $0 with Free upgrades, ticked once all five are owned; a new game "
+                  "starts with none. Once one is owned, gold arrows on the greenhouse screen (the game's own, "
+                  "as on the Seed Storage screen) page through Greenhouse 1, the stock one, and the ones you "
+                  "own, round again; the screen says \"Greenhouse n of m\". A greenhouse not yet bought "
+                  "cannot be reached and takes no plant. Leaving the greenhouse and coming back shows the one "
+                  "you last looked at."),),
+    ),
+    Fact(
+        "Every greenhouse is the stock greenhouse screen, and the game's own code runs on its pots, so "
+        "everything on this page holds pot for pot in every greenhouse: ageing, water, health and soil, "
+        "pests, size, flowers, pollination and seeds, old age, every chemical (Plant Food, Bio-organic Plant "
+        "Food, pesticides, Insta-Grow, the Fertilizer Bomb, Mutation Liquid, the Radioactive Plant Formula, "
+        "...), every tool and tool upgrade, the water and soil upgrades, and every magic plant's effect.",
+        subs=(
+            "The two bombs reach every pot of the greenhouse they are used in, as in the stock game (one "
+            "greenhouse per dose).",
+            "Magic plants are found by growing one to age 24 in any greenhouse; their effects then reach every "
+            "plant in every greenhouse.",
+            "Bugs come only to the greenhouse on screen, as they come only while you are in the greenhouse in "
+            "the stock game.",
+        ),
+        patched=(("extra_greenhouses", "checked in emulation: the same plant, planted and grown with the same "
+                  "random numbers in Greenhouse 1 and in each of Greenhouses 2-6, ends byte for byte the same "
+                  "after each update, each chemical, pollination, moving and emptying a pot."),),
+    ),
+    Fact(
+        "Permanent, game-wide effects are kept once for the whole game, not per greenhouse, so every "
+        "greenhouse and every nursery sees them exactly as Greenhouse 1 and Nursery 1 do:",
+        subs=(
+            "Magic plants and the Golden Berries, once found in any greenhouse (the Rose of Joy, the Flower of "
+            "Knowledge and the rest): their effects reach every plant in every greenhouse, and the visitor "
+            "bonus counts in every nursery.",
+            "Tool upgrades, the Second to Sixth Seed Box, water and soil upgrades and every store purchase.",
+            "Nursery ornaments: each counts in every nursery as soon as it is bought.",
+            "Discovered species, prices, money, goals and statistics.",
+            "Checked in emulation: with every magic plant found and every tool upgrade owned, a plant grows "
+            "byte for byte the same in all six greenhouses (and differently without them), and switching "
+            "greenhouses or nurseries never changes any of these values.",
+        ),
+    ),
+    Fact(
+        "Per greenhouse, as in the stock game, where it acts on the pots on screen: the Fertilizer Bomb and "
+        "the other bomb reach the 15 pots of the greenhouse they are used in; bugs come to the greenhouse on "
+        "screen.",
+    ),
+    Fact(
+        "Clocks and time away: every plant update (every 61 real-time seconds in the greenhouse, at once on "
+        "entering it, and after a Time Warp) updates all six greenhouses, one after the other, with the same "
+        "clock. A greenhouse you are not looking at grows exactly as if it were on screen, and time away is "
+        "caught up in every greenhouse when you come back. A Time Warp moves every live plant's clock in all "
+        "six greenhouses.",
+    ),
+    Fact(
+        "Moving things between greenhouses. The arrows do not change screen, so whatever you hold stays in "
+        "your hand, as it does while you move over one greenhouse (the unpatched game empties your hand only "
+        "when a screen opens: the greenhouse's own opening clears it, and so does the nursery's):",
+        subs=(
+            "A plant: drag it onto an arrow, as you drag it to another pot. It moves to the same pot place in "
+            "the greenhouse that arrow leads to, or to that greenhouse's first empty pot if the place is taken, "
+            "and that greenhouse is shown. If it has no empty pot, a box says so and the plant stays.",
+            "Pollen: carried; dropped on a plant in another greenhouse it pollinates it exactly as the same two "
+            "plants would within one greenhouse.",
+            "Seeds taken from a plant: carried; plant them in an empty pot, drop them on the seed box or in the "
+            "trash in any greenhouse, and they are the seeds of the plant they came from. Dropped anywhere "
+            "else they go back to that plant.",
+            "Seeds from the seed tray (Legendary Seeds too), tools and chemicals: carried, and they work on the "
+            "new greenhouse's pots.",
+            "Nursery ornaments are never placed: each counts as soon as it is bought, so there is nothing to "
+            "move.",
+        ),
+    ),
+    Fact(
+        "Selling: in the stock game you tag any mature, living plant for sale where it stands (select it, then "
+        "the greenhouse's nursery button; or the button that tags them all), and it stays in its pot. The game "
+        "has no other cap: the nursery's 15 spots are the 15 pots, so at most 15 plants can be for sale at "
+        "once. With the extra greenhouses (and no extra nurseries) that stock maximum holds for all six "
+        "together: at most 15 plants are for sale at once, counting every greenhouse. Putting a 16th up for sale "
+        "says \"Your nursery is full!\"; the greenhouse's put-everything-up button stops at 15. The nursery "
+        "shows the plants for sale from all six greenhouses, so visitors, prices and the visitor limit (2 per "
+        "plant for sale, see Selling and visitors) are exactly the stock game's. Sold plants leave their pots as "
+        "in the stock game. Extra nurseries raise the limit (see Extra nurseries).",
+    ),
+    Fact(
+        "Every greenhouse screen is named at the top in the game's font: \"Greenhouse 1\" (the stock one) to "
+        "\"Greenhouse 6\", with \" of m\" (m = the greenhouses you own) once you own more than one.",
+    ),
+    Fact(
+        "Saves: the save file keeps the stock layout (Greenhouse 1's pots). Greenhouses 2-6 are kept beside "
+        "it in \"Plant Tycoon Fix Patcher Data\\Extra Greenhouses <slot>.dat\", written with every save "
+        "(to a temporary file, then renamed) and read back when the slot loads. A file that cannot be read "
+        "is set aside as \".unreadable\" and never overwritten; deleting the slot deletes it. Switching the "
+        "setting off hides Greenhouses 2-6 with their plants (they come back when it is on again), so empty "
+        "them first.",
+    ),
+)
+
+EXTRA_NURSERIES = (
+    Fact(
+        "Not in the unpatched game: one nursery of 15 spots, so at most 15 plants for sale at once.",
+        patched=(("extra_nurseries", "Nurseries 2-6 are bought in order with the Extra Nursery item on the store's "
+                  "Upgrades screen (the Nursery shelf): $10,000 each, $0 with Free upgrades, ticked once all five "
+                  "are owned; a new game starts with none. Without any, the stock limit of 15 holds. Each one "
+                  "bought adds 15 spots: 30, 45, 60, 75, 90 plants for sale at once."),),
+    ),
+    Fact(
+        "Each nursery is the stock nursery screen, run by the game's own code, with its own 15 spots. Gold "
+        "arrows at the top (the game's own) page through Nursery 1, the stock one, and the ones you own; each "
+        "screen is named \"Nursery 1\" to \"Nursery 6\" (\" of m\" once you own more than one). Switching is "
+        "leaving one nursery and entering the next, exactly as the stock game does it: sold plants leave their "
+        "pots, and the next nursery counts its own plants for sale for its visitor limit (2 per plant, see "
+        "Selling and visitors).",
+        subs=(
+            "Every sale rule (the buy roll, prices, visitors, comments) is the stock one, per nursery.",
+            "All bought nurseries sell at once, but only while you are in the nursery (the stock game sells "
+            "only there too). Every 2 real-time seconds the game's own buy roll runs for the nursery on "
+            "screen, then once for each other nursery in order (Nursery 1, 2, ...), each roll over its own 15 "
+            "spots in the stock order, all with the visitors browsing the nursery on screen (E = half of "
+            "them, as in Selling and visitors). So with every nursery full, 90 plants roll every 2 seconds.",
+            "Visitors come only to the nursery on screen, and its visitor limit counts its own plants for sale, "
+            "never past the stock maximum. A plant sold in another nursery is paid and counted at once, with "
+            "the cash register sound, but no visitor carries it off and no price marker shows; it leaves its "
+            "pot when that nursery is shown or you go back to the greenhouse, like any sold plant.",
+            "With no nursery bought the roll is the stock one alone.",
+        ),
+    ),
+    Fact(
+        "Getting a plant into a nursery: tag it for sale in its greenhouse (the nursery button, or the button "
+        "that tags them all), as in the stock game; it stays in its pot. Tagged plants fill the nurseries in "
+        "order: Nursery 1 first (a Greenhouse 1 plant at its own pot's spot, as in the stock game), then "
+        "Nursery 2, and so on, Greenhouse 1's plants before Greenhouse 2's, pot by pot. When a plant sells or "
+        "is taken off sale, the ones after it move up. Tagging one more than the nurseries hold says \"Your "
+        "nurseries are full!\".",
+    ),
+    Fact(
+        "Saves: the nurseries bought are kept with the extra greenhouses in \"Plant Tycoon Fix Patcher "
+        "Data\\Extra Greenhouses <slot>.dat\". Switching the setting off brings back the stock limit of 15; "
+        "take plants off sale until 15 or fewer are for sale first.",
     ),
 )
 

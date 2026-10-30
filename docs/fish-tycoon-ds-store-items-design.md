@@ -58,21 +58,54 @@ treat anything above 20 as their default case. Nothing reads a seahorse's
 fin except the stage-3 draw. The DLL hooks that draw at `0x414C8A` to pick
 the animal's own sheet, centred on the seahorse's 116 x 62 hit box.
 
-### Animal slots: they never take a fish's place
+### Animal records: they never take a fish's place
 
-Decided (user): "26 fish + 5 animals". The state already holds 31 fish
-records per tank; the stock game uses 21, and "Bigger tanks: 26 fish" uses
-26. Every animal, the Golden Seahorse included, lives in slots 26-30, so a
-tank full of fish still takes up to 5 animals:
-- the two loops that build the swimming view (`0x4140C5`, `0x415893`) run
-  to 31 instead of 21 or 26 (the DLL accepts either stock value);
-- buying places the animal in the first free slot 26-30 of the tank (else
+Decided (user): "30 fish + 5 animals" (earlier "26 fish + 5 animals"). The
+state holds 31 fish records per tank; "Bigger tanks: 30 fish" uses 30 of
+them for fish. So the animals, the Golden Seahorse included, have 5 records
+per tank of their own, in the DLL, and a tank full of fish still takes up to
+5 animals:
+- the swimming view: the two loops that build and refresh it go on, at their
+  `jl` back to the top (`0x4140D0`, `0x41589E`), from the last fish slot to
+  the tank's animals. Each animal's entry carries the one slot number for
+  which the game's own `state + 0x390 + tank * 0x51EC + slot * 0x288` lands
+  on its record in the DLL, so every stock path that follows an entry
+  (draw, move, feed, pick up, drop, trash, the info panel) works on it
+  unchanged (docs/fish-tycoon-tank-expansion.md 6);
+- buying places the animal in the tank's first free animal record (else
   another tank), and the stock Golden Seahorse purchase is moved there too
   (`0x427E43`);
-- an animal dropped on a tank button moves to that tank's animal slots;
-- loading a save (the state's Load at `0x4424D0`) moves animals from older
-  builds out of the fish slots, and a new game clears slots 26-30
-  (`0x41AACA`).
+- an animal dropped on a tank button moves to that tank's animal records;
+- a new game clears them (`0x41AACA`).
+
+**Saved beside the save.** "Fish Tycoon Fix Patcher Data\Tank Animals
+<slot>.dat" (next to DS Fish's "DS Fish <slot>.dat"), written whenever the
+game saves that slot, before the game writes its own file: the state's
+Save(slot) `0x419100` is reached through its vtable slot `0x4424D4` and its
+two calls `0x41A663`, `0x41A66B`, all three pointed at the DLL first. The
+file is written atomically (a .tmp file, flushed, moved over the old one,
+which becomes `.previous.dat`), then read back and compared. Its header
+names the save it belongs to (money, money spent, sessions and minutes
+played, as saved):
+- the same save: its animals load (or the `.previous` file's, when the
+  game's own save did not finish after the file was written);
+- an earlier point of the same save (played and saved since with DS Store
+  Items off; sessions and minutes only grow): its animals come back;
+- anything else (an older save restored from a backup, a new game in the
+  slot, a damaged file): the file is set aside (`.other-save-<n>.dat`,
+  `.unreadable-<n>.dat`), never deleted, and the save has no animals.
+
+**The one-time move.** Loading a save from an earlier build (the state's
+Load at `0x4424D0`), whose animals are in fish records (26-30, or very early
+builds' among the fish): they are copied into the animal records, the file
+is written and read back, and only then are those fish records cleared
+(REMOVE_FISH, and the mark). If the file cannot be written, the records
+stay as they were (the view skips them, so nothing shows twice) and the next
+save tries again, clearing them only once the file is written; the game's
+own file still has them until then. Loading the same save again moves the
+same animals and writes the same file. Checked on copies of the owner's
+51 Fish Tycoon saves: every animal moved, nothing else in any save changed,
+and a second load gave the same result.
 
 With "Buy Multiple Golden Seahorses" on, the store animals can be bought
 more than once too; with it off, one of each, buyable again after trashing.
@@ -86,9 +119,12 @@ stock code showed nothing for the Golden Seahorse. The DLL hooks that call
 Magic Pufferfish, Blue-Spotted Stingray, Moray Eel. The store page uses the
 same names.
 
-No stock slot loop reaches slots 26-30 (magic fish, medicines, the Unknown
-Chemical, the age step), and the DLL's own effects skip seahorse-type
-records, so nothing but the animals' placement code ever touches them.
+No stock slot loop reaches the animal records (magic fish, medicines, the
+Unknown Chemical, the age step run over the fish slots only), and the DLL's
+own effects skip seahorse-type records, so nothing but the animals'
+placement code and the swimming view ever touches them. Their effects reach
+every fish in their tank: the effects run from the per-fish health tick,
+which visits all 30 fish slots with Bigger tanks.
 
 Customers in the selling tank (`0x42426F`) and their thought bubbles
 (`0x41355F`) now skip every seahorse-type companion, the Golden Seahorse
@@ -194,11 +230,150 @@ rules (user: existing patches should cover the new content):
   eggs branch (swapped into slot #4 for the hatch), from any slot;
 - hatching takes one from the stack and clears the slot at zero.
 The redirect is written only when the payload is in the executable, and the
-log says "Exotic Eggs use universal supply slots". Without the setting they
-stay in slot #4 and a purchase replaces them, as with stock eggs.
+log says "Exotic Eggs and the store chemicals use universal supply slots". Without
+the setting they stay in slot #4 and a purchase replaces them, as with stock
+eggs.
 Checked live: two purchases stacked in slot 2 (count 2), two hatches from
 slot 2 gave 4 DS babies each time and then emptied it; slot 4's starter eggs
 were untouched.
+
+## Radioactive Growth Hormone
+
+Owner's spec (2026-10-30): $10,000, 3 doses, like Plant's Radioactive Plant
+Formula; $0 with Free upgrades; the stock Growth Hormone's art recoloured
+green; each dose on exactly the fish the stock Growth Hormone reaches.
+
+The stock Growth Hormone (item 3, $380, 3 doses), from the vanilla code:
+- bought into slot #3 (state + 0x2F0: item, present, count, shelf icon 0x7A
+  TOOL_GROWTHHORMONE.png, cursor 0x7B TOOL_dropper4.png, x 0x7E) by the
+  writer `0x427540`, count 3; "Replace chemical in slot #3?" (0xEE) when the
+  slot holds a chemical (`0x428172`);
+- used by the supply-use handler `0x420B70`: slot #3 is case 2 (`0x420E3A`,
+  splash and sound), then the switch on the item at `0x420E72`; item 3 is
+  `0x4210F2`;
+- targets (`0x421100`-`0x421194`): every record of the tank being looked at
+  (state + 0x384) up to `cmp ebx, 0x3528` at `0x42118E` (21 records, 26 with
+  Bigger tanks), that is live (+0x00), has health (+0x3C) not 0 and age
+  (+0x0C) 40 or less;
+- effect: age += Random(5) + 2; unless Hard (state + 0x14 == 2), the
+  last-processed age (+0x08) = age - 1; the next fish update 7 s on
+  (scene + 0x30, `0x42117D`);
+- then a sparkle (effect 0xF) on each live fish on screen (`0x42119A`) and
+  the shared tail `0x421302`: one dose spent, the slot cleared at 0.
+
+The Radioactive Growth Hormone is item 29 in the same slot, shelf picture
+236 and cursor 237 (lent by DS Fish, which now lends 20 entries, 220-239).
+The DLL's site at `0x420E6F` (the switch) sends item 29 to `rgh_dose`, then
+into the stock sparkle and tail; every other item goes on exactly as before.
+`rgh_dose` walks the same records with the same tests (the loop end is read
+from `0x421190`, so Bigger tanks counts too, never past the animals' slots)
+and, for each:
+- age below 20 (the game's adult age: `0x4200AC`, the sickness roll's
+  `0x420498`, sales' `0x42426F`): age 20, and the last-processed age 19 on
+  every difficulty (the stock hormone skips this on Hard; the owner,
+  2026-10-30: the fish stay healthy on Hard too), so the next update runs
+  one step's checks; older fish keep their age;
+- health 100, the game's maximum;
+- sickness (+0x40: 1 fungus, 2 ick, the only values `0x41E120` sets)
+  cleared as the medicines clear it (`0x420D1D`, `0x420D57`): +0x40 = 0
+  and one more Fish Cured (state + 0x34);
+- the next fish update 7 s on, as stock.
+Fry are fish records from age 1 (eggs hatch straight into the tank), so they
+grow up; eggs on the shelf are an item, not fish. The store animals (the
+Golden Seahorse too) live in slots 26-30, past the loop, so neither hormone
+reaches them. Buying: as a stock chemical without Universal supply slots
+(the DLL's site at `0x428189` also makes buying a stock chemical over it
+ask "Replace chemical in slot #3?"); with them, a stack in slots 2-4 gains 3
+doses, else the first empty slot, else the three "replace?" prompts, and
+the use trampoline's gate sends item 29 to the chemicals (`0x43F5A2`).
+Art: scripts/build_growth_hormone_assets.py turns each stock picture's hue
+from 0.667 to 0.30 and its saturation x1.25, keeping brightness and alpha;
+docs/images/radioactive-growth-hormone-fish.png shows the page and the
+pictures. Tests: tests/test_radioactive_growth_hormone.py (emulated: the
+purchase, the price, a dose through the vanilla use handler, the countdown,
+the stubs). Not yet checked live.
+
+### Owner changes (2026-10-30): every fish, and instant births
+
+The Radioactive Growth Hormone now reaches every live fish in the tank on
+screen, any age (`gh_reaches`: live, health not 0, not a marked store
+animal), over the stock loop's records (read from `0x421190`; no longer
+clamped at 26, since marked animals are skipped). The stock Growth Hormone
+is untouched. Each dose:
+
+1. **Births.** Pregnancy in the record: `+0x10` the due age (0 = not
+   pregnant, set at mating), `+0x14`/`+0x18` the father's body and fin,
+   `+0x1C`-`+0x38` the grandparents. The update gives birth at
+   `0x420113`-`0x4203DD` when the due age is below the age and the tank is
+   not tank 3 (`cmp [esp+0x10], 3` at `0x42013D`, byte `0x420141`): with a
+   Magic Fish of kind 5 (`0x41DE90(5, tank)`), Random(100) <= 15 mutates
+   the father's genes (Random(100) <= 49: his body +1, or -1 at 20 or on
+   the other half unless 0; else the same test on his body but his fin
+   changes, a stock quirk), clamped 0-20; then NewBaby `0x41FA30` (one
+   AddFish `0x419C50`: no room, no baby), one more with a Magic Fish of
+   kind 0 (`0x4202D9`), one more with the Plant of Fertility (state +
+   `0x1A4`, `0x420356`); the baby's age is age - due age; `+0x10` = 0
+   (`0x4203D2`). `stock_birth` is that code call for call, so the same
+   rolls give the same litter (tested against the vanilla block run in the
+   emulator). Babies from a dose are aged 1, as a birth on the due step.
+   The view is synced after births (`0x415E70`, as after a hatch).
+2. **Age-up**, on everyone reached, the newborns included, so the whole
+   litter comes out adult; older fish keep their age.
+
+## Revival Potion (item 30)
+
+$10,000, 3 doses, slot #3 like the hormone (shelf sprite 239, cursor 240,
+the owner's amber flask; the store picture 238). The switch stub at
+`0x420E6F` sends items 29-31 to `new_chemical`, then the stock sparkle
+(`0x42119A`) and tail (`0x421302`).
+
+How the game stores a dead fish: only health (`+0x3C`) 0. The death test
+(`0x420622`) sets the age to the step it died on (`0x420634`) so the step
+loop ends; the record stays live (`+0x00` kept) until the player throws it
+away: no timer removes it. Every update skips it (`0x41FEC3`), so its clock
+(`+0x00`, set at `0x41FFCA`), banked seconds (`+0x04`), age, food and
+sickness freeze. The view draws it dead (`0x4146BF`, `0x4146F6`,
+`0x414778`), sinks it (`0x411D5F`) and stops swimming it (`0x414337`), all
+from that health test.
+
+A dose, for every record of the tank on screen the update reaches (slots:
+byte `0x4206B3`, tanks: byte `0x4206C7`) that is live, at health 0 and not
+a marked animal: health 100, and `+0x00` = STATE_NOW (`0x4032C0`), so the
+next update does not play the time it lay dead as time away. Age, food,
+sickness, pregnancy and the bank stay.
+
+## ClonaFish (item 31)
+
+$2,500, 3 doses, slot #3 (sprites 241-243, the owner's magenta bottle). A
+unique fish is live with health above 0, not a marked animal nor a
+seahorse-type record, and no other such fish in the tank has both its body
+(`+0x4C`) and fin (`+0x50`). The unique fish are found first, copied whole
+(0x288 bytes); then each, in slot order, goes through AddFish `0x419C50`,
+which is a plain copy into the first free record under its limit (`cmp
+eax, 0x15` at `0x419C72`) and answers -1 when full: the dose stops there.
+A record has no slot number or id of its own, so the clone is exact. New
+fish are synced to the view; if not one clone fitted, the game's hint 6
+("The tank is full!") shows. The dose is spent either way (stock order).
+
+## For the integrator: expansions
+
+Every loop reads the game's own bounds, so the expansion branches only need
+to keep using them:
+
+- `UPDATE_SLOTS` (byte `0x4206B3`, the update's slot count; Bigger tanks
+  writes 26) bounds the Revival Potion and ClonaFish's search; AddFish's own
+  byte (`0x419C74`) bounds where clones go. A 30-per-tank build must write
+  both (as Bigger tanks does) and keep the store animals marked (`+0x14` =
+  "FTCA"), which every new loop skips.
+- `GH_LOOP_END` (`0x421190`) bounds the hormone; a 30-per-tank build should
+  rewrite it as Bigger tanks does.
+- `UPDATE_LAST_TANK` (byte `0x4206C7`) bounds the tank on screen; extra
+  tanks that are updated by the game's loop are reached. An extra-tanks
+  build that keeps its tanks elsewhere (not `state + 0x390 + tank * 0x51EC`)
+  must be checked: the potions address tanks as the game does.
+- Check: tests/test_revival_potion.py and test_radioactive_growth_hormone.py
+  patch these bytes (26, 30 slots; tanks 0-5/0-6) and must pass on the
+  merged build.
 
 ## Store page mechanics
 
@@ -222,12 +397,9 @@ were untouched.
 
 ## Ownership and saves
 
-Everything is in the game's own save:
-- the companions are fish records;
-- the rock is an ornament record;
-- the eggs are the slot #4 record.
-
-There is no store sidecar.
+- the companions: "Tank Animals <slot>.dat" beside the save (above);
+- the rock is an ornament record, in the game's save;
+- the eggs are the slot #4 record, in the game's save.
 
 ## Packaging
 
@@ -273,3 +445,6 @@ There is no store sidecar.
   a save from an earlier build, the eel's death save, and the
   selling-tank guards (they are a compare and a jump each, pinned by the
   header script).
+- Not yet checked in the running game (emulated only, tests/test_ds_store_animals.py):
+  the animals' own records and "Tank Animals <slot>.dat" (2026-10-30). The
+  live checks above were made when they sat in records 26-30.

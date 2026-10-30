@@ -91,7 +91,7 @@ class ManifestTests(unittest.TestCase):
         icon = ROOT / "assets" / "fish_tycoon_ds_store" / "Images" / "ITEM_ADD_MONEY.png"
         self.assertEqual(png_size(icon), (74, 60))     # the DLL's icon_w / icon_h for the item
         sheet = ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png"
-        self.assertEqual(png_size(sheet), (140, 12 * 70))   # row 11: the coins (chem_rows = 12 in the DLL)
+        self.assertEqual(png_size(sheet), (140, 15 * 70))   # row 14: the coins (chem_rows = 15 in the DLL)
         self.assertEqual(png_size(ROOT / "assets" / "money_cheat" / "coins_source.png"), (195, 159))
 
 
@@ -161,7 +161,8 @@ def plant_font() -> set[str]:
 
 S_MONEY, S_SPENT, S_EGG_COUNT = 0x38C, 0x24, 0x314
 ANIMAL_RECORD = 0x390 + 26 * 0x288          # Tank 1's first animal slot
-FISH_CELLS = {"puffer": (80, 110), "ray": (180, 130), "eel": (270, 130),"eggs": (350, 130), "warp": (450, 130), "money": (540, 130)}
+FISH_CELLS = {"puffer": (80, 110), "ray": (180, 130), "eel": (270, 130),"eggs": (350, 130), "warp": (450, 130), "money": (540, 130),
+              "hormone": (630, 125), "revival": (725, 125), "clonafish": (86, 200)}
 
 
 @_needs(FISH_EXE)
@@ -222,7 +223,7 @@ class FishStoreTests(unittest.TestCase):
         return [c[1] for c in emu.calls if c[0] == "text" and c[1].startswith("Price:")][-1]
 
     def test_every_item_shows_its_price_or_zero(self) -> None:
-        for item, normal in (("puffer", 1250), ("eggs", 2300), ("warp", 500), ("money", 950)):
+        for item, normal in (("puffer", 1250), ("eggs", 2300), ("warp", 500), ("money", 950), ("hormone", 10000)):
             self.assertEqual(self.shown_price(self.store(0, free=False), item), f"Price:  ${normal}")
             self.assertEqual(self.shown_price(self.store(0, free=True), item), "Price:  $0")
         for animal in ("ray", "eel"):
@@ -320,7 +321,13 @@ class FishStoreTests(unittest.TestCase):
                     self.select(emu, item)
                     emu.call(emu.sym("@on_overlay@8"), ecx=emu.scene)
                     drawn |= {c[1] for c in emu.calls if c[0] == "text"}
-        self.assertLessEqual({"Add $1,000", "Plus 1.000 $", "Time Warp", "Zeitsprung", "Price:  $0"}, drawn)
+        self.assertLessEqual({"Add $1,000", "Plus 1.000 $", "Time Warp", "Zeitsprung", "Price:  $0",
+                              "Radioactive Growth Hormone", "Radioaktive Wachstumshormone",
+                              "Revival Potion", "Wiederbelebungstrank", "ClonaFish", "Price:  $10000", "Price:  $2500",
+                              "A wonder drug that instantly clones all\nunique fish in the tank. Make sure\n"
+                              "there's enough space in the tank!\nContains 3 doses.",
+                              "This magical potion instantly revives\ndead fish and restores them to full\n"
+                              "health. Contains 3 doses."}, drawn)
         for text in drawn:
             self.assertLessEqual(set(text), allowed, text)
 
@@ -337,18 +344,23 @@ class FishStoreTests(unittest.TestCase):
     def test_bought_animals_have_full_health_and_food(self) -> None:
         for item, fin in (("puffer", 30), ("ray", 31), ("eel", 32)):
             emu = self.buy_animal(item)
-            rec = emu.state + ANIMAL_RECORD
+            rec = emu.call(emu.sym("_animal"), emu.state, 0, 0)        # Tank One's first animal record
             self.assertEqual((emu.read32(rec + 0x4C), emu.read32(rec + 0x50)), (22, fin), item)
             self.assertEqual((emu.read32(rec + 0x3C), emu.read32(rec + 0x44)), (100, 100), item)
             self.assertEqual(self.money(emu), 5000 - 1250, item)
 
-    def load_save(self, body: bytes) -> bytes:
-        """The DLL's Load (the vtable slot at 0x4424D0): the game's own load, then the animals."""
+    def load_save(self, body: bytes) -> tuple[bytes, list[bytes]]:
+        """The DLL's Load (the vtable slot at 0x4424D0): the game's own load, then the animals.
+        The state, and the 15 animal records (3 tanks x 5)."""
+        from test_ds_store_animals import Files
         emu = E.Emulator(FISH_EXE, self.dll, self.symbols)
+        emu.files = Files(emu)
         emu.hook_fish_save_read(body)
         state = emu.alloc(0x1E3C8 + 0x1000)
         self.assertEqual(emu.call(emu.sym("@on_state_load@12"), 1, ecx=state) & 0xFF, 1)
-        return bytes(emu.uc.mem_read(state, 0x1E3C8 + 8))
+        animals = [bytes(emu.uc.mem_read(emu.call(emu.sym("_animal"), state, t, k), 0x288))
+                   for t in range(3) for k in range(5)]
+        return bytes(emu.uc.mem_read(state, 0x1E3C8 + 8)), animals
 
     @staticmethod
     def put(body: bytearray, tank: int, slot: int, fin: int, health: int, food: int, kind: int = 22) -> int:
@@ -364,28 +376,38 @@ class FishStoreTests(unittest.TestCase):
         return at
 
     def test_loading_a_save_fills_the_animals_and_nothing_else(self) -> None:
+        """A save from the build that kept the animals in fish records 26-30: they move to their own
+        records (filled to 100/100; the Golden Seahorse is Fix Vanilla Bugs' job), those fish records are
+        cleared, and nothing else in the state changes but the eel's meters in its rock."""
         body = bytearray(0x1E3C8)
         for i in range(0, 0x390 - 8):                               # the state's other fields: a pattern
             body[i] = (i * 7 + 3) & 0xFF
-        filled = [self.put(body, 0, 26, 30, 50, 20),                # a half-fed Puffer Fish
-                  self.put(body, 1, 27, 31, 60, 100)]               # a Sting Ray
-        self.put(body, 2, 28, 22, 40, 10)                           # the Golden Seahorse: Fix Vanilla Bugs' job
+        moved = [self.put(body, 0, 26, 30, 50, 20),                 # a half-fed Puffer Fish
+                 self.put(body, 1, 27, 31, 60, 100),                # a Sting Ray
+                 self.put(body, 2, 28, 22, 40, 10)]                 # the Golden Seahorse
         self.put(body, 0, 4, 4, 40, 20, kind=3)                     # a fish
         rock = 0x5208 + 2 * 0x51EC + 0x2C - 8                       # the selling tank's second ornament
         body[rock:rock + 4] = bytes([1, 70, 30, 0xE1])              # the eel at home: health 70, food 30
         struct.pack_into("<i", body, rock + 0x24, 229)
-        state = self.load_save(bytes(body))
+        state, animals = self.load_save(bytes(body))
         expected = bytearray(body)
-        for at in filled:
-            struct.pack_into("<i", expected, at + 0x3C, 100)
-            struct.pack_into("<i", expected, at + 0x44, 100)
+        for at in moved:                                            # REMOVE_FISH's fields, and the mark
+            for field in (0x00, 0x04, 0x08, 0x0C, 0x3C, 0x40, 0x44, 0x4C, 0x50, *range(0x10, 0x3C, 4),
+                          0x78, 0x7C, 0x80):
+                struct.pack_into("<i", expected, at + field, 0)
         expected[rock + 1:rock + 3] = bytes([100, 100])
         self.assertEqual(state[8:], bytes(expected))
+        meters = {struct.unpack_from("<i", a, 0x50)[0]: struct.unpack_from("<iii", a, 0x3C)
+                  for a in animals if struct.unpack_from("<I", a, 0)[0]}
+        self.assertEqual(meters, {30: (100, 0, 100), 31: (100, 0, 100), 22: (40, 0, 10)})
 
-    def test_loading_a_save_with_full_animals_changes_nothing(self) -> None:
+    def test_loading_a_save_with_full_animals_changes_nothing_but_their_place(self) -> None:
         body = bytearray(0x1E3C8)
-        self.put(body, 0, 26, 32, 100, 100)
-        self.assertEqual(self.load_save(bytes(body))[8:], bytes(body))
+        at = self.put(body, 0, 26, 32, 100, 100)
+        record = bytes(body[at:at + 0x288])
+        state, animals = self.load_save(bytes(body))
+        self.assertEqual(animals[0], record)
+        self.assertEqual(struct.unpack_from("<I", state, at + 8)[0], 0)
 
     # --- Time Warp's "done" message
     def warp(self, money: int, free: bool, hours: int = 12, speed: int = 10, answer_yes: bool = True):
@@ -516,11 +538,17 @@ class PlantStoreTests(unittest.TestCase):
                 self.assertEqual(emu.read32(dialog + 0x84), 2000)
 
     def test_formula_price(self) -> None:
-        for free, expected in ((False, 10000), (True, 0)):
-            emu = self.store(0, free)
-            emu.write8(emu.sym("_building_formula"), 1)
-            emu.run_until(emu.sym("_stub_chem_price"), 0x00432721, esi=emu.alloc(0x100))
-            self.assertEqual(emu.uc.reg_read(E.X.UC_X86_REG_EDX), expected)
+        # The formula $10,000, the Revival Potion $10,000, Revita-Seed $2,500, $0 with Free upgrades;
+        # the tray-room check (0x4164B0) is asked about the chemical's own id, and eax is kept.
+        for chemical, normal in ((36, 10000), (37, 10000), (38, 2500)):
+            for free, expected in ((False, normal), (True, 0)):
+                emu = self.store(0, free)
+                emu.write8(emu.sym("_building_chem"), chemical)
+                emu.uc.reg_write(E.X.UC_X86_REG_EAX, 0x1234)
+                emu.run_until(emu.sym("_stub_chem_price"), 0x00432721, esi=emu.alloc(0x100))
+                self.assertEqual(emu.uc.reg_read(E.X.UC_X86_REG_EDX), expected, (chemical, free))
+                self.assertEqual(emu.read32(emu.uc.reg_read(E.X.UC_X86_REG_ESP)), chemical)
+                self.assertEqual(emu.uc.reg_read(E.X.UC_X86_REG_EAX), 0x1234)
 
     def test_buying_a_free_legendary_packet_still_empties_its_shelf(self) -> None:
         emu = self.store(0, True)

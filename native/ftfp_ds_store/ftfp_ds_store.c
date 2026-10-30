@@ -11,6 +11,16 @@
        A click on its head lets it out again;
      * Exotic Fish Eggs: eggs for slot #4 that hatch only DS-exclusive
        bodies and fins (genes 23-29, even odds), as many as the other eggs;
+     * Radioactive Growth Hormone ($10,000, 3 doses): a chemical for slot #3,
+       used like the stock Growth Hormone, on every live fish in the tank you
+       look at, any age (the stock one stops at 40, 0x421125): each pregnant one first gives birth through the stock birth rules,
+       then each (the newborns too) becomes an adult (age 20) if younger,
+       gets full health (100) and is cured of its sickness;
+     * Revival Potion ($10,000, 3 doses): a chemical for slot #3; each dose
+       revives every dead fish in the tank you look at, at full health;
+     * ClonaFish ($2,500, 3 doses): a chemical for slot #3; each dose adds an
+       exact copy of every unique fish in the tank you look at, through the
+       game's own AddFish, until the tank is full;
      * with their settings ("<name>.ini" beside this DLL): the Time Warp
        clock, and Add Money ($950 for +$1,000, any number of times).  With
        Free upgrades every item on this page costs $0.
@@ -21,16 +31,18 @@
      * Moray Eel: a fish that would die survives at health 10, 1 time in 10.
 
    HOW.  "DS Store Items.dll" sits beside "DS Exclusive Fish.dll", which loads it
-   after its own install and lends it sprite table entries 220-235.  Every
+   after its own install and lends it sprite table entries 220-243.  Every
    write into the game is in store_sites.h -- all of them or none.
 
-   STATE.  Nothing new is saved.  An animal is a seahorse-type fish record
-   (body 22) whose fin marks the animal: 22 Golden Seahorse, 30 Puffer Fish,
-   31 Sting Ray, 32 Moray Eel -- so every rule the game has for the seahorse
-   applies to them.  The animals (the Golden Seahorse too) live in the last
-   five of each tank's 31 fish records, slots 26-30, which no stock gameplay
-   loop reaches (the game uses 21, or 26 with "Bigger tanks"), so they never
-   take a fish's place; they are saved with the game.  The rock is one of the tank's ornament records; while
+   STATE.  An animal is a seahorse-type fish record (body 22) whose fin marks
+   the animal: 22 Golden Seahorse, 30 Puffer Fish, 31 Sting Ray, 32 Moray Eel
+   -- so every rule the game has for the seahorse applies to them.  The
+   animals (the Golden Seahorse too) have 5 records per tank of their own,
+   here in the DLL, never one of the game's fish records (all 30 of those
+   are the fish's with "Bigger tanks"); they are saved in "Tank Animals
+   <slot>.dat" beside the save, and a save from an earlier build, which kept
+   them in fish records 26-30, has them moved there once (see
+   settle_animals).  The rock is one of the tank's ornament records; while
    the eel is home, the rock record's spare bytes keep its health and food.
    Owning an animal means it is in a tank: one of each, bought again after
    it is trashed.  With "Buy Multiple Golden Seahorses" patched in, the store
@@ -47,8 +59,9 @@
 #define FISH_BASE 0x390
 #define TANK_STRIDE 0x51EC
 #define SLOT_STRIDE 0x288
-#define RECORDS 31                  /* fish records per tank; the game uses 21 (26 with "Bigger tanks") */
-#define ANIMAL_FIRST 26             /* the animals' slots: 26-30 */
+#define RECORDS 31                  /* fish records per tank; the game uses 21 (30 with "Bigger tanks") */
+#define OLD_ANIMAL_FIRST 26         /* earlier builds kept the animals in records 26-30 */
+#define ANIMAL_TANKS 3              /* Tank One, Tank Two, the selling tank */
 #define ANIMAL_SLOTS 5
 #define F_MARK 0x14                 /* mate-gene fields, read only by breeding: the animal signature */
 #define F_KIND 0x18
@@ -122,7 +135,16 @@
 #define SPR_PUFF (STORE_SPRITE_BASE + 12)
 #define SPR_ITEM_WARP (STORE_SPRITE_BASE + 13)
 #define SPR_ITEM_MONEY (STORE_SPRITE_BASE + 14)
-#define STORE_SPRITES 15
+#define SPR_ITEM_RGH (STORE_SPRITE_BASE + 15)
+#define SPR_TOOL_RGH (STORE_SPRITE_BASE + 16)        /* on the shelf, as the stock 0x7A */
+#define SPR_DROPPER_RGH (STORE_SPRITE_BASE + 17)     /* the cursor while used, as the stock 0x7B */
+#define SPR_ITEM_REVIVAL (STORE_SPRITE_BASE + 18)
+#define SPR_TOOL_REVIVAL (STORE_SPRITE_BASE + 19)
+#define SPR_DROPPER_REVIVAL (STORE_SPRITE_BASE + 20)
+#define SPR_ITEM_CLONA (STORE_SPRITE_BASE + 21)
+#define SPR_TOOL_CLONA (STORE_SPRITE_BASE + 22)
+#define SPR_DROPPER_CLONA (STORE_SPRITE_BASE + 23)
+#define STORE_SPRITES 24
 
 typedef struct sprite_entry {
     int id;
@@ -154,6 +176,15 @@ static const struct { const char *name; int cols, rows; } SPRITE_FILES[STORE_SPR
     { "DS_PUFFER_PUFF_Grid.png", 4, 2 },        /* the puffer puffed up: left, then right */
     { "ITEM_TIME_WARP.png", 0, 0 },             /* the Time Warp clock (the owner's icon) */
     { "ITEM_ADD_MONEY.png", 0, 0 },             /* Add Money: the owner's pile of gold coins */
+    { "ITEM_RADIOACTIVE_GROWTHHORMONE.png", 0, 0 },   /* the stock Growth Hormone's art, green */
+    { "TOOL_RADIOACTIVE_GROWTHHORMONE.png", 0, 0 },
+    { "TOOL_dropper_RADIOACTIVE.png", 0, 0 },
+    { "ITEM_REVIVAL_POTION.png", 0, 0 },        /* the owner's amber flask */
+    { "TOOL_REVIVAL_POTION.png", 0, 0 },
+    { "TOOL_dropper_REVIVAL.png", 0, 0 },
+    { "ITEM_CLONAFISH.png", 0, 0 },             /* the owner's magenta bottle */
+    { "TOOL_CLONAFISH.png", 0, 0 },
+    { "TOOL_dropper_CLONAFISH.png", 0, 0 },
 };
 
 /* ------------------------------------------------------------ the game */
@@ -244,35 +275,90 @@ static int is_animal(char *f) {
     return *I(f, F_LIVE) != 0 && *I(f, F_BODY) == BODY_SEAHORSE && *I(f, F_MARK) == ANIMAL_MARK;
 }
 
-/* An animal of this kind in slots 26-30, or one an earlier build left among the fish. */
-static int is_kind(char *f, int slot, int fin) {
-    return slot >= ANIMAL_FIRST ? is_animal(f) && *I(f, F_FIN) == fin : is_companion(f, fin);
+/* ---------------------------------------------------- the animals' records
+
+   Each of Tank One, Tank Two and the selling tank has 5 animal records of
+   its own, here in the DLL (saved in "Tank Animals <slot>.dat" beside the
+   save), never in the game's 31 fish records, which are all the fish's.
+   The game reaches a fish record as state + 0x390 + tank * 0x51EC + slot *
+   0x288 (32-bit arithmetic) everywhere it follows a swimming fish's slot,
+   with no other use of the slot (docs/fish-tycoon-tank-expansion.md 6).  So
+   each animal gets the one slot number for which that sum lands on its
+   record here: its swimming entry draws, moves, feeds, picks up, drops and
+   trashes it with the game's own code, exactly as when it sat in slots
+   26-30.  The number is below 2^29 and never -1 or a real slot 0-30. */
+static unsigned char animal_area[ANIMAL_TANKS][ANIMAL_SLOTS * SLOT_STRIDE + 8];
+static unsigned int animal_pad[ANIMAL_TANKS];
+
+static char *tank_records(char *state, int tank) { return state + FISH_BASE + tank * TANK_STRIDE; }
+
+/* The record must sit a multiple of 8 bytes from the tank's records (0x288 = 8 x 81). */
+static char *animal(char *state, int tank, int k) {
+    unsigned int pad = (unsigned int)((UINT_PTR)tank_records(state, tank) - (UINT_PTR)animal_area[tank]) & 7u;
+    if (pad != animal_pad[tank]) {
+        memmove(animal_area[tank] + pad, animal_area[tank] + animal_pad[tank], ANIMAL_SLOTS * SLOT_STRIDE);
+        animal_pad[tank] = pad;
+    }
+    return (char *)animal_area[tank] + pad + k * SLOT_STRIDE;
+}
+
+/* slot * 0x288 == record - tank records (mod 2^32): slot * 81 == distance / 8 (mod 2^29). */
+static int animal_slot(char *state, int tank, int k) {
+    unsigned int d = (unsigned int)((UINT_PTR)animal(state, tank, k) - (UINT_PTR)tank_records(state, tank));
+    unsigned int inverse = 1;
+    int i;
+    for (i = 0; i < 5; ++i) inverse *= 2u - 81u * inverse;          /* 81 * inverse == 1 (mod 2^32) */
+    return (int)(((d >> 3) * inverse) & 0x1FFFFFFFu);
+}
+
+/* The animal (0-4) a swimming slot number stands for, or -1. */
+static int animal_index(char *state, int tank, int slot) {
+    int k;
+    if (tank < 0 || tank >= ANIMAL_TANKS || (slot >= 0 && slot < RECORDS)) return -1;
+    for (k = 0; k < ANIMAL_SLOTS; ++k) {
+        if (animal_slot(state, tank, k) == slot) return k;
+    }
+    return -1;
+}
+
+/* The record a (tank, slot) of a swimming entry addresses: a fish's, an animal's, or NULL. */
+static char *record_at(char *state, int tank, int slot) {
+    int k;
+    if (tank < 0 || tank > 3) return NULL;
+    if (slot >= 0 && slot < RECORDS) return fish(state, tank, slot);
+    k = animal_index(state, tank, slot);
+    return k >= 0 ? animal(state, tank, k) : NULL;
+}
+
+static int is_kind(char *f, int fin) {
+    return f != NULL && is_animal(f) && *I(f, F_FIN) == fin;
 }
 
 static int count_in_tank(char *state, int tank, int fin) {
-    int s, n = 0;
-    for (s = 0; s < RECORDS; ++s) {
-        if (is_kind(fish(state, tank, s), s, fin)) ++n;
+    int k, n = 0;
+    if (tank < 0 || tank >= ANIMAL_TANKS) return 0;
+    for (k = 0; k < ANIMAL_SLOTS; ++k) {
+        if (is_kind(animal(state, tank, k), fin)) ++n;
     }
     return n;
 }
 
 static int free_animal_slot(char *state, int tank) {
-    int s;
-    for (s = ANIMAL_FIRST; s < ANIMAL_FIRST + ANIMAL_SLOTS; ++s) {
-        if (!is_animal(fish(state, tank, s))) return s;
+    int k;
+    for (k = 0; k < ANIMAL_SLOTS; ++k) {
+        if (!is_animal(animal(state, tank, k))) return k;
     }
     return -1;
 }
 
-/* Copies an animal's record into a free animal slot of the tank: its slot, or -1. */
+/* Copies an animal's record into a free animal record of the tank: its index, or -1. */
 static int place_animal(char *state, int tank, char *rec) {
-    int slot = tank >= 0 && tank <= 2 ? free_animal_slot(state, tank) : -1;
-    if (slot < 0) return -1;
+    int k = tank >= 0 && tank < ANIMAL_TANKS ? free_animal_slot(state, tank) : -1;
+    if (k < 0) return -1;
     *I(rec, F_MARK) = ANIMAL_MARK;
     *I(rec, F_KIND) = *I(rec, F_FIN);
-    memcpy(fish(state, tank, slot), rec, SLOT_STRIDE);
-    return slot;
+    memcpy(animal(state, tank, k), rec, SLOT_STRIDE);
+    return k;
 }
 
 static int is_rock(unsigned char *o) {
@@ -292,11 +378,42 @@ static int eel_in_tank(char *state, int tank) {
     return 0;
 }
 
+/* "Extra Tanks.dll" (the "3 extra tanks" setting) holds the blocks of the tanks
+   that are not in a stock place right now (Tanks 4-6, or Tank 1 while one of
+   them is on screen), each with its 5 animal records after the block:
+   FtfpExtraTanksHeld(e) for e = 0-2, NULL when it is not loaded.  Every tank's
+   animals are therefore either in a stock place here or in one of those. */
+#define HELD_TANKS 3
+typedef unsigned char *(__stdcall *held_fn)(int e);
+static unsigned char *held_block(int e) {
+    HMODULE tanks = GetModuleHandleW(L"Extra Tanks.dll");
+    held_fn fn = tanks != NULL ? (held_fn)GetProcAddress(tanks, "FtfpExtraTanksHeld") : NULL;
+    return fn != NULL ? fn(e) : NULL;
+}
+
+static int held_owns(int fin) {
+    int e, k;
+    for (e = 0; e < HELD_TANKS; ++e) {
+        unsigned char *b = held_block(e);
+        if (b == NULL) return 0;
+        for (k = 0; k < ANIMAL_SLOTS; ++k) {
+            if (is_kind((char *)b + TANK_STRIDE + k * SLOT_STRIDE, fin)) return 1;
+        }
+        if (fin == FIN_EEL) {
+            for (k = 0; k < ORN_SLOTS; ++k) {
+                if (is_home_rock(b + (ORN_BASE - FISH_BASE) + k * ORN_STRIDE)) return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 static int owned(char *state, int fin) {
     int t;
     for (t = 0; t <= 3; ++t) {
         if (count_in_tank(state, t, fin)) return 1;
     }
+    if (held_owns(fin)) return 1;
     return fin == FIN_EEL && (eel_in_tank(state, 0) || eel_in_tank(state, 1) || eel_in_tank(state, 2));
 }
 
@@ -306,10 +423,23 @@ static const unsigned char REPURCHASE_JUMP[10] = { 0xE9, 0x49, 0x75, 0x01, 0x00,
 
 #define FIN_WARP (-1)                       /* the Time Warp item: not an animal */
 #define FIN_MONEY (-2)                      /* the Add Money item: not an animal */
+#define FIN_TANK (-6)                       /* the Extra Tank item (the "3 extra tanks" setting); -3..-5 are the potions */
+
+/* "Extra Tanks.dll" (the "3 extra tanks" setting: Tank 4, 5 and 6) sells its tanks here, in
+   order: how many are bought (0-3, -1 when it is not loaded or no game is
+   open), and one more bought (the new count, or -1). */
+typedef int (__stdcall *tanks_fn)(void);
+static int tanks_call(const char *name) {
+    HMODULE tanks = GetModuleHandleW(L"Extra Tanks.dll");
+    tanks_fn fn = tanks != NULL ? (tanks_fn)GetProcAddress(tanks, name) : NULL;
+    return fn != NULL ? fn() : -1;
+}
+#define EXTRA_TANKS 3
 
 static int sold_out(char *state, int fin) {
     static int repurchase = -1;
-    if (fin == FIN_WARP || fin == FIN_MONEY) return 0;
+    if (fin == FIN_TANK) return tanks_call("FtfpExtraTanksOwned") >= EXTRA_TANKS;
+    if (fin < 0) return 0;                  /* Time Warp, Add Money, the potions: never sold out */
     if (repurchase < 0) repurchase = ftfp_site_holds(0x004282B2u, REPURCHASE_JUMP, sizeof REPURCHASE_JUMP);
     return fin != 0 && !repurchase && owned(state, fin);
 }
@@ -452,7 +582,7 @@ static void move_animal(char *impl, char *state, int tank, int slot, int entry, 
         VIEW_MOVE(view, NULL, entry, tank, 1, -1);
         return;
     }
-    memcpy(fish(state, to, dest), fish(state, tank, slot), SLOT_STRIDE);
+    memcpy(animal(state, to, dest), record_at(state, tank, slot), SLOT_STRIDE);
     REMOVE_FISH(state, NULL, tank, slot);
     VIEW_MOVE(view, NULL, entry, -1, 1, -1);
 }
@@ -463,13 +593,13 @@ static int __cdecl eel_drop(char *impl, int tank, int slot, int entry, int x, in
     char *state = (char *)P(impl, 0x34);
     char *f;
     int k, to;
-    if (state == NULL || tank < 0 || tank > 2 || slot < 0 || slot >= RECORDS) return 0;
-    f = fish(state, tank, slot);
-    if (slot >= ANIMAL_FIRST && is_animal(f) && (to = button_tank(impl, x, y)) >= 0) {
+    if (state == NULL || tank < 0 || tank > 2 || animal_index(state, tank, slot) < 0) return 0;
+    f = record_at(state, tank, slot);
+    if (is_animal(f) && (to = button_tank(impl, x, y)) >= 0) {
         move_animal(impl, state, tank, slot, entry, to);
         return 1;
     }
-    if (tank != *I(state, S_CURRENT_TANK) || !is_kind(f, slot, FIN_EEL)) return 0;
+    if (tank != *I(state, S_CURRENT_TANK) || !is_kind(f, FIN_EEL)) return 0;
     for (k = 0; k < ORN_SLOTS; ++k) {
         unsigned char *o = ornament(state, tank, k);
         if (o[0] == 0 || *I(o, O_SPRITE) != SPR_ROCK) continue;
@@ -522,6 +652,7 @@ static int __cdecl eel_click(char *impl, int x, int y) {
             HINT(P(impl, 0x44), NULL, 6);          /* "The tank is full!" */
             return 1;
         }
+        slot = animal_slot(state, tank, slot);     /* the number its swimming entry carries */
         o[O_HOME_HEALTH] = o[O_HOME_FOOD] = o[O_HOME_FLAG] = 0;
         *I(o, O_SPRITE) = SPR_ROCK;
         VIEW_SYNC(P(impl, 0x3C), NULL, (int)(UINT_PTR)fish(state, tank, 0));   /* as after a hatch */
@@ -561,8 +692,8 @@ static int remove_out_rock(char *state, int tank) {
 /* 0x41E809, the trash after its "throw away?" answer: an eel takes a rock with it. */
 static void __cdecl fish_trashed(char *impl, int tank, int slot) {
     char *state = (char *)P(impl, 0x34);
-    if (state == NULL || tank < 0 || tank > 2 || slot < 0 || slot >= RECORDS) return;
-    if (is_kind(fish(state, tank, slot), slot, FIN_EEL)) remove_out_rock(state, tank);
+    if (state == NULL || tank < 0 || tank > 2) return;
+    if (is_kind(record_at(state, tank, slot), FIN_EEL)) remove_out_rock(state, tank);
 }
 
 static int confirm_in(void *parent, int string_id);
@@ -584,8 +715,9 @@ static int __cdecl rock_trash(char *impl, int x, int y) {
         for (pass = 0; pass < 2 && !done; ++pass) {
             for (t = 0; t <= 2 && !done; ++t) {
                 if ((pass == 0) != (t == tank)) continue;
-                for (s = 0; s < RECORDS && !done; ++s) {
-                    if (!is_kind(fish(state, t, s), s, FIN_EEL)) continue;
+                for (s = 0; s < ANIMAL_SLOTS && !done; ++s) {
+                    if (!is_kind(animal(state, t, s), FIN_EEL)) continue;
+                    s = animal_slot(state, t, s);       /* as its swimming entry knows it */
                     if (t == tank) {
                         int entry = view_entry(impl, t, s);
                         if (entry >= 0) VIEW_MOVE(P(impl, 0x3C), NULL, entry, -1, 0, s);
@@ -748,6 +880,236 @@ static void __cdecl exotic_hatch(char *impl, int x, int y) {
     }
 }
 
+/* ---------------------------------------------- Radioactive Growth Hormone */
+
+/* A chemical: item 29 in slot #3 (state + 0x2F0, as the stock chemicals 2-4),
+   shelf picture SPR_TOOL_RGH, cursor SPR_DROPPER_RGH, 3 doses a purchase.
+   The stock chemical use (0x420E3A: the splash, the sound, then the switch
+   on the item at 0x420E72) runs as for any chemical; for item 29 the switch
+   calls rgh_dose and goes on into the stock Growth Hormone's own sparkle
+   loop (0x42119A) and the stock tail (0x421302), which spends one dose and
+   empties the slot at 0. */
+#define RGH_ITEM 29
+#define RGH_DOSES 3
+#define ADULT_AGE 20                /* adults are 20 and up: 0x4200AC, 0x420498 (sickness), 0x42426F (sales) */
+#define S_CURED 0x34                /* "Fish Cured", which the stock medicine cure adds to (0x420D2B) */
+/* The end of the stock Growth Hormone's fish loop, `cmp ebx, 0x3528` at 0x42118E: 21 records, or 26 with
+   "Bigger tanks", which rewrites this immediate. Read here, so the dose reaches the same records. */
+#define GH_LOOP_END (*(const int *)(UINT_PTR)0x00421190u)
+/* The fish update's own bounds (0x41FE70): slots `cmp ecx, 0x15` at 0x4206B1 (26 with "Bigger
+   tanks", which rewrites the byte at 0x4206B3) and tanks `cmp eax, 3` at 0x4206C5 (byte
+   0x4206C7).  Read, never assumed, so the potions reach every slot and tank the game updates. */
+#define UPDATE_SLOTS (*(const signed char *)(UINT_PTR)0x004206B3u)
+#define UPDATE_LAST_TANK (*(const signed char *)(UINT_PTR)0x004206C7u)
+/* The one tank where the update never lets a fish give birth (`cmp [esp+0x10], 3` at 0x42013D). */
+#define NO_BIRTH_TANK (*(const signed char *)(UINT_PTR)0x00420141u)
+
+static int last_tank(void) { return UPDATE_LAST_TANK; }
+
+/* The fish records the update reaches in a tank (21, or 30 with "Bigger tanks"): never fewer
+   than 1, never past record 29 (record 30 is never a fish's; the animals have records of their
+   own, kept in "Tank Animals <slot>.dat"). */
+static int fish_slots(void) {
+    int n = UPDATE_SLOTS;
+    return n < 1 ? 1 : n > RECORDS - 1 ? RECORDS - 1 : n;
+}
+
+/* ---- Pregnancy and birth (vanilla 0x420113-0x4203DD, run once per fish per update):
+   +0x10 is the due age (0 = not pregnant; set at mating), +0x14/+0x18 the father's body and
+   fin, +0x1C-+0x38 the grandparents.  When the due age is below the age and the tank is not
+   tank 3 (0x42013D), the update gives birth:
+     * with a Magic Fish of kind 5 in the tank (0x41DE90(5, tank)): on Random(100) <= 15 the
+       father's genes mutate (+0x14 or +0x18 by one, 0x42015E-0x420210), clamped to 0-20;
+     * NewBaby 0x41FA30 (one AddFish 0x419C50: a full tank simply gets no baby), then one more
+       with a Magic Fish of kind 0 (fertility, 0x4202D9), one more with the Plant of Fertility
+       (state + 0x1A4, 0x420356); each baby's age is age - due age;
+     * the due age is cleared (0x4203D2).
+   stock_birth is that code, call for call, in the same order, so the same random rolls give
+   the same litter. */
+#define F_DUE F_PREGNANT
+#define F_MATE_BODY 0x14
+#define F_MATE_FIN 0x18
+#define S_PLANT_OF_FERTILITY 0x1A4
+#define MAGIC_IN_TANK GAME(this2_fn, 0x0041DE90u)       /* (kind, tank) -> al */
+
+static int magic_in_tank(char *impl, int kind, int tank) {
+    return MAGIC_IN_TANK(impl, NULL, kind, tank) & 0xFF;
+}
+
+static void stock_baby(char *impl, char *f, int age, int tank) {
+    NEW_BABY(impl, NULL, *I(f, F_BODY), *I(f, F_FIN), *I(f, F_MATE_BODY), *I(f, F_MATE_FIN),
+             *I(f, 0x1C), *I(f, 0x24), *I(f, 0x20), *I(f, 0x28), *I(f, 0x2C), *I(f, 0x30), *I(f, 0x34),
+             *I(f, 0x38), age, tank);
+}
+
+static void stock_birth(char *impl, char *f, int tank, int baby_age) {
+    char *state = (char *)P(impl, 0x34);
+    if (magic_in_tank(impl, 5, tank) && RANDOM(100) <= 15) {
+        int *mate_body = I(f, F_MATE_BODY), *mate_fin = I(f, F_MATE_FIN);
+        if (RANDOM(100) <= 49) {
+            if (*mate_body == 20) --*mate_body;
+            else if (RANDOM(100) <= 49 || *mate_body == 0) ++*mate_body;
+            else --*mate_body;
+        } else {
+            /* The stock code tests the father's body here but changes his fin (0x4201CC). */
+            if (*mate_body == 20) --*mate_fin;
+            else if (RANDOM(100) <= 49 || *mate_body == 0) ++*mate_fin;
+            else --*mate_fin;
+        }
+        if (*mate_body > 20) *mate_body = 20; else if (*mate_body < 0) *mate_body = 0;
+        if (*mate_fin > 20) *mate_fin = 20; else if (*mate_fin < 0) *mate_fin = 0;
+    }
+    stock_baby(impl, f, baby_age, tank);
+    if (magic_in_tank(impl, 0, tank)) stock_baby(impl, f, baby_age, tank);
+    if (*I(state, S_PLANT_OF_FERTILITY) != 0) stock_baby(impl, f, baby_age, tank);
+    *I(f, F_DUE) = 0;
+}
+
+/* One dose on the tank being looked at (0x384), on every fish of it, any age (the owner,
+   2026-10-30; the stock Growth Hormone, 0x421100-0x421194, stops at age 40): live (+0x00),
+   health not 0 (+0x3C), over the stock loop's records.  First every pregnant one of them (+0x10 not 0) gives birth at once, through stock_birth
+   (the owner, 2026-10-30), with the babies aged 1, as a birth on the due step is (age - due
+   age); tank 3 never gives birth, as stock.  Then each fish reached, the newborns included,
+   so the whole litter comes out adult:
+     * younger than 20: age 20, written as the stock dose writes an age (0x42114F), and
+       last-processed age 19 on every difficulty (the stock dose does this only off Hard,
+       0x421157; the owner, 2026-10-30: the fish stay healthy on Hard too), so the next
+       update runs one step's checks, not one for every skipped step;
+     * health 100, the game's maximum (0x41E0FE, 0x42127E);
+     * sickness (+0x40: 1 fungus, 2 ick, set at 0x41E120) cleared as the medicine clears it
+       (0x420D1D / 0x420D57: +0x40 = 0, and one more Fish Cured).
+   Then the stock dose's next fish update, 7 seconds on (0x42117D). The store animals are
+   never reached: they are past the stock loop's end (slots 26-30), and a marked animal record
+   is skipped wherever the loop end is moved. */
+static int gh_reaches(char *f) {
+    return *I(f, F_LIVE) != 0 && *I(f, F_HEALTH) != 0 && !is_animal(f);
+}
+
+static void __cdecl rgh_dose(char *impl) {
+    char *state = (char *)P(impl, 0x34);
+    int tank, end = GH_LOOP_END, off, born = 0;
+    if (state == NULL) return;
+    tank = *I(state, S_CURRENT_TANK);
+    if (tank < 0 || tank > last_tank()) return;
+    if (end > RECORDS * SLOT_STRIDE) end = RECORDS * SLOT_STRIDE;
+    for (off = 0; off < end && tank != NO_BIRTH_TANK; off += SLOT_STRIDE) {
+        char *f = state + FISH_BASE + tank * TANK_STRIDE + off;
+        if (!gh_reaches(f) || *I(f, F_DUE) == 0) continue;
+        stock_birth(impl, f, tank, 1);
+        born = 1;
+    }
+    if (born && P(impl, 0x3C) != NULL)                       /* the newborns swim, as after a hatch */
+        VIEW_SYNC(P(impl, 0x3C), NULL, (int)(UINT_PTR)fish(state, tank, 0));
+    for (off = 0; off < end; off += SLOT_STRIDE) {
+        char *f = state + FISH_BASE + tank * TANK_STRIDE + off;
+        if (!gh_reaches(f)) continue;
+        if (*I(f, F_AGE) < ADULT_AGE) {
+            *I(f, F_AGE) = ADULT_AGE;
+            *I(f, F_LAST_AGE) = ADULT_AGE - 1;
+        }
+        *I(f, F_HEALTH) = FULL_METER;
+        if (*I(f, F_DISEASE) != 0) {
+            *I(f, F_DISEASE) = 0;
+            ++*I(state, S_CURED);
+        }
+        *I(impl, 0x30) = CLOCK_NOW() + 7;
+    }
+}
+
+/* ------------------------------------------------------- Revival Potion */
+
+/* Item 30, used like the hormone (slot #3, the stock splash, sparkle and tail).
+   How the vanilla game stores a dead fish: nothing but health (+0x3C) at 0.
+     * The death test (0x420622) only sets the age to the step it died on (0x420634),
+       so the step loop stops there; the record stays live (+0x00 is not cleared),
+       and it stays in the tank until it is thrown away: no timer removes it.
+     * Every update skips it (0x41FEC3: health <= 0), so its clock (+0x00, the time
+       of its last update, set at 0x41FFCA), its banked seconds (+0x04), age, food
+       and sickness stay as they were when it died.
+     * The tank view draws it dead (0x4146BF / 0x4146F6 / 0x414778: the dead teen
+       or adult picture), lets it sink (0x411D5F) and never swims it (0x414337),
+       all from that same health test.
+   A dose, on the tank being looked at, for every record the update reaches
+   (UPDATE_SLOTS, UPDATE_LAST_TANK) that is live with health 0 and not a store
+   animal: health 100, and the clock set to now (STATE_NOW 0x4032C0, as the update
+   sets it), so the next update counts from now and does not play the time it lay
+   dead as time away.  Age, food, sickness, pregnancy and banked seconds stay. */
+#define REVIVAL_ITEM 30
+#define CLONA_ITEM 31
+
+static void __cdecl revival_dose(char *impl) {
+    char *state = (char *)P(impl, 0x34);
+    int tank, s, slots = fish_slots(), now;
+    if (state == NULL) return;
+    tank = *I(state, S_CURRENT_TANK);
+    if (tank < 0 || tank > last_tank()) return;
+    now = STATE_NOW(state, NULL);
+    for (s = 0; s < slots; ++s) {
+        char *f = fish(state, tank, s);
+        if (*I(f, F_LIVE) == 0 || *I(f, F_HEALTH) > 0 || is_animal(f)) continue;
+        *I(f, F_HEALTH) = FULL_METER;
+        if (now != 0) *I(f, F_LIVE) = now;
+    }
+}
+
+/* ------------------------------------------------------------ ClonaFish */
+
+/* Item 31, used like the hormone.  A unique fish is a live one (+0x00 set,
+   health above 0) whose species, body (+0x4C) and fin (+0x50) together, no
+   other live fish in the tank shares.  Store animals and seahorse-type records
+   are never cloned and never count.  The unique fish are found first; then each
+   one, in slot order, is copied whole (all 0x288 bytes) and handed to the
+   game's own AddFish (0x419C50), which puts it in the first free record under
+   the tank's limit (0x419C72) or answers -1 when the tank is full: then the
+   dose stops, and the rest get no clone.  A record holds no slot number or id
+   of its own (AddFish is a plain copy), so the clone is the original exactly.
+   New fish swim at once (the hatch's view call); if the tank was full before
+   the first clone, the game's "The tank is full!" hint shows. */
+#define S_HINTS 0x44                 /* the tank scene's hint object (string 6: "The tank is full!") */
+static char clone_buffer[RECORDS][SLOT_STRIDE];
+
+static int counts_for_cloning(char *f) {
+    return *I(f, F_LIVE) != 0 && *I(f, F_HEALTH) > 0 && !is_animal(f) && *I(f, F_BODY) != BODY_SEAHORSE;
+}
+
+static void __cdecl clona_dose(char *impl) {
+    char *state = (char *)P(impl, 0x34);
+    int tank, s, t, slots = fish_slots(), unique = 0, added = 0, k;
+    if (state == NULL) return;
+    tank = *I(state, S_CURRENT_TANK);
+    if (tank < 0 || tank > last_tank()) return;
+    for (s = 0; s < slots; ++s) {
+        char *f = fish(state, tank, s);
+        int shared = 0;
+        if (!counts_for_cloning(f)) continue;
+        for (t = 0; t < slots && !shared; ++t) {
+            char *g = fish(state, tank, t);
+            shared = t != s && counts_for_cloning(g) && *I(g, F_BODY) == *I(f, F_BODY)
+                     && *I(g, F_FIN) == *I(f, F_FIN);
+        }
+        if (!shared) memcpy(clone_buffer[unique++], f, SLOT_STRIDE);
+    }
+    for (k = 0; k < unique; ++k) {
+        if (ADD_FISH(state, NULL, tank, (int)(UINT_PTR)clone_buffer[k]) < 0) break;
+        ++added;
+    }
+    if (added > 0 && P(impl, 0x3C) != NULL) {
+        VIEW_SYNC(P(impl, 0x3C), NULL, (int)(UINT_PTR)fish(state, tank, 0));
+    } else if (unique > 0 && added == 0 && P(impl, S_HINTS) != NULL) {
+        HINT(P(impl, S_HINTS), NULL, 6);
+    }
+}
+
+/* The chemical switch's new items: 1 = handled (then the stock sparkle and tail). */
+static int __cdecl new_chemical(char *impl, int item) {
+    switch (item) {
+    case RGH_ITEM: rgh_dose(impl); return 1;
+    case REVIVAL_ITEM: revival_dose(impl); return 1;
+    case CLONA_ITEM: clona_dose(impl); return 1;
+    default: return 0;
+    }
+}
+
 /* ------------------------------------------------------- creature names */
 
 /* The names the info panel shows for a held animal (user, 2026-10-26).  The
@@ -777,8 +1139,7 @@ static const char *__cdecl held_name(char *impl, int kind, const char *found) {
     e = (unsigned char *)view + 0x1080 + i * 0x84;
     tank = *I(e, 0x40);
     slot = *I(e, 0x44);
-    if (tank < 0 || tank > 2 || slot < 0 || slot >= RECORDS) return found;
-    rec = fish(state, tank, slot);
+    if (tank < 0 || tank > 2 || (rec = record_at(state, tank, slot)) == NULL) return found;
     if (*I(rec, F_BODY) != BODY_SEAHORSE) return found;
     name = animal_name(*I(rec, F_FIN));
     return name != NULL ? name : found;
@@ -797,13 +1158,21 @@ typedef struct store_item {
 
 /* Time Warp and Add Money show only with their settings; with Free upgrades
    every item here costs $0 (the stock store keeps its prices). */
-#define ITEMS 6
+#define ITEMS 10
 #define ITEM_WARP 4
 #define ITEM_MONEY 5
+#define FIN_RGH (-3)                        /* the Radioactive Growth Hormone: not an animal */
+#define FIN_REVIVAL (-4)                    /* the Revival Potion */
+#define FIN_CLONA (-5)                      /* ClonaFish */
+#define ITEM_TANK 9
+#define SPR_STOCK_TANK2 157                 /* ITEM_TANK2.png: the stock store's Second Tank */
 #define MONEY_GAIN 1000
 #define MONEY_MAX 0x7FFFFFFF       /* money is a signed 32-bit int (state+0x38C); the stock sale adds to it unclamped (0x424074) */
 static int warp_on = 0, money_on = 0, free_on = 0;
-static int item_shown(int i) { return i == ITEM_WARP ? warp_on : i == ITEM_MONEY ? money_on : 1; }
+static int item_shown(int i) {
+    if (i == ITEM_TANK) return tanks_call("FtfpExtraTanksOwned") >= 0;
+    return i == ITEM_WARP ? warp_on : i == ITEM_MONEY ? money_on : 1;
+}
 static const store_item ITEM[ITEMS] = {
     { FIN_PUFFER, 1250, 44, 83, 85, 70, SPR_ITEM_PUFFER, 80, 60,
       { "Magic Pufferfish", "Magischer Kugelfisch" },
@@ -829,6 +1198,23 @@ static const store_item ITEM[ITEMS] = {
       { "Add $1,000", "Plus 1.000 $" },               /* the title font has no "+" (paddington_tt_30) */
       { "A pile of gold coins! Each one you buy\nadds $1,000 to your money.\nBuy as many as you like.",
         "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
+    { FIN_RGH, 10000, 595, 90, 79, 72, SPR_ITEM_RGH, 48, 65,
+      { "Radioactive Growth Hormone", "Radioaktive Wachstumshormone" },
+      { "Every fish in your tank gets full\nhealth and no sickness, young ones grow\nup at once, and pregnant ones give\nbirth first. Enough for 3 treatments.",
+        "Jeder Fisch in deinem Becken wird\nganz gesund und heil, junge werden\nsofort erwachsen, tr\xE4" "chtige geb\xE4" "ren\nzuerst. Reicht f\xFCr 3 Behandlungen." } },
+    /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped to the panel. */
+    { FIN_REVIVAL, 10000, 687, 90, 79, 72, SPR_ITEM_REVIVAL, 48, 65,
+      { "Revival Potion", "Wiederbelebungstrank" },
+      { "This magical potion instantly revives\ndead fish and restores them to full\nhealth. Contains 3 doses.",
+        "Dieser magische Trank belebt tote\nFische sofort wieder und macht sie\nganz gesund. Reicht f\xFCr 3 Behandlungen." } },
+    { FIN_CLONA, 2500, 44, 165, 85, 72, SPR_ITEM_CLONA, 48, 65,
+      { "ClonaFish", "ClonaFish" },
+      { "A wonder drug that instantly clones all\nunique fish in the tank. Make sure\nthere's enough space in the tank!\nContains 3 doses.",
+        "Ein Wundermittel, das alle einzigartigen\nFische im Becken sofort klont. Achte\nauf genug Platz im Becken!\nReicht f\xFCr 3 Behandlungen." } },
+    { FIN_TANK, 10000, 598, 246, 160, 70, SPR_STOCK_TANK2, 150, 60,       /* two net cells, bottom right */
+      { "Extra Tank", "Weiteres Aquarium" },
+      { "Another tank for breeding! Each one\nyou buy opens the next of Tank 4,\nTank 5 and Tank 6.",
+        "Noch ein Aquarium zum Z\xFC" "chten! Jeder\nKauf \xF6" "ffnet das n\xE4" "chste: Becken 4,\n5 und 6." } },
 };
 
 static int price_of(const store_item *it) { return free_on ? 0 : it->price; }
@@ -964,19 +1350,20 @@ static void charge(char *state, int price) {
     play_sound(0xE);
 }
 
-/* Exotic Eggs with universal slots, as the setting buys stock eggs: confirm,
-   then a stack of Exotic Eggs in slots 2-4 gains one hatch, else the first
-   empty slot takes them, else the setting's three "replace?" prompts. */
-static void buy_exotic_universal(char *impl, char *state, int price) {
-    int k, slot = -1, count = 1;
+/* Exotic Eggs or the Radioactive Growth Hormone with universal slots, as the
+   setting buys stock eggs and chemicals: confirm, then a stack of the same
+   item in slots 2-4 gains `uses` (eggs one hatch, a chemical 3 doses), else
+   the first empty slot takes it, else the setting's three "replace?" prompts. */
+static void buy_universal(char *impl, char *state, int price, int item, int icon, int cursor, int uses) {
+    int k, slot = -1, count = uses;
     static const int replace_prompt[4] = { 0, 0xEF, 0xEE, 0xED };
     char *r;
     if (!confirm(impl, 0xEC)) return;
     for (k = 1; k <= 3 && slot < 0; ++k) {
         r = SLOT_RECORD(state, k);
-        if (*I(r, SR_ICON) != 0 && *I(r, SR_ITEM) == EXOTIC_ITEM) {
+        if (*I(r, SR_ICON) != 0 && *I(r, SR_ITEM) == item) {
             slot = k;
-            count = *I(r, SR_COUNT) + 1;
+            count = *I(r, SR_COUNT) + uses;
         }
     }
     for (k = 1; k <= 3 && slot < 0; ++k)
@@ -986,12 +1373,33 @@ static void buy_exotic_universal(char *impl, char *state, int price) {
     if (slot < 0) return;
     charge(state, price);
     r = SLOT_RECORD(state, slot);
-    *I(r, SR_ITEM) = EXOTIC_ITEM;
+    *I(r, SR_ITEM) = item;
     *I(r, SR_PRESENT) = 1;
     *I(r, SR_COUNT) = count;
-    *I(r, SR_ICON) = SPR_TOOL_EGGS;
-    *I(r, SR_CURSOR) = SPR_TOOL_EGGS;
+    *I(r, SR_ICON) = icon;
+    *I(r, SR_CURSOR) = cursor;
     *I(r, SR_X) = slot * 0x30 + 0x1E;
+}
+
+/* A new chemical (the hormone, the Revival Potion, ClonaFish) without
+   universal slots, as the stock store buys a chemical (0x428172, the writer
+   0x427540): "Replace chemical in slot #3?" (0xEE) if slot #3 holds one, else
+   the purchase question (0xEC); then slot #3 holds it with 3 doses, whatever
+   was there before is gone, as stock. */
+static void buy_chemical(char *impl, char *state, int price, int item, int icon, int cursor) {
+    char *r = SLOT_RECORD(state, 2);
+    if (exotic_any_slot) {
+        buy_universal(impl, state, price, item, icon, cursor, RGH_DOSES);
+        return;
+    }
+    if (!confirm(impl, *I(r, SR_ICON) != 0 ? 0xEE : 0xEC)) return;
+    charge(state, price);
+    *I(r, SR_ITEM) = item;
+    *I(r, SR_PRESENT) = 1;
+    *I(r, SR_COUNT) = RGH_DOSES;
+    *I(r, SR_ICON) = icon;
+    *I(r, SR_CURSOR) = cursor;
+    *I(r, SR_X) = 2 * 0x30 + 0x1E;
 }
 
 /* ------------------------------------------------------------ time warp */
@@ -1008,20 +1416,37 @@ static void buy_exotic_universal(char *impl, char *state, int price) {
 #define WARP_CHUNK 14400u
 #define S_SPEED_FISH 0x1E168
 #define FISH_RECORD(state, tank, slot) ((state) + 0x390 + (tank) * 0x51EC + (slot) * SLOT_STRIDE)
-#define TANK_SLOTS (*(const unsigned char *)(UINT_PTR)0x004206B3u)      /* 21, or 26 with Bigger tanks */
+#define TANK_SLOTS (*(const unsigned char *)(UINT_PTR)0x004206B3u)      /* 21, or 30 with Bigger tanks */
 typedef void (__fastcall *fish_update_fn)(void *tank, int edx);
 static const fish_update_fn fish_update = (fish_update_fn)0x0041FE70u;
 static void *volatile tank_scene = NULL;
 
+static void warp_fish(char *f, unsigned int seconds) {
+    if (*I(f, 0x00) == 0 || *I(f, 0x3C) <= 0 || *I(f, 0x4C) == BODY_SEAHORSE) return;
+    *(unsigned int *)(f + 0x04) += seconds;
+}
+
+/* "3 extra tanks": the tanks Extra Tanks.dll holds (Tanks 4-6, or Tank 1 while
+   one of them is on screen) are warped too, and its own pass of the fish update
+   over them (FtfpExtraTanksUpdate, what it runs after every stock update) runs
+   after each of the stock ones here. */
+typedef void (__stdcall *tanks_update_fn)(void *scene);
+static void update_held_tanks(void *scene) {
+    HMODULE tanks = GetModuleHandleW(L"Extra Tanks.dll");
+    tanks_update_fn fn = tanks != NULL ? (tanks_update_fn)GetProcAddress(tanks, "FtfpExtraTanksUpdate") : NULL;
+    if (fn != NULL) fn(scene);
+}
+
 static void warp_chunk(char *state, unsigned int seconds) {
-    int tank, slot, r, slots = TANK_SLOTS;
-    if (slots > 26) slots = 26;
+    int tank, slot, r, e, slots = TANK_SLOTS;
+    if (slots > RECORDS - 1) slots = RECORDS - 1;
     for (tank = 0; tank < 4; ++tank) {
-        for (slot = 0; slot < slots; ++slot) {
-            char *f = FISH_RECORD(state, tank, slot);
-            if (*I(f, 0x00) == 0 || *I(f, 0x3C) <= 0 || *I(f, 0x4C) == BODY_SEAHORSE) continue;
-            *(unsigned int *)(f + 0x04) += seconds;
-        }
+        for (slot = 0; slot < slots; ++slot) warp_fish(FISH_RECORD(state, tank, slot), seconds);
+    }
+    for (e = 0; e < HELD_TANKS; ++e) {
+        unsigned char *b = held_block(e);
+        if (b == NULL) break;
+        for (slot = 0; slot < slots; ++slot) warp_fish((char *)b + slot * SLOT_STRIDE, seconds);
     }
     for (r = 0x17; r <= 0x19; ++r) {                    /* Fish Food, Environment, Advertising */
         if (*I(state, r * 20 + 0x7C) != 0) *(unsigned int *)(state + r * 20 + 0x84) += seconds;
@@ -1055,11 +1480,13 @@ static void time_warp(char *impl, char *state) {
     if (*I(state, S_MONEY) < price) return;
     charge(state, price);
     fish_update(tank_scene, 0);                         /* the real time so far, by the stock rules */
+    update_held_tanks(tank_scene);
     for (left = (unsigned int)hours * 3600u; left > 0;) {
         unsigned int c = left > WARP_CHUNK ? WARP_CHUNK : left;
         left -= c;
         warp_chunk(state, c);
         fish_update(tank_scene, 0);
+        update_held_tanks(tank_scene);
     }
     /* What the update made of those seconds: one age step per 60 x speed seconds (0x41FFE9); a
        chunk plus a fish's banked part of a step stays under every cap, so none of it was cut. */
@@ -1103,8 +1530,26 @@ static void buy(void *scene) {
         add_money(impl, state, price);
         return;
     }
+    if (it->fin == FIN_RGH) {
+        buy_chemical(impl, state, price, RGH_ITEM, SPR_TOOL_RGH, SPR_DROPPER_RGH);
+        return;
+    }
+    if (it->fin == FIN_REVIVAL) {
+        buy_chemical(impl, state, price, REVIVAL_ITEM, SPR_TOOL_REVIVAL, SPR_DROPPER_REVIVAL);
+        return;
+    }
+    if (it->fin == FIN_CLONA) {
+        buy_chemical(impl, state, price, CLONA_ITEM, SPR_TOOL_CLONA, SPR_DROPPER_CLONA);
+        return;
+    }
+    if (it->fin == FIN_TANK) {                       /* the next of Tank Three, Four and Five */
+        if (!confirm(impl, 0xEC)) return;
+        if (tanks_call("FtfpExtraTanksBuy") < 0) return;
+        charge(state, price);
+        return;
+    }
     if (it->fin == 0 && exotic_any_slot) {
-        buy_exotic_universal(impl, state, price);
+        buy_universal(impl, state, price, EXOTIC_ITEM, SPR_TOOL_EGGS, SPR_TOOL_EGGS, 1);
         return;
     }
     if (it->fin == 0) {
@@ -1167,34 +1612,275 @@ static int __cdecl place_seahorse(char *state, char *rec, int now) {
     return 0;
 }
 
-/* New game (after the stock clear of slots 0-20): the animal slots too. */
+/* The game's fish slots are fish_slots() above: 21, or 30 with "Bigger tanks" (the update
+   loop's bound, 0x4206B1); record 30 is never a fish's. */
+
+/* Records an earlier build's animals stay in until "Tank Animals <slot>.dat"
+   is confirmed written (then they are cleared, before the game saves). */
+static unsigned char pending[4][RECORDS];
+static int pending_any = 0;
+
+/* New game (after the stock clear of the fish slots): no animals, and the
+   records past the fish that earlier builds kept animals in are cleared. */
 static void __cdecl clear_animals(char *state) {
-    int t, s;
+    int t, s, first = fish_slots() > OLD_ANIMAL_FIRST ? fish_slots() : OLD_ANIMAL_FIRST;
+    memset(animal_area, 0, sizeof animal_area);
+    memset(pending, 0, sizeof pending);
+    pending_any = 0;
     for (t = 0; t <= 3; ++t) {
-        for (s = ANIMAL_FIRST; s < RECORDS; ++s) {
+        for (s = first; s < RECORDS; ++s) {
             *I(fish(state, t, s), F_LIVE) = 0;
             *I(fish(state, t, s), F_MARK) = 0;
         }
     }
 }
 
-/* After a save loads: leftovers in the animal slots are cleared, and animals
-   an earlier build kept among the fish move to their own slots. */
-static void settle_animals(char *state) {
-    int t, s, to, k;
+/* ------------------------------------------- "Tank Animals <slot>.dat"
+
+   Beside the save, as DS Exclusive Fish's "DS Fish <slot>.dat":
+   "<Documents>\LDW\<exe name>\Fish Tycoon Fix Patcher Data\Tank Animals <slot>.dat".
+   Written whenever the game saves that slot (before the game writes its own
+   file), atomically: a .tmp file, flushed, then moved over the old one,
+   which becomes "Tank Animals <slot>.previous.dat"; then read back and
+   compared.  It names the save it belongs to (its money, money spent,
+   sessions and minutes played as saved), so a save restored from a backup
+   never picks up a later or another save's animals: such a file is set
+   aside, never deleted.  A file from an earlier point of the same save's
+   play (it was played and saved with DS Store Items off since: sessions
+   and minutes only grow) brings its animals back. */
+#define TA_MAGIC 0x41545446u          /* "FTTA" */
+#define TA_VERSION 1u
+#define TA_RECORDS (ANIMAL_TANKS * ANIMAL_SLOTS)
+#define TA_HEADER 10
+#define TA_BYTES (TA_HEADER * 4 + TA_RECORDS * SLOT_STRIDE)
+static unsigned char ta_file[TA_BYTES], ta_check[TA_BYTES];
+
+typedef BOOL (WINAPI *special_folder_fn)(HWND, LPWSTR, int, BOOL);
+
+static void append_number(wchar_t *out, size_t cap, int value) {
+    wchar_t digits[12];
+    int i = 0;
+    unsigned int v = (unsigned int)value;
+    do { digits[i++] = (wchar_t)(L'0' + v % 10); v /= 10; } while (v && i < 11);
+    while (i) {
+        size_t len = wcslen(out);
+        if (len + 1 >= cap) return;
+        out[len] = digits[--i];
+        out[len + 1] = L'\0';
+    }
+}
+
+/* kind: L"" the file, L".previous", L".tmp", or a set-aside name. */
+static int ta_path(int slot, const wchar_t *kind, wchar_t *out, DWORD cap, int make_folder) {
+    wchar_t exe[MAX_PATH];
+    wchar_t *name, *dot;
+    special_folder_fn special;
+    HMODULE shell = GetModuleHandleW(L"shell32.dll");
+    DWORD n = GetModuleFileNameW(NULL, exe, MAX_PATH);
+    if (shell == NULL || n == 0 || n >= MAX_PATH) return 0;
+    special = (special_folder_fn)GetProcAddress(shell, "SHGetSpecialFolderPathW");
+    if (special == NULL || !special(NULL, out, 0x0005 /* CSIDL_PERSONAL */, FALSE)) return 0;
+    name = wcsrchr(exe, L'\\');
+    name = name ? name + 1 : exe;
+    dot = wcsrchr(name, L'.');
+    if (dot) *dot = L'\0';
+    if (wcslen(out) + wcslen(name) + wcslen(kind) + 96 >= cap) return 0;
+    wcscat_s(out, cap, L"\\LDW\\");
+    wcscat_s(out, cap, name);
+    wcscat_s(out, cap, L"\\Fish Tycoon Fix Patcher Data");
+    if (make_folder) CreateDirectoryW(out, NULL);
+    wcscat_s(out, cap, L"\\Tank Animals ");
+    append_number(out, cap, slot);
+    wcscat_s(out, cap, kind);
+    wcscat_s(out, cap, L".dat");
+    return 1;
+}
+
+static int is_game_slot(int slot) {
+    return slot != 0 && slot != 0xB;          /* 0 = settings, 11 = the game's own extra record */
+}
+
+/* The save these animals belong to: its money, money spent, sessions and minutes played. */
+static void fingerprint(char *state, DWORD *out) {
+    out[0] = (DWORD)*I(state, S_MONEY);
+    out[1] = (DWORD)*I(state, S_SPENT);
+    out[2] = (DWORD)*I(state, 0x3C);
+    out[3] = (DWORD)*I(state, 0x44);
+}
+
+static DWORD fnv(const unsigned char *data, int size) {
+    DWORD h = 2166136261u;
+    int i;
+    for (i = 0; i < size; ++i) h = (h ^ data[i]) * 16777619u;
+    return h;
+}
+
+static void ta_build(char *state) {
+    DWORD *h = (DWORD *)ta_file;
+    int t, k;
+    for (t = 0; t < ANIMAL_TANKS; ++t) {
+        for (k = 0; k < ANIMAL_SLOTS; ++k) {
+            memcpy(ta_file + TA_HEADER * 4 + (t * ANIMAL_SLOTS + k) * SLOT_STRIDE, animal(state, t, k), SLOT_STRIDE);
+        }
+    }
+    h[0] = TA_MAGIC;
+    h[1] = TA_VERSION;
+    h[2] = TA_RECORDS;
+    h[3] = SLOT_STRIDE;
+    fingerprint(state, h + 4);
+    h[8] = 0;
+    h[9] = fnv(ta_file + TA_HEADER * 4, TA_RECORDS * SLOT_STRIDE);
+}
+
+/* 1 = the file holds exactly `size` bytes, read into `out`. */
+static int read_all(const wchar_t *path, unsigned char *out, DWORD size) {
+    HANDLE file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    DWORD got = 0, extra = 0;
+    unsigned char probe;
+    int ok;
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    ok = ReadFile(file, out, size, &got, NULL) && got == size && ReadFile(file, &probe, 1, &extra, NULL) && extra == 0;
+    CloseHandle(file);
+    return ok;
+}
+
+/* Writes the animals for this slot; 1 = written and read back the same. */
+static int ta_write(char *state, int slot) {
+    wchar_t path[1024], previous[1024], temp[1024];
+    HANDLE file;
+    DWORD written = 0;
+    int ok;
+    if (!ta_path(slot, L"", path, 1024, 1) || !ta_path(slot, L".previous", previous, 1024, 0)
+        || !ta_path(slot, L".tmp", temp, 1024, 0)) {
+        return 0;
+    }
+    ta_build(state);
+    file = CreateFileW(temp, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    ok = WriteFile(file, ta_file, TA_BYTES, &written, NULL) && written == TA_BYTES && FlushFileBuffers(file);
+    CloseHandle(file);
+    if (!ok) {
+        DeleteFileW(temp);                                     /* our own half-written temp file */
+        return 0;
+    }
+    if (GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES
+        && !MoveFileExW(path, previous, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        return 0;
+    }
+    if (!MoveFileExW(temp, path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) return 0;
+    return read_all(path, ta_check, TA_BYTES) && memcmp(ta_check, ta_file, TA_BYTES) == 0;
+}
+
+/* Keep a file that cannot be used, never delete it: "<name>.<why>-<n>.dat". */
+static void set_aside(int slot, const wchar_t *path, const wchar_t *why) {
+    int n;
+    for (n = 1; n < 100; ++n) {
+        wchar_t kind[64], aside[1024];
+        wcscpy_s(kind, 64, L".");
+        wcscat_s(kind, 64, why);
+        wcscat_s(kind, 64, L"-");
+        append_number(kind, 64, n);
+        if (!ta_path(slot, kind, aside, 1024, 0)) return;
+        if (GetFileAttributesW(aside) != INVALID_FILE_ATTRIBUTES) continue;
+        MoveFileExW(path, aside, MOVEFILE_WRITE_THROUGH);
+        return;
+    }
+}
+
+/* 1 = this file is this save's animals (now in ta_check); 2 = written at an
+   earlier point of this save's play (played and saved since without DS
+   Store Items: sessions and minutes played only grow); 0 = no file;
+   -1 = unreadable or damaged; -2 = another save's, or a later point of this
+   one (an older save restored from a backup). */
+static int ta_read(char *state, const wchar_t *path) {
+    DWORD *h = (DWORD *)ta_check, want[4];
+    if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) return 0;
+    if (!read_all(path, ta_check, TA_BYTES) || h[0] != TA_MAGIC || h[1] != TA_VERSION || h[2] != TA_RECORDS
+        || h[3] != SLOT_STRIDE || h[9] != fnv(ta_check + TA_HEADER * 4, TA_RECORDS * SLOT_STRIDE)) {
+        return -1;
+    }
+    fingerprint(state, want);
+    if (memcmp(h + 4, want, sizeof want) == 0) return 1;
+    return h[6] <= want[2] && h[7] <= want[3] && (h[6] < want[2] || h[7] < want[3]) ? 2 : -2;
+}
+
+static void ta_take(char *state) {
+    int t, k;
+    for (t = 0; t < ANIMAL_TANKS; ++t) {
+        for (k = 0; k < ANIMAL_SLOTS; ++k) {
+            char *rec = animal(state, t, k);
+            memcpy(rec, ta_check + TA_HEADER * 4 + (t * ANIMAL_SLOTS + k) * SLOT_STRIDE, SLOT_STRIDE);
+            if (!is_animal(rec)) memset(rec, 0, SLOT_STRIDE);
+        }
+    }
+}
+
+static void log_line(const char *text);
+static void log_slot(const char *before, int slot, int count, const char *after);
+
+/* Loads this save's animals from its file (or the previous generation's). */
+static void ta_load(char *state, int slot) {
+    wchar_t path[1024], previous[1024];
+    int a, b;
+    if (!ta_path(slot, L"", path, 1024, 0) || !ta_path(slot, L".previous", previous, 1024, 0)) return;
+    a = ta_read(state, path);
+    if (a == 1) { ta_take(state); return; }
+    b = ta_read(state, previous);
+    if (b == 1) { ta_take(state); log_slot("Slot ", slot, -1, ": the animals came from Tank Animals .previous.dat"); return; }
+    if (a == 2 && ta_read(state, path) == 2) {
+        ta_take(state);
+        log_slot("Slot ", slot, -1, ": played and saved without DS Store Items since; its animals are back");
+        return;
+    }
+    if (a == -1) set_aside(slot, path, L"unreadable");
+    if (a == -2) set_aside(slot, path, L"other-save");
+    if (b == -1) set_aside(slot, previous, L"unreadable");
+    if (b == -2) set_aside(slot, previous, L"other-save");
+    if (a < 0 || b < 0) log_slot("Slot ", slot, -1, ": a Tank Animals file did not belong to this save; it was set aside");
+}
+
+/* Clears the records the animals were moved out of (the file is written). */
+static void clear_pending(char *state) {
+    int t, s;
     for (t = 0; t <= 3; ++t) {
-        for (s = ANIMAL_FIRST; s < RECORDS; ++s) {
+        for (s = 0; s < RECORDS; ++s) {
+            if (!pending[t][s]) continue;
+            REMOVE_FISH(state, NULL, t, s);
+            *I(fish(state, t, s), F_MARK) = 0;
+            *I(fish(state, t, s), F_KIND) = 0;
+            pending[t][s] = 0;
+        }
+    }
+    pending_any = 0;
+}
+
+/* After a save loads.  An earlier build kept the animals among the game's
+   fish records (slots 26-30, or very early builds among the fish): they
+   move into this save's animal records and file, and only once the file is
+   written and read back are the game's records cleared.  If it cannot be
+   written they stay in the save as they were, and the next save tries
+   again.  Loading the same save again moves the same animals again and
+   writes the same file.  A save with no animals in its records takes its
+   animals from its file.  Leftovers past the fish in the old animal
+   records are cleared, as before. */
+static void settle_animals(char *state, int slot) {
+    int t, s, moved = 0, first = fish_slots() > OLD_ANIMAL_FIRST ? fish_slots() : OLD_ANIMAL_FIRST;
+    memset(animal_area, 0, sizeof animal_area);
+    memset(pending, 0, sizeof pending);
+    pending_any = 0;
+    for (t = 0; t <= 3; ++t) {
+        for (s = first; s < RECORDS; ++s) {
             char *f = fish(state, t, s);
-            if (*I(f, F_LIVE) != 0 && !is_animal(f)) {
+            if (*I(f, F_LIVE) != 0 && !is_animal(f) && !is_companion(f, *I(f, F_FIN))) {
                 *I(f, F_LIVE) = 0;
                 *I(f, F_MARK) = 0;
             }
         }
     }
     for (t = 0; t <= 3; ++t) {
-        for (s = 0; s < ANIMAL_FIRST; ++s) {
+        for (s = 0; s < RECORDS; ++s) {
             char *f = fish(state, t, s);
-            int fin = *I(f, F_FIN);
+            int fin = *I(f, F_FIN), k, to;
             if (*I(f, F_LIVE) == 0 || *I(f, F_BODY) != BODY_SEAHORSE) continue;
             if (fin != FIN_SEAHORSE && (fin < FIN_PUFFER || fin > FIN_EEL)) continue;
             for (k = 0, to = -1; k < 4 && to < 0; ++k) {
@@ -1203,9 +1889,69 @@ static void settle_animals(char *state) {
                 memcpy(rec, f, SLOT_STRIDE);
                 if (place_animal(state, target, rec) >= 0) to = target;
             }
-            if (to >= 0) REMOVE_FISH(state, NULL, t, s);
+            if (to >= 0) {
+                pending[t][s] = 1;
+                pending_any = 1;
+                ++moved;
+            }
         }
     }
+    if (moved == 0) {
+        ta_load(state, slot);
+        return;
+    }
+    if (ta_write(state, slot)) {
+        clear_pending(state);
+        log_slot("Slot ", slot, moved, " animal(s) moved from the save's fish records into Tank Animals.dat");
+    } else {
+        log_slot("Slot ", slot, moved, " animal(s) found in the save's fish records; Tank Animals.dat could not be "
+                 "written, so they stay in the save until the next save");
+    }
+}
+
+/* Before the game saves a slot: its animals' file; then, once that is
+   written, the records an earlier build's animals were moved out of. */
+static void __cdecl on_store_save(char *state, int slot) {
+    if (state == NULL || !is_game_slot(slot)) return;
+    if (ta_write(state, slot)) {
+        if (pending_any) clear_pending(state);
+    } else {
+        log_slot("Slot ", slot, -1, ": Tank Animals.dat could not be written; the previous one is kept");
+    }
+}
+
+/* The swimming fish are built (0x413D80) and refreshed (0x415460) by a loop
+   over the tank's slots; at its `jl` back to the top this picks the next one:
+   the next fish slot (skipping a record whose animal is waiting to leave it),
+   then each of the tank's animals, then done.  `slot` and `rec` are the
+   loop's own variables (the slot, and its record + 0x4C), already stepped
+   past the slot just done.  1 = go round again. */
+static int __cdecl view_next(char *view, int *slot, char **rec, const unsigned char *bound_at) {
+    char *state = *(char **)(view + 0x5DE4);
+    int tank = *I(state, S_CURRENT_TANK), done = *slot - 1, bound = *bound_at, s, k;
+    if (done >= 0 && done < bound) {
+        for (s = done + 1; s < bound; ++s) {
+            if (!pending[tank & 3][s]) {
+                *rec += (s - (done + 1)) * SLOT_STRIDE;          /* the loop's own pointer, stepped on */
+                *slot = s;
+                return 1;
+            }
+        }
+        k = 0;
+    } else {
+        k = animal_index(state, tank, done);
+        if (k < 0) return 0;
+        ++k;
+    }
+    if (tank < 0 || tank >= ANIMAL_TANKS) return 0;
+    for (; k < ANIMAL_SLOTS; ++k) {
+        char *a = animal(state, tank, k);
+        if (!is_animal(a)) continue;
+        *slot = animal_slot(state, tank, k);
+        *rec = a + F_BODY;
+        return 1;
+    }
+    return 0;
 }
 
 /* After a save loads: every store animal's health and food are full, the eel's
@@ -1214,11 +1960,11 @@ static void settle_animals(char *state) {
    only feeding, 0x4121A3, and one supply item, 0x42125C, raise them), so this
    fills them once. */
 static void fill_animals(char *state) {
-    int t, s, k;
-    for (t = 0; t <= 3; ++t) {
-        for (s = 0; s < RECORDS; ++s) {
-            char *f = fish(state, t, s);
-            if (is_kind(f, s, FIN_PUFFER) || is_kind(f, s, FIN_RAY) || is_kind(f, s, FIN_EEL)) {
+    int t, k;
+    for (t = 0; t < ANIMAL_TANKS; ++t) {
+        for (k = 0; k < ANIMAL_SLOTS; ++k) {
+            char *f = animal(state, t, k);
+            if (is_kind(f, FIN_PUFFER) || is_kind(f, FIN_RAY) || is_kind(f, FIN_EEL)) {
                 *I(f, F_HEALTH) = FULL_METER;
                 *I(f, F_FOOD) = FULL_METER;
             }
@@ -1239,8 +1985,8 @@ typedef int (__fastcall *load_fn)(void *state, void *edx, int slot);
 
 static int __fastcall on_state_load(char *state, void *edx, int slot) {
     int ok = GAME(load_fn, SITE_STATE_LOAD_HOLDS)(state, edx, slot) & 0xFF;
-    if (ok && slot != 0 && slot != 0xB) {
-        settle_animals(state);
+    if (ok && is_game_slot(slot)) {
+        settle_animals(state, slot);
         fill_animals(state);
     }
     return ok;
@@ -1393,6 +2139,53 @@ __declspec(naked) static void stub_egg_confirm(void) {
         jmp k_egg_confirm_no
     eggs:
         jmp k_egg_confirm_yes
+    }
+}
+
+/* 0x420E6F, the chemical switch (esi = the tank scene): items 29-31 (the
+   Radioactive Growth Hormone, the Revival Potion, ClonaFish) run their dose,
+   then the stock Growth Hormone's sparkle loop and tail; any other item goes
+   on to the stock `je 0x42120A` with its flags. */
+static const DWORD k_chem_switch = 0x00420E7Bu, k_gh_sparkle = 0x0042119Au;
+
+__declspec(naked) static void stub_chem_use(void) {
+    __asm {
+        mov ecx, [esi + 0x34]
+        mov eax, [ecx + 0x2F0]
+        cmp eax, RGH_ITEM
+        jb stock
+        cmp eax, CLONA_ITEM
+        ja stock
+        pushad
+        push eax
+        push esi
+        call new_chemical
+        add esp, 8
+        popad
+        jmp k_gh_sparkle
+    stock:
+        sub eax, 2
+        jmp k_chem_switch
+    }
+}
+
+/* Buying a stock chemical over the hormone, the Revival Potion or ClonaFish asks
+   "Replace chemical in slot #3?" too. */
+static const DWORD k_chem_confirm_yes = 0x00428191u, k_chem_confirm_no = 0x004281D6u;
+
+__declspec(naked) static void stub_chem_confirm(void) {
+    __asm {
+        cmp ecx, 0xAA
+        je chemical
+        cmp ecx, SPR_TOOL_RGH
+        je chemical
+        cmp ecx, SPR_TOOL_REVIVAL
+        je chemical
+        cmp ecx, SPR_TOOL_CLONA
+        je chemical
+        jmp k_chem_confirm_no
+    chemical:
+        jmp k_chem_confirm_yes
     }
 }
 
@@ -1576,8 +2369,71 @@ __declspec(naked) static void stub_ornament_drop(void) {
 
 /* ----------------------------------------------------------------- install */
 
+static const DWORD k_build_top = 0x00413DC4u, k_build_after = 0x004140D6u;
+static const DWORD k_refresh_top = 0x00415533u, k_refresh_after = 0x004158A4u;
+static const DWORD k_state_save = 0x00419100u;
+
+/* 0x4140D0, the build loop's `jl` (edi = the view): slot [esp+0x10], record [esp+0x38];
+   its bound is the byte at 0x4140C7 (21, or 30 with Bigger tanks). */
+__declspec(naked) static void stub_build_next(void) {
+    __asm {
+        pushad
+        push 0x004140C7
+        lea eax, [esp + 0x24 + 0x38]
+        push eax
+        lea eax, [esp + 0x28 + 0x10]
+        push eax
+        push edi
+        call view_next
+        add esp, 16
+        test eax, eax
+        popad
+        jz done
+        mov ebp, [esp + 0x38]
+        jmp k_build_top
+    done:
+        jmp k_build_after
+    }
+}
+
+/* 0x41589E, the refresh loop's `jl`: slot [esp+0x14], record [esp+0x10]; bound at 0x415895. */
+__declspec(naked) static void stub_refresh_next(void) {
+    __asm {
+        pushad
+        push 0x00415895
+        lea eax, [esp + 0x24 + 0x10]
+        push eax
+        lea eax, [esp + 0x28 + 0x14]
+        push eax
+        push edi
+        call view_next
+        add esp, 16
+        test eax, eax
+        popad
+        jz done
+        mov ebp, [esp + 0x10]
+        jmp k_refresh_top
+    done:
+        jmp k_refresh_after
+    }
+}
+
+/* The state's Save(slot) (thiscall, 0x419100), from its two calls and its vtable slot:
+   the animals' file first, then the save as before. */
+__declspec(naked) static void stub_state_save(void) {
+    __asm {
+        pushad
+        push dword ptr [esp + 0x24]
+        push ecx
+        call on_store_save
+        add esp, 8
+        popad
+        jmp k_state_save
+    }
+}
+
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 23
+#define TOTAL_SITES 28
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -1585,16 +2441,6 @@ static int host_ok = 0;
 #define JMP(W, NAME, TO) ftfp_site_branch((W), SITE_##NAME##_VA, SITE_##NAME##_LEN, SITE_##NAME##_EXPECT, 0xE9, CODE_ADDR(TO))
 #define CALL(W, NAME, TO) ftfp_site_branch((W), SITE_##NAME##_VA, SITE_##NAME##_LEN, SITE_##NAME##_EXPECT, 0xE8, CODE_ADDR(TO))
 #define SLOT(W, NAME, TO) ftfp_site_imm32((W), SITE_##NAME##_VA, SITE_##NAME##_LEN, SITE_##NAME##_EXPECT, 0, (unsigned int)(UINT_PTR)(TO))
-
-/* The view builders' slot bound (`cmp eax, 21`, or 26 with "Bigger tanks"):
-   31, so the animals in slots 26-30 swim too. */
-static void view_limit(ftfp_site_write *w, unsigned int va, const unsigned char *stock, const unsigned char *bigger) {
-    w->va = va;
-    w->length = 3;
-    w->expect = ftfp_site_holds(va, bigger, 3) ? bigger : stock;
-    memcpy(w->bytes, w->expect, 3);
-    w->bytes[2] = RECORDS;
-}
 
 static const DWORD k_fish_update = 0x0041FE70u;
 static const unsigned char TANK_UPDATE_CALL[5] = { 0xE8, 0xC1, 0xE3, 0xFF, 0xFF };   /* 0x421AAA: call 0x41FE70 */
@@ -1616,6 +2462,8 @@ static int prepare(void) {
     JMP(w++, THOUGHTS, stub_thoughts);
     JMP(w++, EGG_USE, stub_egg_use);
     JMP(w++, EGG_CONFIRM, stub_egg_confirm);
+    JMP(w++, CHEM_USE, stub_chem_use);
+    JMP(w++, CHEM_CONFIRM, stub_chem_confirm);
     JMP(w++, ORNAMENTS, stub_ornaments);
     JMP(w++, FISH_DROP, stub_fish_drop);
     JMP(w++, ORNAMENT_PICK, stub_ornament_pick);
@@ -1629,8 +2477,11 @@ static int prepare(void) {
     JMP(w++, ORNAMENT_DROP, stub_ornament_drop);
     JMP(w++, HELD_NAME, stub_held_name);
     SLOT(w++, STATE_LOAD, on_state_load);
-    view_limit(w++, SITE_VIEW_BUILD_SLOTS_VA, SITE_VIEW_BUILD_SLOTS_EXPECT, SITE_VIEW_BUILD_SLOTS_EXPECT_26);
-    view_limit(w++, SITE_VIEW_REFRESH_SLOTS_VA, SITE_VIEW_REFRESH_SLOTS_EXPECT, SITE_VIEW_REFRESH_SLOTS_EXPECT_26);
+    JMP(w++, VIEW_BUILD_NEXT, stub_build_next);
+    JMP(w++, VIEW_REFRESH_NEXT, stub_refresh_next);
+    CALL(w++, SAVE_CALL_GAME, stub_state_save);
+    CALL(w++, SAVE_CALL_SETTINGS, stub_state_save);
+    SLOT(w++, STATE_SAVE, stub_state_save);
     ftfp_site_branch(w++, 0x00421AAAu, 5, TANK_UPDATE_CALL, 0xE8, CODE_ADDR(stub_tank_update));
     return (int)(w - writes) == TOTAL_SITES;
 }
@@ -1668,6 +2519,54 @@ static int append_hex(char *out, int at, unsigned int value) {
     return at;
 }
 
+static int log_path(wchar_t *path) {
+    DWORD n = GetModuleFileNameW(NULL, path, 1024);
+    wchar_t *slash;
+    if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return 0;
+    slash[1] = L'\0';
+    if (wcslen(path) + 64 >= 1024) return 0;
+    wcscat_s(path, 1024, L"Fish Tycoon Fix Patcher DLLs\\DS Store Items.log");
+    return 1;
+}
+
+/* One more line in the log (what happened to a save's animals). */
+static void log_line(const char *text) {
+    wchar_t path[1024];
+    HANDLE file;
+    DWORD written;
+    if (!log_path(path)) return;
+    file = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) return;
+    WriteFile(file, text, (DWORD)strlen(text), &written, NULL);
+    WriteFile(file, "\r\n", 2, &written, NULL);
+    CloseHandle(file);
+}
+
+static int append_decimal(char *out, int at, int value) {
+    char digits[12];
+    int d = 0;
+    unsigned int v = (unsigned int)value;
+    do { digits[d++] = (char)('0' + v % 10); v /= 10; } while (v && d < 11);
+    while (d && at < 230) out[at++] = digits[--d];
+    return at;
+}
+
+/* "<before><slot>: <count><after>" (no count when it is -1). */
+static void log_slot(const char *before, int slot, int count, const char *after) {
+    char line[240];
+    int at = 0;
+    while (*before && at < 200) line[at++] = *before++;
+    at = append_decimal(line, at, slot);
+    if (count >= 0) {
+        line[at++] = ':';
+        line[at++] = ' ';
+        at = append_decimal(line, at, count);
+    }
+    while (*after && at < 238) line[at++] = *after++;
+    line[at] = '\0';
+    log_line(line);
+}
+
 /* "<game>\Fish Tycoon Fix Patcher DLLs\DS Store Items.log", as DS Fish's log. */
 static void write_install_log(void) {
     wchar_t path[1024];
@@ -1682,7 +2581,7 @@ static void write_install_log(void) {
     wcscat_s(path, 1024, L"Fish Tycoon Fix Patcher DLLs\\DS Store Items.log");
     if (installed) {
         len = append_text(line, len, exotic_any_slot
-                          ? "DS Store: installed (all sites); Exotic Eggs use universal supply slots\r\n"
+                          ? "DS Store: installed (all sites); Exotic Eggs and the store chemicals use universal supply slots\r\n"
                           : "DS Store: installed (all sites)\r\n");
     } else if (!host_ok) {
         len = append_text(line, len, "DS Store: NOT installed; DS Exclusive Fish.dll is not the version this build expects\r\n");
@@ -1701,20 +2600,29 @@ static void write_install_log(void) {
 
 /* With "Universal supply slots": its use trampoline sends items 0-7 to their
    own slot (eggs 5-7 to slot #4) and lets anything else through untouched,
-   at 0x43F593 `jmp 0x43F5DE`.  Exotic Eggs (item 28) join the eggs there, so
-   they work from any of slots 2-4.  Only written when that payload is in the
-   executable; edx holds the item, the eggs branch is 0x43F5AC. */
+   at 0x43F593 `jmp 0x43F5DE`.  Exotic Eggs (item 28) join the eggs there and
+   the Radioactive Growth Hormone, the Revival Potion and ClonaFish (items
+   29-31) the chemicals, so they work from
+   any of slots 2-4.  Only written when that payload is in the executable; edx
+   holds the item, the chemicals branch is 0x43F5A2 and the eggs' 0x43F5AC. */
 static const unsigned char USE_GATE_EXPECT[5] = { 0xE9, 0x46, 0x00, 0x00, 0x00 };
-static const DWORD k_use_eggs = 0x0043F5ACu, k_use_other = 0x0043F5DEu;
+static const DWORD k_use_chemicals = 0x0043F5A2u, k_use_eggs = 0x0043F5ACu, k_use_other = 0x0043F5DEu;
 static ftfp_site_write use_gate[1];
 
 __declspec(naked) static void stub_use_gate(void) {
     __asm {
         cmp edx, EXOTIC_ITEM
-        jne other
-        jmp k_use_eggs
+        je eggs
+        cmp edx, RGH_ITEM
+        jb other
+        cmp edx, CLONA_ITEM
+        jbe chemicals
     other:
         jmp k_use_other
+    eggs:
+        jmp k_use_eggs
+    chemicals:
+        jmp k_use_chemicals
     }
 }
 
@@ -1746,6 +2654,25 @@ int __stdcall FtfpStoreStartup(const ftfp_store_host *host) {
 }
 
 int __stdcall FtfpDsStoreInstalled(void) { return installed; }
+
+/* For "Extra Tanks.dll" (which moves a tank's animals with its block) and
+   "Tank Counts.dll" (which counts them): the 5 animal records of the tank in
+   stock place `tank` (0 Tank 1's place, 1 Tank 2, 2 the Sale Tank), one after
+   the other, ANIMAL_SLOTS * 0x288 bytes; NULL for any other tank or when the
+   DLL is not installed. */
+char *__stdcall FtfpStoreAnimals(char *state, int tank) {
+    if (!installed || state == NULL || tank < 0 || tank >= ANIMAL_TANKS) return NULL;
+    return animal(state, tank, 0);
+}
+
+/* The animal record a swimming entry's (tank, slot) stands for, or NULL when
+   the slot is a fish slot or no animal's. */
+char *__stdcall FtfpStoreAnimalRecord(char *state, int tank, int slot) {
+    int k;
+    if (!installed || state == NULL || tank < 0 || tank >= ANIMAL_TANKS) return NULL;
+    k = animal_index(state, tank, slot);
+    return k >= 0 ? animal(state, tank, k) : NULL;
+}
 
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     (void)reserved;

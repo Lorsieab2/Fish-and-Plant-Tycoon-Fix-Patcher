@@ -134,17 +134,22 @@ class CombinedPatcherTests(unittest.TestCase):
                 "golden_seahorse_repurchase",
                 "bigger_tanks",
                 "maximizable_window",
+                "tank_greenhouse_counts",
+                "optimize_prices",
                 "ds_fish",
                 "ds_store",
                 "time_warp",
                 "free_upgrades",
                 "add_money",
+                "extra_tanks",
+                "multiple_ornaments",
             ],
         )
         self.assertEqual(
             list(combined.patch_settings("plant")),
-            ["fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets", "new_flowers",
-             "plant_upgrades", "sort_seeds", "time_warp", "free_upgrades", "add_money"],
+            ["fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets", "tank_greenhouse_counts", "new_flowers",
+             "plant_upgrades", "sort_seeds", "optimize_prices", "time_warp", "free_upgrades", "add_money",
+             "extra_greenhouses", "extra_nurseries"],
         )
 
     def test_unknown_chemical_text_is_corrected_in_both_languages(self) -> None:
@@ -418,7 +423,8 @@ class SectionLayoutTests(unittest.TestCase):
             # DS Fish, DS Store Items and the Maximizable window patch no
             # manifest bytes: the startup loader recomputes the checksum
             # itself, after every other change.
-            loader_only = {"ds_fish", "ds_store", "time_warp", "free_upgrades", "add_money", "maximizable_window"}
+            loader_only = {"ds_fish", "ds_store", "time_warp", "free_upgrades", "add_money", "maximizable_window",
+                           "optimize_prices", "tank_greenhouse_counts", "multiple_ornaments", "extra_tanks"}
             expected = 0 if not (enabled - loader_only) else 1
             self.assertEqual(
                 len(checksum_patches),

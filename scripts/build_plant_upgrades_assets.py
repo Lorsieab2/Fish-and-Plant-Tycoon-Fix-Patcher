@@ -14,8 +14,15 @@ Writes, under assets/plant_tycoon_upgrades/Images:
   70 x 70: each chemical upright, then pouring) with a 10th row for the
   Radioactive Plant Formula (chemical id 36): the Mutation Liquid bottle (row
   7) made prismatic on its coloured parts only, so the white bottle stays
-  white (the owner's pick), an 11th with the Time Warp clock and a 12th with
-  Add Money's gold coins. The DLL points the chemical sheet record at it.
+  white (the owner's pick), an 11th and 12th with the Revival Potion
+  (chemical 37) and Revita-Seed (chemical 38) from the owner's icons
+  (scripts/build_potion_assets.py: upright, then pouring), a 13th with the
+  Radioactive Plant Formula Bomb (chemical 39): the stock Fertilizer Bomb
+  (row 5) with its white glass turned rainbow and its yellow label white,
+  the cap left grey (the owner's pick), a 14th
+  with the Time Warp clock and a 15th with Add Money's gold coins. A chemical's row is
+  its id - 27 (the game draws frame 2 x id - 54). The DLL points the chemical
+  sheet record at it.
 * upgrades_link.png: the store's "Upgrades" link, two frames side by side
   (normal white, hover yellow), set from the game's own font (PTfontsmall.png
   and its glyph table in the executable) and drawn at 80% of the shelf-sign
@@ -33,6 +40,7 @@ import numpy as np
 from PIL import Image
 
 import build_money_cheat_assets
+import build_potion_assets
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "plant_tycoon_upgrades" / "Images"
@@ -45,6 +53,7 @@ FIRST_LEGENDARY = 96
 CHEM_CELL = 70
 CHEM_ROWS = 9
 MUTATION_ROW = 7
+FERTILIZER_BOMB_ROW = 5        # chemical 32, the stock Fertilizer Bomb
 FONT_TABLE = 0x47A550          # PTfontsmall glyphs: {char, x0, y0, x1, y1} records, ended by a char <= 0
 IMAGE_BASE = 0x400000
 LINK_TEXT = "Upgrades"
@@ -75,6 +84,27 @@ def prismatic(cell: Image.Image, only_coloured: bool = False) -> Image.Image:
     return Image.fromarray((out * 255).round().astype("uint8"), "RGBA")
 
 
+def rainbow_bomb(cell: Image.Image) -> Image.Image:
+    """The Formula Bomb (owner, 2026-10-30): the Fertilizer Bomb's white glass
+    turned rainbow and its yellow label turned white, shading kept. The grey
+    cap above the glass stays as it is."""
+    a = np.asarray(cell.convert("RGBA")).astype(float) / 255
+    out = a.copy()
+    rows = [y for y in range(a.shape[0]) if any(a[y, x, 3] > 0 and colorsys.rgb_to_hsv(*a[y, x, :3])[1] > 0.25
+                                                for x in range(a.shape[1]))]
+    glass_top = min(rows) if rows else 0                   # the cap ends where the label starts
+    for y in range(a.shape[0]):
+        for x in range(a.shape[1]):
+            if a[y, x, 3] == 0:
+                continue
+            h, s, v = colorsys.rgb_to_hsv(*a[y, x, :3])
+            if s > 0.25:                                   # the yellow label: white
+                out[y, x, :3] = (min(1, v * 1.05),) * 3
+            elif y >= glass_top:                           # the white glass: rainbow
+                out[y, x, :3] = colorsys.hsv_to_rgb(((x + y) / 40) % 1, 0.75, v)
+    return Image.fromarray((out * 255).round().astype("uint8"), "RGBA")
+
+
 def legendary_seeds(images: Path) -> Image.Image:
     stock = Image.open(images / "seed_Grid.png").convert("RGBA")
     if stock.size != (SEED_COLUMNS * SEED_CELL, SEED_ROWS * SEED_CELL):
@@ -91,21 +121,29 @@ def formula_bottle(images: Path) -> Image.Image:
     stock = Image.open(images / "Chemicals_Grid.png").convert("RGBA")
     if stock.size != (2 * CHEM_CELL, CHEM_ROWS * CHEM_CELL):
         raise SystemExit(f"Chemicals_Grid.png is {stock.size}, expected the stock 140 x 630")
-    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 3) * CHEM_CELL))
+    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 6) * CHEM_CELL))
     sheet.paste(stock, (0, 0))
     for column in (0, 1):
         box = (column * CHEM_CELL, MUTATION_ROW * CHEM_CELL, (column + 1) * CHEM_CELL, (MUTATION_ROW + 1) * CHEM_CELL)
         sheet.paste(prismatic(stock.crop(box), only_coloured=True), (column * CHEM_CELL, CHEM_ROWS * CHEM_CELL))
-    # Row 10 (frames 20 and 21): the Time Warp clock, the owner's icon, centred in its cell.
+    # Rows 10 and 11 (frames 20-23): chemicals 37 and 38, the Revival Potion and Revita-Seed.
+    for row, source in build_potion_assets.PLANT_ROWS.items():
+        for column, cell in enumerate(build_potion_assets.plant_cells(source, stock)):
+            sheet.paste(cell, (column * CHEM_CELL, row * CHEM_CELL))
+    # Row 12 (frames 24 and 25): the Formula Bomb, the stock Fertilizer Bomb (row 5) with rainbow glass.
+    for column in (0, 1):
+        box = (column * CHEM_CELL, FERTILIZER_BOMB_ROW * CHEM_CELL, (column + 1) * CHEM_CELL, (FERTILIZER_BOMB_ROW + 1) * CHEM_CELL)
+        sheet.paste(rainbow_bomb(stock.crop(box)), (column * CHEM_CELL, (CHEM_ROWS + 3) * CHEM_CELL))
+    # Row 13 (frames 26 and 27): the Time Warp clock, the owner's icon, centred in its cell.
     clock = Image.open(ROOT / "assets" / "time_warp" / "time_warp_icon_source.png").convert("RGBA")
     clock.thumbnail((CHEM_CELL - 6, CHEM_CELL - 6), Image.LANCZOS)
     for column in (0, 1):
-        at = (column * CHEM_CELL + (CHEM_CELL - clock.width) // 2, (CHEM_ROWS + 1) * CHEM_CELL + (CHEM_CELL - clock.height) // 2)
+        at = (column * CHEM_CELL + (CHEM_CELL - clock.width) // 2, (CHEM_ROWS + 4) * CHEM_CELL + (CHEM_CELL - clock.height) // 2)
         sheet.alpha_composite(clock, at)
-    # Row 11 (frames 22 and 23): Add Money, the owner's pile of gold coins, in the clock's 64 px box.
+    # Row 14 (frames 28 and 29): Add Money, the owner's pile of gold coins, in the clock's 64 px box.
     pile = build_money_cheat_assets.coins(build_money_cheat_assets.PLANT_ICON_BOX)
     for column in (0, 1):
-        at = (column * CHEM_CELL + (CHEM_CELL - pile.width) // 2, (CHEM_ROWS + 2) * CHEM_CELL + (CHEM_CELL - pile.height) // 2)
+        at = (column * CHEM_CELL + (CHEM_CELL - pile.width) // 2, (CHEM_ROWS + 5) * CHEM_CELL + (CHEM_CELL - pile.height) // 2)
         sheet.alpha_composite(pile, at)
     return sheet
 

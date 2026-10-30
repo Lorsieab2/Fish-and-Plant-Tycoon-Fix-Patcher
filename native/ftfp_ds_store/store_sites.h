@@ -23,6 +23,12 @@ static const unsigned char SITE_EGG_USE_EXPECT[] = { 0x8B, 0x56, 0x34, 0x8B, 0x8
 #define SITE_EGG_CONFIRM_VA 0x004281AFu
 #define SITE_EGG_CONFIRM_LEN 8
 static const unsigned char SITE_EGG_CONFIRM_EXPECT[] = { 0x81, 0xF9, 0xAC, 0x00, 0x00, 0x00, 0x75, 0x1F };
+#define SITE_CHEM_USE_VA 0x00420E6Fu
+#define SITE_CHEM_USE_LEN 12
+static const unsigned char SITE_CHEM_USE_EXPECT[] = { 0x8B, 0x4E, 0x34, 0x8B, 0x81, 0xF0, 0x02, 0x00, 0x00, 0x83, 0xE8, 0x02 };
+#define SITE_CHEM_CONFIRM_VA 0x00428189u
+#define SITE_CHEM_CONFIRM_LEN 8
+static const unsigned char SITE_CHEM_CONFIRM_EXPECT[] = { 0x81, 0xF9, 0xAA, 0x00, 0x00, 0x00, 0x75, 0x45 };
 #define SITE_ORNAMENTS_VA 0x0041EF1Bu
 #define SITE_ORNAMENTS_LEN 5
 static const unsigned char SITE_ORNAMENTS_EXPECT[] = { 0xE9, 0xE0, 0xE6, 0xFF, 0xFF };
@@ -47,14 +53,18 @@ static const unsigned char SITE_ORNAMENT_DROP_EXPECT[] = { 0x53, 0x55, 0x8B, 0x6
 #define SITE_HELD_NAME_VA 0x0041DA0Au
 #define SITE_HELD_NAME_LEN 5
 static const unsigned char SITE_HELD_NAME_EXPECT[] = { 0xE8, 0x81, 0xB8, 0xFF, 0xFF };
-#define SITE_VIEW_BUILD_SLOTS_VA 0x004140C5u
-#define SITE_VIEW_BUILD_SLOTS_LEN 3
-static const unsigned char SITE_VIEW_BUILD_SLOTS_EXPECT[] = { 0x83, 0xF8, 0x15 };
-static const unsigned char SITE_VIEW_BUILD_SLOTS_EXPECT_26[] = { 0x83, 0xF8, 0x1A };
-#define SITE_VIEW_REFRESH_SLOTS_VA 0x00415893u
-#define SITE_VIEW_REFRESH_SLOTS_LEN 3
-static const unsigned char SITE_VIEW_REFRESH_SLOTS_EXPECT[] = { 0x83, 0xF8, 0x15 };
-static const unsigned char SITE_VIEW_REFRESH_SLOTS_EXPECT_26[] = { 0x83, 0xF8, 0x1A };
+#define SITE_VIEW_BUILD_NEXT_VA 0x004140D0u
+#define SITE_VIEW_BUILD_NEXT_LEN 6
+static const unsigned char SITE_VIEW_BUILD_NEXT_EXPECT[] = { 0x0F, 0x8C, 0xEE, 0xFC, 0xFF, 0xFF };
+#define SITE_VIEW_REFRESH_NEXT_VA 0x0041589Eu
+#define SITE_VIEW_REFRESH_NEXT_LEN 6
+static const unsigned char SITE_VIEW_REFRESH_NEXT_EXPECT[] = { 0x0F, 0x8C, 0x8F, 0xFC, 0xFF, 0xFF };
+#define SITE_SAVE_CALL_GAME_VA 0x0041A663u
+#define SITE_SAVE_CALL_GAME_LEN 5
+static const unsigned char SITE_SAVE_CALL_GAME_EXPECT[] = { 0xE8, 0x98, 0xEA, 0xFF, 0xFF };
+#define SITE_SAVE_CALL_SETTINGS_VA 0x0041A66Bu
+#define SITE_SAVE_CALL_SETTINGS_LEN 5
+static const unsigned char SITE_SAVE_CALL_SETTINGS_EXPECT[] = { 0xE8, 0x90, 0xEA, 0xFF, 0xFF };
 #define SITE_VT_MOUSE_VA 0x0044C298u
 #define SITE_VT_MOUSE_LEN 4
 static const unsigned char SITE_VT_MOUSE_EXPECT[] = { 0x80, 0x79, 0x42, 0x00 };
@@ -75,5 +85,9 @@ static const unsigned char SITE_VT_ACTIVATE_EXPECT[] = { 0x60, 0x79, 0x42, 0x00 
 #define SITE_STATE_LOAD_LEN 4
 static const unsigned char SITE_STATE_LOAD_EXPECT[] = { 0x70, 0xAE, 0x41, 0x00 };
 #define SITE_STATE_LOAD_HOLDS 0x0041AE70u
+#define SITE_STATE_SAVE_VA 0x004424D4u
+#define SITE_STATE_SAVE_LEN 4
+static const unsigned char SITE_STATE_SAVE_EXPECT[] = { 0x00, 0x91, 0x41, 0x00 };
+#define SITE_STATE_SAVE_HOLDS 0x00419100u
 
 #endif

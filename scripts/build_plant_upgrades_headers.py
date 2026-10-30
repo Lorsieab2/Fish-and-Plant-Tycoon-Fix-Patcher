@@ -58,7 +58,7 @@ SITES = [
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).
 IMMEDIATES = [
-    ("chem_picture_bound", 0x4308D1, "cmp eax, 0x24", 0x24, 0x25),     # the dialog draws chemical 36's bottle
+    ("chem_picture_bound", 0x4308D1, "cmp eax, 0x24", 0x24, 0x28),     # the dialog draws chemicals 36-39
 ]
 
 # Data in the sprite-sheet table (.data): (name, va, stock bytes).
