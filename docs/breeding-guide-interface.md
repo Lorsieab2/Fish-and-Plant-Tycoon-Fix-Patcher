@@ -43,8 +43,10 @@ class Model:
     def children(self, a: tuple[int, int], b: tuple[int, int], effects: str) -> list[tuple[tuple[int, int], float]]:
         """Every child two parents can give, with its probability (sums to 1), by the game's rule;
         `effects` "none" or "max" (magic fish/plants, chemicals that change breeding)."""
-    def ways_to_breed(self, key: tuple[int, int], effects: str) -> list[tuple[tuple[int, int], tuple[int, int], float]]:
-        """Parent pairs that can give `key`, best odds first (bounded, e.g. the top 20)."""
+    def ways_to_breed(self, key: tuple[int, int], effects: str, limit: int = 20,
+                      allowed: set[tuple[int, int]] | None = None) -> list[tuple[tuple[int, int], tuple[int, int], float]]:
+        """Parent pairs that can give `key`, best odds first, cut to `limit`. With `allowed`, only
+        parents in it are used, filtered before ranking and cutting (the spoiler-free view)."""
     def plan(self, have: list[tuple[int, int]], want: tuple[int, int], effects: str) -> list[dict]:
         """The shortest breeding chain from the species in `have` to `want`: steps of
         {parents: (a, b), child: key, odds: float}; [] when impossible."""

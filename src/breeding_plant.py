@@ -377,13 +377,16 @@ class PlantModel:
         """One Mutation Liquid dose on a plant of `key`: each result with its chance."""
         return mutation_steps(self._check(key), self.extras)
 
-    def ways_to_breed(self, key, effects: str = "none", limit: int = 20) -> list[tuple[tuple[int, int], tuple[int, int], float]]:
+    def ways_to_breed(self, key, effects: str = "none", limit: int = 20,
+                      allowed=None) -> list[tuple[tuple[int, int], tuple[int, int], float]]:
         """Parent pairs whose pollination gives `key`, best odds first, then the cheapest parents
-        to buy from the shop; pairs that include `key` itself are left out."""
+        to buy from the shop; pairs that include `key` itself are left out. With `allowed`, only
+        parents in it are used, before the list is ranked and cut to `limit`."""
         key = self._check(key)
+        keys = self._keys if allowed is None else [k for k in self._keys if k in allowed]
         found = []
-        for i, a in enumerate(self._keys):
-            for b in self._keys[i:]:
+        for i, a in enumerate(keys):
+            for b in keys[i:]:
                 if key in (a, b):
                     continue
                 for child, odds in self.children(a, b):

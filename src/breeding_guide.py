@@ -377,12 +377,18 @@ class View:
         title = "All Species" if self.spoilers else "Discovered Species"
         return Sheet(title, columns, rows, kinds=kinds, tags=tags, keys=keys, details=details, message=message)
 
+    def best_parents(self, key, effects: str = "none", limit: int = 20):
+        """The best parent pairs for a species that are spoiler-free to show: the model leaves
+        out the other parents before it ranks and cuts the list, so a revealed pair is never
+        pushed out by hidden ones."""
+        allowed = None if self.spoilers else {tuple(s.key) for s in self.all_species if self.revealed(s.key)}
+        return self.model.ways_to_breed(tuple(key), effects, limit=limit, allowed=allowed)
+
     def species_details(self, s, p0, p1) -> str:
         lines = [f"{s.name}: {s.parts[0].name} {s.parts[0].kind}, {s.parts[1].name} {s.parts[1].kind}; "
                  f"{s.rarity}, base value {s.value}."]
         labels = getattr(self.model, "parent_labels", ("Parent 1", "Parent 2"))
-        ways = self.model.ways_to_breed(s.key, "none")
-        shown = [(m, f, p) for m, f, p in ways if self.revealed(m) and self.revealed(f)]
+        shown = self.best_parents(s.key)
         if shown:
             lines.append(f"Best parents ({labels[0].split(':')[0]} x {labels[1].split(':')[0]}), 0 effects:")
             lines.extend(f"  {self.name(m)} x {self.name(f)}: {100 * p:.2f}%" for m, f, p in shown[:10])

@@ -472,7 +472,9 @@ class FishModel:
                     return True
         return False
 
-    def ways_to_breed(self, key: tuple[int, int], effects: str, limit: int = 20):
+    def ways_to_breed(self, key: tuple[int, int], effects: str, limit: int = 20, allowed=None):
+        """Parent pairs (mother, father, odds) that can give `key`, best odds first, cut to
+        `limit`. With `allowed`, only parents in it are used, before ranking and cutting."""
         tb, tf = key
         body_pairs = [(x, y) for x in self.genes for y in self.genes if self._could_give(x, y, tb, effects)]
         fin_pairs = [(x, y) for x in self.genes for y in self.genes if self._could_give(x, y, tf, effects)]
@@ -480,6 +482,8 @@ class FishModel:
         for mb, fb in body_pairs:
             for mf, ff in fin_pairs:
                 mother, father = (mb, mf), (fb, ff)
+                if allowed is not None and (mother not in allowed or father not in allowed):
+                    continue
                 odds = dict(self.children(mother, father, effects)).get((tb, tf), 0.0)
                 if odds <= 0:
                     continue

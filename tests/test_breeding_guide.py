@@ -60,6 +60,34 @@ class SheetTests(unittest.TestCase):
         self.assertEqual(calc.rows[0][0], "Hornet Arrowfish" if view.revealed((2, 2)) else bg.UNDISCOVERED)
         self.assertEqual(calc.rows[0][3], 100.0)
 
+    def test_revealed_parents_are_filtered_before_the_top_20(self) -> None:
+        """Codex's repro: with Pink Fatfish (4,4), Golden Goldbulb (10,10) and Canary Fire-Arrow
+        (7,7) discovered, the Canary's suggestions include Pink Fatfish x Golden Goldbulb (100%),
+        though it is not among the top 20 of every pair."""
+        unfiltered = self.model.ways_to_breed((7, 7), "none")
+        self.assertNotIn(frozenset({(4, 4), (10, 10)}), [frozenset({m, f}) for m, f, _p in unfiltered])
+        view = bg.View(self.model, {(4, 4), (10, 10), (7, 7)}, spoilers=False)
+        best = view.best_parents((7, 7))
+        self.assertIn(frozenset({(4, 4), (10, 10)}), [frozenset({m, f}) for m, f, _p in best])
+        self.assertTrue(all(view.revealed(m) and view.revealed(f) for m, f, _p in best))
+        self.assertEqual(dict(((frozenset({m, f}), p) for m, f, p in best))[frozenset({(4, 4), (10, 10)})], 1.0)
+        detail = view.species_sheet().details[view.species_sheet().keys.index((7, 7))]()
+        self.assertTrue("Pink Fatfish x Golden Goldbulb" in detail or "Golden Goldbulb x Pink Fatfish" in detail)
+
+    def test_revealed_parents_are_filtered_before_the_top_20_plant(self) -> None:
+        import breeding_plant
+        model = breeding_plant.load(None, extras=False)
+        for target in model.species():
+            every = model.ways_to_breed(target.key, "none", limit=10_000)
+            if len(every) > 20:
+                break
+        a, b, odds = every[-1]                                   # far below the top 20
+        self.assertNotIn((a, b, odds), model.ways_to_breed(target.key, "none"))
+        view = bg.View(model, {a, b, target.key}, spoilers=False)
+        best = view.best_parents(target.key)
+        self.assertIn((a, b), [(m, f) for m, f, _p in best])
+        self.assertTrue(all(view.revealed(m) and view.revealed(f) for m, f, _p in best))
+
     def test_spoilers_on_shows_everything(self) -> None:
         view = bg.View(self.model, set(DISCOVERED), spoilers=True)
         species = view.species_sheet()
