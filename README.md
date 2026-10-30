@@ -48,24 +48,30 @@ never needs the internet.
   21. The game's save already has room for them, so saves keep their layout.
   Sell or move fish down to 21 per tank before turning it off again. Design:
   [docs/fish-tycoon-tank-expansion.md](docs/fish-tycoon-tank-expansion.md).
-- 3 extra tanks (off by default). Tank Three, Tank Four and Tank Five: three
-  more full tanks for breeding, exactly like Tank One and Tank Two. Fish live,
-  age, eat, get sick, breed and give birth there; food, medicines,
-  chemicals, eggs, ornaments, research, the plants, the magic fish, the
-  Golden Seahorse, the DS store animals and Bigger tanks all work as in a
-  stock tank, because the game's own code runs them. Two small arrows left of
-  the Tank One button switch the tank buttons to the three new tanks and back.
-  Drag a fish, a DS store animal or an ornament onto a button to move it to
-  that tank, or onto an arrow to move it to the previous or next tank (Tank
-  One, Tank Two, the Sale Tank, Tank Three, Four, Five, and round again); a
-  full tank refuses it as in the stock game. The extra tanks never sell: only
-  the Sale Tank does, with the stock game's limits (its size follows the tank
-  size setting). It runs as a companion DLL the game loads at start
+- 3 extra tanks (off by default; **EXPERIMENTAL - USE AT OWN RISK**; **needs
+  DS Store Items, which it turns on**). Tank Three, Tank Four and Tank Five:
+  three more full tanks for breeding, exactly like Tank One and Tank Two. Buy
+  them on the Supplies store's Upgrades screen: the Extra Tank item (the
+  game's own Second Tank picture), $10,000 each ($0 with Free upgrades), opens
+  the next tank each time, Tank Three first. Until then a tank's button is
+  greyed out and says "You don't own this tank yet!". Tank Three looks like
+  Tank One, Tank Four like Tank Two and Tank Five like the Sale Tank, without
+  its For Sale sign. Fish live, age, eat, get sick, breed and give birth
+  there; food, medicines, chemicals, eggs, ornaments, research, the plants,
+  the magic fish, the Golden Seahorse, the DS store animals and Bigger tanks
+  all work as in a stock tank, because the game's own code runs them. Two
+  small arrows left of the Tank One button switch the tank buttons to the
+  three new tanks and back. Drag a fish, a DS store animal or an ornament
+  onto a button to move it to that tank, or onto an arrow to move it to the
+  previous or next tank (Tank One, Tank Two, the Sale Tank, then the extra
+  tanks you own, and round again); a full tank refuses it as in the stock
+  game. The extra tanks do not sell: only the Sale Tank does, with the stock
+  game's limits. It runs as a companion DLL the game loads at start
   (`Fish Tycoon Fix Patcher DLLs\Extra Tanks.dll`), in the "Modded Upgrades"
   copy; the saves keep their stock layout and each save slot keeps its extra
-  tanks in `Fish Tycoon Fix Patcher Data\Extra Tanks <slot>.dat` beside the
-  saves. Empty the three tanks before turning it off again. Design and the
-  emulated checks:
+  tanks, and how many are bought, in `Fish Tycoon Fix Patcher Data\Extra
+  Tanks <slot>.dat` beside the saves; a new game starts with none. Empty the
+  three tanks before turning it off again. Design and the emulated checks:
   [docs/fish-tycoon-extra-tanks-design.md](docs/fish-tycoon-extra-tanks-design.md).
   Pictures: [docs/images/extra-tanks-extra-page.png](docs/images/extra-tanks-extra-page.png).
 - Maximizable window (on by default). In windowed mode the window's Maximize

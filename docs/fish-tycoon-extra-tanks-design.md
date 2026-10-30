@@ -10,6 +10,38 @@ vanilla executable (`tests/test_extra_tanks.py`); not yet run in the game.
 
 ## What the player gets
 
+**EXPERIMENTAL - USE AT OWN RISK** (the setting's label). The setting needs
+DS Store Items, which it turns on: the tanks are sold on its Upgrades screen.
+
+**Buying.** The Extra Tank item on the Upgrades screen (two net cells,
+bottom right; the stock store's Second Tank picture, ITEM_TANK2.png, sprite
+157) costs $10,000 ($0 with Free upgrades), asks the game's "Buy this item?",
+and opens the next of Tank Three, Four and Five; once all three are bought it
+shows "This is in your inventory." and "You already own this!". DS Store
+Items asks `Extra Tanks.dll` through two exports, `FtfpExtraTanksOwned` and
+`FtfpExtraTanksBuy`; without that DLL the item is hidden. Until a tank is
+bought its button is greyed (a fourth frame of its button art), a click or a
+drop on it shows "You don't own this tank yet!" for 2 seconds in the hint
+font at the mouse, as the game's hints are drawn (0x417E90), the fish swims
+back, and the arrows skip it. The number bought is in the sidecar; a new game
+resets it to none.
+
+**Art.** Tank Three looks like Tank One, Tank Four like Tank Two and Tank
+Five like the Sale Tank: the game draws a tank's background (0x41D140:
+MAINTANK1/2/3_BG_PNG, sprites 27, 26, 25) and its own wood and plants
+(0x41D340) by the tank number, so the DLL lends the number for those two calls
+(and holds back the Sale Tank's one-time tutorial tip 0x1A). The Sale Tank's
+"For Sale!" sign is not part of its background: it is `forsale.png` (sprite
+4) drawn at (620, 360), with `TANK_OBJECT_SHADOW.png` (sprite 3) under it at
+(580, 415), the last two draws of the Sale Tank's decorations (0x41D435,
+0x41D44F). Both are skipped while an extra tank is drawn, so Tank Five has no
+sign.
+
+Mockups of the proposed selling toggle (not built, see "Selling from the
+extra tanks"): `docs/images/extra-tank-3-selling-off.png`,
+`extra-tank-3-selling-on.png`, and the same for 4 and 5
+(`scripts/render_extra_tanks_mockups.py`).
+
 Tank Three, Tank Four and Tank Five: three more tanks exactly like Tank One
 and Tank Two. Fish live, age, eat, get sick, breed and give birth in them;
 food, medicines, chemicals, eggs, ornaments, research, the plants, the
@@ -227,12 +259,8 @@ the DLL rebuilt from source:
 
 ## Differences from a stock tank
 
-* **Background:** an extra tank on screen is drawn with Tank One's
-  background, maintank1_bg (the background is chosen by tank number,
-  `0x41D140`: sprite 0x1B Tank One, 0x19 Tank Two, 0x1A the Sale Tank). No
-  extra tank uses the Sale Tank's art: Tank Five's button is the Sale Tank
-  button's shell relabelled, and no extra tank shows a "For Sale" sign, so
-  there is no selling toggle; the extra tanks never sell.
+* **Selling:** the extra tanks do not sell (see "Selling from the extra
+  tanks").
 * **DS Store Items, one of each:** with "Buy Multiple Golden Seahorses" off,
   DS Store Items lets you buy a store animal again when it finds none in tanks
   0-3; an animal kept in an extra tank (not on screen) is not seen there. The
@@ -242,6 +270,37 @@ the DLL rebuilt from source:
   extra on screen during the tutorial's step 13 it can pick the extra's fish.
 * **Other patcher branches** that count fish per tank from the stock blocks
   (an in-game tank count) see an extra tank only while it is on screen.
+
+## Selling from the extra tanks (not built)
+
+The owner asked for a "For sale: Off/On" toggle on Tanks 3-5 that puts the
+sign in and sells their fish exactly like the Sale Tank. The sign part is
+simple (`forsale.png` and its shadow at the Sale Tank's places, as in the
+mockups). The selling part could not be made identical to stock in this
+change, so it is not shipped:
+
+* The game's sale code reads the Sale Tank by fixed addresses, not by a tank
+  number: the per-second sale roll 0x424240 walks `state + 0xA768 + slot *
+  0x288` (tank 2), and the sale screen 0x423800, the sale scene's opening
+  0x423E00 (adults counted, the fish pictures), the thought bubbles 0x413530
+  and the sale itself (0x424010, 0x4236D0) do the same.
+* The roll could be run once per selling tank each second, with that tank
+  lent the Sale Tank's place (the game's own roll on each, the 5-second pause
+  after a sale shared). But the sale scene builds its picture of the tank's
+  fish, its "fish for sale" count and the customers' choices from tank 2 when
+  it opens, and the sale removes a fish by its slot in tank 2; a fish sold from
+  a lent tank would leave that picture out of step with the fish. Making the
+  scene show and sell from several tanks means rebuilding those parts, which
+  is a second implementation of the stock sale, not the stock one.
+
+Options for the owner:
+1. Keep the extra tanks non-selling (built): move fish to the Sale Tank by
+   its button or the arrows to sell them.
+2. A toggle that makes one extra tank the selling tank instead of the Sale
+   Tank (swapped into tank 2's place while selling): stock code, stock limits,
+   one selling tank at a time.
+3. Several selling tanks at once, with the sale scene's picture and count
+   rebuilt over all of them: needs its own design and live testing.
 
 ## Live checks still needed
 

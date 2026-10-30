@@ -184,8 +184,14 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Fish Tycoon
 
-- **3 extra tanks**, a new setting, off by default, in the "Fish Tycoon -
-  Modded Upgrades" copy. Tank Three, Tank Four and Tank Five are full tanks
+- **3 extra tanks**, a new setting, off by default, EXPERIMENTAL - USE AT OWN
+  RISK, in the "Fish Tycoon - Modded Upgrades" copy. It needs DS Store Items
+  (and turns it on): the tanks are bought on its Upgrades screen, the Extra
+  Tank item, $10,000 each ($0 with Free upgrades), Tank Three, then Four,
+  then Five; until then a tank's button is greyed out and refuses ("You
+  don't own this tank yet!"), and the arrows skip it. Tank Three looks like
+  Tank One, Tank Four like Tank Two, Tank Five like the Sale Tank without
+  its For Sale sign (the game's own background and decoration draws). Tank Three, Tank Four and Tank Five are full tanks
   like Tank One and Tank Two, for breeding: fish live, age, eat, get sick,
   breed and give birth in them, and food, medicines, chemicals, eggs,
   ornaments, research, the plants, the magic fish, the Golden Seahorse, the

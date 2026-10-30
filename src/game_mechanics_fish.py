@@ -975,11 +975,20 @@ EXTRA_TANKS = (
         label="E",
     ),
     Fact(
+        "How to get them: on the Supplies store's Upgrades screen (DS Store Items), the Extra Tank "
+        "item, $10,000 each ($0 with Free upgrades), bought one after the other: Tank Three, then Four, "
+        "then Five. Until then a tank's button is greyed out, a click or a drop on it says \"You don't "
+        "own this tank yet!\" (and the fish swims back), and the arrows skip it. A new game owns none. "
+        "Tank Three looks like Tank One, Tank Four like Tank Two and Tank Five like the Sale Tank without "
+        "its For Sale sign (the game's own background and decorations, 0x41D140 and 0x41D340).",
+        label="E",
+    ),
+    Fact(
         "How to reach them: either of the two small arrows left of the Tank One button switches the three "
         "tank buttons to Tank Three, Tank Four and Tank Five, and back. Click a button to look at that tank. "
         "Drag a fish, animal or ornament onto a button to move it there, or onto the left or right arrow to "
         "move it to the previous or next tank (Tank One, Tank Two, the Sale Tank, Tank Three, Four, Five, "
-        "and round again): into the first free place, up to the tank's size (21 fish, or more with the "
+        "and round again, skipping a tank not bought): into the first free place, up to the tank's size (21 fish, or more with the "
         "tank size setting; six ornaments), by the game's own code, and \"The tank is full!\" when there "
         "is none, as on the stock buttons.",
         label="E",
@@ -1006,7 +1015,7 @@ EXTRA_TANKS = (
         "The tank you look at is put in Tank One's place while you look at it (Tank One waits in the "
         "patcher), so everything you use acts on it exactly as on a stock tank: food (the isolation fish "
         "fed too), the Ick and Fungal Treatments, Vitamins, Growth Hormone, the Unknown Chemical, eggs, "
-        "ornaments and the trash. It is drawn with Tank One's background.",
+        "ornaments and the trash.",
         label="E",
     ),
     Fact(
@@ -1037,7 +1046,7 @@ EXTRA_TANKS = (
         label="E",
     ),
     Fact(
-        "Not the same as a stock tank: the background (always Tank One's); with Buy Multiple Golden "
+        "Not the same as a stock tank: with Buy Multiple Golden "
         "Seahorses off, DS Store Items does not see a store animal kept in an extra tank you are not "
         "looking at, so it can be bought again; the tutorial's sick-fish step can pick an extra tank's "
         "fish while you look at it.",

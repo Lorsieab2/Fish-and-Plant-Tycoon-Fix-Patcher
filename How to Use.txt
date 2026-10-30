@@ -67,10 +67,14 @@ Fish Tycoon options:
   Moray Eel and Exotic Fish Eggs. The animals never take a fish's place.
   Trash the animals and let the eel out of
   its rock before turning it off again.)
-- 3 extra tanks (off by default; Tank Three, Tank Four and Tank Five,
-  full tanks like Tank One and Tank Two. The two small arrows left of the
-  Tank One button switch the tank buttons to them and back. Empty the
-  three tanks before turning it off again.)
+- 3 extra tanks (off by default; EXPERIMENTAL - USE AT OWN RISK; needs DS
+  Store Items, which it turns on. Tank Three, Tank Four and Tank Five, full
+  tanks like Tank One and Tank Two, bought on the store's Upgrades screen:
+  the Extra Tank item, $10,000 each ($0 with Free upgrades), one after the
+  other. Tank Three looks like Tank One, Tank Four like Tank Two and Tank
+  Five like the Sale Tank without its For Sale sign. The two small arrows
+  left of the Tank One button switch the tank buttons to them and back.
+  Empty the three tanks before turning it off again.)
 - Time Warp (off by default; a $500 clock on the store's Upgrades screen:
   type 1-72 hours in a Windows popup and the game plays them as time away)
 - Free upgrades (off by default; turns on the store's Upgrades screen:
@@ -87,8 +91,9 @@ Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
   inside it when it is home), and Multiple ornaments' extra copies.
 - How: pick it up and drop it on a tank's button, or on an arrow: the left
   arrow is the previous tank and the right arrow the next one, in the order
-  Tank One, Tank Two, Sale Tank, Tank Three, Tank Four, Tank Five, and
-  round again. Click an arrow to see the other three buttons.
+  Tank One, Tank Two, Sale Tank, then the extra tanks you have bought, and
+  round again. Click an arrow to see the other three buttons. A tank not
+  bought yet is greyed out: "You don't own this tank yet!".
 - A full tank: "The tank is full!" and the fish swims back (or the
   ornament stays). Tank Two not bought yet: "You don't own a second tank
   yet!". Exactly as on the game's own buttons.
