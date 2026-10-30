@@ -210,13 +210,26 @@ PLANT_COUNTS = replace(
                      "holds the stock function, or writes nothing; native/ftfp_greenhouse_counts/"
                      "ftfp_greenhouse_counts.c describes it.",
 )
+# With the extra greenhouses or the extra nurseries on, the loader loads that
+# DLL (both settings' DLL), which starts "Greenhouse Counts.dll", else "Unused
+# Flowers.dll", else "Sort Seeds.dll" first and then wraps what they installed.
+PLANT_GREENHOUSES = replace(
+    PLANT, dll_name="Extra Greenhouses.dll",
+    what_it_installs="That starts the other companion DLLs beside it, then checks the ten places in the game's "
+                     "code and the 19 screen-table slots it changes and writes all of them or none; "
+                     "docs/plant-tycoon-extra-greenhouses-design.md lists them.",
+)
 
 
 def plant_profile(enabled: set[str]) -> LoaderProfile:
-    """The DLLs Plant Tycoon's loader loads for these settings: the counts first (they load Unused
-    Flowers, else Sort Seeds, themselves), then the Optimize Prices button."""
+    """The DLLs Plant Tycoon's loader loads for these settings. Extra Greenhouses goes first (it starts
+    the counts, Unused Flowers or Sort Seeds itself, then chains the greenhouse slot the counts wrap);
+    without it the counts go first (they load Unused Flowers, else Sort Seeds, themselves); the Optimize
+    Prices button is loaded last."""
     profiles: list[LoaderProfile] = []
-    if COUNTS_SETTING in enabled:
+    if "extra_greenhouses" in enabled or "extra_nurseries" in enabled:
+        profiles.append(PLANT_GREENHOUSES)
+    elif COUNTS_SETTING in enabled:
         profiles.append(PLANT_COUNTS)
     elif ("new_flowers" in enabled or "sort_seeds" in enabled or OPTIMIZE_PRICES_SETTING not in enabled):
         profiles.append(PLANT if "new_flowers" in enabled else PLANT_SORT)

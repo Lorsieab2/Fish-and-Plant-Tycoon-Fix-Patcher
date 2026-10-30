@@ -365,6 +365,57 @@ never needs the internet.
   Unused Flowers' or Sort Seeds' DLL when those are on). How it works:
   `native/ftfp_greenhouse_counts/ftfp_greenhouse_counts.c`. Picture:
   [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png).
+- 5 extra greenhouses (**EXPERIMENTAL - USE AT OWN RISK**; off by default;
+  **needs Add new store upgrades and items, which it turns on**; in the
+  "Modded Upgrades" copy). Every greenhouse screen is named at the top in the
+  game's font ("Greenhouse 1" is the stock one). Up to six
+  greenhouses of 15 pots, 90 pots in all. An Extra Greenhouse item on the
+  store's Upgrades screen (the tool shelf, beside the Fourth to Sixth Seed Box,
+  pictured with the game's own greenhouse) sells Greenhouses 2-6 in order,
+  $10,000 each ($0 with Free upgrades), and gets a tick once all five are
+  yours; a new game starts with none. Once you own one, the game's own gold
+  arrows (as on the Seed Storage screen) at the top of the greenhouse screen
+  page through Greenhouse 1, the stock one, and the ones you own, and the
+  screen says "Greenhouse 2 of 3". Greenhouses you have not bought cannot be
+  reached, and no plant can be moved into them. Each greenhouse is the stock screen with the
+  game's own code running on its pots: plants grow, need water and care,
+  flower, take pollen, give seeds, get pests and die exactly as in Greenhouse
+  1, also while you look at another greenhouse, while you are away and through
+  the Time Warp, and every chemical, tool, upgrade and magic plant works in
+  each. Drag a plant onto an arrow to move it to the same pot place in the
+  greenhouse that arrow leads to (or its first empty pot if that place is
+  taken); pollen and seeds taken from a plant are carried across, and held
+  tools, chemicals and tray seeds stay in your hand. The nursery
+  shows the plants for sale from every greenhouse in its stock 15 spots, and
+  without 5 extra nurseries at most 15 plants can be for sale at once.
+  Greenhouses 2-6 are kept per slot in
+  "Plant Tycoon Fix Patcher Data\Extra Greenhouses <slot>.dat" beside the
+  saves (the save itself keeps its stock layout). **Empty Greenhouses 2-6
+  before switching it off.**
+  - Pictures: [docs/images/extra-greenhouses-switch.png](docs/images/extra-greenhouses-switch.png),
+    [docs/images/extra-greenhouses-store.png](docs/images/extra-greenhouses-store.png).
+  - Design:
+    [docs/plant-tycoon-extra-greenhouses-design.md](docs/plant-tycoon-extra-greenhouses-design.md).
+- 5 extra nurseries (**EXPERIMENTAL - USE AT OWN RISK**; off by default;
+  **needs Add new store upgrades and items, which it turns on**; in the
+  "Modded Upgrades" copy). Without any, the game's own limit holds: at most 15
+  plants are for sale at once. An Extra Nursery item on the Upgrades screen's
+  Nursery shelf (the game's own golden pot) sells Nurseries 2-6 in order,
+  $10,000 each ($0 with Free upgrades); each one bought adds 15 spots (90 with
+  all five). Each nursery is the stock nursery screen, run by the game's own
+  code, with its own 15 spots. While you are in the nursery, every nursery
+  you own sells at once through the game's own buy roll (only the one on
+  screen has visitors walking about; away from the nursery nothing sells, as
+  in the stock game). Every nursery screen is named at
+  the top ("Nursery 1" is the stock one), and gold arrows there page through
+  the ones you own. Plants are tagged for sale in the greenhouse as in the
+  stock game and fill the nurseries in order: Nursery 1 first (a Greenhouse 1
+  plant at its own pot's spot), then Nursery 2, and so on. The nurseries
+  bought are kept with the extra greenhouses in "Extra Greenhouses
+  <slot>.dat". **Take plants off sale until 15 or fewer are for sale before
+  switching it off.**
+  - Pictures: Nursery 2 [docs/images/extra-nurseries-switch.png](docs/images/extra-nurseries-switch.png)
+    beside the stock Nursery 1 [docs/images/extra-nurseries-nursery-1.png](docs/images/extra-nurseries-nursery-1.png).
 
 ## Use
 

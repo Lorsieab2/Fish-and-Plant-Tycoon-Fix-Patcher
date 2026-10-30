@@ -142,6 +142,51 @@ Plant Tycoon options:
 - Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
   screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
   and adds $1,000 each time)
+- 5 extra greenhouses (EXPERIMENTAL - USE AT OWN RISK. Off by default;
+  turns on the store's Upgrades screen. Buy Greenhouses 2-6 there, in order,
+  $10,000 each ($0 with Free upgrades): the Extra Greenhouse item on the tool
+  shelf. Every greenhouse screen is named at the top ("Greenhouse 1" is the
+  stock one), and the gold arrows there page through the ones you own. Every
+  greenhouse works like the stock one and keeps growing while you look at
+  another. Empty Greenhouses 2-6 before turning it off.)
+- 5 extra nurseries (EXPERIMENTAL - USE AT OWN RISK. Off by default; turns
+  on the store's Upgrades screen. Without them at most 15 plants can be for
+  sale at once, as in the unpatched game. Buy Nurseries 2-6 on the Upgrades
+  screen, in order, $10,000 each ($0 with Free upgrades): the Extra Nursery
+  item on the Nursery shelf. Each one is another stock nursery screen with
+  15 more spots (90 plants for sale with all five). Every nursery screen is
+  named at the top ("Nursery 1" is the stock one), and the gold arrows there
+  page through the ones you own. Take plants off sale until 15 or fewer are
+  for sale before turning it off.)
+
+Moving things between greenhouses (5 extra greenhouses):
+- A plant: drag it onto the left or right arrow, as you would drag it to
+  another pot. It goes to the same pot place in that greenhouse, or to its
+  first empty pot if that place is taken. If that greenhouse is full, a box
+  says so and the plant stays where it was.
+- Pollen: take it as usual, click an arrow, and drop it on a plant there.
+  The seeds it makes are the same as within one greenhouse.
+- Seeds taken from a plant: click an arrow while holding them, then plant
+  them in an empty pot there, drop them on the seed box, or throw them away.
+  Dropped anywhere else they go back to the plant they came from.
+- Seeds from the seed tray (Legendary Seeds too), tools and chemicals stay in
+  your hand when you click an arrow and work in the new greenhouse. (Changing
+  to another screen, such as the store or the nursery, empties your hand as
+  in the unpatched game.)
+- Nursery ornaments are never placed anywhere: each counts as soon as it is
+  bought, so there is nothing to move.
+
+Getting a plant into a nursery (5 extra nurseries):
+- Tag it for sale in its greenhouse as usual (select it, then the nursery
+  button, or the button that tags them all). It stays in its pot.
+- Tagged plants fill the nurseries in order: Nursery 1 first (a Greenhouse 1
+  plant at its own pot's spot, as in the unpatched game), then Nursery 2, and
+  so on, Greenhouse 1's plants before Greenhouse 2's, pot by pot. When a
+  plant sells or is taken off sale, the ones after it move up.
+- Use the arrows on the nursery screen to see each nursery. While you are
+  in the nursery, all your nurseries sell at once (the visitors you see are
+  the ones of the nursery on screen). Away from the nursery nothing sells,
+  as in the unpatched game.
 
 Tools tab, Breeding Guide: pick the game, a save folder and a player. Tabs
 for each part (Fish: Fins and Bodies; Plant: Flowers and Foliage), the

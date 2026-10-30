@@ -39,9 +39,11 @@ GAMES = {
         "screen": "the Supplies store's Upgrades page (DS Store Items)",
         "items": "the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs "
                  "($2300), the Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000), ClonaFish "
-                 "($2,500), and the Time Warp clock ($500) and Add Money ($950) when those settings are on",
+                 "($2,500), and the Time Warp clock ($500), Add Money ($950) and the Extra Tank ($10,000 each) when "
+                 "those settings are on",
         "free_rules": "The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy "
-                      "Multiple Golden Seahorses is on), the eggs and the chemicals still go in a supply slot, and "
+                      "Multiple Golden Seahorses is on), the eggs and the chemicals still go in a supply slot, the "
+                      "extra tanks are still bought in order (Tank 4, then 5, then 6), and "
                       "the game's own purchase confirmations are still asked.",
         "where": "in the net next to the Time Warp clock",
     },
@@ -53,10 +55,11 @@ GAMES = {
         "screen": "the Supplies store's Upgrades view (Add new store upgrades and items)",
         "items": "Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the Revival Potion "
                  "($10,000), Revita-Seed ($2,500), the Formula Bomb ($30,000), the Fourth, Fifth and Sixth "
-                 "Seed Box ($1000 each), and the Time Warp clock ($500) and Add Money ($950) when those settings "
-                 "are on",
+                 "Seed Box ($1000 each), and the Time Warp clock ($500), Add Money ($950), the Extra Greenhouse "
+                 "($10,000 each) and the Extra Nursery ($10,000 each) when those settings are on",
         "free_rules": "Legendary Seeds are still three a day and need room in the seed tray, the formula, the Revival "
-                      "Potion, Revita-Seed and the Formula Bomb need room in the chemical tray, and the seed boxes are still bought in order, once each.",
+                      "Potion, Revita-Seed and the Formula Bomb need room in the chemical tray, and the seed boxes, "
+                      "extra greenhouses and extra nurseries are still bought in order, once each.",
         "where": "on the Nursery shelf next to the Time Warp clock",
     },
 }

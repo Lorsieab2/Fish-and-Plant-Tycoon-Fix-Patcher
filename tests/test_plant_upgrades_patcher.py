@@ -56,7 +56,8 @@ class ManifestTests(unittest.TestCase):
     def test_every_combination_is_pinned_as_the_same_one_without_them(self) -> None:
         # It writes no executable bytes: the flowers' DLL loads the Upgrades DLL, which loads the boxes'.
         pins = self.manifest["patched_sha256_by_settings"]
-        screen_items = {"time_warp", "free_upgrades", "add_money"}       # tests/test_store_extras.py
+        screen_items = {"time_warp", "free_upgrades", "add_money",       # tests/test_store_extras.py
+                        "extra_greenhouses", "extra_nurseries"}          # tests/test_extra_greenhouses.py
         added = [key for key in pins if "plant_upgrades" in key.split(",") and not screen_items & set(key.split(","))]
         self.assertEqual(len(added), 32)         # with and without Sort Seeds, the R key, Fix Vanilla Bugs and Optimize Prices
         for key in added:
