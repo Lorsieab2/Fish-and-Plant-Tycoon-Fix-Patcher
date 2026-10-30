@@ -609,14 +609,18 @@ class ToolsTab:
     # --------------------------------------------------------------- breeding
 
     def breeding(self, game_id: str | None) -> None:
-        """The Breeding Guide, told where the game copies may be (the patcher's output
-        folders) so it can see which settings a save's copy was patched with."""
+        """The Breeding Guide, told every folder the patcher knows a game copy may be in:
+        the output folder, each game's "- Modded" output copy and the folder it sits in
+        (where "- Modded Upgrades" goes too), and the game folder picked on the Game tab
+        and the folder it sits in. The guide finds the save's own copy there, to see which
+        settings it was patched with, and any copy to read the pictures from."""
         app = self.app
         parents = [app.output_parent.get().strip()]
         for game in GAMES:
-            output = app.path_vars[game]["output"].get().strip()
-            if output:
-                parents.extend([output, str(Path(output).parent)])
+            for key in ("output", "vanilla"):
+                folder = app.path_vars[game][key].get().strip().strip('"')
+                if folder:
+                    parents.extend([folder, str(Path(folder).parent)])
         breeding_guide.open_window(
             app, game_id or app.game_choice.get(), settings=app.breeding_settings,
             save_settings=app._save_settings, game_parents=[p for p in parents if p],

@@ -612,6 +612,20 @@ folder never fails with "path too long".
   Mutation fish 0x42014C, the sale odds 0x424240), and the Plant Tycoon model
   is `src/breeding_plant.py`. The prices' assumptions (real time, a full
   selling tank, how many customers browse) are in its "?" guide.
+
+  Picture tabs (Fin, Body and Egg Pictures; Flower, Foliage and Seed
+  Pictures) show every part grouped by rarity. The pictures are kept inside
+  the patcher, in a "Breeding Guide Pictures" folder beside it: the first time
+  the guide finds any copy of the game (the game folder picked on the Game
+  tab, the patcher's "- Modded" and "- Modded Upgrades" copies, or a default
+  install) it copies the sheets it needs from it, read only, with a manifest
+  of their SHA-256 hashes, and shows them from there for every save folder
+  and player. If it has found none yet, click "Find game..." on a picture tab
+  and pick the game folder. The folder is made on your own machine from your
+  own copy; no game art is in this repository or the release, and the folder
+  is ignored by git. A damaged or partial picture folder is made again, never
+  used. The patcher's own art (DS sheets, Exotic Fish Eggs, the Unused
+  Flowers' sheet, Legendary Seeds) comes from `assets/`.
   Pictures: [docs/images/breeding-guide-fish-discovered-species.png](docs/images/breeding-guide-fish-discovered-species.png)
   and the other `docs/images/breeding-guide-*.png`.
 

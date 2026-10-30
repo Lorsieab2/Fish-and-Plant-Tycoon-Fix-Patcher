@@ -229,12 +229,23 @@ and fixes.
   details pane sits under every sheet. Picture tabs: Fin, Body and Egg
   Pictures (Fish Tycoon), Flower, Foliage and Seed Pictures (Plant Tycoon),
   each grouped by rarity in the game's words, with the name and rarity under
-  every picture in a scrolling grid. The pictures are read at run time from
-  the chosen save's own game copy (its Images folder, then Fish Tycoon's
-  ft.dat, as the game loads them), the patcher's DS sheets, Exotic Fish Eggs
-  and Legendary Seeds included; no game art is shipped. With spoilers off an
-  undiscovered part is a "?" with no name, and a copy whose images are
-  missing or unreadable says so. It reads the chosen save
+  every picture in a scrolling grid. The pictures live inside the patcher:
+  the first time the guide finds any copy of the game (the game folder picked
+  on the Game tab, the patcher's "- Modded" or "- Modded Upgrades" copies, a
+  default install, or a folder picked with the picture tabs' "Find game..."
+  button) it copies every sheet it needs, read only (its Images folder, then
+  Fish Tycoon's ft.dat, as the game loads them), into "Breeding Guide
+  Pictures\Fish" or "\Plant" in the patcher's folder, with a manifest of each
+  file's size and SHA-256, written in a temporary folder and swapped in
+  whole; from then on every save folder and player shows them with no game
+  copy needed. A cache that does not match its manifest is made again, never
+  used. The patcher's own art (the DS sheets, Exotic Fish Eggs, the Unused
+  Flowers' flower sheet, Legendary Seeds) comes from the patcher's own
+  assets. No game art is in the repository or the release: the cache is
+  built on the player's machine from their own copy and is ignored by git.
+  With spoilers off an undiscovered part is a "?" with no name; with no cache
+  and no copy yet, one line says to pick the game folder on the Game tab or
+  click "Find game...". It reads the chosen save
   and player only, opens on the species that save has discovered (each
   species' own discovered flag; a species merely made of seen parts is not
   listed, suggested or planned through), and Show Spoilers (remembered)
@@ -329,6 +340,14 @@ and fixes.
 - **Breeding Guide**: the Plant Tycoon help now says how "best price per
   day" is worked out (one pot grown to age 24 and sold, then replanted), in
   place of an old sentence that called it the highest price that sells.
+- **Breeding Guide pictures**: a save folder whose own game copy is gone
+  (e.g. "Fish Tycoon - Modded" after only "- Modded Upgrades" is kept) showed
+  "No game copy was found" and "(no picture)" everywhere: the guide looked
+  only for the copy named after the save folder, and was not told the game
+  folder picked on the Game tab. It now looks in every folder the patcher
+  knows (the Game tab's game folder, the output folder and copies and the
+  folders they sit in, the default installs) and keeps the pictures in its
+  own cache, so they show for every save folder and player of both games.
 
 ### Plant Tycoon
 
