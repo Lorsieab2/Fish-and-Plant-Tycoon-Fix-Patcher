@@ -37,8 +37,15 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   Endangered and Extinct seed packets, Legendary for the Unused Flowers.
   Every part's "how it is obtained" gives each route's exact odds and price
   from the game's code (eggs, starter eggs, Unknown Chemical, seed packets,
-  Mutation Liquid, Legendary and Exotic eggs), checked by emulation. A
-  scrolling details pane sits under every sheet. It reads the chosen save
+  Mutation Liquid, Legendary and Exotic eggs), checked by emulation. It
+  names the exact parent pairs by the game's own body, fin, flower and
+  foliage names, one line per parent ("Shark with Leaffish, Carp", with the
+  chance for a DS or Unused Flowers pair), and names the parts the Unknown
+  Chemical or Mutation Liquid turn into it; with spoilers off it names only
+  discovered parts and counts the rest ("and 4 pairs with undiscovered
+  fins"). No text in the guide shows internal gene numbers, sums or index
+  ranges any more (the parts sheets' Index column is gone). A scrolling
+  details pane sits under every sheet. It reads the chosen save
   and player only, opens on the species that save has discovered (each
   species' own discovered flag; a species merely made of seen parts is not
   listed, suggested or planned through), and Show Spoilers (remembered)

@@ -99,10 +99,22 @@ class ModelTests(unittest.TestCase):
                         if p:
                             expected[s] = p
                     self.assertEqual(dict(B.mutation_sources(g, kind, model.extras)), expected, (kind, g))
+                    how = model.how(kind, g)
                     for s, p in expected.items():
-                        self.assertIn(f"{s}: {100 * p:.2f}%", part.how)
-                    totals = {a + b for a in genes for b in genes if (a + b + 1) // 2 == g}
-                    self.assertEqual(set(B.breeding_sums(g)) & set(range(2, 2 * max(genes) + 1)), totals, (kind, g))
+                        self.assertIn(f"a {B.part_word(kind, s)} {kind} on {100 * p:.2f}%", how)
+                    # the parent pairs by name are exactly the pollinations that give it
+                    pairs = {}
+                    for i, a in enumerate(genes):
+                        for b in genes[i:]:
+                            ka, kb = ((a, 1), (b, 1)) if slot == 0 else ((1, a), (1, b))
+                            chance = sum(q for child, q in model.children(ka, kb) if child[slot] == g)
+                            if chance:
+                                pairs[(a, b)] = chance
+                    self.assertEqual({(a, b): p for a, b, p in model.part_combos(kind, g)}, pairs, (kind, g))
+                    lines = how.splitlines()
+                    for (a, b), p in pairs.items():
+                        line = next(x for x in lines if x.startswith(f"  {B.part_word(kind, a)} with "))
+                        self.assertIn(B.part_word(kind, b) + ("" if p >= 1 else f" ({100 * p:.2f}%)"), line)
 
     def test_effects_choices(self) -> None:
         """0 effects and Max without Mutation Liquid give the seed itself; Max with it gives the

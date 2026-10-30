@@ -54,6 +54,12 @@ PLANNER = "Breeding Planner"
 UNDISCOVERED = "Undiscovered species"
 
 
+def flat_text(text: str) -> str:
+    """A several-line text on one line, for a sheet cell."""
+    text = text.replace(":\n  ", ": ").replace("\n  ", "; ")
+    return re.sub(r"(?<=[.])\n", " ", text).replace("\n", ". ")
+
+
 def effects_choices(model) -> tuple:
     return getattr(model, "effects_choices", EFFECTS)
 
@@ -294,13 +300,29 @@ class View:
         return sorted(self.shown, key=lambda s: s.name.casefold())
 
     # ---- parts
+    def part_name(self, kind: str, index: int):
+        """A part's name, or None when spoilers are off and no discovered species has it."""
+        if not self.spoilers and (kind, index) not in self.known_parts:
+            return None
+        part = self.part(kind, index)
+        return part.name if part is not None else None
+
+    def how(self, kind: str, index: int) -> str:
+        """How a part is obtained, one route a line, naming only what the player may see."""
+        how = getattr(self.model, "how", None)
+        if how is None:
+            part = self.part(kind, index)
+            return part.how if part is not None else ""
+        return how(kind, index, self.part_name)
+
     def part_sheet(self, kind: str) -> Sheet:
         model = self.model
         title = KIND_TITLES.get(kind, kind.title())
         name = _kind_name(model, kind)
         rarity = getattr(model, "part_rarity", None)
-        columns = [name, "Index", "How it is obtained", "Rarity", "Species with it", "Species", "Patcher"]
-        kinds = ["text", "int", "text", "text", "int", "text", "text"]
+        # No gene numbers anywhere the player reads: parts are named, and in the game's own order.
+        columns = [name, "How it is obtained", "Rarity", "Species with it", "Species", "Patcher"]
+        kinds = ["text", "text", "text", "int", "text", "text"]
         rows, tags, keys, details = [], [], [], []
         for part in model.parts(kind):
             if (part.kind, part.index) not in self.known_parts:
@@ -308,11 +330,12 @@ class View:
             having = sorted((s.name for s in self.shown if any(p.kind == kind and p.index == part.index
                                                                   for p in s.parts)), key=str.casefold)
             patcher = setting_name(model.game) if part.patcher else ""
-            rows.append([part.name, part.index, part.how, rarity(part) if rarity else "", len(having),
+            how = self.how(kind, part.index)
+            rows.append([part.name, flat_text(how), rarity(part) if rarity else "", len(having),
                          ", ".join(having), patcher])
             tags.append(("patcher",) if part.patcher else ())
             keys.append((kind, part.index))
-            details.append(f"{part.name} ({name.lower()} {part.index})\n\nHow it is obtained: {part.how}\n\n"
+            details.append(f"{part.name} ({name.lower()})\n\nHow it is obtained:\n{how}\n\n"
                            f"{len(having)} species: " + (", ".join(having) or "none shown yet"))
         message = "" if rows else "No species discovered in this save yet." if not self.spoilers else ""
         return Sheet(title, columns, rows, kinds=kinds, tags=tags, keys=keys, details=details, message=message)
@@ -629,19 +652,21 @@ HELP = (
         "parent suggestions and the Breeding Planner use only them too. Under Options, Show Spoilers shows "
         "every species, the full charts and every price; the choice is remembered.",
         "Rarity, in the games' own words: Fish Tycoon parts are Common, Unusual or Rare (the Common and "
-        "Unusual Fish Eggs lay exactly the Common and Unusual genes; no egg lays a Rare one), a fish as rare "
+        "Unusual Fish Eggs lay exactly the Common and Unusual parts; no egg lays a Rare one), a fish as rare "
         "as its rarer part. Plant Tycoon parts are Common, Endangered or Extinct, the seed packets that "
         "sell them (Legendary for the Unused Flowers), a plant as rare as its rarer part.",
         "Patcher species (DS Exclusive Fish, Unused Flowers) are listed only when the save's game copy was "
         "patched with that setting: its patch log beside the .exe says so, or the setting's data file is "
         "beside the save. They are marked in the Patcher column.",
-        "Fish Tycoon breeding, from the game's code: the baby's body is the mother's and the father's bodies "
-        "averaged and rounded down, and the same for the fin. The mother is the fish already in the isolation "
-        "tank, the father the fish you drop on it. A pair with a DS gene uses the DS game's rule: an odd total "
-        "rounds up or down at random, one roll per litter shared by body and fin. Effects: \"0 effects\"; "
-        "\"Max effects, without\" (every other effect at its best, no mutation chance); \"Max effects, with "
-        "Wasp Grouper\" adds a live adult Magic Fish of Mutation in the mother's tank: 16.02% per litter to "
-        "step the father's body or fin one place first. The Fertility fish and plant add babies but do not "
+        "Fish Tycoon breeding, from the game's code: the baby's body is halfway between the mother's and the "
+        "father's bodies in the game's list (the earlier one when two are in the middle), and the same for the "
+        "fin; each part's \"How it is obtained\" names every pair of parents that gives it. The mother is the "
+        "fish already in the isolation tank, the father the fish you drop on it. A pair with a DS body or fin "
+        "uses the DS game's rule: when two are in the middle, either one at random, one roll per litter shared "
+        "by body and fin. Effects: \"0 effects\"; \"Max effects, without\" (every other effect at its best, no "
+        "mutation chance); \"Max effects, with Wasp Grouper\" adds a live adult Magic Fish of Mutation in the "
+        "mother's tank: 16.02% per litter the father's body or fin first changes to the next one along. The "
+        "Fertility fish and plant add babies but do not "
         "change each baby's odds, and no mutation changes a price, so the prices show 0 and Max effects.",
         "Prices, from the game's selling code: once a real-time second each adult in the selling tank rolls "
         "Random(900) <= T: T = 30K at half the base price B or less, 10K below B, 4K from B to 1.5B, K above, "
@@ -653,13 +678,14 @@ HELP = (
         "level 1 and nobody browsing, the lowest odds. Max effects: Advertising level 3 (B + 1/10, then + 1/7), "
         "all 6 ornaments and the Golden Seahorse, and the whole crowd (66 or 72 customers) browsing, the "
         "highest odds. Your shop is between the two.",
-        "Plant Tycoon, from its code: breeding has no luck, each gene of the seed is the parents' average "
-        "rounded up; only Mutation Liquid adds odds. With \"Max effects, with Mutation Liquid\" the Breeding "
+        "Plant Tycoon, from its code: breeding has no luck, the seed's flower and foliage are each halfway "
+        "between the parents' in the game's list (the later one when two are in the middle); only Mutation "
+        "Liquid adds odds. With \"Max effects, with Mutation Liquid\" the Breeding "
         "Calculator shows the seed after one dose, and a Breeding Planner step can be \"Mutation Liquid on\" a "
         "plant; \"Max effects, without\" uses no Mutation Liquid. Its prices assume every visitor up to the "
         "limit is browsing (an upper bound), and because a plant keeps growing, its best price per day is its "
-        "highest price that sells. With Mutation Liquid a chain can be long (the fewest generations, not the "
-        "fewest steps): the step count is shown and the list scrolls. Each species' details list the exact "
+        "highest price that sells. With Mutation Liquid a chain can be long (the fewest generations first): "
+        "its length is shown and the list scrolls. Each species' details list the exact "
         "assumptions.",
         "Click a column header to sort, and type in Search to filter. Export saves the open sheet as .xlsx or "
         ".csv. The Breeding Calculator lists every child two parents can give, with its odds; the Breeding "
