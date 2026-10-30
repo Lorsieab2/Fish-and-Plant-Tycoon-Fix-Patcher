@@ -38,17 +38,19 @@ NAME = "Tank and greenhouse counts"
 FISH_SETTING = {
     "id": SETTING_ID,
     "name": NAME,
-    "summary": "Shows how many fish the tank on screen holds, and how many are adults, teens and babies, its "
-               "creatures and the isolation tank, in the game's own font.",
+    "summary": "Shows how many fish the tank on screen holds, how many are adults, teens and babies, which are "
+               "sick, its creatures and the isolation tank, in the game's own font, with an in-game on/off button.",
     "description": (
-        "Adds three lines at the top left of the water on the tank screen, for the tank you are looking at: "
-        "\"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (26 with Bigger tanks), then the creatures in it "
-        "(\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation tank: 1 of 1 (1 adult)\". Adults, teens "
-        "and babies are the game's own stages: a baby is age 1-5, a teen 6-19, an adult 20 and up. Dead fish "
-        "are left out of the count and shown after it as \"Dead: 2\" until you throw them away. The lines "
-        "follow the game's language (English or German), update every frame, and sit behind the fish, so "
-        "nothing in the tank is ever covered. Display only: nothing in the game or your saves changes. Runs as "
-        "a companion DLL the game loads at start."
+        "Adds lines at the top left of the water on the tank screen, for the tank you are looking at: "
+        "\"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (26 with Bigger tanks), \"Sick: 2 fungus, 1 ick\" when "
+        "any fish is sick, the creatures in it (\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation "
+        "tank: 1 of 1 (1 adult)\". Adults, teens and babies are the game's own stages: a baby is age 1-5, a "
+        "teen 6-19, an adult 20 and up. Dead fish are left out of the count and shown after it as \"Dead: 2\" "
+        "until you throw them away. A \"Counts: On\" button at the top right of the water hides or shows them "
+        "(hidden, only the button stays); the game remembers your choice in \"Tank Counts.ini\" beside the "
+        "DLL, never in a save. The lines follow the game's language (English or German), update every frame, "
+        "and sit behind the fish, so nothing in the tank is ever covered. Display only: nothing in the game or "
+        "your saves changes. Runs as a companion DLL the game loads at start."
     ),
     "category": "main",
     "default": True,
@@ -57,16 +59,20 @@ FISH_SETTING = {
 PLANT_SETTING = {
     "id": SETTING_ID,
     "name": NAME,
-    "summary": "Shows how many of the greenhouse's 15 pots hold a living plant, and how many are mature, have "
-               "buds or are seedlings, in the game's own font.",
+    "summary": "Shows how many of the greenhouse's 15 pots hold a living plant, how many are mature, have buds "
+               "or are seedlings, and which are infested or unhealthy, in the game's own font, with an in-game "
+               "on/off button.",
     "description": (
-        "Adds one line along the top of the greenhouse screen: \"Plants: 9 of 15 (5 mature, 2 with buds, "
-        "2 seedlings)\", counting the pots that hold a living plant. The stages are the game's own: a plant "
-        "is a seedling before age 21 (its countdown says \"Buds in ... Min.\"), has buds from 21 (\"Mature in "
-        "... Min.\") and is mature from 24. Dead plants are left out of the count and shown after it as "
-        "\"Dead: 1\" until you trash them. The line updates every frame and sits behind the plants, so no "
-        "plant, pot or tool is ever covered. Display only: nothing in the game or your saves changes. Runs as "
-        "a companion DLL the game loads at start."
+        "Adds a line along the top of the greenhouse screen: \"Plants: 9 of 15 (5 mature, 2 with buds, "
+        "2 seedlings)\", counting the pots that hold a living plant, and under it \"Infested: 2  Unhealthy: 1\" "
+        "when any plant is (the game's own status words: one pest, the small black insects, and Unhealthy "
+        "below health 30). The stages are the game's own: a plant is a seedling before age 21 (its countdown "
+        "says \"Buds in ... Min.\"), has buds from 21 (\"Mature in ... Min.\") and is mature from 24. Dead "
+        "plants are left out of the count and shown after it as \"Dead: 1\" until you trash them. A \"Counts: "
+        "On\" button at the top right hides or shows them (hidden, only the button stays); the game remembers "
+        "your choice in \"Greenhouse Counts.ini\" beside the DLL, never in a save. The lines update every frame "
+        "and sit behind the plants, so no plant, pot or tool is ever covered. Display only: nothing in the game "
+        "or your saves changes. Runs as a companion DLL the game loads at start."
     ),
     "category": "main",
     "default": True,

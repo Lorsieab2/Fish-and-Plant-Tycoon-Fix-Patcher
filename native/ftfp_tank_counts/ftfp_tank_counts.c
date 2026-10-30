@@ -1,15 +1,20 @@
 /* Tank Counts -- how many fish a Fish Tycoon tank holds, on the tank screen.
 
-   WHAT.  Three lines in the game's own font at the top left of the water,
-   for the tank on screen (Tank One, Tank Two or the Sale Tank, as the tank
-   buttons choose it):
+   WHAT.  Lines in the game's own font at the top left of the water, for the
+   tank on screen (Tank One, Tank Two or the Sale Tank, as the tank buttons
+   choose it):
      Fish: 12 of 21 (8 adults, 3 teens, 1 baby)  Dead: 2
-     Creatures: Golden Seahorse, Moray Eel
-     Isolation tank: 1 of 1 (1 adult)
-   in English or German, as the game is.  The room is 21, or 26 with "Bigger
-   tanks" (the update loop's own bound, 0x4206B1 `cmp ecx, 0x15`); the
-   isolation tank holds one fish (tank 3, slot 0: the drop at 0x41F3E6 refuses
-   a second).  Recomputed from the game state every frame; nothing is written.
+     Sick: 2 fungus, 1 ick                      (only when a fish is sick)
+     Creatures: Golden Seahorse, Moray Eel      (only when there are any)
+     Isolation tank: 1 of 1 (1 adult)  Sick: 1 ick
+   in English or German, as the game is, and a "Counts: On" / "Counts: Off"
+   button at the top right of the water that hides or shows them; hidden,
+   only the button is drawn.  Its state is kept in "Tank Counts.ini" beside
+   this DLL (common/count_toggle.h), never in a save.  The room is 21, or 26
+   with "Bigger tanks" (the update loop's own bound, 0x4206B1 `cmp ecx,
+   0x15`); the isolation tank holds one fish (tank 3, slot 0: the drop at
+   0x41F3E6 refuses a second).  Recomputed from the game state every frame;
+   nothing in the game is written.
 
    WHICH FISH.  Exactly the ones the tank shows.  The view builder (0x413D80)
    shows a record when +0x00 (its clock) and +0x0C (its age) are set, and
@@ -22,31 +27,48 @@
    selling tank!", "Any adult fish...", German "jungen oder halbwüchsigen
    Fisch", "ausgewachsene Fische".  A fish at health 0 or less (+0x3C) is
    dead (0x414778: the dead picture; "Status: Dead") and stays until it is
-   thrown away: it is counted as "Dead", not among the fish.  Body 22 (+0x4C)
-   is the Golden Seahorse's (0x41F3C4), and its fin (+0x50) tells the DS
-   Store Items' animals apart (22 seahorse, 30 puffer, 31 ray, 32 eel): those
-   are "Creatures", never fish, whether they sit in a fish slot (stock) or in
-   slots 26-30 (DS Store Items, marked "FTCA" at +0x14), and a Moray Eel at
-   home in its rock (an ornament record with sprite 229) is one too.  Eggs
-   are not in the tank: they hatch straight into babies.
+   thrown away: it is counted as "Dead", not among the fish.  A live fish's
+   sickness is +0x40: 1 fungus, 2 ick (the two the game gives), named as the
+   game's medicines name them: "Fungus looks like a green growth", "Ick
+   looks like white specks" (German "Pilzinfektions-Medikament",
+   "Weisspünktchen-Medikament"), under its status word "Sick" / "Krank".
+   Body 22 (+0x4C) is the Golden Seahorse's (0x41F3C4), and its fin (+0x50)
+   tells the DS Store Items' animals apart (22 seahorse, 30 puffer, 31 ray,
+   32 eel): those are "Creatures", never fish, whether they sit in a fish
+   slot (stock) or in slots 26-30 (DS Store Items, marked "FTCA" at +0x14),
+   and a Moray Eel at home in its rock (an ornament record with sprite 229)
+   is one too.  Eggs are not in the tank: they hatch straight into babies.
+
+   THE BUTTON.  The tank screen's mouse slot (0x443A58, 0x421F80; type, x,
+   y) is wrapped: a press on the button while no fish is being dragged
+   (impl+0x00, the drag flag 0x421B8F tests) toggles the counts, and that
+   press and its release stay here.  The button lies in the water's top
+   right corner (0x41CE6E: the water is 0-798 x 51-489), clear of every
+   rectangle the tank screen answers on its own (0x41CDD4-0x41CEAC: the tank
+   buttons end at y 54, the magic fish at x 480, the isolation tank and the
+   trash can start at y 489 and 541) and of every button control.
 
    HOW.  The startup loader loads this DLL and calls FtfpStartup() before
    WinMain.  It first loads the DLL the loader would load without this
    setting ("DS Exclusive Fish.dll", else "Maximizable Window.dll", when
-   their settings put them beside this one), then writes its one site, after
-   checking it holds its vanilla bytes, or writes nothing: the tank screen's
-   draw (0x422010) calls its background (0x41D140) at 0x422013, and that call
-   now comes here, which draws the background and then the counts, so every
-   fish, ornament, bubble and button is drawn over them, never under. */
+   their settings put them beside this one), then writes its two sites,
+   after checking each holds its vanilla bytes, or writes neither: the tank
+   screen's draw (0x422010) calls its background (0x41D140) at 0x422013, and
+   that call now comes here, which draws the background and then the counts,
+   so every fish, ornament, bubble and button is drawn over them, never
+   under; and the mouse slot above. */
 #include <windows.h>
 #include "../ftfp_ds_fish/install_sites.h"
 #include "../common/count_text.h"
+#include "../common/count_toggle.h"
 
 #define AT(base, offset, type) (*(type *)((char *)(base) + (offset)))
 
-/* The tank screen (impl): its state and its graphics. */
+/* The tank screen (impl): its drag flag, its state and its graphics. */
+#define IMPL_DRAGGING 0x00
 #define IMPL_STATE 0x34
 #define IMPL_GRAPHICS 0x54
+#define SCENE_IMPL 0x08             /* the scene's table entries get the scene; its impl is at +8 (0x421FDB) */
 
 #define S_CURRENT_TANK 0x384
 #define S_SCREENSAVER 0x1E4F9       /* byte: the screensaver shows the tank without its interface (0x41D181) */
@@ -66,10 +88,13 @@
 #define F_AGE 0x0C
 #define F_MARK 0x14
 #define F_HEALTH 0x3C
+#define F_DISEASE 0x40
 #define F_BODY 0x4C
 #define F_FIN 0x50
 #define ANIMAL_MARK 0x41435446      /* "FTCA" */
 #define BODY_SEAHORSE 22
+#define DISEASE_FUNGUS 1
+#define DISEASE_ICK 2
 
 #define AGE_SHOWN 1                 /* 0x413F10 */
 #define AGE_TEEN 6                  /* 0x413F1C `cmp eax, 6` */
@@ -82,27 +107,35 @@
 #define LABEL_X 12
 #define LABEL_Y 62                  /* just under the top bar (57 px) */
 #define LINE_H 20                   /* paddington_tt_18's glyphs are 20 px tall */
+#define BUTTON_X 694
+#define BUTTON_Y 60
 #define WHITE 0xFFFFFFFFu
+#define YELLOW 0xFFFFD040u          /* the button, like the game's yellow captions */
 #define SHADOW 0xFF000000u
 
 typedef void (__fastcall *scene_fn)(void *impl, int edx);
+typedef int (__fastcall *mouse_fn)(void *scene, int edx, int type, int x, int y);
 typedef void *(__cdecl *getter_fn)(void);
 typedef void *(__fastcall *font_fn)(void *fonts, int edx, int index);
 typedef void (__fastcall *text_fn)(void *graphics, int edx, const char *text, int x, int y, unsigned int colour,
                                    void *font);
 
 static const scene_fn draw_background = (scene_fn)0x0041D140u;
+static const mouse_fn stock_mouse = (mouse_fn)0x00421F80u;
 static const getter_fn font_manager = (getter_fn)0x00418210u;
 static const font_fn font_get = (font_fn)0x004181F0u;          /* 0 = paddington_tt_18 (0x4180B0) */
 static const text_fn draw_text = (text_fn)0x00408B80u;          /* (text, x, y, colour, font) */
 #define LANGUAGE (*(int *volatile *)0x0045B314u)               /* *LANGUAGE == 1: German */
+
+/* The click area covers the longest label ("Zählung: Aus") to the water's right edge. */
+static count_toggle toggle = { 1, 0, 0, { BUTTON_X - 4, BUTTON_Y - 2, 796, BUTTON_Y + LINE_H }, { 0 } };
 
 /* ------------------------------------------------------------------ counts */
 
 enum { SEAHORSE, PUFFER, RAY, EEL, KINDS };
 
 typedef struct tank_count {
-    int fish, adults, teens, babies, dead;
+    int fish, adults, teens, babies, dead, fungus, ick;
     int creatures[KINDS];
 } tank_count;
 
@@ -137,6 +170,8 @@ static void count_tank(char *state, int tank, int slots, tank_count *out) {
             if (age < AGE_TEEN) ++out->babies;
             else if (age < AGE_ADULT) ++out->teens;
             else ++out->adults;
+            if (AT(f, F_DISEASE, int) == DISEASE_FUNGUS) ++out->fungus;
+            else if (AT(f, F_DISEASE, int) == DISEASE_ICK) ++out->ick;
         }
     }
     if (tank == ISOLATION_TANK) return;
@@ -160,22 +195,42 @@ static int tank_room(void) {
 /* ------------------------------------------------------------------- words */
 
 typedef struct words {
-    const char *fish, *of, *adult, *adults, *teen, *teens, *baby, *babies, *dead, *creatures, *isolation;
+    const char *fish, *of, *adult, *adults, *teen, *teens, *baby, *babies, *dead, *sick, *fungus, *ick;
+    const char *creatures, *isolation, *on, *off;
     const char *kind[KINDS];
 } words;
 
 /* The creatures' names are the ones the DS Store Items' store page and info
    panel use (the Golden Seahorse's is the game's own store item). */
 static const words ENGLISH = {
-    "Fish: ", " of ", "adult", "adults", "teen", "teens", "baby", "babies", "Dead: ", "Creatures: ",
-    "Isolation tank: ",
+    "Fish: ", " of ", "adult", "adults", "teen", "teens", "baby", "babies", "Dead: ", "Sick: ", "fungus", "ick",
+    "Creatures: ", "Isolation tank: ", "Counts: On", "Counts: Off",
     { "Golden Seahorse", "Magic Pufferfish", "Blue-Spotted Stingray", "Moray Eel" },
 };
 static const words GERMAN = {
     "Fische: ", " von ", "ausgewachsen", "ausgewachsen", "halbw\xFC" "chsig", "halbw\xFC" "chsig", "jung", "jung",
-    "Tot: ", "Tiere: ", "Zuchtaquarium: ",
+    "Tot: ", "Krank: ", "Pilzinfektion", "Weissp\xFCnktchen",
+    "Tiere: ", "Zuchtaquarium: ", "Z\xE4hlung: An", "Z\xE4hlung: Aus",
     { "Goldenes Seepferdchen", "Magischer Kugelfisch", "Blaupunktrochen", "Mur\xE4ne" },
 };
+
+static int sick(const tank_count *c) { return c->fungus + c->ick; }
+
+/* "Sick: 2 fungus, 1 ick" (the caller checked sick()). */
+static void sick_parts(count_line *line, const words *w, const tank_count *c) {
+    ct_text(line, w->sick);
+    if (c->fungus > 0) {
+        ct_number(line, c->fungus);
+        ct_text(line, " ");
+        ct_text(line, w->fungus);
+    }
+    if (c->ick > 0) {
+        if (c->fungus > 0) ct_text(line, ", ");
+        ct_number(line, c->ick);
+        ct_text(line, " ");
+        ct_text(line, w->ick);
+    }
+}
 
 static void fish_line(count_line *line, const words *w, const char *label, const tank_count *c, int room) {
     ct_start(line);
@@ -207,9 +262,9 @@ static int creature_line(count_line *line, const words *w, const tank_count *c) 
 
 /* --------------------------------------------------------------- the draw */
 
-static void draw_line(void *graphics, void *font, const char *text, int y) {
-    draw_text(graphics, 0, text, LABEL_X + 1, y + 1, SHADOW, font);
-    draw_text(graphics, 0, text, LABEL_X, y, WHITE, font);
+static void draw_at(void *graphics, void *font, const char *text, int x, int y, unsigned int colour) {
+    draw_text(graphics, 0, text, x + 1, y + 1, SHADOW, font);
+    draw_text(graphics, 0, text, x, y, colour, font);
 }
 
 static void draw_counts(char *impl) {
@@ -226,17 +281,29 @@ static void draw_counts(char *impl) {
     if (tank_id < 0 || tank_id > 2) return;
     manager = font_manager();
     if (manager == NULL || (font = font_get(manager, 0, 0)) == NULL) return;
+    draw_at(graphics, font, toggle.shown ? w->on : w->off, BUTTON_X, BUTTON_Y, toggle.hovered ? WHITE : YELLOW);
+    if (!toggle.shown) return;
     count_tank(state, tank_id, tank_room(), &tank);
     count_tank(state, ISOLATION_TANK, 1, &isolation);
     fish_line(&line, w, w->fish, &tank, tank_room());
-    draw_line(graphics, font, line.text, y);
+    draw_at(graphics, font, line.text, LABEL_X, y, WHITE);
     y += LINE_H;
+    if (sick(&tank)) {
+        ct_start(&line);
+        sick_parts(&line, w, &tank);
+        draw_at(graphics, font, line.text, LABEL_X, y, WHITE);
+        y += LINE_H;
+    }
     if (creature_line(&line, w, &tank)) {
-        draw_line(graphics, font, line.text, y);
+        draw_at(graphics, font, line.text, LABEL_X, y, WHITE);
         y += LINE_H;
     }
     fish_line(&line, w, w->isolation, &isolation, 1);
-    draw_line(graphics, font, line.text, y);
+    if (sick(&isolation)) {
+        ct_text(&line, "  ");
+        sick_parts(&line, w, &isolation);
+    }
+    draw_at(graphics, font, line.text, LABEL_X, y, WHITE);
 }
 
 /* 0x422013's call of the background (thiscall, ecx = the tank screen). */
@@ -248,15 +315,31 @@ static void __fastcall on_background(char *impl, int edx) {
     }
 }
 
+/* The tank screen's mouse slot (thiscall, ecx = the scene; ret 0xC). */
+static int __fastcall on_mouse(char *scene, int edx, int type, int x, int y) {
+    int mine = 0;
+    __try {
+        char *impl = AT(scene, SCENE_IMPL, char *);
+        char *state = impl != NULL ? AT(impl, IMPL_STATE, char *) : NULL;
+        if (state != NULL && AT(state, S_SCREENSAVER, unsigned char) == 0) {
+            mine = toggle_mouse(&toggle, type, x, y, AT(impl, IMPL_DRAGGING, unsigned char) == 0);
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        mine = 0;
+    }
+    return mine ? 0 : stock_mouse(scene, edx, type, x, y);
+}
+
 /* ----------------------------------------------------------------- install */
 
 #define BACKGROUND_CALL_VA 0x00422013u
 static const unsigned char BACKGROUND_CALL[5] = { 0xE8, 0x28, 0xB1, 0xFF, 0xFF };   /* call 0x41D140 */
+#define MOUSE_SLOT_VA 0x00443A58u
+static const unsigned char MOUSE_SLOT[4] = { 0x80, 0x1F, 0x42, 0x00 };                /* 0x421F80 */
 
-static ftfp_site_write writes[1];
+static ftfp_site_write writes[2];
 static int installed = 0;
 
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 typedef int (__stdcall *startup_fn)(void);
 
 /* The DLL the startup loader loads when this setting is off, beside this one
@@ -265,12 +348,8 @@ typedef int (__stdcall *startup_fn)(void);
 static void load_next(void) {
     static const wchar_t *const names[2] = { L"DS Exclusive Fish.dll", L"Maximizable Window.dll" };
     wchar_t folder[1024], path[1024];
-    wchar_t *slash;
     int i;
-    DWORD n = GetModuleFileNameW((HMODULE)&__ImageBase, folder, 1024);
-    if (n == 0 || n >= 1024 || (slash = wcsrchr(folder, L'\\')) == NULL) return;
-    slash[1] = L'\0';
-    if (wcslen(folder) + 32 >= 1024) return;
+    if (!dll_folder(folder, 1024)) return;
     for (i = 0; i < 2; ++i) {
         HMODULE module;
         startup_fn startup;
@@ -293,9 +372,15 @@ int __stdcall FtfpStartup(void) {
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
     __try {
-        ftfp_site_branch(writes, BACKGROUND_CALL_VA, sizeof BACKGROUND_CALL, BACKGROUND_CALL, 0xE8,
+        DWORD to = (DWORD)(UINT_PTR)on_mouse;
+        toggle_load(&toggle, L"Tank Counts.ini");
+        ftfp_site_branch(&writes[0], BACKGROUND_CALL_VA, sizeof BACKGROUND_CALL, BACKGROUND_CALL, 0xE8,
                          (const void *)(UINT_PTR)on_background);
-        installed = ftfp_install_sites(writes, 1);
+        writes[1].va = MOUSE_SLOT_VA;
+        writes[1].length = 4;
+        writes[1].expect = MOUSE_SLOT;
+        memcpy(writes[1].bytes, &to, 4);
+        installed = ftfp_install_sites(writes, 2);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         installed = 0;
     }

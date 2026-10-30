@@ -17,14 +17,23 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   view builder's picture thresholds, 0x413F1C and 0x413F65); a plant is a
   seedling before age 21 and has buds until 24, when it is mature (the
   selected plant's countdowns, 0x4237E3 and 0x423866). Dead fish and plants
-  are shown apart as "Dead: n"; Fish Tycoon follows the game's German. Drawn
+  are shown apart as "Dead: n"; Fish Tycoon follows the game's German. Sick
+  fish are named by sickness ("Sick: 2 fungus, 1 ick", German "Krank: ...
+  Pilzinfektion, ... Weisspünktchen"; fish +0x40, 1 and 2), and plants by
+  the status panel's words ("Infested: 2  Unhealthy: 1"; pot +0x28 set, else
+  health below 30). A "Counts: On" / "Counts: Off" button (the water's top
+  right; the greenhouse wall's top right) hides or shows them, remembered in
+  "Tank Counts.ini" / "Greenhouse Counts.ini" beside the DLL, never in a
+  save; it takes only a press on itself while nothing is held. Drawn
   every frame in each game's own font right after the screen's background,
   so nothing is ever covered, and display only. Each game's companion DLL
   (`Tank Counts.dll`, `Greenhouse Counts.dll`) is loaded first by the startup
   loader and loads the DLL the loader loaded before, so every combination
   without the counts keeps its pin. Pictures:
   [docs/images/tank-counts-fish.png](docs/images/tank-counts-fish.png),
-  [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png).
+  [docs/images/tank-counts-fish-off.png](docs/images/tank-counts-fish-off.png),
+  [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png),
+  [docs/images/greenhouse-counts-plant-off.png](docs/images/greenhouse-counts-plant-off.png).
 
 - No path is too long: the patcher's staging copy and the save backups use
   Windows' extended-length paths, so a deep output or save folder never fails

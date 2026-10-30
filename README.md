@@ -60,11 +60,16 @@ never needs the internet.
   "Fish Tycoon - Modded" copy; nothing is saved. How it works, with every
   address: `native/ftfp_fish_window/ftfp_fish_window.c`. Plant Tycoon draws
   through SDL2, a different renderer, so this setting is Fish Tycoon's only.
-- Tank and greenhouse counts (on by default). Three lines in the game's own
-  font at the top left of the water on the tank screen, for the tank you are
+- Tank and greenhouse counts (on by default). Lines in the game's own font
+  at the top left of the water on the tank screen, for the tank you are
   looking at: "Fish: 12 of 21 (8 adults, 3 teens, 1 baby)" (of 26 with
-  Bigger tanks), "Creatures: Golden Seahorse, Moray Eel" when it has any, and
-  "Isolation tank: 1 of 1 (1 adult)". The stages are the game's own: a baby
+  Bigger tanks), "Sick: 2 fungus, 1 ick" when live fish are sick (the game's
+  own names for its two sicknesses), "Creatures: Golden Seahorse, Moray Eel"
+  when it has any, and "Isolation tank: 1 of 1 (1 adult)" (with "Sick: ..."
+  when it is). A "Counts: On" / "Counts: Off" button at the top right of the
+  water hides or shows them; hidden, only the button stays. The choice is
+  kept in `Fish Tycoon Fix Patcher DLLs\Tank Counts.ini`, never in a save,
+  and the button takes only its own clicks (never while you drag a fish). The stages are the game's own: a baby
   is age 1-5, a teen 6-19, an adult 20 and up (the ages at which the game
   switches the fish's picture). Dead fish are left out of the count and shown
   after it as "Dead: 2" until you throw them away; they, and a Golden
@@ -78,8 +83,9 @@ never needs the internet.
   (`Fish Tycoon Fix Patcher DLLs\Tank Counts.dll`, which also loads DS
   Exclusive Fish's or the Maximizable window's DLL when those are on), in the
   plain "Fish Tycoon - Modded" copy. How it works, with every address:
-  `native/ftfp_tank_counts/ftfp_tank_counts.c`. Picture:
-  [docs/images/tank-counts-fish.png](docs/images/tank-counts-fish.png).
+  `native/ftfp_tank_counts/ftfp_tank_counts.c`. Pictures:
+  [docs/images/tank-counts-fish.png](docs/images/tank-counts-fish.png),
+  [docs/images/tank-counts-fish-off.png](docs/images/tank-counts-fish-off.png).
 - DS Exclusive Fish (off by default). Adds the Nintendo DS version's seven
   extra bodies (Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang, Idle)
   and seven extra fins (Small Fin, Roundy, Angel, Clown, Yellow, Blue,
@@ -232,7 +238,13 @@ never needs the internet.
   that exactly the same seeds come out as went in before writing anything.
 - Tank and greenhouse counts (on by default). One line in the game's own font
   along the top of the greenhouse screen: "Plants: 9 of 15 (5 mature, 2 with
-  buds, 2 seedlings)", counting the pots that hold a living plant. The stages
+  buds, 2 seedlings)", counting the pots that hold a living plant, and under
+  it "Infested: 2  Unhealthy: 1" when any living plant is (the status panel's
+  own words: the game has one pest, the small black insects, and calls a
+  plant Unhealthy below health 30). A "Counts: On" / "Counts: Off" button at
+  the top right hides or shows them, kept in
+  `Plant Tycoon Fix Patcher DLLs\Greenhouse Counts.ini`, never in a save; it
+  takes only its own clicks (never while you hold a seed or tool). The stages
   are the selected plant's own countdown: a seedling before age 21 ("Buds in
   ... Min."), with buds from 21 ("Mature in ... Min."), mature from 24. Dead
   plants are left out of the count and shown after it as "Dead: 1" until you
@@ -242,8 +254,9 @@ never needs the internet.
   companion DLL the game loads at start
   (`Plant Tycoon Fix Patcher DLLs\Greenhouse Counts.dll`, which also loads
   Unused Flowers' or Sort Seeds' DLL when those are on). How it works:
-  `native/ftfp_greenhouse_counts/ftfp_greenhouse_counts.c`. Picture:
-  [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png).
+  `native/ftfp_greenhouse_counts/ftfp_greenhouse_counts.c`. Pictures:
+  [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png),
+  [docs/images/greenhouse-counts-plant-off.png](docs/images/greenhouse-counts-plant-off.png).
 
 ## Use
 

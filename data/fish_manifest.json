@@ -2703,8 +2703,8 @@
     {
       "id": "tank_greenhouse_counts",
       "name": "Tank and greenhouse counts",
-      "summary": "Shows how many fish the tank on screen holds, and how many are adults, teens and babies, its creatures and the isolation tank, in the game's own font.",
-      "description": "Adds three lines at the top left of the water on the tank screen, for the tank you are looking at: \"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (26 with Bigger tanks), then the creatures in it (\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation tank: 1 of 1 (1 adult)\". Adults, teens and babies are the game's own stages: a baby is age 1-5, a teen 6-19, an adult 20 and up. Dead fish are left out of the count and shown after it as \"Dead: 2\" until you throw them away. The lines follow the game's language (English or German), update every frame, and sit behind the fish, so nothing in the tank is ever covered. Display only: nothing in the game or your saves changes. Runs as a companion DLL the game loads at start.",
+      "summary": "Shows how many fish the tank on screen holds, how many are adults, teens and babies, which are sick, its creatures and the isolation tank, in the game's own font, with an in-game on/off button.",
+      "description": "Adds lines at the top left of the water on the tank screen, for the tank you are looking at: \"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (26 with Bigger tanks), \"Sick: 2 fungus, 1 ick\" when any fish is sick, the creatures in it (\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation tank: 1 of 1 (1 adult)\". Adults, teens and babies are the game's own stages: a baby is age 1-5, a teen 6-19, an adult 20 and up. Dead fish are left out of the count and shown after it as \"Dead: 2\" until you throw them away. A \"Counts: On\" button at the top right of the water hides or shows them (hidden, only the button stays); the game remembers your choice in \"Tank Counts.ini\" beside the DLL, never in a save. The lines follow the game's language (English or German), update every frame, and sit behind the fish, so nothing in the tank is ever covered. Display only: nothing in the game or your saves changes. Runs as a companion DLL the game loads at start.",
       "category": "main",
       "default": true,
       "companion": {
@@ -2714,8 +2714,8 @@
           {
             "path": "Tank Counts.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Tank Counts.dll",
-            "size": 91648,
-            "sha256": "09FA1203BBBEB25DACB95D4652D7E4A9D51ED288010A3930B21167379FA9DF05"
+            "size": 94720,
+            "sha256": "FC86E6CBB16E245D16B8A90EEB487744FEE4ACA9D8267CD701578C635DD9306C"
           }
         ]
       }
