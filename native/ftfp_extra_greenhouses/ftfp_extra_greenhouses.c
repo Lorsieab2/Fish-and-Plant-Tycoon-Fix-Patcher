@@ -1,0 +1,1002 @@
+/* Extra Greenhouses -- five more greenhouses of 15 pots in PC Plant Tycoon
+   (six greenhouses, 90 pots).
+
+   WHAT.  Gold arrows (the game's own leftarrow.png / rightarrow.png, the ones
+   the Seed Storage screen uses for boxes 4-6) page the greenhouse screen
+   through Greenhouse 1 (the stock one) to Greenhouse 6 and round again, and
+   the screen says "Greenhouse n of 6".  Every greenhouse is the stock one:
+   the same screen, pots, buttons, tools and tray, and the game's own code
+   runs on its pots, so plants grow, age, need water and care, flower,
+   pollinate, give seeds, get pests and die exactly as in the stock pots,
+   including the catch-up of time away and the Time Warp.  A plant dropped on
+   an arrow moves to the first empty pot of the greenhouse that arrow leads
+   to.  The nursery shows the plants for sale from every greenhouse, and the
+   stock limit holds: at most 15 plants are for sale at once (the stock
+   nursery's 15 spots), counted over all six greenhouses.
+
+   HOW.  The game keeps its 15 pots in its state (state + 0x2188, 0x5600
+   bytes each) and one plant object per pot in the plant manager
+   ([0x493C80] + 8), each pointing at its pot's record (+8).  This DLL keeps
+   the other 75 pots, and their plant objects, in its own memory.  Whatever
+   screen is up, the pots it should see are moved into the state (an
+   "arrangement"): the greenhouse on screen; in the nursery, Greenhouse 1's
+   pots with the other greenhouses' plants for sale moved into its free
+   spots; on every other screen, in every save and at every load, Greenhouse
+   1 alone (the stock layout).  A move exchanges two records and their plant
+   objects (re-pointed to their new records), and is undone exactly in
+   reverse, so a plant never changes pot unless the game's own code moved it.
+   The game's plant update (0x41D810) is wrapped: it runs once per
+   greenhouse, each one moved in for its turn, so every pot gets the stock
+   update with the stock clock.
+
+   SAFETY.  The save always holds the stock layout: before the game writes
+   it, Greenhouse 1 goes back in.  The five extra greenhouses are kept per
+   slot in "<save folder>\Plant Tycoon Fix Patcher Data\Extra Greenhouses
+   <slot>.dat", written to a temporary file and renamed over the old one.
+   An unreadable file is set aside (".unreadable"), never overwritten.
+   Every code site and vtable slot is checked before anything is written,
+   and all of them are written or none (install_sites.h).
+
+   The startup loader loads this DLL first when the setting is on; it loads
+   "Unused Flowers.dll" (which loads the rest) or "Sort Seeds.dll" when they
+   are beside it, and then installs, so it wraps whatever they installed. */
+#include <windows.h>
+#include <string.h>
+#include "../ftfp_ds_fish/install_sites.h"
+#include "greenhouse_sites.h"
+
+#define EXTRA 5
+#define GREENHOUSES (EXTRA + 1)
+#define POTS 15
+#define COLUMNS 5
+#define POT_BYTES 0x5600
+#define FOR_SALE_LIMIT 15                /* the stock nursery's 15 spots */
+
+#define STATE_POTS 0x2188
+#define STATE_HELD 0x56C
+#define STATE_SELECTED 0x63E58
+#define NO_SELECTION 0x63
+#define HELD_POT 0x3E8
+#define HELD_POLLEN 9                    /* 0x42631F: pollen from the selected pot */
+#define HELD_POT_SEEDS 0x14              /* 0x426228: seeds from the selected pot */
+
+#define POT_STAMP 0x04
+#define POT_AGE 0x10
+#define POT_STYLE 0x18
+#define POT_HEALTH 0x24
+#define POT_PLANTED 0x38
+#define POT_FOLIAGE 0x4C
+#define POT_FOR_SALE 0x9D
+#define POT_SOLD 0x9E
+#define OBJECT_RECORD 8
+
+#define MANAGER (*(char **)0x00493C80u)
+#define GAME_STATE (*(char **)0x0049333Cu)
+#define MATURE_AGE (*(const float *)0x004677E8u)     /* 24.0: the toggle's "old enough to sell" */
+#define TEXT_COLOUR (*(int *)0x0048EA2Cu)
+
+#define ARROW_PREV 40
+#define ARROW_NEXT 41
+#define ARROW_W 50
+#define ARROW_H 50
+#define LEFT_X 222
+#define RIGHT_X 748
+#define ARROW_Y 10
+#define LABEL_X 510
+#define LABEL_Y 26
+#define SOUND_BUTTON 0xC
+#define SCENE_SOUND 0x74
+#define SCENE_STATE 0x68
+#define BUTTON_NURSERY 6
+#define BUTTON_ALL_NURSERY 9
+#define MOUSE_UP 3
+
+#define NOINLINE __declspec(noinline)   /* keeps the name in the map file the tests read */
+#define AT(base, offset, type) (*(type *)((char *)(base) + (offset)))
+
+typedef void *(__cdecl *new_fn)(unsigned int size);
+typedef void (__fastcall *file_button_fn)(void *button, int edx, int id, const char *file, int x, int y, void *parent, int zero);
+typedef void (__fastcall *add_control_fn)(void *scene, int edx, void *control);
+typedef void (__fastcall *sound_fn)(void *sound, int edx, int id);
+typedef void *(__cdecl *graphics_fn)(void);
+typedef void (__fastcall *text_fn)(void *graphics, int edx, const char *text, int x, int y, int colour, int font);
+typedef int (__cdecl *random_fn)(int n);
+typedef void (__fastcall *clear_pot_fn)(void *manager, int edx, int row, int column);
+typedef void (__fastcall *deleting_dtor_fn)(void *object, int edx, int flags);
+
+static const new_fn game_new = (new_fn)0x0044E894u;
+static const file_button_fn file_button = (file_button_fn)0x00401AA0u;
+static const add_control_fn add_control = (add_control_fn)0x0040B400u;
+static const sound_fn play_sound = (sound_fn)0x0044A580u;
+static const graphics_fn graphics = (graphics_fn)0x00407A90u;
+static const text_fn draw_text_centred = (text_fn)0x004092B0u;
+static const random_fn game_random = (random_fn)0x004033B0u;
+static const clear_pot_fn clear_pot = (clear_pot_fn)0x0042F410u;    /* the game's "empty this pot" */
+
+typedef int (__fastcall *mouse_fn)(void *scene, int edx, int msg, int x, int y);
+typedef int (__fastcall *command_fn)(void *scene, int edx, int msg, int id);
+typedef void (__fastcall *plain_fn)(void *scene, int edx);
+typedef void (__fastcall *activate_fn)(void *scene, int edx, int on);
+
+/* ------------------------------------------------------------------ pots */
+
+static unsigned char extra_pots[EXTRA][POTS][POT_BYTES];   /* home of Greenhouses 2-6 */
+static void *extra_objects[EXTRA][POTS];                     /* their plant objects, while out */
+static unsigned char swap_buffer[POT_BYTES];
+
+typedef struct exchange_t { unsigned char slot, bank, pot; } exchange_t;
+static exchange_t undo[POTS];
+static int undo_count = 0;
+
+#define HOME 0
+#define NURSERY 100
+static int arranged = HOME;     /* HOME, 1..EXTRA (that greenhouse is in the state), NURSERY */
+static int shown = 0;           /* the greenhouse on screen, 0..EXTRA */
+static int active = 0;          /* 0 none, 1 greenhouse, 2 nursery, 3 snapshot */
+static int moved_this_frame = 0;
+static void *arrows[2];
+static int installed = 0;
+
+static char *state_pot(char *state, int slot) { return state + STATE_POTS + slot * POT_BYTES; }
+
+static void **manager_slot(int slot) {
+    char *manager = MANAGER;
+    return manager != NULL ? &AT(manager, 8 + slot * 4, void *) : NULL;
+}
+
+static void destroy_object(void *object) {
+    if (object != NULL) ((deleting_dtor_fn)(AT(AT(object, 0, char *), 0, void *)))(object, 0, 1);
+}
+
+/* An object follows its record; one that does not point at it is rebuilt by the game. */
+static void *repoint(void *object, void *from, void *to) {
+    if (object == NULL) return NULL;
+    if (AT(object, OBJECT_RECORD, void *) != from) {
+        destroy_object(object);
+        return NULL;
+    }
+    AT(object, OBJECT_RECORD, void *) = to;
+    return object;
+}
+
+/* State pot `slot` <-> the DLL's pot (bank, pot): records and plant objects. */
+NOINLINE static void exchange(char *state, int slot, int bank, int pot) {
+    char *in_state = state_pot(state, slot);
+    unsigned char *in_dll = extra_pots[bank][pot];
+    void **held = manager_slot(slot);
+    void *state_object = held != NULL ? *held : NULL;
+    void *dll_object = extra_objects[bank][pot];
+    memcpy(swap_buffer, in_state, POT_BYTES);
+    memcpy(in_state, in_dll, POT_BYTES);
+    memcpy(in_dll, swap_buffer, POT_BYTES);
+    state_object = repoint(state_object, in_state, in_dll);
+    dll_object = repoint(dll_object, in_dll, in_state);
+    if (held != NULL) {
+        *held = dll_object;
+    } else {
+        destroy_object(dll_object);
+    }
+    extra_objects[bank][pot] = state_object;
+}
+
+static void push_exchange(char *state, int slot, int bank, int pot) {
+    exchange(state, slot, bank, pot);
+    undo[undo_count].slot = (unsigned char)slot;
+    undo[undo_count].bank = (unsigned char)bank;
+    undo[undo_count].pot = (unsigned char)pot;
+    ++undo_count;
+}
+
+static void go_home(char *state) {
+    while (undo_count > 0) {
+        exchange_t e = undo[--undo_count];
+        exchange(state, e.slot, e.bank, e.pot);
+    }
+    arranged = HOME;
+}
+
+/* Where greenhouse g's pot k is now (only when `arranged` is HOME or a greenhouse). */
+static char *locate(char *state, int g, int k) {
+    if (g == arranged) return state_pot(state, k);
+    if (g == 0) return (char *)extra_pots[arranged - 1][k];
+    return (char *)extra_pots[g - 1][k];
+}
+
+static int for_sale(const char *pot) { return pot[POT_FOR_SALE] != 0; }
+
+NOINLINE static void arrange(char *state, int kind) {
+    int k, b;
+    if (state == NULL || arranged == kind) return;
+    go_home(state);
+    if (kind >= 1 && kind <= EXTRA) {
+        for (k = 0; k < POTS; ++k) push_exchange(state, k, kind - 1, k);
+    } else if (kind == NURSERY) {
+        int spot = 0;
+        for (b = 0; b < EXTRA; ++b) {
+            for (k = 0; k < POTS; ++k) {
+                if (!for_sale((const char *)extra_pots[b][k])) continue;
+                while (spot < POTS && for_sale(state_pot(state, spot))) ++spot;
+                if (spot >= POTS) break;                       /* only 15 spots: the stock limit */
+                push_exchange(state, spot++, b, k);
+            }
+        }
+    }
+    arranged = kind;
+}
+
+static int wanted(void) {
+    if (active == 1 || active == 3) return shown;
+    if (active == 2) return NURSERY;
+    return HOME;
+}
+
+NOINLINE static void ensure(void) {
+    char *state = GAME_STATE;
+    if (state != NULL) arrange(state, wanted());
+}
+
+/* Plants for sale in all six greenhouses. */
+NOINLINE static int count_for_sale(char *state) {
+    int b, k, n = 0;
+    for (k = 0; k < POTS; ++k) n += for_sale(state_pot(state, k));
+    for (b = 0; b < EXTRA; ++b) {
+        for (k = 0; k < POTS; ++k) n += for_sale((const char *)extra_pots[b][k]);
+    }
+    return n;
+}
+
+static int has_plants(int bank) {
+    int k;
+    for (k = 0; k < POTS; ++k) {
+        if (AT(extra_pots[bank][k], POT_FOLIAGE, int) != 0 || extra_pots[bank][k][POT_PLANTED]) return 1;
+    }
+    return 0;
+}
+
+static void forget_objects(void) {
+    int b, k;
+    for (b = 0; b < EXTRA; ++b) {
+        for (k = 0; k < POTS; ++k) {
+            destroy_object(extra_objects[b][k]);
+            extra_objects[b][k] = NULL;
+        }
+    }
+}
+
+/* Empty pots the way a new game leaves them: zero, with a random pot style. */
+static void empty_banks(void) {
+    int b, k;
+    memset(extra_pots, 0, sizeof extra_pots);
+    for (b = 0; b < EXTRA; ++b) {
+        for (k = 0; k < POTS; ++k) AT(extra_pots[b][k], POT_STYLE, int) = game_random(6);
+    }
+}
+
+/* A save was replaced in the state (load, new game): the DLL's layout is gone with it. */
+static void reset_layout(void) {
+    undo_count = 0;
+    arranged = HOME;
+    shown = 0;
+    forget_objects();
+}
+
+/* ------------------------------------------------------------ the update */
+
+typedef void (__fastcall *update_fn)(char *state, int edx);
+static void stock_update(void);
+
+/* 0x41D810: the stock update of the greenhouse in the state, then of each other greenhouse in turn. */
+NOINLINE static void __cdecl on_update(char *state) {
+    int keep = arranged, b;
+    arrange(state, HOME);
+    ((update_fn)(UINT_PTR)stock_update)(state, 0);
+    for (b = 1; b <= EXTRA; ++b) {
+        if (!has_plants(b - 1)) continue;               /* an empty pot has no plant to update */
+        arrange(state, b);
+        ((update_fn)(UINT_PTR)stock_update)(state, 0);
+    }
+    arrange(state, HOME);
+    arrange(state, keep);
+}
+
+/* The Time Warp (Store Upgrades and Items.dll) moves every live pot's clock back by dt
+   before it runs the update; this does the same for the extra greenhouses' pots. */
+void __cdecl FtfpExtraGreenhousesWarp(unsigned int dt, unsigned int now) {
+    char *state = GAME_STATE;
+    int b, k, keep = arranged;
+    if (state != NULL) arrange(state, HOME);
+    for (b = 0; b < EXTRA; ++b) {
+        for (k = 0; k < POTS; ++k) {
+            unsigned char *pot = extra_pots[b][k];
+            unsigned int stamp = AT(pot, POT_STAMP, unsigned int);
+            if (AT(pot, POT_FOLIAGE, int) == 0 || stamp == 0 || AT(pot, POT_HEALTH, int) <= 0) continue;
+            if (stamp > now) stamp = now;
+            AT(pot, POT_STAMP, unsigned int) = stamp - dt;
+        }
+    }
+    if (state != NULL) arrange(state, keep);
+}
+
+/* ---------------------------------------------------------------- messages */
+
+/* The game's one-button box (0x42AB50 with "Your seed box is already full!",
+   string 0x77, as the greenhouse uses it at 0x428202), showing this text. */
+typedef void (__fastcall *box_fn)(void *dialog, int edx, int id, int a, int b, int c, int d);
+typedef int (__fastcall *run_modal_fn)(void *dialog, int edx, void *parent, int zero);
+typedef void (__fastcall *dialog_done_fn)(void *dialog, int edx);
+static const box_fn build_box = (box_fn)0x0042AB50u;
+static const run_modal_fn run_modal = (run_modal_fn)0x00401C90u;
+static const dialog_done_fn dialog_done = (dialog_done_fn)0x0042AAA0u;
+#define STRING_ENTRIES 0x00493CC0u
+#define STR_BOX_FULL 0x77
+
+static void tell(void *scene, const char *text) {
+    static unsigned char dialog[0x1000];
+    char *entry = *(char **)(UINT_PTR)(STRING_ENTRIES + STR_BOX_FULL * 4u);
+    const char *saved;
+    if (entry == NULL || AT(entry, 0, int) != STR_BOX_FULL) return;
+    saved = AT(entry, 0xC, const char *);
+    AT(entry, 0xC, const char *) = text;           /* only while the box copies its text */
+    memset(dialog, 0, sizeof dialog);
+    build_box(dialog, 0, STR_BOX_FULL, 0, 0, 0, 0);
+    AT(entry, 0xC, const char *) = saved;
+    run_modal(dialog, 0, scene, 0);
+    dialog_done(dialog, 0);
+}
+
+static const char NURSERY_FULL[] =
+    "Your nursery is full!\n\n"
+    "Only 15 plants can be for sale at once,\n"
+    "counting every greenhouse.";
+
+/* -------------------------------------------------------------- greenhouse */
+
+static mouse_fn next_gh_mouse, next_gh_key, next_nu_mouse, next_nu_key, next_sn_mouse, next_sn_key;
+static command_fn next_gh_command, next_nu_command, next_sn_command;
+static plain_fn next_gh_overlay, next_gh_draw, next_gh_tick, next_nu_draw, next_nu_overlay, next_nu_tick, next_sn_draw;
+static activate_fn next_gh_activate, next_nu_activate, next_sn_activate;
+
+/* Pollen taken in one greenhouse and carried to another: its donor stays the
+   plant it came from (greenhouse pollen_g, pot pollen_k). */
+static int pollen_g = -1, pollen_k = -1;
+
+static void reset_hold(char *scene, char *state) {
+    int held = AT(state, STATE_HELD, int), selected = AT(state, STATE_SELECTED, int);
+    if (held == HELD_POLLEN && selected >= 0 && selected < POTS) {
+        if (pollen_g < 0) {
+            pollen_g = shown;
+            pollen_k = selected;
+        }
+    } else {
+        /* A held pot or seeds taken from a pot belong to that pot's greenhouse: put back. */
+        if (held >= HELD_POT || held == HELD_POT_SEEDS) AT(state, STATE_HELD, int) = 0;
+        AT(state, STATE_SELECTED, int) = NO_SELECTION;
+        pollen_g = pollen_k = -1;
+    }
+    AT(scene, 8, unsigned char) = 0;           /* as after a drop (0x427467) */
+    AT(scene, 0x104, unsigned char) = 0;       /* as on entering (0x42320D) */
+    AT(scene, 0x105, unsigned char) = 0;
+}
+
+NOINLINE static void show_greenhouse(char *scene, int g) {
+    char *state = AT(scene, SCENE_STATE, char *);
+    reset_hold(scene, state);
+    shown = (g % GREENHOUSES + GREENHOUSES) % GREENHOUSES;
+    ensure();
+}
+
+/* 0x425F54: the pollen drop's call of 0x4240A0(target, donor) (thiscall, ret 8). */
+typedef void (__fastcall *pollinate_fn)(void *scene, int edx, char *target, char *donor);
+static void __fastcall pollinate(void *scene, int edx, char *target, char *donor) {
+    char *state = GAME_STATE;
+    if (state != NULL && pollen_g >= 0 && pollen_g != shown && arranged == shown) {
+        donor = locate(state, pollen_g, pollen_k);
+    }
+    pollen_g = pollen_k = -1;
+    ((pollinate_fn)(UINT_PTR)0x004240A0u)(scene, edx, target, donor);
+}
+
+/* Sold plants leave their pots when the greenhouse opens (0x4231E0); the
+   other greenhouses' sold plants leave theirs too, through the same call. */
+static void clear_sold_elsewhere(char *state) {
+    int g, k, keep = arranged;
+    for (g = 0; g < GREENHOUSES; ++g) {
+        if (g == shown) continue;
+        arrange(state, g);
+        for (k = 0; k < POTS; ++k) {
+            char *pot = state_pot(state, k);
+            if (pot[POT_SOLD] && pot[POT_PLANTED]) clear_pot(MANAGER, 0, k / COLUMNS, k % COLUMNS);
+        }
+    }
+    arrange(state, keep);
+}
+
+/* A held plant dropped on an arrow: into the first empty pot of that greenhouse. */
+static int first_empty(char *state, int g) {
+    int k;
+    for (k = 0; k < POTS; ++k) {
+        char *pot = locate(state, g, k);
+        if (AT(pot, POT_FOLIAGE, int) == 0 && !pot[POT_PLANTED]) return k;
+    }
+    return -1;
+}
+
+NOINLINE static void carry_plant(char *scene, int to) {
+    static char text[160];
+    char *state = AT(scene, SCENE_STATE, char *);
+    int from = AT(state, STATE_HELD, int) - HELD_POT, g = (to % GREENHOUSES + GREENHOUSES) % GREENHOUSES, k;
+    ensure();
+    if (from < 0 || from >= POTS || arranged != shown) return;
+    k = first_empty(state, g);
+    if (k < 0) {
+        int n = 0, i;
+        const char *head = "Greenhouse ", *tail = " is full!\n\nThere is no empty pot to move\nthis plant to.";
+        for (i = 0; head[i]; ++i) text[n++] = head[i];
+        text[n++] = (char)('1' + g);
+        for (i = 0; tail[i]; ++i) text[n++] = tail[i];
+        text[n] = '\0';
+        reset_hold(scene, state);
+        tell(scene, text);
+        return;
+    }
+    /* Exchange the two pots' contents; the undo list keeps each position's greenhouse. */
+    if (g == 0 && arranged == 0) return;
+    exchange(state, from, g == 0 ? arranged - 1 : g - 1, k);
+    play_sound(AT(scene, SCENE_SOUND, void *), 0, SOUND_BUTTON);
+    show_greenhouse(scene, g);
+}
+
+static int in_arrow(int i, int x, int y) {
+    int left = i == 0 ? LEFT_X : RIGHT_X;
+    return x >= left && x < left + ARROW_W && y >= ARROW_Y && y < ARROW_Y + ARROW_H;
+}
+
+static int __fastcall gh_mouse(char *scene, int edx, int msg, int x, int y) {
+    char *state = AT(scene, SCENE_STATE, char *);
+    ensure();
+    if (msg == MOUSE_UP && state != NULL && AT(state, STATE_HELD, int) >= HELD_POT
+        && AT(state, STATE_HELD, int) < HELD_POT + POTS) {
+        int i;
+        for (i = 0; i < 2; ++i) {
+            if (in_arrow(i, x, y)) {
+                carry_plant(scene, shown + (i == 0 ? -1 : 1));
+                moved_this_frame = 1;
+                return 1;
+            }
+        }
+    }
+    return next_gh_mouse(scene, edx, msg, x, y);
+}
+
+static int __fastcall gh_key(char *scene, int edx, int msg, int a, int b) {
+    ensure();
+    return next_gh_key(scene, edx, msg, a, b);
+}
+
+static int sellable(const char *pot) {
+    return pot[POT_PLANTED] && AT(pot, POT_FOLIAGE, int) != 0 && AT(pot, POT_AGE, float) >= MATURE_AGE
+           && AT(pot, POT_HEALTH, int) > 0;
+}
+
+static int __fastcall gh_command(char *scene, int edx, int msg, int id) {
+    char *state = AT(scene, SCENE_STATE, char *);
+    ensure();
+    if (msg == 8 && (id == ARROW_PREV || id == ARROW_NEXT)) {
+        if (!moved_this_frame) {
+            play_sound(AT(scene, SCENE_SOUND, void *), 0, SOUND_BUTTON);
+            show_greenhouse(scene, shown + (id == ARROW_PREV ? -1 : 1));
+        }
+        return 1;
+    }
+    if (msg == 8 && id == BUTTON_NURSERY && state != NULL) {
+        int selected = AT(state, STATE_SELECTED, int);
+        if (selected >= 0 && selected < POTS) {
+            char *pot = state_pot(state, selected);
+            if (!for_sale(pot) && sellable(pot) && count_for_sale(state) >= FOR_SALE_LIMIT) {
+                play_sound(AT(scene, SCENE_SOUND, void *), 0, SOUND_BUTTON);
+                tell(scene, NURSERY_FULL);
+                return 1;
+            }
+        }
+    }
+    if (msg == 8 && id == BUTTON_ALL_NURSERY && state != NULL) {
+        unsigned char before[POTS];
+        int k, r, trimmed = 0;
+        for (k = 0; k < POTS; ++k) before[k] = (unsigned char)for_sale(state_pot(state, k));
+        r = next_gh_command(scene, edx, msg, id);
+        for (k = POTS - 1; k >= 0 && count_for_sale(state) > FOR_SALE_LIMIT; --k) {
+            char *pot = state_pot(state, k);
+            if (!before[k] && for_sale(pot)) {
+                pot[POT_FOR_SALE] = 0;
+                trimmed = 1;
+            }
+        }
+        if (trimmed) tell(scene, NURSERY_FULL);
+        return r;
+    }
+    return next_gh_command(scene, edx, msg, id);
+}
+
+static void __fastcall gh_overlay(char *scene, int edx) { ensure(); next_gh_overlay(scene, edx); }
+
+static void __fastcall gh_draw(char *scene, int edx) {
+    static char label[32] = "Greenhouse 1 of 6";
+    ensure();
+    next_gh_draw(scene, edx);
+    label[11] = (char)('1' + shown);
+    label[16] = (char)('0' + GREENHOUSES);
+    draw_text_centred(graphics(), 0, label, LABEL_X, LABEL_Y, TEXT_COLOUR, 0);
+}
+
+static void __fastcall gh_tick(char *scene, int edx) {
+    char *state = AT(scene, SCENE_STATE, char *);
+    moved_this_frame = 0;
+    if (state != NULL && AT(state, STATE_HELD, int) != HELD_POLLEN) pollen_g = pollen_k = -1;
+    ensure();
+    next_gh_tick(scene, edx);
+}
+
+static void __fastcall gh_activate(char *scene, int edx, int on) {
+    char *state = AT(scene, SCENE_STATE, char *);
+    if (on) {
+        active = 1;
+        ensure();
+        if (state != NULL) clear_sold_elsewhere(state);
+        next_gh_activate(scene, edx, on);
+        if (arrows[0] == NULL) {
+            static const char *const files[2] = { "leftarrow.png", "rightarrow.png" };
+            static const int ids[2] = { ARROW_PREV, ARROW_NEXT }, xs[2] = { LEFT_X, RIGHT_X };
+            int i;
+            for (i = 0; i < 2; ++i) {
+                void *button = game_new(0x14);
+                if (button == NULL) break;
+                file_button(button, 0, ids[i], files[i], xs[i], ARROW_Y, scene, 0);
+                add_control(scene, 0, button);
+                arrows[i] = button;
+            }
+        }
+    } else {
+        next_gh_activate(scene, edx, on);
+        active = 0;
+        pollen_g = pollen_k = -1;
+        ensure();
+    }
+}
+
+/* ----------------------------------------------------- nursery and snapshot */
+
+static int __fastcall nu_mouse(char *s, int e, int m, int x, int y) { ensure(); return next_nu_mouse(s, e, m, x, y); }
+static int __fastcall nu_key(char *s, int e, int m, int a, int b) { ensure(); return next_nu_key(s, e, m, a, b); }
+static int __fastcall nu_command(char *s, int e, int m, int id) { ensure(); return next_nu_command(s, e, m, id); }
+static void __fastcall nu_draw(char *s, int e) { ensure(); next_nu_draw(s, e); }
+static void __fastcall nu_overlay(char *s, int e) { ensure(); next_nu_overlay(s, e); }
+static void __fastcall nu_tick(char *s, int e) { ensure(); next_nu_tick(s, e); }
+
+/* The nursery counts its plants for sale (the visitor limit) as it opens, and
+   empties the sold pots as it closes: both on the arranged pots. */
+static void __fastcall nu_activate(char *s, int e, int on) {
+    if (on) {
+        active = 2;
+        ensure();
+        next_nu_activate(s, e, on);
+    } else {
+        next_nu_activate(s, e, on);
+        active = 0;
+        ensure();
+    }
+}
+
+static int __fastcall sn_mouse(char *s, int e, int m, int x, int y) { ensure(); return next_sn_mouse(s, e, m, x, y); }
+static int __fastcall sn_key(char *s, int e, int m, int a, int b) { ensure(); return next_sn_key(s, e, m, a, b); }
+static int __fastcall sn_command(char *s, int e, int m, int id) { ensure(); return next_sn_command(s, e, m, id); }
+static void __fastcall sn_draw(char *s, int e) { ensure(); next_sn_draw(s, e); }
+
+/* The snapshot (F1 in the greenhouse) shows the greenhouse that was on screen. */
+static void __fastcall sn_activate(char *s, int e, int on) {
+    if (on) {
+        active = 3;
+        ensure();
+        next_sn_activate(s, e, on);
+    } else {
+        next_sn_activate(s, e, on);
+        active = 0;
+        ensure();
+    }
+}
+
+/* ----------------------------------------------------------------- sidecar */
+
+#define SIDECAR_MAGIC 0x47585450u      /* "PTXG" */
+#define SIDECAR_VERSION 1u
+typedef BOOL (WINAPI *special_folder_fn)(HWND, LPWSTR, int, BOOL);
+
+/* "<Documents>\LDW\<exe name>\Plant Tycoon Fix Patcher Data\Extra Greenhouses <slot>.dat". */
+static int sidecar_path(int slot, wchar_t *out, DWORD cap, int make_folder) {
+    wchar_t exe[MAX_PATH];
+    wchar_t *name, *dot;
+    special_folder_fn special;
+    HMODULE shell = LoadLibraryW(L"shell32.dll");
+    DWORD n = GetModuleFileNameW(NULL, exe, MAX_PATH);
+    if (shell == NULL || n == 0 || n >= MAX_PATH) return 0;
+    special = (special_folder_fn)GetProcAddress(shell, "SHGetSpecialFolderPathW");
+    if (special == NULL || !special(NULL, out, 0x0005 /* CSIDL_PERSONAL */, FALSE)) return 0;
+    name = wcsrchr(exe, L'\\');
+    name = name ? name + 1 : exe;
+    dot = wcsrchr(name, L'.');
+    if (dot) *dot = L'\0';
+    if (wcslen(out) + wcslen(name) + 100 >= cap) return 0;
+    wcscat_s(out, cap, L"\\LDW\\");
+    wcscat_s(out, cap, name);
+    wcscat_s(out, cap, L"\\Plant Tycoon Fix Patcher Data");
+    if (make_folder) CreateDirectoryW(out, NULL);
+    wcscat_s(out, cap, L"\\Extra Greenhouses ");
+    {
+        wchar_t digits[12];
+        int i = 0, v = slot;
+        do { digits[i++] = (wchar_t)(L'0' + v % 10); v /= 10; } while (v && i < 11);
+        while (i) { size_t len = wcslen(out); out[len] = digits[--i]; out[len + 1] = L'\0'; }
+    }
+    wcscat_s(out, cap, L".dat");
+    return 1;
+}
+
+/* Header: magic, version, greenhouses kept, pots each, bytes per pot. */
+#define HEADER_WORDS 5
+
+NOINLINE static int write_sidecar(int slot) {
+    wchar_t path[1024], temp[1100];
+    HANDLE file;
+    DWORD header[HEADER_WORDS], written;
+    int ok;
+    if (slot <= 0 || !sidecar_path(slot, path, 1024, 1)) return 0;
+    wcscpy_s(temp, 1100, path);
+    wcscat_s(temp, 1100, L".tmp");
+    file = CreateFileW(temp, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    header[0] = SIDECAR_MAGIC;
+    header[1] = SIDECAR_VERSION;
+    header[2] = EXTRA;
+    header[3] = POTS;
+    header[4] = POT_BYTES;
+    ok = WriteFile(file, header, sizeof header, &written, NULL) && written == sizeof header
+         && WriteFile(file, extra_pots, sizeof extra_pots, &written, NULL) && written == sizeof extra_pots
+         && FlushFileBuffers(file);
+    CloseHandle(file);
+    if (ok) ok = MoveFileExW(temp, path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+    if (!ok) DeleteFileW(temp);
+    return ok;
+}
+
+/* 1 read, 0 no file (empty greenhouses), -1 unreadable (set aside). */
+NOINLINE static int read_sidecar(int slot) {
+    static unsigned char body[sizeof extra_pots];
+    wchar_t path[1024];
+    HANDLE file;
+    DWORD header[HEADER_WORDS], got;
+    LARGE_INTEGER size;
+    int ok;
+    if (slot <= 0 || !sidecar_path(slot, path, 1024, 0)) return 0;
+    file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    ok = GetFileSizeEx(file, &size) && size.QuadPart == (LONGLONG)(sizeof header + sizeof body)
+         && ReadFile(file, header, sizeof header, &got, NULL) && got == sizeof header
+         && header[0] == SIDECAR_MAGIC && header[1] == SIDECAR_VERSION && header[2] == EXTRA
+         && header[3] == POTS && header[4] == POT_BYTES
+         && ReadFile(file, body, sizeof body, &got, NULL) && got == sizeof body;
+    CloseHandle(file);
+    if (!ok) {
+        wchar_t aside[1100];
+        wcscpy_s(aside, 1100, path);
+        wcscat_s(aside, 1100, L".unreadable");
+        MoveFileExW(path, aside, MOVEFILE_REPLACE_EXISTING);
+        return -1;
+    }
+    memcpy(extra_pots, body, sizeof body);
+    return 1;
+}
+
+static int last_sidecar = 0;
+
+/* Before the game writes its save: Greenhouse 1 back in the state, the others to the sidecar. */
+NOINLINE static void __cdecl before_save(char *state, int slot) {
+    if (slot <= 0) return;
+    arrange(state, HOME);
+    last_sidecar = write_sidecar(slot) ? 1 : -1;
+}
+
+static void __cdecl after_save(void) { ensure(); }
+
+NOINLINE static void __cdecl on_loaded(char *state, int slot) {
+    (void)state;
+    reset_layout();
+    if (read_sidecar(slot) != 1) empty_banks();
+}
+
+static void __cdecl on_new_game(void) {
+    reset_layout();
+    empty_banks();
+}
+
+static void __cdecl on_delete(int slot) {
+    wchar_t path[1024];
+    if (slot > 0 && sidecar_path(slot, path, 1024, 0)) DeleteFileW(path);
+}
+
+/* ------------------------------------------------------------------- stubs */
+
+static const DWORD k_update_back = SITE_PLANT_UPDATE_BACK;
+static const DWORD k_clock = 0x00403430u;
+static const DWORD k_write = 0x00403690u;
+static const DWORD k_manager = 0x0042FBC0u;
+static const DWORD k_rebuild = 0x0042FC40u;
+static const DWORD k_load_back = SITE_LOAD_DONE_BACK;
+
+/* The stock 0x41D810 (thiscall, ecx = state). */
+__declspec(naked) static void stock_update(void) {
+    __asm {
+        push esi
+        mov esi, ecx
+        call dword ptr [k_clock]
+        jmp dword ptr [k_update_back]
+    }
+}
+
+__declspec(naked) static void stub_update(void) {
+    __asm {
+        push ecx
+        call on_update
+        add esp, 4
+        ret
+    }
+}
+
+/* 0x41D156 in save(slot): ecx = state, edx = slot, [esp] = the save's return. */
+__declspec(naked) static void stub_save(void) {
+    __asm {
+        push ecx
+        push edx
+        push edx
+        push ecx
+        call before_save
+        add esp, 8
+        pop edx
+        pop ecx
+        push edx
+        push 0x53FB0
+        lea eax, [ecx + 8]
+        push eax
+        call dword ptr [k_write]
+        push eax
+        call after_save
+        pop eax
+        ret 4
+    }
+}
+
+/* 0x41EEFE in load(slot): ebx = state, the slot at [esp + 0x5407C]. */
+__declspec(naked) static void stub_load(void) {
+    __asm {
+        mov eax, [esp + 0x5407C]
+        push eax
+        push ebx
+        call on_loaded
+        add esp, 8
+        call dword ptr [k_manager]
+        mov ecx, eax
+        call dword ptr [k_rebuild]
+        jmp dword ptr [k_load_back]
+    }
+}
+
+/* 0x41D3DC: the new game's call of 0x42F630 (thiscall, ecx = the plant manager). */
+typedef void (__fastcall *manager_fn)(void *manager, int edx);
+static void __fastcall new_game_clear(void *manager, int edx) {
+    on_new_game();
+    ((manager_fn)(UINT_PTR)0x0042F630u)(manager, edx);
+}
+
+/* 0x415F5E: the slot menu's call of 0x41D1F0(slot) (thiscall, ret 4). */
+typedef int (__fastcall *delete_fn)(void *state, int edx, int slot);
+static int __fastcall delete_slot(void *state, int edx, int slot) {
+    on_delete(slot);
+    return ((delete_fn)(UINT_PTR)0x0041D1F0u)(state, edx, slot);
+}
+
+/* ----------------------------------------------------------------- install */
+
+#define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
+#define CODE_SITES 6
+#define VTABLE_SLOTS 19
+#define TOTAL_SITES (CODE_SITES + VTABLE_SLOTS)
+static ftfp_site_write writes[TOTAL_SITES];
+static unsigned char slot_expect[VTABLE_SLOTS][4];
+static HMODULE self_module = NULL;
+
+typedef struct slot_t {
+    unsigned int va, stock;
+    void **next;
+    const void *wrapper;
+} slot_t;
+
+static const slot_t SLOTS[VTABLE_SLOTS] = {
+    { SLOT_GH_MOUSE_VA, SLOT_GH_MOUSE_STOCK, (void **)&next_gh_mouse, CODE_ADDR(gh_mouse) },
+    { SLOT_GH_KEY_VA, SLOT_GH_KEY_STOCK, (void **)&next_gh_key, CODE_ADDR(gh_key) },
+    { SLOT_GH_COMMAND_VA, SLOT_GH_COMMAND_STOCK, (void **)&next_gh_command, CODE_ADDR(gh_command) },
+    { SLOT_GH_OVERLAY_VA, SLOT_GH_OVERLAY_STOCK, (void **)&next_gh_overlay, CODE_ADDR(gh_overlay) },
+    { SLOT_GH_DRAW_VA, SLOT_GH_DRAW_STOCK, (void **)&next_gh_draw, CODE_ADDR(gh_draw) },
+    { SLOT_GH_TICK_VA, SLOT_GH_TICK_STOCK, (void **)&next_gh_tick, CODE_ADDR(gh_tick) },
+    { SLOT_GH_ACTIVATE_VA, SLOT_GH_ACTIVATE_STOCK, (void **)&next_gh_activate, CODE_ADDR(gh_activate) },
+    { SLOT_NU_MOUSE_VA, SLOT_NU_MOUSE_STOCK, (void **)&next_nu_mouse, CODE_ADDR(nu_mouse) },
+    { SLOT_NU_KEY_VA, SLOT_NU_KEY_STOCK, (void **)&next_nu_key, CODE_ADDR(nu_key) },
+    { SLOT_NU_COMMAND_VA, SLOT_NU_COMMAND_STOCK, (void **)&next_nu_command, CODE_ADDR(nu_command) },
+    { SLOT_NU_DRAW_VA, SLOT_NU_DRAW_STOCK, (void **)&next_nu_draw, CODE_ADDR(nu_draw) },
+    { SLOT_NU_OVERLAY_VA, SLOT_NU_OVERLAY_STOCK, (void **)&next_nu_overlay, CODE_ADDR(nu_overlay) },
+    { SLOT_NU_TICK_VA, SLOT_NU_TICK_STOCK, (void **)&next_nu_tick, CODE_ADDR(nu_tick) },
+    { SLOT_NU_ACTIVATE_VA, SLOT_NU_ACTIVATE_STOCK, (void **)&next_nu_activate, CODE_ADDR(nu_activate) },
+    { SLOT_SN_MOUSE_VA, SLOT_SN_MOUSE_STOCK, (void **)&next_sn_mouse, CODE_ADDR(sn_mouse) },
+    { SLOT_SN_KEY_VA, SLOT_SN_KEY_STOCK, (void **)&next_sn_key, CODE_ADDR(sn_key) },
+    { SLOT_SN_COMMAND_VA, SLOT_SN_COMMAND_STOCK, (void **)&next_sn_command, CODE_ADDR(sn_command) },
+    { SLOT_SN_DRAW_VA, SLOT_SN_DRAW_STOCK, (void **)&next_sn_draw, CODE_ADDR(sn_draw) },
+    { SLOT_SN_ACTIVATE_VA, SLOT_SN_ACTIVATE_STOCK, (void **)&next_sn_activate, CODE_ADDR(sn_activate) },
+};
+
+/* The folder this DLL is in (with the trailing backslash). */
+static int own_folder(wchar_t *out, DWORD cap) {
+    wchar_t *slash;
+    DWORD n = GetModuleFileNameW(self_module, out, cap);
+    if (n == 0 || n >= cap || (slash = wcsrchr(out, L'\\')) == NULL) return 0;
+    slash[1] = L'\0';
+    return 1;
+}
+
+/* A slot holds its stock function, or the wrapper of another companion DLL
+   from this folder (one that loaded before this one), which is then chained. */
+static int known_slot(unsigned int va, unsigned int stock) {
+    MEMORY_BASIC_INFORMATION info;
+    wchar_t mine[1024], theirs[1024];
+    wchar_t *slash;
+    DWORD value, n;
+    if (VirtualQuery((const void *)(UINT_PTR)va, &info, sizeof info) != sizeof info || info.State != MEM_COMMIT) return 0;
+    value = *(const DWORD *)(UINT_PTR)va;
+    if (value == stock) return 1;
+    if (VirtualQuery((const void *)(UINT_PTR)value, &info, sizeof info) != sizeof info || info.AllocationBase == NULL
+        || (HMODULE)info.AllocationBase == GetModuleHandleW(NULL) || (HMODULE)info.AllocationBase == self_module) {
+        return 0;
+    }
+    n = GetModuleFileNameW((HMODULE)info.AllocationBase, theirs, 1024);
+    if (n == 0 || n >= 1024 || (slash = wcsrchr(theirs, L'\\')) == NULL || !own_folder(mine, 1024)) return 0;
+    slash[1] = L'\0';
+    return lstrcmpiW(mine, theirs) == 0;
+}
+
+NOINLINE static int prepare(void) {
+    ftfp_site_write *w = writes;
+    int i;
+    ftfp_site_branch(w++, SITE_PLANT_UPDATE_VA, SITE_PLANT_UPDATE_LEN, SITE_PLANT_UPDATE_EXPECT, 0xE9, CODE_ADDR(stub_update));
+    ftfp_site_branch(w++, SITE_SAVE_WRITE_VA, SITE_SAVE_WRITE_LEN, SITE_SAVE_WRITE_EXPECT, 0xE9, CODE_ADDR(stub_save));
+    ftfp_site_branch(w++, SITE_LOAD_DONE_VA, SITE_LOAD_DONE_LEN, SITE_LOAD_DONE_EXPECT, 0xE9, CODE_ADDR(stub_load));
+    ftfp_site_branch(w++, SITE_NEW_GAME_CLEAR_VA, SITE_NEW_GAME_CLEAR_LEN, SITE_NEW_GAME_CLEAR_EXPECT, 0xE8,
+                     CODE_ADDR(new_game_clear));
+    ftfp_site_branch(w++, SITE_DELETE_SLOT_VA, SITE_DELETE_SLOT_LEN, SITE_DELETE_SLOT_EXPECT, 0xE8, CODE_ADDR(delete_slot));
+    ftfp_site_branch(w++, SITE_POLLINATE_CALL_VA, SITE_POLLINATE_CALL_LEN, SITE_POLLINATE_CALL_EXPECT, 0xE8,
+                     CODE_ADDR(pollinate));
+    for (i = 0; i < VTABLE_SLOTS; ++i) {
+        DWORD current, to = (DWORD)(UINT_PTR)SLOTS[i].wrapper;
+        if (!known_slot(SLOTS[i].va, SLOTS[i].stock)) {
+            ftfp_failed_site = SLOTS[i].va;
+            return 0;
+        }
+        current = *(const DWORD *)(UINT_PTR)SLOTS[i].va;
+        memcpy(slot_expect[i], &current, 4);
+        *SLOTS[i].next = (void *)(UINT_PTR)current;
+        w->va = SLOTS[i].va;
+        w->length = 4;
+        w->expect = slot_expect[i];
+        memcpy(w->bytes, &to, 4);
+        ++w;
+    }
+    return (int)(w - writes) == TOTAL_SITES;
+}
+
+/* Every site checked, then all of them written or none. */
+NOINLINE static int install_all(void) {
+    return prepare() && ftfp_install_sites(writes, TOTAL_SITES);
+}
+
+static int append_text(char *out, int at, const char *text) {
+    while (*text && at < 158) out[at++] = *text++;
+    return at;
+}
+
+static int append_hex(char *out, int at, unsigned int v) {
+    int shift;
+    at = append_text(out, at, "0x");
+    for (shift = 28; shift >= 0 && at < 158; shift -= 4) out[at++] = "0123456789ABCDEF"[(v >> shift) & 0xF];
+    return at;
+}
+
+/* "<game>\Plant Tycoon Fix Patcher DLLs\Extra Greenhouses.log". */
+static void write_install_log(void) {
+    wchar_t path[1024];
+    char line[160];
+    DWORD written;
+    HANDLE file;
+    int len = 0;
+    if (!own_folder(path, 1024) || wcslen(path) + 32 >= 1024) return;
+    wcscat_s(path, 1024, L"Extra Greenhouses.log");
+    if (installed) {
+        len = append_text(line, len, "Extra Greenhouses: installed (all sites)\r\n");
+    } else if (ftfp_failed_site != 0) {
+        len = append_text(line, len, "Extra Greenhouses: NOT installed; the code at ");
+        len = append_hex(line, len, ftfp_failed_site);
+        len = append_text(line, len, " is not the stock code this build expects\r\n");
+    } else {
+        len = append_text(line, len, "Extra Greenhouses: NOT installed\r\n");
+    }
+    file = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) return;
+    WriteFile(file, line, (DWORD)len, &written, NULL);
+    CloseHandle(file);
+}
+
+/* The other companions beside this DLL start first, so their wrappers are in place. */
+typedef int (__stdcall *startup_fn)(void);
+
+static void start_companion(const wchar_t *name) {
+    wchar_t path[1024];
+    HMODULE module;
+    startup_fn startup;
+    if (!own_folder(path, 1024) || wcslen(path) + wcslen(name) + 1 >= 1024) return;
+    wcscat_s(path, 1024, name);
+    if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) return;
+    module = LoadLibraryExW(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+    if (module == NULL) return;
+    startup = (startup_fn)GetProcAddress(module, "FtfpStartup");
+    if (startup != NULL) startup();
+}
+
+/* Called once by the startup loader before WinMain. */
+int __stdcall FtfpStartup(void) {
+    if (installed) return 1;
+    __try {
+        wchar_t path[1024];
+        int flowers = 0;
+        if (own_folder(path, 1024) && wcslen(path) + 24 < 1024) {
+            wcscat_s(path, 1024, L"Unused Flowers.dll");
+            flowers = GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES;
+        }
+        start_companion(flowers ? L"Unused Flowers.dll" : L"Sort Seeds.dll");
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+    __try {
+        installed = install_all();
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        installed = 0;
+    }
+    write_install_log();
+    return installed;
+}
+
+int __stdcall FtfpExtraGreenhousesInstalled(void) { return installed; }
+
+/* For the tests and other companions: the greenhouse on screen and the plants for sale. */
+int __cdecl FtfpExtraGreenhousesShown(void) { return shown; }
+int __cdecl FtfpExtraGreenhousesForSale(void) { return GAME_STATE != NULL ? count_for_sale(GAME_STATE) : 0; }
+int __cdecl FtfpExtraGreenhousesLastSave(void) { return last_sidecar; }
+
+/* Greenhouse g's pot k (0-based), wherever it is now; NULL outside 0..5 / 0..14. */
+char *__cdecl FtfpExtraGreenhousesPot(int g, int k) {
+    char *state = GAME_STATE;
+    if (state == NULL || g < 0 || g >= GREENHOUSES || k < 0 || k >= POTS) return NULL;
+    if (arranged == NURSERY) arrange(state, HOME);
+    return locate(state, g, k);
+}
+
+BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
+    (void)reserved;
+    if (reason == DLL_PROCESS_ATTACH) {
+        self_module = instance;
+        DisableThreadLibraryCalls(instance);
+    }
+    return TRUE;
+}

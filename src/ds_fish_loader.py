@@ -100,8 +100,21 @@ PLANT_SORT = replace(
 )
 
 
+# With the extra greenhouses on, the loader loads that DLL, which starts
+# "Unused Flowers.dll" (or "Sort Seeds.dll") first and then wraps what they
+# installed.
+PLANT_GREENHOUSES = replace(
+    PLANT, dll_name="Extra Greenhouses.dll",
+    what_it_installs="That starts the other companion DLLs beside it, then checks the six places in the game's "
+                     "code and the 19 screen-table slots it changes and writes all of them or none; "
+                     "docs/plant-tycoon-extra-greenhouses-design.md lists them.",
+)
+
+
 def plant_profile(enabled: set[str]) -> LoaderProfile:
     """The DLL Plant Tycoon's loader loads for these settings."""
+    if "extra_greenhouses" in enabled:
+        return PLANT_GREENHOUSES
     return PLANT if "new_flowers" in enabled else PLANT_SORT
 
 PATH_WCHARS = 0x208

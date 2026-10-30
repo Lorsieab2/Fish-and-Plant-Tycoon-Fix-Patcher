@@ -1,0 +1,701 @@
+"""The "5 extra greenhouses" setting (native/ftfp_extra_greenhouses, docs/plant-tycoon-extra-greenhouses-design.md).
+
+The emulated tests run the vanilla "Plant Tycoon.exe" and the DLL rebuilt from its committed source in
+Unicorn (tests/store_emulator.py). Every plant is made by the game's own code (a seed planted by
+0x42FC70, grown by the game's own update 0x41D810), and every effect is the game's own code; Python
+only answers the clock, Random (one seeded sequence per run), memory, and the screen and sound calls.
+
+"Identical" is checked byte for byte: the same plant, planted, grown and treated with the same random
+numbers in Greenhouse 1 (the stock pots) and in each of Greenhouses 2-6, gives the same 0x5600-byte pot
+record, the same game state outside the pots, and the same one-time messages.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import random
+import struct
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "tests"))
+
+import ds_fish_loader  # noqa: E402
+import plant_patcher  # noqa: E402
+
+try:
+    import store_emulator as E
+    from unicorn import x86_const as X
+except ImportError:          # Unicorn is not installed
+    E = None
+
+PLANT_EXE = Path.home() / "Downloads" / "Current Modded LDW Games and Dumps" / "Vanilla Games" / "Plant Tycoon" / "Plant Tycoon.exe"
+DLL = ROOT / "assets" / "plant_tycoon_greenhouses" / "Extra Greenhouses.dll"
+MANIFEST = ROOT / "data" / "plant_manifest.json"
+SETTING = "extra_greenhouses"
+FOLDER = "Plant Tycoon Fix Patcher DLLs"
+
+RANDOM, CLOCK, SECONDS, MEMSET, MEMCPY = 0x004033B0, 0x00403430, 0x00402080, 0x00451280, 0x00450C10
+NEW, DELETE, MESSAGE_ONCE = 0x0044E894, 0x0044E7B3, 0x0041D830
+UPDATE, PLANT_SEED, GET_PLANT, POLLINATE, CHEMICAL_SWITCH = 0x0041D810, 0x0042FC70, 0x0042F6C0, 0x004240A0, 0x004266A6
+MANAGER_GLOBAL, STATE_GLOBAL, SPRITES_GLOBAL, GRAPHICS_GLOBAL = 0x00493C80, 0x0049333C, 0x00493C34, 0x00493948
+STATE_SIZE, POTS_AT, POT, POTS, EXTRA = 0x63E70, 0x2188, 0x5600, 15, 5
+HELD, SELECTED, HELD_POT = 0x56C, 0x63E58, 0x3E8
+FOR_SALE, PLANTED, FOLIAGE, FLOWER, AGE, HEALTH = 0x9D, 0x38, 0x4C, 0x50, 0x10, 0x24
+HOME, NURSERY = 0, 100
+
+HAVE = E is not None and PLANT_EXE.is_file() and E.toolchain_ready()
+needs_game = unittest.skipUnless(HAVE, "needs Unicorn, the vanilla Plant Tycoon.exe and the pinned MSVC toolset")
+
+# Two hours, a day away, an hour, three days away, ... : growth, flowering, seeds, thirst and death.
+TICKS = [7200, 86400, 3600, 3 * 86400, 600, 7200, 14400, 86400, 2 * 86400, 3600]
+
+
+class Game:
+    """The vanilla game in Unicorn after its own new game, with the DLL's hooks written as FtfpStartup writes them."""
+
+    built: tuple[Path, dict[str, int]] | None = None
+
+    def __init__(self, seed: int = 11) -> None:
+        dll, symbols = Game.built
+        emu = self.emu = E.Emulator(PLANT_EXE, dll, symbols)
+        emu.uc.mem_map(0, 0x1000)                         # fs:[0], the game's SEH chain
+        self.now = 1_000_000
+        self.rng = random.Random(seed)
+        self.messages: list[int] = []
+        self.told: list[str] = []
+        emu.hook(RANDOM, lambda e: self.rng.randrange(e.arg(0)) if e.arg(0) > 0 else 0)
+        emu.hook(CLOCK, lambda e: self.now)
+        emu.hook(SECONDS, lambda e: self.now)
+
+        def memset(e):
+            e.uc.mem_write(e.arg(0), bytes([e.arg(1) & 0xFF]) * e.arg(2))
+            return e.arg(0)
+
+        def memcpy(e):
+            e.uc.mem_write(e.arg(0), bytes(e.uc.mem_read(e.arg(1), e.arg(2))))
+            return e.arg(0)
+        emu.hook(MEMSET, memset)
+        emu.hook(MEMCPY, memcpy)
+        emu.hook(NEW, lambda e: e.alloc(max(e.arg(0), 4)))
+        emu.hook(DELETE, lambda e: 0)
+        emu.hook(MESSAGE_ONCE, lambda e: self.messages.append(e.arg(0)) or 0, 8)
+        # Screen, sound and tray calls (none of them reads or writes a pot).
+        for address, pop, result in ((0x0041C1F0, 0x1C, 0), (0x0041B190, 8, 0), (0x0044A580, 4, 0),
+                                     (0x0044A520, 8, 0), (0x0044A550, 0xC, 0), (0x00423630, 0xC, 0),
+                                     (0x00416700, 4, 0), (0x004244C0, 0, 0), (0x00435FF0, 0x18, 0),
+                                     (0x00401570, 0x14, 0), (0x00409AA0, 0x10, 0), (0x0040B650, 4, 0),
+                                     (0x00401AA0, 0x18, 0), (0x0040B400, 4, 0), (0x004092B0, 0x14, 0),
+                                     (0x00401C90, 8, 0), (0x0042AAA0, 0, 0)):
+            emu.hook(address, lambda e, r=result: r, pop)
+        emu.hook(0x0044CA70, lambda e: e.text("text"), 4)            # the string table
+
+        def box(e):
+            entry = e.read32(0x00493CC0 + 0x77 * 4)
+            self.told.append(e.cstring(e.read32(entry + 0xC)).decode("latin-1"))
+            return 0
+        emu.hook(0x0042AB50, box, 0x14)
+        entry = emu.alloc(0x10)
+        emu.write32(entry, 0x77)
+        emu.write32(entry + 8, emu.text("Your seed box is already full!"))
+        emu.write32(0x00493CC0 + 0x77 * 4, entry)
+
+        state = self.state = emu.alloc(STATE_SIZE)
+        esp = E.STACK + E.STACK_SIZE - 0x1000
+        emu.write32(esp, E.RETURN)
+        emu.uc.reg_write(X.UC_X86_REG_ESP, esp)
+        emu.uc.reg_write(X.UC_X86_REG_ECX, state)
+        emu.uc.emu_start(0x41EF30, 0x41F17D, count=20_000_000)      # the game's own new game, to its pot setup
+        emu.write32(state + 0x534, 10)                               # normal speed, as the state's reset sets it (0x41D235)
+        emu.write32(STATE_GLOBAL, state)
+        emu.write32(SPRITES_GLOBAL, emu.alloc(0x100))
+        emu.write32(GRAPHICS_GLOBAL, emu.alloc(0x100))
+        manager = self.manager = emu.alloc(0x810A4)
+        emu.write32(manager, state)
+        emu.write32(manager + 4, emu.read32(SPRITES_GLOBAL))
+        emu.write32(MANAGER_GLOBAL, manager)
+        # The DLL's hooks, as FtfpStartup writes them.
+        emu.uc.mem_write(UPDATE, b"\xE9" + struct.pack("<i", emu.sym("_stub_update") - (UPDATE + 5)))
+        for name, stock in (("gh_command", 0x427960), ("gh_mouse", 0x4273D0), ("gh_activate", 0x4231E0),
+                            ("gh_tick", 0x428810), ("nu_activate", 0x4360D0)):
+            emu.write32(emu.sym(f"_next_{name}"), stock)
+        self.scene = emu.alloc(0x200)
+        emu.write32(self.scene + 0x68, state)
+        emu.write32(self.scene + 0x70, manager)
+        for field in (0x60, 0x64, 0x74, 0x78, 0x8C, 0x9C):
+            emu.write32(self.scene + field, emu.alloc(0x40))
+
+    # ------------------------------------------------------------ the DLL
+    def arrange(self, kind: int) -> None:
+        self.emu.call(self.emu.sym("_arrange"), self.state, kind)
+
+    def show(self, g: int, active: int = 1) -> None:
+        """The greenhouse screen showing greenhouse g (0-5)."""
+        self.emu.write32(self.emu.sym("_shown"), g)
+        self.emu.write32(self.emu.sym("_active"), active)
+        self.emu.call(self.emu.sym("_ensure"))
+
+    def pot(self, g: int, k: int) -> int:
+        return self.emu.call(self.emu.sym("_FtfpExtraGreenhousesPot"), g, k)
+
+    def pot_bytes(self, g: int, k: int) -> bytes:
+        return bytes(self.emu.uc.mem_read(self.pot(g, k), POT))
+
+    def state_outside_pots(self) -> bytes:
+        data = bytes(self.emu.uc.mem_read(self.state, STATE_SIZE))
+        return data[:POTS_AT] + data[POTS_AT + POTS * POT:]
+
+    # ------------------------------------------------------------ the game
+    def plant(self, g: int, k: int, foliage: int, flower: int) -> None:
+        """The game's own planting (0x42FC70) of a seed in greenhouse g's pot k."""
+        seed = self.emu.alloc(0x24)
+        self.emu.write32(seed + 0x10, foliage)
+        self.emu.write32(seed + 0x14, flower)
+        self.arrange(g)
+        self.emu.call(PLANT_SEED, seed, k // 5, k % 5, ecx=self.manager)
+        self.arrange(HOME)
+
+    def tick(self, seconds: int) -> None:
+        self.now += seconds
+        self.emu.call(UPDATE, ecx=self.state)
+
+    def chemical(self, g: int, k: int, chemical: int) -> None:
+        """The greenhouse's own chemical code (the switch at 0x4266A6) on greenhouse g's pot k."""
+        emu = self.emu
+        self.arrange(g)
+        plant = emu.call(GET_PLANT, k // 5, k % 5, ecx=self.manager)
+        emu.write32(self.state + HELD, 5)
+        frame = E.STACK + E.STACK_SIZE - 0x2000
+        emu.uc.mem_write(frame, bytes(0x40))
+        emu.write32(frame + 0x14, plant)
+        emu.write32(frame + 0x1C, E.RETURN)
+        emu.write32(frame + 0x20, chemical)
+        for register, value in ((X.UC_X86_REG_ESP, frame), (X.UC_X86_REG_ESI, self.scene),
+                                (X.UC_X86_REG_EBX, k % 5), (X.UC_X86_REG_EBP, k // 5),
+                                (X.UC_X86_REG_EDI, k * POT)):
+            emu.uc.reg_write(register, value)
+        emu.uc.reg_write(X.UC_X86_REG_FPCW, 0x027F)
+        emu.uc.emu_start(CHEMICAL_SWITCH, E.RETURN, count=20_000_000)
+        self.arrange(HOME)
+
+    def objects_follow_their_records(self) -> bool:
+        """Every plant object in the manager points at the state pot it stands for."""
+        for k in range(POTS):
+            obj = self.emu.read32(self.manager + 8 + 4 * k)
+            if obj and self.emu.read32(obj + 8) != self.state + POTS_AT + k * POT:
+                return False
+        return True
+
+
+def _build() -> None:
+    if Game.built is None:
+        Game.tmp = tempfile.TemporaryDirectory()
+        Game.built = E.build_with_map("ftfp_extra_greenhouses", DLL, Path(Game.tmp.name))
+
+
+def grow(g: int, seed: int, plants=((7, 13, 13),), ticks=TICKS) -> Game:
+    game = Game(seed)
+    for k, foliage, flower in plants:
+        game.plant(g, k, foliage, flower)
+    for dt in ticks:
+        game.tick(dt)
+    return game
+
+
+@needs_game
+class TickTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        _build()
+
+    def trace(self, g: int, seed: int, foliage: int, flower: int):
+        game = Game(seed)
+        game.plant(g, 7, foliage, flower)
+        out = []
+        for dt in TICKS:
+            game.tick(dt)
+            out.append(game.pot_bytes(g, 7))
+        return out, game.state_outside_pots(), game.messages, game
+
+    def test_every_extra_greenhouse_pot_ticks_exactly_like_a_stock_pot(self) -> None:
+        for seed, (foliage, flower) in ((3, (13, 13)), (8, (22, 23)), (21, (4, 11))):
+            stock, stock_state, stock_messages, game = self.trace(0, seed, foliage, flower)
+            ages = [struct.unpack_from("<f", record, AGE)[0] for record in stock]
+            self.assertGreater(ages[0], 0)                               # the plant really grew
+            self.assertTrue(any(struct.unpack_from("<i", r, HEALTH)[0] <= 0 for r in stock))   # and died of thirst
+            for g in range(1, EXTRA + 1):
+                extra, extra_state, extra_messages, other = self.trace(g, seed, foliage, flower)
+                self.assertEqual(extra, stock, f"greenhouse {g + 1}, seed {seed}")
+                self.assertEqual(extra_state, stock_state, f"greenhouse {g + 1}: the game state")
+                self.assertEqual(extra_messages, stock_messages)
+                self.assertTrue(other.objects_follow_their_records())
+                self.assertEqual(other.pot_bytes(0, 7), game.pot_bytes(1, 7))   # the stock pot it left alone
+
+    def test_a_full_greenhouse_ticks_like_the_stock_one(self) -> None:
+        plants = [(k, 1 + (k * 5) % 23, 1 + (k * 7) % 23) for k in range(POTS)]
+        stock = grow(0, 5, plants)
+        for g in (2, 5):
+            extra = grow(g, 5, plants)
+            self.assertEqual([extra.pot_bytes(g, k) for k in range(POTS)],
+                             [stock.pot_bytes(0, k) for k in range(POTS)])
+            self.assertEqual(extra.state_outside_pots(), stock.state_outside_pots())
+
+    def test_the_time_warp_moves_extra_pots_like_the_stock_pots(self) -> None:
+        """Store Upgrades and Items.dll's Time Warp: every live stock pot's clock back by dt (stamps
+        ahead of now set to now), then the update; FtfpExtraGreenhousesWarp does the same for the
+        extra pots."""
+        def warped(g: int) -> bytes:
+            game = grow(g, 9, ticks=(7200, 600))                  # alive: the warp moves live pots only
+            dt = 30 * 3600
+            if g == 0:
+                record = game.state + POTS_AT + 7 * POT
+                self.assertGreater(game.emu.read32(record + HEALTH, signed=True), 0)
+                stamp = min(game.emu.read32(record + 4), game.now)
+                game.emu.write32(record + 4, stamp - dt)
+            else:
+                game.emu.call(game.emu.sym("_FtfpExtraGreenhousesWarp"), dt, game.now)
+            game.emu.call(UPDATE, ecx=game.state)
+            return game.pot_bytes(g, 7)
+        stock = warped(0)
+        for g in range(1, EXTRA + 1):
+            self.assertEqual(warped(g), stock)
+
+
+@needs_game
+class EffectTests(unittest.TestCase):
+    """One test per effect family: the game's own code on an extra greenhouse's pot gives the stock result."""
+
+    PLANTS = ((2, 13, 13), (7, 11, 10), (11, 22, 23))
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        _build()
+
+    def compare(self, action, label: str) -> None:
+        def run(g: int):
+            game = grow(g, 17, self.PLANTS, TICKS[:4])
+            action(game, g)
+            for dt in (3600, 86400):
+                game.tick(dt)
+            return [game.pot_bytes(g, k) for k in range(POTS)], game.state_outside_pots(), game
+        stock, stock_state, _ = run(0)
+        for g in range(1, EXTRA + 1):
+            extra, extra_state, game = run(g)
+            self.assertEqual(extra, stock, f"{label}: greenhouse {g + 1}")
+            self.assertEqual(extra_state, stock_state, f"{label}: greenhouse {g + 1}, the game state")
+            self.assertTrue(game.objects_follow_their_records())
+
+    def test_every_chemical(self) -> None:
+        # The switch's nine cases, chemicals 27-35 (plant foods, pesticides, the two bombs that reach
+        # every pot of the greenhouse, Insta-Grow, Mutation Liquid, ...), on pot 7.
+        for chemical in range(27, 36):
+            self.compare(lambda game, g, c=chemical: game.chemical(g, 7, c), f"chemical {chemical}")
+
+    def test_pollination(self) -> None:
+        def pollinate(game, g):
+            game.arrange(g)
+            target, donor = (game.state + POTS_AT + k * POT for k in (7, 2))
+            game.emu.call(POLLINATE, target, donor, ecx=game.scene)
+            game.arrange(HOME)
+        self.compare(pollinate, "pollination")
+
+    def test_pollen_carried_to_another_greenhouse_keeps_its_donor(self) -> None:
+        """Pollen from greenhouse 1's pot 2 dropped on another greenhouse's pot 7 gives that plant the
+        seeds stock pollination within one greenhouse gives it."""
+        stock = grow(0, 23, ((2, 13, 13), (7, 11, 10)), TICKS[:4])
+        stock.arrange(HOME)
+        stock.emu.call(POLLINATE, stock.state + POTS_AT + 7 * POT, stock.state + POTS_AT + 2 * POT, ecx=stock.scene)
+        for g in range(1, EXTRA + 1):
+            game = Game(23)
+            game.plant(0, 2, 13, 13)
+            game.plant(g, 7, 11, 10)
+            for dt in TICKS[:4]:
+                game.tick(dt)
+            emu = game.emu
+            game.show(g)
+            emu.write32(emu.sym("_pollen_g"), 0)
+            emu.write32(emu.sym("_pollen_k"), 2)
+            wrong_donor = game.state + POTS_AT + 2 * POT                  # greenhouse g's own pot 2 (empty)
+            emu.call(emu.sym("@pollinate@16"), game.state + POTS_AT + 7 * POT, wrong_donor,
+                     ecx=game.scene)
+            game.show(0, active=0)
+            self.assertEqual(game.pot_bytes(g, 7), stock.pot_bytes(0, 7))
+            self.assertEqual(game.pot_bytes(0, 2), stock.pot_bytes(0, 2))
+            self.assertEqual(emu.read32(emu.sym("_pollen_g"), signed=True), -1)
+
+    def test_moving_pots_within_a_greenhouse(self) -> None:
+        def move(game, g):
+            game.arrange(g)
+            game.emu.call(0x0042F940, 0, 2, 2, 4, ecx=game.manager)       # pot 2 <-> pot 14
+            game.arrange(HOME)
+        self.compare(move, "moving a pot")
+
+    def test_emptying_a_pot(self) -> None:
+        def empty(game, g):
+            game.arrange(g)
+            game.emu.call(0x0042F410, 1, 2, ecx=game.manager)            # pot 7
+            game.arrange(HOME)
+        self.compare(empty, "emptying a pot")
+
+
+@needs_game
+class MoveTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        _build()
+
+    def drop_on_arrow(self, game: Game, right: bool, k: int) -> None:
+        emu = game.emu
+        emu.write32(game.state + HELD, HELD_POT + k)
+        emu.call(emu.sym("@gh_mouse@20"), 3, 760 if right else 230, 30, ecx=game.scene)
+
+    def test_a_plant_dropped_on_an_arrow_moves_to_that_greenhouses_first_empty_pot(self) -> None:
+        game = grow(0, 4, ((4, 13, 13),), (7200,))
+        plant = game.pot_bytes(0, 4)
+        empty_target = game.pot_bytes(1, 0)
+        game.show(0)
+        self.drop_on_arrow(game, True, 4)
+        emu = game.emu
+        self.assertEqual(emu.read32(emu.sym("_shown")), 1)
+        self.assertEqual(emu.read32(game.state + HELD), 0)
+        self.assertEqual(bytes(emu.uc.mem_read(game.state + POTS_AT, POT)), plant)   # on screen now
+        self.assertTrue(game.objects_follow_their_records())
+        game.show(0, active=0)
+        self.assertEqual(game.pot_bytes(1, 0), plant)
+        self.assertEqual(game.pot_bytes(0, 4), empty_target)
+        # and on round: from greenhouse 2 to the left, back into greenhouse 1 (its pot 0 is empty)
+        game.show(1)
+        self.drop_on_arrow(game, False, 0)
+        game.show(0, active=0)
+        self.assertEqual(game.pot_bytes(0, 0), plant)
+        # greenhouse 1's left arrow leads to greenhouse 6
+        game.show(0)
+        self.drop_on_arrow(game, False, 0)
+        game.show(0, active=0)
+        self.assertEqual(game.pot_bytes(5, 0), plant)
+        # it keeps growing there exactly as before
+        game.tick(3600)
+        self.assertNotEqual(game.pot_bytes(5, 0), plant)
+
+    def test_a_full_greenhouse_takes_no_plant(self) -> None:
+        game = grow(0, 4, ((4, 13, 13),), TICKS[:1])
+        for k in range(POTS):
+            game.emu.write32(game.pot(1, k) + FOLIAGE, 9)
+        before = [game.pot_bytes(g, k) for g in range(2) for k in range(POTS)]
+        game.show(0)
+        self.drop_on_arrow(game, True, 4)
+        game.show(0, active=0)
+        self.assertEqual([game.pot_bytes(g, k) for g in range(2) for k in range(POTS)], before)
+        self.assertEqual(len(game.told), 1)
+        self.assertIn("Greenhouse 2 is full!", game.told[0])
+        self.assertEqual(game.emu.read32(game.emu.sym("_shown")), 0)
+
+    def test_the_arrows_page_through_all_six(self) -> None:
+        game = Game(1)
+        emu = game.emu
+        seen = []
+        for _ in range(7):
+            emu.call(emu.sym("@gh_command@16"), 8, 41, ecx=game.scene)
+            seen.append(emu.read32(emu.sym("_shown")))
+        self.assertEqual(seen, [1, 2, 3, 4, 5, 0, 1])
+        emu.call(emu.sym("@gh_command@16"), 8, 40, ecx=game.scene)
+        emu.call(emu.sym("@gh_command@16"), 8, 40, ecx=game.scene)
+        self.assertEqual(emu.read32(emu.sym("_shown")), 5)
+
+
+@needs_game
+class NurseryLimitTests(unittest.TestCase):
+    """The stock nursery has 15 spots, one per pot: at most 15 plants are for sale, over all six greenhouses."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        _build()
+
+    @staticmethod
+    def full_game() -> Game:
+        game = Game(2)
+        for g in range(EXTRA + 1):
+            for k in range(POTS):
+                at = game.pot(g, k)
+                game.emu.write8(at + PLANTED, 1)
+                game.emu.write32(at + FOLIAGE, 5)
+                game.emu.write32(at + FLOWER, 5)
+                game.emu.uc.mem_write(at + AGE, struct.pack("<f", 30.0))
+                game.emu.write32(at + HEALTH, 100)
+        return game
+
+    def toggle(self, game: Game, g: int, k: int) -> None:
+        emu = game.emu
+        game.show(g)
+        emu.write32(game.state + SELECTED, k)
+        emu.call(emu.sym("@gh_command@16"), 8, 6, ecx=game.scene)
+
+    def for_sale(self, game: Game) -> int:
+        return game.emu.call(game.emu.sym("_FtfpExtraGreenhousesForSale"))
+
+    def test_the_sixteenth_plant_is_refused_in_every_greenhouse(self) -> None:
+        game = self.full_game()
+        spots = [(g, k) for k in range(3) for g in range(EXTRA + 1)][:15]     # 2-3 plants in each greenhouse
+        for n, (g, k) in enumerate(spots, 1):
+            self.toggle(game, g, k)
+            self.assertEqual(self.for_sale(game), n)
+        self.assertEqual(game.told, [])
+        for g in range(EXTRA + 1):
+            self.toggle(game, g, 10)
+            self.assertEqual(self.for_sale(game), 15)
+        self.assertEqual(len(game.told), EXTRA + 1)
+        self.assertIn("Only 15 plants can be for sale at once", game.told[0])
+        self.toggle(game, 0, 0)                                             # taking one off is never refused
+        self.assertEqual(self.for_sale(game), 14)
+        self.toggle(game, 4, 10)
+        self.assertEqual(self.for_sale(game), 15)
+
+    def test_put_all_up_for_sale_stops_at_the_stock_limit(self) -> None:
+        game = self.full_game()
+        for k in range(5):
+            self.toggle(game, 1, k)
+        game.show(3)
+        game.emu.call(game.emu.sym("@gh_command@16"), 8, 9, ecx=game.scene)   # the stock "all" button
+        self.assertEqual(self.for_sale(game), 15)
+        self.assertEqual(len(game.told), 1)
+        game.show(0, active=0)
+        self.assertEqual(sum(game.emu.uc.mem_read(game.pot(3, k) + FOR_SALE, 1)[0] for k in range(POTS)), 10)
+
+    def test_the_nursery_shows_the_plants_for_sale_of_every_greenhouse_in_its_15_spots(self) -> None:
+        game = self.full_game()
+        spots = [(g, k) for g in range(EXTRA + 1) for k in (3, 9, 14)][:15]
+        for g, k in spots:
+            self.toggle(game, g, k)
+        records = {(g, k): game.pot_bytes(g, k) for g in range(EXTRA + 1) for k in range(POTS)}
+        game.show(0, active=2)                                              # the nursery
+        in_state = [bytes(game.emu.uc.mem_read(game.state + POTS_AT + j * POT, POT)) for j in range(POTS)]
+        self.assertEqual(sum(r[FOR_SALE] for r in in_state), 15)            # all of them, in the stock spots
+        self.assertEqual(sorted(in_state), sorted(records[s] for s in spots))
+        self.assertTrue(game.objects_follow_their_records())
+        game.show(0, active=0)                                              # leaving: every plant back home
+        self.assertEqual({(g, k): game.pot_bytes(g, k) for g in range(EXTRA + 1) for k in range(POTS)}, records)
+
+
+@needs_game
+class SidecarTests(unittest.TestCase):
+    """Extra Greenhouses <slot>.dat: written beside the save through a temporary file, read back on load."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        _build()
+
+    def files(self, game: Game) -> dict[str, bytearray]:
+        emu, disk, handles = game.emu, {}, {}
+
+        def path(at):
+            return emu.wstring(at)
+
+        def create(e):
+            name, access, disposition = path(e.arg(0)), e.arg(1), e.arg(4)
+            if disposition == 3 and name not in disk:            # OPEN_EXISTING
+                return 0xFFFFFFFF
+            if access & 0x40000000:
+                disk[name] = bytearray()
+            handle = 0x100 + len(handles) * 4
+            handles[handle] = [name, 0]
+            return handle
+
+        def write(e):
+            name = handles[e.arg(0)][0]
+            disk[name].extend(bytes(emu.uc.mem_read(e.arg(1), e.arg(2))))
+            emu.write32(e.arg(3), e.arg(2))
+            return 1
+
+        def read(e):
+            entry = handles[e.arg(0)]
+            data = disk[entry[0]][entry[1]: entry[1] + e.arg(2)]
+            emu.uc.mem_write(e.arg(1), bytes(data))
+            entry[1] += len(data)
+            emu.write32(e.arg(3), len(data))
+            return 1
+
+        def size(e):
+            emu.uc.mem_write(e.arg(1), struct.pack("<q", len(disk[handles[e.arg(0)][0]])))
+            return 1
+
+        def move(e):
+            disk[path(e.arg(1))] = disk.pop(path(e.arg(0)))
+            return 1
+
+        def module(e):
+            text = "C:\\Game\\Plant Tycoon.exe\0".encode("utf-16-le")
+            emu.uc.mem_write(e.arg(1), text)
+            return len(text) // 2 - 1
+
+        special = emu.thunk()
+
+        def documents(e):
+            emu.uc.mem_write(e.arg(1), "C:\\Docs\0".encode("utf-16-le"))
+            return 1
+        emu.hook(special, documents, 16)
+        for name, handler, pop in (("CreateFileW", create, 28), ("WriteFile", write, 20), ("ReadFile", read, 20),
+                                   ("GetFileSizeEx", size, 8), ("MoveFileExW", move, 12),
+                                   ("DeleteFileW", lambda e: disk.pop(path(e.arg(0)), None) is not None, 4),
+                                   ("CloseHandle", lambda e: 1, 4), ("FlushFileBuffers", lambda e: 1, 4),
+                                   ("CreateDirectoryW", lambda e: 1, 8), ("LoadLibraryW", lambda e: 0x7000, 4),
+                                   ("GetProcAddress", lambda e: special, 8), ("GetModuleFileNameW", module, 12)):
+            emu.hook_import(name, handler, pop)
+        return disk
+
+    NAME = "C:\\Docs\\LDW\\Plant Tycoon\\Plant Tycoon Fix Patcher Data\\Extra Greenhouses 4.dat"
+
+    def test_round_trip_and_the_save_holds_the_stock_layout(self) -> None:
+        game = Game(6)
+        disk = self.files(game)
+        for g in range(EXTRA + 1):
+            game.plant(g, g + 3, 1 + g, 2 + g)
+        game.tick(86400)
+        before = {(g, k): game.pot_bytes(g, k) for g in range(EXTRA + 1) for k in range(POTS)}
+        stock_pots = bytes(game.emu.uc.mem_read(game.state + POTS_AT, POTS * POT))
+        game.show(4)                                         # greenhouse 5 on screen while the game saves
+        written = bytearray()
+
+        def save_write(e):                                   # the game's file writer 0x403690(data, size, slot)
+            written.extend(bytes(e.uc.mem_read(e.arg(0), e.arg(1))))
+            return 1
+        game.emu.hook(0x00403690, save_write, 0xC)
+        game.emu.call(game.emu.sym("_stub_save"), 4, ecx=game.state, edx=4)
+        self.assertEqual(bytes(written[POTS_AT - 8: POTS_AT - 8 + POTS * POT]), stock_pots)
+        self.assertEqual(game.emu.read32(game.emu.sym("_arranged")), 4)          # back on screen
+        self.assertEqual(list(disk), [self.NAME])
+        data = bytes(disk[self.NAME])
+        self.assertEqual(struct.unpack_from("<5I", data), (0x47585450, 1, EXTRA, POTS, POT))
+        self.assertEqual(len(data), 20 + EXTRA * POTS * POT)
+        # a load of slot 4 brings every greenhouse back
+        game.emu.call(game.emu.sym("_on_loaded"), game.state, 4)
+        for g in range(1, EXTRA + 1):
+            for k in range(POTS):
+                self.assertEqual(game.pot_bytes(g, k), before[(g, k)])
+        self.assertEqual(game.emu.read32(game.emu.sym("_shown")), 0)
+
+    def test_an_unreadable_file_is_set_aside_never_overwritten(self) -> None:
+        game = Game(6)
+        disk = self.files(game)
+        disk[self.NAME] = bytearray(b"PTXG not a sidecar")
+        game.plant(3, 0, 5, 5)
+        game.emu.call(game.emu.sym("_on_loaded"), game.state, 4)
+        self.assertEqual(bytes(disk[self.NAME + ".unreadable"]), b"PTXG not a sidecar")
+        self.assertNotIn(self.NAME, disk)
+        self.assertEqual(game.emu.read32(game.pot(3, 0) + FOLIAGE), 0)          # empty greenhouses
+
+    def test_no_file_means_empty_greenhouses(self) -> None:
+        game = Game(6)
+        self.files(game)
+        game.plant(2, 0, 5, 5)
+        game.emu.call(game.emu.sym("_on_loaded"), game.state, 7)
+        self.assertTrue(all(game.emu.read32(game.pot(g, k) + FOLIAGE) == 0
+                            for g in range(1, EXTRA + 1) for k in range(POTS)))
+
+
+@needs_game
+class InstallTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        _build()
+
+    def install(self, corrupt: int | None = None):
+        game = Game(1)
+        emu = game.emu
+        emu.hook_import("VirtualProtect", lambda e: (e.write32(e.arg(3), 0x20), 1)[1], 16)
+        emu.hook_import("FlushInstructionCache", lambda e: 1, 12)
+        emu.hook_import("GetCurrentProcess", lambda e: 0xFFFFFFFF, 0)
+        emu.uc.mem_write(UPDATE, bytes.fromhex("568BF1E8185CFEFF"))            # undo Game's own wiring
+        if corrupt is not None:
+            emu.write8(corrupt, emu.uc.mem_read(corrupt, 1)[0] ^ 0xFF)
+        before = bytes(emu.uc.mem_read(0x401000, 0x70000))
+        result = emu.call(emu.sym("_install_all"))
+        return emu, before, bytes(emu.uc.mem_read(0x401000, 0x70000)), result
+
+    def test_all_sites_are_written(self) -> None:
+        emu, before, after, result = self.install()
+        self.assertEqual(result & 0xFF, 1)
+        for va, target, opcode in ((0x41D810, "_stub_update", 0xE9), (0x41D156, "_stub_save", 0xE9),
+                                   (0x41EEFE, "_stub_load", 0xE9), (0x41D3DC, "@new_game_clear@8", 0xE8),
+                                   (0x415F5E, "@delete_slot@12", 0xE8), (0x425F54, "@pollinate@16", 0xE8)):
+            code = bytes(emu.uc.mem_read(va, 5))
+            self.assertEqual(code[0], opcode)
+            self.assertEqual(va + 5 + struct.unpack("<i", code[1:])[0], emu.sym(target))
+        self.assertEqual(emu.read32(0x46922C), emu.sym("@gh_command@16"))
+        self.assertEqual(emu.read32(emu.sym("_next_gh_command")), 0x427960)
+        self.assertEqual(emu.read32(0x469754), emu.sym("@nu_activate@12"))
+
+    def test_one_changed_site_means_nothing_is_written(self) -> None:
+        for corrupt in (0x41D3DC, 0x425F55, 0x41EF05):
+            emu, before, after, result = self.install(corrupt)
+            self.assertEqual(result & 0xFF, 0, hex(corrupt))
+            self.assertEqual(before, after, hex(corrupt))
+
+
+class ManifestTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        self.setting = next(s for s in self.manifest["settings"] if s["id"] == SETTING)
+
+    def test_the_setting(self) -> None:
+        s = self.setting
+        self.assertEqual(s["name"], "5 extra greenhouses")
+        self.assertFalse(s["default"])
+        self.assertTrue(s["separate_output"])
+        self.assertIn("empty", s["warning"].lower())
+        self.assertTrue(s["companion"]["startup_loader"])
+        files = {f["destination"]: f for f in s["companion"]["files"]}
+        self.assertEqual(set(files), {f"{FOLDER}/Extra Greenhouses.dll"})
+        data = DLL.read_bytes()
+        entry = files[f"{FOLDER}/Extra Greenhouses.dll"]
+        self.assertEqual((entry["size"], entry["sha256"]), (len(data), hashlib.sha256(data).hexdigest().upper()))
+        for f in self.manifest["settings"]:
+            for c in (f.get("companion") or {}).get("files", []):
+                source = ROOT / f["companion"]["source"] / c["path"]
+                self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest().upper(), c["sha256"], c["path"])
+
+    def test_the_loader_loads_this_dll_first_when_the_setting_is_on(self) -> None:
+        for others in (set(), {"new_flowers"}, {"sort_seeds"}, {"new_flowers", "plant_upgrades", "sort_seeds"}):
+            self.assertEqual(ds_fish_loader.plant_profile(others | {SETTING}).dll_name, "Extra Greenhouses.dll")
+        self.assertEqual(ds_fish_loader.plant_profile({"new_flowers"}).dll_name, "Unused Flowers.dll")
+        self.assertEqual(ds_fish_loader.plant_profile({"sort_seeds"}).dll_name, "Sort Seeds.dll")
+
+    def test_every_combination_with_the_setting_is_pinned(self) -> None:
+        pins = self.manifest["patched_sha256_by_settings"]
+        without = [k for k in pins if SETTING not in k.split(",")]
+        for key in without:
+            enabled = {s for s in key.split(",") if s} | {SETTING}
+            self.assertIn(plant_patcher.settings_key(enabled, self.manifest), pins)
+
+    def test_off_leaves_every_other_combination_as_it_was(self) -> None:
+        self.assertFalse(any(SETTING in p.get("requires", []) for p in self.manifest["patches"]))
+        self.assertEqual(ds_fish_loader.plant_profile(set()).dll_name, "Sort Seeds.dll")
+
+    def test_the_release_packages_it(self) -> None:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import build_release
+        packaged = set(build_release.FILES) | set(build_release.bundled_asset_files())
+        for path in ("assets/plant_tycoon_greenhouses/Extra Greenhouses.dll",
+                     "docs/plant-tycoon-extra-greenhouses-design.md", "docs/images/extra-greenhouses-switch.png"):
+            self.assertIn(path, packaged)
+            self.assertTrue((ROOT / path).is_file(), path)
+
+    @unittest.skipUnless(PLANT_EXE.is_file(), "needs the vanilla Plant Tycoon.exe")
+    def test_pins_are_the_patchers_output(self) -> None:
+        vanilla = PLANT_EXE.read_bytes()
+        pins = self.manifest["patched_sha256_by_settings"]
+        for key in (SETTING, f"new_flowers,{SETTING}", f"sort_seeds,{SETTING}"):
+            enabled = set(key.split(","))
+            patched, _ = plant_patcher.apply_patch_bytes(vanilla, plant_patcher.active_patch_records(self.manifest, enabled))
+            patched, _ = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.plant_profile(enabled))
+            self.assertEqual(hashlib.sha256(patched).hexdigest().upper(),
+                             pins[plant_patcher.settings_key(enabled, self.manifest)])
+            self.assertIn("Extra Greenhouses.dll".encode("utf-16-le"), patched)
+
+
+if __name__ == "__main__":
+    unittest.main()

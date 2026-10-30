@@ -144,7 +144,7 @@ class CombinedPatcherTests(unittest.TestCase):
         self.assertEqual(
             list(combined.patch_settings("plant")),
             ["fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets", "new_flowers",
-             "plant_upgrades", "sort_seeds", "time_warp", "free_upgrades", "add_money"],
+             "plant_upgrades", "sort_seeds", "time_warp", "free_upgrades", "add_money", "extra_greenhouses"],
         )
 
     def test_unknown_chemical_text_is_corrected_in_both_languages(self) -> None:

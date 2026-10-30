@@ -1,0 +1,9 @@
+LIBRARY "Extra Greenhouses"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpExtraGreenhousesInstalled = _FtfpExtraGreenhousesInstalled@0
+    FtfpExtraGreenhousesWarp
+    FtfpExtraGreenhousesShown
+    FtfpExtraGreenhousesForSale
+    FtfpExtraGreenhousesLastSave
+    FtfpExtraGreenhousesPot

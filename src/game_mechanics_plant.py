@@ -57,6 +57,8 @@ def page() -> GamePage:
                   note="Only with the Sort Seeds button setting: a \"Sort Seeds\" button on the Seed Storage "
                        "title bar."),
             Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (off by default), which also turns on the store's Upgrades screen it lives on."),
+            Group("Extra greenhouses (patcher)", EXTRA_GREENHOUSES,
+                  note="Only with the 5 extra greenhouses setting (off by default)."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Fish Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
@@ -1004,6 +1006,66 @@ TIME_WARP = (
             "pots are left alone.",
             "Plants can dry out or die along the way, as they would while you were away.",
         ),
+    ),
+)
+
+EXTRA_GREENHOUSES = (
+    Fact(
+        "Not in the unpatched game: one greenhouse of 15 pots.",
+        patched=(("extra_greenhouses", "six greenhouses of 15 pots, 90 pots in all. Gold arrows on the "
+                  "greenhouse screen (the game's own, as on the Seed Storage screen) page through Greenhouse 1, "
+                  "the stock one, to Greenhouse 6 and round again; the screen says \"Greenhouse n of 6\". "
+                  "Leaving the greenhouse and coming back shows the one you last looked at."),),
+    ),
+    Fact(
+        "Every greenhouse is the stock greenhouse screen, and the game's own code runs on its pots, so "
+        "everything on this page holds pot for pot in every greenhouse: ageing, water, health and soil, "
+        "pests, size, flowers, pollination and seeds, old age, every chemical (Plant Food, Bio-organic Plant "
+        "Food, pesticides, Insta-Grow, the Fertilizer Bomb, Mutation Liquid, the Radioactive Plant Formula, "
+        "...), every tool and tool upgrade, the water and soil upgrades, and every magic plant's effect.",
+        subs=(
+            "The two bombs reach every pot of the greenhouse they are used in, as in the stock game (one "
+            "greenhouse per dose).",
+            "Magic plants are found by growing one to age 24 in any greenhouse; their effects then reach every "
+            "plant in every greenhouse.",
+            "Bugs come only to the greenhouse on screen, as they come only while you are in the greenhouse in "
+            "the stock game.",
+        ),
+        patched=(("extra_greenhouses", "checked in emulation: the same plant, planted and grown with the same "
+                  "random numbers in Greenhouse 1 and in each of Greenhouses 2-6, ends byte for byte the same "
+                  "after each update, each chemical, pollination, moving and emptying a pot."),),
+    ),
+    Fact(
+        "Clocks and time away: every plant update (every 61 real-time seconds in the greenhouse, at once on "
+        "entering it, and after a Time Warp) updates all six greenhouses, one after the other, with the same "
+        "clock. A greenhouse you are not looking at grows exactly as if it were on screen, and time away is "
+        "caught up in every greenhouse when you come back. A Time Warp moves every live plant's clock in all "
+        "six greenhouses.",
+    ),
+    Fact(
+        "Moving plants: drag a plant onto an arrow to move it to the first empty pot of the greenhouse that "
+        "arrow leads to (it then shows that greenhouse). If that greenhouse has no empty pot, a box says so "
+        "and the plant stays. Moving within a greenhouse is the stock drag to another pot.",
+        subs=(
+            "Pollen you collect can be carried to another greenhouse with the arrows; the seeds it makes are "
+            "the same as from the same two plants in one greenhouse.",
+            "Seeds you take from a plant, or a plant you hold, go back to their pot if you switch greenhouses.",
+        ),
+    ),
+    Fact(
+        "Selling: the nursery has the stock game's 15 spots, and at most 15 plants can be for sale at once, "
+        "counting every greenhouse. Putting a 16th up for sale says \"Your nursery is full!\"; the "
+        "greenhouse's put-everything-up button stops at 15. The nursery shows the plants for sale from all "
+        "six greenhouses, so visitors, prices and the visitor limit (2 per plant for sale, see Selling and "
+        "visitors) are exactly the stock game's. Sold plants leave their pots as in the stock game.",
+    ),
+    Fact(
+        "Saves: the save file keeps the stock layout (Greenhouse 1's pots). Greenhouses 2-6 are kept beside "
+        "it in \"Plant Tycoon Fix Patcher Data\\Extra Greenhouses <slot>.dat\", written with every save "
+        "(to a temporary file, then renamed) and read back when the slot loads. A file that cannot be read "
+        "is set aside as \".unreadable\" and never overwritten; deleting the slot deletes it. Switching the "
+        "setting off hides Greenhouses 2-6 with their plants (they come back when it is on again), so empty "
+        "them first.",
     ),
 )
 

@@ -83,6 +83,24 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Plant Tycoon
 
+- **5 extra greenhouses**, a new setting, off by default, in the "Modded
+  Upgrades" copy: six greenhouses of 15 pots, 90 pots in all. The game's own
+  gold arrows on the greenhouse screen page through Greenhouse 1 (the stock
+  one) to Greenhouse 6, and the screen says "Greenhouse n of 6". Every
+  greenhouse is the stock screen with the game's own code running on its
+  pots, so every plant, chemical, tool, upgrade and magic plant works the same
+  in each, and every greenhouse grows while you look elsewhere, while you are
+  away and through the Time Warp (checked in emulation byte for byte against
+  the stock pots). Drop a plant on an arrow to move it to the next
+  greenhouse's first empty pot; pollen can be carried between greenhouses. The
+  nursery keeps its 15 spots: at most 15 plants are for sale at once, counting
+  every greenhouse. Greenhouses 2-6 are kept per save slot in "Plant Tycoon Fix
+  Patcher Data\Extra Greenhouses <slot>.dat"; the save keeps its stock layout.
+  Empty them before switching the setting off. Design:
+  docs/plant-tycoon-extra-greenhouses-design.md; picture:
+  docs/images/extra-greenhouses-switch.png.
+- The Time Warp also moves the clocks of the extra greenhouses' plants.
+
 - **Time Warp**, a new setting (both games), off by default. A clock (the owner's
   icon) on the store's Upgrades screen: a flat $500 to play 1-72 real-time hours
   as time away, typed into a small Windows popup and confirmed Yes/No. No

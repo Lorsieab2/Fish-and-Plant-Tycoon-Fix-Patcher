@@ -412,6 +412,12 @@ static void time_warp(char *scene) {
         if (stamp > now) stamp = now;                  /* a fresh seed's stamp is a second ahead */
         AT(pot, 0x04, unsigned int) = stamp - dt;
     }
+    {   /* "Extra Greenhouses.dll" (its own setting): the same for its pots. */
+        typedef void (__cdecl *extra_warp_fn)(unsigned int dt, unsigned int now);
+        HMODULE extra = GetModuleHandleW(L"Extra Greenhouses.dll");
+        extra_warp_fn extra_warp = extra ? (extra_warp_fn)GetProcAddress(extra, "FtfpExtraGreenhousesWarp") : NULL;
+        if (extra_warp != NULL) extra_warp(dt, now);
+    }
     AT(state, S_RESTOCK, unsigned int) -= dt;          /* the greenhouse's next 3-s check restocks if due */
     if (AT(state, S_STARTED, unsigned int) > dt) AT(state, S_STARTED, unsigned int) -= dt;
     update_plants(state, 0);
