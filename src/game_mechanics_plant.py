@@ -648,7 +648,7 @@ CHEMICALS = (
     ),
     Fact(
         "Radioactive Plant Formula Bomb: not in the unpatched game.",
-        patched=(("plant_upgrades", "on the store's Upgrades view, under the formula, $30,000, 3 bombs; "
+        patched=(("plant_upgrades", "on the store's Upgrades view, under the formula, $30,000, 3 doses; "
                   "the Fertilizer Bomb's art made rainbow. Used like the Fertilizer Bomb: one bomb gives "
                   "every pot the Fertilizer Bomb reaches (every live plant in the greenhouse on screen) "
                   "exactly one Radioactive Plant Formula dose, with all of its effects."),

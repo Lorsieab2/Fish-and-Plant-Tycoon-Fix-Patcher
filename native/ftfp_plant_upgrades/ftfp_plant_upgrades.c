@@ -18,7 +18,7 @@
      * Revita-Seed (beside that): chemical 38, 3 doses, $2500.  On a plant
        that has given all its seeds: it can be pollinated again.
      * Radioactive Plant Formula Bomb (under the formula): chemical 39, 3
-       bombs, $30000.  The formula's full effect on every live plant of the
+       doses, $30000.  The formula's full effect on every live plant of the
        greenhouse on screen, the pots the stock Fertilizer Bomb reaches.
      * seeds bred from the new flowers (self-pollinated or crossed) get the
        Legendary seed art too.
@@ -517,7 +517,7 @@ static const char REVITA_DESC[] =
 static const char REVITA_NAME[] = "Revita-Seed";
 static const char BOMB_TITLE[] = "Radioactive Plant Formula Bomb\n";
 static const char BOMB_DESC[] =
-    "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nContains 3 bombs.\n";
+    "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nContains 3 doses.\n";
 static const char BOMB_NAME[] = "Radioactive Plant Formula Bomb";
 static const char BOX_TITLE_4[] = "Fourth Seed Box";
 static const char BOX_TITLE_5[] = "Fifth Seed Box";

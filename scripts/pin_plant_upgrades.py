@@ -52,7 +52,7 @@ SETTING = {
         "Potion beside it ($10,000, 3 doses: a dead plant it is dropped on comes back to life at full "
         "health), Revita-Seed beside that ($2,500, 3 doses: a plant that has given all its seeds can "
         "be pollinated again, as a fresh plant can), the Radioactive Plant Formula Bomb under the "
-        "formula ($30,000, 3 bombs: one Radioactive Plant Formula dose for every live plant in the "
+        "formula ($30,000, 3 doses: one Radioactive Plant Formula dose for every live plant in the "
         "greenhouse on screen, the pots the Fertilizer Bomb reaches), Automatic Sprinklers ($10,000) "
         "on the tool shelf under the Extra Greenhouse and the Auto-Healer ($10,000) beside the Formula "
         "Bomb (each bought once; they work on every live potted plant in every greenhouse, on screen or "

@@ -175,7 +175,7 @@ Boxes DLL.
 | Radioactive Plant Formula | 36 / row 9 | $10,000, 3 doses | (598, 55) |
 | Revival Potion | 37 / row 10 | $10,000, 3 doses | (655, 55) |
 | Revita-Seed | 38 / row 11 | $2,500, 3 doses | (712, 55) |
-| Radioactive Plant Formula Bomb | 39 / row 12 | $30,000, 3 bombs | (598, 116) |
+| Radioactive Plant Formula Bomb | 39 / row 12 | $30,000, 3 doses | (598, 116) |
 
 The Time Warp clock moved to row 13 (frame 26) and Add Money's coins to row
 14 (frame 28), and the Extra Greenhouse item is row 15 (frame 30); the sheet

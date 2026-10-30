@@ -1305,7 +1305,7 @@ static const store_item ITEM[ITEMS] = {
         "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
     { FIN_RGH, 10000, 595, 90, 79, 72, SPR_ITEM_RGH, 48, 65,
       { "Radioactive Growth Hormone", "Radioaktive Wachstumshormone" },
-      { "Every fish in your tank gets full\nhealth and no sickness, young ones grow\nup at once, and pregnant ones give\nbirth to babies. Enough for 3 treatments.",
+      { "Every fish in your tank gets full\nhealth and no sickness, young ones grow\nup at once, and pregnant ones give\nbirth to babies. Contains 3 doses.",
         "Jeder Fisch in deinem Becken wird\nganz gesund und heil, junge werden\nsofort erwachsen, tr\xE4" "chtige geb\xE4" "ren\nBabys. Reicht f\xFCr 3 Behandlungen." } },
     /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped to the panel. */
     { FIN_REVIVAL, 10000, 687, 90, 79, 72, SPR_ITEM_REVIVAL, 48, 65,

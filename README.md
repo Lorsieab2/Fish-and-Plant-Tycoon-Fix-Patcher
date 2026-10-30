@@ -333,7 +333,7 @@ never needs the internet.
     big plant), no dead or brown leaves, full health, and always 5 seeds:
     an already pollinated plant has all its seeds ripe at once, any other
     gives all 5 at its next pollination (the Formula Bomb too).
-  - Radioactive Plant Formula Bomb under the formula: $30,000, 3 bombs; the
+  - Radioactive Plant Formula Bomb under the formula: $30,000, 3 doses; the
     stock Fertilizer Bomb made rainbow. One bomb gives every live plant in the
     greenhouse on screen exactly one Radioactive Plant Formula dose (the
     plants the Fertilizer Bomb reaches, in whichever greenhouse is shown).

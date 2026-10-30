@@ -477,7 +477,7 @@ and fixes.
     left a plant pollinated later at the stock 5, 4 or 3). The mark is
     cleared when a new plant is planted in the pot. The Formula Bomb gives
     every plant it reaches the same.
-  - Radioactive Plant Formula Bomb ($30,000, 3 bombs): the stock Fertilizer
+  - Radioactive Plant Formula Bomb ($30,000, 3 doses): the stock Fertilizer
     Bomb's art made rainbow. One bomb gives every live plant in the
     greenhouse on screen one Radioactive Plant Formula dose: the pots the
     Fertilizer Bomb reaches, read from its own code.
