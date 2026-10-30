@@ -547,6 +547,39 @@ class EmulatedTests(unittest.TestCase):
         self.assertEqual(emu.read32(emu.state + 17 * 20 + 0x78), 1)
         self.assertEqual(self.orn(emu, 0)[:4], before[:4])
 
+    def test_new_game_save_and_load_stubs(self) -> None:
+        """New game: the stock reset, then no copies. Save and Load of a slot: the sidecar's turn with that
+        slot, then exactly the stock instructions the stub replaced, registers as they were."""
+        from unicorn import x86_const as X
+        emu = self.world()
+        emu.write32(emu.state + 17 * 20 + 0x78, 1)
+        self.buy(emu, 17)
+        emu.hook(0x004194A0, emu.record("stock reset"), 0)
+        emu.call(emu.sym("_stub_new_game"), ecx=emu.state)
+        self.assertIn(("stock reset", ()), emu.calls)
+        self.assertEqual(self.count(emu), 0)
+
+        emu.hook(emu.sym("_on_save"), emu.record("on_save", args=1), 0)
+        emu.hook(emu.sym("_on_load"), emu.record("on_load", args=1), 0)
+        emu.uc.reg_write(X.UC_X86_REG_EDX, 3)
+        emu.uc.reg_write(X.UC_X86_REG_ECX, emu.state)
+        emu.uc.reg_write(X.UC_X86_REG_EBX, 0x1234)
+        emu.run_until(emu.sym("_stub_save"), 0x00419169)
+        esp = emu.uc.reg_read(X.UC_X86_REG_ESP)
+        self.assertIn(("on_save", (3,)), emu.calls)
+        self.assertEqual((emu.read32(esp), emu.read32(esp + 4)), (0x1E3C8, 3))
+        self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_EAX), emu.state + 8)
+        self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_EBX), 0x1234)
+        self.assertEqual(esp, E.STACK + E.STACK_SIZE - 0x1000 - 8)
+
+        emu.uc.reg_write(X.UC_X86_REG_EDI, 5)
+        emu.run_until(emu.sym("_stub_load"), 0x0041AF60)
+        esp = emu.uc.reg_read(X.UC_X86_REG_ESP)
+        self.assertIn(("on_load", (5,)), emu.calls)
+        self.assertEqual(esp, E.STACK + E.STACK_SIZE - 0x1000)
+        self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_ECX), esp + 0x120)
+        self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_EDI), 5)
+
     # ---------------------------------------------------------- the effect, counted once
     def customers(self, emu) -> int:
         """The selling scene's customer count (0x423E7D-0x423F4A), Random fixed at 0."""
