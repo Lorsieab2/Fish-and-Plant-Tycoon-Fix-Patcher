@@ -31,6 +31,7 @@ FILES = [
     "docs/images/add-money-fish.png",
     "docs/images/add-money-plant.png",
     "docs/images/breeding-guide-fish-discovered-species.png",
+    "docs/images/multiple-ornaments-tank.png",
     "docs/breeding-guide-interface.md",
     "docs/plant-tycoon-technical-details.md",
     "docs/golden-seahorse-defects.md",

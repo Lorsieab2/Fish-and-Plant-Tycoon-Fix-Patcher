@@ -166,7 +166,8 @@ class SiteHeaderTests(unittest.TestCase):
         result = subprocess.run([sys.executable, str(ROOT / "scripts" / "build_ornaments_headers.py"),
                                  str(VANILLA_EXE.parent)], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual((NATIVE / "orn_sites.h").read_bytes(), before)
+        self.assertEqual((NATIVE / "orn_sites.h").read_bytes().replace(b"\r\n", b"\n"),
+                         before.replace(b"\r\n", b"\n"))
 
     def test_install_is_all_or_none(self) -> None:
         source = (NATIVE / "ftfp_ornaments.c").read_text(encoding="utf-8")

@@ -251,7 +251,10 @@ SCOPE = (
             "Plants, snail, aerator, regulator and research: no, they work in every tank.",
         ),
         patched=(("ds_store", "Puffer Fish, Sting Ray and Moray Eel: yes, each acts only on the "
-                  "fish in its own tank, and a creature in the selling tank is never sold."),),
+                  "fish in its own tank, and a creature in the selling tank is never sold."),
+                 ("multiple_ornaments", "Ornament copies: no tank counts; they are decoration only and "
+                  "add nothing anywhere. The original's customer still counts from any tank: it comes "
+                  "from owning the ornament, not from where it is."),),
     ),
     Fact(
         "Do duplicates stack? (two or more of the same thing)",
@@ -264,7 +267,11 @@ SCOPE = (
             "Golden Seahorse, stock effects: no. More seahorses (with Buy Multiple Golden "
             "Seahorses) add no more customers or walk-over points; owning one is what counts.",
         ),
-        patched=(("ds_store", f"the DS-exclusive effects: Golden Seahorse and Sting Ray stack, "
+        patched=(("multiple_ornaments", "Ornaments: no. You can buy copies, but the effect comes from "
+                  "owning the ornament (its store-item dword, state + item x 20 + 0x78, which a copy never "
+                  "touches): with 0, 1 or 10 copies the selling scene gets the same customers and the "
+                  "\"more decor\" thought the same odds."),
+                 ("ds_store", f"the DS-exclusive effects: Golden Seahorse and Sting Ray stack, "
                   f"each one in a tank gives its own {below(100, 82)} roll for +1 health; Puffer "
                   f"Fish stack, each one gives +1 food and its own {below(100, 60)} roll for +1 "
                   f"more (food and health still cap at 100); Moray Eels do not stack, a dying fish "
@@ -699,6 +706,18 @@ PERMANENT_ITEMS = (
             "likely: it shows when Random(4) is above the number you own. The thought changes "
             "nothing.",
         ),
+        patched=(("multiple_ornaments",
+                  "each ornament can be bought again once you own it, at its stock price (Shell $20 to "
+                  "Sunken Ship $3500; Free upgrades does not apply, it is not an Upgrades item), into the "
+                  "tank you came from: up to 10 extra copies per tank, \"The tank is full!\" after that. "
+                  "A copy is decoration only. It is drawn, falls to the gravel, and is picked up, dragged, "
+                  "dropped and moved to another tank's button by the game's own ornament code (the Second "
+                  "Tank's button still needs the Second Tank), so it looks and moves exactly like the "
+                  "original, drawn in front of the originals. The trash can takes a copy after the game's "
+                  "\"Delete?\" question; the original still can never be thrown away. The effect stays "
+                  "one customer per ornament owned: copies never add one, and trashing copies never takes "
+                  "it away. Copies are kept per save slot in \"Fish Tycoon Fix Patcher Data\\Ornaments "
+                  "<slot>.dat\"; the save keeps its layout."),),
     ),
     Fact(
         "Second Tank ($450): unlocks Tank Two, a second full-size tank (21 fish) with its own fish, "

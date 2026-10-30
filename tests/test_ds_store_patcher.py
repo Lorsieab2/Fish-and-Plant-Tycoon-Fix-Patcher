@@ -46,6 +46,7 @@ class ManifestTests(unittest.TestCase):
         # The store writes no executable bytes: DS Fish's DLL loads its DLL.
         pins = self.manifest["patched_sha256_by_settings"]
         screen_items = {"time_warp", "free_upgrades", "add_money"}       # tests/test_store_extras.py
+        screen_items |= {"multiple_ornaments"}      # its own loader goes first: tests/test_multiple_ornaments.py
         with_store = [key for key in pins if SETTING in key.split(",") and not screen_items & set(key.split(","))]
         self.assertEqual(len(with_store), 128)        # 64, each with and without the Maximizable window
         for key in with_store:
