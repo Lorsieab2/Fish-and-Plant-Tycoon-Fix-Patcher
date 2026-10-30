@@ -367,7 +367,10 @@ BREEDING = (
     Fact(
         "A baby born into a full tank (21 fish) is lost without a message. The game's "
         "\"One of your tanks is full!\" warning is never shown.",
-        patched=(("bigger_tanks", "Tank One, Tank Two and the selling tank hold 26 fish."),),
+        patched=(("bigger_tanks", "Tank One, Tank Two and the selling tank hold 30 fish (the isolation "
+                  "tank still holds one). Fish 22-30 get everything fish 1-21 get: ageing, food, health, "
+                  "sickness and its spread, breeding, magic fish, medicines, chemicals, growth hormone, "
+                  "the store animals' effects, customers and selling."),),
     ),
     Fact("A sick mother loses her pregnancy; a dead mother never gives birth."),
 )
@@ -769,7 +772,7 @@ PERMANENT_ITEMS = (
     Fact(
         "Second Tank ($450): unlocks Tank Two, a second full-size tank (21 fish) with its own fish, "
         "ornaments and magic fish. You can drop fish and ornaments on its button to move them.",
-        patched=(("bigger_tanks", "it holds 26 fish, like Tank One and the selling tank."),),
+        patched=(("bigger_tanks", "it holds 30 fish, like Tank One and the selling tank."),),
     ),
 )
 
@@ -882,11 +885,17 @@ SELLING = (
         "Customers: 4 + 1 per ornament owned + 2 for the Golden Seahorse + 2 x Advertising level x "
         "(adults in the selling tank / 3, rounded down, + Random(2) + 2). Counted once each time you "
         "open the selling scene; they keep coming and going until you leave.",
+        patched=(("bigger_tanks", "the adults counted here stop at 21, the most a stock selling tank "
+                  "holds, so 30 adults bring the same crowd as 21 and no fish's odds go past the stock "
+                  "game's best."),),
     ),
     Fact(
         "Selling only happens while the selling scene is open. Once every real-time second, the "
         "adults in the selling tank are tried in slot order; the first that sells ends that second. "
         "After a sale there is no other for 5 real-time seconds.",
+        patched=(("bigger_tanks", "the selling tank holds 30, and every adult in it (slots 1-30) is "
+                  "tried each second with the same odds as in the stock game; still at most one sale a "
+                  "second."),),
     ),
     Fact(
         "Each fish rolls Random(900) <= T, with K = (N + 2) / 2 rounded down and N the customers "
@@ -1033,6 +1042,15 @@ DS_ANIMALS = (
         patched=(("ds_store", "they arrive with health 100 and food 100, and every Puffer Fish, Sting "
                   "Ray and Moray Eel already in a save (an eel in its rock too) is filled to 100 and 100 "
                   "the first time the save is loaded; they then stay full."),),
+    ),
+    Fact(
+        "Where they live: each of Tank One, Tank Two and the selling tank has 5 animal places of its "
+        "own (the Golden Seahorse uses them too), so animals never take a fish's place. They are kept "
+        "beside the save, in \"Fish Tycoon Fix Patcher Data\\Tank Animals <slot>.dat\", written each "
+        "time the game saves that slot. A save from an earlier build kept them in the tank's last fish "
+        "places (26-30); the first time it loads they move to their own places, and those fish "
+        "places are cleared only once the file is written. Their effects reach every fish in their "
+        "tank, all 30 with Bigger tanks.",
     ),
 )
 

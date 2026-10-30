@@ -58,21 +58,54 @@ treat anything above 20 as their default case. Nothing reads a seahorse's
 fin except the stage-3 draw. The DLL hooks that draw at `0x414C8A` to pick
 the animal's own sheet, centred on the seahorse's 116 x 62 hit box.
 
-### Animal slots: they never take a fish's place
+### Animal records: they never take a fish's place
 
-Decided (user): "26 fish + 5 animals". The state already holds 31 fish
-records per tank; the stock game uses 21, and "Bigger tanks: 26 fish" uses
-26. Every animal, the Golden Seahorse included, lives in slots 26-30, so a
-tank full of fish still takes up to 5 animals:
-- the two loops that build the swimming view (`0x4140C5`, `0x415893`) run
-  to 31 instead of 21 or 26 (the DLL accepts either stock value);
-- buying places the animal in the first free slot 26-30 of the tank (else
+Decided (user): "30 fish + 5 animals" (earlier "26 fish + 5 animals"). The
+state holds 31 fish records per tank; "Bigger tanks: 30 fish" uses 30 of
+them for fish. So the animals, the Golden Seahorse included, have 5 records
+per tank of their own, in the DLL, and a tank full of fish still takes up to
+5 animals:
+- the swimming view: the two loops that build and refresh it go on, at their
+  `jl` back to the top (`0x4140D0`, `0x41589E`), from the last fish slot to
+  the tank's animals. Each animal's entry carries the one slot number for
+  which the game's own `state + 0x390 + tank * 0x51EC + slot * 0x288` lands
+  on its record in the DLL, so every stock path that follows an entry
+  (draw, move, feed, pick up, drop, trash, the info panel) works on it
+  unchanged (docs/fish-tycoon-tank-expansion.md 6);
+- buying places the animal in the tank's first free animal record (else
   another tank), and the stock Golden Seahorse purchase is moved there too
   (`0x427E43`);
-- an animal dropped on a tank button moves to that tank's animal slots;
-- loading a save (the state's Load at `0x4424D0`) moves animals from older
-  builds out of the fish slots, and a new game clears slots 26-30
-  (`0x41AACA`).
+- an animal dropped on a tank button moves to that tank's animal records;
+- a new game clears them (`0x41AACA`).
+
+**Saved beside the save.** "Fish Tycoon Fix Patcher Data\Tank Animals
+<slot>.dat" (next to DS Fish's "DS Fish <slot>.dat"), written whenever the
+game saves that slot, before the game writes its own file: the state's
+Save(slot) `0x419100` is reached through its vtable slot `0x4424D4` and its
+two calls `0x41A663`, `0x41A66B`, all three pointed at the DLL first. The
+file is written atomically (a .tmp file, flushed, moved over the old one,
+which becomes `.previous.dat`), then read back and compared. Its header
+names the save it belongs to (money, money spent, sessions and minutes
+played, as saved):
+- the same save: its animals load (or the `.previous` file's, when the
+  game's own save did not finish after the file was written);
+- an earlier point of the same save (played and saved since with DS Store
+  Items off; sessions and minutes only grow): its animals come back;
+- anything else (an older save restored from a backup, a new game in the
+  slot, a damaged file): the file is set aside (`.other-save-<n>.dat`,
+  `.unreadable-<n>.dat`), never deleted, and the save has no animals.
+
+**The one-time move.** Loading a save from an earlier build (the state's
+Load at `0x4424D0`), whose animals are in fish records (26-30, or very early
+builds' among the fish): they are copied into the animal records, the file
+is written and read back, and only then are those fish records cleared
+(REMOVE_FISH, and the mark). If the file cannot be written, the records
+stay as they were (the view skips them, so nothing shows twice) and the next
+save tries again, clearing them only once the file is written; the game's
+own file still has them until then. Loading the same save again moves the
+same animals and writes the same file. Checked on copies of the owner's
+51 Fish Tycoon saves: every animal moved, nothing else in any save changed,
+and a second load gave the same result.
 
 With "Buy Multiple Golden Seahorses" on, the store animals can be bought
 more than once too; with it off, one of each, buyable again after trashing.
@@ -86,9 +119,12 @@ stock code showed nothing for the Golden Seahorse. The DLL hooks that call
 Magic Pufferfish, Blue-Spotted Stingray, Moray Eel. The store page uses the
 same names.
 
-No stock slot loop reaches slots 26-30 (magic fish, medicines, the Unknown
-Chemical, the age step), and the DLL's own effects skip seahorse-type
-records, so nothing but the animals' placement code ever touches them.
+No stock slot loop reaches the animal records (magic fish, medicines, the
+Unknown Chemical, the age step run over the fish slots only), and the DLL's
+own effects skip seahorse-type records, so nothing but the animals'
+placement code and the swimming view ever touches them. Their effects reach
+every fish in their tank: the effects run from the per-fish health tick,
+which visits all 30 fish slots with Bigger tanks.
 
 Customers in the selling tank (`0x42426F`) and their thought bubbles
 (`0x41355F`) now skip every seahorse-type companion, the Golden Seahorse
@@ -361,12 +397,9 @@ to keep using them:
 
 ## Ownership and saves
 
-Everything is in the game's own save:
-- the companions are fish records;
-- the rock is an ornament record;
-- the eggs are the slot #4 record.
-
-There is no store sidecar.
+- the companions: "Tank Animals <slot>.dat" beside the save (above);
+- the rock is an ornament record, in the game's save;
+- the eggs are the slot #4 record, in the game's save.
 
 ## Packaging
 
@@ -412,3 +445,6 @@ There is no store sidecar.
   a save from an earlier build, the eel's death save, and the
   selling-tank guards (they are a compare and a jump each, pinned by the
   header script).
+- Not yet checked in the running game (emulated only, tests/test_ds_store_animals.py):
+  the animals' own records and "Tank Animals <slot>.dat" (2026-10-30). The
+  live checks above were made when they sat in records 26-30.

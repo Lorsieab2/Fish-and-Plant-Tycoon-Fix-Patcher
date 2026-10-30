@@ -58,8 +58,9 @@ Fish Tycoon options:
 - Unknown Chemical: 3 uses
 - Universal supply slots 2-4
 - Buy Multiple Golden Seahorses
-- Bigger tanks: 26 fish (off by default; every tank holds 26 fish instead
-  of 21. Sell or move fish down to 21 per tank before turning it off.)
+- Bigger tanks: 30 fish (off by default; Tank One, Tank Two and the selling
+  tank hold 30 fish instead of 21, each fish selling with the stock odds.
+  Sell or move fish down to 21 per tank before turning it off.)
 - Optimize Prices button (on by default; an "Optimize Prices" button on the
   Species Chart. Asks Yes/No, then sets every discovered species to its best
   price per day for your shop as it is now, as in the Breeding Guide.)

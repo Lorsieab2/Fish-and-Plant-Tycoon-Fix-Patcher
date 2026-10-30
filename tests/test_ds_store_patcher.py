@@ -39,7 +39,8 @@ class ManifestTests(unittest.TestCase):
     def test_setting_is_off_by_default_needs_ds_fish_and_warns(self) -> None:
         self.assertFalse(self.setting["default"])
         self.assertEqual(self.setting["requires_settings"], ["ds_fish"])
-        self.assertIn("out of its rock", self.setting["warning"])
+        self.assertIn("Tank Animals <slot>.dat", self.setting["warning"])
+        self.assertIn("rock", self.setting["warning"])
         self.assertIn("Game Mechanics", self.setting["description"])
 
     def test_every_combination_is_pinned_as_the_same_one_without_it(self) -> None:

@@ -344,18 +344,23 @@ class FishStoreTests(unittest.TestCase):
     def test_bought_animals_have_full_health_and_food(self) -> None:
         for item, fin in (("puffer", 30), ("ray", 31), ("eel", 32)):
             emu = self.buy_animal(item)
-            rec = emu.state + ANIMAL_RECORD
+            rec = emu.call(emu.sym("_animal"), emu.state, 0, 0)        # Tank One's first animal record
             self.assertEqual((emu.read32(rec + 0x4C), emu.read32(rec + 0x50)), (22, fin), item)
             self.assertEqual((emu.read32(rec + 0x3C), emu.read32(rec + 0x44)), (100, 100), item)
             self.assertEqual(self.money(emu), 5000 - 1250, item)
 
-    def load_save(self, body: bytes) -> bytes:
-        """The DLL's Load (the vtable slot at 0x4424D0): the game's own load, then the animals."""
+    def load_save(self, body: bytes) -> tuple[bytes, list[bytes]]:
+        """The DLL's Load (the vtable slot at 0x4424D0): the game's own load, then the animals.
+        The state, and the 15 animal records (3 tanks x 5)."""
+        from test_ds_store_animals import Files
         emu = E.Emulator(FISH_EXE, self.dll, self.symbols)
+        emu.files = Files(emu)
         emu.hook_fish_save_read(body)
         state = emu.alloc(0x1E3C8 + 0x1000)
         self.assertEqual(emu.call(emu.sym("@on_state_load@12"), 1, ecx=state) & 0xFF, 1)
-        return bytes(emu.uc.mem_read(state, 0x1E3C8 + 8))
+        animals = [bytes(emu.uc.mem_read(emu.call(emu.sym("_animal"), state, t, k), 0x288))
+                   for t in range(3) for k in range(5)]
+        return bytes(emu.uc.mem_read(state, 0x1E3C8 + 8)), animals
 
     @staticmethod
     def put(body: bytearray, tank: int, slot: int, fin: int, health: int, food: int, kind: int = 22) -> int:
@@ -371,28 +376,38 @@ class FishStoreTests(unittest.TestCase):
         return at
 
     def test_loading_a_save_fills_the_animals_and_nothing_else(self) -> None:
+        """A save from the build that kept the animals in fish records 26-30: they move to their own
+        records (filled to 100/100; the Golden Seahorse is Fix Vanilla Bugs' job), those fish records are
+        cleared, and nothing else in the state changes but the eel's meters in its rock."""
         body = bytearray(0x1E3C8)
         for i in range(0, 0x390 - 8):                               # the state's other fields: a pattern
             body[i] = (i * 7 + 3) & 0xFF
-        filled = [self.put(body, 0, 26, 30, 50, 20),                # a half-fed Puffer Fish
-                  self.put(body, 1, 27, 31, 60, 100)]               # a Sting Ray
-        self.put(body, 2, 28, 22, 40, 10)                           # the Golden Seahorse: Fix Vanilla Bugs' job
+        moved = [self.put(body, 0, 26, 30, 50, 20),                 # a half-fed Puffer Fish
+                 self.put(body, 1, 27, 31, 60, 100),                # a Sting Ray
+                 self.put(body, 2, 28, 22, 40, 10)]                 # the Golden Seahorse
         self.put(body, 0, 4, 4, 40, 20, kind=3)                     # a fish
         rock = 0x5208 + 2 * 0x51EC + 0x2C - 8                       # the selling tank's second ornament
         body[rock:rock + 4] = bytes([1, 70, 30, 0xE1])              # the eel at home: health 70, food 30
         struct.pack_into("<i", body, rock + 0x24, 229)
-        state = self.load_save(bytes(body))
+        state, animals = self.load_save(bytes(body))
         expected = bytearray(body)
-        for at in filled:
-            struct.pack_into("<i", expected, at + 0x3C, 100)
-            struct.pack_into("<i", expected, at + 0x44, 100)
+        for at in moved:                                            # REMOVE_FISH's fields, and the mark
+            for field in (0x00, 0x04, 0x08, 0x0C, 0x3C, 0x40, 0x44, 0x4C, 0x50, *range(0x10, 0x3C, 4),
+                          0x78, 0x7C, 0x80):
+                struct.pack_into("<i", expected, at + field, 0)
         expected[rock + 1:rock + 3] = bytes([100, 100])
         self.assertEqual(state[8:], bytes(expected))
+        meters = {struct.unpack_from("<i", a, 0x50)[0]: struct.unpack_from("<iii", a, 0x3C)
+                  for a in animals if struct.unpack_from("<I", a, 0)[0]}
+        self.assertEqual(meters, {30: (100, 0, 100), 31: (100, 0, 100), 22: (40, 0, 10)})
 
-    def test_loading_a_save_with_full_animals_changes_nothing(self) -> None:
+    def test_loading_a_save_with_full_animals_changes_nothing_but_their_place(self) -> None:
         body = bytearray(0x1E3C8)
-        self.put(body, 0, 26, 32, 100, 100)
-        self.assertEqual(self.load_save(bytes(body))[8:], bytes(body))
+        at = self.put(body, 0, 26, 32, 100, 100)
+        record = bytes(body[at:at + 0x288])
+        state, animals = self.load_save(bytes(body))
+        self.assertEqual(animals[0], record)
+        self.assertEqual(struct.unpack_from("<I", state, at + 8)[0], 0)
 
     # --- Time Warp's "done" message
     def warp(self, money: int, free: bool, hours: int = 12, speed: int = 10, answer_yes: bool = True):

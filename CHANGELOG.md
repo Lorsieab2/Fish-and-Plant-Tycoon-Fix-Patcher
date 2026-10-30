@@ -308,10 +308,20 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   duration per level, sickness odds, food look), and the starter-eggs entry
   shows why the first baby is always a Greenfin Spotanus and how a player
   can still end up without one.
-- **Bigger tanks: 26 fish**, a new setting, off by default. Every tank holds
-  26 fish instead of 21: 45 byte changes to every place that assumes 21.
-  The state already has 31 fish records per tank and saves all of them, so
-  the save layout is unchanged.
+- **Bigger tanks: 30 fish**, a new setting, off by default. Tank One, Tank
+  Two and the selling tank hold 30 fish instead of 21 (the isolation tank
+  still holds one): 28 byte changes to every place that assumes 21, so fish
+  22-30 get everything fish 1-21 get (ageing, food, health, sickness and its
+  spread, breeding, magic fish, medicines, chemicals, growth hormone, the
+  store animals' effects, customers, selling). 30 is 10 x 3, so the loops the
+  compiler unrolled three at a time only change their count. Every adult in
+  the selling tank is for sale with the stock odds per fish, one sale a
+  second at most as in the stock game; the crowd counts at most 21 adults,
+  the stock game's most (one short routine). The state already has 31 fish
+  records per tank and saves all of them, so the save layout is unchanged.
+  Each family of effects is run in the game's own code, stock and patched,
+  with the fish in slot 0 and in slot 29, and gives the same result
+  (tests/test_fish_30.py). An earlier preview had this at 26 fish.
 - **DS Exclusive Fish**, a new setting, off by default (fish manifest
   v1.3.0). The Nintendo DS version's seven extra bodies and seven extra fins,
   343 new species:
@@ -341,9 +351,15 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
     a dying fish). The Golden Seahorse keeps its PC effects and gains its DS
     one.
   - The animals, the Golden Seahorse included, never take a fish's place:
-    each tank has 5 animal slots of its own (slots 26-30), and saves from
-    earlier builds are moved over on load. With Buy Multiple Golden
-    Seahorses on they can be bought more than once.
+    each tank has 5 animal places of its own, kept beside the save in
+    "Fish Tycoon Fix Patcher Data\Tank Animals <slot>.dat" (written each
+    time the game saves, atomically, and read back), so all 30 fish slots of
+    Bigger tanks stay the fish's. A save from an earlier build, which kept
+    them in fish slots 26-30, has them moved there the first time it loads;
+    those slots are cleared only once the file is written. The file names
+    the save it belongs to, so a save restored from a backup never picks up
+    a later one's animals (such a file is set aside, never deleted). With
+    Buy Multiple Golden Seahorses on they can be bought more than once.
   - The Puffer Fish puffs up now and then while it swims.
   - Holding an animal shows its name in the tank's info panel, as a fish's
     does: Golden Seahorse, Magic Pufferfish, Blue-Spotted Stingray, Moray
