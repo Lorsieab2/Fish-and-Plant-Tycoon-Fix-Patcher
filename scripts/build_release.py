@@ -32,6 +32,8 @@ FILES = [
     "docs/images/add-money-plant.png",
     "docs/images/optimize-prices-fish.png",
     "docs/images/optimize-prices-plant.png",
+    "docs/images/tank-counts-fish.png",
+    "docs/images/greenhouse-counts-plant.png",
     "docs/images/breeding-guide-fish-discovered-species.png",
     "docs/breeding-guide-interface.md",
     "docs/plant-tycoon-technical-details.md",

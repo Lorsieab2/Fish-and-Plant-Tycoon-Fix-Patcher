@@ -60,6 +60,7 @@ never needs the internet.
   "Fish Tycoon - Modded" copy; nothing is saved. How it works, with every
   address: `native/ftfp_fish_window/ftfp_fish_window.c`. Plant Tycoon draws
   through SDL2, a different renderer, so this setting is Fish Tycoon's only.
+<<<<<<< HEAD
 - Optimize Prices button (on by default). An "Optimize Prices" button on the
   Species Chart's bottom bar, left of Done (where you set prices). It asks
   "Set every discovered species to its best price per day?"; on Yes, every
@@ -75,6 +76,28 @@ never needs the internet.
   (`Fish Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the plain
   "Fish Tycoon - Modded" copy. Picture:
   [docs/images/optimize-prices-fish.png](docs/images/optimize-prices-fish.png).
+=======
+- Tank and greenhouse counts (on by default). Three lines in the game's own
+  font at the top left of the water on the tank screen, for the tank you are
+  looking at: "Fish: 12 of 21 (8 adults, 3 teens, 1 baby)" (of 26 with
+  Bigger tanks), "Creatures: Golden Seahorse, Moray Eel" when it has any, and
+  "Isolation tank: 1 of 1 (1 adult)". The stages are the game's own: a baby
+  is age 1-5, a teen 6-19, an adult 20 and up (the ages at which the game
+  switches the fish's picture). Dead fish are left out of the count and shown
+  after it as "Dead: 2" until you throw them away; they, and a Golden
+  Seahorse the stock game put in a fish slot, still take a place in the tank.
+  The creatures are the Golden Seahorse and DS Store Items' animals (the
+  Moray Eel in its rock too). In German the game's own German words are used.
+  The counts update every frame and are drawn just after the tank's
+  background, so fish, ornaments and buttons are drawn over them and nothing
+  is covered; display only, nothing in the game or the saves changes. It runs
+  as a companion DLL the game loads at start
+  (`Fish Tycoon Fix Patcher DLLs\Tank Counts.dll`, which also loads DS
+  Exclusive Fish's or the Maximizable window's DLL when those are on), in the
+  plain "Fish Tycoon - Modded" copy. How it works, with every address:
+  `native/ftfp_tank_counts/ftfp_tank_counts.c`. Picture:
+  [docs/images/tank-counts-fish.png](docs/images/tank-counts-fish.png).
+>>>>>>> origin/feat/tank-greenhouse-counts
 - DS Exclusive Fish (off by default). Adds the Nintendo DS version's seven
   extra bodies (Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang, Idle)
   and seven extra fins (Small Fin, Roundy, Angel, Clown, Yellow, Blue,
@@ -225,6 +248,7 @@ never needs the internet.
   flower, then its parents (unknown first), and packs them from the first
   slot: boxes 1-3 fill before 4-6, and locked drawers stay empty. It checks
   that exactly the same seeds come out as went in before writing anything.
+<<<<<<< HEAD
 - Optimize Prices button (on by default). An "Optimize Prices" button on the
   Nursery's bottom bar, at the right. It asks "Set every discovered species
   to its best price per day?"; on Yes, every species you have discovered gets
@@ -240,6 +264,22 @@ never needs the internet.
   companion DLL (`Plant Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the
   plain "Plant Tycoon - Modded" copy. Picture:
   [docs/images/optimize-prices-plant.png](docs/images/optimize-prices-plant.png).
+=======
+- Tank and greenhouse counts (on by default). One line in the game's own font
+  along the top of the greenhouse screen: "Plants: 9 of 15 (5 mature, 2 with
+  buds, 2 seedlings)", counting the pots that hold a living plant. The stages
+  are the selected plant's own countdown: a seedling before age 21 ("Buds in
+  ... Min."), with buds from 21 ("Mature in ... Min."), mature from 24. Dead
+  plants are left out of the count and shown after it as "Dead: 1" until you
+  trash them. The line updates every frame and is drawn just after the
+  greenhouse's background, so plants, pots, tools and buttons are drawn over
+  it; display only, nothing in the game or the saves changes. It runs as a
+  companion DLL the game loads at start
+  (`Plant Tycoon Fix Patcher DLLs\Greenhouse Counts.dll`, which also loads
+  Unused Flowers' or Sort Seeds' DLL when those are on). How it works:
+  `native/ftfp_greenhouse_counts/ftfp_greenhouse_counts.c`. Picture:
+  [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png).
+>>>>>>> origin/feat/tank-greenhouse-counts
 
 ## Use
 

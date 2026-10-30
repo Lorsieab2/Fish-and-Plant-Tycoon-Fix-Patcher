@@ -102,24 +102,80 @@ FISH_OPTIMIZE = replace(
 )
 
 
+# With the counts on, the loader loads "Tank Counts.dll", which first loads
+# the DLL the loader would load without it (DS Exclusive Fish, else the
+# Maximizable Window), so their pins are untouched.
+COUNTS_SETTING = "tank_greenhouse_counts"
+FISH_COUNTS = replace(
+    FISH, dll_name="Tank Counts.dll",
+    what_it_installs="That first loads DS Exclusive Fish.dll or Maximizable Window.dll when their settings are "
+                     "on, then checks the one place it changes in the running game (the tank screen's call of "
+                     "its background, 0x422013) and writes it or nothing; native/ftfp_tank_counts/"
+                     "ftfp_tank_counts.c describes it.",
+)
+
+
+# With Multiple ornaments on, the loader loads that DLL first; it loads
+# "DS Exclusive Fish.dll" or else "Maximizable Window.dll" when they are there.
+FISH_ORNAMENTS = replace(
+    FISH, dll_name="Multiple Ornaments.dll",
+    what_it_installs="That checks the ten places it changes in the running game (calls of the stock ornament "
+                     "code, the save and load of a game slot, and the store's Buy click and panel) and writes "
+                     "all of them or none, then loads DS Exclusive Fish or the Maximizable window when they are "
+                     "on; native/ftfp_ornaments/ftfp_ornaments.c describes them.",
+)
+
+
+# With "3 extra tanks" on, the loader loads that DLL, which first loads the one
+# the loader would have loaded otherwise (Multiple Ornaments, else DS Exclusive
+# Fish, else the window's).
+FISH_EXTRA_TANKS = replace(
+    FISH, dll_name="Extra Tanks.dll",
+    what_it_installs="That first loads Multiple Ornaments.dll, DS Exclusive Fish.dll or Maximizable Window.dll "
+                     "when they are there, then checks the places it changes in the running game and writes all "
+                     "of them or none; docs/fish-tycoon-extra-tanks-design.md lists them.",
+)
+
+
+def chain(profiles: list[LoaderProfile]) -> LoaderProfile:
+    """One loader for several DLLs: the first is loaded as a one-DLL loader would load it, then each
+    of the others the same way, in order. A single profile is returned as it is (its pins never move)."""
+    first = profiles[0]
+    if len(profiles) == 1:
+        return first
+    rest = profiles[1:]
+    text = first.what_it_installs
+    for p in rest:
+        text += f" Then it loads '{p.dll_name}' the same way. " + p.what_it_installs
+    return replace(first, then_dlls=first.then_dlls + tuple(p.dll_name for p in rest), what_it_installs=text)
+
+
 def with_optimize_prices(base: LoaderProfile | None, alone: LoaderProfile) -> LoaderProfile:
     """The loader for a game whose Optimize Prices button is on: it loads "Optimize Prices.dll"
     after the companion it would load anyway (so that DLL has installed first), or on its own."""
-    if base is None:
-        return alone
-    return replace(base, then_dlls=base.then_dlls + (OPTIMIZE_PRICES_DLL,),
-                   what_it_installs=base.what_it_installs + f" Then it loads '{OPTIMIZE_PRICES_DLL}' the same way. "
-                   + alone.what_it_installs)
+    return alone if base is None else chain([base, alone])
 
 
 def fish_profile(enabled: set[str]) -> LoaderProfile:
-    """The DLLs Fish Tycoon's loader loads for these settings."""
-    base = FISH if "ds_fish" in enabled else FISH_WINDOW
-    if OPTIMIZE_PRICES_SETTING not in enabled:
-        return base
-    if "ds_fish" not in enabled and "maximizable_window" not in enabled:
-        return FISH_OPTIMIZE
-    return with_optimize_prices(base, FISH_OPTIMIZE)
+    """The DLLs Fish Tycoon's loader loads for these settings.
+
+    Extra Tanks goes first: it loads Multiple Ornaments (which loads DS Exclusive Fish, which loads DS
+    Store Items and the window) before it installs, so the sites they share chain in that order. Without
+    it, Multiple Ornaments goes first the same way. The counts and the Optimize Prices button follow;
+    each loads its own companions only if they are not loaded yet (every FtfpStartup runs once)."""
+    profiles: list[LoaderProfile] = []
+    if "extra_tanks" in enabled:
+        profiles.append(FISH_EXTRA_TANKS)
+    elif "multiple_ornaments" in enabled:
+        profiles.append(FISH_ORNAMENTS)
+    if COUNTS_SETTING in enabled:
+        profiles.append(FISH_COUNTS)
+    if not profiles and ("ds_fish" in enabled or "maximizable_window" in enabled
+                         or OPTIMIZE_PRICES_SETTING not in enabled):
+        profiles.append(FISH if "ds_fish" in enabled else FISH_WINDOW)
+    if OPTIMIZE_PRICES_SETTING in enabled:
+        profiles.append(FISH_OPTIMIZE)
+    return chain(profiles)
 
 
 PLANT = LoaderProfile(
@@ -145,16 +201,29 @@ PLANT_OPTIMIZE = replace(
     what_it_installs=OPTIMIZE_PRICES_INSTALLS.format(screen="Nursery",
                                                      source="native/ftfp_plant_prices/ftfp_plant_prices.c"),
 )
+# With the counts on, "Greenhouse Counts.dll" is loaded first and loads
+# Unused Flowers, else Sort Seeds, itself.
+PLANT_COUNTS = replace(
+    PLANT, dll_name="Greenhouse Counts.dll",
+    what_it_installs="That first loads Unused Flowers.dll or Sort Seeds.dll when their settings are on, then "
+                     "wraps one slot of the greenhouse screen's table (its background draw) after checking it "
+                     "holds the stock function, or writes nothing; native/ftfp_greenhouse_counts/"
+                     "ftfp_greenhouse_counts.c describes it.",
+)
 
 
 def plant_profile(enabled: set[str]) -> LoaderProfile:
-    """The DLLs Plant Tycoon's loader loads for these settings."""
-    base = PLANT if "new_flowers" in enabled else PLANT_SORT
-    if OPTIMIZE_PRICES_SETTING not in enabled:
-        return base
-    if "new_flowers" not in enabled and "sort_seeds" not in enabled:
-        return PLANT_OPTIMIZE
-    return with_optimize_prices(base, PLANT_OPTIMIZE)
+    """The DLLs Plant Tycoon's loader loads for these settings: the counts first (they load Unused
+    Flowers, else Sort Seeds, themselves), then the Optimize Prices button."""
+    profiles: list[LoaderProfile] = []
+    if COUNTS_SETTING in enabled:
+        profiles.append(PLANT_COUNTS)
+    elif ("new_flowers" in enabled or "sort_seeds" in enabled or OPTIMIZE_PRICES_SETTING not in enabled):
+        profiles.append(PLANT if "new_flowers" in enabled else PLANT_SORT)
+    if OPTIMIZE_PRICES_SETTING in enabled:
+        profiles.append(PLANT_OPTIMIZE)
+    return chain(profiles)
+
 
 PATH_WCHARS = 0x208
 PATH_BYTES = PATH_WCHARS * 2

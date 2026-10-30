@@ -134,6 +134,7 @@ class CombinedPatcherTests(unittest.TestCase):
                 "golden_seahorse_repurchase",
                 "bigger_tanks",
                 "maximizable_window",
+                "tank_greenhouse_counts",
                 "optimize_prices",
                 "ds_fish",
                 "ds_store",
@@ -144,7 +145,7 @@ class CombinedPatcherTests(unittest.TestCase):
         )
         self.assertEqual(
             list(combined.patch_settings("plant")),
-            ["fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets", "new_flowers",
+            ["fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets", "tank_greenhouse_counts", "new_flowers",
              "plant_upgrades", "sort_seeds", "optimize_prices", "time_warp", "free_upgrades", "add_money"],
         )
 
@@ -420,7 +421,7 @@ class SectionLayoutTests(unittest.TestCase):
             # manifest bytes: the startup loader recomputes the checksum
             # itself, after every other change.
             loader_only = {"ds_fish", "ds_store", "time_warp", "free_upgrades", "add_money", "maximizable_window",
-                           "optimize_prices"}
+                           "optimize_prices", "tank_greenhouse_counts"}
             expected = 0 if not (enabled - loader_only) else 1
             self.assertEqual(
                 len(checksum_patches),

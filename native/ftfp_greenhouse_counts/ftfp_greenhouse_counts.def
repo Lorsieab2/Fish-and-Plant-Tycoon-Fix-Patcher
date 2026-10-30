@@ -1,0 +1,3 @@
+LIBRARY "Greenhouse Counts"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
