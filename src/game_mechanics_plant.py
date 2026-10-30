@@ -1061,7 +1061,7 @@ EXTRA_GREENHOUSES = (
     Fact(
         "Per greenhouse, as in the stock game, where it acts on the pots on screen: the Fertilizer Bomb and "
         "the other bomb reach the 15 pots of the greenhouse they are used in; bugs come to the greenhouse on "
-        "screen; each nursery sells only while it is on screen.",
+        "screen.",
     ),
     Fact(
         "Clocks and time away: every plant update (every 61 real-time seconds in the greenhouse, at once on "
@@ -1131,8 +1131,16 @@ EXTRA_NURSERIES = (
         "Selling and visitors).",
         subs=(
             "Every sale rule (the buy roll, prices, visitors, comments) is the stock one, per nursery.",
-            "Like the stock nursery, a nursery sells only while it is on screen; plants in the other nurseries "
-            "wait for you.",
+            "All bought nurseries sell at once, but only while you are in the nursery (the stock game sells "
+            "only there too). Every 2 real-time seconds the game's own buy roll runs for the nursery on "
+            "screen, then once for each other nursery in order (Nursery 1, 2, ...), each roll over its own 15 "
+            "spots in the stock order, all with the visitors browsing the nursery on screen (E = half of "
+            "them, as in Selling and visitors). So with every nursery full, 90 plants roll every 2 seconds.",
+            "Visitors come only to the nursery on screen, and its visitor limit counts its own plants for sale, "
+            "never past the stock maximum. A plant sold in another nursery is paid and counted at once, with "
+            "the cash register sound, but no visitor carries it off and no price marker shows; it leaves its "
+            "pot when that nursery is shown or you go back to the greenhouse, like any sold plant.",
+            "With no nursery bought the roll is the stock one alone.",
         ),
     ),
     Fact(

@@ -1006,7 +1006,8 @@ class InstallTests(unittest.TestCase):
         for va, target, opcode in ((0x41D810, "_stub_update", 0xE9), (0x41D156, "_stub_save", 0xE9),
                                    (0x41EEFE, "_stub_load", 0xE9), (0x41D3DC, "@new_game_clear@8", 0xE8),
                                    (0x415F5E, "@delete_slot@12", 0xE8), (0x425F54, "@pollinate@16", 0xE8),
-                                   *((va, stub, 0xE9) for va, stub in SEED_SITES)):
+                                   *((va, stub, 0xE9) for va, stub in SEED_SITES),
+                                   (0x437A1C, "@sales_roll@12", 0xE8), (0x435D21, "@sale_visitors@8", 0xE8)):
             code = bytes(emu.uc.mem_read(va, 5))
             self.assertEqual(code[0], opcode)
             self.assertEqual(va + 5 + struct.unpack("<i", code[1:])[0], emu.sym(target))
@@ -1111,6 +1112,90 @@ class ExtraNurseryTests(unittest.TestCase):
         emu.call(emu.sym("@nu_activate@12"), 0, ecx=nursery)
         self.assertEqual(game.emu.read32(game.pot(4, 9) + FOLIAGE), 0)          # sold: it left its pot
         self.assertEqual(sum(game.emu.uc.mem_read(game.pot(1, k) + FOR_SALE, 1)[0] for k in range(POTS)), 15)
+
+    def test_every_nursery_is_the_stock_screen_plus_its_name(self) -> None:
+        """Nursery 2's frame is the stock nursery draw (the scene's own slot, once, on the same scene, with
+        Nursery 2's plants in the 15 pots) and then only the name: the same as Nursery 1's."""
+        frames = {}
+        for page in (0, 1):
+            game = self.game(1)
+            emu = game.emu
+            drawn, texts = [], []
+            thunk = emu.thunk()
+            emu.hook(thunk, lambda e: drawn.append(e.uc.reg_read(X.UC_X86_REG_ECX)) or 0, 0)
+            emu.write32(emu.sym("_next_nu_draw"), thunk)
+            emu.hook(0x004092B0, lambda e: texts.append(e.cstring(e.arg(0)).decode("latin-1")) or 0, 0x14)
+            emu.write32(emu.sym("_nursery_shown"), page)
+            scene = emu.alloc(0xB00)
+            emu.call(emu.sym("@nu_draw@8"), ecx=scene)
+            frames[page] = (drawn, texts)
+            self.assertEqual(drawn, [scene])                               # the stock draw, once
+            self.assertEqual(emu.read32(emu.sym("_arranged")), 100 + page)  # its own plants in the pots
+        self.assertEqual(frames[0][1], ["Nursery 1 of 2"])
+        self.assertEqual(frames[1][1], ["Nursery 2 of 2"])                 # the only difference
+
+    def test_every_bought_nursery_gets_the_stock_roll_and_none_bought_is_stock(self) -> None:
+        for nurseries, rolls in ((0, 1), (1, 2), (3, 4)):
+            game = self.game(nurseries)
+            emu = game.emu
+            calls = []
+            emu.hook(0x00436BE0, lambda e: calls.append(e.arg(0)) or 0, 4)
+            game.show(0, active=2)
+            emu.call(emu.sym("@sales_roll@12"), 7, ecx=emu.alloc(0xB00))
+            self.assertEqual(calls, [7] * rolls, nurseries)                  # the same visitors browsing, each
+
+    def test_a_plant_in_a_nursery_not_on_screen_sells(self) -> None:
+        """Nursery 1 on screen holds 15 plants priced at 3 x V (never sell); Nursery 2's one plant sells
+        through the game's own roll and sale. No visitor carries it (they are Nursery 1's), it is paid,
+        counted, marked sold in its own greenhouse pot, and leaves that pot like any sold plant."""
+        game = Game(2)
+        emu = game.emu
+        game.plant(4, 9, 7, 7)                                              # a real plant, grown by the game
+        game.tick(7200)
+        game.tick(7200)
+        emu.write32(emu.sym("_nurseries_on"), 1)
+        emu.write32(emu.sym("_nurseries"), 1)
+        for k in range(POTS):            # Nursery 1's 15 spots: Greenhouse 2's plants, just sold (they keep
+            at = game.pot(1, k)          # their spots until the nursery closes, and are never rolled again)
+            emu.write8(at + PLANTED, 1)
+            emu.write32(at + FOLIAGE, 5)
+            emu.write32(at + FLOWER, 5)
+            emu.write8(at + 0x9E, 1)
+        limits = NurseryLimitTests()
+        limits.toggle(game, 4, 9)                                           # so this one is in Nursery 2
+        nursery = emu.alloc(0xB00)
+        emu.write32(nursery + 0xA3C, game.state)
+        emu.write32(nursery + 0xA44, game.manager)
+        emu.write32(nursery + 0xA4C, emu.alloc(0x40))
+        emu.hook(0x0043ACD0, lambda e: 6)                                   # visitors in the nursery
+        emu.uc.mem_write(0x435D21, b"\xE8" + struct.pack("<i", emu.sym("@sale_visitors@8") - (0x435D21 + 5)))
+        handed = []
+        emu.hook(0x00440940, lambda e: handed.append(1) or 0, 4)
+        emu.hook(0x00449F00, lambda e: emu.alloc(0x10))
+        emu.hook(RANDOM, lambda e: 0)
+        game.show(0, active=2)
+        game.show(0, active=0)
+        before = {(g, k): game.pot_bytes(g, k) for g in range(EXTRA + 1) for k in range(POTS)}
+        game.show(0, active=2)
+        ring = bytes(emu.uc.mem_read(nursery + 0x10, 0x48))
+        cash, sold = emu.read32(game.state + 0x217C), emu.read32(game.state + 0x38)
+        price = emu.read32(game.state + ((7 + 0x37) * 26 + 7) * 4)
+        emu.call(emu.sym("@sales_roll@12"), 6, ecx=nursery)
+        self.assertEqual(emu.read32(game.state + 0x217C) - cash, price)
+        self.assertEqual(emu.read32(game.state + 0x38) - sold, 1)
+        self.assertEqual(handed, [])                                        # no visitor of Nursery 1 took it
+        self.assertEqual(bytes(emu.uc.mem_read(nursery + 0x10, 0x48)), ring)
+        self.assertEqual(emu.read32(emu.sym("_arranged")), 100)             # Nursery 1 back on screen
+        self.assertTrue(game.objects_follow_their_records())
+        game.show(0, active=0)
+        after = game.pot_bytes(4, 9)
+        self.assertEqual((after[0x9E], after[FOR_SALE]), (1, 0))             # sold, in its own pot
+        fields = lambda r: (r[:0x2C], r[PLANTED], r[FOLIAGE:FOLIAGE + 8], r[FOR_SALE], r[0x9E])
+        for key, record in before.items():                                  # every other plant as it was
+            if key != (4, 9):                                               # (its object may now be built)
+                self.assertEqual(fields(game.pot_bytes(*key)), fields(record), key)
+        emu.call(emu.sym("_clear_sold_elsewhere"), game.state)              # back in the greenhouse
+        self.assertEqual(emu.read32(game.pot(4, 9) + FOLIAGE), 0)
 
     def test_owned_nurseries_round_trip_and_a_new_game_resets_them(self) -> None:
         game = Game(6)

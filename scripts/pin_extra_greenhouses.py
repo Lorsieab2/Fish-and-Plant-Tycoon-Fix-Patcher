@@ -91,8 +91,8 @@ NURSERIES = {
         "Storage screen) on the nursery screen page through Nursery 1, the stock one, and the ones you own, and "
         "the screen says \"Nursery 2 of 3\". Plants are tagged for sale in the greenhouse as in the stock game "
         "and fill the nurseries in order: Nursery 1 first (a Greenhouse 1 plant at its own pot's spot, as in "
-        "the stock game), then Nursery 2, and so on. Like the stock nursery, each one sells only while it is on "
-        "screen. Kept beside each save with the extra greenhouses in \"Plant Tycoon Fix Patcher "
+        "the stock game), then Nursery 2, and so on. While you are in the nursery, all of them sell at once "
+        "through the game's own buy roll; away from it nothing sells, as in the stock game. Kept beside each save with the extra greenhouses in \"Plant Tycoon Fix Patcher "
         "Data\\Extra Greenhouses <slot>.dat\". Runs as a companion DLL the game loads at start."
     ),
     "warning": (

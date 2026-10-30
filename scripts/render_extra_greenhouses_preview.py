@@ -135,12 +135,32 @@ def main() -> int:
     centred(screen, words(folder, exe, "Greenhouse 2 of 3"), constant("LABEL_X"), constant("LABEL_Y"))
     save(screen, "extra-greenhouses-switch.png")
 
-    screen = Image.open(images / "Nursery_BG.jpg").convert("RGBA")
-    bar = Image.open(images / "nurseryUI.png").convert("RGBA")
-    screen.alpha_composite(bar, (0, screen.height - bar.height))
-    arrows(screen, images, constant("NU_LEFT_X"), constant("NU_RIGHT_X"), constant("NU_ARROW_Y"))
-    centred(screen, words(folder, exe, "Nursery 2 of 3"), constant("NU_LABEL_X"), constant("NU_LABEL_Y"))
-    save(screen, "extra-nurseries-switch.png")
+    # The stock nursery screen as its draw lays it out (0x437183..0x437880 and 0x4375EC): the
+    # background, the 15 plant stands (singleTable1.png, sprite 0xC7) at the game's own places, its two
+    # bushes and the bottom bar; a potted plant (pot.png, a flower head from Flowers56x56_Grid.png) on
+    # some stands. Nursery 1 and Nursery 2 are drawn by the same code: only the plants and the label differ.
+    stands = [(77, 210), (106, 425), (219, 478), (355, 436), (486, 488), (546, 487), (604, 427), (634, 236),
+              (676, 204), (587, 100), (457, 95), (244, 98), (68, 313), (694, 345), (640, 301)]
+    flowers = Image.open(images / "Flowers56x56_Grid.png").convert("RGBA")
+    for page, cells in ((1, (0, 9, 18, 27, 36, 45, 3, 12)), (2, (6, 15, 24, 33, 42))):
+        screen = Image.open(images / "Nursery_BG.jpg").convert("RGBA")
+        stand = Image.open(images / "singleTable1.png").convert("RGBA")
+        for x, y in stands:
+            screen.alpha_composite(stand, (x, y))
+        screen.alpha_composite(Image.open(images / "EBushTable1.png").convert("RGBA"), (744, 355))
+        screen.alpha_composite(Image.open(images / "spikeyNEBush1.png").convert("RGBA"), (665, 48))
+        for n, cell in enumerate(cells):
+            x, y = stands[(n * 2 + page) % len(stands)]
+            style = (cell + page) % 6
+            pot = pots.crop((0, style * frame_h, pots.width, (style + 1) * frame_h)).resize((52, 44))
+            head = flowers.crop(((cell % 14) * 56, (cell // 14) * 56, (cell % 14) * 56 + 56, (cell // 14) * 56 + 56))
+            screen.alpha_composite(pot, (x + 8, y - 30))
+            screen.alpha_composite(head, (x + 6, y - 72))
+        bar = Image.open(images / "nurseryUI.png").convert("RGBA")
+        screen.alpha_composite(bar, (0, 0x1E4))
+        arrows(screen, images, constant("NU_LEFT_X"), constant("NU_RIGHT_X"), constant("NU_ARROW_Y"))
+        centred(screen, words(folder, exe, f"Nursery {page} of 3"), constant("NU_LABEL_X"), constant("NU_LABEL_Y"))
+        save(screen, "extra-nurseries-switch.png" if page == 2 else "extra-nurseries-nursery-1.png")
 
     screen = Image.open(images / "Store_BG.jpg").convert("RGBA")
     for picture, scale, x, y, tip in (("greenhouse1.png", 0.29, 404 + 6, 50, "Extra Greenhouse 2 of 5"),

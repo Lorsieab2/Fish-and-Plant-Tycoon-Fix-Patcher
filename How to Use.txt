@@ -143,9 +143,10 @@ Getting a plant into a nursery (5 extra nurseries):
   plant at its own pot's spot, as in the unpatched game), then Nursery 2, and
   so on, Greenhouse 1's plants before Greenhouse 2's, pot by pot. When a
   plant sells or is taken off sale, the ones after it move up.
-- Use the arrows on the nursery screen to see each nursery. A nursery sells
-  only while it is on screen, as the unpatched nursery sells only while you
-  are in it; each has its own visitors, prices and sales.
+- Use the arrows on the nursery screen to see each nursery. While you are
+  in the nursery, all your nurseries sell at once (the visitors you see are
+  the ones of the nursery on screen). Away from the nursery nothing sells,
+  as in the unpatched game.
 
 Tools tab, Breeding Guide: pick the game, a save folder and a player. Tabs
 for each part (Fish: Fins and Bodies; Plant: Flowers and Foliage), the

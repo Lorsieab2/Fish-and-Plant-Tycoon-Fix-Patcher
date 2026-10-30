@@ -248,8 +248,10 @@ never needs the internet.
   Nursery shelf (the game's own golden pot) sells Nurseries 2-6 in order,
   $10,000 each ($0 with Free upgrades); each one bought adds 15 spots (90 with
   all five). Each nursery is the stock nursery screen, run by the game's own
-  code, with its own 15 spots, visitors, prices and sales; it sells only while
-  it is on screen, as the stock nursery does. Every nursery screen is named at
+  code, with its own 15 spots. While you are in the nursery, every nursery
+  you own sells at once through the game's own buy roll (only the one on
+  screen has visitors walking about; away from the nursery nothing sells, as
+  in the stock game). Every nursery screen is named at
   the top ("Nursery 1" is the stock one), and gold arrows there page through
   the ones you own. Plants are tagged for sale in the greenhouse as in the
   stock game and fill the nurseries in order: Nursery 1 first (a Greenhouse 1
@@ -257,7 +259,8 @@ never needs the internet.
   bought are kept with the extra greenhouses in "Extra Greenhouses
   <slot>.dat". **Take plants off sale until 15 or fewer are for sale before
   switching it off.**
-  - Picture: [docs/images/extra-nurseries-switch.png](docs/images/extra-nurseries-switch.png).
+  - Pictures: Nursery 2 [docs/images/extra-nurseries-switch.png](docs/images/extra-nurseries-switch.png)
+    beside the stock Nursery 1 [docs/images/extra-nurseries-nursery-1.png](docs/images/extra-nurseries-nursery-1.png).
 
 ## Use
 

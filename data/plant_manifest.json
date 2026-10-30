@@ -2478,8 +2478,8 @@
           {
             "path": "Extra Greenhouses.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Extra Greenhouses.dll",
-            "size": 101888,
-            "sha256": "FD62C9FAC3BA795DBCBEB260AB64E35CF05801C34D61FAEDA460B5F2E2B1F137"
+            "size": 102912,
+            "sha256": "32F65DC03867235C404DBCC478975497A4C3C152022552E34423B5A3A28C0C49"
           },
           {
             "path": "Extra Greenhouses.ini",
@@ -2494,7 +2494,7 @@
       "id": "extra_nurseries",
       "name": "5 extra nurseries",
       "summary": "EXPERIMENTAL - USE AT OWN RISK. Five more nurseries of 15 spots, bought one by one on the store's Upgrades screen for $10,000 each: each one raises how many plants can be for sale at once by 15 (90 with all five). Gold arrows on the nursery screen page through the ones you own. Needs Add new store upgrades and items.",
-      "description": "EXPERIMENTAL - USE AT OWN RISK. An Extra Nursery item on the store's Upgrades screen (the Nursery shelf, beside Add Money) sells Nurseries 2-6 in order, $10,000 each ($0 with Free upgrades), with a tick once all five are yours. Without any, the game's own limit holds: at most 15 plants are for sale at once. Each one bought adds 15 more (30, 45, ... 90). Each nursery is the stock nursery screen with its own 15 spots, its own visitors, prices and sales, run by the game's own code; gold arrows (the game's own, as on the Seed Storage screen) on the nursery screen page through Nursery 1, the stock one, and the ones you own, and the screen says \"Nursery 2 of 3\". Plants are tagged for sale in the greenhouse as in the stock game and fill the nurseries in order: Nursery 1 first (a Greenhouse 1 plant at its own pot's spot, as in the stock game), then Nursery 2, and so on. Like the stock nursery, each one sells only while it is on screen. Kept beside each save with the extra greenhouses in \"Plant Tycoon Fix Patcher Data\\Extra Greenhouses <slot>.dat\". Runs as a companion DLL the game loads at start.",
+      "description": "EXPERIMENTAL - USE AT OWN RISK. An Extra Nursery item on the store's Upgrades screen (the Nursery shelf, beside Add Money) sells Nurseries 2-6 in order, $10,000 each ($0 with Free upgrades), with a tick once all five are yours. Without any, the game's own limit holds: at most 15 plants are for sale at once. Each one bought adds 15 more (30, 45, ... 90). Each nursery is the stock nursery screen with its own 15 spots, its own visitors, prices and sales, run by the game's own code; gold arrows (the game's own, as on the Seed Storage screen) on the nursery screen page through Nursery 1, the stock one, and the ones you own, and the screen says \"Nursery 2 of 3\". Plants are tagged for sale in the greenhouse as in the stock game and fill the nurseries in order: Nursery 1 first (a Greenhouse 1 plant at its own pot's spot, as in the stock game), then Nursery 2, and so on. While you are in the nursery, all of them sell at once through the game's own buy roll; away from it nothing sells, as in the stock game. Kept beside each save with the extra greenhouses in \"Plant Tycoon Fix Patcher Data\\Extra Greenhouses <slot>.dat\". Runs as a companion DLL the game loads at start.",
       "warning": "Before switching it off, take plants off sale until 15 or fewer are for sale; the nurseries you bought stay in the slot's Extra Greenhouses file and come back if you switch the setting on again.",
       "category": "main",
       "default": false,
@@ -2509,8 +2509,8 @@
           {
             "path": "Extra Greenhouses.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Extra Greenhouses.dll",
-            "size": 101888,
-            "sha256": "FD62C9FAC3BA795DBCBEB260AB64E35CF05801C34D61FAEDA460B5F2E2B1F137"
+            "size": 102912,
+            "sha256": "32F65DC03867235C404DBCC478975497A4C3C152022552E34423B5A3A28C0C49"
           },
           {
             "path": "Extra Nurseries.ini",

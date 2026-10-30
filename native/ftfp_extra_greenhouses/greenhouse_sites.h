@@ -42,6 +42,14 @@ static const unsigned char SITE_SEED_TRASH_EXPECT[] = { 0x8B, 0x9C, 0x39, 0xFC, 
 #define SITE_SEED_RETURN_LEN 6
 static const unsigned char SITE_SEED_RETURN_EXPECT[] = { 0x8B, 0xA9, 0x58, 0x3E, 0x06, 0x00 };
 #define SITE_SEED_RETURN_BACK 0x0042450Eu
+#define SITE_SALES_ROLL_VA 0x00437A1Cu
+#define SITE_SALES_ROLL_LEN 5
+static const unsigned char SITE_SALES_ROLL_EXPECT[] = { 0xE8, 0xBF, 0xF1, 0xFF, 0xFF };
+#define SITE_SALES_ROLL_BACK 0x00437A21u
+#define SITE_SALE_VISITOR_VA 0x00435D21u
+#define SITE_SALE_VISITOR_LEN 5
+static const unsigned char SITE_SALE_VISITOR_EXPECT[] = { 0xE8, 0xAA, 0x4F, 0x00, 0x00 };
+#define SITE_SALE_VISITOR_BACK 0x00435D26u
 #define SLOT_GH_MOUSE_VA 0x00469224u
 #define SLOT_GH_MOUSE_STOCK 0x004273D0u
 #define SLOT_GH_KEY_VA 0x00469228u

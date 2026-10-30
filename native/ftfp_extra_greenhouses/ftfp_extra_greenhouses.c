@@ -262,6 +262,10 @@ static char *locate(char *state, int g, int k) {
 
 static int for_sale(const char *pot) { return pot[POT_FOR_SALE] != 0; }
 
+/* A nursery spot is taken by a plant for sale, and by one just sold until the nursery closes
+   (the stock nursery empties sold pots then, 0x4363A3), so a sale never moves the others. */
+static int in_nursery(const char *pot) { return for_sale(pot) || (pot[POT_SOLD] && pot[POT_PLANTED]); }
+
 /* Which pot place stands in each spot of nursery `page` (or -1).  The plants for sale fill
    the nurseries in order: Nursery 1 first, a Greenhouse 1 plant at its own pot's spot as in
    the stock game, then the other greenhouses' plants, greenhouse by greenhouse and pot by
@@ -271,10 +275,10 @@ static void nursery_spots(char *state, int page, int *spots) {
     int home, p = 0, j = 0, k;
     memset(taken, 0xFF, sizeof taken);
     for (k = 0; k < POTS; ++k) {
-        if (for_sale(pos_record(state, k))) taken[0][k] = k;
+        if (in_nursery(pos_record(state, k))) taken[0][k] = k;
     }
     for (home = POTS; home < POSITIONS; ++home) {
-        if (!for_sale(pos_record(state, home))) continue;
+        if (!in_nursery(pos_record(state, home))) continue;
         while (p < nurseries_available() && taken[p][j] >= 0) {
             if (++j == POTS) { j = 0; ++p; }
         }
@@ -299,8 +303,8 @@ NOINLINE static void arrange(char *state, int kind) {
         /* A spot with no plant of this nursery shows no plant for sale: an unsold pot goes there. */
         for (k = 0; k < POTS; ++k) {
             int q;
-            if (spots[k] >= 0 || !for_sale(pos_record(state, k))) continue;
-            for (q = POTS; q < POSITIONS && for_sale(pos_record(state, q)); ++q) {
+            if (spots[k] >= 0 || !in_nursery(pos_record(state, k))) continue;
+            for (q = POTS; q < POSITIONS && in_nursery(pos_record(state, q)); ++q) {
             }
             if (q < POSITIONS) push_swap(state, k, q);
         }
@@ -559,7 +563,7 @@ static int __cdecl seed_put_back(void) {
 
 /* Sold plants leave their pots when the greenhouse opens (0x4231E0); the
    other greenhouses' sold plants leave theirs too, through the same call. */
-static void clear_sold_elsewhere(char *state) {
+NOINLINE static void clear_sold_elsewhere(char *state) {
     int g, k, keep = arranged;
     if (MANAGER == NULL) return;
     for (g = 0; g < GREENHOUSES; ++g) {
@@ -755,6 +759,42 @@ static void __fastcall gh_activate(char *scene, int edx, int on) {
 }
 
 /* ----------------------------------------------------- nursery and snapshot */
+
+/* Every bought nursery sells at once (the owner's choice).  The nursery tick (0x437950) runs the
+   stock buy roll 0x436BE0(visitors browsing) every 2 seconds: for the nursery on screen, then, with
+   each other nursery's plants moved into the 15 spots for that one call, once for each other
+   nursery, with the same visitors.  So every plant for sale gets the stock roll, prices and
+   effects.  Visitors are only the screen's: an off-screen sale hands no plant to a visitor (the
+   sale's visitor count reads 0), and its "+$" marker (the sale ring at nursery + 0x10..0x57) is
+   not shown on the screen's plants.  With no nursery bought this is the stock roll alone. */
+typedef void (__fastcall *roll_fn)(void *scene, int edx, int browsing);
+typedef int (__fastcall *count_fn)(void *list, int edx);
+#define NURSERY_SALE_RING 0x10
+#define NURSERY_SALE_RING_BYTES 0x48
+static int offscreen_sale = 0;
+
+static int __fastcall sale_visitors(void *list, int edx) {
+    return offscreen_sale ? 0 : ((count_fn)(UINT_PTR)0x0043ACD0u)(list, edx);
+}
+
+NOINLINE static void __fastcall sales_roll(char *scene, int edx, int browsing) {
+    unsigned char ring[NURSERY_SALE_RING_BYTES];
+    char *state = GAME_STATE;
+    int n, keep = arranged;
+    ((roll_fn)(UINT_PTR)0x00436BE0u)(scene, edx, browsing);
+    if (state == NULL || !nurseries_on || nurseries == 0 || arranged != NURSERY + nursery_shown) return;
+    memcpy(ring, scene + NURSERY_SALE_RING, sizeof ring);
+    offscreen_sale = 1;
+    for (n = 0; n <= nurseries; ++n) {
+        if (n == nursery_shown) continue;
+        arrange(state, NURSERY + n);
+        ((roll_fn)(UINT_PTR)0x00436BE0u)(scene, edx, browsing);
+    }
+    offscreen_sale = 0;
+    memcpy(scene + NURSERY_SALE_RING, ring, sizeof ring);
+    arrange(state, keep);
+}
+
 
 static int __fastcall nu_mouse(char *s, int e, int m, int x, int y) { enter(2); return next_nu_mouse(s, e, m, x, y); }
 static int __fastcall nu_key(char *s, int e, int m, int a, int b) { enter(2); return next_nu_key(s, e, m, a, b); }
@@ -1153,7 +1193,7 @@ static int __fastcall delete_slot(void *state, int edx, int slot) {
 /* ----------------------------------------------------------------- install */
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 10
+#define CODE_SITES 12
 #define VTABLE_SLOTS 19
 #define TOTAL_SITES (CODE_SITES + VTABLE_SLOTS)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -1235,6 +1275,9 @@ NOINLINE static int prepare(void) {
                      CODE_ADDR(stub_seed_trash));
     ftfp_site_branch(w++, SITE_SEED_RETURN_VA, SITE_SEED_RETURN_LEN, SITE_SEED_RETURN_EXPECT, 0xE9,
                      CODE_ADDR(stub_seed_return));
+    ftfp_site_branch(w++, SITE_SALES_ROLL_VA, SITE_SALES_ROLL_LEN, SITE_SALES_ROLL_EXPECT, 0xE8, CODE_ADDR(sales_roll));
+    ftfp_site_branch(w++, SITE_SALE_VISITOR_VA, SITE_SALE_VISITOR_LEN, SITE_SALE_VISITOR_EXPECT, 0xE8,
+                     CODE_ADDR(sale_visitors));
     for (i = 0; i < VTABLE_SLOTS; ++i) {
         DWORD held, to = (DWORD)(UINT_PTR)SLOTS[i].wrapper;
         if (!known_slot(SLOTS[i].va, SLOTS[i].stock)) {

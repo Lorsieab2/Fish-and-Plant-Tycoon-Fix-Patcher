@@ -227,8 +227,24 @@ same code:
   (440, 296), drawn with the game's own golden pot (sprite 0x2C, the
   nursery's display), $10,000 each, in order. The count is the sidecar
   header's seventh word; a new game resets it.
-- **As in stock:** a nursery sells only while it is on screen, as the stock
-  nursery sells only while you are in it.
+- **All bought nurseries sell at once** (the owner's choice, after the Fish
+  extra tanks):
+  - When it runs: the nursery tick's buy roll (the call at 0x437A1C of
+    0x436BE0, every 2 seconds, only on the Nursery screen; the stock game
+    sells nowhere else) runs for the nursery on screen.
+  - Each other nursery: its plants are moved into the 15 spots for one call
+    of the same roll, with the same visitors browsing.
+  - Visitors: they belong to the screen. During those calls the sale's
+    visitor count (0x43ACD0 at 0x435D21) reads 0, so no visitor carries the
+    plant off. The sale ring (nursery + 0x10..0x57) is put back, so no "+$"
+    shows on the screen's plants.
+  - What a sale does: it is the stock sale, so it pays, counts and marks its
+    own pot sold.
+  - Spots: a sold plant keeps its spot until the nursery closes, so no other
+    plant moves.
+  - Visitor limit: computed from the screen's nursery only (at most 15
+    plants), so it never passes the stock maximum.
+  - No nursery bought: this is exactly the stock roll.
 
 Pictures: `docs/images/extra-nurseries-switch.png`,
 `docs/images/extra-greenhouses-store.png`.

@@ -31,6 +31,7 @@ FILES = [
     "docs/plant-tycoon-extra-greenhouses-design.md",
     "docs/images/extra-greenhouses-switch.png",
     "docs/images/extra-nurseries-switch.png",
+    "docs/images/extra-nurseries-nursery-1.png",
     "docs/images/extra-greenhouses-store.png",
     "docs/images/add-money-fish.png",
     "docs/images/add-money-plant.png",

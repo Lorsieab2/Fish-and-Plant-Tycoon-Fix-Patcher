@@ -56,6 +56,10 @@ SITES = [
     ("seed_box", 0x42819B, ["lea esi, [edx + ecx + 0x21dc]"]),
     ("seed_trash", 0x424711, ["mov ebx, dword ptr [ecx + edi + 0x21fc]"]),
     ("seed_return", 0x424508, ["mov ebp, dword ptr [ecx + 0x63e58]"]),
+    # The nursery tick's buy roll 0x436BE0(visitors browsing): run for every bought nursery.
+    ("sales_roll", 0x437A1C, ["call 0x436be0"]),
+    # A sale (0x435C70) hands the plant to a visitor when there is one (0x43ACD0, the visitor count).
+    ("sale_visitor", 0x435D21, ["call 0x43acd0"]),
 ]
 
 # (name, slot address, stock function): the vtables at 0x469220 (greenhouse),

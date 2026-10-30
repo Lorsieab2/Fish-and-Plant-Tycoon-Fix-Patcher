@@ -114,7 +114,9 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   plants for sale holds; each one bought adds 15 (90 with all five). Each
   nursery is the stock nursery screen with its own 15 spots, visitors, prices
   and sales, named at the top ("Nursery 1" the stock one), with gold arrows
-  to page through the ones you own; tagged plants fill them in order.
+  to page through the ones you own; tagged plants fill them in order. While
+  you are in the nursery all bought nurseries sell at once through the
+  game's own buy roll (visitors only for the one on screen).
   Picture: docs/images/extra-nurseries-switch.png.
 - The Time Warp also moves the clocks of the extra greenhouses' plants.
 - Free upgrades also makes the Extra Greenhouse and Extra Nursery free.
