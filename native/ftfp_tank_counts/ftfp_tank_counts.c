@@ -4,7 +4,7 @@
    tank on screen (Tank One, Tank Two or the Sale Tank, as the tank buttons
    choose it):
      Fish: 12 of 21 (8 adults, 3 teens, 1 baby)  Dead: 2
-     Sick: 2 fungus, 1 ick                      (only when a fish is sick)
+     Sick: 2 fungus, 1 ick  Critical health: 3  (only when one is)
      Creatures: Golden Seahorse, Moray Eel      (only when there are any)
      Isolation tank: 1 of 1 (1 adult)  Sick: 1 ick
    in English or German, as the game is, and a "Counts: On" / "Counts: Off"
@@ -32,6 +32,12 @@
    game's medicines name them: "Fungus looks like a green growth", "Ick
    looks like white specks" (German "Pilzinfektions-Medikament",
    "Weisspünktchen-Medikament"), under its status word "Sick" / "Krank".
+   A live fish has critical health exactly when the game draws its health bar
+   red: the meter (0x41BF10, health from +0x3C, 0x41D8CD) picks the green bar
+   above 50 and the yellow one above 25 (0x41BF33 `cmp esi, 0x19; jle`), so
+   health 1-25 shows UI_meter_red_bar.bmp (sprite 0x1E, record 0x455728).
+   The game names no such state, so the line says "Critical health" /
+   "Kritische Gesundheit".
    Body 22 (+0x4C) is the Golden Seahorse's (0x41F3C4), and its fin (+0x50)
    tells the DS Store Items' animals apart (22 seahorse, 30 puffer, 31 ray,
    32 eel): those are "Creatures", never fish, whether they sit in a fish
@@ -95,6 +101,7 @@
 #define BODY_SEAHORSE 22
 #define DISEASE_FUNGUS 1
 #define DISEASE_ICK 2
+#define HEALTH_RED 25               /* 0x41BF33: the health bar is red at 25 or less */
 
 #define AGE_SHOWN 1                 /* 0x413F10 */
 #define AGE_TEEN 6                  /* 0x413F1C `cmp eax, 6` */
@@ -135,7 +142,7 @@ static count_toggle toggle = { 1, 0, 0, { BUTTON_X - 4, BUTTON_Y - 2, 796, BUTTO
 enum { SEAHORSE, PUFFER, RAY, EEL, KINDS };
 
 typedef struct tank_count {
-    int fish, adults, teens, babies, dead, fungus, ick;
+    int fish, adults, teens, babies, dead, fungus, ick, critical;
     int creatures[KINDS];
 } tank_count;
 
@@ -172,6 +179,7 @@ static void count_tank(char *state, int tank, int slots, tank_count *out) {
             else ++out->adults;
             if (AT(f, F_DISEASE, int) == DISEASE_FUNGUS) ++out->fungus;
             else if (AT(f, F_DISEASE, int) == DISEASE_ICK) ++out->ick;
+            if (AT(f, F_HEALTH, int) <= HEALTH_RED) ++out->critical;
         }
     }
     if (tank == ISOLATION_TANK) return;
@@ -195,7 +203,7 @@ static int tank_room(void) {
 /* ------------------------------------------------------------------- words */
 
 typedef struct words {
-    const char *fish, *of, *adult, *adults, *teen, *teens, *baby, *babies, *dead, *sick, *fungus, *ick;
+    const char *fish, *of, *adult, *adults, *teen, *teens, *baby, *babies, *dead, *sick, *fungus, *ick, *critical;
     const char *creatures, *isolation, *on, *off;
     const char *kind[KINDS];
 } words;
@@ -204,31 +212,39 @@ typedef struct words {
    panel use (the Golden Seahorse's is the game's own store item). */
 static const words ENGLISH = {
     "Fish: ", " of ", "adult", "adults", "teen", "teens", "baby", "babies", "Dead: ", "Sick: ", "fungus", "ick",
-    "Creatures: ", "Isolation tank: ", "Counts: On", "Counts: Off",
+    "Critical health: ", "Creatures: ", "Isolation tank: ", "Counts: On", "Counts: Off",
     { "Golden Seahorse", "Magic Pufferfish", "Blue-Spotted Stingray", "Moray Eel" },
 };
 static const words GERMAN = {
     "Fische: ", " von ", "ausgewachsen", "ausgewachsen", "halbw\xFC" "chsig", "halbw\xFC" "chsig", "jung", "jung",
-    "Tot: ", "Krank: ", "Pilzinfektion", "Weissp\xFCnktchen",
+    "Tot: ", "Krank: ", "Pilzinfektion", "Weissp\xFCnktchen", "Kritische Gesundheit: ",
     "Tiere: ", "Zuchtaquarium: ", "Z\xE4hlung: An", "Z\xE4hlung: Aus",
     { "Goldenes Seepferdchen", "Magischer Kugelfisch", "Blaupunktrochen", "Mur\xE4ne" },
 };
 
-static int sick(const tank_count *c) { return c->fungus + c->ick; }
+static int unwell(const tank_count *c) { return c->fungus + c->ick + c->critical; }
 
-/* "Sick: 2 fungus, 1 ick" (the caller checked sick()). */
-static void sick_parts(count_line *line, const words *w, const tank_count *c) {
-    ct_text(line, w->sick);
-    if (c->fungus > 0) {
-        ct_number(line, c->fungus);
-        ct_text(line, " ");
-        ct_text(line, w->fungus);
+/* "Sick: 2 fungus, 1 ick  Critical health: 3", each part only when non-zero
+   (the caller checked unwell()). */
+static void health_parts(count_line *line, const words *w, const tank_count *c) {
+    if (c->fungus + c->ick > 0) {
+        ct_text(line, w->sick);
+        if (c->fungus > 0) {
+            ct_number(line, c->fungus);
+            ct_text(line, " ");
+            ct_text(line, w->fungus);
+        }
+        if (c->ick > 0) {
+            if (c->fungus > 0) ct_text(line, ", ");
+            ct_number(line, c->ick);
+            ct_text(line, " ");
+            ct_text(line, w->ick);
+        }
+        if (c->critical > 0) ct_text(line, "  ");
     }
-    if (c->ick > 0) {
-        if (c->fungus > 0) ct_text(line, ", ");
-        ct_number(line, c->ick);
-        ct_text(line, " ");
-        ct_text(line, w->ick);
+    if (c->critical > 0) {
+        ct_text(line, w->critical);
+        ct_number(line, c->critical);
     }
 }
 
@@ -288,9 +304,9 @@ static void draw_counts(char *impl) {
     fish_line(&line, w, w->fish, &tank, tank_room());
     draw_at(graphics, font, line.text, LABEL_X, y, WHITE);
     y += LINE_H;
-    if (sick(&tank)) {
+    if (unwell(&tank)) {
         ct_start(&line);
-        sick_parts(&line, w, &tank);
+        health_parts(&line, w, &tank);
         draw_at(graphics, font, line.text, LABEL_X, y, WHITE);
         y += LINE_H;
     }
@@ -299,9 +315,9 @@ static void draw_counts(char *impl) {
         y += LINE_H;
     }
     fish_line(&line, w, w->isolation, &isolation, 1);
-    if (sick(&isolation)) {
+    if (unwell(&isolation)) {
         ct_text(&line, "  ");
-        sick_parts(&line, w, &isolation);
+        health_parts(&line, w, &isolation);
     }
     draw_at(graphics, font, line.text, LABEL_X, y, WHITE);
 }

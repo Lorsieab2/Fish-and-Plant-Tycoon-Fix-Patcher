@@ -63,8 +63,10 @@ never needs the internet.
 - Tank and greenhouse counts (on by default). Lines in the game's own font
   at the top left of the water on the tank screen, for the tank you are
   looking at: "Fish: 12 of 21 (8 adults, 3 teens, 1 baby)" (of 26 with
-  Bigger tanks), "Sick: 2 fungus, 1 ick" when live fish are sick (the game's
-  own names for its two sicknesses), "Creatures: Golden Seahorse, Moray Eel"
+  Bigger tanks), "Sick: 2 fungus, 1 ick  Critical health: 3" when live fish
+  are sick (the game's own names for its two sicknesses) or have critical
+  health (health 25 or less: exactly when the game draws their health bar
+  red; the game has no word for it), "Creatures: Golden Seahorse, Moray Eel"
   when it has any, and "Isolation tank: 1 of 1 (1 adult)" (with "Sick: ..."
   when it is). A "Counts: On" / "Counts: Off" button at the top right of the
   water hides or shows them; hidden, only the button stays. The choice is

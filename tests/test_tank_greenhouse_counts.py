@@ -540,6 +540,48 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         self.fish(0, 2, 3)
         self.assertEqual(self.lines()[1], "Creatures: Golden Seahorse")    # no sick line when none is
 
+    def health_bar(self, health: int) -> int:
+        """The bar sprite the game's own meter (0x41BF10) picks for this health: 0x1C green, 0x1D yellow, 0x1E red."""
+        chosen = []
+        holder = self.emu.alloc(4)
+        self.emu.write32(holder, self.emu.alloc(0x40))
+        self.emu.hook(0x41BD00, lambda e: chosen.append(e.arg(0)) or 0x5000, 4)       # the sprite lookup
+        self.emu.hook(0x407900, lambda e: 0x6000)                                     # the screen
+        self.emu.hook(0x408A50, lambda e: 0, 0x14)                                    # the stretched draw
+        self.emu.call(0x41BF10, 0x292, 0x1FA, health, ecx=holder)
+        return chosen[-1]
+
+    def test_critical_health_is_exactly_the_red_health_bar(self) -> None:
+        reds = []
+        for health in range(1, 101):
+            self.setUp()
+            self.fish(0, 0, 30, health=health)
+            line = self.lines()[1]
+            critical = line == "Critical health: 1"
+            self.assertTrue(critical or line == "Isolation tank: 0 of 1", (health, line))
+            self.assertEqual(critical, self.health_bar(health) == 0x1E, health)   # 0x1E: UI_meter_red_bar.bmp
+            if critical:
+                reds.append(health)
+        self.assertEqual(reds, list(range(1, 26)))                                # 25 red, 26 yellow
+
+    def test_critical_health_counts_live_fish_with_the_sick_line(self) -> None:
+        self.fish(0, 0, 30, health=25, disease=2)
+        self.fish(0, 1, 3, health=1)
+        self.fish(0, 2, 8, health=26)
+        self.fish(0, 3, 30, health=0)                       # dead: not critical
+        self.fish(0, 4, 21, body=22, fin=22, health=5)      # a creature: never counted
+        self.fish(3, 0, 30, health=12)
+        self.assertEqual(self.lines(), [
+            "Fish: 3 of 21 (1 adult, 1 teen, 1 baby)  Dead: 1",
+            "Sick: 1 ick  Critical health: 2",
+            "Creatures: Golden Seahorse",
+            "Isolation tank: 1 of 1 (1 adult)  Critical health: 1",
+        ])
+        self.setUp()
+        self.german()
+        self.fish(0, 0, 30, health=20)
+        self.assertEqual(self.lines()[1], "Kritische Gesundheit: 1")
+
     def test_singular_words_and_several_of_a_creature(self) -> None:
         self.fish(0, 0, 25)
         self.fish(0, 1, 7)
@@ -657,11 +699,11 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
             if german:
                 self.german()
             for slot, age in enumerate((1, 2, 6, 7, 20, 21)):
-                self.fish(0, slot, age, disease=slot % 3)
+                self.fish(0, slot, age, disease=slot % 3, health=10 if slot % 2 else 100)
             self.fish(0, 6, 5, health=0)
             for k, fin in enumerate((22, 30, 31, 32, 22)):
                 self.fish(0, 26 + k, 21, body=22, fin=fin, mark=0x41435446)
-            self.fish(3, 0, 25, disease=2)
+            self.fish(3, 0, 25, disease=2, health=20)
             self.frame()
             out += [d[0] for d in self.text_draws]
             self.fish(0, 0, 1, clock=0)

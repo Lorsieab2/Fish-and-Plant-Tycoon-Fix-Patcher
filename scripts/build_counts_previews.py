@@ -30,7 +30,7 @@ IMAGE_BASE = 0x400000
 WHITE, YELLOW = (255, 255, 255), (255, 208, 64)        # the DLLs' 0xFFFFFFFF and 0xFFFFD040
 
 FISH_LINES = ("Fish: 12 of 21 (8 adults, 3 teens, 1 baby)  Dead: 1",
-              "Sick: 2 fungus, 1 ick",
+              "Sick: 2 fungus, 1 ick  Critical health: 3",
               "Creatures: Golden Seahorse, Moray Eel",
               "Isolation tank: 1 of 1 (1 adult)")
 FISH_AT, FISH_LINE_H, FISH_BUTTON, FISH_GLYPHS = (12, 62), 20, (694, 60), 0x458580      # paddington_tt_18
