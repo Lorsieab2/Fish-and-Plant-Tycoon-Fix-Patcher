@@ -682,7 +682,10 @@ class BreedingGuide:
         self.sheets: dict[str, Sheet] = {}
         self.trees: dict[str, ttk.Treeview] = {}
         self.shown_rows: dict[str, list[int]] = {}
-        self.sort_state: dict[str, tuple[int, bool]] = {}
+        # A sheet's sort, by its column's title: a refresh can rebuild a sheet with other
+        # columns (Discovered only shows with spoilers), so the title is looked up again.
+        self.sort_state: dict[str, tuple[str, bool]] = {}
+        self.build_errors: list[str] = []
         self.extras_reason = ""
         self._build()
         self.game_var.trace_add("write", lambda *_a: self._load_folders())
@@ -805,11 +808,36 @@ class BreedingGuide:
                 self.discovered = set()
         self._refresh()
 
+    def _remember_picks(self) -> dict:
+        """What the player picked on the tabs about to be rebuilt, by species key, so the
+        rebuilt tabs keep whatever is still there (and nothing that is not)."""
+        picks: dict = {}
+        try:
+            picks["tab"] = self.current_sheet_id()
+            if "calculator" in self.trees:
+                picks["parents"] = [self.calc_choices[b.current()].key if 0 <= b.current() < len(self.calc_choices)
+                                    else None for b in self.calc_boxes]
+            if "planner" in self.trees:
+                picks["have"] = {self.have_choices[i].key for i in self.have_list.curselection()}
+                index = self.want_box.current()
+                picks["want"] = self.want_choices[index].key if 0 <= index < len(self.want_choices) else None
+        except (tk.TclError, AttributeError, IndexError):
+            pass
+        return picks
+
     def _refresh(self) -> None:
+        picks = self._remember_picks()
+        # Any chain search still running belongs to the old tabs: its result is dropped when
+        # it arrives (the job number no longer matches), and the busy state goes now.
+        self._plan_job += 1
+        self.plan_busy = False
+        self.window.configure(cursor="")
         for child in self.body.winfo_children():
             child.destroy()
         self.trees.clear()
         self.sheets.clear()
+        self.shown_rows.clear()
+        self.build_errors = []
         if self.model is None:
             ttk.Label(self.body, text=COMING, font=("Segoe UI", 11)).pack(anchor="w", pady=20)
             self.status_var.set(COMING)
@@ -828,11 +856,36 @@ class BreedingGuide:
 
         self.notebook = ttk.Notebook(self.body)
         self.notebook.pack(fill="both", expand=True)
-        for kind in self.view.kinds:
-            self._add_sheet_tab(f"part:{kind}", self.view.part_sheet(kind))
-        self._add_sheet_tab("species", self.view.species_sheet())
-        self._add_calculator()
-        self._add_planner()
+        self.tab_ids: list[str] = []
+        builds = [(f"part:{kind}", KIND_TITLES.get(kind, kind.title()),
+                   lambda k=kind: self._add_sheet_tab(f"part:{k}", self.view.part_sheet(k)))
+                  for kind in self.view.kinds]
+        builds += [
+            ("species", "All Species" if self.view.spoilers else "Discovered Species",
+             lambda: self._add_sheet_tab("species", self.view.species_sheet())),
+            ("calculator", "Breeding Calculator", lambda: self._add_calculator(picks.get("parents"))),
+            ("planner", "Have to Want", lambda: self._add_planner(picks.get("have"), picks.get("want"))),
+        ]
+        for sheet_id, title, build in builds:
+            # one tab that cannot be built never stops the others: it shows what went wrong
+            tabs_before = len(self.notebook.tabs())
+            try:
+                build()
+            except Exception as exc:
+                self.trees.pop(sheet_id, None)
+                self.sheets.pop(sheet_id, None)
+                for extra in self.notebook.tabs()[tabs_before:]:
+                    self.notebook.forget(extra)
+                self.build_errors.append(f"{title}: {exc!r}")
+                tab = ttk.Frame(self.notebook, padding=12)
+                self.notebook.add(tab, text=title)
+                ttk.Label(tab, text=f"This tab could not be built: {exc!r}", foreground="#a01010",
+                          wraplength=900, justify="left").pack(anchor="w")
+            self.tab_ids.append(sheet_id)
+        if self.build_errors:
+            self.status_var.set(self.status_var.get() + " Could not build: " + "; ".join(self.build_errors))
+        if picks.get("tab") in self.tab_ids:
+            self.notebook.select(self.notebook.tabs()[self.tab_ids.index(picks["tab"])])
         self.notebook.bind("<<NotebookTabChanged>>", lambda _e: self._refill_current())
 
     def _sheet_frame(self, sheet_id: str, parent, sheet: Sheet, details: bool = True) -> None:
@@ -888,7 +941,7 @@ class BreedingGuide:
         ttk.Label(parent, text=f"Max effects: {effects}", wraplength=1050, justify="left",
                   foreground="#555555").pack(anchor="w", pady=(2, 4))
 
-    def _add_calculator(self) -> None:
+    def _add_calculator(self, parents=None) -> None:
         tab = ttk.Frame(self.notebook, padding=6)
         self.notebook.add(tab, text="Breeding Calculator")
         labels = getattr(self.model, "parent_labels", ("Parent 1", "Parent 2"))
@@ -905,7 +958,11 @@ class BreedingGuide:
             box = ttk.Combobox(pick, textvariable=var, values=values, state="readonly", width=48)
             box.grid(row=row, column=1, sticky="w", padx=(8, 0), pady=2)
             box.bind("<<ComboboxSelected>>", lambda _e: self.calculate())
-            if values:
+            keys = [s.key for s in choices]
+            kept = parents[row] if parents and row < len(parents) else None
+            if kept in keys:
+                box.current(keys.index(kept))
+            elif values:
                 box.current(min(row, len(values) - 1))
             self.calc_vars.append(var)
             self.calc_boxes.append(box)
@@ -924,7 +981,7 @@ class BreedingGuide:
             sheet.message = "No species discovered in this save yet. Tick Show Spoilers to pick any species."
         self._replace_sheet("calculator", sheet)
 
-    def _add_planner(self) -> None:
+    def _add_planner(self, have=None, want=None) -> None:
         tab = ttk.Frame(self.notebook, padding=6)
         self.notebook.add(tab, text="Have to Want")
         choices = self.view.species_choices()
@@ -946,9 +1003,9 @@ class BreedingGuide:
         scroll.pack(side="left", fill="y")
         for s in choices:
             self.have_list.insert("end", self._species_label(s))
-        discovered = self.view.discovered
+        keep = {tuple(k) for k in have} if have else self.view.discovered
         for i, s in enumerate(choices):
-            if tuple(s.key) in discovered:
+            if tuple(s.key) in keep:
                 self.have_list.selection_set(i)
         right = ttk.Frame(top)
         right.pack(side="left", fill="both", padx=(16, 0))
@@ -956,6 +1013,9 @@ class BreedingGuide:
         self.want_box = ttk.Combobox(right, values=[self._species_label(s) for s in wants], state="readonly",
                                      width=48)
         self.want_box.pack(anchor="w", pady=(2, 6))
+        want_keys = [s.key for s in wants]
+        if want in want_keys:
+            self.want_box.current(want_keys.index(want))
         buttons = ttk.Frame(right)
         buttons.pack(anchor="w")
         self.plan_button = ttk.Button(buttons, text="Find the Chain", command=self.plan)
@@ -1045,21 +1105,25 @@ class BreedingGuide:
             index = self.notebook.index(self.notebook.select())
         except tk.TclError:
             return None
-        ids = [f"part:{k}" for k in self.view.kinds] + ["species", "calculator", "planner"]
+        ids = getattr(self, "tab_ids", [])
         return ids[index] if 0 <= index < len(ids) else None
 
     def _refill_current(self) -> None:
         sheet_id = self.current_sheet_id()
-        if sheet_id is not None:
+        if sheet_id is not None and sheet_id in self.trees:
             self._fill(sheet_id)
 
     def _fill(self, sheet_id: str) -> None:
         tree, sheet = self.trees[sheet_id], self.sheets[sheet_id]
         rows = filter_rows(sheet, self.search_var.get())
         sort = self.sort_state.get(sheet_id)
+        if sort is not None and sort[0] not in sheet.columns:
+            self.sort_state.pop(sheet_id)                # that column is not in this sheet now
+            sort = None
         if sort is not None:
-            column, descending = sort
+            column, descending = sheet.columns.index(sort[0]), sort[1]
             rows.sort(key=lambda i: sort_key(sheet.rows[i][column]), reverse=descending)
+            sort = (column, descending)
         tree.delete(*tree.get_children())
         for i in rows:
             tree.insert("", "end", iid=str(i), values=[display(v, k) for v, k in zip(sheet.rows[i], sheet.kinds)],
@@ -1068,13 +1132,14 @@ class BreedingGuide:
         for c, title in enumerate(sheet.columns):
             arrow = ""
             if sort is not None and sort[0] == c:
-                arrow = " â–¼" if sort[1] else " â–²"
+                arrow = " \u25bc" if sort[1] else " \u25b2"
             tree.heading(f"c{c}", text=title + arrow)
 
     def sort(self, sheet_id: str, column: int) -> None:
+        title = self.sheets[sheet_id].columns[column]
         current = self.sort_state.get(sheet_id)
-        descending = current is not None and current[0] == column and not current[1]
-        self.sort_state[sheet_id] = (column, descending)
+        descending = current is not None and current[0] == title and not current[1]
+        self.sort_state[sheet_id] = (title, descending)
         self._fill(sheet_id)
 
     def _show_details(self, sheet_id: str, text: tk.Text) -> None:

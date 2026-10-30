@@ -299,6 +299,103 @@ class WindowTests(unittest.TestCase):
         self.guide.export("csv", str(out))
         self.assertEqual(len(out.read_text(encoding="utf-8-sig").strip().splitlines()), 1 + len(tree.get_children()))
 
+    def test_a_sort_by_a_column_that_goes_away(self) -> None:
+        """Sort All Species by Discovered, then turn spoilers off: that column is gone, so the
+        sort is dropped, and every tab is still built."""
+        self.guide.spoilers_var.set(True)
+        self.root.update()
+        sheet = self.guide.sheets["species"]
+        self.guide.sort("species", sheet.columns.index("Discovered"))
+        self.guide.spoilers_var.set(False)
+        self.root.update()
+        self.assertNotIn("Discovered", self.guide.sheets["species"].columns)
+        self.assertNotIn("species", self.guide.sort_state)
+        self.assertEqual(self.guide.build_errors, [])
+        self.assertIn("calculator", self.guide.trees)
+        self.assertIn("planner", self.guide.trees)
+        # a sort whose column is still there survives the refresh
+        self.guide.sort("species", 4)
+        self.guide.spoilers_var.set(True)
+        self.root.update()
+        self.assertEqual(self.guide.sort_state["species"], ("Base value", False))
+        tree = self.guide.trees["species"]
+        values = [int(tree.set(i, "c4")) for i in tree.get_children()]
+        self.assertEqual(values, sorted(values))
+
+    def test_a_tab_that_fails_does_not_stop_the_others(self) -> None:
+        saved = bg.View.species_sheet
+
+        def broken(view):
+            raise RuntimeError("test failure")
+
+        bg.View.species_sheet = broken
+        try:
+            self.guide.spoilers_var.set(True)
+            self.root.update()
+        finally:
+            bg.View.species_sheet = saved
+        self.assertEqual(len(self.tabs()), 5)
+        self.assertIn("calculator", self.guide.trees)
+        self.assertIn("planner", self.guide.trees)
+        self.assertNotIn("species", self.guide.trees)
+        self.assertIn("test failure", self.guide.status_var.get())
+
+    def test_a_search_started_before_a_refresh_never_lands_after_it(self) -> None:
+        import threading
+        import time
+        release = threading.Event()
+        model = self.guide.model
+        real_plan = model.plan
+
+        def slow_plan(*args, **kwargs):
+            release.wait(5)
+            return real_plan(*args, **kwargs)
+
+        model.plan = slow_plan
+        try:
+            self.guide.spoilers_var.set(True)
+            self.root.update()
+            names = [s.name for s in self.guide.have_choices]
+            self.guide.have_list.selection_clear(0, "end")
+            for name in ("Pink Fatfish", "Golden Goldbulb"):
+                self.guide.have_list.selection_set(names.index(name))
+            wants = [s.name for s in self.guide.want_choices]
+            self.guide.want_box.current(wants.index("Canary Fire-Arrow"))
+            self.guide.plan()
+            self.assertTrue(self.guide.plan_busy)
+            self.guide.spoilers_var.set(False)               # the refresh, while it runs
+            self.root.update()
+            self.assertFalse(self.guide.plan_busy)
+            self.assertNotIn("disabled", self.guide.plan_button.state())
+            self.assertEqual(str(self.guide.window.cget("cursor")), "")
+            release.set()
+            end = time.monotonic() + 1.5
+            while time.monotonic() < end:
+                self.root.update()
+                time.sleep(0.02)
+            self.assertEqual(self.guide.trees["planner"].get_children(), ())
+            self.assertFalse(self.guide.plan_busy)
+        finally:
+            release.set()
+            model.plan = real_plan
+
+    def test_picks_are_kept_across_a_refresh_when_still_there(self) -> None:
+        self.guide.spoilers_var.set(True)
+        self.root.update()
+        self.select("Breeding Calculator")
+        names = [s.name for s in self.guide.calc_choices]
+        self.guide.calc_boxes[0].current(names.index("Twin-Fin Spotanus"))
+        self.guide.calc_boxes[1].current(names.index("Canary Fire-Arrow"))       # undiscovered
+        wants = [s.name for s in self.guide.want_choices]
+        self.guide.want_box.current(wants.index("Pink Fatfish"))
+        self.guide.spoilers_var.set(False)
+        self.root.update()
+        self.assertEqual(self.guide.current_sheet_id(), "calculator")            # the same tab
+        picked = [self.guide.calc_choices[b.current()].name for b in self.guide.calc_boxes]
+        self.assertEqual(picked[0], "Twin-Fin Spotanus")
+        self.assertNotEqual(picked[1], "Canary Fire-Arrow")                    # no longer a choice
+        self.assertEqual(self.guide.want_choices[self.guide.want_box.current()].name, "Pink Fatfish")
+
     def test_plant_model_loads(self) -> None:
         self.guide.game_var.set("Plant Tycoon")
         self.root.update()
