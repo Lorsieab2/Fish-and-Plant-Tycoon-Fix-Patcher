@@ -139,6 +139,15 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
     and a flower on every spot of every branch and leaf: up to 6 per part,
     hundreds on a big plant. No dead leaves, full health, and 5 seeds when
     pollinated.
+  - Radioactive Plant Formula Bomb ($30,000, 3 bombs): the stock Fertilizer
+    Bomb's art made rainbow. One bomb gives every live plant in the
+    greenhouse on screen one Radioactive Plant Formula dose: the pots the
+    Fertilizer Bomb reaches, read from its own code.
+  - Revival Potion ($10,000, 3 doses): a dead plant comes back to life at
+    full health, with its value and price set again by the game's rules;
+    parts dead before it died stay dead, as with the game's own healing.
+  - Revita-Seed ($2,500, 3 doses): a plant that has given all its seeds can
+    be pollinated again, exactly like a fresh plant.
   - the Fourth, Fifth and Sixth Seed Box ($1000 each): a second chest on
     the Seed Storage screen behind gold arrows, also filled by the greenhouse
     once boxes 1-3 are full.
@@ -321,18 +330,43 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
     into slot #3 like the stock chemicals ("Replace chemical in slot #3?"
     if one is there; with Universal supply slots it stacks 3 doses a
     purchase and works from any of slots 2-4) and used on a tank the same
-    way. Each dose reaches exactly the fish the stock Growth Hormone
-    reaches, each live fish aged 40 or less in the tank you use it on, and
-    each one becomes an adult (age 20) if younger, gets full health (100)
-    and is cured of ick or fungus (counted under Fish Cured). Older, dead
-    and isolation-tank fish and the store animals are not reached, as with
-    the stock hormone. Fry are fish in the tank (eggs hatch straight into
-    age-1 fish), so they grow up too; eggs on the shelf are not touched.
+    way. Each dose reaches every live fish in the tank you use it on, any
+    age (the owner: the stock Growth Hormone stops at 40, and stays
+    stock). Every pregnant one gives birth at once through the game's own
+    birth code, call for call (the litter, the Magic Fish mutation of the
+    father's genes, the Magic Fish of Fertility's and the Plant of
+    Fertility's extra babies, and a full tank losing the babies, all as a
+    natural birth; tank 3 never gives birth, as stock). Then each one, the
+    newborns too, so the whole litter comes out adult, becomes an adult
+    (age 20) if younger, gets full health (100) and is cured of ick or
+    fungus (counted under Fish Cured); older fish keep their age. Dead fish,
+    other tanks and the store animals are not reached. Fry are fish in the
+    tank (eggs hatch straight into age-1 fish), so they grow up too; eggs
+    on the shelf are not touched.
     On every difficulty, Hard included, the next update runs only one
     step's health, sickness and food checks, as the stock hormone does on
     Easy and Medium, so the fish stay healthy (the stock Growth Hormone is
     unchanged: on Hard it still runs every skipped step). DS Exclusive Fish now lends the
-    store 20 sprite entries (was 16).
+    store 24 sprite entries (was 16).
+  - Revival Potion, $10,000 ($0 with Free upgrades), 3 doses, the owner's
+    amber flask: a slot-#3 chemical like the hormone. Each dose revives
+    every dead fish in the tank on screen at full health (100). A dead fish
+    is only health 0 in the game, kept in the tank until you throw it away;
+    the potion sets health 100 and the fish's clock to now, so the time it
+    lay dead is not played as time away. Age, food, sickness and pregnancy
+    stay as they were.
+  - ClonaFish, $2,500 ($0 with Free upgrades), 3 doses, the owner's magenta
+    bottle: each dose clones every unique fish in the tank on screen once
+    (a live fish no other live fish there shares both its body and fin
+    with), an exact copy of its record, through the game's own AddFish, in
+    slot order until the tank is full. "The tank is full!" shows if not one
+    could be cloned.
+  - The new items read the game's own limits (the update's slots and tanks,
+    the hormone's loop end, AddFish's), so they work the same with Bigger
+    tanks, 30 per tank and extra tanks.
+  - The new icons match their neighbours' visible size (the stock Growth
+    Hormone's: 57 px in the store, 31 on the shelf); previews in
+    docs/images/revival-potion-fish.png and revival-potion-plant.png.
   - Selling-tank customers no longer look at any seahorse-type companion
     (stock code read the Golden Seahorse's species data out of range).
   - Runs as "DS Store Items.dll", loaded by "DS Exclusive Fish.dll"; all or

@@ -194,7 +194,7 @@ rules (user: existing patches should cover the new content):
   eggs branch (swapped into slot #4 for the hatch), from any slot;
 - hatching takes one from the stack and clears the slot at zero.
 The redirect is written only when the payload is in the executable, and the
-log says "Exotic Eggs and the hormone use universal supply slots". Without
+log says "Exotic Eggs and the store chemicals use universal supply slots". Without
 the setting they stay in slot #4 and a purchase replaces them, as with stock
 eggs.
 Checked live: two purchases stacked in slot 2 (count 2), two hatches from
@@ -256,6 +256,88 @@ docs/images/radioactive-growth-hormone-fish.png shows the page and the
 pictures. Tests: tests/test_radioactive_growth_hormone.py (emulated: the
 purchase, the price, a dose through the vanilla use handler, the countdown,
 the stubs). Not yet checked live.
+
+### Owner changes (2026-10-30): every fish, and instant births
+
+The Radioactive Growth Hormone now reaches every live fish in the tank on
+screen, any age (`gh_reaches`: live, health not 0, not a marked store
+animal), over the stock loop's records (read from `0x421190`; no longer
+clamped at 26, since marked animals are skipped). The stock Growth Hormone
+is untouched. Each dose:
+
+1. **Births.** Pregnancy in the record: `+0x10` the due age (0 = not
+   pregnant, set at mating), `+0x14`/`+0x18` the father's body and fin,
+   `+0x1C`-`+0x38` the grandparents. The update gives birth at
+   `0x420113`-`0x4203DD` when the due age is below the age and the tank is
+   not tank 3 (`cmp [esp+0x10], 3` at `0x42013D`, byte `0x420141`): with a
+   Magic Fish of kind 5 (`0x41DE90(5, tank)`), Random(100) <= 15 mutates
+   the father's genes (Random(100) <= 49: his body +1, or -1 at 20 or on
+   the other half unless 0; else the same test on his body but his fin
+   changes, a stock quirk), clamped 0-20; then NewBaby `0x41FA30` (one
+   AddFish `0x419C50`: no room, no baby), one more with a Magic Fish of
+   kind 0 (`0x4202D9`), one more with the Plant of Fertility (state +
+   `0x1A4`, `0x420356`); the baby's age is age - due age; `+0x10` = 0
+   (`0x4203D2`). `stock_birth` is that code call for call, so the same
+   rolls give the same litter (tested against the vanilla block run in the
+   emulator). Babies from a dose are aged 1, as a birth on the due step.
+   The view is synced after births (`0x415E70`, as after a hatch).
+2. **Age-up**, on everyone reached, the newborns included, so the whole
+   litter comes out adult; older fish keep their age.
+
+## Revival Potion (item 30)
+
+$10,000, 3 doses, slot #3 like the hormone (shelf sprite 239, cursor 240,
+the owner's amber flask; the store picture 238). The switch stub at
+`0x420E6F` sends items 29-31 to `new_chemical`, then the stock sparkle
+(`0x42119A`) and tail (`0x421302`).
+
+How the game stores a dead fish: only health (`+0x3C`) 0. The death test
+(`0x420622`) sets the age to the step it died on (`0x420634`) so the step
+loop ends; the record stays live (`+0x00` kept) until the player throws it
+away: no timer removes it. Every update skips it (`0x41FEC3`), so its clock
+(`+0x00`, set at `0x41FFCA`), banked seconds (`+0x04`), age, food and
+sickness freeze. The view draws it dead (`0x4146BF`, `0x4146F6`,
+`0x414778`), sinks it (`0x411D5F`) and stops swimming it (`0x414337`), all
+from that health test.
+
+A dose, for every record of the tank on screen the update reaches (slots:
+byte `0x4206B3`, tanks: byte `0x4206C7`) that is live, at health 0 and not
+a marked animal: health 100, and `+0x00` = STATE_NOW (`0x4032C0`), so the
+next update does not play the time it lay dead as time away. Age, food,
+sickness, pregnancy and the bank stay.
+
+## ClonaFish (item 31)
+
+$2,500, 3 doses, slot #3 (sprites 241-243, the owner's magenta bottle). A
+unique fish is live with health above 0, not a marked animal nor a
+seahorse-type record, and no other such fish in the tank has both its body
+(`+0x4C`) and fin (`+0x50`). The unique fish are found first, copied whole
+(0x288 bytes); then each, in slot order, goes through AddFish `0x419C50`,
+which is a plain copy into the first free record under its limit (`cmp
+eax, 0x15` at `0x419C72`) and answers -1 when full: the dose stops there.
+A record has no slot number or id of its own, so the clone is exact. New
+fish are synced to the view; if not one clone fitted, the game's hint 6
+("The tank is full!") shows. The dose is spent either way (stock order).
+
+## For the integrator: expansions
+
+Every loop reads the game's own bounds, so the expansion branches only need
+to keep using them:
+
+- `UPDATE_SLOTS` (byte `0x4206B3`, the update's slot count; Bigger tanks
+  writes 26) bounds the Revival Potion and ClonaFish's search; AddFish's own
+  byte (`0x419C74`) bounds where clones go. A 30-per-tank build must write
+  both (as Bigger tanks does) and keep the store animals marked (`+0x14` =
+  "FTCA"), which every new loop skips.
+- `GH_LOOP_END` (`0x421190`) bounds the hormone; a 30-per-tank build should
+  rewrite it as Bigger tanks does.
+- `UPDATE_LAST_TANK` (byte `0x4206C7`) bounds the tank on screen; extra
+  tanks that are updated by the game's loop are reached. An extra-tanks
+  build that keeps its tanks elsewhere (not `state + 0x390 + tank * 0x51EC`)
+  must be checked: the potions address tanks as the game does.
+- Check: tests/test_revival_potion.py and test_radioactive_growth_hormone.py
+  patch these bytes (26, 30 slots; tanks 0-5/0-6) and must pass on the
+  merged build.
 
 ## Store page mechanics
 
