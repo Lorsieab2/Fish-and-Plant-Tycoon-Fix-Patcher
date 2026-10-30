@@ -1437,7 +1437,7 @@
             "path": "DS Exclusive Fish.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Exclusive Fish.dll",
             "size": 105984,
-            "sha256": "84BA5B199D8F11696572656089AD127FF04FE53F21E6F93DC1A5AB70D944E870"
+            "sha256": "A9018972172E84E8C125F83EC609DE3FF622FE86AC542618B6C0E2575C3E7990"
           },
           {
             "path": "Images/FISH_23_body_Grid.png",
@@ -1583,8 +1583,8 @@
     {
       "id": "ds_store",
       "name": "DS Store Items",
-      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, and Exotic Fish Eggs that hatch only DS fish. Needs DS Exclusive Fish.",
-      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal slots of its own, the Golden Seahorse's included. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
+      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, and the Radioactive Growth Hormone, which makes young fish adults with full health and no sickness. Needs DS Exclusive Fish.",
+      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal slots of its own, the Golden Seahorse's included. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way and on the same fish (each live fish aged 40 or less in the tank you use it on): each becomes an adult at once if younger, gets full health and is cured of any sickness. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
       "warning": "Turning this off after buying a store animal leaves it in your tank drawn as a Golden Seahorse, and the eel's rock as a sprite the game cannot draw. Move the animals to the trash and the eel out of its rock before switching it off.",
       "category": "main",
       "default": false,
@@ -1598,8 +1598,8 @@
           {
             "path": "DS Store Items.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
-            "size": 136704,
-            "sha256": "11DCDE8650C6A8BB7B7645999AAB53C3024534B9754492295BE4288306E030B0"
+            "size": 137728,
+            "sha256": "6AA8FB09854439A8FFB93EB46C1506B5E6C1118F6D851B6F5EC71F32C392C28F"
           },
           {
             "path": "Images/DS_EEL_Grid.png",
@@ -1674,6 +1674,12 @@
             "sha256": "19190AAECDCAF6A6AE0FE6FB9202869839D8E6E3293FFA87455F4C06E7888150"
           },
           {
+            "path": "Images/ITEM_RADIOACTIVE_GROWTHHORMONE.png",
+            "destination": "Images/ITEM_RADIOACTIVE_GROWTHHORMONE.png",
+            "size": 3218,
+            "sha256": "8B4A04E1511DC54A75DCA896C3581FE3505649594852386D0DCE20DBEB8DE46F"
+          },
+          {
             "path": "Images/ITEM_TIME_WARP.png",
             "destination": "Images/ITEM_TIME_WARP.png",
             "size": 6853,
@@ -1686,10 +1692,22 @@
             "sha256": "C952DF8292000D947EC28265FBB010941532B9D324B1AF6CC114EBA89480E8DA"
           },
           {
+            "path": "Images/TOOL_dropper_RADIOACTIVE.png",
+            "destination": "Images/TOOL_dropper_RADIOACTIVE.png",
+            "size": 298,
+            "sha256": "AD0748A72A74C2514ED0275DEE8F2CB3B5A045D4B68DDBC108FC1A635E50CC99"
+          },
+          {
             "path": "Images/TOOL_FISHEGGS_EXOTIC.png",
             "destination": "Images/TOOL_FISHEGGS_EXOTIC.png",
             "size": 1573,
             "sha256": "45416410EA80F2E55692C04C8DBA3883D5F0B0A700F9B0E1CB604A8A3FC42019"
+          },
+          {
+            "path": "Images/TOOL_RADIOACTIVE_GROWTHHORMONE.png",
+            "destination": "Images/TOOL_RADIOACTIVE_GROWTHHORMONE.png",
+            "size": 1438,
+            "sha256": "38A39B2989C3B0B929EE72EC0C85B2DA61BC6220257AA8D9AC99A9DED1844908"
           }
         ]
       }
@@ -1720,7 +1738,7 @@
       "id": "free_upgrades",
       "name": "Free upgrades",
       "summary": "Every item on the store's Upgrades screen costs $0.",
-      "description": "Every item on the Supplies store's Upgrades page (DS Store Items), which this setting turns on, costs $0: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), and the Time Warp clock ($500) and Add Money ($950) when those settings are on. The price shown says $0 and no money is taken. Everything else stays: The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy Multiple Golden Seahorses is on), the eggs still need a free slot, and the game's own purchase confirmations are still asked. The game's own store items keep their prices. Saves keep their layout.",
+      "description": "Every item on the Supplies store's Upgrades page (DS Store Items), which this setting turns on, costs $0: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the Radioactive Growth Hormone ($10,000), and the Time Warp clock ($500) and Add Money ($950) when those settings are on. The price shown says $0 and no money is taken. Everything else stays: The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy Multiple Golden Seahorses is on), the eggs and the hormone still go in a supply slot, and the game's own purchase confirmations are still asked. The game's own store items keep their prices. Saves keep their layout.",
       "category": "main",
       "default": false,
       "requires_settings": [

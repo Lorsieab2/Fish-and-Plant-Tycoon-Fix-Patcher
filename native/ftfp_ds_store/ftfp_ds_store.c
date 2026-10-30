@@ -11,6 +11,11 @@
        A click on its head lets it out again;
      * Exotic Fish Eggs: eggs for slot #4 that hatch only DS-exclusive
        bodies and fins (genes 23-29, even odds), as many as the other eggs;
+     * Radioactive Growth Hormone ($10,000, 3 doses): a chemical for slot #3,
+       used like the stock Growth Hormone and on exactly the fish it reaches
+       (each live fish aged 40 or less in the tank you look at, 0x4210F2):
+       each becomes an adult (age 20) if younger, gets full health (100) and
+       is cured of its sickness;
      * with their settings ("<name>.ini" beside this DLL): the Time Warp
        clock, and Add Money ($950 for +$1,000, any number of times).  With
        Free upgrades every item on this page costs $0.
@@ -122,7 +127,10 @@
 #define SPR_PUFF (STORE_SPRITE_BASE + 12)
 #define SPR_ITEM_WARP (STORE_SPRITE_BASE + 13)
 #define SPR_ITEM_MONEY (STORE_SPRITE_BASE + 14)
-#define STORE_SPRITES 15
+#define SPR_ITEM_RGH (STORE_SPRITE_BASE + 15)
+#define SPR_TOOL_RGH (STORE_SPRITE_BASE + 16)        /* on the shelf, as the stock 0x7A */
+#define SPR_DROPPER_RGH (STORE_SPRITE_BASE + 17)     /* the cursor while used, as the stock 0x7B */
+#define STORE_SPRITES 18
 
 typedef struct sprite_entry {
     int id;
@@ -154,6 +162,9 @@ static const struct { const char *name; int cols, rows; } SPRITE_FILES[STORE_SPR
     { "DS_PUFFER_PUFF_Grid.png", 4, 2 },        /* the puffer puffed up: left, then right */
     { "ITEM_TIME_WARP.png", 0, 0 },             /* the Time Warp clock (the owner's icon) */
     { "ITEM_ADD_MONEY.png", 0, 0 },             /* Add Money: the owner's pile of gold coins */
+    { "ITEM_RADIOACTIVE_GROWTHHORMONE.png", 0, 0 },   /* the stock Growth Hormone's art, green */
+    { "TOOL_RADIOACTIVE_GROWTHHORMONE.png", 0, 0 },
+    { "TOOL_dropper_RADIOACTIVE.png", 0, 0 },
 };
 
 /* ------------------------------------------------------------ the game */
@@ -309,7 +320,7 @@ static const unsigned char REPURCHASE_JUMP[10] = { 0xE9, 0x49, 0x75, 0x01, 0x00,
 
 static int sold_out(char *state, int fin) {
     static int repurchase = -1;
-    if (fin == FIN_WARP || fin == FIN_MONEY) return 0;
+    if (fin < 0) return 0;                  /* Time Warp, Add Money, the hormone: never sold out */
     if (repurchase < 0) repurchase = ftfp_site_holds(0x004282B2u, REPURCHASE_JUMP, sizeof REPURCHASE_JUMP);
     return fin != 0 && !repurchase && owned(state, fin);
 }
@@ -748,6 +759,58 @@ static void __cdecl exotic_hatch(char *impl, int x, int y) {
     }
 }
 
+/* ---------------------------------------------- Radioactive Growth Hormone */
+
+/* A chemical: item 29 in slot #3 (state + 0x2F0, as the stock chemicals 2-4),
+   shelf picture SPR_TOOL_RGH, cursor SPR_DROPPER_RGH, 3 doses a purchase.
+   The stock chemical use (0x420E3A: the splash, the sound, then the switch
+   on the item at 0x420E72) runs as for any chemical; for item 29 the switch
+   calls rgh_dose and goes on into the stock Growth Hormone's own sparkle
+   loop (0x42119A) and the stock tail (0x421302), which spends one dose and
+   empties the slot at 0. */
+#define RGH_ITEM 29
+#define RGH_DOSES 3
+#define ADULT_AGE 20                /* adults are 20 and up: 0x4200AC, 0x420498 (sickness), 0x42426F (sales) */
+#define GH_MAX_AGE 40               /* Growth Hormone reaches fish aged 40 or less: 0x421125 */
+#define S_CURED 0x34                /* "Fish Cured", which the stock medicine cure adds to (0x420D2B) */
+/* The end of the stock Growth Hormone's fish loop, `cmp ebx, 0x3528` at 0x42118E: 21 records, or 26 with
+   "Bigger tanks", which rewrites this immediate. Read here, so the dose reaches the same records. */
+#define GH_LOOP_END (*(const int *)(UINT_PTR)0x00421190u)
+
+/* One dose on the tank being looked at (0x384), on exactly the fish the stock Growth Hormone
+   reaches (0x421100-0x421194): live (+0x00), health not 0 (+0x3C), age (+0x0C) 40 or less.
+   Each one:
+     * younger than 20: age 20, written as the stock dose writes an age (0x42114F), and, as it
+       does unless the game is on Hard (state + 0x14 == 2, 0x421157), last-processed age 19,
+       so the next update runs one step's checks, not one for every skipped step;
+     * health 100, the game's maximum (0x41E0FE, 0x42127E);
+     * sickness (+0x40: 1 fungus, 2 ick, set at 0x41E120) cleared as the medicine clears it
+       (0x420D1D / 0x420D57: +0x40 = 0, and one more Fish Cured).
+   Then the stock dose's next fish update, 7 seconds on (0x42117D). The animals (slots 26-30)
+   are past the loop's end, so they are never reached, as with the stock hormone. */
+static void __cdecl rgh_dose(char *impl) {
+    char *state = (char *)P(impl, 0x34);
+    int tank, end = GH_LOOP_END, off;
+    if (state == NULL) return;
+    tank = *I(state, S_CURRENT_TANK);
+    if (tank < 0 || tank > 3) return;
+    if (end > ANIMAL_FIRST * SLOT_STRIDE) end = ANIMAL_FIRST * SLOT_STRIDE;
+    for (off = 0; off < end; off += SLOT_STRIDE) {
+        char *f = state + FISH_BASE + tank * TANK_STRIDE + off;
+        if (*I(f, F_LIVE) == 0 || *I(f, F_HEALTH) == 0 || *I(f, F_AGE) > GH_MAX_AGE) continue;
+        if (*I(f, F_AGE) < ADULT_AGE) {
+            *I(f, F_AGE) = ADULT_AGE;
+            if (*I(state, S_EASY) != 2) *I(f, F_LAST_AGE) = ADULT_AGE - 1;
+        }
+        *I(f, F_HEALTH) = FULL_METER;
+        if (*I(f, F_DISEASE) != 0) {
+            *I(f, F_DISEASE) = 0;
+            ++*I(state, S_CURED);
+        }
+        *I(impl, 0x30) = CLOCK_NOW() + 7;
+    }
+}
+
 /* ------------------------------------------------------- creature names */
 
 /* The names the info panel shows for a held animal (user, 2026-10-26).  The
@@ -797,9 +860,10 @@ typedef struct store_item {
 
 /* Time Warp and Add Money show only with their settings; with Free upgrades
    every item here costs $0 (the stock store keeps its prices). */
-#define ITEMS 6
+#define ITEMS 7
 #define ITEM_WARP 4
 #define ITEM_MONEY 5
+#define FIN_RGH (-3)                        /* the Radioactive Growth Hormone: not an animal */
 #define MONEY_GAIN 1000
 #define MONEY_MAX 0x7FFFFFFF       /* money is a signed 32-bit int (state+0x38C); the stock sale adds to it unclamped (0x424074) */
 static int warp_on = 0, money_on = 0, free_on = 0;
@@ -829,6 +893,10 @@ static const store_item ITEM[ITEMS] = {
       { "Add $1,000", "Plus 1.000 $" },               /* the title font has no "+" (paddington_tt_30) */
       { "A pile of gold coins! Each one you buy\nadds $1,000 to your money.\nBuy as many as you like.",
         "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
+    { FIN_RGH, 10000, 595, 90, 79, 72, SPR_ITEM_RGH, 48, 65,
+      { "Radioactive Growth Hormone", "Radioaktive Wachstumshormone" },
+      { "Each dose makes every fish aged 40 or\nless in your tank an adult at once,\nwith full health and no sickness.\nEnough for 3 treatments.",
+        "Jede Behandlung macht jeden Fisch bis\nAlter 40 in deinem Becken sofort\nerwachsen, ganz gesund und heil.\nReicht f\xFCr 3 Behandlungen." } },
 };
 
 static int price_of(const store_item *it) { return free_on ? 0 : it->price; }
@@ -964,19 +1032,20 @@ static void charge(char *state, int price) {
     play_sound(0xE);
 }
 
-/* Exotic Eggs with universal slots, as the setting buys stock eggs: confirm,
-   then a stack of Exotic Eggs in slots 2-4 gains one hatch, else the first
-   empty slot takes them, else the setting's three "replace?" prompts. */
-static void buy_exotic_universal(char *impl, char *state, int price) {
-    int k, slot = -1, count = 1;
+/* Exotic Eggs or the Radioactive Growth Hormone with universal slots, as the
+   setting buys stock eggs and chemicals: confirm, then a stack of the same
+   item in slots 2-4 gains `uses` (eggs one hatch, a chemical 3 doses), else
+   the first empty slot takes it, else the setting's three "replace?" prompts. */
+static void buy_universal(char *impl, char *state, int price, int item, int icon, int cursor, int uses) {
+    int k, slot = -1, count = uses;
     static const int replace_prompt[4] = { 0, 0xEF, 0xEE, 0xED };
     char *r;
     if (!confirm(impl, 0xEC)) return;
     for (k = 1; k <= 3 && slot < 0; ++k) {
         r = SLOT_RECORD(state, k);
-        if (*I(r, SR_ICON) != 0 && *I(r, SR_ITEM) == EXOTIC_ITEM) {
+        if (*I(r, SR_ICON) != 0 && *I(r, SR_ITEM) == item) {
             slot = k;
-            count = *I(r, SR_COUNT) + 1;
+            count = *I(r, SR_COUNT) + uses;
         }
     }
     for (k = 1; k <= 3 && slot < 0; ++k)
@@ -986,12 +1055,32 @@ static void buy_exotic_universal(char *impl, char *state, int price) {
     if (slot < 0) return;
     charge(state, price);
     r = SLOT_RECORD(state, slot);
-    *I(r, SR_ITEM) = EXOTIC_ITEM;
+    *I(r, SR_ITEM) = item;
     *I(r, SR_PRESENT) = 1;
     *I(r, SR_COUNT) = count;
-    *I(r, SR_ICON) = SPR_TOOL_EGGS;
-    *I(r, SR_CURSOR) = SPR_TOOL_EGGS;
+    *I(r, SR_ICON) = icon;
+    *I(r, SR_CURSOR) = cursor;
     *I(r, SR_X) = slot * 0x30 + 0x1E;
+}
+
+/* The hormone without universal slots, as the stock store buys a chemical
+   (0x428172, the writer 0x427540): "Replace chemical in slot #3?" (0xEE) if
+   slot #3 holds one, else the purchase question (0xEC); then slot #3 holds
+   it with 3 doses, whatever was there before is gone, as stock. */
+static void buy_hormone(char *impl, char *state, int price) {
+    char *r = SLOT_RECORD(state, 2);
+    if (exotic_any_slot) {
+        buy_universal(impl, state, price, RGH_ITEM, SPR_TOOL_RGH, SPR_DROPPER_RGH, RGH_DOSES);
+        return;
+    }
+    if (!confirm(impl, *I(r, SR_ICON) != 0 ? 0xEE : 0xEC)) return;
+    charge(state, price);
+    *I(r, SR_ITEM) = RGH_ITEM;
+    *I(r, SR_PRESENT) = 1;
+    *I(r, SR_COUNT) = RGH_DOSES;
+    *I(r, SR_ICON) = SPR_TOOL_RGH;
+    *I(r, SR_CURSOR) = SPR_DROPPER_RGH;
+    *I(r, SR_X) = 2 * 0x30 + 0x1E;
 }
 
 /* ------------------------------------------------------------ time warp */
@@ -1103,8 +1192,12 @@ static void buy(void *scene) {
         add_money(impl, state, price);
         return;
     }
+    if (it->fin == FIN_RGH) {
+        buy_hormone(impl, state, price);
+        return;
+    }
     if (it->fin == 0 && exotic_any_slot) {
-        buy_exotic_universal(impl, state, price);
+        buy_universal(impl, state, price, EXOTIC_ITEM, SPR_TOOL_EGGS, SPR_TOOL_EGGS, 1);
         return;
     }
     if (it->fin == 0) {
@@ -1396,6 +1489,44 @@ __declspec(naked) static void stub_egg_confirm(void) {
     }
 }
 
+/* 0x420E6F, the chemical switch (esi = the tank scene): item 29 is the
+   Radioactive Growth Hormone, then the stock Growth Hormone's sparkle loop and
+   tail; any other item goes on to the stock `je 0x42120A` with its flags. */
+static const DWORD k_chem_switch = 0x00420E7Bu, k_gh_sparkle = 0x0042119Au;
+
+__declspec(naked) static void stub_chem_use(void) {
+    __asm {
+        mov ecx, [esi + 0x34]
+        mov eax, [ecx + 0x2F0]
+        cmp eax, RGH_ITEM
+        je radioactive
+        sub eax, 2
+        jmp k_chem_switch
+    radioactive:
+        pushad
+        push esi
+        call rgh_dose
+        add esp, 4
+        popad
+        jmp k_gh_sparkle
+    }
+}
+
+/* Buying a stock chemical over the hormone asks "Replace chemical in slot #3?" too. */
+static const DWORD k_chem_confirm_yes = 0x00428191u, k_chem_confirm_no = 0x004281D6u;
+
+__declspec(naked) static void stub_chem_confirm(void) {
+    __asm {
+        cmp ecx, 0xAA
+        je chemical
+        cmp ecx, SPR_TOOL_RGH
+        je chemical
+        jmp k_chem_confirm_no
+    chemical:
+        jmp k_chem_confirm_yes
+    }
+}
+
 /* Replaces the tail `jmp 0x41D600` (the ornaments); ecx is the tank scene. */
 __declspec(naked) static void stub_ornaments(void) {
     __asm {
@@ -1577,7 +1708,7 @@ __declspec(naked) static void stub_ornament_drop(void) {
 /* ----------------------------------------------------------------- install */
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 23
+#define TOTAL_SITES 25
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -1616,6 +1747,8 @@ static int prepare(void) {
     JMP(w++, THOUGHTS, stub_thoughts);
     JMP(w++, EGG_USE, stub_egg_use);
     JMP(w++, EGG_CONFIRM, stub_egg_confirm);
+    JMP(w++, CHEM_USE, stub_chem_use);
+    JMP(w++, CHEM_CONFIRM, stub_chem_confirm);
     JMP(w++, ORNAMENTS, stub_ornaments);
     JMP(w++, FISH_DROP, stub_fish_drop);
     JMP(w++, ORNAMENT_PICK, stub_ornament_pick);
@@ -1682,7 +1815,7 @@ static void write_install_log(void) {
     wcscat_s(path, 1024, L"Fish Tycoon Fix Patcher DLLs\\DS Store Items.log");
     if (installed) {
         len = append_text(line, len, exotic_any_slot
-                          ? "DS Store: installed (all sites); Exotic Eggs use universal supply slots\r\n"
+                          ? "DS Store: installed (all sites); Exotic Eggs and the hormone use universal supply slots\r\n"
                           : "DS Store: installed (all sites)\r\n");
     } else if (!host_ok) {
         len = append_text(line, len, "DS Store: NOT installed; DS Exclusive Fish.dll is not the version this build expects\r\n");
@@ -1701,20 +1834,25 @@ static void write_install_log(void) {
 
 /* With "Universal supply slots": its use trampoline sends items 0-7 to their
    own slot (eggs 5-7 to slot #4) and lets anything else through untouched,
-   at 0x43F593 `jmp 0x43F5DE`.  Exotic Eggs (item 28) join the eggs there, so
-   they work from any of slots 2-4.  Only written when that payload is in the
-   executable; edx holds the item, the eggs branch is 0x43F5AC. */
+   at 0x43F593 `jmp 0x43F5DE`.  Exotic Eggs (item 28) join the eggs there and
+   the Radioactive Growth Hormone (item 29) the chemicals, so they work from
+   any of slots 2-4.  Only written when that payload is in the executable; edx
+   holds the item, the chemicals branch is 0x43F5A2 and the eggs' 0x43F5AC. */
 static const unsigned char USE_GATE_EXPECT[5] = { 0xE9, 0x46, 0x00, 0x00, 0x00 };
-static const DWORD k_use_eggs = 0x0043F5ACu, k_use_other = 0x0043F5DEu;
+static const DWORD k_use_chemicals = 0x0043F5A2u, k_use_eggs = 0x0043F5ACu, k_use_other = 0x0043F5DEu;
 static ftfp_site_write use_gate[1];
 
 __declspec(naked) static void stub_use_gate(void) {
     __asm {
         cmp edx, EXOTIC_ITEM
-        jne other
-        jmp k_use_eggs
-    other:
+        je eggs
+        cmp edx, RGH_ITEM
+        je chemicals
         jmp k_use_other
+    eggs:
+        jmp k_use_eggs
+    chemicals:
+        jmp k_use_chemicals
     }
 }
 

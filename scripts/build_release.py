@@ -30,6 +30,7 @@ FILES = [
     "docs/plant-tycoon-upgrades-design.md",
     "docs/images/add-money-fish.png",
     "docs/images/add-money-plant.png",
+    "docs/images/radioactive-growth-hormone-fish.png",
     "docs/images/breeding-guide-fish-discovered-species.png",
     "docs/breeding-guide-interface.md",
     "docs/plant-tycoon-technical-details.md",

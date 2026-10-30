@@ -314,6 +314,24 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   - Exotic Fish Eggs, $2300: hatch only DS-exclusive bodies and fins.
     With Universal supply slots on, they stack and hatch from any of
     slots 2-4, like the stock eggs.
+  - Radioactive Growth Hormone, $10,000 ($0 with Free upgrades), 3 doses:
+    the stock Growth Hormone's bottle, shelf picture and dropper recoloured
+    green (scripts/build_growth_hormone_assets.py, from the game's own art;
+    picture: docs/images/radioactive-growth-hormone-fish.png). It is bought
+    into slot #3 like the stock chemicals ("Replace chemical in slot #3?"
+    if one is there; with Universal supply slots it stacks 3 doses a
+    purchase and works from any of slots 2-4) and used on a tank the same
+    way. Each dose reaches exactly the fish the stock Growth Hormone
+    reaches, each live fish aged 40 or less in the tank you use it on, and
+    each one becomes an adult (age 20) if younger, gets full health (100)
+    and is cured of ick or fungus (counted under Fish Cured). Older, dead
+    and isolation-tank fish and the store animals are not reached, as with
+    the stock hormone. Fry are fish in the tank (eggs hatch straight into
+    age-1 fish), so they grow up too; eggs on the shelf are not touched.
+    The age is written as the stock hormone writes it: on Easy and Medium
+    the next update runs one step's checks; on Hard every skipped step's
+    checks run, as for the stock hormone. DS Exclusive Fish now lends the
+    store 20 sprite entries (was 16).
   - Selling-tank customers no longer look at any seahorse-type companion
     (stock code read the Golden Seahorse's species data out of range).
   - Runs as "DS Store Items.dll", loaded by "DS Exclusive Fish.dll"; all or

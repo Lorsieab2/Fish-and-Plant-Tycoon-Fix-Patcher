@@ -161,7 +161,8 @@ def plant_font() -> set[str]:
 
 S_MONEY, S_SPENT, S_EGG_COUNT = 0x38C, 0x24, 0x314
 ANIMAL_RECORD = 0x390 + 26 * 0x288          # Tank 1's first animal slot
-FISH_CELLS = {"puffer": (80, 110), "ray": (180, 130), "eel": (270, 130),"eggs": (350, 130), "warp": (450, 130), "money": (540, 130)}
+FISH_CELLS = {"puffer": (80, 110), "ray": (180, 130), "eel": (270, 130),"eggs": (350, 130), "warp": (450, 130), "money": (540, 130),
+              "hormone": (630, 125)}
 
 
 @_needs(FISH_EXE)
@@ -222,7 +223,7 @@ class FishStoreTests(unittest.TestCase):
         return [c[1] for c in emu.calls if c[0] == "text" and c[1].startswith("Price:")][-1]
 
     def test_every_item_shows_its_price_or_zero(self) -> None:
-        for item, normal in (("puffer", 1250), ("eggs", 2300), ("warp", 500), ("money", 950)):
+        for item, normal in (("puffer", 1250), ("eggs", 2300), ("warp", 500), ("money", 950), ("hormone", 10000)):
             self.assertEqual(self.shown_price(self.store(0, free=False), item), f"Price:  ${normal}")
             self.assertEqual(self.shown_price(self.store(0, free=True), item), "Price:  $0")
         for animal in ("ray", "eel"):
@@ -320,7 +321,8 @@ class FishStoreTests(unittest.TestCase):
                     self.select(emu, item)
                     emu.call(emu.sym("@on_overlay@8"), ecx=emu.scene)
                     drawn |= {c[1] for c in emu.calls if c[0] == "text"}
-        self.assertLessEqual({"Add $1,000", "Plus 1.000 $", "Time Warp", "Zeitsprung", "Price:  $0"}, drawn)
+        self.assertLessEqual({"Add $1,000", "Plus 1.000 $", "Time Warp", "Zeitsprung", "Price:  $0",
+                              "Radioactive Growth Hormone", "Radioaktive Wachstumshormone"}, drawn)
         for text in drawn:
             self.assertLessEqual(set(text), allowed, text)
 

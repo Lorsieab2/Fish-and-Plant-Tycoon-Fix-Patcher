@@ -596,6 +596,20 @@ CONSUMABLES = (
              "same odds; 29 is the new end."),
         ),
     ),
+    Fact(
+        "Radioactive Growth Hormone: not in the unpatched game.",
+        patched=(("ds_store", "Radioactive Growth Hormone ($10,000, 3 doses), on the store's Upgrades "
+                  "page: a chemical for slot #3 (any of slots 2-4 with Universal supply slots, where "
+                  "each purchase adds 3 doses), used on a tank like Growth Hormone. Each dose reaches "
+                  "the same fish Growth Hormone reaches, each live fish aged 40 or less in the tank you "
+                  "use it on, fry included: a fish under 20 becomes 20 (an adult) at once, and every "
+                  "one gets health 100 and is cured of ick or fungus (each cure counts under Fish "
+                  "Cured). The age is written as Growth Hormone writes it, so on Easy and Medium only "
+                  "one step's checks run at the next update and on Hard every skipped step's do. Fish "
+                  "older than 40, dead fish, the other tanks and the store animals (Golden Seahorse "
+                  "included, in their own slots 26-30) get nothing, as with Growth Hormone."),
+                 ("free_upgrades", "the Radioactive Growth Hormone costs $0."),),
+    ),
     Fact("Common, Unusual and Rare Fish Eggs: see Eggs."),
 )
 
@@ -631,7 +645,8 @@ PERMANENT_ITEMS = (
             ("golden_seahorse_repurchase", "it can be bought any number of times, even while one "
              "is in a tank; extra ones add no customers or walk-over points."),
             ("ds_store", f"it also gives healthy, fed fish in its tank {below(100, 82)} chance of +1 "
-             "health each step."),
+             "health each step. It lives in its tank's animal slots (26-30), which Growth Hormone "
+             "never reaches, so its age number stays."),
         ),
     ),
     Fact(

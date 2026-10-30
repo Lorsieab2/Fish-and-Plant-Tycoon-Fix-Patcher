@@ -45,6 +45,9 @@ SITES = [
     # Exotic Fish Eggs: the egg switch, and the stock "Replace eggs in slot #4?" test.
     ("egg_use", 0x421356, ["mov edx, dword ptr [esi + 0x34]", "mov eax, dword ptr [edx + 0x30c]"]),
     ("egg_confirm", 0x4281AF, ["cmp ecx, 0xac", "jne 0x4281d6"]),
+    # Radioactive Growth Hormone: the chemical switch, and the stock "Replace chemical in slot #3?" test.
+    ("chem_use", 0x420E6F, ["mov ecx, dword ptr [esi + 0x34]", "mov eax, dword ptr [ecx + 0x2f0]", "sub eax, 2"]),
+    ("chem_confirm", 0x428189, ["cmp ecx, 0xaa", "jne 0x4281d6"]),
     # The eel's rock: drawn with the ornaments; the eel goes home on a drop, out on a click.
     ("ornaments", 0x41EF1B, ["jmp 0x41d600"]),
     ("fish_drop", 0x41F064, ["mov ecx, dword ptr [esi + 0x34]", "mov eax, dword ptr [ecx + 0x384]"]),

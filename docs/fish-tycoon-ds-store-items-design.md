@@ -194,11 +194,66 @@ rules (user: existing patches should cover the new content):
   eggs branch (swapped into slot #4 for the hatch), from any slot;
 - hatching takes one from the stack and clears the slot at zero.
 The redirect is written only when the payload is in the executable, and the
-log says "Exotic Eggs use universal supply slots". Without the setting they
-stay in slot #4 and a purchase replaces them, as with stock eggs.
+log says "Exotic Eggs and the hormone use universal supply slots". Without
+the setting they stay in slot #4 and a purchase replaces them, as with stock
+eggs.
 Checked live: two purchases stacked in slot 2 (count 2), two hatches from
 slot 2 gave 4 DS babies each time and then emptied it; slot 4's starter eggs
 were untouched.
+
+## Radioactive Growth Hormone
+
+Owner's spec (2026-10-30): $10,000, 3 doses, like Plant's Radioactive Plant
+Formula; $0 with Free upgrades; the stock Growth Hormone's art recoloured
+green; each dose on exactly the fish the stock Growth Hormone reaches.
+
+The stock Growth Hormone (item 3, $380, 3 doses), from the vanilla code:
+- bought into slot #3 (state + 0x2F0: item, present, count, shelf icon 0x7A
+  TOOL_GROWTHHORMONE.png, cursor 0x7B TOOL_dropper4.png, x 0x7E) by the
+  writer `0x427540`, count 3; "Replace chemical in slot #3?" (0xEE) when the
+  slot holds a chemical (`0x428172`);
+- used by the supply-use handler `0x420B70`: slot #3 is case 2 (`0x420E3A`,
+  splash and sound), then the switch on the item at `0x420E72`; item 3 is
+  `0x4210F2`;
+- targets (`0x421100`-`0x421194`): every record of the tank being looked at
+  (state + 0x384) up to `cmp ebx, 0x3528` at `0x42118E` (21 records, 26 with
+  Bigger tanks), that is live (+0x00), has health (+0x3C) not 0 and age
+  (+0x0C) 40 or less;
+- effect: age += Random(5) + 2; unless Hard (state + 0x14 == 2), the
+  last-processed age (+0x08) = age - 1; the next fish update 7 s on
+  (scene + 0x30, `0x42117D`);
+- then a sparkle (effect 0xF) on each live fish on screen (`0x42119A`) and
+  the shared tail `0x421302`: one dose spent, the slot cleared at 0.
+
+The Radioactive Growth Hormone is item 29 in the same slot, shelf picture
+236 and cursor 237 (lent by DS Fish, which now lends 20 entries, 220-239).
+The DLL's site at `0x420E6F` (the switch) sends item 29 to `rgh_dose`, then
+into the stock sparkle and tail; every other item goes on exactly as before.
+`rgh_dose` walks the same records with the same tests (the loop end is read
+from `0x421190`, so Bigger tanks counts too, never past the animals' slots)
+and, for each:
+- age below 20 (the game's adult age: `0x4200AC`, the sickness roll's
+  `0x420498`, sales' `0x42426F`): age 20, and the last-processed age 19
+  unless Hard, as the stock hormone writes it; older fish keep their age;
+- health 100, the game's maximum;
+- sickness (+0x40: 1 fungus, 2 ick, the only values `0x41E120` sets)
+  cleared as the medicines clear it (`0x420D1D`, `0x420D57`): +0x40 = 0
+  and one more Fish Cured (state + 0x34);
+- the next fish update 7 s on, as stock.
+Fry are fish records from age 1 (eggs hatch straight into the tank), so they
+grow up; eggs on the shelf are an item, not fish. The store animals (the
+Golden Seahorse too) live in slots 26-30, past the loop, so neither hormone
+reaches them. Buying: as a stock chemical without Universal supply slots
+(the DLL's site at `0x428189` also makes buying a stock chemical over it
+ask "Replace chemical in slot #3?"); with them, a stack in slots 2-4 gains 3
+doses, else the first empty slot, else the three "replace?" prompts, and
+the use trampoline's gate sends item 29 to the chemicals (`0x43F5A2`).
+Art: scripts/build_growth_hormone_assets.py turns each stock picture's hue
+from 0.667 to 0.30 and its saturation x1.25, keeping brightness and alpha;
+docs/images/radioactive-growth-hormone-fish.png shows the page and the
+pictures. Tests: tests/test_radioactive_growth_hormone.py (emulated: the
+purchase, the price, a dose through the vanilla use handler, the countdown,
+the stubs). Not yet checked live.
 
 ## Store page mechanics
 

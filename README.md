@@ -90,6 +90,14 @@ never needs the internet.
   food (100 and 100), and ones already in a save (the eel in its rock too)
   are filled up the first time the save is loaded with the patch; nothing in
   the game lowers their meters. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
+  The Radioactive Growth Hormone ($10,000, 3 doses; $0 with Free upgrades) is
+  the stock Growth Hormone recoloured green, bought into supply slot #3 and
+  used on a tank like the stock chemicals (Universal supply slots apply). Each
+  dose reaches exactly the fish the stock Growth Hormone reaches, each live
+  fish aged 40 or less in that tank, fry included: younger ones become adults
+  (age 20) at once, and every one gets full health (100) and is cured of ick
+  or fungus. Older fish and the store animals are left alone. Picture:
+  [docs/images/radioactive-growth-hormone-fish.png](docs/images/radioactive-growth-hormone-fish.png).
   The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
   second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
   loaded by DS Fish's; everything it adds is kept in the game's own save.
@@ -106,9 +114,10 @@ never needs the internet.
   so: "Time Warp done: 12 hours played (72 age steps). $500 paid." ($0 paid with Free upgrades).
 - Free upgrades (off by default; **needs DS Store Items, which it turns on**).
   Every item on the Supplies store's Upgrades screen costs $0: the Puffer Fish,
-  Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), and the Time
-  Warp clock ($500) and Add Money ($950) when they are on. The price shows $0
-  and no money is taken; everything else (one of each animal, the egg slot,
+  Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the
+  Radioactive Growth Hormone ($10,000), and the Time Warp clock ($500) and Add
+  Money ($950) when they are on. The price shows $0 and no money is taken;
+  everything else (one of each animal, the supply slots,
   the game's purchase question) stays. The game's own store items keep their
   prices.
 - Add Money cheat ($1,000) (off by default; **needs DS Store Items, which it
