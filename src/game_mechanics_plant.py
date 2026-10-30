@@ -414,6 +414,14 @@ SELLING = (
         "species' asking price P.",
     ),
     Fact(
+        "A plant stays for sale until you take it off sale (the Sell button, or a visitor buys it). "
+        "A dead plant is taken off sale at every update while it is dead. No chemical takes a plant "
+        "off sale.",
+        patched=(("plant_upgrades", "the new chemicals (the Radioactive Plant Formula and its Bomb, "
+                  "Revita-Seed and the Revival Potion) never take a plant off sale either, and the Revival "
+                  "Potion puts a plant that was for sale when it died back on sale (see Chemicals)."),),
+    ),
+    Fact(
         "Every 2 real-time seconds in the nursery, each plant for sale rolls Random(1300) <= k x E, "
         "with E = half the visitors browsing, rounded down. Visitors see a price P' (below) and "
         "compare it with the species' value V:",
@@ -590,8 +598,8 @@ CHEMICALS = (
                   "per part), no later dead leaves, and always 5 seeds: if it is already pollinated, all "
                   "5 of its seeds (less any already picked) are ripe at once; if not, its next "
                   "pollination gives all 5 (not 5, 4 or 3, and 5 even if infested). A plant planted "
-                  "later in that pot does not inherit this. A dead plant stays dead. The Formula "
-                  "Bomb gives every plant it reaches the same."),
+                  "later in that pot does not inherit this. A dead plant stays dead. A plant for sale "
+                  "stays for sale at its price. The Formula Bomb gives every plant it reaches the same."),
                  ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
     Fact(
@@ -609,8 +617,11 @@ CHEMICALS = (
                   "from now (the time it lay dead is not played as time away), and its value and price "
                   "are set again by the game's own rules (they were 0 while it was dead). Parts that were "
                   "dead before it died stay dead, as with the game's own healing (prune them or use the "
-                  "formula); seeds that had not ripened when it died stay lost; a plant that was on sale "
-                  "must be put on sale again. On a live plant it does nothing (the dose is used)."),
+                  "formula); seeds that had not ripened when it died stay lost. A plant that was for sale "
+                  "when it died is for sale again (while it was dead the game took it off sale every "
+                  "update); if the nurseries already hold as many plants for sale as they can (with Extra "
+                  "Greenhouses: 15 per nursery owned, counting every greenhouse), it stays off sale and a "
+                  "message says so. On a live plant it does nothing (the dose is used)."),
                  ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
     Fact(

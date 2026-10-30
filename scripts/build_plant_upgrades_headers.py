@@ -57,6 +57,9 @@ SITES = [
     # Planting (0x42FC70, every new plant: new game, tray, pot seed): the new plant's +0x7C starts
     # at 0, so a formula mark left by the pot's last plant never carries over.
     ("plant_seed", 0x42FCDD, ["mov dword ptr [esi + 0x78], edx", "mov byte ptr [esi + 0x6c], 0"]),
+    # The plant update (0x42DF80) clears a dead plant's on-sale flag (+0x9D) every update: the DLL
+    # remembers it was for sale (+0x9F) so the Revival Potion can put it back on sale.
+    ("dead_untag", 0x42DF91, ["mov byte ptr [eax + 0x9d], 0"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).

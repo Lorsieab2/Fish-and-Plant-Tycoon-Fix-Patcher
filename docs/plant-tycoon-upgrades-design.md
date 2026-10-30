@@ -194,6 +194,28 @@ each update; the greenhouse draws every part brown (`0x42E7AE`). A dose:
 health 100, `+0x3C` = 0, `+0x04` = the game clock (`0x403430`, as a
 planting, `0x42FCAA`), the value by `0x42DD80` and the price by the
 planting rule (`0x42FD11`-`0x42FD9E`). Parts dead before it died stay dead.
+The price: the only code that writes a pot's `+0x44` is the planting rule
+and the death above (the player never sets a price), so the planting rule
+is the stock rule for a plant that has none.
+
+The Sell tag (owner, 2026-10-30: "the chemicals should not clear the Sell
+tag"). The game writes `+0x9D` only at the Sell button and Sell All
+(`0x427CE5`, `0x427D3E`, `0x427F05`, `0x428038`), a visitor's purchase
+(`0x435C90`, which sets the sold byte `+0x9E`) and the dead-plant clear
+(`0x42DF91`); no stock chemical touches it. The formula's "branch roll done"
+(`+0x9C`, a byte the game sets at `0x42E482`) was written as a 4-byte int,
+clearing `+0x9D`, `+0x9E` and `+0x9F`: it is one byte now. `dead_untag`
+(`0x42DF91`, 7 bytes, `stub_dead_untag`): when it is about to clear a set
+`+0x9D`, it first sets `+0x9F` = `'S'` (`0x53`). `+0x9F` is the padding
+after the three flag bytes: no instruction of the game addresses it (no
+`+0x9F` / `+0x2227` operand; the dword operands at `+0x9C` all belong to
+other objects). In the record, it moves with the plant (the save body is the
+state, Extra Greenhouses moves whole records). Planting clears it
+(`plant_seed`). A Revival dose consumes it: `+0x9D` = 1 when the plant passes
+the Sell button's test (`+0x38`, `+0x4C`, age `+0x10` >= 24.0 at
+`0x4677E8`, alive) and Extra Greenhouses' `FtfpExtraGreenhousesForSale()` is
+below 15 x (`FtfpExtraNurseriesOwned()` + 1); otherwise a "Revival Potion"
+message says the nurseries are full and the plant stays off sale.
 
 Revita-Seed. Pollination (`0x4240A0`) sets `+0x6C` (byte) for good, `+0x98`
 the age, `+0x90` = 0, `+0x94` = 0-2 or 4; ripening (`0x42E0C6`) and picking

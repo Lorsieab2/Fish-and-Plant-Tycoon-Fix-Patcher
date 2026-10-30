@@ -82,6 +82,10 @@ static const unsigned char SITE_JOINT_FREE_EXPECT[] = { 0x8B, 0x44, 0x24, 0x0C, 
 #define SITE_PLANT_SEED_LEN 7
 static const unsigned char SITE_PLANT_SEED_EXPECT[] = { 0x89, 0x56, 0x78, 0xC6, 0x46, 0x6C, 0x00 };
 #define SITE_PLANT_SEED_BACK 0x0042FCE4u
+#define SITE_DEAD_UNTAG_VA 0x0042DF91u
+#define SITE_DEAD_UNTAG_LEN 7
+static const unsigned char SITE_DEAD_UNTAG_EXPECT[] = { 0xC6, 0x80, 0x9D, 0x00, 0x00, 0x00, 0x00 };
+#define SITE_DEAD_UNTAG_BACK 0x0042DF98u
 #define SITE_CHEM_PICTURE_BOUND_VA 0x004308D1u
 #define SITE_CHEM_PICTURE_BOUND_LEN 3
 static const unsigned char SITE_CHEM_PICTURE_BOUND_EXPECT[] = { 0x83, 0xF8, 0x24 };

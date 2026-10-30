@@ -325,7 +325,11 @@ and fixes.
     a pollinated plant's held-back seeds, still to ripen over 7 units, and
     left a plant pollinated later at the stock 5, 4 or 3). The mark is
     cleared when a new plant is planted in the pot. The Formula Bomb gives
-    every plant it reaches the same.
+    every plant it reaches the same. A plant for sale stays for sale (the
+    owner: the chemicals should not clear the Sell tag): the formula set
+    the game's one-byte "branch roll done" flag (+0x9C) with a 4-byte
+    write, which also cleared the next bytes, the on-sale flag (+0x9D) and
+    the sold flag (+0x9E); it now writes the one byte, as the game does.
   - Radioactive Plant Formula Bomb ($30,000, 3 bombs): the stock Fertilizer
     Bomb's art made rainbow. One bomb gives every live plant in the
     greenhouse on screen one Radioactive Plant Formula dose: the pots the
@@ -333,6 +337,12 @@ and fixes.
   - Revival Potion ($10,000, 3 doses): a dead plant comes back to life at
     full health, with its value and price set again by the game's rules;
     parts dead before it died stay dead, as with the game's own healing.
+    A plant that was for sale when it died is for sale again (the game
+    takes a dead plant off sale at every update; the DLL remembers it in the
+    pot's record, byte +0x9F, which no game code uses, so it follows the
+    plant through Greenhouses 2-6, the nurseries and the save). If the
+    nurseries are already full (Extra Greenhouses: 15 for sale per nursery
+    owned, over every greenhouse) it stays off sale and a message says so.
   - Revita-Seed ($2,500, 3 doses): a plant that has given all its seeds can
     be pollinated again, exactly like a fresh plant.
   - the Fourth, Fifth and Sixth Seed Box ($1000 each): a second chest on

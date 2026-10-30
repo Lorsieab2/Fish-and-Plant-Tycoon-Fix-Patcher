@@ -14,7 +14,8 @@
        grown to full bloom, and always 5 seeds: all of them ripe at once on
        a pollinated plant, all 5 at its next pollination on any other.
      * Revival Potion (beside it): chemical 37, 3 doses, $10000.  On a dead
-       plant: alive again at full health.
+       plant: alive again at full health, and for sale again if it was
+       when it died.  No chemical takes a plant off sale.
      * Revita-Seed (beside that): chemical 38, 3 doses, $2500.  On a plant
        that has given all its seeds: it can be pollinated again.
      * Radioactive Plant Formula Bomb (under the formula): chemical 39, 3
@@ -312,7 +313,10 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
         if (*type == 2 || *type == 4) *type = 1;          /* hidden or dead: alive (cut ones stay cut) */
     }
     AT(pot, 0x80, int) = 110;
-    AT(pot, 0x9C, int) = 1;                              /* skip the age-7 roll that kills branches */
+    /* Skip the age-7 roll that kills branches: the byte the game itself sets once it has rolled
+       (0x42E482).  A byte, never an int: the next bytes are the on-sale flag (+0x9D) and the sold
+       flag (+0x9E), and a 4-byte write here took plants off sale. */
+    AT(pot, 0x9C, unsigned char) = 1;
     if (plant != NULL && AT(plant, 4, void *) != NULL) {
         flower_everything(plant);
         AT(pot, 0x8C, int) = 100;
@@ -339,10 +343,25 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
    game's clock 0x403430, as a planting sets it, 0x42FCAA), so the next update
    does not play the time it lay dead as time away; its value through the
    game's own value rule (0x42DD80, what every flowering ends with) and its
-   price through the planting rule (0x42FD11-0x42FD9E).  Kept as the death left
-   them, as the game's own healing would: parts that were dead before it died
-   stay dead (only health 0 drew the rest brown), the seeds it lost, and the
-   on-sale flag (put it on sale again).  On a live plant it does nothing. */
+   price through the planting rule (0x42FD11-0x42FD9E): the death set the price
+   to 0, and the planting rule is the only other code that sets a plant's price
+   (the player never sets one).  Kept as the death left them, as the game's own
+   healing would: parts that were dead before it died stay dead (only health 0
+   drew the rest brown) and the seeds it lost.  On a live plant it does nothing.
+
+   The on-sale flag comes back (the owner, 2026-10-30): a plant that was for
+   sale when it died is for sale again.  The update's clear (0x42DF91, the
+   dead_untag site) first marks the pot SALE_KEPT at +0x9F, a byte no code of
+   the game reads or writes (the flags +0x9C/+0x9D/+0x9E are bytes; +0x9F is
+   the padding before +0xA0).  The mark is in the pot's record, so it goes
+   wherever the record goes: the save, and Extra Greenhouses' Greenhouses 2-6
+   and nurseries, which move whole records.  A planting clears it
+   (stub_plant_seed).  The dose puts the flag back when the plant can be sold
+   (the stock toggle's test, 0x427C7D-0x427CC8: planted, a foliage, old enough,
+   alive) and the nurseries have room: with Extra Greenhouses, at most 15 plants
+   for sale per nursery owned over every greenhouse, the limit its Sell button
+   keeps; then it says so and the plant stays off sale.  The stock game's 15
+   pots always fit its 15 nursery spots. */
 #define POT_HEALTH 0x24
 #define POT_DIED 0x3C
 #define POT_PRICE 0x44
@@ -372,6 +391,45 @@ static void price_as_planted(const char *state, char *pot) {
     AT(pot, POT_PRICE, int) = AT(state, S_PRICE_BONUS, unsigned char) ? value + 3 * (value / 4) : base;
 }
 
+#define POT_PLANTED 0x38
+#define POT_FOLIAGE 0x4C
+#define POT_AGE 0x10
+#define POT_FOR_SALE 0x9D
+#define POT_SALE_KEPT 0x9F
+#define SALE_KEPT 0x53                      /* 'S': the plant was for sale when it died */
+#define MATURE_AGE (*(const float *)0x004677E8u)     /* 24.0: the Sell button's "old enough" */
+#define NURSERY_SPOTS 15
+
+/* Room in the nurseries for one more plant for sale ("Extra Greenhouses.dll": its count over
+   all six greenhouses, against 15 spots per nursery owned).  Without it, always. */
+static int nursery_room(int *limit) {
+    typedef int (__cdecl *count_fn)(void);
+    HMODULE extra = GetModuleHandleW(L"Extra Greenhouses.dll");
+    count_fn for_sale = extra ? (count_fn)GetProcAddress(extra, "FtfpExtraGreenhousesForSale") : NULL;
+    count_fn nurseries = extra ? (count_fn)GetProcAddress(extra, "FtfpExtraNurseriesOwned") : NULL;
+    int owned = nurseries != NULL ? nurseries() : 0;
+    *limit = NURSERY_SPOTS * ((owned > 0 ? owned : 0) + 1);
+    return for_sale == NULL || for_sale() < *limit;
+}
+
+static void restore_sale(char *pot) {
+    wchar_t text[256];
+    int limit;
+    if (AT(pot, POT_SALE_KEPT, unsigned char) != SALE_KEPT) return;
+    AT(pot, POT_SALE_KEPT, unsigned char) = 0;
+    if (!AT(pot, POT_PLANTED, unsigned char) || AT(pot, POT_FOLIAGE, int) == 0
+        || !(AT(pot, POT_AGE, float) >= MATURE_AGE) || AT(pot, POT_HEALTH, int) <= 0) return;
+    if (nursery_room(&limit)) {
+        AT(pot, POT_FOR_SALE, unsigned char) = 1;
+        return;
+    }
+    swprintf_s(text, 256, L"This plant was for sale when it died, but your %s full: only %d plants can be "
+               L"for sale at once, counting every greenhouse.\n\nIt is alive again, not for sale. Make room "
+               L"in the nursery, then put it on sale again.", limit > NURSERY_SPOTS ? L"nurseries are"
+               : L"nursery is", limit);
+    tw_tell_as(L"Revival Potion", text);
+}
+
 static void apply_revival(char *greenhouse, int col, int row, char *plant) {
     char *state = AT(greenhouse, 0x68, char *);
     char *pot = pot_at(greenhouse, col, row);
@@ -381,6 +439,7 @@ static void apply_revival(char *greenhouse, int col, int row, char *plant) {
     AT(pot, POT_CLOCK, unsigned int) = game_clock();
     if (plant != NULL && AT(plant, 8, char *) == pot) plant_value(plant, 0);
     price_as_planted(state, pot);
+    restore_sale(pot);
 }
 
 /* ------------------------------------------------------------ Revita-Seed */
@@ -1101,6 +1160,7 @@ static const DWORD k_click_done = 0x00448583u;         /* the mouse handler's ex
 static const DWORD k_hover_back = SITE_STORE_HOVER_BACK;
 static const DWORD k_joint_free_back = SITE_JOINT_FREE_BACK;
 static const DWORD k_plant_seed_back = SITE_PLANT_SEED_BACK;
+static const DWORD k_dead_untag_back = SITE_DEAD_UNTAG_BACK;
 static const DWORD k_sprite_draw = 0x004208F0u;
 static const float k_one = 1.0f;
 
@@ -1539,7 +1599,21 @@ __declspec(naked) static void stub_plant_seed(void) {
         mov dword ptr [esi + 0x78], edx
         mov byte ptr [esi + 0x6C], 0
         mov dword ptr [esi + POT_SEEDS_HELD_BACK], 0
+        mov byte ptr [esi + POT_SALE_KEPT], 0
         jmp k_plant_seed_back
+    }
+}
+
+/* 0x42DF91 the plant update, health <= 0 (eax = the pot): the stock clear of the on-sale flag,
+   first marking the pot when the flag was set (restore_sale).  No flags are live here. */
+__declspec(naked) static void stub_dead_untag(void) {
+    __asm {
+        cmp byte ptr [eax + POT_FOR_SALE], 0
+        je clear
+        mov byte ptr [eax + POT_SALE_KEPT], SALE_KEPT
+    clear:
+        mov byte ptr [eax + POT_FOR_SALE], 0
+        jmp k_dead_untag_back
     }
 }
 
@@ -1604,7 +1678,7 @@ static const char CHEM_SHEET_FILE[] = "Chemicals_Grid_upgrades.png";
 static const char LINK_FILE[] = "upgrades_link.png";
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 20
+#define CODE_SITES 21
 #define DATA_SITES 6
 #define TOTAL_SITES (CODE_SITES + DATA_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -1653,6 +1727,7 @@ static int prepare(void) {
     JMP(w++, STORE_HOVER, stub_hover);
     JMP(w++, JOINT_FREE, stub_joint_free);
     JMP(w++, PLANT_SEED, stub_plant_seed);
+    JMP(w++, DEAD_UNTAG, stub_dead_untag);
     site_data(w++, SITE_CHEM_PICTURE_BOUND_VA, SITE_CHEM_PICTURE_BOUND_LEN, SITE_CHEM_PICTURE_BOUND_EXPECT, NULL, 0);
     writes[CODE_SITES].bytes[SITE_CHEM_PICTURE_BOUND_IMM_AT] = bound;
     site_data(w++, SITE_SEED_SHEET_FILE_VA, SITE_SEED_SHEET_FILE_LEN, SITE_SEED_SHEET_FILE_EXPECT, &seed_file, 4);

@@ -315,7 +315,10 @@ never needs the internet.
   - Revival Potion beside the formula: $10,000, 3 doses, the owner's amber
     flask. Dropped on a dead plant, it comes back to life at full health; the
     parts that were already dead before it died stay dead (prune them or use
-    the formula), and the seeds it lost when it died stay lost.
+    the formula), and the seeds it lost when it died stay lost. A plant that
+    was for sale when it died is for sale again, unless the nurseries are
+    already full (then a message says so). No chemical, stock or new, takes
+    a plant off sale.
   - Revita-Seed beside that: $2,500, 3 doses, the owner's teal bottle.
     Dropped on a plant that has given all its seeds, it can be pollinated
     again and give seeds again, exactly like a fresh plant.
