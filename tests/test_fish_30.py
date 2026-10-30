@@ -320,21 +320,48 @@ class EmulatedTests(unittest.TestCase):
     def tried(self, emu) -> int:
         return sum(1 for bound, _ in emu.randoms if bound == 0x384)
 
-    def test_at_most_21_adults_are_for_sale_at_once(self) -> None:
-        self.assertEqual(self.tried(self.sale(False, list(range(21)))), 21)            # the stock most
-        self.assertEqual(self.tried(self.sale(True, list(range(30)))), 21)
-        self.assertEqual(self.tried(self.sale(True, list(range(21)))), 21)
-        self.assertEqual(self.tried(self.sale(True, list(range(10)))), 10)
-        # babies take no place: the 21 adults after them are all tried, up to slot 29
+    def test_every_adult_in_slots_0_to_29_is_for_sale_one_sale_a_second(self) -> None:
+        self.assertEqual(self.tried(self.sale(False, list(range(21)))), 21)            # the stock tank
+        self.assertEqual(self.tried(self.sale(True, list(range(30)))), 30)
         self.assertEqual(self.tried(self.sale(True, list(range(9, 30)), babies=list(range(9)))), 21)
         self.assertEqual(self.tried(self.sale(False, list(range(5, 21)), babies=list(range(5)))), 16)
+        sold = self.sale(True, list(range(30)), sells=True)
+        self.assertEqual(sold.calls, [("sold", (0,))])                                  # the first ends it
+        self.assertEqual(self.tried(sold), 1)
 
-    def test_a_fish_in_slot_29_sells_exactly_as_slot_0(self) -> None:
-        stock = self.sale(False, [0], sells=True)
-        last = self.sale(True, [29], babies=list(range(29)), sells=True)
-        self.assertEqual(stock.calls, [("sold", (0,))])
-        self.assertEqual(last.calls, [("sold", (29,))])
-        self.assertEqual(stock.randoms, last.randoms)
+    def test_each_fish_has_the_stock_odds_in_every_slot(self) -> None:
+        """One roll of Random(900) per adult per second, the same threshold for the same customers: a fish
+        in slot 29 sells exactly as one in slot 0 on the stock game, for every roll."""
+        for seed in range(1, 30):
+            stock = self.sale(False, [0], seed=seed)
+            stock_sells = self.sale(False, [0], sells=True, seed=seed)
+            last = self.sale(True, [29], babies=list(range(29)), seed=seed)
+            last_sells = self.sale(True, [29], babies=list(range(29)), sells=True, seed=seed)
+            self.assertEqual(stock.randoms, last.randoms)
+            self.assertEqual(stock.calls, last.calls)
+            self.assertEqual(stock_sells.calls, [("sold", (0,))])
+            self.assertEqual(last_sells.calls, [("sold", (29,))])
+        for customers in (0, 2, 5, 11):                    # the threshold the roll is held against
+            thresholds = []
+            for patched, slot in ((False, 0), (True, 29)):
+                emu = self.emulator(patched)
+                scene = emu.alloc(0x100)
+                emu.write32(scene + 0x70, emu.state)
+                self.put(emu, 2, slot, fish_record())
+                species = emu.state + 0x14B60 + (5 * 31 + 7) * 40
+                emu.write32(species, 10)
+                emu.write32(species + 4, 100)
+                emu.hook(0x00424010, emu.record("sold", args=1), 4)
+                limit = None
+                for roll in range(900):
+                    emu.calls.clear()
+                    emu.hook(0x00403240, lambda e, r=roll: r)
+                    emu.call(0x00424240, customers, ecx=scene)
+                    if emu.calls:
+                        limit = roll
+                thresholds.append(limit)
+            self.assertIsNotNone(thresholds[0])
+            self.assertEqual(thresholds[0], thresholds[1], customers)
 
     def test_the_crowd_counts_at_most_21_adults(self) -> None:
         for patched, adults, counted in ((False, 21, 21), (True, 30, 21), (True, 22, 21), (True, 21, 21),
@@ -347,8 +374,8 @@ class EmulatedTests(unittest.TestCase):
             self.run_range(emu, 0x00423E7D, 0x00423F29, edi=scene, ebx=0)
             self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_EBX), counted, (patched, adults))
 
-    def test_the_selling_screen_says_at_most_21(self) -> None:
-        for patched, adults, shown in ((False, 21, 21), (True, 30, 21), (True, 25, 21), (True, 12, 12)):
+    def test_the_selling_screen_counts_all_30(self) -> None:
+        for patched, adults, shown in ((False, 21, 21), (True, 30, 30), (True, 25, 25), (True, 12, 12)):
             emu = self.emulator(patched)
             scene = emu.alloc(0x100)
             emu.write32(scene + 0x70, emu.state)

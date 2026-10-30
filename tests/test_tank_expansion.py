@@ -50,12 +50,10 @@ SITES = {
     "sellscene_adults_count": ("mov ecx, 7", "mov ecx, 0xa"),
     "sellscene_comp_count": ("mov edx, 7", "mov edx, 0xa"),
     "sellscene_comp_body22": ("lea ebx, [edx + 0xf]", "lea ebx, [edx + 0xc]"),
-    "sale_next_slot": ("add dword ptr [esp + 0x10], 1; add esi, 0x288; cmp esi, 0x3528; jl 0x424250",
-                       "jmp 0x43fe00; " + "; ".join(["nop"] * 18)),
-    "sale_crowd_cap": ("push 2; call 0x403240", "jmp 0x43fe60; nop; nop"),
-    "sale_shown_cap": ("push edi; lea ecx, [esp + 0x14]", "jmp 0x43fe80"),
+    "customers_end": ("cmp esi, 0x3528", "cmp esi, 0x4bf0"),
+    "sale_crowd_cap": ("push 2; call 0x403240", "jmp 0x43fe00; nop; nop"),
 }
-CODE = ("sale_code", "sale_crowd_code", "sale_shown_code")
+CODE = ("sale_crowd_code",)
 
 
 def disasm(raw: bytes, va: int) -> str:
@@ -73,7 +71,7 @@ class ManifestTests(unittest.TestCase):
         self.assertFalse(self.setting["default"])
         self.assertEqual(self.setting["name"], "Bigger tanks: 30 fish")
         self.assertIn("30 fish", self.setting["summary"])
-        self.assertIn("21", self.setting["summary"])                 # the stock selling limit
+        self.assertIn("selling tank too", self.setting["summary"])
         self.assertIn("down to 21", self.setting["warning"])
         self.assertIn("isolation tank still holds one fish", self.setting["description"])
 
@@ -157,13 +155,13 @@ class VanillaBytesTests(unittest.TestCase):
         for name in CODE:
             at = int(self.mine[name]["offset"], 16)
             size = len(self.mine[name]["replacement"].split())
-            self.assertTrue(0x3FE00 <= at and at + size <= 0x3FEA0, name)
+            self.assertTrue(0x3FE00 <= at and at + size <= 0x3FE20, name)
             self.assertEqual(self.vanilla[at:at + size], bytes(size), name)
         for patch in self.manifest["patches"]:
             if patch["id"].startswith("tank30_") or patch["id"].startswith(("update_pe_checksum", "extend_text")):
                 continue
             start = int(patch["offset"], 16)
-            self.assertFalse(start < 0x3FEA0 and 0x3FE00 < start + len(patch["replacement"].split()), patch["id"])
+            self.assertFalse(start < 0x3FE20 and 0x3FE00 < start + len(patch["replacement"].split()), patch["id"])
 
     def test_off_the_stock_bytes_stay_in_every_combination(self) -> None:
         settings = [s for s in pin_tank_expansion.byte_settings(self.manifest) if s != SETTING]

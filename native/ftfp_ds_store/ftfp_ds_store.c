@@ -1261,8 +1261,10 @@ static void __cdecl clear_animals(char *state) {
    which becomes "Tank Animals <slot>.previous.dat"; then read back and
    compared.  It names the save it belongs to (its money, money spent,
    sessions and minutes played as saved), so a save restored from a backup
-   never picks up another save's animals: a file that matches neither the
-   save nor its previous generation is set aside, never deleted. */
+   never picks up a later or another save's animals: such a file is set
+   aside, never deleted.  A file from an earlier point of the same save's
+   play (it was played and saved with DS Store Items off since: sessions
+   and minutes only grow) brings its animals back. */
 #define TA_MAGIC 0x41545446u          /* "FTTA" */
 #define TA_VERSION 1u
 #define TA_RECORDS (ANIMAL_TANKS * ANIMAL_SLOTS)
@@ -1402,8 +1404,11 @@ static void set_aside(int slot, const wchar_t *path, const wchar_t *why) {
     }
 }
 
-/* 1 = this file is this save's animals (now in ta_check); 0 = no file;
-   -1 = unreadable or damaged; -2 = another save's. */
+/* 1 = this file is this save's animals (now in ta_check); 2 = written at an
+   earlier point of this save's play (played and saved since without DS
+   Store Items: sessions and minutes played only grow); 0 = no file;
+   -1 = unreadable or damaged; -2 = another save's, or a later point of this
+   one (an older save restored from a backup). */
 static int ta_read(char *state, const wchar_t *path) {
     DWORD *h = (DWORD *)ta_check, want[4];
     if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) return 0;
@@ -1412,7 +1417,8 @@ static int ta_read(char *state, const wchar_t *path) {
         return -1;
     }
     fingerprint(state, want);
-    return memcmp(h + 4, want, sizeof want) == 0 ? 1 : -2;
+    if (memcmp(h + 4, want, sizeof want) == 0) return 1;
+    return h[6] <= want[2] && h[7] <= want[3] && (h[6] < want[2] || h[7] < want[3]) ? 2 : -2;
 }
 
 static void ta_take(char *state) {
@@ -1438,6 +1444,11 @@ static void ta_load(char *state, int slot) {
     if (a == 1) { ta_take(state); return; }
     b = ta_read(state, previous);
     if (b == 1) { ta_take(state); log_slot("Slot ", slot, -1, ": the animals came from Tank Animals .previous.dat"); return; }
+    if (a == 2 && ta_read(state, path) == 2) {
+        ta_take(state);
+        log_slot("Slot ", slot, -1, ": played and saved without DS Store Items since; its animals are back");
+        return;
+    }
     if (a == -1) set_aside(slot, path, L"unreadable");
     if (a == -2) set_aside(slot, path, L"other-save");
     if (b == -1) set_aside(slot, previous, L"unreadable");
@@ -1532,9 +1543,9 @@ static void __cdecl on_store_save(char *state, int slot) {
    then each of the tank's animals, then done.  `slot` and `rec` are the
    loop's own variables (the slot, and its record + 0x4C), already stepped
    past the slot just done.  1 = go round again. */
-static int __cdecl view_next(char *view, int *slot, char **rec, int bound) {
+static int __cdecl view_next(char *view, int *slot, char **rec, const unsigned char *bound_at) {
     char *state = *(char **)(view + 0x5DE4);
-    int tank = *I(state, S_CURRENT_TANK), done = *slot - 1, s, k;
+    int tank = *I(state, S_CURRENT_TANK), done = *slot - 1, bound = *bound_at, s, k;
     if (done >= 0 && done < bound) {
         for (s = done + 1; s < bound; ++s) {
             if (!pending[tank & 3][s]) {
