@@ -60,6 +60,41 @@ class ModelTests(unittest.TestCase):
                 self.assertEqual(self.extras.part_rarity(part), want, (kind, part.index))
         self.assertEqual(sum(self.extras.part_rarity(p) == "Patcher" for p in self.extras.parts("flower")), 14)
 
+    def test_price_search_matches_a_full_scan_and_is_fast(self) -> None:
+        """The cached search over the prices that can sell gives exactly what trying every
+        typed price (1-9999) gives, and the whole All Species sheet builds well under a second."""
+        import time
+        import breeding_guide as bg
+
+        def full_scan(v, c, browsing):
+            highest = max((p for p in range(1, B.MAX_TYPED_PRICE + 1) if B.sale_k(p, v, c) is not None), default=0)
+            best, best_income = 0, 0.0
+            for p in range(1, B.MAX_TYPED_PRICE + 1):
+                income = B.income_per_day(p, v, browsing, c)
+                if income > best_income:
+                    best, best_income = p, income
+            return best, best_income, highest
+
+        conditions = {
+            "none": (B.NO_EFFECTS, B.visitor_limit(2)),
+            "max": (B.MAX_EFFECTS, B.visitor_limit(B.ORNAMENT_POINTS + 2 * B.SALE_SPOTS + 4 + 2 * 5 + 4)),
+        }
+        for effects, (c, browsing) in conditions.items():
+            for v in sorted({B.value(s.key) for s in self.extras.species()}):
+                self.assertEqual(B.price_search(v, c, browsing), full_scan(v, c, browsing), (effects, v))
+        for s in self.extras.species()[::97]:
+            for effects, (c, browsing) in conditions.items():
+                prices = self.extras.prices(s.key, effects)
+                self.assertEqual((prices.best_per_day, prices.best_per_day_income, prices.highest_selling),
+                                 full_scan(B.value(s.key), c, browsing), (s.key, effects))
+        B.price_search.cache_clear()
+        bg._PRICES.clear()
+        model = B.load(None, extras=True)
+        start = time.perf_counter()
+        sheet = bg.View(model, set(), spoilers=True).species_sheet()
+        self.assertEqual(len(sheet.rows), len(model.species()))
+        self.assertLess(time.perf_counter() - start, 0.75)
+
     def test_extras_adds_the_322_new_species_only_when_on(self) -> None:
         self.assertEqual(len(self.stock.species()), 529)
         self.assertEqual(len(self.extras.species()), 851)

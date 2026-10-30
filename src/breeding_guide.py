@@ -31,6 +31,7 @@ import importlib
 import json
 from pathlib import Path
 import re
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from xml.sax.saxutils import escape
@@ -666,7 +667,14 @@ class BreedingGuide:
         self.status_var = tk.StringVar()
         self.spoilers_var = tk.BooleanVar(value=bool(self.settings.get("show_spoilers", False)))
         self.search_var = tk.StringVar()
-        self.effects_var = tk.StringVar(value="none")
+        # Each tab has its own effects choice, so the ticked one is always the one its table
+        # was worked out with; changing it works the table out again.
+        self.calc_effects_var = tk.StringVar(value="none")
+        self.plan_effects_var = tk.StringVar(value="none")
+        self.calc_effects_var.trace_add("write", lambda *_a: self.calculate())
+        self.plan_effects_var.trace_add("write", lambda *_a: self.plan())
+        self.plan_busy = False
+        self._plan_job = 0
         self.folders: list[Path] = []
         self.slots: list[tuple[int, str]] = []
         self.model = None
@@ -869,13 +877,13 @@ class BreedingGuide:
     def _species_label(self, s) -> str:
         return f"{s.name}  ({s.parts[0].name} / {s.parts[1].name})"
 
-    def _effects_row(self, parent, command) -> None:
+    def _effects_row(self, parent, variable: tk.StringVar) -> None:
         row = ttk.Frame(parent)
         row.pack(anchor="w", pady=(4, 0))
         ttk.Label(row, text="Effects:").pack(side="left")
         for value, label in EFFECTS:
-            ttk.Radiobutton(row, text=label.capitalize(), value=value, variable=self.effects_var,
-                            command=command).pack(side="left", padx=(6, 0))
+            ttk.Radiobutton(row, text=label.capitalize(), value=value, variable=variable).pack(
+                side="left", padx=(6, 0))
         effects = " ".join(self.model.effects_max())
         ttk.Label(parent, text=f"Max effects: {effects}", wraplength=1050, justify="left",
                   foreground="#555555").pack(anchor="w", pady=(2, 4))
@@ -901,7 +909,7 @@ class BreedingGuide:
                 box.current(min(row, len(values) - 1))
             self.calc_vars.append(var)
             self.calc_boxes.append(box)
-        self._effects_row(tab, self.calculate)
+        self._effects_row(tab, self.calc_effects_var)
         self.calc_tab = tab
         self._sheet_frame("calculator", tab, self.view.calculator_sheet(None, None, "none"), details=False)
         self.calculate()
@@ -911,7 +919,7 @@ class BreedingGuide:
             return
         picked = [box.current() for box in self.calc_boxes]
         keys = [self.calc_choices[i].key if 0 <= i < len(self.calc_choices) else None for i in picked]
-        sheet = self.view.calculator_sheet(keys[0], keys[1], self.effects_var.get())
+        sheet = self.view.calculator_sheet(keys[0], keys[1], self.calc_effects_var.get())
         if not self.calc_choices:
             sheet.message = "No species discovered in this save yet. Tick Show Spoilers to pick any species."
         self._replace_sheet("calculator", sheet)
@@ -950,12 +958,13 @@ class BreedingGuide:
         self.want_box.pack(anchor="w", pady=(2, 6))
         buttons = ttk.Frame(right)
         buttons.pack(anchor="w")
-        ttk.Button(buttons, text="Find the Chain", command=self.plan).pack(side="left")
+        self.plan_button = ttk.Button(buttons, text="Find the Chain", command=self.plan)
+        self.plan_button.pack(side="left")
         ttk.Button(buttons, text="Select All", command=lambda: self.have_list.selection_set(0, "end")).pack(
             side="left", padx=(8, 0))
         ttk.Button(buttons, text="Select None", command=lambda: self.have_list.selection_clear(0, "end")).pack(
             side="left", padx=(8, 0))
-        self._effects_row(tab, self.plan)
+        self._effects_row(tab, self.plan_effects_var)
         self._sheet_frame("planner", tab, self.view.planner_sheet([], None, "none"), details=False)
 
     def plan(self) -> None:
@@ -964,16 +973,63 @@ class BreedingGuide:
         have = [self.have_choices[i].key for i in self.have_list.curselection()]
         index = self.want_box.current()
         want = self.want_choices[index].key if 0 <= index < len(self.want_choices) else None
-        sheet = self.view.planner_sheet(have, want, self.effects_var.get())
-        if want is None:
-            sheet.message = "Choose the species you want."
-        elif not have:
-            sheet.message = "Select at least one species you have."
+        effects = self.plan_effects_var.get()
+        if want is None or not have:
+            sheet = self.view.planner_sheet([], None, effects)
+            sheet.message = "Choose the species you want." if want is None else "Select at least one species you have."
+            self._plan_job += 1                      # any search still running is dropped
+            self._plan_finished(sheet)
+            return
+        # A long chain can take a second or more, so the search runs beside the window, which
+        # keeps responding and shows "Working..." until the steps are in.
+        self._plan_job += 1
+        job, view = self._plan_job, self.view
+        self.plan_busy = True
+        self.plan_button.state(["disabled"])
         self.window.configure(cursor="watch")
-        try:
-            self._replace_sheet("planner", sheet)
-        finally:
-            self.window.configure(cursor="")
+        working = self.view.planner_sheet([], None, effects)
+        working.message = "Working... finding the breeding chain."
+        self._replace_sheet("planner", working)
+        result: dict = {}
+
+        def search() -> None:
+            try:
+                result["sheet"] = view.planner_sheet(have, want, effects)
+            except Exception as exc:                 # shown, never raised on the window's thread
+                result["error"] = exc
+
+        thread = threading.Thread(target=search, daemon=True)
+        thread.start()
+
+        def check() -> None:
+            if job != self._plan_job or not self.window.winfo_exists():
+                return
+            if thread.is_alive():
+                self.window.after(40, check)
+                return
+            sheet = result.get("sheet")
+            if sheet is None:
+                sheet = self.view.planner_sheet([], None, effects)
+                sheet.message = f"The chain could not be worked out: {result.get('error')}"
+            self._plan_finished(sheet)
+
+        self.window.after(40, check)
+
+    def _plan_finished(self, sheet: Sheet) -> None:
+        self.plan_busy = False
+        if "planner" not in self.trees:
+            return
+        self.plan_button.state(["!disabled"])
+        self.window.configure(cursor="")
+        self._replace_sheet("planner", sheet)
+
+    def wait_for_plan(self, timeout: float = 60.0) -> None:
+        """Let a running chain search finish (for scripts and tests)."""
+        import time
+        end = time.monotonic() + timeout
+        while self.plan_busy and time.monotonic() < end:
+            self.window.update()
+            time.sleep(0.02)
 
     def _replace_sheet(self, sheet_id: str, sheet: Sheet) -> None:
         self.sheets[sheet_id] = sheet

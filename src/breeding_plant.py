@@ -68,6 +68,7 @@ from __future__ import annotations
 
 import struct
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 from breeding_guide import Part, Prices, Species        # the interface's dataclasses, defined once
@@ -271,6 +272,28 @@ def income_per_day(asking: int, v: int, browsing: int, c: Condition,
     return asking * 86400 / cycle
 
 
+@lru_cache(maxsize=None)
+def price_search(v: int, c: Condition, browsing: int) -> tuple[int, float, int]:
+    """(best asking price, its money per day, highest asking price that sells) for value V.
+
+    The prices depend only on V and the conditions, so each is worked out once. Only the
+    asking prices that can sell are tried: the price seen rises with the asking price (every
+    step of seen_price keeps the order), and outside the tutorial's first sale a plant whose
+    price seen is 2V or more never sells (sale_k), so the prices that sell are 1 up to the
+    last one seen below 2V."""
+    best, best_income, highest = 0, 0.0, 0
+    for p in range(1, MAX_TYPED_PRICE + 1):
+        if not c.tutorial_first_sale and seen_price(p, c) >= 2 * v:
+            break
+        if sale_k(p, v, c) is None:
+            continue
+        highest = p
+        income = income_per_day(p, v, browsing, c)
+        if income > best_income:
+            best, best_income = p, income
+    return best, best_income, highest
+
+
 def mutation_steps(key: tuple[int, int], extras: bool) -> list[tuple[tuple[int, int], float]]:
     """One Mutation Liquid dose (0x42FA80): every result with its chance."""
     foliage, flower = key
@@ -409,12 +432,7 @@ class PlantModel:
         else:
             c, score = NO_EFFECTS, 2
         browsing = visitor_limit(score)
-        highest = max((p for p in range(1, MAX_TYPED_PRICE + 1) if sale_k(p, v, c) is not None), default=0)
-        best, best_income = 0, 0.0
-        for p in range(1, MAX_TYPED_PRICE + 1):
-            income = income_per_day(p, v, browsing, c)
-            if income > best_income:
-                best, best_income = p, income
+        best, best_income, highest = price_search(v, c, browsing)
         what = ("every effect at its best: the Golden Berries of Wealth (price seen -1/4), 2 Plant Food doses "
                 "(-1/5 twice), 2+ parts cut without over-pruning (-1/8), a healthy flowering plant, and the "
                 f"visitor score S = {score} (all 15 ornaments, 15 plants for sale, the six magic plants, all 48 bugs)"

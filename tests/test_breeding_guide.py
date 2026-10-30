@@ -237,8 +237,7 @@ class WindowTests(unittest.TestCase):
         names = [s.name for s in self.guide.calc_choices]
         self.guide.calc_boxes[0].current(names.index("Greenfin Spotanus"))
         self.guide.calc_boxes[1].current(names.index("Twin-Fin Spotanus"))
-        self.guide.effects_var.set("none")
-        self.guide.calculate()
+        self.guide.calc_effects_var.set("none")
         tree = self.guide.trees["calculator"]
         rows = [tree.item(i, "values") for i in tree.get_children()]
         # Flagged (fin 18) is in no discovered species, so the child is not named
@@ -253,10 +252,10 @@ class WindowTests(unittest.TestCase):
         tree = self.guide.trees["calculator"]
         rows = [tree.item(i, "values") for i in tree.get_children()]
         self.assertEqual(rows, [("Flagged Spotanus", "Spotanus", "Flagged", "100.00", "No")])
-        self.guide.effects_var.set("max")
-        self.guide.calculate()
+        self.guide.calc_effects_var.set("max")          # recomputed at once, nothing else to press
         odds = [float(tree.set(i, "c3")) for i in tree.get_children()]
         self.assertAlmostEqual(sum(odds), 100.0, places=6)
+        self.assertEqual(len(odds), len(self.guide.model.children((20, 16), (20, 20), "max")))
 
     def test_planner(self) -> None:
         self.select("Have to Want")
@@ -269,11 +268,36 @@ class WindowTests(unittest.TestCase):
             self.guide.have_list.selection_set(names.index(name))
         wants = [s.name for s in self.guide.want_choices]
         self.guide.want_box.current(wants.index("Canary Fire-Arrow"))
-        self.guide.effects_var.set("none")
+        self.guide.plan_effects_var.set("none")
         self.guide.plan()
+        self.assertTrue(self.guide.plan_busy or self.guide.trees["planner"].get_children())
+        self.guide.wait_for_plan()
         tree = self.guide.trees["planner"]
         rows = [tree.item(i, "values") for i in tree.get_children()]
         self.assertEqual(rows, [("1", "Breeding", "Pink Fatfish", "Golden Goldbulb", "Canary Fire-Arrow", "100.00")])
+
+    def test_each_tab_has_its_own_effects(self) -> None:
+        """Changing the effects on one tab recomputes that tab and never leaves the other
+        showing odds worked out with a different choice than the one ticked."""
+        self.guide.spoilers_var.set(True)
+        self.root.update()
+        self.assertIsNot(self.guide.calc_effects_var, self.guide.plan_effects_var)
+        names = [s.name for s in self.guide.calc_choices]
+        self.guide.calc_boxes[0].current(names.index("Greenfin Spotanus"))
+        self.guide.calc_boxes[1].current(names.index("Twin-Fin Spotanus"))
+        self.guide.calculate()
+        tree = self.guide.trees["calculator"]
+        self.assertEqual(len(tree.get_children()), 1)
+        self.guide.plan_effects_var.set("max")                       # the planner's own choice
+        self.guide.wait_for_plan()
+        self.assertEqual(len(tree.get_children()), 1)                 # the calculator is unchanged
+        self.assertEqual(self.guide.calc_effects_var.get(), "none")
+        self.guide.calc_effects_var.set("max")
+        self.assertEqual(len(tree.get_children()), len(self.guide.model.children((20, 16), (20, 20), "max")))
+        out = Path(self.tmp.name) / "calc.csv"
+        self.select("Breeding Calculator")
+        self.guide.export("csv", str(out))
+        self.assertEqual(len(out.read_text(encoding="utf-8-sig").strip().splitlines()), 1 + len(tree.get_children()))
 
     def test_plant_model_loads(self) -> None:
         self.guide.game_var.set("Plant Tycoon")

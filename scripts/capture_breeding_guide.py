@@ -106,8 +106,7 @@ def main() -> int:
         names = [s.name for s in guide.calc_choices]
         guide.calc_boxes[0].current(names.index("Greenfin Spotanus"))
         guide.calc_boxes[1].current(names.index("Twin-Fin Spotanus"))
-        guide.effects_var.set("max")
-        guide.calculate()
+        guide.calc_effects_var.set("max")
         grab(guide, "fish-calculator")
         select(guide, "Have to Want")
         names = [s.name for s in guide.have_choices]
@@ -116,8 +115,9 @@ def main() -> int:
             guide.have_list.selection_set(names.index(name))
         wants = [s.name for s in guide.want_choices]
         guide.want_box.current(wants.index("Speckled Leaffish"))
-        guide.effects_var.set("none")
+        guide.plan_effects_var.set("none")
         guide.plan()
+        guide.wait_for_plan()
         grab(guide, "fish-have-to-want")
         guide.game_var.set("Plant Tycoon")
         select(guide, "Flowers")
