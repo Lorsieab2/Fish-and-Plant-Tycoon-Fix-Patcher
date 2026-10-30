@@ -109,8 +109,8 @@ COUNTS_SETTING = "tank_greenhouse_counts"
 FISH_COUNTS = replace(
     FISH, dll_name="Tank Counts.dll",
     what_it_installs="That first loads DS Exclusive Fish.dll or Maximizable Window.dll when their settings are "
-                     "on, then checks the one place it changes in the running game (the tank screen's call of "
-                     "its background, 0x422013) and writes it or nothing; native/ftfp_tank_counts/"
+                     "on, then checks the two slots it changes in the running game (the tank screen's overlay, "
+                     "0x443A70, and its mouse, 0x443A58) and writes both or nothing; native/ftfp_tank_counts/"
                      "ftfp_tank_counts.c describes it.",
 )
 
@@ -161,8 +161,8 @@ def fish_profile(enabled: set[str]) -> LoaderProfile:
 
     Extra Tanks goes first: it loads Multiple Ornaments (which loads DS Exclusive Fish, which loads DS
     Store Items and the window) before it installs, so the sites they share chain in that order. Without
-    it, Multiple Ornaments goes first the same way. The counts follow (Tank Counts.dll chains Extra Tanks'
-    wrapper of the background call, 0x422013) and the Optimize Prices button last; each loads its own
+    it, Multiple Ornaments goes first the same way. The counts follow (Tank Counts.dll wraps the tank
+    screen's overlay slot, after everything Extra Tanks draws) and the Optimize Prices button last; each loads its own
     companions only if they are not loaded yet (every FtfpStartup runs once)."""
     profiles: list[LoaderProfile] = []
     if "extra_tanks" in enabled:
@@ -207,8 +207,8 @@ PLANT_OPTIMIZE = replace(
 PLANT_COUNTS = replace(
     PLANT, dll_name="Greenhouse Counts.dll",
     what_it_installs="That first loads Unused Flowers.dll or Sort Seeds.dll when their settings are on, then "
-                     "wraps one slot of the greenhouse screen's table (its background draw) after checking it "
-                     "holds the stock function, or writes nothing; native/ftfp_greenhouse_counts/"
+                     "changes two places (the greenhouse overlay's held-item draw, 0x4291D2, and the screen's "
+                     "mouse slot) after checking they hold the stock code, or writes nothing; native/ftfp_greenhouse_counts/"
                      "ftfp_greenhouse_counts.c describes it.",
 )
 # With the extra greenhouses or the extra nurseries on, the loader loads that
