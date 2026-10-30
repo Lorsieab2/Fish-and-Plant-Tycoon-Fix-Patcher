@@ -139,6 +139,77 @@ class SheetTests(unittest.TestCase):
                          {"Common", "Endangered", "Extinct", "Legendary"})
         self.assertNotIn("Half", " ".join(bg.HELP[1]))
 
+    def test_how_names_the_exact_parent_pairs(self) -> None:
+        """A body, a fin, a flower and a foliage: the parent pairs are named, one line per first
+        parent, exactly the pairs the game's rule gives."""
+        import breeding_plant
+        plant = breeding_plant.load(None, extras=False)
+        cases = (
+            (self.model, "body", 7, ["  Shark with Leaffish, Carp", "  Fire-Arrow with Fire-Arrow, Fruitfish"]),
+            (self.model, "fin", 7, ["  Silky with Speckled, Razorback", "  Canary with Canary, Orange"]),
+            (plant, "flower", 3, ["  Spotted with Nox, Bluestar", "  Painted with Daisy, Nox", "  Daisy with Daisy"]),
+            (plant, "foliage", 3, ["  Reptans with Orchid, Astera", "  Scandens with Grass, Orchid", "  Grass with Grass"]),
+        )
+        for model, kind, index, lines in cases:
+            how = bg.View(model, set(), spoilers=True).how(kind, index).splitlines()
+            for line in lines:
+                self.assertIn(line, how, (kind, index))
+            pair_lines = [x for x in how if x.startswith("  ")]
+            self.assertEqual(sum(len(x.split(" with ")[1].split(", ")) for x in pair_lines),
+                             len(model.part_combos(kind, index)))
+
+    def test_spoilers_off_names_only_discovered_parts_in_how(self) -> None:
+        import breeding_plant
+        view = bg.View(self.model, {(0, 0), (4, 4), (2, 2)}, spoilers=False)
+        how = view.how("fin", 2)                                     # Hornet
+        self.assertIn("  Silky with Pink", how)
+        self.assertIn("  Hornet with Hornet", how)
+        for hidden in ("Tiger", "Fanned", "Snubbed"):                # fins of no discovered species
+            self.assertNotIn(hidden, how)
+        self.assertIn("pairs with undiscovered fins", how)
+        self.assertIn("2 undiscovered fins", how)                    # the Unknown Chemical's sources
+        cell = view.part_sheet("fin").rows[[k[1] for k in view.part_sheet("fin").keys].index(2)][1]
+        self.assertNotIn("Tiger", cell)
+        plant = bg.View(breeding_plant.load(None, extras=False), {(1, 1), (5, 5)}, spoilers=False)
+        how = plant.how("flower", 3)
+        self.assertIn("  Spotted with Bluestar", how)
+        self.assertNotIn("Nox", how)
+        self.assertNotIn("Painted", how)
+        self.assertIn("undiscovered flowers", how)
+
+    def test_no_gene_numbers_in_any_text(self) -> None:
+        """Every text the guide shows, in both games, with and without the patcher species:
+        no sums, step wording, gene numbers, number ranges or numbers next to a part word."""
+        import re
+        import breeding_plant
+        bad = re.compile(r"add up to|\bsteps\b|\bone step\b|\bgenes?\b|\bindex\b|\b\d+\s*-\s*\d+\b"
+                         r"|\b(?:body|bodies|fins?|flowers?|foliages?)\s+\d|\d+\s+(?:body|bodies|fins?|flowers?|foliages?)\b",
+                         re.I)
+        texts = list(bg.HELP[1])
+        for model in (bf.load(None, False), bf.load(None, True), breeding_plant.load(None, False),
+                      breeding_plant.load(None, True)):
+            for effects in ("none", "max", "max_mutation"):
+                texts += model.effects_text(effects)
+            keys = [s.key for s in model.species()]
+            for spoilers, found in ((True, set(keys[::40])), (False, set(keys[::40]))):
+                view = bg.View(model, found, spoilers)
+                for kind in view.kinds:
+                    sheet = view.part_sheet(kind)
+                    texts += [str(c) for r in sheet.rows for c in r] + sheet.columns + list(sheet.details)
+                species = view.species_sheet()
+                texts += [str(c) for r in species.rows for c, k in zip(r, species.kinds) if k == "text"]
+                texts += species.columns + [d() for d in species.details[::25]]
+                pick = sorted(found)
+                for effects in ("none", "max", "max_mutation"):
+                    calc = view.calculator_sheet(pick[0], pick[1], effects)
+                    texts += [str(c) for r in calc.rows for c in r] + [calc.intro]
+                    texts += [d() if callable(d) else d for d in calc.details]
+                    plan = view.planner_sheet(pick[:2], pick[2], effects)
+                    texts += [str(c) for r in plan.rows for c in r] + [plan.message] + list(plan.details)
+        for text in texts:
+            match = bad.search(str(text))
+            self.assertIsNone(match, f"{match and match.group(0)!r} in: {str(text)[:300]}")
+
     def test_revealed_parents_are_filtered_before_the_top_20(self) -> None:
         """Codex's repro: with Pink Fatfish (4,4), Golden Goldbulb (10,10) and Canary Fire-Arrow
         (7,7) discovered, the Canary's suggestions include Pink Fatfish x Golden Goldbulb (100%),
@@ -295,7 +366,8 @@ class WindowTests(unittest.TestCase):
         self.root.update()
 
     def test_tabs_and_the_save(self) -> None:
-        self.assertEqual(self.tabs(), ["Fins", "Bodies", "Discovered Species", "Breeding Calculator", "Breeding Planner"])
+        self.assertEqual(self.tabs(), ["Fins", "Bodies", "Discovered Species", "Breeding Calculator", "Breeding Planner",
+                                       "Fin Pictures", "Body Pictures", "Egg Pictures"])
         self.assertEqual(self.guide.folder_var.get(), "Fish Tycoon - Modded Upgrades")
         self.assertEqual(self.guide.slot_var.get(), "Player 1: Tester")
         # the save's DS data turns the patcher species on, and its DS species are read
@@ -341,7 +413,7 @@ class WindowTests(unittest.TestCase):
         self.assertEqual(len(cells) - 1, len(self.guide.trees["part:fin"].get_children()))
         out = Path(self.tmp.name) / "fins.csv"
         self.guide.export("csv", str(out))
-        self.assertTrue(out.read_text(encoding="utf-8-sig").startswith("Fin,Index"))
+        self.assertTrue(out.read_text(encoding="utf-8-sig").startswith("Fin,How it is obtained"))
 
     def test_calculator(self) -> None:
         self.select("Breeding Calculator")
@@ -446,7 +518,7 @@ class WindowTests(unittest.TestCase):
             self.root.update()
         finally:
             bg.View.species_sheet = saved
-        self.assertEqual(len(self.tabs()), 5)
+        self.assertEqual(len(self.tabs()), 8)
         self.assertIn("calculator", self.guide.trees)
         self.assertIn("planner", self.guide.trees)
         self.assertNotIn("species", self.guide.trees)
@@ -511,7 +583,8 @@ class WindowTests(unittest.TestCase):
     def test_plant_model_loads(self) -> None:
         self.guide.game_var.set("Plant Tycoon")
         self.root.update()
-        self.assertEqual(self.tabs(), ["Flowers", "Foliage", "Discovered Species", "Breeding Calculator", "Breeding Planner"])
+        self.assertEqual(self.tabs(), ["Flowers", "Foliage", "Discovered Species", "Breeding Calculator", "Breeding Planner",
+                                       "Flower Pictures", "Foliage Pictures", "Seed Pictures"])
         self.assertIsNotNone(self.guide.model)
         self.assertEqual(self.guide.model.game, "plant")
 
@@ -538,6 +611,9 @@ class WindowTests(unittest.TestCase):
             self.guide.spoilers_var.set(True)
             self.root.update()
             for sheet_id in self.guide.tab_ids:
+                if sheet_id.startswith("pictures:"):           # a picture grid, which scrolls itself
+                    self.assertIsInstance(self.guide.pictures[sheet_id]["canvas"].scrollbar, tk.ttk.Scrollbar)
+                    continue
                 self.select(self.tabs()[self.guide.tab_ids.index(sheet_id)])
                 text = self.guide.details[sheet_id]
                 self.assertIsInstance(text.scrollbar, tk.ttk.Scrollbar, sheet_id)

@@ -595,21 +595,24 @@ class ModelTests(unittest.TestCase):
         for model in (self.stock, self.ds):
             for kind in ("body", "fin"):
                 for part in model.parts(kind):
-                    g, how = part.index, part.how
+                    g, how = part.index, model.how(kind, part.index)
                     for g0, p in bf.chemical_sources(g, model.extras):
-                        word = "always steps" if p >= 1 else f"steps on {100 * p:.2f}%"
-                        self.assertIn(f"at {g0} {word}", how, (kind, g))
+                        word = "always" if p >= 1 else f"on {100 * p:.2f}%"
+                        self.assertIn(f"a {bf._part_name(kind, g0)} {kind} {word}", how, (kind, g))
                     self.assertIn(f"{100 * bf.P_CHEMICAL:.2f}% a dose", how)
                     self.assertIn(f"{100 * bf.P_MUTATE:.2f}% a litter", how)
+                    # every parent pair of the game's rule, by name, one line per first parent
+                    lines = how.splitlines()
+                    for a, b, p in model.part_combos(kind, g):
+                        line = next(x for x in lines if x.startswith(f"  {bf._part_name(kind, a)} with "))
+                        self.assertIn(bf._part_name(kind, b) + ("" if p >= 1 else f" ({100 * p:.2f}%)"), line)
                     if bf.is_ds(g):
                         self.assertIn("Never from two PC parents", how)
                         self.assertIn(f"Exotic Fish Eggs ($2300), {100 * bf.random_is(7, g - 23):.2f}%", how)
                     else:
                         self.assertNotIn("Exotic", how)
-                        for total in bf.breeding_sums(g):
-                            self.assertEqual((total // 2), g)
-                        self.assertIn("add up to " + " or ".join(map(str, bf.breeding_sums(g))), how)
                     self.assertEqual("No egg lays it" in how, not bf.is_ds(g) and g % 2 == 1, (kind, g))
+                    self.assertEqual(bf.flat(how), part.how)
         # breeding: every PC total that rounds down to the gene, and no other
         for g in bf.PC_GENES:
             self.assertEqual(set(bf.breeding_sums(g)), {a + b for a in bf.PC_GENES for b in bf.PC_GENES

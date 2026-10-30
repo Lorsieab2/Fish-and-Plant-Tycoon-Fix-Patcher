@@ -368,10 +368,11 @@ class PlantModel:
         self.extras = extras
         self.source = source
         flowers = list(STOCK_FLOWERS) + (list(NEW_FLOWERS) if extras else [])
-        self._foliage_parts = {g: Part("foliage", g, FOLIAGE_WORD[g], False, _gene_how(g, "foliage", extras))
+        from breeding_fish import flat
+        self._foliage_parts = {g: Part("foliage", g, FOLIAGE_WORD[g], False, flat(_gene_how(g, "foliage", extras)))
                                for g in STOCK_FOLIAGES}
         self._flower_parts = {g: Part("flower", g, FLOWER_WORD[g].strip(), is_new_flower(g),
-                                      _gene_how(g, "flower", extras)) for g in flowers}
+                                      flat(_gene_how(g, "flower", extras))) for g in flowers}
         self._species = {}
         for f in STOCK_FOLIAGES:
             for fl in flowers:
@@ -379,6 +380,13 @@ class PlantModel:
                 self._species[key] = Species(key, species_name(key), (self._foliage_parts[f], self._flower_parts[fl]),
                                              is_new_flower(fl), species_rarity(key), value(key))
         self._keys = sorted(self._species)
+
+    def how(self, kind: str, index: int, name=None) -> str:
+        """How a part is first obtained, one route a line, by name (see _gene_how)."""
+        return _gene_how(index, kind, self.extras, name)
+
+    def part_combos(self, kind: str, index: int) -> list[tuple[int, int, float]]:
+        return part_combos(kind, index, self.extras)
 
     # ------------------------------------------------------------ parts and species
     def part_rarity(self, part: Part) -> str:
@@ -525,15 +533,15 @@ class PlantModel:
     def effects_text(self, effects: str) -> list[str]:
         """What an effects choice assumes, in words."""
         if effects == "none":
-            return ["No effects: the seed is the parents' average; a healthy, flowering, unpruned plant with no "
-                    "Plant Food, alone for sale, no ornaments, magic plants or bug collection."]
+            return ["No effects: the seed is halfway between its parents; a healthy, flowering, unpruned plant "
+                    "with no Plant Food, alone for sale, no ornaments, magic plants or bug collection."]
         if effects == "max_mutation":
-            first = ("Breeding: nothing changes a pollination's seed (0x4240A0 reads only the two parents' genes); "
-                     f"Mutation Liquid (${MUTATION_LIQUID_PRICE}) steps a planted plant's flower or foliage one gene "
-                     "up or down, each of the four 25% a dose. The Breeding Calculator shows the seed after one dose; "
-                     "the Breeding Planner uses a dose as a step. It changes no price.")
+            first = ("Breeding: nothing changes a pollination's seed (it comes only from the two parents); "
+                     f"Mutation Liquid (${MUTATION_LIQUID_PRICE}) changes a planted plant's flower or foliage to the "
+                     "next one along, either way: each of the four results 25% a dose. The Breeding Calculator shows "
+                     "the seed after one dose; the Breeding Planner can use a dose. It changes no price.")
         else:
-            first = ("Breeding: no Mutation Liquid, so no mutation chance; the seed is the parents' average "
+            first = ("Breeding: no Mutation Liquid, so no mutation chance; the seed is halfway between its parents "
                      "(nothing else changes a pollination's seed).")
         return [first] + self._max_rest()
 
@@ -542,19 +550,19 @@ class PlantModel:
 
     def _max_rest(self) -> list[str]:
         return [
-            "Golden Berries of Wealth (magic plant 2/14): visitors see every asking price a quarter lower "
-            "(0x436E22), so a higher price still sells.",
-            "Plant Food: 2 doses before age 21 make visitors see the price 1/5 lower, twice (0x42D650, plant + 0x84).",
+            f"Golden Berries of Wealth ({species_name((2, 14)).strip()}, a magic plant): visitors see every asking "
+            "price a quarter lower, so a higher price still sells.",
+            "Plant Food: 2 doses before age 21 make visitors see the price 1/5 lower, twice.",
             "Pruning 2 or more parts, without cutting the root or more than 65% of parts: the price seen is 1/8 "
-            "lower (0x42DE50); over-pruning makes it 5 times higher (0x42DDE0).",
+            "lower; over-pruning makes it 5 times higher.",
             "A healthy, flowering plant: no dead foliage (+1/3), health 15 or more (+1/4), flowers (x2 without), "
-            "not infested (x3) (0x436D7A-0x436E1F). The Fruit of Life, Soil and Water from Isola keep plants so.",
+            "not infested (x3). The Fruit of Life, Soil and Water from Isola keep plants so.",
             "More visitors: all 15 nursery ornaments (S + 30), 15 plants for sale (S + 30), the six magic plants "
-            "(S + 14, the Rose of Joy 4), all 48 bugs (S + 4): the visitor limit 8 + 47 S / 78 reaches 55 (0x43FF00).",
-            "Flower of Knowledge (magic plant 4/4): once, every asking price becomes V + 3 x (V/4) (0x41EB46 -> "
-            "0x41DBD0); it does not change what visitors accept.",
-            "Not counted: the tutorial game's first-sale bonus (k = 70 until the first sale, 0x436E6C); plant size "
-            "and bloom (the buy roll reads neither).",
+            "(S + 14, the Rose of Joy 4), all 48 bugs (S + 4): the visitor limit 8 + 47 S / 78 reaches 55.",
+            f"Flower of Knowledge ({species_name((4, 4)).strip()}, a magic plant): once, every asking price becomes "
+            "V + 3 x (V/4); it does not change what visitors accept.",
+            "Not counted: the tutorial game's first-sale bonus (until the first sale); plant size and bloom (the "
+            "buy roll reads neither).",
         ]
 
     # ------------------------------------------------------------ saves
@@ -589,30 +597,61 @@ def breeding_sums(gene: int) -> tuple[int, ...]:
     return tuple(s for s in (2 * gene - 1, 2 * gene) if s >= 2)
 
 
-def _gene_how(g: int, kind: str, extras: bool = False) -> str:
+def part_word(kind: str, gene: int) -> str:
+    return (FOLIAGE_WORD if kind == "foliage" else FLOWER_WORD)[gene].strip()
+
+
+def part_combos(kind: str, gene: int, extras: bool) -> list[tuple[int, int, float]]:
+    """Every pair of parent foliages (flowers), (a, b, chance) with a <= b, whose pollination
+    (0x4240B5 / 0x4240DA: halfway, an odd distance rounding to the later one; Unused Flowers'
+    50% rounding either way with a new flower) gives `gene`."""
+    genes = list(STOCK_FOLIAGES) if kind == "foliage" else list(STOCK_FLOWERS) + (list(NEW_FLOWERS) if extras else [])
+    out = []
+    for i, a in enumerate(genes):
+        for b in genes[i:]:
+            total = a + b
+            if kind == "flower" and extras and (is_new_flower(a) or is_new_flower(b)) and total % 2:
+                p = (0.5 if total // 2 == gene else 0.0) + (0.5 if (total + 1) // 2 == gene else 0.0)
+            else:
+                p = 1.0 if (total + 1) // 2 == gene else 0.0
+            if p > 0:
+                out.append((a, b, p))
+    return out
+
+
+def _gene_how(g: int, kind: str, extras: bool = False, name=None) -> str:
     """How a foliage (flower) is first obtained, each route with its exact odds from the game's
-    code (and, for the new flowers, the Unused Flowers and Store Upgrades DLLs' source)."""
-    parts = []
+    code (and, for the new flowers, the Unused Flowers and Store Upgrades DLLs' source), by the
+    game's names only. `name(kind, gene)` gives a part's name, or None to leave it out."""
+    from breeding_fish import named_list, named_pairs
+    if name is None:
+        name = part_word
+    plural = "foliages" if kind == "foliage" else "flowers"
+    lines = []
     if kind == "flower" and is_new_flower(g):
-        parts.append(f"Unused Flowers only. Legendary Seeds (${LEGENDARY_PRICE}, {LEGENDARY_A_DAY} a day, with Add "
+        lines.append(f"Unused Flowers only. Legendary Seeds (${LEGENDARY_PRICE}, {LEGENDARY_A_DAY} a day, with Add "
                      f"new store upgrades and items): any foliage, {_pct(random_is(NEW_FLOWER_COUNT, g - 24))} of the "
                      f"packets have this flower.")
     else:
         packet = packet_chance(g)
         if packet is not None:
-            name, p = packet
-            parts.append(f"{name} Seeds (${PACKET_PRICES[name]}, {PACKETS_A_DAY} packets a day): {_pct(p)} of them "
-                         f"have {kind} {g}.")
-    sums = breeding_sums(g)
-    parts.append(f"Breeding: two parents whose {kind}s add up to " + " or ".join(map(str, sums))
-                 + f" (the seed's {kind} is the average, rounded up).")
-    if extras and kind == "flower":
-        parts.append("With a new-flower parent (24-37) an odd flower total rounds up or down (50%).")
+            packet_name, p = packet
+            lines.append(f"{packet_name} Seeds (${PACKET_PRICES[packet_name]}, {PACKETS_A_DAY} packets a day): "
+                         f"{_pct(p)} of them have this {kind}.")
+    pairs = named_pairs(part_combos(kind, g, extras), kind, name, plural)
+    if pairs:
+        rule = f"the seed's {kind} is halfway between its parents' in the game's list, the later one when two are"
+        rule += " in the middle"
+        if extras and kind == "flower":
+            rule += "; with an Unused Flowers parent either middle one (the chance is shown)"
+        lines.append(f"Breeding ({rule}); these parent {plural} give it:")
+        lines.extend(pairs)
     sources = mutation_sources(g, kind, extras)
     if sources:
-        parts.append(f"Mutation Liquid (${MUTATION_LIQUID_PRICE}), one dose on a planted plant whose {kind} is "
-                     + " or ".join(f"{s}: {_pct(p)}" for s, p in sources) + ".")
-    return " ".join(parts)
+        lines.append(f"Mutation Liquid (${MUTATION_LIQUID_PRICE}): one dose changes a planted plant's flower or "
+                     f"foliage to the next one along either way; it gives this {kind} from "
+                     + named_list(sources, kind, name, plural, lambda n, p: f"a {n} {kind} on {_pct(p)}") + ".")
+    return "\n".join(lines)
 
 
 def _shop_cost(key: tuple[int, int], extras: bool) -> int:

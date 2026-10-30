@@ -335,39 +335,85 @@ def breeding_sums(gene: int) -> tuple[int, ...]:
     return tuple(s for s in (2 * gene, 2 * gene + 1) if s <= 2 * PC_LAST)
 
 
-def _how(kind: str, gene: int, extras: bool = False) -> str:
+def named_pairs(pairs, kind: str, name, plural: str) -> list[str]:
+    """Parent pairs of parts, (a, b, chance), by name, one line per first parent ("Shark with
+    Fatfish, Snooper (50%)"); pairs with a part `name` hides are counted, never named."""
+    groups: dict[str, list[str]] = {}
+    hidden = 0
+    for a, b, p in pairs:
+        na, nb = name(kind, a), name(kind, b)
+        if na is None or nb is None:
+            hidden += 1
+            continue
+        groups.setdefault(na, []).append(nb + ("" if p >= 1 else f" ({_pct(p)})"))
+    lines = [f"  {a} with {', '.join(bs)}" for a, bs in groups.items()]
+    if hidden:
+        lines.append(f"  and {hidden} pair{'s' if hidden != 1 else ''} with undiscovered {plural}")
+    return lines
+
+
+def named_list(items, kind: str, name, plural: str, text) -> str:
+    """`text(name, chance)` for each (part, chance) the namer shows, then a count of the others."""
+    shown, hidden = [], 0
+    for g, p in items:
+        n = name(kind, g)
+        if n is None:
+            hidden += 1
+        else:
+            shown.append(text(n, p))
+    if hidden:
+        shown.append(f"{hidden} undiscovered " + (plural if hidden != 1 else plural[:-1].replace("ie", "y")))
+    return "; ".join(shown)
+
+
+def how_text(kind: str, gene: int, extras: bool, combos, name=None) -> str:
     """How a body (fin) is first obtained, each route with its exact odds from the game's code
-    (and, for the DS genes, the DS Fish and DS Store DLLs' source)."""
+    (and, for the DS genes, the DS Fish and DS Store DLLs' source), by the game's names only:
+    the parent pairs, the parts the Unknown Chemical changes into it. `name(kind, gene)` gives
+    a part's name, or None to leave it out (spoilers off)."""
+    if name is None:
+        name = _part_name
     noun = "body" if kind == "body" else "fin"
     nouns = "bodies" if kind == "body" else "fins"
-    parts = []
+    lines = []
     eggs = egg_sources(kind, gene, extras)
     if eggs:
-        parts.append("Eggs: " + "; ".join(
-            f"{name} (${price}), {_pct(p)} of the babies" + (" (with DS Store Items)" if name == EXOTIC_EGGS[0] else "")
-            for name, price, p in eggs) + ".")
+        lines.append("Eggs: " + "; ".join(
+            f"{egg} (${price}), {_pct(p)} of the babies" + (" (with DS Store Items)" if egg == EXOTIC_EGGS[0] else "")
+            for egg, price, p in eggs) + ".")
     elif not is_ds(gene):
-        parts.append("No egg lays it.")
+        lines.append("No egg lays it.")
     if starter_gives(kind, gene):
-        parts.append("The starter eggs of a new game.")
-    sums = breeding_sums(gene) if not is_ds(gene) else ()
-    if sums:
-        parts.append(f"Breeding: two parents whose {nouns} add up to " + " or ".join(map(str, sums))
-                     + f" (the baby's {noun} is the average, rounded down).")
-    if extras:
-        parts.append(f"With a DS parent the {nouns} average in the order 0-20, 23-29, an odd total rounding "
-                     "up or down (50%)." + (" Never from two PC parents." if is_ds(gene) else ""))
+        lines.append("The starter eggs of a new game.")
+    pairs = named_pairs(combos, kind, name, nouns)
+    if pairs:
+        rule = (f"the baby's {noun} is halfway between its parents' {nouns} in the game's list, the earlier one "
+                "when two are in the middle")
+        if extras:
+            rule += (f"; with a DS parent, two {nouns} with no single middle one give either middle {noun} "
+                     "(the chance is shown)")
+        lines.append(f"Breeding ({rule}); these parent {nouns} give it:")
+        lines.extend(pairs)
+        if is_ds(gene):
+            lines.append("Never from two PC parents.")
     chem = chemical_sources(gene, extras)
     if chem:
-        parts.append(f"Unknown Chemical (${UNKNOWN_CHEMICAL_PRICE}): each live fish in the tank changes on "
-                     f"{_pct(P_CHEMICAL)} a dose, its body on {_pct(P_BODY)} (else its fin), one step; a {noun} "
-                     + " or ".join(f"at {g} " + ("always steps" if p >= 1 else f"steps on {_pct(p)}")
-                                   + f" {'up' if ds_index(g) < ds_index(gene) else 'down'} to {gene}"
-                                   for g, p in chem) + ".")
-    parts.append(f"The Magic Fish of Mutation (Wasp Grouper) in the mother's tank: {_pct(P_MUTATE)} a litter "
-                 "the father's body or fin steps one place before the average (the Breeding Calculator's "
+        lines.append(f"Unknown Chemical (${UNKNOWN_CHEMICAL_PRICE}): each live fish in the tank changes on "
+                     f"{_pct(P_CHEMICAL)} a dose, its body on {_pct(P_BODY)} (else its fin), to the next {noun} "
+                     "along either way; it becomes this one from "
+                     + named_list(chem, kind, name, nouns,
+                                  lambda n, p: f"a {n} {noun}" + (" always" if p >= 1 else f" on {_pct(p)}")) + ".")
+    lines.append(f"The Magic Fish of Mutation (Wasp Grouper) in the mother's tank: {_pct(P_MUTATE)} a litter "
+                 "the father's body or fin first changes to the next one along (the Breeding Calculator's "
                  "\"Max effects, with Wasp Grouper\").")
-    return " ".join(parts)
+    return "\n".join(lines)
+
+
+def flat(text: str) -> str:
+    """A how text on one line, for a sheet cell."""
+    import re
+    text = text.replace(":\n  ", ": ").replace("\n  ", "; ")
+    return re.sub(r"(?<=[.])\n", " ", text).replace("\n", ". ")
 
 
 def _part_name(kind: str, gene: int) -> str:
@@ -454,7 +500,7 @@ class FishModel:
         self.extras = bool(extras)
         self.genes = PC_GENES + (DS_GENES if self.extras else ())
         self._parts = {
-            kind: [Part(kind, g, _part_name(kind, g), is_ds(g), _how(kind, g, self.extras)) for g in self.genes]
+            kind: [Part(kind, g, _part_name(kind, g), is_ds(g), flat(self.how(kind, g))) for g in self.genes]
             for kind in ("body", "fin")
         }
         self._part_by = {(p.kind, p.index): p for kind in self._parts for p in self._parts[kind]}
@@ -466,6 +512,11 @@ class FishModel:
         self._by_key = {s.key: s for s in self._species}
         self._children: dict = {}
         self._prices: dict = {}
+
+    def how(self, kind: str, index: int, name=None) -> str:
+        """How a part is first obtained, one route a line; `name(kind, index)` gives the names
+        shown (None leaves a part out, counted)."""
+        return how_text(kind, index, self.extras, self.part_combos(kind, index), name)
 
     # ---- parts and species
     def parts(self, kind: str) -> list[Part]:
@@ -704,15 +755,15 @@ class FishModel:
         """What an effects choice assumes, in words."""
         if effects == "none":
             return ["No magic fish, research or ornaments: Advertising level 1 and nobody browsing; "
-                    "each baby's body and fin are its parents' averages."]
+                    "each baby's body and fin are halfway between its parents'."]
         out = []
         if effects == "max_mutation":
             out.append("Breeding: a live adult Magic Fish of Mutation (Wasp Grouper) in the mother's tank: "
-                       f"{100 * P_MUTATE:.2f}% per litter to step the father's body or fin one place before the "
-                       "babies are made.")
+                       f"{100 * P_MUTATE:.2f}% per litter the father's body or fin first changes to the next one "
+                       "along before the babies are made.")
         else:
             out.append("Breeding: no Magic Fish of Mutation (Wasp Grouper), so no mutation chance; each baby's "
-                       "body and fin are its parents' averages.")
+                       "body and fin are halfway between its parents'.")
         return out + self._max_rest()
 
     def effects_max(self) -> list[str]:
