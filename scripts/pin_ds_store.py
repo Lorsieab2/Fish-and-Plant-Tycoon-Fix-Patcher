@@ -44,14 +44,17 @@ SETTING = {
         "Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can "
         "move: drop the eel on its rock to send it home, and drag it out by its head. Trashing "
         "the eel trashes its rock, and the other way round. The animals never take a fish's "
-        "place: each tank has 5 animal slots of its own, the Golden Seahorse's included. "
+        "place: each tank has 5 animal places of its own, the Golden Seahorse's included, kept "
+        "beside the save in \"Tank Animals <slot>.dat\" (a save from an earlier build has its animals "
+        "moved there the first time it loads). "
         "Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Golden "
         "Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish."
     ),
     "warning": (
-        "Turning this off after buying a store animal leaves it in your tank drawn as a Golden "
-        "Seahorse, and the eel's rock as a sprite the game cannot draw. Move the animals to the "
-        "trash and the eel out of its rock before switching it off."
+        "Turning this off hides the store animals and the Golden Seahorse: they wait in "
+        "\"Tank Animals <slot>.dat\" beside the save and come back when it is on again. The eel's "
+        "rock stays in the tank as a sprite the game cannot draw; trash the eel (its rock goes "
+        "with it) before switching it off if you mind."
     ),
     "category": "main",
     "default": False,

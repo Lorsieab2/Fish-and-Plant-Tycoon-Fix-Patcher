@@ -496,7 +496,7 @@ def list_backups(game_id: str, save_folder: Path) -> list[BackupInfo]:
 
 # --------------------------------------------------------------------- restore
 
-_SIDE_FILE_SLOT = re.compile(r" ([1-5])\.dat(?:\.tmp|\.unreadable[^\\/]*)?$", re.I)
+_SIDE_FILE_SLOT = re.compile(r" ([1-5])(?:\.previous)?\.dat(?:\.tmp|\.unreadable[^\\/]*)?$", re.I)
 
 
 def file_slot(game_id: str, relative: Path) -> int | str:

@@ -44,9 +44,13 @@ never needs the internet.
   Seahorses, in case you trash or lose it somehow. It shipped broken from
   v1.0.6 and was fixed in v1.0.12; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
-- Bigger tanks: 26 fish (off by default). Every tank holds 26 fish instead of
-  21. The game's save already has room for them, so saves keep their layout.
-  Sell or move fish down to 21 per tank before turning it off again. Design:
+- Bigger tanks: 30 fish (off by default). Tank One, Tank Two and the selling
+  tank hold 30 fish instead of 21 (the isolation tank still holds one), and
+  fish 22-30 get everything fish 1-21 get. Every adult in the selling tank is
+  for sale with the stock odds per fish, one sale a second at most as in the
+  stock game; the crowd counts at most 21 adults, the stock game's most. The
+  game's save already has room for them, so saves keep their layout. Sell or
+  move fish down to 21 per tank before turning it off again. Design:
   [docs/fish-tycoon-tank-expansion.md](docs/fish-tycoon-tank-expansion.md).
 - Maximizable window (on by default). In windowed mode the window's Maximize
   button works, and its edges can be dragged to resize it. At any size other
