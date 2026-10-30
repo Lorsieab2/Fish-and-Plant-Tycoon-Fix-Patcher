@@ -19,8 +19,8 @@
      * Revival Potion ($10,000, 3 doses): a chemical for slot #3; each dose
        revives every dead fish in the tank you look at, at full health;
      * ClonaFish ($2,500, 3 doses): a chemical for slot #3; each dose adds an
-       exact copy of every unique fish in the tank you look at, through the
-       game's own AddFish, until the tank is full;
+       exact copy of every live fish in the tank you look at (it doubles the
+       tank), through the game's own AddFish, until the tank is full;
      * the Auto-Feeder and the Auto-Healer ($10,000 each, bought once): every
        live fish in every tank kept fed, and cured at full health
        (auto_upgrades.h);
@@ -1118,10 +1118,12 @@ static void __cdecl revival_dose(char *impl) {
 
 /* ------------------------------------------------------------ ClonaFish */
 
-/* Item 31, used like the hormone.  A unique fish is a live one (+0x00 set,
-   health above 0) whose species, body (+0x4C) and fin (+0x50) together, no
-   other live fish in the tank shares.  Store animals and seahorse-type records
-   are never cloned and never count.  The unique fish are found first; then each
+/* Item 31, used like the hormone.  Every live fish (+0x00 set, health above 0)
+   is cloned once a dose, any species, however many of it there are (the owner,
+   2026-10-31: "it should double all fish"; the first build cloned only fish no
+   other shared a species with).  Store animals and seahorse-type records are
+   never cloned.  The fish in the tank before the dose are copied first, so a
+   clone this dose makes is not cloned again until the next dose; then each
    one, in slot order, is copied whole (all 0x288 bytes) and handed to the
    game's own AddFish (0x419C50), which puts it in the first free record under
    the tank's limit (0x419C72) or answers -1 when the tank is full: then the
@@ -1138,20 +1140,13 @@ static int counts_for_cloning(char *f) {
 
 static void __cdecl clona_dose(char *impl) {
     char *state = (char *)P(impl, 0x34);
-    int tank, s, t, slots = fish_slots(), unique = 0, added = 0, k;
+    int tank, s, slots = fish_slots(), unique = 0, added = 0, k;
     if (state == NULL) return;
     tank = *I(state, S_CURRENT_TANK);
     if (tank < 0 || tank > last_tank()) return;
-    for (s = 0; s < slots; ++s) {
+    for (s = 0; s < slots; ++s) {                       /* the fish before the dose: copied first */
         char *f = fish(state, tank, s);
-        int shared = 0;
-        if (!counts_for_cloning(f)) continue;
-        for (t = 0; t < slots && !shared; ++t) {
-            char *g = fish(state, tank, t);
-            shared = t != s && counts_for_cloning(g) && *I(g, F_BODY) == *I(f, F_BODY)
-                     && *I(g, F_FIN) == *I(f, F_FIN);
-        }
-        if (!shared) memcpy(clone_buffer[unique++], f, SLOT_STRIDE);
+        if (counts_for_cloning(f)) memcpy(clone_buffer[unique++], f, SLOT_STRIDE);
     }
     for (k = 0; k < unique; ++k) {
         if (ADD_FISH(state, NULL, tank, (int)(UINT_PTR)clone_buffer[k]) < 0) break;
@@ -1314,8 +1309,8 @@ static const store_item ITEM[ITEMS] = {
         "Dieser magische Trank belebt tote\nFische sofort wieder und macht sie\nganz gesund. Reicht f\xFCr 3 Behandlungen." } },
     { FIN_CLONA, 2500, 44, 165, 85, 72, SPR_ITEM_CLONA, 48, 65,
       { "ClonaFish", "ClonaFish" },
-      { "A wonder drug that instantly clones all\nunique fish in the tank. Make sure\nthere's enough space in the tank!\nContains 3 doses.",
-        "Ein Wundermittel, das alle einzigartigen\nFische im Becken sofort klont. Achte\nauf genug Platz im Becken!\nReicht f\xFCr 3 Behandlungen." } },
+      { "A wonder drug that instantly clones all\nfish in the tank. Make sure there's\nenough space in the tank!\nContains 3 doses.",
+        "Ein Wundermittel, das alle Fische im\nBecken sofort klont. Achte auf genug\nPlatz im Becken!\nReicht f\xFCr 3 Behandlungen." } },
     { FIN_TANK, 10000, 598, 246, 160, 70, SPR_STOCK_TANK2, 150, 60,       /* two net cells, bottom right */
       { "Extra Tank", "Weiteres Aquarium" },
       { "Another tank for breeding! Each one\nyou buy opens the next of Tank 4,\nTank 5 and Tank 6.",
