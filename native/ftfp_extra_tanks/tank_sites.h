@@ -55,6 +55,30 @@ static const unsigned char SITE_STARTER_EGGS_EXPECT[] = { 0xE8, 0x45, 0xE6, 0xFF
 #define SITE_PURCHASE_LEN 6
 static const unsigned char SITE_PURCHASE_EXPECT[] = { 0x81, 0xEC, 0xB4, 0x02, 0x00, 0x00 };
 
+/* the tank's background, chosen by tank number: call 0x41d140 */
+#define SITE_BACKGROUND_VA 0x00422013u
+#define SITE_BACKGROUND_LEN 5
+static const unsigned char SITE_BACKGROUND_EXPECT[] = { 0xE8, 0x28, 0xB1, 0xFF, 0xFF };
+#define SITE_BACKGROUND_TARGET 0x0041D140u
+
+/* the tank's own decorations, chosen by tank number: call 0x41d340 */
+#define SITE_DECOR_VA 0x0042203Fu
+#define SITE_DECOR_LEN 5
+static const unsigned char SITE_DECOR_EXPECT[] = { 0xE8, 0xFC, 0xB2, 0xFF, 0xFF };
+#define SITE_DECOR_TARGET 0x0041D340u
+
+/* the shadow under the Sale Tank's sign (sprite 3 at 580, 415): call 0x408a40 */
+#define SITE_SALE_SHADOW_VA 0x0041D44Au
+#define SITE_SALE_SHADOW_LEN 5
+static const unsigned char SITE_SALE_SHADOW_EXPECT[] = { 0xE8, 0xF1, 0xB5, 0xFE, 0xFF };
+#define SITE_SALE_SHADOW_TARGET 0x00408A40u
+
+/* the Sale Tank's For Sale sign (forsale.png, sprite 4, at 620, 360): call 0x408a40 */
+#define SITE_SALE_SIGN_VA 0x0041D467u
+#define SITE_SALE_SIGN_LEN 5
+static const unsigned char SITE_SALE_SIGN_EXPECT[] = { 0xE8, 0xD4, 0xB5, 0xFE, 0xFF };
+#define SITE_SALE_SIGN_TARGET 0x00408A40u
+
 /* the state's Load(slot) */
 #define SITE_SLOT_LOAD_VA 0x004424D0u
 #define SITE_SLOT_LOAD_HOLDS 0x0041AE70u
@@ -63,6 +87,6 @@ static const unsigned char SITE_PURCHASE_EXPECT[] = { 0x81, 0xEC, 0xB4, 0x02, 0x
 #define SITE_SLOT_SAVE_VA 0x004424D4u
 #define SITE_SLOT_SAVE_HOLDS 0x00419100u
 
-#define TANK_SITE_COUNT 11
+#define TANK_SITE_COUNT 15
 
 #endif

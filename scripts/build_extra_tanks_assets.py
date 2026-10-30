@@ -5,14 +5,14 @@
 Everything is made from the game's own pictures in Assets\\ft.dat; nothing is
 drawn from scratch (owner: reuse the stock tanks' art):
 
-* ExtraTank1Button.png .. ExtraTank3Button.png (261 x 53, 3 frames of 87 x 53,
-  the layout of Tank1Button.png): the stock button art at the same place with
+* ExtraTank1Button.png .. ExtraTank3Button.png (348 x 53, 4 frames of 87 x 53,
+  the layout of Tank1Button.png plus a fourth): the stock button art at the same place with
   its label replaced by "Tank Three", "Tank Four" or "Tank Five", written in
   the game's own font (font_triplex_sanslightlin_bold_16pt.png) with the stock
   labels' dark outline. Frame 0 is the top bar as it looks there (the stock
   frame 0 is empty because the bar shows through), frame 1 the hover look
   (the stock frame 1), frame 2 the current tank (the stock frame 2, smaller
-  label).
+  label), frame 3 a tank not bought yet (frame 0 greyed and darkened).
 * Tank1ButtonNormal.png (87 x 53): the top bar under the Tank One button,
   drawn while an extra tank is on screen so Tank One does not look current.
 * TankArrowLeft.png / TankArrowRight.png (2 frames each, normal and hover):
@@ -183,7 +183,11 @@ def build(game: Path) -> dict[str, Image.Image]:
         frames = (relabel(normal, text, glyphs, 1.0),
                   relabel(strip.crop((FRAME_W, 0, 2 * FRAME_W, FRAME_H)), text, glyphs, 1.0),
                   relabel(strip.crop((2 * FRAME_W, 0, 3 * FRAME_W, FRAME_H)), text, glyphs, 0.82))
-        sheet = Image.new("RGBA", (3 * FRAME_W, FRAME_H))
+        locked = np.array(frames[0].convert("RGB")).astype(float)
+        grey = locked.mean(axis=2, keepdims=True)
+        locked = (0.35 * locked + 0.65 * grey) * 0.55
+        frames = frames + (Image.fromarray(np.clip(locked, 0, 255).astype(np.uint8), "RGB").convert("RGBA"),)
+        sheet = Image.new("RGBA", (4 * FRAME_W, FRAME_H))
         for f, frame in enumerate(frames):
             sheet.paste(frame, (f * FRAME_W, 0))
         out[f"ExtraTank{i + 1}Button.png"] = sheet
@@ -205,7 +209,8 @@ def build(game: Path) -> dict[str, Image.Image]:
     return out
 
 
-def preview(game: Path, images: dict[str, Image.Image], page: int, current: int, hover: int) -> Image.Image:
+def preview(game: Path, images: dict[str, Image.Image], page: int, current: int, hover: int,
+            owned: int = 3) -> Image.Image:
     """The tank screen's top 120 rows as ftfp_extra_tanks.c draws them: page 0 or 1, the current
     button (frame 2) and a hovered one (frame 1)."""
     art = read_game(game)
@@ -219,7 +224,7 @@ def preview(game: Path, images: dict[str, Image.Image], page: int, current: int,
             sheet = images[f"ExtraTank{b + 1}Button.png"]
         else:
             sheet = art[STOCK_STRIPS[b]]
-        frame = 2 if b == current else 1 if b == hover else 0
+        frame = 3 if page == 1 and b >= owned else 2 if b == current else 1 if b == hover else 0
         if page == 0 and frame == 0:
             continue
         screen.alpha_composite(sheet.crop((frame * FRAME_W, 0, (frame + 1) * FRAME_W, FRAME_H)), (left, top))
@@ -237,7 +242,7 @@ def main() -> int:
         print(f"{(OUT / name).relative_to(ROOT).as_posix()}: {image.width} x {image.height}")
     PREVIEWS.mkdir(parents=True, exist_ok=True)
     preview(game, images, 0, 0, -1).convert("RGB").save(PREVIEWS / "extra-tanks-stock-page.png")
-    preview(game, images, 1, 0, 2).convert("RGB").save(PREVIEWS / "extra-tanks-extra-page.png")
+    preview(game, images, 1, 0, 1, owned=2).convert("RGB").save(PREVIEWS / "extra-tanks-extra-page.png")
     print(f"previews in {PREVIEWS.relative_to(ROOT).as_posix()}")
     return 0
 

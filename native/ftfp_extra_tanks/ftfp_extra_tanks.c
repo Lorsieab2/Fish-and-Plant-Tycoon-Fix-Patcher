@@ -110,6 +110,7 @@ typedef int (__fastcall *this1_fn)(void *self, void *edx, int a);
 typedef int (__fastcall *this2_fn)(void *self, void *edx, int a, int b);
 typedef int (__fastcall *this3_fn)(void *self, void *edx, int a, int b, int c);
 typedef int (__fastcall *this4_fn)(void *self, void *edx, int a, int b, int c, int d);
+typedef int (__fastcall *this5_fn)(void *self, void *edx, int a, int b, int c, int d, int e);
 
 #define GAME(T, VA) ((T)(UINT_PTR)(VA))
 #define FISH_UPDATE GAME(this0_fn, 0x0041FE70u)        /* the fish update, all four tanks */
@@ -132,6 +133,10 @@ typedef int (__fastcall *this4_fn)(void *self, void *edx, int a, int b, int c, i
 #define IMAGE_NEW GAME(this1_fn, 0x00409540u)          /* (file name) */
 #define GRID_NEW GAME(this3_fn, 0x004096C0u)           /* (file name, columns, rows) */
 #define SPR_TANK1_BUTTON 0x89                          /* Tank1Button.png */
+#define CLOCK_SECONDS GAME(pressed_fn, 0x004020D0u)    /* the hints' clock (0x417FAF: shown until now + 2) */
+#define DRAW_TEXT GAME(this5_fn, 0x00408B80u)          /* (text, x, y, font, attr) */
+#define HINT_FONT (*(void **)(UINT_PTR)0x0045B26Cu)    /* the hints' font (0x417EB3) */
+#define LANGUAGE_PTR (*(int **)(UINT_PTR)0x0045B314u)  /* 1 = German */
 #define PLACE_ORNAMENT GAME(this2_fn, 0x00419C00u)     /* (tank, record) -> ornament slot or -1 */
 #define LIFT_ORNAMENT GAME(this2_fn, 0x0041E980u)      /* impl (tank, slot): the ornament leaves its tank */
 #define SPREAD_ORNAMENT GAME(this2_fn, 0x0041E9C0u)    /* impl (tank, slot): a new x in its new tank */
@@ -151,6 +156,7 @@ static unsigned char spare[TANK_STRIDE];
 static char *owner = NULL;            /* the state the extra tanks belong to */
 static int shown = -1;
 static int page = 0;                  /* 0: Tank One / Tank Two / Sale Tank; 1: Tank Three / Four / Five */
+static int owned = 0;                 /* extra tanks bought (0-3), in order: Tank Three first */
 
 static unsigned char *block(char *state, int tank) {
     return (unsigned char *)state + FISH_BASE + tank * TANK_STRIDE;
@@ -184,6 +190,7 @@ static void reset_extras(char *state) {
     owner = state;
     shown = -1;
     page = 0;
+    owned = 0;
     memset(store, 0, sizeof store);
 }
 
@@ -208,7 +215,7 @@ static void tick_extras(char *impl) {
 /* ---------------------------------------------------------------- sidecar */
 
 #define SIDECAR_MAGIC 0x54585446u      /* "FTXT" */
-#define SIDECAR_VERSION 1u
+#define SIDECAR_VERSION 2u              /* 2: with the number of extra tanks bought */
 typedef BOOL (WINAPI *special_folder_fn)(HWND, LPWSTR, int, BOOL);
 
 static unsigned int crc_table[256];
@@ -266,8 +273,9 @@ static int sidecar_path(int slot, wchar_t *out, DWORD cap, int make_folder) {
 }
 
 /* The file's bytes: magic, version, tank count, block size, CRC-32 of the
-   blocks, then the three blocks (the extra tanks, never Tank One). */
-#define HEADER_WORDS 5
+   blocks, the extra tanks bought (0-3), then the three blocks (the extra
+   tanks, never Tank One). */
+#define HEADER_WORDS 6
 #define SIDECAR_BYTES (HEADER_WORDS * 4 + EXTRA * TANK_STRIDE)
 
 static void pack_sidecar(unsigned int *header) {
@@ -276,6 +284,7 @@ static void pack_sidecar(unsigned int *header) {
     header[2] = EXTRA;
     header[3] = TANK_STRIDE;
     header[4] = crc32(&store[0][0], sizeof store);
+    header[5] = (unsigned int)owned;
 }
 
 /* 1 = the bytes are a whole, intact sidecar (then store holds them). */
@@ -283,10 +292,11 @@ static int unpack_sidecar(const unsigned char *bytes, DWORD size) {
     const unsigned int *header = (const unsigned int *)bytes;
     if (size != SIDECAR_BYTES || header[0] != SIDECAR_MAGIC || header[1] != SIDECAR_VERSION
         || header[2] != EXTRA || header[3] != TANK_STRIDE
-        || crc32(bytes + HEADER_WORDS * 4, EXTRA * TANK_STRIDE) != header[4]) {
+        || crc32(bytes + HEADER_WORDS * 4, EXTRA * TANK_STRIDE) != header[4] || header[5] > EXTRA) {
         return 0;
     }
     memcpy(store, bytes + HEADER_WORDS * 4, sizeof store);
+    owned = (int)header[5];
     return 1;
 }
 
@@ -356,7 +366,7 @@ static void read_sidecar(char *state, int slot) {
 
 /* Each site's previous target: the stock one, or another companion's stub. */
 static UINT_PTR prev_tick_idle, prev_tick_show, prev_release, prev_mouse, prev_draw, prev_save_quit,
-    prev_new_game, prev_starter_eggs, prev_load, prev_save;
+    prev_new_game, prev_starter_eggs, prev_load, prev_save, prev_background, prev_decor, prev_sale_sign, prev_sale_shadow;
 
 #define CALL_PREV0(p, self) ((this0_fn)(p))((self), NULL)
 #define CALL_PREV1(p, self, a) ((this1_fn)(p))((self), NULL, (a))
@@ -407,6 +417,8 @@ static void clear_pressed(char *impl) {
 
 /* --------------------------------------------------------------- the mouse */
 
+static void refuse_locked(char *impl, int x, int y);
+
 static unsigned char arrow_down = 0, extra_down[EXTRA];
 
 /* -1 = the stock handler takes it; else handled (the stock return value). */
@@ -440,7 +452,8 @@ static int extra_mouse(char *impl, char *state, int type, int x, int y) {
             int was = extra_down[b];
             memset(extra_down, 0, sizeof extra_down);
             clear_pressed(impl);
-            if (was) view_extra(impl, state, b);
+            if (was && b >= owned) refuse_locked(impl, x, y);
+            else if (was) view_extra(impl, state, b);
             return 0;
         }
         memset(extra_down, 0, sizeof extra_down);
@@ -477,6 +490,8 @@ static char __fastcall mouse_hook(char *impl, void *edx, int type, int x, int y)
 
 /* ----------------------------------------------------------------- the drop */
 
+#define LOCKED 99                     /* a drop on an extra tank not bought yet */
+
 /* Tanks in page order: 0 Tank One, 1 Tank Two, 2 the Sale Tank, 3-5 Tank Three,
    Four and Five.  The one on screen: */
 static int on_screen(char *state) {
@@ -505,11 +520,15 @@ static unsigned char *where(char *state, int tank, int *place) {
    page 1 to the extra tanks, Tank One's button to Tank One while an extra
    tank is in its place. */
 static int drop_target(char *impl, char *state, int x, int y) {
-    int a = arrow_at(x, y), b;
-    if (a >= 0) return (on_screen(state) + (a ? 1 : LOGICAL - 1)) % LOGICAL;
+    int a = arrow_at(x, y), b, t;
+    if (a >= 0) {                                                /* round the tanks, past any not bought yet */
+        t = on_screen(state);
+        do t = (t + (a ? 1 : LOGICAL - 1)) % LOGICAL; while (t >= 3 + owned);
+        return t;
+    }
     b = button_at(impl, x, y);
     if (b < 0) return -1;
-    if (page == 1) return 3 + b;
+    if (page == 1) return b < owned ? 3 + b : LOCKED;
     if (shown >= 0 && b == 0) return 0;
     return -1;
 }
@@ -619,6 +638,38 @@ static int move_ornament(char *impl, char *state, int target, int x, int y) {
     return 1;
 }
 
+/* An extra tank not bought yet: "You don't own this tank yet!" near the mouse
+   for 2 seconds, as the game's own hints are shown (0x417FA0 / 0x417E90: the
+   hint font at the mouse, x + 0x16), and whatever was dropped goes back as
+   from a full tank. */
+static unsigned int locked_until = 0;
+static int locked_x, locked_y;
+
+static void refuse_locked(char *impl, int x, int y) {
+    (void)impl;
+    locked_until = (unsigned int)CLOCK_SECONDS() + 2u;
+    locked_x = x;
+    locked_y = y;
+}
+
+static char refuse_locked_drop(char *impl, char *state, int x, int y) {
+    refuse_locked(impl, x, y);
+    if (*I(state, S_HELD) != -1) {
+        void *view = P(impl, I_VIEW);
+        int entry = *I(state, S_HELD);
+        *I(state, S_HELD) = -1;
+        play_sound(impl, 2);
+        VIEW_MOVE(view, NULL, entry, VIEW_TANK(view, NULL, entry), 1, -1);
+        return 1;
+    }
+    if (*I(impl, I_ITEM) == NONE && *I(impl, I_ORNAMENT) != NONE) {
+        SETTLE_ORNAMENT(impl, NULL, x, y, *I(state, S_CURRENT_TANK), *I(impl, I_ORNAMENT));
+        *I(impl, I_ORNAMENT) = NONE;
+        return 1;
+    }
+    return (char)CALL_PREV2(prev_release, impl, x, y);
+}
+
 /* Multiple Ornaments' decorative copies (PR #60) move by that DLL's own drop,
    which knows the three stock buttons and asks the tank map which tank each
    shows.  A drop on an arrow, on an extra tank's button, or on Tank One's
@@ -651,6 +702,7 @@ static char __fastcall release_hook(char *impl, void *edx, int x, int y) {
     int target;
     (void)edx;
     if (ready(state) && (target = drop_target(impl, state, x, y)) >= 0) {
+        if (target == LOCKED) return refuse_locked_drop(impl, state, x, y);
         if (*I(state, S_HELD) != -1) {
             move_fish(impl, state, target);
             return 1;
@@ -680,7 +732,7 @@ static void *image(const char *name) {
 static void load_art(void) {
     int b;
     if (arrow_right != NULL) return;
-    for (b = 0; b < EXTRA; ++b) button_art[b] = grid(BUTTON_FILES[b], 3);
+    for (b = 0; b < EXTRA; ++b) button_art[b] = grid(BUTTON_FILES[b], 4);      /* normal, hover, current, locked */
     arrow_left = grid("TankArrowLeft.png", 2);
     tank1_normal = image("Tank1ButtonNormal.png");
     arrow_right = grid("TankArrowRight.png", 2);
@@ -710,7 +762,7 @@ static void draw_extras(char *impl) {
         int frame;
         if (page == 1) {
             if (button_art[b] == NULL) continue;
-            frame = shown == b && current == 0 ? 2 : hover ? (MOUSE_DOWN() & 0xFF ? 2 : 1) : 0;
+            frame = b >= owned ? 3 : shown == b && current == 0 ? 2 : hover ? (MOUSE_DOWN() & 0xFF ? 2 : 1) : 0;
             DRAW_CELL(gfx, NULL, (int)(UINT_PTR)button_art[b], r[0], r[1] + off, frame);
         } else if (b == 0 && shown >= 0) {
             /* An extra tank is on screen: Tank One is not the current tank. */
@@ -723,13 +775,83 @@ static void draw_extras(char *impl) {
     }
 }
 
+static void draw_refusal(char *impl) {
+    static const char *const TEXT[2] = { "You don't own this tank yet!", "Dieser Tank geh\xF6rt dir noch nicht!" };
+    int *lang = LANGUAGE_PTR;
+    if (locked_until == 0 || (unsigned int)CLOCK_SECONDS() > locked_until) {
+        locked_until = 0;
+        return;
+    }
+    DRAW_TEXT(P(impl, I_GFX), NULL, (int)(UINT_PTR)TEXT[lang != NULL && *lang == 1], locked_x + 0x16, locked_y,
+              (int)(UINT_PTR)HINT_FONT, 0);
+}
+
 static void __fastcall draw_hook(char *impl, void *edx) {
     (void)edx;
     CALL_PREV0(prev_draw, impl);
     __try {
         draw_extras(impl);
+        draw_refusal(impl);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
+}
+
+/* ---------------------------------------------------------------- the art */
+
+/* Tank Three, Four and Five look like Tank One, Tank Two and the Sale Tank:
+   the game draws a tank's background (0x41D140) and its own decorations
+   (0x41D340) by the tank number, so while an extra tank is on screen (in Tank
+   One's place) the number is lent for those two calls.  The Sale Tank's
+   background asks once for its tutorial tip (0x41A940(0x1A)); that tip is held
+   back for the call.  Tank Five has no "For Sale" sign: the Sale Tank's
+   decorations end with it (forsale.png, sprite 4, at (620, 360), 0x41D44F)
+   and the shadow under it (sprite 3 at (580, 415), 0x41D435); those two draws
+   are skipped while an extra tank is drawn. */
+#define S_TIP_SALE_TANK 0x1E1D8                     /* the tip flag of 0x41A940(0x1A): state + 0x1E170 + 0x1A * 4 */
+static int drawing_extra = 0;
+
+static void draw_as_art(UINT_PTR prev, char *impl) {
+    char *state = (char *)P(impl, I_STATE);
+    int current, tip;
+    if (!ready(state) || shown < 0 || *I(state, S_CURRENT_TANK) != 0) {
+        CALL_PREV0(prev, impl);
+        return;
+    }
+    current = *I(state, S_CURRENT_TANK);
+    tip = *I(state, S_TIP_SALE_TANK);
+    *I(state, S_CURRENT_TANK) = shown;                       /* Three: 0, Four: 1, Five: 2 */
+    *I(state, S_TIP_SALE_TANK) = 0;
+    drawing_extra = 1;
+    __try {
+        CALL_PREV0(prev, impl);
+    } __finally {
+        drawing_extra = 0;
+        *I(state, S_TIP_SALE_TANK) = tip;
+        *I(state, S_CURRENT_TANK) = current;
+    }
+}
+
+static void __fastcall background_hook(char *impl, void *edx) {
+    (void)edx;
+    draw_as_art(prev_background, impl);
+}
+
+static void __fastcall decor_hook(char *impl, void *edx) {
+    (void)edx;
+    draw_as_art(prev_decor, impl);
+}
+
+/* The Sale Tank's sign and the shadow under it: drawn as stock, except on an extra tank. */
+static int __fastcall sale_sign_hook(void *gfx, void *edx, int image, int x, int y) {
+    (void)edx;
+    if (drawing_extra) return 0;
+    return CALL_PREV3(prev_sale_sign, gfx, image, x, y);
+}
+
+static int __fastcall sale_shadow_hook(void *gfx, void *edx, int image, int x, int y) {
+    (void)edx;
+    if (drawing_extra) return 0;
+    return CALL_PREV3(prev_sale_shadow, gfx, image, x, y);
 }
 
 /* ------------------------------------------------------------ the update */
@@ -931,8 +1053,12 @@ static int prepare(void) {
        to purchase_hook, which the stack then sees as called with the item. */
     ftfp_site_branch(&writes[8], SITE_PURCHASE_VA, SITE_PURCHASE_LEN, SITE_PURCHASE_EXPECT, 0xE9,
                      CODE_ADDR(purchase_hook));
-    ok &= slot_site(&writes[9], current_bytes[9], SITE_SLOT_LOAD_VA, SITE_SLOT_LOAD_HOLDS, CODE_ADDR(load_hook), &prev_load);
-    ok &= slot_site(&writes[10], current_bytes[10], SITE_SLOT_SAVE_VA, SITE_SLOT_SAVE_HOLDS, CODE_ADDR(save_slot_hook), &prev_save);
+    ok &= BRANCH(9, BACKGROUND, 0xE8, background_hook, prev_background);
+    ok &= BRANCH(10, DECOR, 0xE8, decor_hook, prev_decor);
+    ok &= BRANCH(11, SALE_SHADOW, 0xE8, sale_shadow_hook, prev_sale_shadow);
+    ok &= BRANCH(12, SALE_SIGN, 0xE8, sale_sign_hook, prev_sale_sign);
+    ok &= slot_site(&writes[13], current_bytes[13], SITE_SLOT_LOAD_VA, SITE_SLOT_LOAD_HOLDS, CODE_ADDR(load_hook), &prev_load);
+    ok &= slot_site(&writes[14], current_bytes[14], SITE_SLOT_SAVE_VA, SITE_SLOT_SAVE_HOLDS, CODE_ADDR(save_slot_hook), &prev_save);
     return ok;
 }
 
@@ -1059,6 +1185,21 @@ int __stdcall FtfpStartup(void) {
 
 /* For the patcher's tests and the patch log. */
 int __stdcall FtfpExtraTanksInstalled(void) { return installed; }
+
+/* For DS Store Items' Upgrades screen, where the extra tanks are bought
+   ($10,000 each, $0 with Free upgrades), in order: how many the game open now
+   has (0-3), or -1 when none is open. */
+int __stdcall FtfpExtraTanksOwned(void) {
+    char *state = *(char *volatile *)(UINT_PTR)STATE_GLOBAL;
+    return installed && ready(state) ? owned : -1;
+}
+
+/* One more bought: Tank Three, then Four, then Five.  The new count, or -1. */
+int __stdcall FtfpExtraTanksBuy(void) {
+    char *state = *(char *volatile *)(UINT_PTR)STATE_GLOBAL;
+    if (!installed || !ready(state) || owned >= EXTRA) return -1;
+    return ++owned;
+}
 
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     (void)reserved;

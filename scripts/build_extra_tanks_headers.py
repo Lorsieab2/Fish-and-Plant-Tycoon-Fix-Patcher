@@ -40,6 +40,10 @@ SITES = [
     ("new_game", 0x41AAC3, "call 0x41a8f0", "a new game's fish reset"),
     ("starter_eggs", 0x421646, "call 0x41fc90", "the starter eggs' 'no fish anywhere' test"),
     ("purchase", 0x427B30, "sub esp, 0x2b4", "the Supplies store's purchase (the Golden Seahorse's tank)"),
+    ("background", 0x422013, "call 0x41d140", "the tank's background, chosen by tank number"),
+    ("decor", 0x42203F, "call 0x41d340", "the tank's own decorations, chosen by tank number"),
+    ("sale_shadow", 0x41D44A, "call 0x408a40", "the shadow under the Sale Tank's sign (sprite 3 at 580, 415)"),
+    ("sale_sign", 0x41D467, "call 0x408a40", "the Sale Tank's For Sale sign (forsale.png, sprite 4, at 620, 360)"),
 ]
 SHARED = {"tick_show"}             # DS Store Items chains this one too
 

@@ -115,6 +115,7 @@ class Rig:
         emu.write32(symbols["_prev_starter_eggs"], 0x0041FC90)
         emu.write32(symbols["_owner"], self.state)
         emu.write32(symbols["_shown"], 0xFFFFFFFF)
+        emu.write32(symbols["_owned"], 3)                   # all three bought, unless a test says otherwise
 
     # ------------------------------------------------------------ helpers
     def _random(self, emu) -> int:
@@ -788,6 +789,235 @@ class MovingBetweenAnyTwoTanks(unittest.TestCase):
         self.assertEqual(rig.extra(1), one, "Tank One untouched")
 
 
+@unittest.skipUnless(HAVE_UNICORN and EXE.is_file() and DLL.is_file() and E.toolchain_ready(),
+                     "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and the built DLL")
+class Buying(unittest.TestCase):
+    """The extra tanks are bought on the Upgrades screen, in order; until then they are locked."""
+
+    def test_bought_in_order_three_at_most(self) -> None:
+        rig = Rig()
+        rig.var("_owned", 0)
+        rig.emu.write32(0x0045ABDC, rig.state)                   # the game's state pointer
+        rig.var("_installed", 1)
+        self.assertEqual(rig.emu.call(rig.sym["_FtfpExtraTanksOwned@0"]), 0)
+        self.assertEqual([rig.emu.call(rig.sym["_FtfpExtraTanksBuy@0"]) for _ in range(4)],
+                         [1, 2, 3, 0xFFFFFFFF])
+        self.assertEqual(rig.emu.call(rig.sym["_FtfpExtraTanksOwned@0"]), 3)
+
+    def test_no_game_open_means_nothing_to_sell(self) -> None:
+        rig = Rig()
+        rig.var("_installed", 1)
+        rig.emu.write32(0x0045ABDC, rig.state + 0x100)           # another state: not the one loaded
+        self.assertEqual(rig.emu.call(rig.sym["_FtfpExtraTanksOwned@0"]), 0xFFFFFFFF)
+        self.assertEqual(rig.emu.call(rig.sym["_FtfpExtraTanksBuy@0"]), 0xFFFFFFFF)
+
+    def test_a_locked_tank_refuses_a_switch(self) -> None:
+        rig = Rig()
+        rig.var("_owned", 1)
+        rig.var("_page", 1)
+        rig.emu.hook(0x004020D0, lambda e: 100, 0)
+        for kind in (2, 3):
+            rig.emu.call(rig.sym["@mouse_hook@20"], kind, *BUTTON_CENTRES[1], ecx=rig.impl)
+        self.assertEqual(rig.var("_shown"), -1)
+        self.assertNotIn(("switch", 0), rig.calls)
+        self.assertEqual(rig.var("_locked_until"), 102, "the refusal shows for 2 seconds, as the game's hints")
+        for kind in (2, 3):                                      # Tank Three is bought
+            rig.emu.call(rig.sym["@mouse_hook@20"], kind, *BUTTON_CENTRES[0], ecx=rig.impl)
+        self.assertEqual(rig.var("_shown"), 0)
+
+    def test_a_locked_tank_refuses_a_drop(self) -> None:
+        rig = Rig()
+        rig.var("_owned", 2)
+        rig.var("_page", 1)
+        mover = fish(NOW, 6, 6, 25)
+        rig.put_tank(1, block_with({0: mover}))
+        rig.set(0x384, 1)
+        Screen(rig).hold_fish(1, 0)
+        rig.emu.call(rig.sym["@release_hook@16"], *BUTTON_CENTRES[2], ecx=rig.impl)
+        self.assertEqual(rig.tank(1)[:SLOT], mover, "the fish stays")
+        self.assertEqual(rig.extra(2), bytes(TANK))
+        self.assertIn(("view_move", 3, 1, 0xFFFFFFFF), rig.calls, "back to swimming")
+        self.assertGreater(rig.var("_locked_until"), 0)
+
+    def test_the_arrows_skip_tanks_not_bought(self) -> None:
+        for owned, source, arrow, target in ((0, 2, ARROW_RIGHT, 0), (1, 3, ARROW_RIGHT, 0), (0, 0, ARROW_LEFT, 2),
+                                             (2, 0, ARROW_LEFT, 4)):
+            with self.subTest(owned=owned, source=source, arrow=arrow):
+                rig = Rig()
+                rig.var("_owned", owned)
+                screen = Screen(rig)
+                screen.show(source)
+                mover = fish(NOW, 6, 6, 24)
+                screen.put(source, block_with({0: mover}))
+                screen.hold_fish(source, 0)
+                screen.release(*arrow)
+                self.assertEqual(screen.block(target)[:SLOT], mover)
+
+    def test_locked_buttons_draw_their_locked_frame(self) -> None:
+        rig = Rig()
+        rig.var("_owned", 1)
+        rig.var("_page", 1)
+        cells = []
+        rig.emu.hook(0x00402060, lambda e: e.uc.mem_write(e.arg(0), struct.pack("<ii", 10, 500)) or 0, 0)
+        rig.emu.hook(0x00402080, lambda e: 0, 0)
+        rig.emu.hook(0x0042A793, lambda e: e.alloc(0x40), 0)
+        rig.emu.hook(0x004096C0, lambda e: e.read32(e.uc.reg_read(__import__("unicorn").x86_const.UC_X86_REG_ECX)) or
+                     e.uc.reg_read(__import__("unicorn").x86_const.UC_X86_REG_ECX), 12)
+        rig.emu.hook(0x00409540, lambda e: e.uc.reg_read(__import__("unicorn").x86_const.UC_X86_REG_ECX), 4)
+        rig.emu.hook(0x00408AA0, lambda e: cells.append((e.arg(1), e.arg(3))) or 0, 16)
+        rig.emu.call(rig.sym["_draw_extras"], rig.impl)
+        self.assertEqual([frame for x, frame in cells if x in (513, 610, 707)], [0, 3, 3])
+
+
+@unittest.skipUnless(HAVE_UNICORN and EXE.is_file() and DLL.is_file() and E.toolchain_ready(),
+                     "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and the built DLL")
+class Art(unittest.TestCase):
+    """Tank Three/Four/Five are drawn as Tank One/Two/the Sale Tank by the game's own draws, the
+    Sale Tank's sign left out."""
+
+    def test_the_tank_number_is_lent_for_the_draws(self) -> None:
+        for shown in range(3):
+            with self.subTest(shown=shown):
+                rig = Rig()
+                rig.var("_shown", shown)
+                rig.set(0x1E1D8, 1)                               # the Sale Tank's tutorial tip still to come
+                seen = []
+                for name, va in (("_prev_background", 0x0041D140), ("_prev_decor", 0x0041D340)):
+                    rig.emu.write32(rig.sym[name], va)
+                    rig.emu.hook(va, lambda e, r=rig: seen.append((r.get(0x384), r.get(0x1E1D8),
+                                                                     r.var("_drawing_extra"))) or 0, 0)
+                rig.emu.call(rig.sym["@background_hook@8"], ecx=rig.impl)
+                rig.emu.call(rig.sym["@decor_hook@8"], ecx=rig.impl)
+                self.assertEqual(seen, [(shown, 0, 1), (shown, 0, 1)])
+                self.assertEqual((rig.get(0x384), rig.get(0x1E1D8), rig.var("_drawing_extra")), (0, 1, 0))
+
+    def test_stock_tanks_draw_as_stock(self) -> None:
+        rig = Rig()
+        rig.set(0x384, 2)
+        seen = []
+        rig.emu.write32(rig.sym["_prev_decor"], 0x0041D340)
+        rig.emu.hook(0x0041D340, lambda e: seen.append((rig.get(0x384), rig.var("_drawing_extra"))) or 0, 0)
+        rig.emu.call(rig.sym["@decor_hook@8"], ecx=rig.impl)
+        self.assertEqual(seen, [(2, 0)])
+
+    def test_the_sign_only_on_the_sale_tank(self) -> None:
+        rig = Rig()
+        drawn = []
+        rig.emu.write32(rig.sym["_prev_sale_sign"], 0x00408A40)
+        rig.emu.hook(0x00408A40, lambda e: drawn.append((e.arg(1), e.arg(2))) or 0, 12)
+        rig.emu.call(rig.sym["@sale_sign_hook@20"], 0x1234, 620, 360, ecx=rig.impl)
+        rig.var("_drawing_extra", 1)
+        rig.emu.call(rig.sym["@sale_sign_hook@20"], 0x1234, 620, 360, ecx=rig.impl)
+        rig.emu.write32(rig.sym["_prev_sale_shadow"], 0x00408A40)
+        rig.emu.call(rig.sym["@sale_shadow_hook@20"], 0x1234, 580, 415, ecx=rig.impl)
+        rig.var("_drawing_extra", 0)
+        rig.emu.call(rig.sym["@sale_shadow_hook@20"], 0x1234, 580, 415, ecx=rig.impl)
+        self.assertEqual(drawn, [(620, 360), (580, 415)], "sign and its shadow only on the Sale Tank")
+        exe = EXE.read_bytes()
+        self.assertEqual(exe[0x1D452:0x1D460], bytes.fromhex("6868010000686C0200006A04E80D"),
+                         "the stock sign: sprite 4 (forsale.png) at (620, 360)")
+
+
+@unittest.skipUnless(HAVE_UNICORN and EXE.is_file() and E.toolchain_ready(), "needs Unicorn, MSVC and the game")
+class UpgradesScreenItem(unittest.TestCase):
+    """DS Store Items' Extra Tank item: $10,000 ($0 with Free upgrades), confirmed, one tank a time,
+    "This is in your inventory." when all three are bought, hidden without the setting."""
+
+    CELL = (670, 280)
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.dll, cls.symbols = E.build_with_map(
+            "ftfp_ds_store", ROOT / "assets" / "fish_tycoon_ds_store" / "DS Store Items.dll", Path(cls.tmp.name))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.tmp.cleanup()
+
+    def store(self, money: int, free: bool, owned: int | None):
+        emu = E.Emulator(EXE, self.dll, self.symbols)
+        emu.hook_printf()
+        self.owned = owned
+        module = 0x7100_0000
+        emu.hook_import("GetModuleHandleW", lambda e: module if owned is not None and
+                        e.wstring(e.arg(0)) == "Extra Tanks.dll" else 0, 4)
+        owned_fn, buy_fn = emu.thunk(), emu.thunk()
+        emu.hook(owned_fn, lambda e: self.owned if self.owned is not None else 0xFFFFFFFF, 0)
+
+        def buy(e) -> int:
+            if self.owned is None or self.owned >= 3:
+                return 0xFFFFFFFF
+            self.owned += 1
+            return self.owned
+        emu.hook(buy_fn, buy, 0)
+        emu.hook_import("GetProcAddress", lambda e: {"FtfpExtraTanksOwned": owned_fn, "FtfpExtraTanksBuy": buy_fn}
+                        .get(e.cstring(e.arg(1)).decode(), 0), 8)
+        for name, pop in (("GetTickCount", 0),):
+            emu.hook_import(name, emu.record(name), pop)
+        emu.hook(0x00417FA0, emu.record("hint", args=1), 4)
+        emu.hook(0x004221A0, emu.record("dialog", args=1), 8)
+        emu.hook(0x00401D00, emu.record("run", 0), 8)
+        emu.hook(0x00422440, emu.record("free"), 0)
+        emu.hook(0x00425120, emu.record("sounds"), 0)
+        emu.hook(0x004251A0, emu.record("sound"), 4)
+        table, price = emu.alloc(16), emu.text("Price:")
+        inventory = emu.text("This is in your inventory.")
+        emu.hook(0x00427060, lambda e: table, 0)
+        emu.hook(0x00427050, lambda e: inventory if e.arg(0) == 0xE9 else price, 4)
+        emu.hook(0x0041BE70, lambda e: e.calls.append(("sprite", e.arg(0))) or 1, 4)
+        emu.hook(0x00408A40, emu.record("draw", args=3), 12)
+        emu.hook(0x00408AE0, emu.record("draw", args=3), 24)
+        emu.hook(0x00408B80, lambda e: (e.calls.append(("text", e.cstring(e.arg(0)).decode("latin-1"))), 0)[1], 20)
+        state, impl, scene = emu.alloc(0x40000), emu.alloc(0x100), emu.alloc(0x100)
+        emu.write32(scene + 8, impl)
+        emu.write32(impl + 0x10, state)
+        emu.write32(impl + 0x0C, emu.alloc(0x40))
+        emu.write32(state + 0x38C, money)
+        emu.write32(emu.sym("_free_on"), int(free))
+        emu.write32(emu.sym("_page_upgrades"), 1)
+        emu.state, emu.scene = state, scene
+        return emu
+
+    def select(self, emu) -> None:
+        emu.call(emu.sym("@on_mouse@20"), 3, *self.CELL, ecx=emu.scene)
+
+    def test_price_and_order(self) -> None:
+        emu = self.store(25_000, free=False, owned=0)
+        self.select(emu)
+        emu.call(emu.sym("@on_overlay@8"), ecx=emu.scene)
+        texts = [c[1] for c in emu.calls if c[0] == "text"]
+        self.assertIn("Extra Tank", texts)
+        self.assertIn("Price:  $10000", texts)
+        self.assertIn(("sprite", 157), emu.calls, "the stock Second Tank picture (ITEM_TANK2.png)")
+        for _ in range(2):
+            emu.call(emu.sym("_buy"), emu.scene)
+        self.assertEqual(self.owned, 2)
+        self.assertEqual(emu.read32(emu.state + 0x38C), 5_000)
+        self.assertEqual(emu.read32(emu.state + 0x24), 20_000, "total spent")
+        self.assertIn(("dialog", (0xEC,)), emu.calls, "the game's Buy this item? question")
+        emu.call(emu.sym("_buy"), emu.scene)                     # $5,000 left: too little
+        self.assertEqual(self.owned, 2)
+        self.assertIn(("hint", (2,)), emu.calls)
+
+    def test_free_upgrades(self) -> None:
+        emu = self.store(0, free=True, owned=0)
+        self.select(emu)
+        for _ in range(4):
+            emu.call(emu.sym("_buy"), emu.scene)
+        self.assertEqual(self.owned, 3)
+        self.assertEqual(emu.read32(emu.state + 0x38C), 0)
+        self.assertIn(("hint", (0x1C,)), emu.calls, "the fourth: You already own this!")
+        emu.calls.clear()
+        emu.call(emu.sym("@on_overlay@8"), ecx=emu.scene)
+        self.assertIn(("text", "This is in your inventory."), emu.calls)
+
+    def test_hidden_without_the_setting(self) -> None:
+        emu = self.store(25_000, free=False, owned=None)
+        self.select(emu)
+        self.assertEqual(emu.read32(emu.sym("_selected"), signed=True), -1)
+
+
 class FakeFiles:
     """CreateFileW / ReadFile / WriteFile / MoveFileExW / ... over a dict."""
 
@@ -884,19 +1114,24 @@ class SavesAndSidecar(unittest.TestCase):
         rig.put_extra(0, extras[0])
         rig.put_extra(2, extras[2])
         rig.var("_shown", 1)
+        rig.var("_owned", 2)
         self.assertEqual(rig.emu.call(rig.sym["@save_slot_hook@12"], 3, ecx=rig.state) & 0xFF, 1)
         self.assertEqual(saved, [(3, tank_one)], "the save got Tank One in its own place")
         self.assertEqual(rig.tank(0), extras[1], "the extra is back on screen after the save")
         data = files.files[self.PATH]
-        self.assertEqual(len(data), 20 + 3 * TANK)
-        self.assertEqual(data[20:], b"".join(extras))
+        self.assertEqual(len(data), 24 + 3 * TANK)
+        self.assertEqual(struct.unpack_from("<6I", data)[:2], (0x54585446, 2))
+        self.assertEqual(struct.unpack_from("<I", data, 20)[0], 2, "two bought")
+        self.assertEqual(data[24:], b"".join(extras))
         self.assertNotIn(self.PATH + ".tmp", files.files)
         # Load: the extras come back from the file; Tank One is the save's.
         for e in range(3):
             rig.put_extra(e, bytes(TANK))
         rig.put_tank(0, tank_one)
+        rig.var("_owned", 0)
         rig.emu.call(rig.sym["@load_hook@12"], 3, ecx=rig.state)
         self.assertEqual([rig.extra(e) for e in range(3)], extras)
+        self.assertEqual(rig.var("_owned"), 2)
         self.assertEqual(rig.var("_shown"), -1)
         self.assertEqual(rig.var("_owner"), rig.state)
 
@@ -907,7 +1142,7 @@ class SavesAndSidecar(unittest.TestCase):
 
     def test_damaged_file_is_set_aside_and_extras_start_empty(self) -> None:
         rig, files, _ = self.rig()
-        good = 20 + 3 * TANK
+        good = 24 + 3 * TANK
         files.files[self.PATH] = b"FTXT" + bytes(good - 4)
         rig.put_extra(0, block_with({0: fish(NOW, 1, 1, 22)}))
         rig.emu.call(rig.sym["@load_hook@12"], 3, ecx=rig.state)
@@ -928,6 +1163,7 @@ class SavesAndSidecar(unittest.TestCase):
         rig.var("_shown", -1)
         rig.emu.call(rig.sym["@new_game_hook@8"], ecx=rig.state)
         self.assertEqual(rig.extra(1), bytes(TANK))
+        self.assertEqual(rig.var("_owned"), 0, "a new game owns none")
         self.assertEqual(rig.var("_owner"), rig.state)
 
     def test_a_failed_game_save_writes_no_sidecar(self) -> None:
@@ -942,7 +1178,8 @@ class SavesAndSidecar(unittest.TestCase):
 @unittest.skipUnless(HAVE_UNICORN and EXE.is_file() and DLL.is_file() and E.toolchain_ready(),
                      "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and the built DLL")
 class AllOrNone(unittest.TestCase):
-    SITES = (0x4218FF, 0x421AAA, 0x421D43, 0x421FFB, 0x42208E, 0x41A663, 0x41AAC3, 0x421646, 0x427B30)
+    SITES = (0x4218FF, 0x421AAA, 0x421D43, 0x421FFB, 0x42208E, 0x41A663, 0x41AAC3, 0x421646, 0x427B30,
+             0x422013, 0x42203F, 0x41D44A, 0x41D467)
     SLOTS = (0x4424D0, 0x4424D4)
 
     def rig(self, other_module: int = 0):
@@ -1017,10 +1254,13 @@ class Manifest(unittest.TestCase):
     def test_setting(self) -> None:
         s = self.settings["extra_tanks"]
         self.assertEqual(s["name"], "3 extra tanks")
+        self.assertTrue(s["summary"].startswith("EXPERIMENTAL - USE AT OWN RISK."))
+        self.assertTrue(s["description"].startswith("EXPERIMENTAL - USE AT OWN RISK."))
         self.assertFalse(s["default"])
         self.assertTrue(s["separate_output"], "new content goes in the Modded Upgrades copy")
         self.assertIn("empty", s["warning"].lower())
         self.assertTrue(s["companion"]["startup_loader"])
+        self.assertEqual(s["requires_settings"], ["ds_store"], "sold on DS Store Items' Upgrades screen")
 
     def test_companion_files_are_pinned(self) -> None:
         companion = self.settings["extra_tanks"]["companion"]
@@ -1037,11 +1277,14 @@ class Manifest(unittest.TestCase):
 
     def test_every_combination_is_pinned_with_and_without(self) -> None:
         pins = self.manifest["patched_sha256_by_settings"]
-        without = [k for k in pins if "extra_tanks" not in k.split(",")]
+        without = [k for k in pins if "extra_tanks" not in k.split(",") and "ds_store" in k.split(",")]
+        self.assertTrue(without)
         for key in without:
-            with_it = ",".join(sorted(set(filter(None, key.split(","))) | {"extra_tanks"}))
+            with_it = ",".join(sorted(set(key.split(",")) | {"extra_tanks"}))
             self.assertIn(with_it, pins, f"no pin for {with_it}")
-        self.assertIn("extra_tanks", pins)
+        for key in pins:
+            if "extra_tanks" in key.split(","):
+                self.assertIn("ds_store", key.split(","), f"{key}: the setting needs DS Store Items")
 
     def test_off_leaves_every_other_pin_unchanged(self) -> None:
         """With the setting off the output is byte-identical to the build before it: no
@@ -1065,7 +1308,8 @@ class Manifest(unittest.TestCase):
         import fish_patcher
         pins = self.manifest["patched_sha256_by_settings"]
         vanilla = EXE.read_bytes()
-        for enabled in ({"extra_tanks"}, {"extra_tanks", "maximizable_window", "fix_vanilla_bugs"},
+        for enabled in ({"extra_tanks", "ds_fish", "ds_store"},
+                        {"extra_tanks", "ds_fish", "ds_store", "maximizable_window", "fix_vanilla_bugs"},
                         {"extra_tanks", "ds_fish", "ds_store", "bigger_tanks"}):
             patched, _ = fish_patcher.apply_patch_bytes(vanilla, fish_patcher.active_patch_records(self.manifest, enabled))
             patched, _ = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.fish_profile(enabled))
