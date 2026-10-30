@@ -1853,8 +1853,8 @@
           {
             "path": "Images/Chemicals_Grid_upgrades.png",
             "destination": "Images/Chemicals_Grid_upgrades.png",
-            "size": 78837,
-            "sha256": "F299FAE6ADAEE49F7BF0D793FB882699C05A3F8D682B82C6A9E5F0AA5A876325"
+            "size": 78705,
+            "sha256": "AFEB21350A93D705C244BD1D2205963328ECF6E09680B53A5CA27D7E7AAB0A8D"
           },
           {
             "path": "Images/seed_grid_legendary.png",

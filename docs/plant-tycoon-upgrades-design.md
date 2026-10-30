@@ -191,8 +191,9 @@ pot of the greenhouse on screen with a plant (`+0x38`) and health above 0,
 rows of `0x1D1 / 0x5D` columns (`0x426D3C`) up to `0x50A00 / 0x5600` pots
 (`0x426D56`), with the plant object `0x42F6C0(row, col)`; the bomb reads
 those two immediates and gives each such pot one `apply_formula`. Its art is
-the Fertilizer Bomb's row (5) with its white glass and grey cap turned
-rainbow and its yellow label white (the owner's pick).
+the Fertilizer Bomb's row (5) with its white glass turned rainbow, its
+yellow label white and its grey cap lightened to white like the formula's
+(the owner's pick).
 
 Icons (scripts/build_potion_assets.py): upright at the Mutation Liquid
 flask's visible height (41 px) on its bottom line; pouring at the same scale.
