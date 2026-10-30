@@ -230,7 +230,8 @@ AGES = (
                   "Greenhouses 2-6 too, "
                   "and once one is bought (the gold arrows show) the lines sit under the arrows (y 62) and the "
                   "button moves to (646, 4), left of the right arrow. "
-                  "Drawn every frame behind the plants; display only."),),
+                  "Drawn every frame over everything in the greenhouse (at 0x4291D2 in its overlay), under "
+                  "only what the hand holds, the bottom bar's text and popups; display only."),),
     ),
 )
 

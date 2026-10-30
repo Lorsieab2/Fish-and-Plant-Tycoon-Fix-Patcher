@@ -183,7 +183,8 @@ AGES = (
                   "beside the DLL, never the save. Dead "
                   "fish are shown apart as \"Dead: n\". With 3 extra tanks it counts Tanks 4-6 too, and the "
                   "lines sit lower (y 136), under the tank's name and For sale button. Drawn every frame "
-                  "behind the fish; display only."),),
+                  "over everything in the tank (first thing in the tank screen's overlay, 0x443A70), "
+                  "under only what the hand holds and popups; display only."),),
     ),
 )
 

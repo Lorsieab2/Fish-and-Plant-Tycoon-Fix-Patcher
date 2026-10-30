@@ -51,7 +51,9 @@ FISH_SETTING = {
         "until you throw them away. A \"Counts: On\" button at the top right of the water hides or shows them "
         "(hidden, only the button stays); the game remembers your choice in \"Tank Counts.ini\" beside the "
         "DLL, never in a save. The lines follow the game's language (English or German), update every frame, "
-        "and sit behind the fish, so nothing in the tank is ever covered. Display only: nothing in the game or "
+        "and are drawn over everything in the tank (fish, creatures, ornaments, decorations, bubbles, the "
+        "tank's name and For sale button), under only a fish or item in your hand and the game's popups. "
+        "Display only: nothing in the game or "
         "your saves changes. Runs as a companion DLL the game loads at start."
     ),
     "category": "main",
@@ -75,7 +77,8 @@ PLANT_SETTING = {
         "button at the top right hides or shows them (hidden, only the button stays); the game remembers your "
         "choice in \"Greenhouse Counts.ini\" beside the DLL, never in a save. Once you own an extra greenhouse "
         "the lines sit under the gold arrows and the button moves left of the right arrow. The lines update "
-        "every frame and sit behind the plants, so no plant, pot or tool is ever covered. Display only: "
+        "every frame and are drawn over everything in the greenhouse (tables, pots, plants, bugs, tools), "
+        "under only what your hand holds, the bottom bar's text and the game's popups. Display only: "
         "nothing in the game or your saves changes. Runs as a companion DLL the game loads at start."
     ),
     "category": "main",

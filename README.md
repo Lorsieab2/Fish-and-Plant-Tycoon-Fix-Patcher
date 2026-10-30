@@ -134,9 +134,10 @@ never needs the internet.
   Seahorse the stock game put in a fish slot, still take a place in the tank.
   The creatures are the Golden Seahorse and DS Store Items' animals (the
   Moray Eel in its rock too). In German the game's own German words are used.
-  The counts update every frame and are drawn just after the tank's
-  background, so fish, ornaments and buttons are drawn over them and nothing
-  is covered; display only, nothing in the game or the saves changes. It runs
+  The counts update every frame and are drawn over everything in the tank
+  (fish, creatures, ornaments, decorations, bubbles, the tank's name and For
+  sale button), under only a fish or item in your hand and the game's popups;
+  display only, nothing in the game or the saves changes. It runs
   as a companion DLL the game loads at start
   (`Fish Tycoon Fix Patcher DLLs\Tank Counts.dll`, which also loads DS
   Exclusive Fish's or the Maximizable window's DLL when those are on), in the

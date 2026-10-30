@@ -18577,7 +18577,7 @@
       "id": "tank_greenhouse_counts",
       "name": "Tank and greenhouse counts",
       "summary": "Shows how many fish the tank on screen holds, how many are adults, teens and babies, which are sick, its creatures and the isolation tank, in the game's own font, with an in-game on/off button.",
-      "description": "Adds lines at the top left of the water on the tank screen, for the tank you are looking at (Tank 1 to Tank 6 with 3 extra tanks): \"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (of 30 with Bigger tanks), \"Sick: 2 fungus, 1 ick\" and \"Low Health: 3\" (fish whose health bar is red, 25 or less) when any fish is, the creatures in it (\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation tank: 1 of 1 (1 adult)\". With 3 extra tanks the lines sit lower, under the tank's name and its For sale button. Adults, teens and babies are the game's own stages: a baby is age 1-5, a teen 6-19, an adult 20 and up. Dead fish are left out of the count and shown after it as \"Dead: 2\" until you throw them away. A \"Counts: On\" button at the top right of the water hides or shows them (hidden, only the button stays); the game remembers your choice in \"Tank Counts.ini\" beside the DLL, never in a save. The lines follow the game's language (English or German), update every frame, and sit behind the fish, so nothing in the tank is ever covered. Display only: nothing in the game or your saves changes. Runs as a companion DLL the game loads at start.",
+      "description": "Adds lines at the top left of the water on the tank screen, for the tank you are looking at (Tank 1 to Tank 6 with 3 extra tanks): \"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (of 30 with Bigger tanks), \"Sick: 2 fungus, 1 ick\" and \"Low Health: 3\" (fish whose health bar is red, 25 or less) when any fish is, the creatures in it (\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation tank: 1 of 1 (1 adult)\". With 3 extra tanks the lines sit lower, under the tank's name and its For sale button. Adults, teens and babies are the game's own stages: a baby is age 1-5, a teen 6-19, an adult 20 and up. Dead fish are left out of the count and shown after it as \"Dead: 2\" until you throw them away. A \"Counts: On\" button at the top right of the water hides or shows them (hidden, only the button stays); the game remembers your choice in \"Tank Counts.ini\" beside the DLL, never in a save. The lines follow the game's language (English or German), update every frame, and are drawn over everything in the tank (fish, creatures, ornaments, decorations, bubbles, the tank's name and For sale button), under only a fish or item in your hand and the game's popups. Display only: nothing in the game or your saves changes. Runs as a companion DLL the game loads at start.",
       "category": "main",
       "default": true,
       "companion": {
@@ -18587,8 +18587,8 @@
           {
             "path": "Tank Counts.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Tank Counts.dll",
-            "size": 95232,
-            "sha256": "76AF4B3FBB52C249D8AAF224D5ADCC0E7C0C33996C419618EA2A36D9D0B8A8BE"
+            "size": 94720,
+            "sha256": "1EBDD5AF75A1974559A662918698A1830EE786EB7242CE85C5FB0482266F184D"
           }
         ]
       }

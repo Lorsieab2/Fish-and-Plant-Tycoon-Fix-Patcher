@@ -146,7 +146,8 @@ class ThresholdTests(unittest.TestCase):
         self.assertEqual(exe_bytes(FISH_EXE, 0x413F1C, 3), b"\x83\xF8\x06")               # cmp eax, 6 (teen)
         self.assertEqual(exe_bytes(FISH_EXE, 0x413F65, 3), b"\x83\xF8\x14")               # cmp eax, 0x14 (adult)
         self.assertEqual(exe_bytes(FISH_EXE, 0x4206B1, 3), b"\x83\xF9\x15")               # the 21-slot bound
-        self.assertEqual(exe_bytes(FISH_EXE, 0x422013, 5), b"\xE8\x28\xB1\xFF\xFF")       # call 0x41D140
+        self.assertEqual(exe_bytes(FISH_EXE, 0x443A70, 4), struct.pack("<I", 0x41ED00))  # the tank's overlay slot
+        self.assertEqual(exe_bytes(FISH_EXE, 0x41ED00, 8), b"\x8B\x49\x08\xE9\x18\xE2\xFF\xFF")  # -> 0x41CF20
         self.assertEqual(exe_bytes(FISH_EXE, 0x443A58, 4), struct.pack("<I", 0x421F80))  # the tank's mouse slot
         self.assertEqual(exe_bytes(FISH_EXE, 0x421B84, 3), b"\x83\xF8\x01")               # type 1: move
         self.assertEqual(exe_bytes(FISH_EXE, 0x421BD6, 3), b"\x83\xF8\x02")               # type 2: press
@@ -157,6 +158,8 @@ class ThresholdTests(unittest.TestCase):
         self.assertEqual(struct.unpack("<f", exe_bytes(PLANT_EXE, 0x4691D8, 4))[0], 21.0)
         self.assertEqual(struct.unpack("<f", exe_bytes(PLANT_EXE, 0x4677E8, 4))[0], 24.0)
         self.assertEqual(exe_bytes(PLANT_EXE, 0x469238, 4), struct.pack("<I", 0x4257A0))
+        self.assertEqual(exe_bytes(PLANT_EXE, 0x46923C, 4), struct.pack("<I", 0x428E70))  # the overlay slot
+        self.assertEqual(exe_bytes(PLANT_EXE, HELD_SITE, 11), HELD_STOCK + b"\x33\xED")  # ...; xor ebp, ebp
         self.assertEqual(exe_bytes(PLANT_EXE, 0x469224, 4), struct.pack("<I", 0x4273D0))  # the mouse slot
         # the status panel: Dead below health 1, Infested when +0x28 is set, Unhealthy below 30
         self.assertEqual(exe_bytes(PLANT_EXE, 0x4284E1, 3), b"\x83\xF8\x01")
@@ -425,6 +428,7 @@ STATE_SIZE = 0x1E600
 FISH_BASE, TANK_STRIDE, SLOT_STRIDE = 0x390, 0x51EC, 0x288
 ORN_BASE, ORN_STRIDE = 0x5208, 0x2C
 FONT_MANAGER, FONT_GET, DRAW_TEXT, BACKGROUND = 0x418210, 0x4181F0, 0x408B80, 0x41D140
+OVERLAY_SLOT, STOCK_OVERLAY = 0x443A70, 0x41ED00          # the tank screen's table +0x1C: 0x41ED00 -> 0x41CF20
 GRAPHICS, MANAGER, FONT = 0x00C0FFEE, 0x0F0F0000, 0x0F0F1000
 # The tank screen's own click rectangles (left, top, right, bottom), set at 0x41CDD4-0x41CEAC.
 TANK_RECTS = {"Tank One": (513, 2, 598, 54), "Tank Two": (610, 2, 695, 54), "Sale Tank": (707, 2, 792, 54),
@@ -456,6 +460,7 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         emu.uc.mem_write(self.scene, bytes(0x20))
         emu.write32(self.scene + 8, self.impl)
         emu.hook(BACKGROUND, self._log("background", 0, 0))
+        emu.hook(STOCK_OVERLAY, self._log("overlay", 0, 0))
         emu.hook(FONT_MANAGER, lambda e: MANAGER)
         emu.hook(FONT_GET, self._font_get, 4)
         emu.hook(DRAW_TEXT, self._draw_text, 0x14)
@@ -511,39 +516,37 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         self.emu.write8(self.impl, 1 if on else 0)                     # the drag flag 0x421B8F tests
 
     def frame(self, tank: int = 0) -> None:
-        """Install, then make the tank screen's own background call."""
+        """Install, then call the tank screen's overlay slot, as the game's paint (0x40AC90) does."""
         self.emu.write32(self.state + 0x384, tank)
-        if self.emu.read32(0x422014) == 0xFFFFB128:          # still the stock call 0x41D140
+        if self.emu.read32(OVERLAY_SLOT) == STOCK_OVERLAY:
             self.assertEqual(self.startup(), 1)
         self.calls.clear()
         self.text_draws.clear()
-        rel = self.emu.read32(0x422014, signed=True)
-        self.emu.call(0x422018 + rel, ecx=self.impl)
+        self.emu.call(self.emu.read32(OVERLAY_SLOT), ecx=self.scene)
 
     def lines(self, tank: int = 0) -> list[str]:
         self.frame(tank)
         return self.counts()
 
     # ------------------------------------------------------------ install
-    def test_install_routes_the_background_call_and_the_mouse_here(self) -> None:
+    def test_install_wraps_the_overlay_and_mouse_slots(self) -> None:
+        background = bytes(self.emu.uc.mem_read(0x422013, 5))
         self.assertEqual(self.startup(), 1)
-        site = bytes(self.emu.uc.mem_read(0x422013, 5))
-        self.assertEqual(site[0], 0xE8)
-        target = 0x422018 + struct.unpack("<i", site[1:])[0]
-        self.assertEqual(target, self.symbols["@on_background@8"])
-        self.assertTrue(self.in_dll(target))
+        self.assertEqual(self.emu.read32(OVERLAY_SLOT), self.symbols["@on_overlay@8"])
+        self.assertTrue(self.in_dll(self.emu.read32(OVERLAY_SLOT)))
         self.assertEqual(self.emu.read32(0x443A58), self.symbols["@on_mouse@20"])
-        self.assertEqual([c[1:] for c in self.named("VirtualProtect")[:2]], [(0x422013, 5), (0x443A58, 4)])
+        self.assertEqual([c[1:] for c in self.named("VirtualProtect")[:2]], [(OVERLAY_SLOT, 4), (0x443A58, 4)])
+        self.assertEqual(bytes(self.emu.uc.mem_read(0x422013, 5)), background, "the background call is left alone")
 
     def test_changed_code_installs_nothing(self) -> None:
-        for va, changed in ((0x422013, b"\xE8\x00\x00\x00\x00"), (0x443A58, b"\x78\x56\x34\x12")):
+        for va in (OVERLAY_SLOT, 0x443A58):
             self.setUp()
-            stock = {0x422013: bytes(self.emu.uc.mem_read(0x422013, 5)), 0x443A58: bytes(self.emu.uc.mem_read(0x443A58, 4))}
-            stock[va] = changed
-            self.emu.uc.mem_write(va, changed)
+            stock = {OVERLAY_SLOT: self.emu.read32(OVERLAY_SLOT), 0x443A58: self.emu.read32(0x443A58)}
+            stock[va] = 0x12345678
+            self.emu.write32(va, 0x12345678)
             self.assertEqual(self.startup(), 0)
-            for address, data in stock.items():
-                self.assertEqual(bytes(self.emu.uc.mem_read(address, len(data))), data)
+            for address, value in stock.items():
+                self.assertEqual(self.emu.read32(address), value)
             self.assertEqual(self.named("VirtualProtect"), [])
 
     # ------------------------------------------------------------ counts
@@ -681,18 +684,18 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         for x0, y0, x1, y1 in ((495, 8, 512, 45), (12, 62, 200, 92), (12, 96, 161, 129)):
             self.assertTrue(right < x0 or left > x1 or bottom < y0 or top > y1, (x0, y0, x1, y1))
 
-    def test_chains_another_companions_background_call(self) -> None:
-        """Extra Tanks.dll (loaded first) already wraps 0x422013: the counts call its wrapper."""
+    def test_installs_beside_extra_tanks_wrappers(self) -> None:
+        """Extra Tanks.dll (loaded first) wraps calls inside the tank screen's draw (0x422013 its
+        background, 0x42208E its buttons): the counts leave them as they are."""
         wrapper = self.OTHER_MODULE + 0x1230
         self.emu.uc.mem_map(self.OTHER_MODULE, 0x10000)
-        self.emu.hook(wrapper, self._log("extra tanks' background", 0, 0))
         self.emu.uc.mem_write(0x422013, b"\xE8" + struct.pack("<i", wrapper - 0x422018))
+        self.emu.uc.mem_write(0x42208E, b"\xE9" + struct.pack("<i", wrapper + 0x10 - 0x422093))
         self.assertEqual(self.startup(), 1)
+        self.assertEqual(bytes(self.emu.uc.mem_read(0x422013, 5)), b"\xE8" + struct.pack("<i", wrapper - 0x422018))
+        self.assertEqual(bytes(self.emu.uc.mem_read(0x42208E, 5)), b"\xE9" + struct.pack("<i", wrapper + 0x10 - 0x422093))
         self.fish(0, 0, 25)
-        lines = self.lines()
-        self.assertEqual(self.calls[0], ("extra tanks' background",))
-        self.assertEqual(self.named("background"), [])
-        self.assertEqual(lines[0], "Fish: 1 of 21 (1 adult)")
+        self.assertEqual(self.lines()[0], "Fish: 1 of 21 (1 adult)")
 
     def test_the_isolation_tank(self) -> None:
         self.fish(3, 0, 33)
@@ -720,10 +723,11 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         ])
         self.assertEqual(self.button(), [("Z\xe4hlung: An", 0xFFFFD040)])
 
-    def test_drawn_over_the_background_in_the_game_font_with_a_shadow(self) -> None:
+    def test_drawn_before_the_held_items_in_the_game_font_with_a_shadow(self) -> None:
         self.fish(0, 0, 25)
         self.frame()
-        self.assertEqual(self.calls[0], ("background",))
+        self.assertEqual(self.calls[-1], ("overlay",))                        # what the hand holds: over them
+        self.assertEqual(self.named("background"), [])
         self.assertEqual(self.named("font"), [("font", MANAGER, 0)])          # paddington_tt_18
         texts = self.named("text")
         self.assertEqual([(t[2], t[3], t[4], t[5], t[6]) for t in texts], [
@@ -737,7 +741,7 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         self.emu.write8(self.state + 0x1E4F9, 1)
         self.frame()
         self.assertEqual(self.text_draws, [])
-        self.assertEqual(self.named("background"), [("background",)])
+        self.assertEqual(self.named("overlay"), [("overlay",)])
         x, y = self.inside()
         self.assertEqual(len(self.click(x, y)), 2)
 
@@ -799,6 +803,7 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
 PLANT_STATE = 0x2188 + 15 * 0x5600 + 0x100
 GREENHOUSE_DRAW, PLANT_GRAPHICS, PLANT_TEXT = 0x4257A0, 0x407A90, 0x4092A0
 DRAW_SLOT = 0x469238
+HELD_SITE, HELD_STOCK = 0x4291D2, b"\x8B\x4E\x68\x8B\xB9\x6C\x05\x00\x00"   # mov ecx, [esi+0x68]; mov edi, [ecx+0x56C]
 
 
 @_needs(PLANT_EXE)
@@ -838,32 +843,45 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
         self.emu.write32(self.state + 0x56C, 3 if on else 0)          # a held seed or tool (0x42742E)
 
     def frame(self) -> None:
-        """Install, then call the greenhouse vtable's draw slot, as the game's paint does."""
-        if self.emu.read32(DRAW_SLOT) == GREENHOUSE_DRAW:
+        """Install, then run the greenhouse overlay (0x428E70) from 0x4291D2, where it reaches what
+        the hand holds, to 0x4291DB, as the game's paint does: the jump there, the stub, its two
+        instructions and the way back."""
+        if bytes(self.emu.uc.mem_read(HELD_SITE, 9)) == HELD_STOCK:
             self.assertEqual(self.startup(), 1)
         self.calls.clear()
         self.text_draws.clear()
-        self.emu.call(self.emu.read32(DRAW_SLOT), ecx=self.scene)
+        self.emu.uc.reg_write(E.X.UC_X86_REG_EBX, 0x0B0B0B0B)
+        self.emu.run_until(HELD_SITE, HELD_SITE + 9, esi=self.scene)
+        regs = {name: self.emu.uc.reg_read(getattr(E.X, f"UC_X86_REG_{name}")) for name in ("ESI", "EBX", "ECX", "EDI")}
+        self.assertEqual(regs, {"ESI": self.scene, "EBX": 0x0B0B0B0B, "ECX": self.state,
+                                "EDI": self.emu.read32(self.state + 0x56C)}, "the stub does the two instructions")
+        self.assertEqual(self.emu.uc.reg_read(E.X.UC_X86_REG_ESP), E.STACK + E.STACK_SIZE - 0x1000)
 
     def lines(self) -> list[str]:
         self.frame()
         return self.counts()
 
-    def test_install_wraps_the_draw_and_mouse_slots(self) -> None:
+    def test_install_jumps_from_the_held_item_and_wraps_the_mouse_slot(self) -> None:
+        draw_slot = self.emu.read32(DRAW_SLOT)
         self.assertEqual(self.startup(), 1)
-        self.assertEqual(self.emu.read32(DRAW_SLOT), self.symbols["@on_draw@8"])
+        site = bytes(self.emu.uc.mem_read(HELD_SITE, 9))
+        self.assertEqual(site[0], 0xE9)
+        self.assertEqual(site[5:], b"\x90" * 4)
+        self.assertEqual(HELD_SITE + 5 + struct.unpack("<i", site[1:5])[0], self.symbols["_stub_held"])
         self.assertEqual(self.emu.read32(0x469224), self.symbols["@on_mouse@20"])
-        self.assertEqual([c[1:] for c in self.named("VirtualProtect")[:2]], [(DRAW_SLOT, 4), (0x469224, 4)])
+        self.assertEqual([c[1:] for c in self.named("VirtualProtect")[:2]], [(HELD_SITE, 9), (0x469224, 4)])
+        self.assertEqual(self.emu.read32(DRAW_SLOT), draw_slot, "the background slot is left alone")
 
-    def test_a_changed_slot_installs_nothing(self) -> None:
-        for va in (DRAW_SLOT, 0x469224):
+    def test_a_changed_site_installs_nothing(self) -> None:
+        for va, changed in ((HELD_SITE, b"\x90" * 9), (0x469224, struct.pack("<I", 0x12345678))):
             self.setUp()
-            stock = {DRAW_SLOT: self.emu.read32(DRAW_SLOT), 0x469224: self.emu.read32(0x469224)}
-            stock[va] = 0x12345678
-            self.emu.write32(va, 0x12345678)
+            stock = {HELD_SITE: bytes(self.emu.uc.mem_read(HELD_SITE, 9)),
+                     0x469224: bytes(self.emu.uc.mem_read(0x469224, 4))}
+            stock[va] = changed
+            self.emu.uc.mem_write(va, changed)
             self.assertEqual(self.startup(), 0)
-            for address, value in stock.items():
-                self.assertEqual(self.emu.read32(address), value)
+            for address, data in stock.items():
+                self.assertEqual(bytes(self.emu.uc.mem_read(address, len(data))), data)
             self.assertEqual(self.named("VirtualProtect"), [])
 
     def test_stages_by_the_countdowns(self) -> None:
@@ -903,10 +921,10 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
             self.pot(k, 30.0)
         self.assertEqual(self.lines(), ["Plants: 15 of 15 (15 mature)"])
 
-    def test_drawn_over_the_background_in_the_game_font_with_a_shadow(self) -> None:
+    def test_drawn_in_the_game_font_with_a_shadow(self) -> None:
         self.pot(0, 25.0, infested=1)
         self.frame()
-        self.assertEqual(self.calls[0], ("background",))
+        self.assertEqual(self.named("background"), [])
         self.assertEqual([(t[2], t[3], t[4], t[5], t[6]) for t in self.named("text")], [
             (695, 27, 0xFF000000, 0, GRAPHICS), (694, 26, 0xFFFFD040, 0, GRAPHICS),          # the button
             (237, 5, 0xFF000000, 0, GRAPHICS), (236, 4, 0xFFFFFFFF, 0, GRAPHICS),

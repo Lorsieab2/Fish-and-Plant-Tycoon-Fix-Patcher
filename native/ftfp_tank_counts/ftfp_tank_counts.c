@@ -58,18 +58,29 @@
    sale button (12-161, 96-129); with that DLL the lines start at y 136,
    under its name and button.
 
+   ON TOP.  The game paints a screen with 0x40AC90: the screen's draw (its
+   table's +0x18, 0x422190 -> 0x422010), then its controls (0x40AAF0), then
+   its overlay (+0x1C, 0x443A70: 0x41ED00 -> 0x41CF20), then the controls'
+   own overlays (0x40AB20); popups and dialogs are other screens, painted
+   after this one.  The tank screen's draw is everything in the tank: the
+   background, the snail, the fish, the creatures, the decorations, the
+   equipment and ornaments, the bubbles, the top bar, the bottom panels and
+   the buttons, and with "3 extra tanks" (whose own draws wrap calls inside
+   it, 0x422013-0x42208E) the arrows, the tank's name and its For sale
+   button; with "Multiple ornaments" the extra ornaments (0x422062).  The
+   overlay is what the hand holds: a dragged fish (0x41D045), a dragged
+   ornament (0x41D08A) or a held tool (0x41D0ED).  The counts are drawn first
+   thing in the overlay: over everything in the tank, under what is held and
+   under every popup.
+
    HOW.  The startup loader loads this DLL and calls FtfpStartup() before
    WinMain (after "Extra Tanks.dll" when "3 extra tanks" is on).  It first
    loads the DLL the loader would load without this setting ("DS Exclusive
    Fish.dll", else "Maximizable Window.dll", when their settings put them
-   beside this one), then writes its two sites, after checking each holds
-   its vanilla bytes (the background call may instead hold a call into
-   another companion DLL loaded first, Extra Tanks', which is then chained),
-   or writes neither: the tank
-   screen's draw (0x422010) calls its background (0x41D140) at 0x422013, and
-   that call now comes here, which draws the background and then the counts,
-   so every fish, ornament, bubble and button is drawn over them, never
-   under; and the mouse slot above. */
+   beside this one), then wraps two slots of the tank screen's table, after
+   checking each holds the stock function, or writes neither: its overlay
+   (above), which draws the counts and then calls the stock overlay, and its
+   mouse slot (above).  Nothing in the game's code is changed. */
 #include <windows.h>
 #include "../ftfp_ds_fish/install_sites.h"
 #include "../common/count_text.h"
@@ -134,9 +145,7 @@ typedef void *(__fastcall *font_fn)(void *fonts, int edx, int index);
 typedef void (__fastcall *text_fn)(void *graphics, int edx, const char *text, int x, int y, unsigned int colour,
                                    void *font);
 
-/* What 0x422013 called before: the stock background, or another companion's
-   wrapper of it (Extra Tanks.dll draws Tanks 4-6 as Tanks 1-3 there). */
-static scene_fn next_background = (scene_fn)0x0041D140u;
+static const scene_fn stock_overlay = (scene_fn)0x0041ED00u;   /* thiscall, ecx = the scene */
 static const mouse_fn stock_mouse = (mouse_fn)0x00421F80u;
 static const getter_fn font_manager = (getter_fn)0x00418210u;
 static const font_fn font_get = (font_fn)0x004181F0u;          /* 0 = paddington_tt_18 (0x4180B0) */
@@ -352,13 +361,15 @@ static void draw_counts(char *impl) {
     draw_at(graphics, font, line.text, LABEL_X, y, WHITE);
 }
 
-/* 0x422013's call of the background (thiscall, ecx = the tank screen). */
-static void __fastcall on_background(char *impl, int edx) {
-    next_background(impl, edx);
+/* The tank screen's overlay slot (thiscall, ecx = the scene): the counts over
+   everything the screen's draw and its controls drew, then the stock overlay
+   (what the hand holds) over them. */
+static void __fastcall on_overlay(char *scene, int edx) {
     __try {
-        draw_counts(impl);
+        draw_counts(AT(scene, SCENE_IMPL, char *));
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
+    stock_overlay(scene, edx);
 }
 
 /* The tank screen's mouse slot (thiscall, ecx = the scene; ret 0xC). */
@@ -378,8 +389,8 @@ static int __fastcall on_mouse(char *scene, int edx, int type, int x, int y) {
 
 /* ----------------------------------------------------------------- install */
 
-#define BACKGROUND_CALL_VA 0x00422013u
-static const unsigned char BACKGROUND_CALL[5] = { 0xE8, 0x28, 0xB1, 0xFF, 0xFF };   /* call 0x41D140 */
+#define OVERLAY_SLOT_VA 0x00443A70u
+static const unsigned char OVERLAY_SLOT[4] = { 0x00, 0xED, 0x41, 0x00 };              /* 0x41ED00 */
 #define MOUSE_SLOT_VA 0x00443A58u
 static const unsigned char MOUSE_SLOT[4] = { 0x80, 0x1F, 0x42, 0x00 };                /* 0x421F80 */
 
@@ -388,26 +399,12 @@ static int installed = 0;
 
 typedef int (__stdcall *startup_fn)(void);
 
-/* The call at 0x422013 holds the stock call, or a call into another companion
-   DLL that loaded first (never into the game itself): the bytes to check, and
-   next_background set to what it calls; NULL = neither, nothing is written. */
-static unsigned char current_call[5];
-
-static const unsigned char *chained_call(void) {
-    MEMORY_BASIC_INFORMATION info;
-    const unsigned char *site = (const unsigned char *)(UINT_PTR)BACKGROUND_CALL_VA;
-    UINT_PTR target;
-    memcpy(current_call, site, 5);
-    if (memcmp(current_call, BACKGROUND_CALL, 5) == 0) return BACKGROUND_CALL;
-    if (current_call[0] != 0xE8) return NULL;
-    target = BACKGROUND_CALL_VA + 5 + *(const int *)(current_call + 1);
-    if (VirtualQuery((const void *)target, &info, sizeof info) != sizeof info || info.AllocationBase == NULL
-        || (HMODULE)info.AllocationBase == GetModuleHandleW(NULL)
-        || (HMODULE)info.AllocationBase == (HMODULE)&__ImageBase) {
-        return NULL;
-    }
-    next_background = (scene_fn)target;
-    return current_call;
+static void slot_write(ftfp_site_write *w, unsigned int va, const unsigned char *stock, const void *to) {
+    DWORD value = (DWORD)(UINT_PTR)to;
+    w->va = va;
+    w->length = 4;
+    w->expect = stock;
+    memcpy(w->bytes, &value, 4);
 }
 
 /* The DLL the startup loader loads when this setting is off, beside this one
@@ -440,16 +437,9 @@ int __stdcall FtfpStartup(void) {
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
     __try {
-        DWORD to = (DWORD)(UINT_PTR)on_mouse;
-        const unsigned char *expect = chained_call();
-        if (expect == NULL) return installed = 0;
         toggle_load(&toggle, L"Tank Counts.ini");
-        ftfp_site_branch(&writes[0], BACKGROUND_CALL_VA, sizeof BACKGROUND_CALL, expect, 0xE8,
-                         (const void *)(UINT_PTR)on_background);
-        writes[1].va = MOUSE_SLOT_VA;
-        writes[1].length = 4;
-        writes[1].expect = MOUSE_SLOT;
-        memcpy(writes[1].bytes, &to, 4);
+        slot_write(&writes[0], OVERLAY_SLOT_VA, OVERLAY_SLOT, (const void *)(UINT_PTR)on_overlay);
+        slot_write(&writes[1], MOUSE_SLOT_VA, MOUSE_SLOT, (const void *)(UINT_PTR)on_mouse);
         installed = ftfp_install_sites(writes, 2);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         installed = 0;

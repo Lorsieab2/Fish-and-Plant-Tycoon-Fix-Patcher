@@ -7,6 +7,24 @@
   be seen and clicked; they were under the stock left panel and the camera
   button. Dragging a plant onto them uses the new places.
 
+### Both games
+
+- **Tank and greenhouse counts are drawn on top.** The counts and their
+  "Counts: On" button were drawn right after the screen's background, so
+  decorations, ornaments, a big rock or the aerator's bubbles could cover
+  them. Fish Tycoon's counts are now drawn first thing in the tank screen's
+  overlay (its table's slot 0x443A70), after the tank's whole draw and its
+  controls (3 extra tanks' arrows, tank name and For sale button and
+  Multiple ornaments' copies included) and before what the hand holds (a
+  dragged fish or ornament, a held tool). Plant Tycoon's are drawn at
+  0x4291D2 in the greenhouse overlay, after the tables, pots, plants, bugs and
+  tools and before what the hand holds, the bottom bar's money and news line
+  and the timed messages; 5 extra greenhouses' greenhouse name, drawn after
+  the overlay, never overlaps them. Popups and dialogs stay on top. The
+  text, its places and the button are unchanged. Neither DLL touches the
+  tank's background call (0x422013) or the greenhouse's background slot
+  (0x469238) any more.
+
 ## v1.0.17
 
 New content for both games (DS fish, fins and store animals; the 14 unused
