@@ -141,7 +141,9 @@ class SaveBackupTests(unittest.TestCase):
         for name, slot in (("Plant Tycoon0.ldw", "settings"), ("Plant Tycoon3.ldw", 3), ("Plant Tycoon23.ldw", 3),
                            ("Plant Tycoon43.ldw", 3), ("Plant Tycoon7.ldw", "unknown"),
                            ("Plant Tycoon Fix Patcher Data/Seed Boxes 4.dat", 4),
-                           ("Plant Tycoon Fix Patcher Data/Plant Upgrades 5.dat.unreadable", 5)):
+                           ("Plant Tycoon Fix Patcher Data/Plant Upgrades 5.dat.unreadable", 5),
+                           ("Plant Tycoon Fix Patcher Data/Seed Boxes 43.dat", 3),
+                           ("Plant Tycoon Fix Patcher Data/Extra Greenhouses 22.previous.dat", 2)):
             self.assertEqual(save_backup.file_slot("plant", Path(name)), slot, name)
         self.assertEqual(save_backup.file_slot("fish", Path("Fish Tycoon25.ldw")), 5)
         self.assertEqual(save_backup.file_slot("fish", Path("Fish Tycoon45.ldw")), "unknown")
@@ -150,7 +152,8 @@ class SaveBackupTests(unittest.TestCase):
         for name, slot in (("DS Fish 2.unreadable-1.dat", 2), ("Ornaments 3.unreadable-12.dat", 3),
                            ("Tank Animals 4.previous.dat", 4), ("Tank Animals 4.tmp.dat", 4),
                            ("Extra Tanks 1.dat.tmp", 1), ("Tank Animals 4.dat", 4), ("Notes 2.txt", "unknown"),
-                           ("DS Fish 7.dat", "unknown"), ("DS Fish 2.unreadable-1.dat.tmp", 2)):
+                           ("DS Fish 7.dat", "unknown"), ("DS Fish 2.unreadable-1.dat.tmp", 2),
+                           ("Extra Tanks 21.dat", 1), ("DS Fish 25.unreadable-1.dat", 5), ("DS Fish 45.dat", "unknown")):
             self.assertEqual(save_backup.file_slot("fish", Path("Fish Tycoon Fix Patcher Data") / name), slot, name)
 
     def test_delete_backup(self) -> None:
