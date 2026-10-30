@@ -18,7 +18,8 @@ Writes, under assets/plant_tycoon_upgrades/Images:
   (chemical 37) and Revita-Seed (chemical 38) from the owner's icons
   (scripts/build_potion_assets.py: upright, then pouring), a 13th with the
   Radioactive Plant Formula Bomb (chemical 39): the stock Fertilizer Bomb
-  (row 5) made prismatic on its coloured parts, as the formula is, a 14th
+  (row 5) with its white glass turned rainbow and its yellow label white,
+  the cap left grey (the owner's pick), a 14th
   with the Time Warp clock and a 15th with Add Money's gold coins. A chemical's row is
   its id - 27 (the game draws frame 2 x id - 54). The DLL points the chemical
   sheet record at it.
@@ -83,6 +84,27 @@ def prismatic(cell: Image.Image, only_coloured: bool = False) -> Image.Image:
     return Image.fromarray((out * 255).round().astype("uint8"), "RGBA")
 
 
+def rainbow_bomb(cell: Image.Image) -> Image.Image:
+    """The Formula Bomb (owner, 2026-10-30): the Fertilizer Bomb's white glass
+    turned rainbow and its yellow label turned white, shading kept. The grey
+    cap above the glass stays as it is."""
+    a = np.asarray(cell.convert("RGBA")).astype(float) / 255
+    out = a.copy()
+    rows = [y for y in range(a.shape[0]) if any(a[y, x, 3] > 0 and colorsys.rgb_to_hsv(*a[y, x, :3])[1] > 0.25
+                                                for x in range(a.shape[1]))]
+    glass_top = min(rows) if rows else 0                   # the cap ends where the label starts
+    for y in range(a.shape[0]):
+        for x in range(a.shape[1]):
+            if a[y, x, 3] == 0:
+                continue
+            h, s, v = colorsys.rgb_to_hsv(*a[y, x, :3])
+            if s > 0.25:                                   # the yellow label: white
+                out[y, x, :3] = (min(1, v * 1.05),) * 3
+            elif y >= glass_top:                           # the white glass: rainbow
+                out[y, x, :3] = colorsys.hsv_to_rgb(((x + y) / 40) % 1, 0.75, v)
+    return Image.fromarray((out * 255).round().astype("uint8"), "RGBA")
+
+
 def legendary_seeds(images: Path) -> Image.Image:
     stock = Image.open(images / "seed_Grid.png").convert("RGBA")
     if stock.size != (SEED_COLUMNS * SEED_CELL, SEED_ROWS * SEED_CELL):
@@ -108,10 +130,10 @@ def formula_bottle(images: Path) -> Image.Image:
     for row, source in build_potion_assets.PLANT_ROWS.items():
         for column, cell in enumerate(build_potion_assets.plant_cells(source, stock)):
             sheet.paste(cell, (column * CHEM_CELL, row * CHEM_CELL))
-    # Row 12 (frames 24 and 25): the Formula Bomb, the stock Fertilizer Bomb (row 5) made prismatic.
+    # Row 12 (frames 24 and 25): the Formula Bomb, the stock Fertilizer Bomb (row 5) with rainbow glass.
     for column in (0, 1):
         box = (column * CHEM_CELL, FERTILIZER_BOMB_ROW * CHEM_CELL, (column + 1) * CHEM_CELL, (FERTILIZER_BOMB_ROW + 1) * CHEM_CELL)
-        sheet.paste(prismatic(stock.crop(box), only_coloured=True), (column * CHEM_CELL, (CHEM_ROWS + 3) * CHEM_CELL))
+        sheet.paste(rainbow_bomb(stock.crop(box)), (column * CHEM_CELL, (CHEM_ROWS + 3) * CHEM_CELL))
     # Row 13 (frames 26 and 27): the Time Warp clock, the owner's icon, centred in its cell.
     clock = Image.open(ROOT / "assets" / "time_warp" / "time_warp_icon_source.png").convert("RGBA")
     clock.thumbnail((CHEM_CELL - 6, CHEM_CELL - 6), Image.LANCZOS)
