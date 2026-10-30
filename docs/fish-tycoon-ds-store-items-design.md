@@ -317,8 +317,14 @@ is untouched. Each dose:
    rolls give the same litter (tested against the vanilla block run in the
    emulator). Babies from a dose are aged 1, as a birth on the due step.
    The view is synced after births (`0x415E70`, as after a hatch).
-2. **Age-up**, on everyone reached, the newborns included, so the whole
-   litter comes out adult; older fish keep their age.
+2. **Age-up**, on the fish reached before the births only; older fish keep
+   their age. The newborns stay exactly as the stock birth makes them (aged
+   1): the game shows a fish's species name only from age 20 (`0x41D9ED`;
+   under 20 the panel shows string 6), so raising them showed baby fish's
+   names (owner, 2026-10-31: babies stay babies). The fish reached are noted
+   by record before the births; a newborn only goes into a record that was
+   empty then (AddFish takes a record whose `+0x00` is 0), so a reused record
+   is never mistaken for an old fish. A later dose grows the babies up.
 
 ## Revival Potion (item 30)
 

@@ -184,9 +184,10 @@ never needs the internet.
   dose reaches every fish in the tank on screen, any age, fry included (the
   stock Growth Hormone stops at 40 and stays stock): every pregnant one gives
   birth at once, through the game's own birth rules (the same litter, Magic
-  Fish mutation, Plant of Fertility and "no room" as a natural birth); then
-  younger ones, the newborns too, become adults (age 20), and every one gets
-  full health (100) and is cured of ick or fungus. Other tanks and the store
+  Fish mutation, Plant of Fertility and "no room" as a natural birth), and
+  the babies stay babies, as born (a later dose grows them up); then of the
+  fish that were there before, younger ones become adults (age 20), and every
+  one gets full health (100) and is cured of ick or fungus. Other tanks and the store
   animals are left alone. Picture:
   [docs/images/radioactive-growth-hormone-fish.png](docs/images/radioactive-growth-hormone-fish.png).
   The Revival Potion ($10,000, 3 doses; $0 with Free upgrades), the owner's
