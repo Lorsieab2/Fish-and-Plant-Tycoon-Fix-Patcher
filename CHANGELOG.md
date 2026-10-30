@@ -317,8 +317,15 @@ and fixes.
     Fertilizer Bombs and Plant Food. Every branch grows (dead ones and the
     ones the plant's shape normally hides), the largest size, full bloom,
     and a flower on every spot of every branch and leaf: up to 6 per part,
-    hundreds on a big plant. No dead leaves, full health, and 5 seeds when
-    pollinated.
+    hundreds on a big plant. No dead leaves, full health, and always 5
+    seeds (the owner: they were not consistent): a plant already pollinated
+    gets all its seeds ripe at once (through the game's own ripening: its
+    pollination age is moved 7 units back), and any other gives all 5 at
+    its next pollination, infested or not (the old formula only gave back
+    a pollinated plant's held-back seeds, still to ripen over 7 units, and
+    left a plant pollinated later at the stock 5, 4 or 3). The mark is
+    cleared when a new plant is planted in the pot. The Formula Bomb gives
+    every plant it reaches the same.
   - Radioactive Plant Formula Bomb ($30,000, 3 bombs): the stock Fertilizer
     Bomb's art made rainbow. One bomb gives every live plant in the
     greenhouse on screen one Radioactive Plant Formula dose: the pots the

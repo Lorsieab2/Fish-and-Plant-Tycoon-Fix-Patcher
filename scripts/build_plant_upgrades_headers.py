@@ -54,6 +54,9 @@ SITES = [
     # "is this flower spot free?" (a spot on a joint is taken while a branch grows there): the
     # formula's flowering skips that test, so every spot on every branch flowers.
     ("joint_free", 0x42D330, ["mov eax, dword ptr [esp + 0xc]", "mov edx, dword ptr [esp + 8]"]),
+    # Planting (0x42FC70, every new plant: new game, tray, pot seed): the new plant's +0x7C starts
+    # at 0, so a formula mark left by the pot's last plant never carries over.
+    ("plant_seed", 0x42FCDD, ["mov dword ptr [esi + 0x78], edx", "mov byte ptr [esi + 0x6c], 0"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).

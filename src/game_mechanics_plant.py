@@ -587,8 +587,11 @@ CHEMICALS = (
                   "On a live plant: health 100, every dead (brown) part alive again, every hidden "
                   "branch of its shape grown, size 110 (the largest), grown to age 28 (full bloom), "
                   "flowers on every flower spot of every live, uncut part (its spots filled up to 6 "
-                  "per part), no later dead leaves, and, if it is already pollinated, all 5 of its "
-                  "seeds (pollinating it later gives the usual 5, 4 or 3). A dead plant stays dead."),
+                  "per part), no later dead leaves, and always 5 seeds: if it is already pollinated, all "
+                  "5 of its seeds (less any already picked) are ripe at once; if not, its next "
+                  "pollination gives all 5 (not 5, 4 or 3, and 5 even if infested). A plant planted "
+                  "later in that pot does not inherit this. A dead plant stays dead. The Formula "
+                  "Bomb gives every plant it reaches the same."),
                  ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
     Fact(

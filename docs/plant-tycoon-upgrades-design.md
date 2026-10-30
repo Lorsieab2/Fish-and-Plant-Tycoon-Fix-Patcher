@@ -57,6 +57,21 @@ with the setting is therefore the same as the pin without it
     - raises every count to 6 only while it flowers the plant, and restores
       them, so stock flowering and the stock items are unchanged;
     - answers "free" for every spot while it flowers (hook at `0x42D330`);
+    - always gives 5 seeds (owner, 2026-10-31). Pollination (`0x4240A0`)
+      sets `+0x6C`, `+0x98` = the age, `+0x90` = 0 ripe and `+0x94` = the
+      seeds counted as taken already (Random(3) - `+0x7C`: 5, 4 or 3 given;
+      4 if infested); ripening (`0x42E0C6`) makes
+      min(age - `+0x98` - 2, 5) - `+0x94` ripe each update. On a pollinated
+      plant the formula gives back the held-back seeds (`+0x94` = the seeds
+      picked), sets `+0x98` = age - 7 so the game's ripening counts all 5
+      ripe, and `+0x90` = 5 - `+0x94` at once. On any other it marks `+0x7C`
+      ("RFS5"), and `on_pollinated` then gives all 5. The new site
+      `plant_seed` (`0x42FCDD`, in planting `0x42FC70`) sets a new plant's
+      `+0x7C` to 0, so the mark never passes to the pot's next plant; the
+      mark is in the pot record, so it moves with the pot when Extra
+      Greenhouses exchanges records. Before this fix the formula only gave
+      back held-back seeds, still ripening over 7 units, and a plant
+      pollinated later got the stock 5, 4 or 3;
     - then adds flowers until no spot is left (`0x42ED60(360, 0)`).
     Live: a rose bush went from 5 flowers to 276, a 37-branch plant from 4 to
     276, and every one of the 14 new flowers from a handful to 39-132.

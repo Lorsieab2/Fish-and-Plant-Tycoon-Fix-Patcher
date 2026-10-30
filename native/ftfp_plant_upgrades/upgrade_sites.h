@@ -78,6 +78,10 @@ static const unsigned char SITE_STORE_HOVER_EXPECT[] = { 0x8B, 0x86, 0xBC, 0x01,
 #define SITE_JOINT_FREE_LEN 8
 static const unsigned char SITE_JOINT_FREE_EXPECT[] = { 0x8B, 0x44, 0x24, 0x0C, 0x8B, 0x54, 0x24, 0x08 };
 #define SITE_JOINT_FREE_BACK 0x0042D338u
+#define SITE_PLANT_SEED_VA 0x0042FCDDu
+#define SITE_PLANT_SEED_LEN 7
+static const unsigned char SITE_PLANT_SEED_EXPECT[] = { 0x89, 0x56, 0x78, 0xC6, 0x46, 0x6C, 0x00 };
+#define SITE_PLANT_SEED_BACK 0x0042FCE4u
 #define SITE_CHEM_PICTURE_BOUND_VA 0x004308D1u
 #define SITE_CHEM_PICTURE_BOUND_LEN 3
 static const unsigned char SITE_CHEM_PICTURE_BOUND_EXPECT[] = { 0x83, 0xF8, 0x24 };
