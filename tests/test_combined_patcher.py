@@ -133,6 +133,7 @@ class CombinedPatcherTests(unittest.TestCase):
                 "universal_supply_slots",
                 "golden_seahorse_repurchase",
                 "bigger_tanks",
+                "maximizable_window",
                 "ds_fish",
                 "ds_store",
                 "time_warp",
@@ -414,9 +415,11 @@ class SectionLayoutTests(unittest.TestCase):
                 for patch in engine.active_patch_records(manifest, enabled)
                 if str(patch["id"]).startswith("update_pe_checksum")
             ]
-            # DS Fish and DS Store Items patch no manifest bytes: DS Fish's
-            # startup loader recomputes the checksum itself, after every other change.
-            expected = 0 if not (enabled - {"ds_fish", "ds_store", "time_warp", "free_upgrades", "add_money"}) else 1
+            # DS Fish, DS Store Items and the Maximizable window patch no
+            # manifest bytes: the startup loader recomputes the checksum
+            # itself, after every other change.
+            loader_only = {"ds_fish", "ds_store", "time_warp", "free_upgrades", "add_money", "maximizable_window"}
+            expected = 0 if not (enabled - loader_only) else 1
             self.assertEqual(
                 len(checksum_patches),
                 expected,

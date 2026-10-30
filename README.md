@@ -48,6 +48,18 @@ never needs the internet.
   21. The game's save already has room for them, so saves keep their layout.
   Sell or move fish down to 21 per tank before turning it off again. Design:
   [docs/fish-tycoon-tank-expansion.md](docs/fish-tycoon-tank-expansion.md).
+- Maximizable window (on by default). In windowed mode the window's Maximize
+  button works, and its edges can be dragged to resize it. At any size other
+  than the game's own, the picture is scaled to fill the window, keeping its
+  shape, with black bars where it does not fit, and smoothed (on a very large
+  window where smoothing would slow the game, nearest pixel instead); the
+  mouse lands where you point. Restored, the window is its normal size and
+  drawn exactly as before; fullscreen is unchanged. It runs as a companion
+  DLL the game loads at start
+  (`Fish Tycoon Fix Patcher DLLs\Maximizable Window.dll`), in the plain
+  "Fish Tycoon - Modded" copy; nothing is saved. How it works, with every
+  address: `native/ftfp_fish_window/ftfp_fish_window.c`. Plant Tycoon draws
+  through SDL2, a different renderer, so this setting is Fish Tycoon's only.
 - DS Exclusive Fish (off by default). Adds the Nintendo DS version's seven
   extra bodies (Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang, Idle)
   and seven extra fins (Small Fin, Roundy, Angel, Clown, Yellow, Blue,

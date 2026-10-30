@@ -67,6 +67,21 @@ FISH = LoaderProfile(
     what_it_installs="That checks every one of the 69 places it changes in the running game and writes all of "
                      "them or none; docs/fish-tycoon-ds-fish-technical-map.md lists them.",
 )
+# With only the Maximizable window on, the loader loads that DLL itself; with
+# DS Exclusive Fish on, "DS Exclusive Fish.dll" loads it.
+FISH_WINDOW = replace(
+    FISH, dll_name="Maximizable Window.dll",
+    what_it_installs="That checks the two places it changes in the running game (the import slots of "
+                     "SDL_SetVideoMode and SDL_Flip, behind their stock thunks) and writes both or neither; "
+                     "native/ftfp_fish_window/ftfp_fish_window.c describes them.",
+)
+
+
+def fish_profile(enabled: set[str]) -> LoaderProfile:
+    """The DLL Fish Tycoon's loader loads for these settings."""
+    return FISH if "ds_fish" in enabled else FISH_WINDOW
+
+
 PLANT = LoaderProfile(
     game="plant", patcher_files_folder="Plant Tycoon Fix Patcher DLLs", dll_name="Unused Flowers.dll",
     winmain_call_va=0x00451AE0,        # e8 9b 11 fc ff: call WinMain (0x412C80)

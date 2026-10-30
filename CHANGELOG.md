@@ -169,6 +169,22 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Fish Tycoon
 
+- **Maximizable window**, a new setting, on by default, in the plain
+  "Fish Tycoon - Modded" copy. In windowed mode the Maximize button works and
+  the window can be resized by its edges. Fish Tycoon draws through SDL 1.2 at
+  a fixed size, and SDL gives its window no maximize box and pins its size.
+  At any other size than the game's own, the picture is scaled to fill the
+  window with its shape kept, black bars where it does not fit, smoothed
+  (GDI HALFTONE; at a size where smoothing would take over 11 ms a frame,
+  nearest pixel instead, so the game keeps its 33 ms frame), and the mouse
+  is mapped back to the game's coordinates. At the game's own size (restored)
+  and in fullscreen, everything goes through SDL exactly as before. A
+  companion DLL (`Fish Tycoon Fix Patcher DLLs\Maximizable Window.dll`)
+  routes the game's SDL_SetVideoMode and SDL_Flip imports through itself,
+  after checking both and their thunks (0x42A606, 0x42A62A), both or neither.
+  With DS Exclusive Fish on, its DLL loads this one. Plant Tycoon is not
+  included: it draws through SDL2 (a different renderer). Emulated in
+  tests/test_fish_window.py.
 - **Fix Vanilla Bugs**, a new setting, on by default. In the stock game the
   two plants do each other's job: the $200 Plant of Incubation rescues
   starving fish and the $350 Plant of Nutrition adds 1 egg per batch. Four

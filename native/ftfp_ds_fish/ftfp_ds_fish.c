@@ -1081,9 +1081,36 @@ static void load_store(void) {
     startup(&store_host);
 }
 
+/* "Maximizable Window.dll" (the "Maximizable window" setting), beside this
+   DLL: the startup stub loads only this DLL, so this one loads it.  It
+   changes none of the sites here, and is loaded whether or not they went
+   in. */
+typedef int (__stdcall *window_startup_fn)(void);
+
+static void load_window(void) {
+    wchar_t path[1024];
+    wchar_t *slash;
+    HMODULE window;
+    window_startup_fn startup;
+    DWORD n = GetModuleFileNameW((HMODULE)&__ImageBase, path, 1024);
+    if (n == 0 || n >= 1024 || (slash = wcsrchr(path, L'\\')) == NULL) return;
+    slash[1] = L'\0';
+    if (wcslen(path) + 32 >= 1024) return;
+    wcscat_s(path, 1024, L"Maximizable Window.dll");
+    if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) return;
+    window = LoadLibraryW(path);
+    if (window == NULL) return;
+    startup = (window_startup_fn)GetProcAddress(window, "FtfpStartup");
+    if (startup != NULL) startup();
+}
+
 /* Called once by the executable's startup stub, before WinMain. */
 int __stdcall FtfpStartup(void) {
     if (installed) return 1;
+    __try {
+        load_window();
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
     __try {
         build_sprite_table();
         if (prepare() && ftfp_install_sites(writes, TOTAL_SITES)) {

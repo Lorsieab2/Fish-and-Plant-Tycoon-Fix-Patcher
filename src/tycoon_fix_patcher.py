@@ -259,7 +259,8 @@ def setting_companion_details(game_id: str, setting_id: str) -> list[PatchDetail
                     length=length, note=note)
         for index, (offset, va, length, note) in enumerate(
             ds_fish_loader.described_changes(
-                ds_fish_loader.plant_profile({setting_id}) if game_id == "plant" else ds_fish_loader.FISH))
+                ds_fish_loader.plant_profile({setting_id}) if game_id == "plant"
+                else ds_fish_loader.fish_profile({setting_id})))
     ]
 
 
