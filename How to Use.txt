@@ -64,8 +64,10 @@ Fish Tycoon options:
   Sell or move fish down to 21 per tank before turning it off.)
 - Tank and greenhouse counts (on by default; at the top left of the water:
   "Fish: 12 of 21 (8 adults, 3 teens, 1 baby)" for the tank on screen, of 30
-  with Bigger tanks, Tanks 4-6 too, its creatures and the isolation tank.
-  Display only.)
+  with Bigger tanks, Tanks 4-6 too, "Sick: 2 fungus, 1 ick  Low Health: 3"
+  (Low Health = the red health bar, 25 or less), its creatures and the
+  isolation tank. A "Counts: On/Off" button at the top right of the water
+  hides them; the choice is kept in Tank Counts.ini. Display only.)
 - Optimize Prices button (on by default; an "Optimize Prices" button on the
   Species Chart. Asks Yes/No, then sets every discovered species to its best
   price per day for your shop as it is now, as in the Breeding Guide.)
@@ -145,7 +147,8 @@ Plant Tycoon options:
   seeds out of boxes 4-6 before turning it off.)
 - Tank and greenhouse counts (on by default; "Plants: 9 of 15 (5 mature,
   2 with buds, 2 seedlings)" along the top of the greenhouse on screen,
-  Greenhouses 2-6 too. Display only.)
+  Greenhouses 2-6 too, and "Infested: 2  Unhealthy: 1". A "Counts: On/Off"
+  button hides them; the choice is kept in Greenhouse Counts.ini. Display only.)
 - Sort Seeds button (off by default; a "Sort Seeds" button on the Seed
   Storage title bar. Asks Yes/No, then sorts every seed by the plant it grows
   and its parents into your unlocked seed boxes, first box first.)
