@@ -66,28 +66,28 @@ class App(tk.Tk):
         self.geometry("1000x880")
         self.minsize(860, 620)
         self.busy = False
-        self.game_choice = tk.StringVar(value="fish")
-        self.output_parent = tk.StringVar()
+        self.game_choice = tk.StringVar(master=self, value="fish")
+        self.output_parent = tk.StringVar(master=self)
         self.path_vars = {
             game_id: {
-                "vanilla": tk.StringVar(),
-                "output": tk.StringVar(),
-                "backup": tk.StringVar(),
+                "vanilla": tk.StringVar(master=self),
+                "output": tk.StringVar(master=self),
+                "backup": tk.StringVar(master=self),
             }
             for game_id in GAMES
         }
         self.patch_vars = {
             game_id: {
-                setting_id: tk.BooleanVar(value=bool(setting.get("default", False)))
+                setting_id: tk.BooleanVar(master=self, value=bool(setting.get("default", False)))
                 for setting_id, setting in patch_settings(game_id).items()
             }
             for game_id in GAMES
         }
         self._link_setting_requirements()
-        self.status_var = tk.StringVar(
+        self.status_var = tk.StringVar(master=self,
             value="Choose one game or both games. Close the games before patching."
         )
-        self.detect_status_var = tk.StringVar(
+        self.detect_status_var = tk.StringVar(master=self,
             value=(
                 "Choose the folder that holds the game folders, and the patcher "
                 "finds the exact Fish Tycoon.exe and Plant Tycoon.exe inside it."
@@ -115,8 +115,8 @@ class App(tk.Tk):
                     base.trace_add("write", lambda *_a, d=dependent, b=base: not b.get() and d.get() and d.set(False))
 
     def _load_brand_images(self) -> None:
-        self.fish_picture = tk.PhotoImage(file=str(FISH_PICTURE_PATH))
-        self.plant_picture = tk.PhotoImage(file=str(PLANT_PICTURE_PATH))
+        self.fish_picture = tk.PhotoImage(master=self, file=str(FISH_PICTURE_PATH))
+        self.plant_picture = tk.PhotoImage(master=self, file=str(PLANT_PICTURE_PATH))
         self.fish_heading = self.fish_picture.subsample(4, 4)
         self.plant_heading = self.plant_picture.subsample(4, 4)
         self.fish_emoji = self.fish_picture.subsample(8, 8)
@@ -126,7 +126,7 @@ class App(tk.Tk):
         # pictures into that icon without modifying either source PNG.
         self.window_fish = self.fish_picture.subsample(12, 12)
         self.window_plant = self.plant_picture.subsample(12, 12)
-        self.window_icon = tk.PhotoImage(width=32, height=32)
+        self.window_icon = tk.PhotoImage(master=self, width=32, height=32)
         self.window_icon.tk.call(
             str(self.window_icon), "copy", str(self.window_plant), "-to", 1, 9
         )
@@ -630,7 +630,7 @@ class App(tk.Tk):
                 foreground="#666666",
             ).pack(anchor="w", pady=(6, 0))
 
-        shown = tk.BooleanVar(value=False)
+        shown = tk.BooleanVar(master=self, value=False)
 
         def toggle(_event: tk.Event | None = None) -> None:
             if shown.get():

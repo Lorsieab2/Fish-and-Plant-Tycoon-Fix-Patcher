@@ -21,6 +21,9 @@
      * ClonaFish ($2,500, 3 doses): a chemical for slot #3; each dose adds an
        exact copy of every unique fish in the tank you look at, through the
        game's own AddFish, until the tank is full;
+     * the Auto-Feeder and the Auto-Healer ($10,000 each, bought once): every
+       live fish in every tank kept fed, and cured at full health
+       (auto_upgrades.h);
      * with their settings ("<name>.ini" beside this DLL): the Time Warp
        clock, and Add Money ($950 for +$1,000, any number of times).  With
        Free upgrades every item on this page costs $0.
@@ -144,7 +147,9 @@
 #define SPR_ITEM_CLONA (STORE_SPRITE_BASE + 21)
 #define SPR_TOOL_CLONA (STORE_SPRITE_BASE + 22)
 #define SPR_DROPPER_CLONA (STORE_SPRITE_BASE + 23)
-#define STORE_SPRITES 24
+#define SPR_ITEM_FEEDER (STORE_SPRITE_BASE + 24)
+#define SPR_ITEM_HEALER (STORE_SPRITE_BASE + 25)
+#define STORE_SPRITES 26
 
 typedef struct sprite_entry {
     int id;
@@ -185,6 +190,8 @@ static const struct { const char *name; int cols, rows; } SPRITE_FILES[STORE_SPR
     { "ITEM_CLONAFISH.png", 0, 0 },             /* the owner's magenta bottle */
     { "TOOL_CLONAFISH.png", 0, 0 },
     { "TOOL_dropper_CLONAFISH.png", 0, 0 },
+    { "ITEM_AUTO_FEEDER.png", 0, 0 },          /* the owner's green feeder */
+    { "ITEM_AUTO_HEALER.png", 0, 0 },          /* the same machine in hot pink */
 };
 
 /* ------------------------------------------------------------ the game */
@@ -424,6 +431,10 @@ static const unsigned char REPURCHASE_JUMP[10] = { 0xE9, 0x49, 0x75, 0x01, 0x00,
 #define FIN_WARP (-1)                       /* the Time Warp item: not an animal */
 #define FIN_MONEY (-2)                      /* the Add Money item: not an animal */
 #define FIN_TANK (-6)                       /* the Extra Tank item (the "3 extra tanks" setting); -3..-5 are the potions */
+#define FIN_FEEDER (-7)                     /* the Auto-Feeder (auto_upgrades.h) */
+#define FIN_HEALER (-8)                     /* the Auto-Healer */
+static int auto_sold_out(int fin);
+static const char *auto_owned_line(int item);
 
 /* "Extra Tanks.dll" (the "3 extra tanks" setting: Tank 4, 5 and 6) sells its tanks here, in
    order: how many are bought (0-3, -1 when it is not loaded or no game is
@@ -439,6 +450,7 @@ static int tanks_call(const char *name) {
 static int sold_out(char *state, int fin) {
     static int repurchase = -1;
     if (fin == FIN_TANK) return tanks_call("FtfpExtraTanksOwned") >= EXTRA_TANKS;
+    if (fin == FIN_FEEDER || fin == FIN_HEALER) return auto_sold_out(fin);
     if (fin < 0) return 0;                  /* Time Warp, Add Money, the potions: never sold out */
     if (repurchase < 0) repurchase = ftfp_site_holds(0x004282B2u, REPURCHASE_JUMP, sizeof REPURCHASE_JUMP);
     return fin != 0 && !repurchase && owned(state, fin);
@@ -672,6 +684,46 @@ static int __cdecl eel_click(char *impl, int x, int y) {
     return 0;
 }
 
+/* The tanks "Extra Tanks.dll" holds (Tanks 4-6, or Tank 1 while one of them is on
+   screen): an empty rock among their ornaments, or a swimming eel among their
+   animals, so an eel and its rock go together wherever the two are. */
+static unsigned char *held_ornament(unsigned char *b, int k) { return b + (ORN_BASE - FISH_BASE) + k * ORN_STRIDE; }
+static char *held_animal(unsigned char *b, int k) { return (char *)b + TANK_STRIDE + k * SLOT_STRIDE; }
+
+static int remove_held_rock(void) {
+    int e, k;
+    for (e = 0; e < HELD_TANKS; ++e) {
+        unsigned char *b = held_block(e);
+        if (b == NULL) return 0;
+        for (k = 0; k < ORN_SLOTS; ++k) {
+            unsigned char *o = held_ornament(b, k);
+            if (o[0] != 0 && *I(o, O_SPRITE) == SPR_ROCK) {
+                memset(o, 0, ORN_STRIDE);
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* REMOVE_FISH clears these fields of a record at state + 0x390 + tank * 0x51EC +
+   slot * 0x288; a held record is cleared the same way, as the record of slot 0
+   of tank 0 of a state 0x390 bytes before it. */
+static int remove_held_eel(void) {
+    int e, k;
+    for (e = 0; e < HELD_TANKS; ++e) {
+        unsigned char *b = held_block(e);
+        if (b == NULL) return 0;
+        for (k = 0; k < ANIMAL_SLOTS; ++k) {
+            char *f = held_animal(b, k);
+            if (!is_kind(f, FIN_EEL)) continue;
+            REMOVE_FISH(f - FISH_BASE, NULL, 0, 0);
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int remove_out_rock(char *state, int tank) {
     int t, k, pass;
     for (pass = 0; pass < 2; ++pass) {
@@ -686,7 +738,7 @@ static int remove_out_rock(char *state, int tank) {
             }
         }
     }
-    return 0;
+    return remove_held_rock();                                 /* then Tanks 4-6 */
 }
 
 /* 0x41E809, the trash after its "throw away?" answer: an eel takes a rock with it. */
@@ -700,7 +752,7 @@ static int confirm_in(void *parent, int string_id);
 
 /* An ornament dropped (the stock game only moves them): the eel's rock on the
    trash can is thrown away, with its eel (inside it, or the one swimming in
-   the same tank, else another).  1 = handled. */
+   the same tank, else another, in Tanks 4-6 last).  1 = handled. */
 static int __cdecl rock_trash(char *impl, int x, int y) {
     char *state = (char *)P(impl, 0x34);
     int tank, k = *I(impl, 0x28), t, s, pass, done = 0;
@@ -727,6 +779,7 @@ static int __cdecl rock_trash(char *impl, int x, int y) {
                 }
             }
         }
+        if (!done) remove_held_eel();                       /* then Tanks 4-6 */
     }
     memset(o, 0, ORN_STRIDE);
     *I(impl, 0x28) = 0x63;
@@ -969,8 +1022,8 @@ static void stock_birth(char *impl, char *f, int tank, int baby_age) {
    2026-10-30; the stock Growth Hormone, 0x421100-0x421194, stops at age 40): live (+0x00),
    health not 0 (+0x3C), over the stock loop's records.  First every pregnant one of them (+0x10 not 0) gives birth at once, through stock_birth
    (the owner, 2026-10-30), with the babies aged 1, as a birth on the due step is (age - due
-   age); tank 3 never gives birth, as stock.  Then each fish reached, the newborns included,
-   so the whole litter comes out adult:
+   age); tank 3 never gives birth, as stock.  Then each fish reached before the births (the
+   newborns stay babies, see reached_before_births):
      * younger than 20: age 20, written as the stock dose writes an age (0x42114F), and
        last-processed age 19 on every difficulty (the stock dose does this only off Hard,
        0x421157; the owner, 2026-10-30: the fish stay healthy on Hard too), so the next
@@ -985,6 +1038,15 @@ static int gh_reaches(char *f) {
     return *I(f, F_LIVE) != 0 && *I(f, F_HEALTH) != 0 && !is_animal(f);
 }
 
+/* The owner, 2026-10-31 ("babies stay babies"): the newborns of a dose are left exactly as the
+   stock birth makes them (aged 1).  The game shows a fish's species name only from age 20
+   (0x41D9ED: under 20 the name is string 6), so raising them to 20 showed baby fish's names.
+   The fish the dose reaches are therefore noted before the births, by record: a newborn goes
+   only into a record that was empty then (AddFish takes a record whose +0x00 is 0), so it is
+   never among them, whatever record it reuses; the age-up, healing and cure below are for
+   those fish only.  A later dose reaches the babies like any other young fish. */
+static unsigned char reached_before_births[RECORDS];
+
 static void __cdecl rgh_dose(char *impl) {
     char *state = (char *)P(impl, 0x34);
     int tank, end = GH_LOOP_END, off, born = 0;
@@ -992,6 +1054,8 @@ static void __cdecl rgh_dose(char *impl) {
     tank = *I(state, S_CURRENT_TANK);
     if (tank < 0 || tank > last_tank()) return;
     if (end > RECORDS * SLOT_STRIDE) end = RECORDS * SLOT_STRIDE;
+    for (off = 0; off < end; off += SLOT_STRIDE)
+        reached_before_births[off / SLOT_STRIDE] = (unsigned char)gh_reaches(state + FISH_BASE + tank * TANK_STRIDE + off);
     for (off = 0; off < end && tank != NO_BIRTH_TANK; off += SLOT_STRIDE) {
         char *f = state + FISH_BASE + tank * TANK_STRIDE + off;
         if (!gh_reaches(f) || *I(f, F_DUE) == 0) continue;
@@ -1002,7 +1066,7 @@ static void __cdecl rgh_dose(char *impl) {
         VIEW_SYNC(P(impl, 0x3C), NULL, (int)(UINT_PTR)fish(state, tank, 0));
     for (off = 0; off < end; off += SLOT_STRIDE) {
         char *f = state + FISH_BASE + tank * TANK_STRIDE + off;
-        if (!gh_reaches(f)) continue;
+        if (!reached_before_births[off / SLOT_STRIDE] || !gh_reaches(f)) continue;
         if (*I(f, F_AGE) < ADULT_AGE) {
             *I(f, F_AGE) = ADULT_AGE;
             *I(f, F_LAST_AGE) = ADULT_AGE - 1;
@@ -1110,6 +1174,45 @@ static int __cdecl new_chemical(char *impl, int item) {
     }
 }
 
+/* ---------------------------------------------------- the store supplies in the trash */
+
+/* The stock game never throws a supply away: a supply let go outside the tank
+   (0x420B70 tests the tank at impl+0xA8..+0xB4 first) gets a hint and goes
+   back to its slot (0x42165C).  This store's own supplies -- Exotic Fish Eggs,
+   the Radioactive Growth Hormone, the Revival Potion and ClonaFish -- let go
+   on the trash can (impl+0x88..+0x94, the hit area the fish trash tests at
+   0x41F31E) are thrown away instead: the slot is emptied as the stock tail
+   empties a used-up one (0x420D9B: item, present, count, icon and cursor
+   0), with every dose or hatch it still held, nothing is held any more
+   (impl+0x1C = 0x63), and the fish trash's sound (4) plays.  The stock game
+   asks only before a live fish goes ("Delete this fish?"), so nothing is
+   asked.  Food (slot #1) and the stock supplies are never touched: they go
+   back to their slot as stock.  1 = thrown away. */
+#define HELD_SUPPLY 0x1C
+#define NO_SUPPLY 0x63
+
+static int is_store_supply(int item) {
+    return item == EXOTIC_ITEM || item == RGH_ITEM || item == REVIVAL_ITEM || item == CLONA_ITEM;
+}
+
+static int __cdecl supply_trash(char *impl, int x, int y) {
+    char *state = (char *)P(impl, 0x34), *r;
+    int k = *I(impl, HELD_SUPPLY);
+    if (state == NULL || k < 1 || k > 3) return 0;
+    r = SLOT_RECORD(state, k);
+    if (*I(r, SR_ICON) == 0 || !is_store_supply(*I(r, SR_ITEM))) return 0;
+    if (inside(x, y, *I(impl, 0xA8), *I(impl, 0xAC), *I(impl, 0xB0), *I(impl, 0xB4))) return 0;
+    if (!inside(x, y, *I(impl, 0x88), *I(impl, 0x8C), *I(impl, 0x90), *I(impl, 0x94))) return 0;
+    *I(r, SR_ITEM) = 0;
+    *I(r, SR_PRESENT) = 0;
+    *I(r, SR_COUNT) = 0;
+    *I(r, SR_ICON) = 0;
+    *I(r, SR_CURSOR) = 0;
+    *I(impl, HELD_SUPPLY) = NO_SUPPLY;
+    play_sound(4);
+    return 1;
+}
+
 /* ------------------------------------------------------- creature names */
 
 /* The names the info panel shows for a held animal (user, 2026-10-26).  The
@@ -1158,7 +1261,7 @@ typedef struct store_item {
 
 /* Time Warp and Add Money show only with their settings; with Free upgrades
    every item here costs $0 (the stock store keeps its prices). */
-#define ITEMS 10
+#define ITEMS 12
 #define ITEM_WARP 4
 #define ITEM_MONEY 5
 #define FIN_RGH (-3)                        /* the Radioactive Growth Hormone: not an animal */
@@ -1166,6 +1269,8 @@ typedef struct store_item {
 #define FIN_CLONA (-5)                      /* ClonaFish */
 #define ITEM_TANK 9
 #define SPR_STOCK_TANK2 157                 /* ITEM_TANK2.png: the stock store's Second Tank */
+#define AUTO_ICON_W 73                      /* ITEM_AUTO_FEEDER.png, ITEM_AUTO_HEALER.png (build_auto_upgrades_assets.py) */
+#define AUTO_ICON_H 65
 #define MONEY_GAIN 1000
 #define MONEY_MAX 0x7FFFFFFF       /* money is a signed 32-bit int (state+0x38C); the stock sale adds to it unclamped (0x424074) */
 static int warp_on = 0, money_on = 0, free_on = 0;
@@ -1200,8 +1305,8 @@ static const store_item ITEM[ITEMS] = {
         "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
     { FIN_RGH, 10000, 595, 90, 79, 72, SPR_ITEM_RGH, 48, 65,
       { "Radioactive Growth Hormone", "Radioaktive Wachstumshormone" },
-      { "Every fish in your tank gets full\nhealth and no sickness, young ones grow\nup at once, and pregnant ones give\nbirth first. Enough for 3 treatments.",
-        "Jeder Fisch in deinem Becken wird\nganz gesund und heil, junge werden\nsofort erwachsen, tr\xE4" "chtige geb\xE4" "ren\nzuerst. Reicht f\xFCr 3 Behandlungen." } },
+      { "Every fish in your tank gets full\nhealth and no sickness, young ones grow\nup at once, and pregnant ones give\nbirth to babies. Contains 3 doses.",
+        "Jeder Fisch in deinem Becken wird\nganz gesund und heil, junge werden\nsofort erwachsen, tr\xE4" "chtige geb\xE4" "ren\nBabys. Reicht f\xFCr 3 Behandlungen." } },
     /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped to the panel. */
     { FIN_REVIVAL, 10000, 687, 90, 79, 72, SPR_ITEM_REVIVAL, 48, 65,
       { "Revival Potion", "Wiederbelebungstrank" },
@@ -1215,6 +1320,15 @@ static const store_item ITEM[ITEMS] = {
       { "Extra Tank", "Weiteres Aquarium" },
       { "Another tank for breeding! Each one\nyou buy opens the next of Tank 4,\nTank 5 and Tank 6.",
         "Noch ein Aquarium zum Z\xFC" "chten! Jeder\nKauf \xF6" "ffnet das n\xE4" "chste: Becken 4,\n5 und 6." } },
+    /* The owner's descriptions, wrapped to the panel (auto_upgrades.h). */
+    { FIN_FEEDER, 10000, 141, 165, 73, 72, SPR_ITEM_FEEDER, AUTO_ICON_W, AUTO_ICON_H,
+      { "Auto-Feeder", "Futterautomat" },
+      { "Automatically feeds all your fish in\nevery tank. No more starvation, ever!",
+        "F\xFCttert automatisch alle deine Fische\nin jedem Becken. Nie wieder Hunger!" } },
+    { FIN_HEALER, 10000, 234, 165, 71, 72, SPR_ITEM_HEALER, AUTO_ICON_W, AUTO_ICON_H,
+      { "Auto-Healer", "Heilautomat" },
+      { "Magically cures all diseases from fish\nand restores them to full health.\nWorks in every tank.",
+        "Heilt auf magische Weise alle Krankheiten\ndeiner Fische und macht sie ganz gesund.\nWirkt in jedem Becken." } },
 };
 
 static int price_of(const store_item *it) { return free_on ? 0 : it->price; }
@@ -1295,7 +1409,8 @@ static void draw_page(void *scene) {
         draw_text(impl, it->name[lang], 0x39, 0x159, FONT_TITLE, *I(impl, 0x24));
         draw_text(impl, it->text[lang], 0x39, 0x181, FONT_BODY, 0);
         if (sold_out(state, it->fin)) {
-            draw_text(impl, game_string(0xE9), 0x39, 0x1FD, FONT_BODY, 0);   /* "This is in your inventory." */
+            const char *owned_line = auto_owned_line(selected);           /* an Auto item: how to unpurchase */
+            draw_text(impl, owned_line != NULL ? owned_line : game_string(0xE9), 0x39, 0x1FD, FONT_BODY, 0);   /* "This is in your inventory." */
         } else {
             char line[64];
             const char *label = game_string(0xAD);                            /* "Price:" */
@@ -1505,6 +1620,8 @@ static void add_money(char *impl, char *state, int price) {
     *I(state, S_MONEY) = money_after_gain(*I(state, S_MONEY));
 }
 
+#include "auto_upgrades.h"            /* the Auto-Feeder and Auto-Healer */
+
 static void buy(void *scene) {
     char *impl = store_impl(scene);
     char *state = (char *)P(impl, 0x10);
@@ -1540,6 +1657,10 @@ static void buy(void *scene) {
     }
     if (it->fin == FIN_CLONA) {
         buy_chemical(impl, state, price, CLONA_ITEM, SPR_TOOL_CLONA, SPR_DROPPER_CLONA);
+        return;
+    }
+    if (it->fin == FIN_FEEDER || it->fin == FIN_HEALER) {
+        auto_buy(impl, state, it->fin, price);
         return;
     }
     if (it->fin == FIN_TANK) {                       /* the next of Tank Three, Four and Five */
@@ -1624,6 +1745,7 @@ static int pending_any = 0;
    records past the fish that earlier builds kept animals in are cleared. */
 static void __cdecl clear_animals(char *state) {
     int t, s, first = fish_slots() > OLD_ANIMAL_FIRST ? fish_slots() : OLD_ANIMAL_FIRST;
+    auto_new_game();
     memset(animal_area, 0, sizeof animal_area);
     memset(pending, 0, sizeof pending);
     pending_any = 0;
@@ -1913,6 +2035,7 @@ static void settle_animals(char *state, int slot) {
    written, the records an earlier build's animals were moved out of. */
 static void __cdecl on_store_save(char *state, int slot) {
     if (state == NULL || !is_game_slot(slot)) return;
+    auto_save(slot);
     if (ta_write(state, slot)) {
         if (pending_any) clear_pending(state);
     } else {
@@ -1986,6 +2109,7 @@ typedef int (__fastcall *load_fn)(void *state, void *edx, int slot);
 static int __fastcall on_state_load(char *state, void *edx, int slot) {
     int ok = GAME(load_fn, SITE_STATE_LOAD_HOLDS)(state, edx, slot) & 0xFF;
     if (ok && is_game_slot(slot)) {
+        auto_load(slot);
         settle_animals(state, slot);
         fill_animals(state);
     }
@@ -1999,6 +2123,7 @@ static int __fastcall on_mouse(void *scene, void *edx, int type, int x, int y) {
         hovered = hit_item(x, y);
     } else if (type == 3) {
         int hit = hit_item(x, y);
+        if (hit >= 0 && hit == selected && auto_unpurchase(hit)) return 0;   /* an owned Auto item, clicked again */
         if (hit >= 0) selected = hit;
     }
     return 0;
@@ -2067,6 +2192,13 @@ __declspec(naked) static void stub_tick(void) {
 
 __declspec(naked) static void stub_death(void) {
     __asm {
+        pushad
+        mov eax, [esi + 0x34]
+        lea eax, [edi + eax + 0x390]
+        push eax
+        call auto_step_end
+        add esp, 4
+        popad
         mov edx, [esi + 0x34]
         cmp dword ptr [edi + edx + 0x3CC], ebx
         jg alive
@@ -2367,6 +2499,28 @@ __declspec(naked) static void stub_ornament_drop(void) {
     }
 }
 
+/* 0x421B52 `call 0x420B70` (thiscall impl; x, y; ret 8), the release of a held
+   supply: the store's supplies on the trash can are thrown away, else the
+   stock use (or its Universal supply slots trampoline) runs as before. */
+static const DWORD k_supply_use = 0x00420B70u;
+
+__declspec(naked) static void stub_supply_drop(void) {
+    __asm {
+        push ecx
+        push dword ptr [esp + 0x0C]
+        push dword ptr [esp + 0x0C]
+        push ecx
+        call supply_trash
+        add esp, 12
+        pop ecx
+        test eax, eax
+        jz stock
+        ret 8
+    stock:
+        jmp dword ptr [k_supply_use]
+    }
+}
+
 /* ----------------------------------------------------------------- install */
 
 static const DWORD k_build_top = 0x00413DC4u, k_build_after = 0x004140D6u;
@@ -2433,7 +2587,7 @@ __declspec(naked) static void stub_state_save(void) {
 }
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 28
+#define TOTAL_SITES 30
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -2483,6 +2637,8 @@ static int prepare(void) {
     CALL(w++, SAVE_CALL_SETTINGS, stub_state_save);
     SLOT(w++, STATE_SAVE, stub_state_save);
     ftfp_site_branch(w++, 0x00421AAAu, 5, TANK_UPDATE_CALL, 0xE8, CODE_ADDR(stub_tank_update));
+    CALL(w++, SUPPLY_DROP, stub_supply_drop);
+    JMP(w++, AUTO_STEP, stub_auto_step);
     return (int)(w - writes) == TOTAL_SITES;
 }
 

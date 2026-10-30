@@ -455,61 +455,84 @@ class MovingFish(unittest.TestCase):
         self.assertEqual(rig.extra(0)[:SLOT], mother)
         self.assertEqual(struct.unpack_from("<I", rig.tank(3), 0)[0], 0)
 
-    # The arrows: left (previous) at (495-512, 8-22), right (next) at (495-512, 31-45).
+    # The arrows: left (previous) at (495-512, 8-22), right (next) at (495-512, 31-45). Carrying
+    # something over either turns the page; a drop on one is the stock drop on the bar.
     LEFT, RIGHT = (500, 12), (500, 36)
 
-    def test_drag_onto_the_right_arrow_moves_to_the_next_tank(self) -> None:
+    def carry(self, rig: Rig, *points: tuple[int, int]) -> None:
+        """Mouse moves with something held (the tank screen's drag byte set)."""
+        stock = rig.emu.thunk()
+        moves = []
+        rig.emu.hook(stock, lambda e: moves.append((e.arg(0), e.arg(1), e.arg(2))) or 0, 12)
+        rig.var("_prev_mouse", stock)
+        rig.emu.write8(rig.impl, 1)
+        for at in points:
+            rig.emu.call(rig.sym["@mouse_hook@20"], 1, *at, ecx=rig.impl)
+        self.assertEqual(moves, [(1, *at) for at in points], "the stock drag move still runs")
+
+    def test_carrying_over_an_arrow_turns_the_page_once_per_visit(self) -> None:
+        rig = Rig()
+        rig.var("_page", 0)
+        self.carry(rig, (400, 300), self.RIGHT, (501, 37), self.RIGHT)        # resting on it: once
+        self.assertEqual(rig.var("_page"), 1)
+        self.carry(rig, (560, 120), self.LEFT, (502, 13))                     # off and on again: back
+        self.assertEqual(rig.var("_page"), 0)
+        self.carry(rig, (560, 120), self.RIGHT)
+        self.assertEqual(rig.var("_page"), 1)
+        self.carry(rig, self.LEFT)                                            # straight to the other arrow
+        self.assertEqual(rig.var("_page"), 1, "still on the arrows: no flicker")
+
+    def test_hovering_with_nothing_held_turns_nothing(self) -> None:
+        rig = Rig()
+        stock = rig.emu.thunk()
+        rig.emu.hook(stock, lambda e: 0, 12)
+        rig.var("_prev_mouse", stock)
+        for at in ((400, 300), self.RIGHT, (400, 300), self.LEFT):
+            rig.emu.call(rig.sym["@mouse_hook@20"], 1, *at, ecx=rig.impl)
+        self.assertEqual(rig.var("_page"), 0)
+
+    def test_carry_over_then_drop_on_tank_five(self) -> None:
         rig = Rig()
         mover = fish(NOW, 4, 8, 25, 77, 66)
         rig.put_tank(1, block_with({2: mover}))
-        rig.set(0x384, 1)                                            # on Tank Two: next is the Sale Tank
+        rig.set(0x384, 1)
         self.hold(rig, 3, 1, 2)
-        rig.emu.call(rig.sym["@release_hook@16"], *self.RIGHT, ecx=rig.impl)
-        self.assertEqual(rig.tank(2)[:SLOT], mover, "the game's own AddFish put it in the Sale Tank")
+        self.carry(rig, (400, 300), self.RIGHT, (600, 120))
+        rig.emu.call(rig.sym["@release_hook@16"], 652, 28, ecx=rig.impl)      # Tank Five
+        self.assertEqual(rig.extra(1)[:SLOT], mover)
         self.assertEqual(struct.unpack_from("<I", rig.tank(1), 2 * SLOT)[0], 0)
 
-    def test_the_arrows_go_round_the_six_tanks(self) -> None:
-        # Tank One <- Tank Five (round), the Sale Tank -> Tank Three, Tank Three on screen -> Tank Four.
-        for current, shown, arrow, extra in ((0, -1, self.LEFT, 2), (2, -1, self.RIGHT, 0), (0, 0, self.RIGHT, 1)):
-            with self.subTest(current=current, shown=shown, arrow=arrow):
-                rig = Rig()
-                mover = fish(NOW, 6, 6, 24)
-                rig.put_tank(current, block_with({0: mover}))
-                rig.set(0x384, current)
-                rig.var("_shown", shown)
-                self.hold(rig, 1, current, 0)
-                rig.emu.call(rig.sym["@release_hook@16"], *arrow, ecx=rig.impl)
-                self.assertEqual(rig.extra(extra)[:SLOT], mover)
-
-    def test_left_arrow_from_an_extra_on_screen_goes_back_to_the_sale_tank(self) -> None:
+    def test_carry_over_then_drop_on_an_unbought_tank_is_refused(self) -> None:
         rig = Rig()
-        mover = fish(NOW, 6, 6, 24)
-        rig.put_tank(0, block_with({0: mover}))                       # Tank Three on screen
-        rig.var("_shown", 0)
-        self.hold(rig, 1, 0, 0)
-        rig.emu.call(rig.sym["@release_hook@16"], *self.LEFT, ecx=rig.impl)
-        self.assertEqual(rig.tank(2)[:SLOT], mover)
-
-    def test_an_arrow_onto_a_full_tank_is_refused(self) -> None:
-        rig = Rig()
-        rig.put_tank(2, block_with({s: fish(NOW, 4, 4, 25) for s in range(21)}))
-        mover = fish(NOW, 6, 6, 25)
-        rig.put_tank(1, block_with({0: mover}))
+        rig.var("_owned", 1)
+        rig.emu.hook(0x004020D0, lambda e: 100, 0)
+        mover = fish(NOW, 4, 8, 25, 77, 66)
+        rig.put_tank(1, block_with({2: mover}))
         rig.set(0x384, 1)
-        self.hold(rig, 1, 1, 0)
-        rig.emu.call(rig.sym["@release_hook@16"], *self.RIGHT, ecx=rig.impl)
-        self.assertIn(("hint", 6), rig.calls)
-        self.assertEqual(rig.tank(1)[:SLOT], mover)
+        self.hold(rig, 3, 1, 2)
+        self.carry(rig, self.RIGHT)
+        rig.emu.call(rig.sym["@release_hook@16"], 652, 28, ecx=rig.impl)      # Tank Five, not bought
+        self.assertEqual(rig.tank(1)[2 * SLOT:3 * SLOT], mover, "the fish stays")
+        self.assertEqual(rig.extra(1), bytes(TANK))
+        self.assertEqual(rig.var("_locked_until"), 102)
 
-    def test_an_arrow_onto_an_unbought_tank_two_is_refused_as_stock(self) -> None:
-        rig = Rig()
-        rig.set(0x230, 0)
-        mover = fish(NOW, 6, 6, 25)
-        rig.put_tank(0, block_with({0: mover}))
-        self.hold(rig, 1, 0, 0)
-        rig.emu.call(rig.sym["@release_hook@16"], *self.RIGHT, ecx=rig.impl)
-        self.assertIn(("hint", 8), rig.calls)
-        self.assertEqual(rig.tank(1), bytes(TANK))
+    def test_a_drop_on_an_arrow_never_loses_what_was_held(self) -> None:
+        """The stock drop on the bar (0x421B20): the fish swims on in its tank."""
+        for arrow in (self.LEFT, self.RIGHT):
+            for page in (0, 1):
+                with self.subTest(arrow=arrow, page=page):
+                    rig = Rig()
+                    rig.var("_page", page)
+                    mover = fish(NOW, 4, 8, 25, 77, 66)
+                    rig.put_tank(1, block_with({2: mover}))
+                    rig.set(0x384, 1)
+                    self.hold(rig, 3, 1, 2)
+                    before = [rig.tank(t) for t in range(4)] + [rig.extra(e) for e in range(3)]
+                    rig.emu.call(rig.sym["@release_hook@16"], *arrow, ecx=rig.impl)
+                    after = [rig.tank(t) for t in range(4)] + [rig.extra(e) for e in range(3)]
+                    self.assertEqual(after, before, "no tank changed: the fish is where it was")
+                    self.assertEqual(rig.get(0x1E4E8), 0xFFFFFFFF, "and it is let go")
+                    self.assertNotIn(("hint", 6), rig.calls)
 
     def test_an_ornament_moves_to_an_extra_tank(self) -> None:
         rig = Rig()
@@ -683,12 +706,21 @@ class Screen:
             rig.put_extra(tank - 3, data)
 
     def control(self, source: int, target: int) -> tuple[int, int]:
-        """The arrow for a neighbour, else the target's button on its page."""
-        if target == (source + 1) % 6:
-            return ARROW_RIGHT
-        if target == (source - 1) % 6:
-            return ARROW_LEFT
-        self.rig.var("_page", 1 if target >= 3 else 0)
+        """The target's button, its page reached as the player does: the page the source tank is
+        on, then, when the target is on the other one, the held thing carried over an arrow."""
+        rig = self.rig
+        rig.var("_page", 1 if source >= 3 else 0)
+        if (target >= 3) != (source >= 3):
+            if rig.var("_prev_mouse") == 0:
+                stock = rig.emu.thunk()
+                rig.emu.hook(stock, lambda e: 0, 12)                # the stock drag move
+                rig.var("_prev_mouse", stock)
+            dragging = rig.emu.uc.mem_read(rig.impl, 1)
+            rig.emu.write8(rig.impl, 1)
+            for at in ((400, 300), ARROW_RIGHT if target > source else ARROW_LEFT, (560, 120)):
+                rig.emu.call(rig.sym["@mouse_hook@20"], 1, *at, ecx=rig.impl)
+            rig.emu.uc.mem_write(rig.impl, bytes(dragging))
+        assert rig.var("_page") == (1 if target >= 3 else 0)
         return BUTTON_CENTRES[target % 3]
 
     def animals(self, tank: int) -> bytes:
@@ -731,8 +763,9 @@ PAIRS = [(s, t) for s in range(6) for t in range(6) if s != t]
 @unittest.skipUnless(HAVE_UNICORN and EXE.is_file() and DLL.is_file() and E.toolchain_ready(),
                      "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and the built DLL")
 class MovingBetweenAnyTwoTanks(unittest.TestCase):
-    """Every kind of thing between every two of the six tanks, by arrow or button; the stock
-    buttons run the game's own drop (0x41EFF0 / 0x41F660)."""
+    """Every kind of thing between every two of the six tanks, dropped on the target's button (its
+    page turned by carrying the thing over an arrow); the stock buttons run the game's own drop
+    (0x41EFF0 / 0x41F660)."""
 
     FISH = {
         "baby": fish(NOW, 4, 8, 2, 100, 90),
@@ -764,8 +797,8 @@ class MovingBetweenAnyTwoTanks(unittest.TestCase):
         place) are DS Store Items' own drop, as before; every other way is this DLL's."""
         for fin in (30, 31, 32):
             for source, target in PAIRS:
-                if target < 3 and (target - source) % 6 not in (1, 5) and not (target == 0 and source >= 3):
-                    continue
+                if target < 3 and not (target == 0 and source >= 3):
+                    continue                                        # DS Store Items' own drop
                 with self.subTest(fin=fin, source=source, target=target):
                     rig = Rig()
                     screen = Screen(rig)
@@ -958,19 +991,76 @@ class Buying(unittest.TestCase):
         self.assertIn(("view_move", 3, 1, 0xFFFFFFFF), rig.calls, "back to swimming")
         self.assertGreater(rig.var("_locked_until"), 0)
 
-    def test_the_arrows_skip_tanks_not_bought(self) -> None:
-        for owned, source, arrow, target in ((0, 2, ARROW_RIGHT, 0), (1, 3, ARROW_RIGHT, 0), (0, 0, ARROW_LEFT, 2),
-                                             (2, 0, ARROW_LEFT, 4)):
-            with self.subTest(owned=owned, source=source, arrow=arrow):
+    # "You don't own this tank yet!" is drawn in one place for every source: centred across the
+    # screen by the hints' own centred draw (0x408C30, as 0x417EE3), just under the top bar.
+    REFUSAL = (0, 800, 70)
+
+    def refusal_draws(self, rig: Rig, german: int = 0) -> list[tuple]:
+        draws = []
+        lang = rig.emu.alloc(4)
+        rig.emu.write32(lang, german)
+        rig.emu.write32(0x0045B314, lang)
+        rig.emu.hook(0x00408C30, lambda e: draws.append((e.cstring(e.arg(0)).decode("latin-1"),
+                                                         *[e.arg(i) for i in range(1, 6)])) or 0, 0x18)
+        stock = rig.emu.thunk()
+        rig.emu.hook(stock, lambda e: 0, 0)                     # the stock tank screen draw
+        rig.var("_prev_draw", stock)
+        rig.emu.write8(rig.state + 0x1E4F9, 1)                  # no buttons drawn: only the refusal
+        rig.emu.call(rig.sym["@draw_hook@8"], ecx=rig.impl)
+        return draws
+
+    def test_the_refusal_is_in_one_place_for_every_source(self) -> None:
+        places = set()
+        for owned in (0, 1, 2):
+            for b in range(owned, 3):
+                left, top, right, bottom = (513, 2, 598, 54) if b == 0 else ((610, 2, 695, 54) if b == 1
+                                                                             else (707, 2, 792, 54))
+                for x, y in ((left, top), (right, bottom), ((left + right) // 2, (top + bottom) // 2)):
+                    for source in ("click", "drop"):
+                        with self.subTest(owned=owned, button=b, at=(x, y), source=source):
+                            rig = Rig()
+                            rig.emu.hook(0x004020D0, lambda e: 100, 0)
+                            rig.var("_owned", owned)
+                            rig.var("_page", 1)
+                            if source == "click":
+                                for kind in (2, 3):
+                                    rig.emu.call(rig.sym["@mouse_hook@20"], kind, x, y, ecx=rig.impl)
+                            else:
+                                rig.put_tank(1, block_with({0: fish(NOW, 6, 6, 25)}))
+                                rig.set(0x384, 1)
+                                Screen(rig).hold_fish(1, 0)
+                                rig.emu.call(rig.sym["@release_hook@16"], x, y, ecx=rig.impl)
+                            [draw] = self.refusal_draws(rig)
+                            self.assertEqual(draw[0], "You don't own this tank yet!")
+                            self.assertEqual(draw[1:4], self.REFUSAL)
+                            places.add(draw[1:])
+        self.assertEqual(len(places), 1, places)
+
+    def test_the_refusal_fits_on_screen_clear_of_the_labels(self) -> None:
+        """The text's box, in the game's font (scripts/build_extra_tanks_assets.py's glyphs),
+        lies on the 800 x 600 screen and clear of the tank's name (12, 62, at most 116 x 31), the
+        For sale button (12, 96, 150 x 34) and the counts' button (690-796, 58-80)."""
+        game = E.VANILLA / "Fish Tycoon"
+        if not (game / "Assets" / "ft.dat").is_file():
+            self.skipTest("needs the game's Assets\\ft.dat")
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import build_extra_tanks_assets as A
+        glyphs = A.font_glyphs(A.read_game(game)["font_triplex_sanslightlin_bold_16pt.png"])
+        for german, text in ((0, "You don't own this tank yet!"), (1, "Dieser Tank geh\xf6rt dir noch nicht!")):
+            with self.subTest(german=german):
                 rig = Rig()
-                rig.var("_owned", owned)
-                screen = Screen(rig)
-                screen.show(source)
-                mover = fish(NOW, 6, 6, 24)
-                screen.put(source, block_with({0: mover}))
-                screen.hold_fish(source, 0)
-                screen.release(*arrow)
-                self.assertEqual(screen.block(target)[:SLOT], mover)
+                rig.emu.hook(0x004020D0, lambda e: 100, 0)
+                rig.var("_locked_until", 101)
+                [draw] = self.refusal_draws(rig, german)
+                self.assertEqual(draw[0], text)
+                left, right, y = draw[1:4]
+                width = sum(glyphs[c].width for c in text if c in glyphs) + 8 * text.count("\xf6")
+                height = max(g.height for g in glyphs.values())
+                box = ((left + right - width) // 2, y, (left + right + width) // 2, y + height)
+                self.assertTrue(0 <= box[0] and box[2] <= 800 and 0 <= box[1] and box[3] <= 600, box)
+                for other in ((12, 62, 12 + 116, 62 + 31), (12, 96, 12 + 150, 96 + 34), (690, 58, 796, 80)):
+                    apart = box[2] <= other[0] or other[2] <= box[0] or box[3] <= other[1] or other[3] <= box[1]
+                    self.assertTrue(apart, (box, other))
 
     def test_locked_buttons_draw_their_locked_frame(self) -> None:
         rig = Rig()

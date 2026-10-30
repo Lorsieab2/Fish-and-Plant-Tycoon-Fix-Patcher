@@ -49,6 +49,19 @@ HELD, SELECTED, HELD_POT = 0x56C, 0x63E58, 0x3E8
 FOR_SALE, PLANTED, FOLIAGE, FLOWER, AGE, HEALTH = 0x9D, 0x38, 0x4C, 0x50, 0x10, 0x24
 HOME, NURSERY = 0, 100
 
+SOURCE = ROOT / "native" / "ftfp_extra_greenhouses" / "ftfp_extra_greenhouses.c"
+
+
+def constant(name: str) -> int:
+    """A #define of the DLL's source (the arrows' and labels' places)."""
+    import re
+    return int(re.search(rf"#define {name} (\d+)", SOURCE.read_text(encoding="utf-8")).group(1))
+
+
+# The middle of each greenhouse arrow, where a click or a drop lands.
+LEFT_ARROW = (constant("LEFT_X") + 25, constant("ARROW_Y") + 25)
+RIGHT_ARROW = (constant("RIGHT_X") + 25, constant("ARROW_Y") + 25)
+
 HAVE = E is not None and PLANT_EXE.is_file() and E.toolchain_ready()
 needs_game = unittest.skipUnless(HAVE, "needs Unicorn, the vanilla Plant Tycoon.exe and the pinned MSVC toolset")
 
@@ -398,7 +411,7 @@ class MoveTests(unittest.TestCase):
     def drop_on_arrow(self, game: Game, right: bool, k: int) -> None:
         emu = game.emu
         emu.write32(game.state + HELD, HELD_POT + k)
-        emu.call(emu.sym("@gh_mouse@20"), 3, 760 if right else 230, 30, ecx=game.scene)
+        emu.call(emu.sym("@gh_mouse@20"), 3, *(RIGHT_ARROW if right else LEFT_ARROW), ecx=game.scene)
 
     def test_a_pot_dragged_onto_an_arrow_moves_to_the_same_place_in_that_greenhouse(self) -> None:
         game = grow(0, 4, ((4, 13, 13),), (7200,))
@@ -872,7 +885,7 @@ class OwnershipTests(unittest.TestCase):
         emu.hook(0x004273D0, lambda e: 0, 0xC)               # the stock mouse: the plant goes back to its pot
         game.show(0)
         emu.write32(game.state + HELD, HELD_POT + 4)
-        emu.call(emu.sym("@gh_mouse@20"), 3, 230, 30, ecx=game.scene)      # the left arrow's place
+        emu.call(emu.sym("@gh_mouse@20"), 3, *LEFT_ARROW, ecx=game.scene)  # the left arrow's place
         game.show(0, active=0)
         self.assertEqual(game.pot_bytes(0, 4), plant)
         self.assertTrue(all(game.emu.read32(game.pot(g, k) + FOLIAGE) == 0
@@ -881,7 +894,7 @@ class OwnershipTests(unittest.TestCase):
         emu.write32(emu.sym("_owned"), 2)
         game.show(0)
         emu.write32(game.state + HELD, HELD_POT + 4)
-        emu.call(emu.sym("@gh_mouse@20"), 3, 230, 30, ecx=game.scene)
+        emu.call(emu.sym("@gh_mouse@20"), 3, *LEFT_ARROW, ecx=game.scene)
         game.show(0, active=0)
         self.assertEqual(game.pot_bytes(2, 4), plant)
 
@@ -980,6 +993,62 @@ class StoreItemTests(unittest.TestCase):
         self.click(emu)
         self.assertEqual((emu.owned, emu.read32(emu.state + 0x217C)), (0, 50000))
 
+    def test_the_greenhouse_icon_is_an_opaque_shelf_item_inside_its_click_rect(self) -> None:
+        """The live bug (v1.0.17): the item was the game's 157 x 207 garden picture greenhouse1.png (sprite
+        0xC2) with a 0.29 that the game's draw does not apply, so a big, see-through greenhouse covered the
+        seed boxes and three shelves. Now the DLL's own draw puts a small, opaque greenhouse (frame 30 of
+        the mod's chemicals sheet, at scale 1) on the shelf line, inside its click rectangle."""
+        import numpy as np
+        from PIL import Image
+        emu = self.store(0, False)
+        draws = []
+        emu.hook(0x004208F0, lambda e: (draws.append(("sprite",) + tuple(e.arg(i) for i in range(7))), 0)[1], 0x1C)
+        emu.hook(0x004207F0, lambda e: (draws.append(("shadow",) + tuple(e.arg(i) for i in range(5))), 0)[1], 0x14)
+        emu.call(emu.sym("_on_draw"), emu.scene)
+        as_float = lambda bits: struct.unpack("<f", struct.pack("<I", bits))[0]
+        # The extra items are drawn each as its shadow then its picture; only the greenhouse is on.
+        # Automatic Sprinklers and the Auto-Healer (frames 32 and 34 of the same sheet) come after them.
+        at = [i for i, d in enumerate(draws) if d[0] == "sprite" and d[1] == 0xB3 and d[2] == 30]
+        self.assertEqual(len(at), 1)
+        (_s, *shadow), (_p, sheet, frame, x, y, scale, alpha, _flag) = draws[at[0] - 1:at[0] + 1]
+        self.assertEqual((_s, _p), ("shadow", "sprite"))
+        self.assertEqual((sheet, frame, x, y, as_float(scale), alpha), (0xB3, 30, 404, 50, 1.0, 100))
+        self.assertEqual([d[2] for d in draws[at[0] + 1:] if d[0] == "sprite" and d[1] == 0xB3], [32, 34])
+
+        art = ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png"
+        chems = np.asarray(Image.open(art).convert("RGBA"))
+        self.assertEqual(chems.shape[0], 18 * 70)                     # chem_rows = 18 in the DLL
+        cell = chems[(frame // 2) * 70:(frame // 2 + 1) * 70, (frame % 2) * 70:(frame % 2 + 1) * 70, 3]
+        ys, xs = np.nonzero(cell)
+        left, top, right, bottom = x + xs.min(), y + ys.min(), x + xs.max(), y + ys.max()   # inclusive, on screen
+        width, height = right - left + 1, bottom - top + 1
+        # The size of the shelf's items: at most a 57 x 61 shelf place, at least as tall as a seed box.
+        images = PLANT_EXE.parent / "Images"
+        tools = np.asarray(Image.open(images / "Tools_Grid.png").convert("RGBA"))[:, :, 3]
+        box_ys, box_xs = np.nonzero(tools[0:80, 320:400])            # the seed box on this shelf (frame 4)
+        self.assertLessEqual((width, height), (57, 61))
+        self.assertGreaterEqual(height, box_ys.max() - box_ys.min() + 1)
+        self.assertGreaterEqual(width, 30)
+        # On the shelf line, as the seed box drawn at (461, 50) beside it, and clear of that box's art.
+        self.assertLessEqual(abs(int(bottom) - (50 + int(box_ys.max()))), 1)
+        self.assertLess(right, 461 + box_xs.min())
+        # Inside its click and tooltip rectangle {404, 52, 461, 113}.
+        source = (ROOT / "native" / "ftfp_plant_upgrades" / "ftfp_plant_upgrades.c").read_text(encoding="utf-8")
+        self.assertIn('"FtfpExtraGreenhousesBuy", SHEET_CHEMICALS, GREENHOUSE_FRAME, 404, 50, 1.0f,\n'
+                      "      408, 80, 403, 72, { 404, 52, 461, 113 } }", source)
+        self.assertTrue(404 <= left and right < 461 and 52 <= top and bottom < 113, (left, top, right, bottom))
+        # Fully opaque: every pixel of the picture, nothing see-through.
+        self.assertTrue((cell[cell > 0] == 255).all())
+        # The shadow under its middle, within a few pixels.
+        peep = np.asarray(Image.open(images / "peep_shadow1.png").convert("RGBA"))[:, :, 3]
+        p_ys, p_xs = np.nonzero(peep)
+        self.assertEqual(shadow[0], 0xB0)
+        centre = shadow[1] + (p_xs.min() + p_xs.max()) / 2
+        self.assertLessEqual(abs(centre - (left + right) / 2), 3)
+        # A click on the picture is the item's.
+        emu.call(emu.sym("_on_click"), emu.scene, int((left + right) // 2), int((top + bottom) // 2))
+        self.assertIn("can't afford", [c[1] for c in emu.calls if c[0] == "MessageBoxW"][-1])
+
 
 @needs_game
 class InstallTests(unittest.TestCase):
@@ -1074,7 +1143,10 @@ class ExtraNurseryTests(unittest.TestCase):
         game.show(0, active=0)
         self.assertEqual({(g, k): game.pot_bytes(g, k) for g in range(EXTRA + 1) for k in range(POTS)}, records)
 
-    def test_the_arrows_page_through_the_bought_nurseries_as_the_game_opens_them(self) -> None:
+    def test_the_arrows_page_through_the_bought_nurseries_and_keep_the_customers(self) -> None:
+        """A switch changes only the plants on the stands: the nursery is neither closed nor opened again,
+        and the whole nursery scene and its visitor list (places, states, timers, the visitor limit, the
+        browsing count) are byte for byte as they were."""
         for nurseries, expected in ((0, [0, 0, 0]), (2, [1, 2, 0])):
             game = self.game(nurseries)
             emu = game.emu
@@ -1083,13 +1155,71 @@ class ExtraNurseryTests(unittest.TestCase):
             emu.hook(thunk, lambda e: opened.append(e.arg(0)) or 0, 4)
             emu.write32(emu.sym("_next_nu_activate"), thunk)
             emu.hook(0x00449F00, lambda e: e.alloc(0x10))
-            nursery = emu.alloc(0xB00)
+            nursery, visitors = emu.alloc(0xB00), emu.alloc(0x170000)
+            noise = random.Random(nurseries).randbytes(0xB00)
+            emu.uc.mem_write(nursery, noise)
+            emu.write32(nursery + 0xA3C, game.state)
+            emu.write32(nursery + 0xA4C, visitors)
+            emu.uc.mem_write(visitors, random.Random(5).randbytes(0x170000))
+            scene_before = bytes(emu.uc.mem_read(nursery, 0xB00))
+            visitors_before = bytes(emu.uc.mem_read(visitors, 0x170000))
             seen = []
             for _ in range(3):
                 emu.call(emu.sym("@nu_command@16"), 8, 41, ecx=nursery)
                 seen.append(emu.read32(emu.sym("_nursery_shown")))
+                self.assertEqual(bytes(emu.uc.mem_read(nursery, 0xB00)), scene_before)
+                self.assertEqual(bytes(emu.uc.mem_read(visitors, 0x170000)), visitors_before)
             self.assertEqual(seen, expected)
-            self.assertEqual(opened, [0, 1] * 3 if nurseries else [])           # closed, then opened: stock
+            self.assertEqual(opened, [])                                         # never closed or reopened
+            if nurseries:
+                self.assertEqual(emu.read32(emu.sym("_arranged")), 100)          # Nursery 1's plants again
+
+    def test_a_switch_with_a_sold_or_held_plant_is_safe(self) -> None:
+        """A plant sold in Nursery 1 stays sold on its stand when you come back (paid once), and a plant
+        held to rearrange the nursery is put back before the stands change."""
+        game = self.game(1)
+        emu = game.emu
+        limits = NurseryLimitTests()
+        for k in range(POTS):
+            limits.toggle(game, 1, k)
+        limits.toggle(game, 3, 2)                                               # Nursery 2
+        emu.hook(0x00449F00, lambda e: e.alloc(0x10))
+        nursery = emu.alloc(0xB00)
+        game.show(0, active=2)
+        sold = game.state + POTS_AT + 4 * POT                                   # a sale on stand 4: 0x435C70's marks
+        emu.write8(sold + 0x9E, 1)
+        emu.write8(sold + FOR_SALE, 0)
+        record = bytes(emu.uc.mem_read(sold, POT))
+        cash = emu.read32(game.state + 0x217C)
+        emu.write32(game.state + HELD, HELD_POT + 7)                            # a plant held in the nursery
+        emu.call(emu.sym("@nu_command@16"), 8, 41, ecx=nursery)
+        self.assertEqual(emu.read32(game.state + HELD), 0)
+        stands = [bytes(emu.uc.mem_read(game.state + POTS_AT + j * POT, POT)) for j in range(POTS)]
+        self.assertEqual(sum(r[FOR_SALE] for r in stands), 1)                   # Nursery 2's one plant
+        self.assertNotIn(record, stands)                                        # the sold one is not shown here
+        emu.call(emu.sym("@nu_command@16"), 8, 40, ecx=nursery)
+        self.assertEqual(bytes(emu.uc.mem_read(sold, POT)), record)             # back on its stand, still sold
+        self.assertEqual(emu.read32(game.state + 0x217C), cash)                 # nothing paid by switching
+
+    def test_closing_the_nursery_empties_every_nurserys_sold_pots(self) -> None:
+        game = self.game(1)
+        emu = game.emu
+        limits = NurseryLimitTests()
+        for k in range(POTS):
+            limits.toggle(game, 1, k)
+        limits.toggle(game, 3, 2)
+        for g, k in ((1, 4), (3, 2)):                                           # one sold in each nursery
+            at = game.pot(g, k)
+            emu.write8(at + 0x9E, 1)
+            emu.write8(at + FOR_SALE, 0)
+        nursery = emu.alloc(0xB00)
+        emu.write32(nursery + 0xA3C, game.state)
+        emu.write32(nursery + 0xA44, game.manager)
+        game.show(0, active=2)
+        emu.call(emu.sym("@nu_activate@12"), 0, ecx=nursery)                    # the stock close, then the others
+        for g, k in ((1, 4), (3, 2)):
+            self.assertEqual(emu.read32(game.pot(g, k) + FOLIAGE), 0, (g, k))
+        self.assertEqual(emu.read32(game.pot(1, 5) + FOLIAGE), 5)               # unsold plants stay
 
     def test_a_plant_in_the_second_nursery_sells_like_a_stock_one(self) -> None:
         game = self.game(1)
@@ -1269,6 +1399,46 @@ class BackupTests(unittest.TestCase):
         self.save_backup.restore_backup("plant", self.folder, backup, 2, self.processes())
         self.assertEqual((self.data / "Extra Greenhouses 2.dat").read_bytes(), b"greenhouses 2")
         self.assertEqual((self.data / "Extra Greenhouses 1.dat").read_bytes(), b"later 1")
+
+
+class ArrowLayoutTests(unittest.TestCase):
+    """The greenhouse arrows stand on the top wall beside the name, where the player can see and click them:
+    clear of the stock left panel (to x 240), the camera button (from x 760), the name at its widest
+    ("Greenhouse 6 of 6") and the greenhouse counts ("Counts: On" at 646-744 x 4-24, the Plants line from y 62)."""
+
+    @staticmethod
+    def rect(x: int, y: int, w: int, h: int) -> tuple[int, int, int, int]:
+        return x, y, x + w, y + h
+
+    @staticmethod
+    def apart(a, b) -> bool:
+        return a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1]
+
+    @unittest.skipUnless(PLANT_EXE.is_file(), "needs the vanilla Plant Tycoon.exe (its font)")
+    def test_the_arrows_are_beside_the_name_and_clear_of_the_stock_ui(self) -> None:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        try:
+            import render_extra_greenhouses_preview as R
+        except ImportError:
+            self.skipTest("needs Pillow")
+        folder = PLANT_EXE.parent
+        exe = PLANT_EXE.read_bytes()
+        widest = R.words(folder, exe, "Greenhouse 6 of 6")
+        x, y = constant("LABEL_X") - widest.width // 2, constant("LABEL_Y")
+        name = (x, y, x + widest.width, y + widest.height)
+        left = self.rect(constant("LEFT_X"), constant("ARROW_Y"), 50, 50)
+        right = self.rect(constant("RIGHT_X"), constant("ARROW_Y"), 50, 50)
+        free = (240, 0, 760, 62)                                        # the top wall, panel to camera, above the Plants line
+        for arrow in (left, right):
+            self.assertTrue(free[0] <= arrow[0] and arrow[2] <= free[2] and free[1] <= arrow[1] and arrow[3] <= free[3], arrow)
+            self.assertTrue(self.apart(arrow, name), arrow)
+            self.assertTrue(self.apart(arrow, (646, 4, 744, 24)), arrow)  # "Counts: On"
+        self.assertLess(left[2], name[0])
+        self.assertGreater(right[0], name[2])
+        self.assertLessEqual(name[0] - left[2], 12)                     # just beside the name
+        self.assertLessEqual(right[0] - name[2], 12)
+        middle = (name[1] + name[3]) / 2
+        self.assertLessEqual(abs((left[1] + left[3]) / 2 - middle), 2)  # centred on the text
 
 
 class ManifestTests(unittest.TestCase):

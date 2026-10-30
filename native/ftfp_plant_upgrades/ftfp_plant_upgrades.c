@@ -11,19 +11,24 @@
      * Radioactive Plant Formula (upper right, the chemicals): chemical 36,
        3 doses, $10000.  On a plant: full health, every dead branch alive
        again, the largest size, as many flowers as the plant can hold,
-       grown to full bloom, and a pollinated plant's full 5 seeds.
+       grown to full bloom, and always 5 seeds: all of them ripe at once on
+       a pollinated plant, all 5 at its next pollination on any other.
      * Revival Potion (beside it): chemical 37, 3 doses, $10000.  On a dead
-       plant: alive again at full health.
+       plant: alive again at full health, and for sale again if it was
+       when it died.  No chemical takes a plant off sale.
      * Revita-Seed (beside that): chemical 38, 3 doses, $2500.  On a plant
        that has given all its seeds: it can be pollinated again.
      * Radioactive Plant Formula Bomb (under the formula): chemical 39, 3
-       bombs, $30000.  The formula's full effect on every live plant of the
+       doses, $30000.  The formula's full effect on every live plant of the
        greenhouse on screen, the pots the stock Fertilizer Bomb reaches.
      * seeds bred from the new flowers (self-pollinated or crossed) get the
        Legendary seed art too.
      * the Fourth, Fifth and Sixth Seed Box (upper left, the seed-box column
        of the tool upgrades), when "Extra Seed Boxes.dll" is beside this DLL;
        that DLL holds the boxes, this one sells them through the stock dialog;
+     * Automatic Sprinklers and the Auto-Healer ($10,000 each, bought once):
+       every live potted plant in every greenhouse kept at the best water
+       level, and free of pests at full health (auto_upgrades.h);
      * with their settings ("<name>.ini" beside this DLL): the Time Warp
        clock and Add Money ($950 for +$1,000); with Free upgrades every item
        on this view costs $0 (the stock store keeps its prices).
@@ -259,9 +264,46 @@ static void flower_everything(char *plant) {
     while (n-- > 0) AT(table + n * DEF_STRIDE, 0xA8, int) = saved[n];
 }
 
+/* Seeds (the owner, 2026-10-31: a plant given the formula always gives 5 seeds, and an
+   already pollinated one gives all of them at once).  The game's seed state: pollination
+   (0x4240A0) sets +0x6C, +0x98 = the age then, +0x90 = 0 ripe and +0x94 = seeds counted as
+   taken already, Random(3) - +0x7C (5, 4 or 3 given), or 4 if infested (1 given); each plant
+   update ripens min(age - +0x98 - 2, 5) - +0x94 seeds into +0x90 (0x42E0C6); a pick moves one
+   from +0x90 to +0x94 (0x426208).  The old formula only gave back the held-back seeds of a
+   plant already pollinated, still to ripen over 7 age units, and did nothing for one
+   pollinated later: those got the stock 5, 4 or 3.  Now:
+     * already pollinated: the held-back seeds are given back (+0x94 = the seeds picked) and
+       all the rest are ripe now: +0x98 = age - 7, so the game's own ripening counts all 5 as
+       ripe at every update, and +0x90 = 5 - +0x94 at once;
+     * not pollinated yet: +0x7C = FORMULA_SEEDS, and the next pollination (on_pollinated)
+       gives all 5 (+0x94 = 0), infested or not.  Planting a new plant clears +0x7C
+       (stub_plant_seed), so the mark never passes to the pot's next plant.  The mark is in
+       the pot's record, so it moves with the pot wherever the game or an extra greenhouse
+       keeps it. */
+#define FORMULA_SEEDS 0x35534652            /* "RFS5": +0x7C of a formula plant not pollinated yet */
+#define RIPENING_UNITS 7                    /* 2 + 5: all 5 ripe (0x42E0DD-0x42E0E5) */
+
+/* The age in whole units, as the ripening takes it (0x42E0CF-0x42E0D2: the float age through
+   the CRT's _ftol, which truncates, as a C cast does). */
+static int age_units(char *pot) { return (int)AT(pot, 0x10, float); }
+
+static void formula_seeds(char *pot) {
+    if (AT(pot, 0x6C, unsigned char)) {
+        int held = AT(pot, POT_SEEDS_HELD_BACK, int) == FORMULA_SEEDS ? 0 : AT(pot, POT_SEEDS_HELD_BACK, int);
+        int taken = AT(pot, 0x94, int) - held;
+        if (taken < 0) taken = 0;
+        AT(pot, 0x94, int) = taken;
+        AT(pot, POT_SEEDS_HELD_BACK, int) = 0;
+        AT(pot, 0x98, int) = age_units(pot) - RIPENING_UNITS;
+        AT(pot, 0x90, int) = taken < 5 ? 5 - taken : 0;
+    } else {
+        AT(pot, POT_SEEDS_HELD_BACK, int) = FORMULA_SEEDS;
+    }
+}
+
 /* Full health, every branch alive (dead ones, and the ones the plant's shape
    hides), largest size, a flower on every spot of every branch, grown to full
-   bloom.  The dose is already used (stock order). */
+   bloom, and 5 seeds (formula_seeds).  The dose is already used (stock order). */
 static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plant) {
     char *state = AT(greenhouse, 0x68, char *);
     char *pot = state + 0x2188 + (row * 5 + col) * 0x5600;
@@ -274,17 +316,16 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
         if (*type == 2 || *type == 4) *type = 1;          /* hidden or dead: alive (cut ones stay cut) */
     }
     AT(pot, 0x80, int) = 110;
-    AT(pot, 0x9C, int) = 1;                              /* skip the age-7 roll that kills branches */
+    /* Skip the age-7 roll that kills branches: the byte the game itself sets once it has rolled
+       (0x42E482).  A byte, never an int: the next bytes are the on-sale flag (+0x9D) and the sold
+       flag (+0x9E), and a 4-byte write here took plants off sale. */
+    AT(pot, 0x9C, unsigned char) = 1;
     if (plant != NULL && AT(plant, 4, void *) != NULL) {
         flower_everything(plant);
         AT(pot, 0x8C, int) = 100;
     }
     if (AT(pot, 0x10, float) < 28.0f && AT(pot, 0x14, float) < 28.0f) AT(pot, 0x14, float) = 28.0f;
-    if (AT(pot, 0x6C, unsigned char)) {                  /* pollinated: all 5 seeds */
-        int used = AT(pot, 0x94, int) - AT(pot, POT_SEEDS_HELD_BACK, int);
-        AT(pot, 0x94, int) = used < 0 ? 0 : used;
-        AT(pot, POT_SEEDS_HELD_BACK, int) = 0;
-    }
+    formula_seeds(pot);
 }
 
 /* -------------------------------------------------------- Revival Potion */
@@ -305,10 +346,25 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
    game's clock 0x403430, as a planting sets it, 0x42FCAA), so the next update
    does not play the time it lay dead as time away; its value through the
    game's own value rule (0x42DD80, what every flowering ends with) and its
-   price through the planting rule (0x42FD11-0x42FD9E).  Kept as the death left
-   them, as the game's own healing would: parts that were dead before it died
-   stay dead (only health 0 drew the rest brown), the seeds it lost, and the
-   on-sale flag (put it on sale again).  On a live plant it does nothing. */
+   price through the planting rule (0x42FD11-0x42FD9E): the death set the price
+   to 0, and the planting rule is the only other code that sets a plant's price
+   (the player never sets one).  Kept as the death left them, as the game's own
+   healing would: parts that were dead before it died stay dead (only health 0
+   drew the rest brown) and the seeds it lost.  On a live plant it does nothing.
+
+   The on-sale flag comes back (the owner, 2026-10-30): a plant that was for
+   sale when it died is for sale again.  The update's clear (0x42DF91, the
+   dead_untag site) first marks the pot SALE_KEPT at +0x9F, a byte no code of
+   the game reads or writes (the flags +0x9C/+0x9D/+0x9E are bytes; +0x9F is
+   the padding before +0xA0).  The mark is in the pot's record, so it goes
+   wherever the record goes: the save, and Extra Greenhouses' Greenhouses 2-6
+   and nurseries, which move whole records.  A planting clears it
+   (stub_plant_seed).  The dose puts the flag back when the plant can be sold
+   (the stock toggle's test, 0x427C7D-0x427CC8: planted, a foliage, old enough,
+   alive) and the nurseries have room: with Extra Greenhouses, at most 15 plants
+   for sale per nursery owned over every greenhouse, the limit its Sell button
+   keeps; then it says so and the plant stays off sale.  The stock game's 15
+   pots always fit its 15 nursery spots. */
 #define POT_HEALTH 0x24
 #define POT_DIED 0x3C
 #define POT_PRICE 0x44
@@ -338,6 +394,45 @@ static void price_as_planted(const char *state, char *pot) {
     AT(pot, POT_PRICE, int) = AT(state, S_PRICE_BONUS, unsigned char) ? value + 3 * (value / 4) : base;
 }
 
+#define POT_PLANTED 0x38
+#define POT_FOLIAGE 0x4C
+#define POT_AGE 0x10
+#define POT_FOR_SALE 0x9D
+#define POT_SALE_KEPT 0x9F
+#define SALE_KEPT 0x53                      /* 'S': the plant was for sale when it died */
+#define MATURE_AGE (*(const float *)0x004677E8u)     /* 24.0: the Sell button's "old enough" */
+#define NURSERY_SPOTS 15
+
+/* Room in the nurseries for one more plant for sale ("Extra Greenhouses.dll": its count over
+   all six greenhouses, against 15 spots per nursery owned).  Without it, always. */
+static int nursery_room(int *limit) {
+    typedef int (__cdecl *count_fn)(void);
+    HMODULE extra = GetModuleHandleW(L"Extra Greenhouses.dll");
+    count_fn for_sale = extra ? (count_fn)GetProcAddress(extra, "FtfpExtraGreenhousesForSale") : NULL;
+    count_fn nurseries = extra ? (count_fn)GetProcAddress(extra, "FtfpExtraNurseriesOwned") : NULL;
+    int owned = nurseries != NULL ? nurseries() : 0;
+    *limit = NURSERY_SPOTS * ((owned > 0 ? owned : 0) + 1);
+    return for_sale == NULL || for_sale() < *limit;
+}
+
+static void restore_sale(char *pot) {
+    wchar_t text[256];
+    int limit;
+    if (AT(pot, POT_SALE_KEPT, unsigned char) != SALE_KEPT) return;
+    AT(pot, POT_SALE_KEPT, unsigned char) = 0;
+    if (!AT(pot, POT_PLANTED, unsigned char) || AT(pot, POT_FOLIAGE, int) == 0
+        || !(AT(pot, POT_AGE, float) >= MATURE_AGE) || AT(pot, POT_HEALTH, int) <= 0) return;
+    if (nursery_room(&limit)) {
+        AT(pot, POT_FOR_SALE, unsigned char) = 1;
+        return;
+    }
+    swprintf_s(text, 256, L"This plant was for sale when it died, but your %s full: only %d plants can be "
+               L"for sale at once, counting every greenhouse.\n\nIt is alive again, not for sale. Make room "
+               L"in the nursery, then put it on sale again.", limit > NURSERY_SPOTS ? L"nurseries are"
+               : L"nursery is", limit);
+    tw_tell_as(L"Revival Potion", text);
+}
+
 static void apply_revival(char *greenhouse, int col, int row, char *plant) {
     char *state = AT(greenhouse, 0x68, char *);
     char *pot = pot_at(greenhouse, col, row);
@@ -347,6 +442,7 @@ static void apply_revival(char *greenhouse, int col, int row, char *plant) {
     AT(pot, POT_CLOCK, unsigned int) = game_clock();
     if (plant != NULL && AT(plant, 8, char *) == pot) plant_value(plant, 0);
     price_as_planted(state, pot);
+    restore_sale(pot);
 }
 
 /* ------------------------------------------------------------ Revita-Seed */
@@ -427,7 +523,8 @@ static void __cdecl apply_chemical(char *greenhouse, int col, int row, char *pla
      them back.  The stock count subtracted +0x7C, so it is added back first. */
 static void __cdecl on_pollinated(char *pot) {
     int held_back = AT(pot, 0x94, int);
-    if (held_back != 4) held_back += AT(pot, POT_SEEDS_HELD_BACK, int);
+    if (AT(pot, POT_SEEDS_HELD_BACK, int) == FORMULA_SEEDS) held_back = 0;     /* given the formula: all 5 */
+    else if (held_back != 4) held_back += AT(pot, POT_SEEDS_HELD_BACK, int);
     AT(pot, 0x94, int) = held_back;
     AT(pot, POT_SEEDS_HELD_BACK, int) = held_back;
     if (AT(pot, 0x68, int) >= FIRST_NEW_FLOWER && AT(pot, 0x64, int) >= 1 && AT(pot, 0x64, int) <= FOLIAGES) {
@@ -466,7 +563,7 @@ static const char LEGENDARY_DESC[] =
     "These ultra-rare seeds were only recently\nrediscovered on Isola and require the\nbest of care to survive.";
 static const char FORMULA_TITLE[] = "Radioactive Plant Formula\n";
 static const char FORMULA_DESC[] =
-    "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves!\nContains 3 doses.\n";
+    "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves! Always 5 seeds!\nContains 3 doses.\n";
 static const char FORMULA_NAME[] = "Radioactive Plant Formula";
 /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped as the formula's. */
 static const char REVIVAL_TITLE[] = "Revival Potion\n";
@@ -479,7 +576,7 @@ static const char REVITA_DESC[] =
 static const char REVITA_NAME[] = "Revita-Seed";
 static const char BOMB_TITLE[] = "Radioactive Plant Formula Bomb\n";
 static const char BOMB_DESC[] =
-    "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nContains 3 bombs.\n";
+    "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nContains 3 doses.\n";
 static const char BOMB_NAME[] = "Radioactive Plant Formula Bomb";
 static const char BOX_TITLE_4[] = "Fourth Seed Box";
 static const char BOX_TITLE_5[] = "Fifth Seed Box";
@@ -646,9 +743,16 @@ static void add_money(char *scene) {
    bought in order like the Fourth-Sixth Seed Box, $10,000 each ($0 with Free
    upgrades), through the same Yes / No as Add Money, with the stock tick once
    all five are owned.  The greenhouse stands on the tool shelf beside the seed
-   boxes, drawn with the game's own greenhouse picture (greenhouse1.png, sprite
-   0xC2); the nursery on the Nursery shelf beside Add Money, drawn with the
-   game's own golden pot (goldpot.png, sprite 0x2C, the nursery's display).
+   boxes: a small, opaque greenhouse the size of the shelf's tools (row 15,
+   frame 30, of this mod's chemicals sheet, made from the game's greenhouse2.png
+   by scripts/build_plant_upgrades_assets.py), drawn at scale 1.  It used to be
+   the game's greenhouse1.png (sprite 0xC2), a 157 x 207 garden picture with
+   soft, see-through edges: the 0.29 passed here does not shrink it, so it
+   came out full size across three shelves.  The game's sprite table has one
+   spare record, which the Upgrades link uses, so the icon shares this mod's
+   chemicals sheet as the Time Warp clock and Add Money's coins do.  The
+   nursery stands on the Nursery shelf beside Add Money, drawn with the game's
+   own golden pot (goldpot.png, sprite 0x2C, the nursery's display).
    An item shows only while its setting is on (its Owned export says -1 when
    it is off). */
 #define EXTRA_PRICE 10000
@@ -660,20 +764,27 @@ typedef struct extra_item {
     const char *title;
     const wchar_t *caption, *all_owned, *too_poor, *confirm;
     const char *owned_export, *buy_export;
-    int sprite, x, y;
+    int sprite, frame, x, y;               /* the picture's top left */
     float scale;
+    int shadow_x, shadow_y, tick_x, tick_y;
     RECT rect;
 } extra_item;
 
+#define GREENHOUSE_FRAME 30                 /* row 15 of the chemicals sheet: rows 13 and 14 are Time Warp and Add Money */
+
 static const extra_item EXTRA_ITEM[EXTRA_ITEMS] = {
+    /* The picture's visible part is x 414..451, y 58..111 (its 70 x 70 cell at 404, 50): on the shelf line
+       as the seed boxes beside it (x 468 on), inside the click rectangle.  Shadow and tick under its middle. */
     { "Extra Greenhouse", L"Extra Greenhouse", L"You already have all five extra greenhouses!",
       L"You can't afford to buy this yet! An extra greenhouse costs $10,000.",
       L"Buy Greenhouse %d for $%d?\n\nIt has 15 empty pots. The arrows on the greenhouse screen lead to it.",
-      "FtfpExtraGreenhousesOwned", "FtfpExtraGreenhousesBuy", 0xC2, 404, 50, 0.29f, { 404, 52, 461, 113 } },
+      "FtfpExtraGreenhousesOwned", "FtfpExtraGreenhousesBuy", SHEET_CHEMICALS, GREENHOUSE_FRAME, 404, 50, 1.0f,
+      408, 80, 403, 72, { 404, 52, 461, 113 } },
     { "Extra Nursery", L"Extra Nursery", L"You already have all five extra nurseries!",
       L"You can't afford to buy this yet! An extra nursery costs $10,000.",
       L"Buy Nursery %d for $%d?\n\nIt holds 15 more plants for sale. The arrows on the nursery screen lead to it.",
-      "FtfpExtraNurseriesOwned", "FtfpExtraNurseriesBuy", 0x2C, 440, 296, 0.84f, { 440, 296, 504, 360 } },
+      "FtfpExtraNurseriesOwned", "FtfpExtraNurseriesBuy", 0x2C, 0, 440 + 6, 296, 0.84f,
+      440 + 0x19, 296 + 0x1E, 440 + 19, 296 + 22, { 440, 296, 504, 360 } },
 };
 static extra_fn extra_owned[EXTRA_ITEMS], extra_buy[EXTRA_ITEMS];
 static char *extra_tip[EXTRA_ITEMS];
@@ -726,6 +837,8 @@ static void load_extras(void) {
     }
 }
 
+#include "auto_upgrades.h"            /* Automatic Sprinklers and the Auto-Healer */
+
 static void box_tip_text(int box) {
     if (boxes != NULL && boxes->owned(box)) sprintf_s(tip_text[TIP_BOXES + box], 64, "%s", BOX_TITLES[box]);
     else sprintf_s(tip_text[TIP_BOXES + box], 64, "%s\nPrice: $ %i", BOX_TITLES[box], price(BOX_PRICE));
@@ -754,6 +867,7 @@ static void set_tooltips(char *scene) {
         tooltip_text(extra_tip[i], 0, extra_tip_text[i], TOOLTIP_COLOUR, 0, 0);
         AT(extra_tip[i], 8, unsigned char) = (unsigned char)upgrades_view;
     }
+    auto_set_tips(upgrades_view);
 }
 
 static char *make_tooltip(char *scene, int id, const RECT *r, const char *text) {
@@ -795,6 +909,7 @@ static void make_tooltips(char *scene) {
         extra_tip_set(i);
         extra_tip[i] = make_tooltip(scene, 56 + TIPS + i, &EXTRA_ITEM[i].rect, extra_tip_text[i]);
     }
+    auto_make_tips(scene);
 }
 
 static void switch_view(char *scene, int on) {
@@ -849,10 +964,11 @@ static int __cdecl on_draw(char *scene) {
     for (i = 0; i < EXTRA_ITEMS; ++i) {
         const extra_item *it = &EXTRA_ITEM[i];
         if (!extra_on(i)) continue;
-        draw_shadow(mgr, 0, SHEET_SHADOW, it->x + 0x19, it->y + 0x1E, 1.0f, 100);
-        draw_sprite(mgr, 0, it->sprite, 0, it->x + 6, it->y, it->scale, 100, 1);
-        if (extra_owned[i]() >= EXTRA_COUNT) draw_shadow(mgr, 0, SHEET_TICK, it->x + 19, it->y + 22, 1.0f, 100);
+        draw_shadow(mgr, 0, SHEET_SHADOW, it->shadow_x, it->shadow_y, 1.0f, 100);
+        draw_sprite(mgr, 0, it->sprite, it->frame, it->x, it->y, it->scale, 100, 1);
+        if (extra_owned[i]() >= EXTRA_COUNT) draw_shadow(mgr, 0, SHEET_TICK, it->tick_x, it->tick_y, 1.0f, 100);
     }
+    auto_draw(mgr);
     return 1;
 }
 
@@ -922,6 +1038,7 @@ static int __cdecl on_click(char *scene, int x, int y) {
     for (i = 0; i < EXTRA_ITEMS; ++i) {
         if (extra_on(i) && inside(&EXTRA_ITEM[i].rect, x, y)) buy_extra(scene, i);
     }
+    auto_click(scene, x, y);
     return 1;
 }
 
@@ -972,6 +1089,7 @@ static void __cdecl on_save(char *state, int slot) {
     HANDLE file;
     DWORD header[3], written;
     if (boxes != NULL) boxes->save(state, slot);
+    if (slot > 0) auto_save(slot);
     if (slot <= 0 || !sidecar_path(slot, path, 1024, 1)) return;
     wcscpy_s(temp, 1100, path);
     wcscat_s(temp, 1100, L".tmp");
@@ -1010,6 +1128,7 @@ static void __cdecl on_load(const char *state, int slot) {
     int ok = 0;
     seed_record body[LEGENDARY_COUNT];
     if (slot <= 0) return;
+    auto_load(slot);
     if (sidecar_path(slot, path, 1024, 0)) {
         file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (file != INVALID_HANDLE_VALUE) {
@@ -1033,11 +1152,67 @@ static void __cdecl on_load(const char *state, int slot) {
 static void __cdecl on_delete(int slot) {
     wchar_t path[1024];
     if (slot > 0 && sidecar_path(slot, path, 1024, 0)) DeleteFileW(path);
+    if (slot > 0) auto_delete(slot);
     if (boxes != NULL) boxes->remove(slot);
 }
 
 static void __cdecl on_new_game(void) {
+    auto_new_game();
     if (boxes != NULL) boxes->new_game();
+}
+
+/* -------------------------------------------------- the new chemicals in the trash */
+
+/* The stock greenhouse trash (0x424680) takes seeds (sold for their value,
+   no question, the trash bin's sound 0x23) and plants ("Delete this
+   plant?"), never a chemical: a chemical let go there stays on the cursor.
+   The four chemicals of the Upgrades view (36-39) held there are thrown away
+   instead, the way the trash takes a seed packet: the bottle leaves the tray
+   as the stock tray empties a used-up one (0x416500: the record's present
+   byte 0), with every dose it still held; nothing is held any more (state
+   +0x56C = 0, scene +0x105 = 0, as 0x424777); the trash bin's sound plays.
+   The hit area is the stock trash's (0x4246DE, the game's own 0x435FF0).
+   Only a held chemical-tray bottle of 36-39 is ever thrown away: the tools
+   (held 1-4, which the stock trash never takes: 0x425FCC, 0x427317), pollen,
+   the stock chemicals, seeds and plants go on to the stock code as before.
+   A held item is state +0x56C: 5-8 = chemical-tray slot 0-3, whose record
+   is state + 0x53F84 + slot * 0xC: present (byte), chemical id, doses. */
+#define HELD_ITEM 0x56C
+#define CHEM_TRAY 0x53F84
+#define CHEM_TRAY_STRIDE 0xC
+#define FIRST_TRAY_HELD 5
+#define LAST_TRAY_HELD 8
+#define TRASH_LEFT 0xAE
+#define TRASH_TOP 0x20D
+#define TRASH_W 0x38
+#define TRASH_H 0x4B
+#define SOUND_TRASH_BIN 0x23                 /* close_trash_bin.ogg (the sound table at 0x4495D1) */
+#define GH_STATE(scene) AT(scene, 0x68, char *)
+#define GH_SOUND(scene) AT(scene, 0x74, void *)
+#define GH_DRAGGING(scene) AT(scene, 0x105, unsigned char)
+
+typedef int (__fastcall *hit_fn)(void *scene, int edx, int x, int y, int left, int top, int w, int h);
+static const hit_fn hit_rect = (hit_fn)0x00435FF0u;
+
+static int is_new_chemical(int id) {
+    return id == FORMULA_ID || id == REVIVAL_ID || id == REVITA_ID || id == BOMB_ID;
+}
+
+/* 1 = a new chemical was held and is thrown away. */
+static int __cdecl chem_trash(char *scene, int x, int y) {
+    char *state = GH_STATE(scene), *bottle;
+    int held;
+    if (state == NULL) return 0;
+    held = AT(state, HELD_ITEM, int);
+    if (held < FIRST_TRAY_HELD || held > LAST_TRAY_HELD) return 0;
+    bottle = state + CHEM_TRAY + (held - FIRST_TRAY_HELD) * CHEM_TRAY_STRIDE;
+    if (bottle[0] == 0 || !is_new_chemical(AT(bottle, 4, int))) return 0;
+    if ((hit_rect(scene, 0, x, y, TRASH_LEFT, TRASH_TOP, TRASH_W, TRASH_H) & 0xFF) == 0) return 0;
+    bottle[0] = 0;
+    AT(state, HELD_ITEM, int) = 0;
+    GH_DRAGGING(scene) = 0;
+    if (GH_SOUND(scene) != NULL) play_sound(GH_SOUND(scene), 0, SOUND_TRASH_BIN);
+    return 1;
 }
 
 /* ------------------------------------------------------------------- stubs */
@@ -1065,6 +1240,8 @@ static const DWORD k_click_back = SITE_STORE_CLICK_BACK;
 static const DWORD k_click_done = 0x00448583u;         /* the mouse handler's exit */
 static const DWORD k_hover_back = SITE_STORE_HOVER_BACK;
 static const DWORD k_joint_free_back = SITE_JOINT_FREE_BACK;
+static const DWORD k_plant_seed_back = SITE_PLANT_SEED_BACK;
+static const DWORD k_dead_untag_back = SITE_DEAD_UNTAG_BACK;
 static const DWORD k_sprite_draw = 0x004208F0u;
 static const float k_one = 1.0f;
 
@@ -1497,6 +1674,30 @@ __declspec(naked) static void stub_joint_free(void) {
     }
 }
 
+/* 0x42FCDD planting (esi = the pot): the stock writes, then +0x7C = 0 for the new plant. */
+__declspec(naked) static void stub_plant_seed(void) {
+    __asm {
+        mov dword ptr [esi + 0x78], edx
+        mov byte ptr [esi + 0x6C], 0
+        mov dword ptr [esi + POT_SEEDS_HELD_BACK], 0
+        mov byte ptr [esi + POT_SALE_KEPT], 0
+        jmp k_plant_seed_back
+    }
+}
+
+/* 0x42DF91 the plant update, health <= 0 (eax = the pot): the stock clear of the on-sale flag,
+   first marking the pot when the flag was set (restore_sale).  No flags are live here. */
+__declspec(naked) static void stub_dead_untag(void) {
+    __asm {
+        cmp byte ptr [eax + POT_FOR_SALE], 0
+        je clear
+        mov byte ptr [eax + POT_SALE_KEPT], SALE_KEPT
+    clear:
+        mov byte ptr [eax + POT_FOR_SALE], 0
+        jmp k_dead_untag_back
+    }
+}
+
 /* 0x447DA2 store draw, before the item grids: esi = store. */
 __declspec(naked) static void stub_draw(void) {
     __asm {
@@ -1551,6 +1752,57 @@ __declspec(naked) static void stub_hover(void) {
     }
 }
 
+/* 0x425FF2, `call 0x424680` (thiscall greenhouse; x, y; ret 8, al = handled),
+   the mouse-up off the pots: a new chemical in the trash is thrown away and
+   the stock "handled" (al = 1) returned, else the stock trash runs. */
+static const DWORD k_trash = 0x00424680u;
+
+__declspec(naked) static void stub_trash_drop(void) {
+    __asm {
+        push ecx
+        push dword ptr [esp + 0x0C]
+        push dword ptr [esp + 0x0C]
+        push ecx
+        call chem_trash
+        add esp, 12
+        pop ecx
+        test eax, eax
+        jz stock
+        mov al, 1
+        ret 8
+    stock:
+        jmp dword ptr [k_trash]
+    }
+}
+
+/* 0x4272DC in the press (0x426040), the press off the pots: esi = greenhouse,
+   ebx = x, ebp = y.  Stock goes on to the selected plant's trash ("Delete this
+   plant?", then the pot emptied, 0x42733B) or the put-back (0x427362).  A new
+   chemical held on the trash is thrown away instead and the press ends
+   through its own exit (0x42739C: al = 1), no plant asked about or emptied. */
+static const DWORD k_press_back = SITE_TRASH_PRESS_BACK;
+static const DWORD k_press_done = 0x0042739Cu;
+
+__declspec(naked) static void stub_trash_press(void) {
+    __asm {
+        pushad
+        push ebp
+        push ebx
+        push esi
+        call chem_trash
+        add esp, 12
+        mov [esp + 28], eax
+        popad
+        test eax, eax
+        jnz handled
+        mov ecx, [esi + 0x68]
+        mov eax, [ecx + 0x63E58]
+        jmp dword ptr [k_press_back]
+    handled:
+        jmp dword ptr [k_press_done]
+    }
+}
+
 /* ----------------------------------------------------------------- install */
 
 static const char SEED_SHEET_FILE[] = "seed_grid_legendary.png";
@@ -1558,13 +1810,14 @@ static const char CHEM_SHEET_FILE[] = "Chemicals_Grid_upgrades.png";
 static const char LINK_FILE[] = "upgrades_link.png";
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 19
+#define CODE_SITES 25
 #define DATA_SITES 6
 #define TOTAL_SITES (CODE_SITES + DATA_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 
 #define JMP(W, NAME, TO) ftfp_site_branch((W), SITE_##NAME##_VA, SITE_##NAME##_LEN, SITE_##NAME##_EXPECT, 0xE9, CODE_ADDR(TO))
+#define CALL(W, NAME, TO) ftfp_site_branch((W), SITE_##NAME##_VA, SITE_##NAME##_LEN, SITE_##NAME##_EXPECT, 0xE8, CODE_ADDR(TO))
 
 static void site_data(ftfp_site_write *w, unsigned int va, int length, const unsigned char *expect,
                       const void *bytes, int count) {
@@ -1578,7 +1831,9 @@ static void site_data(ftfp_site_write *w, unsigned int va, int length, const uns
 static int prepare(void) {
     ftfp_site_write *w = writes;
     DWORD seed_file = (DWORD)(UINT_PTR)SEED_SHEET_FILE, chem_file = (DWORD)(UINT_PTR)CHEM_SHEET_FILE;
-    DWORD seed_rows = 8, chem_rows = 15;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money */
+    DWORD seed_rows = 8, chem_rows = 18;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money,
+                                                      15: the Extra Greenhouse, 16: Automatic Sprinklers,
+                                                      17: Auto-Healer */
     DWORD link[6];
     unsigned char bound = SITE_CHEM_PICTURE_BOUND_NEW;
     link[0] = LINK_SPRITE;
@@ -1606,6 +1861,12 @@ static int prepare(void) {
     JMP(w++, STORE_CLICK, stub_click);
     JMP(w++, STORE_HOVER, stub_hover);
     JMP(w++, JOINT_FREE, stub_joint_free);
+    JMP(w++, PLANT_SEED, stub_plant_seed);
+    CALL(w++, TRASH_DROP, stub_trash_drop);
+    JMP(w++, TRASH_PRESS, stub_trash_press);
+    JMP(w++, UNIT_TOP, stub_unit_top);
+    JMP(w++, UNITS_DONE, stub_units_done);
+    JMP(w++, DEAD_UNTAG, stub_dead_untag);
     site_data(w++, SITE_CHEM_PICTURE_BOUND_VA, SITE_CHEM_PICTURE_BOUND_LEN, SITE_CHEM_PICTURE_BOUND_EXPECT, NULL, 0);
     writes[CODE_SITES].bytes[SITE_CHEM_PICTURE_BOUND_IMM_AT] = bound;
     site_data(w++, SITE_SEED_SHEET_FILE_VA, SITE_SEED_SHEET_FILE_LEN, SITE_SEED_SHEET_FILE_EXPECT, &seed_file, 4);

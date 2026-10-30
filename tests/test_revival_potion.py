@@ -4,7 +4,7 @@ Fish Tycoon (DS Store Items, the Upgrades page): the Revival Potion (item 30, $1
 and ClonaFish (item 31, $2,500, 3 doses), supply-slot chemicals used like the stock Growth
 Hormone. Plant Tycoon (Store Upgrades and Items, the Upgrades view): the Revival Potion
 (chemical 37, $10,000, 3 doses), Revita-Seed (38, $2,500, 3 doses) and the Formula Bomb
-(39, $30,000, 3 bombs). The owner's spec is docs/revival-potion-spec.md.
+(39, $30,000, 3 doses). The owner's spec is docs/revival-potion-spec.md.
 
 The emulation tests run each DLL's own code and the vanilla executables' code (the Fish
 use handler 0x420B70, AddFish 0x419C50) in Unicorn (tests/store_emulator.py).
@@ -82,7 +82,8 @@ class ArtAndManifestTests(unittest.TestCase):
         for text in ("Revival Potion", "Revita-Seed", "$2,500", "Radioactive Plant Formula Bomb", "$30,000",
                      "every live plant in the greenhouse"):
             self.assertIn(text, upgrades["description"])
-        self.assertEqual(png_size(PLANT_SHEET), (140, 15 * 70))     # rows 10-12 new; 13 Time Warp, 14 Add Money
+        self.assertEqual(png_size(PLANT_SHEET), (140, 18 * 70))     # rows 10-12 new; 13 Time Warp, 14 Add Money,
+                                                                     # 15 the Extra Greenhouse, 16-17 the Auto items
         free = combined.patch_settings("plant")["free_upgrades"]["description"]
         for text in ("the Revival Potion ($10,000)", "Revita-Seed ($2,500)", "the Formula Bomb ($30,000)"):
             self.assertIn(text, free)

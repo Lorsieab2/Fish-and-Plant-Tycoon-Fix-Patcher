@@ -39,7 +39,7 @@ FOLDER = ds_fish_loader.PLANT.patcher_files_folder
 SETTING = {
     "id": SETTING_ID,
     "name": "Add new store upgrades and items",
-    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula and its Bomb, the Revival Potion, Revita-Seed, and the Fourth, Fifth and Sixth Seed Box. Needs Add unused flowers.",
+    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula and its Bomb, the Revival Potion, Revita-Seed, Automatic Sprinklers, the Auto-Healer, and the Fourth, Fifth and Sixth Seed Box. Needs Add unused flowers.",
     "description": (
         "Adds an Upgrades link on the bricks at the left of the Supplies store. It opens a second "
         "view of the store with only the new items, each where it would sit in the store: "
@@ -47,12 +47,21 @@ SETTING = {
         "unused flowers; the stock seed packets keep their stock flowers), the Radioactive Plant "
         "Formula with the chemicals ($10,000, 3 doses, far beyond spamming Fertilizer Bombs and Plant "
         "Food: every branch grows, the largest size, full bloom, a flower on every spot of every "
-        "branch and leaf, no dead or brown leaves, full health, and 5 seeds when pollinated), the Revival "
+        "branch and leaf, no dead or brown leaves, full health, and always 5 seeds: all 5 when it is "
+        "pollinated later, or, if it is already pollinated, all its seeds ripe at once), the Revival "
         "Potion beside it ($10,000, 3 doses: a dead plant it is dropped on comes back to life at full "
-        "health), Revita-Seed beside that ($2,500, 3 doses: a plant that has given all its seeds can "
+        "health, and for sale again if it was for sale when it died), Revita-Seed beside that ($2,500, 3 doses: a plant that has given all its seeds can "
         "be pollinated again, as a fresh plant can), the Radioactive Plant Formula Bomb under the "
-        "formula ($30,000, 3 bombs: one Radioactive Plant Formula dose for every live plant in the "
-        "greenhouse on screen, the pots the Fertilizer Bomb reaches), and the Fourth, Fifth "
+        "formula ($30,000, 3 doses: one Radioactive Plant Formula dose for every live plant in the "
+        "greenhouse on screen, the pots the Fertilizer Bomb reaches), Automatic Sprinklers ($10,000) "
+        "on the tool shelf under the Extra Greenhouse and the Auto-Healer ($10,000) beside the Formula "
+        "Bomb (each bought once; they work on every live potted plant in every greenhouse, on screen or "
+        "not, through time away and the Time Warp too: the sprinklers keep the water at 500, never too "
+        "dry and never so wet that pests come three times as often; the Auto-Healer clears pests, each "
+        "counted under Plants Cured, and keeps health at 100; neither touches a dead plant, and old age "
+        "still ends a plant's life; unpurchase: click an owned one and answer Yes, it switches off at "
+        "once with no refund, and buying it again costs the full price; ownership is kept in \"Auto "
+        "Upgrades <slot>.dat\"), and the Fourth, Fifth "
         "and Sixth Seed Box with the tool upgrades (\"Even more space for your seeds!\", $1000 each, "
         "bought in order like the stock boxes). Each new box opens a 40-seed drawer in a second "
         "chest on the Seed Storage screen; the gold arrows on its title bar switch between boxes "

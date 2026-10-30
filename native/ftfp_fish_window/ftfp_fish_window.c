@@ -10,12 +10,16 @@
    unless the surface is SDL_RESIZABLE.  Once a frame is drawn the game calls
    SDL_Flip (thunk 0x42A62A, jmp [0x4401C8]) from 0x408736, and SDL copies
    the picture 1:1 into the window.  Mouse input reaches the game only
-   through SDL (SDL_PollEvent, SDL_GetMouseState), which reads the window
-   messages' client coordinates.
+   through SDL (SDL_PollEvent, SDL_GetMouseState), in two ways: the buttons
+   from the window messages' client coordinates, and the pointer's position
+   from SDL's own GetCursorPos + ScreenToClient after every batch of
+   messages.  The game hides the Windows pointer and draws its own cursor
+   at that position (0x408650).
 
-   WHAT THIS DOES.  FtfpStartup() checks both thunks hold their stock bytes
-   and both import slots hold SDL.dll's own functions, then points the two
-   slots here -- both or neither.  In windowed mode:
+   WHAT THIS DOES.  FtfpStartup() checks both thunks hold their stock bytes,
+   both import slots hold SDL.dll's own functions and SDL.dll's import slot
+   for ScreenToClient holds USER32's, then points the three slots here --
+   all or none.  In windowed mode:
      * after SDL_SetVideoMode the window gets WS_MAXIMIZEBOX and WS_THICKFRAME
        and is sized so its client area is exactly the game's picture again;
      * when the client area is the picture's size, everything goes to SDL
@@ -24,8 +28,9 @@
        its aspect ratio kept (GDI HALFTONE, a smoothing filter; the game
        itself never scales; nearest pixel instead at a size where smoothing
        would slow the game), black bars where it does not fit, and mouse
-       messages are mapped back to the picture's coordinates before SDL sees
-       them.
+       messages and SDL's own pointer reads are both mapped back to the
+       picture's coordinates before SDL sees them, so the game's cursor is
+       drawn where the click lands.
    Fullscreen is left entirely to SDL.  Sizes are the window's own client
    rectangle in the units the window procedure sees, so Windows display
    scaling needs no special case.  Nothing is saved anywhere. */
@@ -259,6 +264,61 @@ static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LP
     return CallWindowProcA(sdl_window_proc, window, message, wparam, lparam);
 }
 
+/* SDL's own ScreenToClient (its import slot in SDL.dll).  Besides the mouse
+   messages, SDL reads the pointer itself: after every batch of messages its
+   event pump (DIB_PumpEvents, SDL.dll 0x6812F6C0) calls GetCursorPos and
+   ScreenToClient(game window) and moves its mouse there, and so do its
+   regain-focus and DirectX paths (0x6812D9A0, 0x68132400).  That position is
+   what SDL_GetMouseState returns, where the game draws its own cursor
+   (0x408650) and what every hover reads.  Mapped here like the messages, the
+   cursor the player sees is where the click lands. */
+typedef BOOL (WINAPI *screen_to_client_fn)(HWND window, LPPOINT point);
+static screen_to_client_fn user_screen_to_client;
+
+static BOOL WINAPI hook_screen_to_client(HWND window, LPPOINT point) {
+    fit f;
+    RECT client;
+    BOOL ok = user_screen_to_client(window, point);
+    if (ok && point != NULL && window == game_window && scaled(&f, &client)) {
+        point->x = to_picture(point->x, f.x, f.w, screen->w);
+        point->y = to_picture(point->y, f.y, f.h, screen->h);
+    }
+    return ok;
+}
+
+/* SDL.dll's import slot for USER32's ScreenToClient, found by name in its
+   import table; NULL unless it holds USER32's own function. */
+static void *volatile *screen_to_client_slot(HMODULE sdl) {
+    const BYTE *base = (const BYTE *)sdl;
+    const IMAGE_DOS_HEADER *dos = (const IMAGE_DOS_HEADER *)base;
+    const IMAGE_NT_HEADERS32 *nt;
+    const IMAGE_DATA_DIRECTORY *dir;
+    const IMAGE_IMPORT_DESCRIPTOR *desc;
+    HMODULE user32 = GetModuleHandleA("USER32.dll");
+    if (user32 == NULL || dos->e_magic != IMAGE_DOS_SIGNATURE) return NULL;
+    user_screen_to_client = (screen_to_client_fn)GetProcAddress(user32, "ScreenToClient");
+    if (user_screen_to_client == NULL) return NULL;
+    nt = (const IMAGE_NT_HEADERS32 *)(base + dos->e_lfanew);
+    if (nt->Signature != IMAGE_NT_SIGNATURE) return NULL;
+    dir = &nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    if (dir->VirtualAddress == 0) return NULL;
+    for (desc = (const IMAGE_IMPORT_DESCRIPTOR *)(base + dir->VirtualAddress); desc->Name != 0; ++desc) {
+        const IMAGE_THUNK_DATA32 *names, *slots;
+        if (lstrcmpiA((const char *)(base + desc->Name), "USER32.dll") != 0 || desc->OriginalFirstThunk == 0) continue;
+        names = (const IMAGE_THUNK_DATA32 *)(base + desc->OriginalFirstThunk);
+        slots = (const IMAGE_THUNK_DATA32 *)(base + desc->FirstThunk);
+        for (; names->u1.AddressOfData != 0; ++names, ++slots) {
+            const IMAGE_IMPORT_BY_NAME *name;
+            if (names->u1.Ordinal & IMAGE_ORDINAL_FLAG32) continue;
+            name = (const IMAGE_IMPORT_BY_NAME *)(base + names->u1.AddressOfData);
+            if (lstrcmpA((const char *)name->Name, "ScreenToClient") != 0) continue;
+            if (*(void *const volatile *)&slots->u1.Function != (void *)user_screen_to_client) return NULL;
+            return (void *volatile *)&slots->u1.Function;
+        }
+    }
+    return NULL;
+}
+
 /* Subclasses SDL's window (once per window SDL makes). */
 static void attach_window(void) {
     sdl_wm_info info;
@@ -325,11 +385,13 @@ static int same_bytes(UINT_PTR address, const BYTE *expected, SIZE_T length) {
     return memcmp((const void *)address, expected, length) == 0;
 }
 
-/* Checks both sites, then points both import slots here -- both or neither. */
+/* Checks all three sites, then points the game's two SDL import slots and
+   SDL.dll's ScreenToClient slot here -- all three or none. */
 static int install(void) {
     HMODULE sdl = GetModuleHandleA("SDL.dll");
     void *video_mode_now, *flip_now;
-    DWORD old_protect, ignored;
+    void *volatile *cursor_slot;
+    DWORD old_protect, cursor_protect, ignored;
     if (sdl == NULL) return 0;
     sdl_set_video_mode = (set_video_mode_fn)GetProcAddress(sdl, "SDL_SetVideoMode");
     sdl_flip = (flip_fn)GetProcAddress(sdl, "SDL_Flip");
@@ -343,11 +405,19 @@ static int install(void) {
     video_mode_now = *(void *volatile *)SET_VIDEO_MODE_SLOT;
     flip_now = *(void *volatile *)FLIP_SLOT;
     if (video_mode_now != (void *)sdl_set_video_mode || flip_now != (void *)sdl_flip) return 0;
+    cursor_slot = screen_to_client_slot(sdl);
+    if (cursor_slot == NULL) return 0;
+    if (!VirtualProtect((LPVOID)cursor_slot, sizeof(void *), PAGE_READWRITE, &cursor_protect)) return 0;
     if (!VirtualProtect((LPVOID)SET_VIDEO_MODE_SLOT, FLIP_SLOT + 4 - SET_VIDEO_MODE_SLOT, PAGE_READWRITE,
-                        &old_protect)) return 0;
+                        &old_protect)) {
+        VirtualProtect((LPVOID)cursor_slot, sizeof(void *), cursor_protect, &ignored);
+        return 0;
+    }
+    *cursor_slot = (void *)hook_screen_to_client;
     *(void *volatile *)SET_VIDEO_MODE_SLOT = (void *)hook_set_video_mode;
     *(void *volatile *)FLIP_SLOT = (void *)hook_flip;
     VirtualProtect((LPVOID)SET_VIDEO_MODE_SLOT, FLIP_SLOT + 4 - SET_VIDEO_MODE_SLOT, old_protect, &ignored);
+    VirtualProtect((LPVOID)cursor_slot, sizeof(void *), cursor_protect, &ignored);
     return 1;
 }
 

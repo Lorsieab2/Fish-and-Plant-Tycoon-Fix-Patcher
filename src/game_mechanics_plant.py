@@ -229,8 +229,9 @@ AGES = (
                   "Greenhouse Counts.ini beside the DLL, never the save. With 5 extra greenhouses it counts "
                   "Greenhouses 2-6 too, "
                   "and once one is bought (the gold arrows show) the lines sit under the arrows (y 62) and the "
-                  "button moves to (646, 4), left of the right arrow. "
-                  "Drawn every frame behind the plants; display only."),),
+                  "button moves to (646, 4), right of the right arrow (x 583-632). "
+                  "Drawn every frame over everything in the greenhouse (at 0x4291D2 in its overlay), under "
+                  "only what the hand holds, the bottom bar's text and popups; display only."),),
     ),
 )
 
@@ -414,6 +415,14 @@ SELLING = (
         "species' asking price P.",
     ),
     Fact(
+        "A plant stays for sale until you take it off sale (the Sell button, or a visitor buys it). "
+        "A dead plant is taken off sale at every update while it is dead. No chemical takes a plant "
+        "off sale.",
+        patched=(("plant_upgrades", "the new chemicals (the Radioactive Plant Formula and its Bomb, "
+                  "Revita-Seed and the Revival Potion) never take a plant off sale either, and the Revival "
+                  "Potion puts a plant that was for sale when it died back on sale (see Chemicals)."),),
+    ),
+    Fact(
         "Every 2 real-time seconds in the nursery, each plant for sale rolls Random(1300) <= k x E, "
         "with E = half the visitors browsing, rounded down. Visitors see a price P' (below) and "
         "compare it with the species' value V:",
@@ -556,11 +565,62 @@ TOOLS = (
         "On a green part or a flower: Dull -10 to -24, Sharp -7 to -13, Golden no damage. Pruning "
         "can kill a plant.",
     ),
+    Fact(
+        "Automatic Sprinklers: not in the unpatched game.",
+        patched=(("plant_upgrades", "Automatic Sprinklers ($10,000), on the store's Upgrades view (the tool "
+                  "shelf, under the Extra Greenhouse), bought once: at the top of every age unit of every "
+                  "live potted plant (time away and the Time Warp unit by unit, before that unit's pest "
+                  "roll reads the water) and after each update, the water is set to 500. The best band is "
+                  "108-900: below 100 after a unit's drop (6 + difficulty - the water upgrade, at most 8) "
+                  "the plant is too dry (-1 health, no health gain, size loss before age 21); above 900 "
+                  "the pest odds triple; nothing else reads the water, so 500 is never dry and never too "
+                  "wet (it rests at 492-500). Water you add by hand above 900 is back at 500 before the "
+                  "next pest roll. Dead plants and empty pots are never watered. A purchase waters every "
+                  "live plant at once. Click it again on the Upgrades view and answer Yes to unpurchase "
+                  "it: it stops at once, nothing it did is undone, there is no refund and buying it again "
+                  "costs the full price. Kept per save slot in \"Plant Tycoon Fix Patcher Data\\Auto "
+                  "Upgrades <slot>.dat\"; a new game starts without it."),
+                 ("extra_greenhouses", "Greenhouses 2-6 too, on screen or not."),
+                 ("free_upgrades", "Automatic Sprinklers cost $0."),),
+    ),
+    Fact(
+        "Auto-Healer: not in the unpatched game.",
+        patched=(("plant_upgrades", "Auto-Healer ($10,000), on the store's Upgrades view (the chemicals "
+                  "shelf, beside the Formula Bomb), bought once: at the top of every age unit of every "
+                  "live potted plant and after each update, pests are cleared (each cure counts under "
+                  "Plants Cured, as Insect Poison counts) and health is set to 100. Pests and health "
+                  "(Dead, Infested, Unhealthy) are the game's only plant problems; dead parts come from "
+                  "the age-7 branch roll, part of how the plant grows, and stay (the Radioactive Plant "
+                  "Formula brings them back). It never revives a plant: one at health 0 is dead (the "
+                  "Revival Potion's job), and one that dies of old age during a catch-up is left as the "
+                  "game leaves it. Old age still ends a plant's life (No old age plant deaths stops "
+                  "that). A purchase heals every live plant at once. Unpurchase as the sprinklers; kept "
+                  "in the same \"Auto Upgrades <slot>.dat\"."),
+                 ("extra_greenhouses", "Greenhouses 2-6 too, on screen or not."),
+                 ("free_upgrades", "the Auto-Healer costs $0."),),
+    ),
 )
 
 CHEMICALS = (
     Fact("A chemical dose is used up before its effect is checked: using one where it cannot work "
          "wastes the dose."),
+    Fact(
+        "The Trash bin (by the cash) takes seeds and plants only. Seeds held from the seed tray "
+        "or taken from a plant are sold for their value with the bin's sound, no question; a plant "
+        "(selected, or dragged there) goes after \"Delete this plant?\" while it lives, at once when "
+        "it is dead. A chemical bottle let go or clicked on the bin stays on the cursor, and the tools "
+        "(the watering can, the shears, the net and the other tools on the rack) never reach the bin: "
+        "neither can be thrown away. "
+        "Clicking the bin while holding anything but a tool, with a plant selected, asks about that "
+        "plant.",
+        patched=(("plant_upgrades", "the Radioactive Plant Formula, the Formula Bomb, the Revival Potion "
+                  "and Revita-Seed, held from the chemical tray and let go or clicked on the bin, are "
+                  "thrown away with every dose left in the bottle, with the bin's sound and no question, "
+                  "as a seed packet is (no money back: chemicals have no trash value). Only that bottle "
+                  "goes: another bottle of the same chemical stays, and a selected plant is not asked "
+                  "about or deleted. The game's own chemicals and the tools still never go in the bin. "
+                  "The tray is shared by every greenhouse, so this is the same in Greenhouses 2-6."),),
+    ),
     Fact("Most chemicals act on the one pot you use them on, which must hold a plant (a plant for "
          "sale too). The Fertilizer Bomb and the Insta-Grow Vaporbomb act on every pot with a live "
          "plant."),
@@ -587,13 +647,16 @@ CHEMICALS = (
                   "On a live plant: health 100, every dead (brown) part alive again, every hidden "
                   "branch of its shape grown, size 110 (the largest), grown to age 28 (full bloom), "
                   "flowers on every flower spot of every live, uncut part (its spots filled up to 6 "
-                  "per part), no later dead leaves, and, if it is already pollinated, all 5 of its "
-                  "seeds (pollinating it later gives the usual 5, 4 or 3). A dead plant stays dead."),
+                  "per part), no later dead leaves, and always 5 seeds: if it is already pollinated, all "
+                  "5 of its seeds (less any already picked) are ripe at once; if not, its next "
+                  "pollination gives all 5 (not 5, 4 or 3, and 5 even if infested). A plant planted "
+                  "later in that pot does not inherit this. A dead plant stays dead. A plant for sale "
+                  "stays for sale at its price. The Formula Bomb gives every plant it reaches the same."),
                  ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
     Fact(
         "Radioactive Plant Formula Bomb: not in the unpatched game.",
-        patched=(("plant_upgrades", "on the store's Upgrades view, under the formula, $30,000, 3 bombs; "
+        patched=(("plant_upgrades", "on the store's Upgrades view, under the formula, $30,000, 3 doses; "
                   "the Fertilizer Bomb's art made rainbow. Used like the Fertilizer Bomb: one bomb gives "
                   "every pot the Fertilizer Bomb reaches (every live plant in the greenhouse on screen) "
                   "exactly one Radioactive Plant Formula dose, with all of its effects."),
@@ -606,8 +669,11 @@ CHEMICALS = (
                   "from now (the time it lay dead is not played as time away), and its value and price "
                   "are set again by the game's own rules (they were 0 while it was dead). Parts that were "
                   "dead before it died stay dead, as with the game's own healing (prune them or use the "
-                  "formula); seeds that had not ripened when it died stay lost; a plant that was on sale "
-                  "must be put on sale again. On a live plant it does nothing (the dose is used)."),
+                  "formula); seeds that had not ripened when it died stay lost. A plant that was for sale "
+                  "when it died is for sale again (while it was dead the game took it off sale every "
+                  "update); if the nurseries already hold as many plants for sale as they can (with Extra "
+                  "Greenhouses: 15 per nursery owned, counting every greenhouse), it stays off sale and a "
+                  "message says so. On a live plant it does nothing (the dose is used)."),
                  ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
     Fact(
@@ -1150,7 +1216,9 @@ EXTRA_GREENHOUSES = (
             "trash in any greenhouse, and they are the seeds of the plant they came from. Dropped anywhere "
             "else they go back to that plant.",
             "Seeds from the seed tray (Legendary Seeds too), tools and chemicals: carried, and they work on the "
-            "new greenhouse's pots.",
+            "new greenhouse's pots. The Trash bin is the same in every greenhouse: seeds and plants go in it, "
+            "and so do the four chemicals of the Upgrades view (see Chemicals); the tools and the game's own "
+            "chemicals never do.",
             "Nursery ornaments are never placed: each counts as soon as it is bought, so there is nothing to "
             "move.",
         ),
@@ -1192,9 +1260,13 @@ EXTRA_NURSERIES = (
         "Each nursery is the stock nursery screen, run by the game's own code, with its own 15 spots. Gold "
         "arrows at the top (the game's own) page through Nursery 1, the stock one, and the ones you own; each "
         "screen is named \"Nursery 1\" to \"Nursery 6\" (\" of m\" once you own more than one). Switching is "
-        "leaving one nursery and entering the next, exactly as the stock game does it: sold plants leave their "
-        "pots, and the next nursery counts its own plants for sale for its visitor limit (2 per plant, see "
-        "Selling and visitors).",
+        "instant and changes only the plants on the 15 stands: the visitors stay exactly as they are (where "
+        "they walk, what they do, their timers), and so do the visitor limit counted when you entered the "
+        "nursery (2 per plant for sale, see Selling and visitors) and the number browsing that the buy rolls "
+        "use. Visitors never hold a plant: a comment looks at a stand's plant there and then, so after a switch "
+        "they look at the new nursery's plants. A plant sold on a stand stays there, marked sold, until you "
+        "leave the nursery; leaving empties the sold pots of every nursery, as the stock nursery empties its "
+        "own. A plant you were dragging to rearrange the nursery goes back to its stand.",
         subs=(
             "Every sale rule (the buy roll, prices, visitors, comments) is the stock one, per nursery.",
             "All bought nurseries sell at once, but only while you are in the nursery (the stock game sells "

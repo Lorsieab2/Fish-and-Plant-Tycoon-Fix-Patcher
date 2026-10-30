@@ -160,7 +160,22 @@ back layer is merged into the front one, so it is drawn whole in front.
 
 Trashing goes both ways: the eel thrown away takes its rock with it, and the
 rock dropped on the trash can asks "Delete this fish?" and takes its eel
-(home in it, or swimming) with it.
+(home in it, or swimming) with it. The partner is looked for in the tank on
+screen, then the other stock tanks, then the tanks 3 extra tanks holds
+(`FtfpExtraTanksHeld`: Tanks 4-6, or Tank 1 while one of them is shown), so
+the two always go together.
+
+The store's supplies (Exotic Fish Eggs, items 28; the Radioactive Growth
+Hormone, Revival Potion and ClonaFish, items 29-31) let go on the trash can
+are thrown away: the release (`0x421B20`) calls the supply use `0x420B70`
+at `0x421B52`, and the DLL's call there empties the held slot (item,
+present, count, icon and cursor 0, as the stock tail `0x420D9B` empties a
+used-up one), sets nothing held (`impl+0x1C = 0x63`) and plays the fish
+trash's sound 4, when the drop is outside the tank rectangle
+(`impl+0xA8..0xB4`) and inside the trash can's (`impl+0x88..0x94`, the
+fish trash's hit area). No question: the game asks only about a live fish.
+Anything else (the food, every stock supply, any other point) goes on to the
+stock use, which outside the tank shows a hint and puts it back.
 
 The rock and the eel's home state need no sidecar:
 - The rock is one of the tank's six ornament records (sprite 228 with the
@@ -317,8 +332,14 @@ is untouched. Each dose:
    rolls give the same litter (tested against the vanilla block run in the
    emulator). Babies from a dose are aged 1, as a birth on the due step.
    The view is synced after births (`0x415E70`, as after a hatch).
-2. **Age-up**, on everyone reached, the newborns included, so the whole
-   litter comes out adult; older fish keep their age.
+2. **Age-up**, on the fish reached before the births only; older fish keep
+   their age. The newborns stay exactly as the stock birth makes them (aged
+   1): the game shows a fish's species name only from age 20 (`0x41D9ED`;
+   under 20 the panel shows string 6), so raising them showed baby fish's
+   names (owner, 2026-10-31: babies stay babies). The fish reached are noted
+   by record before the births; a newborn only goes into a record that was
+   empty then (AddFish takes a record whose `+0x00` is 0), so a reused record
+   is never mistaken for an old fish. A later dose grows the babies up.
 
 ## Revival Potion (item 30)
 
@@ -448,3 +469,29 @@ to keep using them:
 - Not yet checked in the running game (emulated only, tests/test_ds_store_animals.py):
   the animals' own records and "Tank Animals <slot>.dat" (2026-10-30). The
   live checks above were made when they sat in records 26-30.
+
+## The Auto-Feeder and the Auto-Healer
+
+`native/ftfp_ds_store/auto_upgrades.h`. Two permanent items, $10,000 each ($0 with
+Free upgrades), in row 2 of the net beside ClonaFish (cells 141,165 and 234,165),
+sprites 244 and 245 (ITEM_AUTO_FEEDER.png, ITEM_AUTO_HEALER.png, 73 x 65, 57 px
+visible). Buy: the game's purchase question (0xEC); owned: "You already own
+this!" (0x1C) and the panel's "Owned. Click it again to unpurchase."; a click on
+the selected owned item asks to unpurchase (Yes / No popup), no refund.
+
+Hooks: `auto_step` 0x4204B3 (store_sites.h; in the fish update's step loop, after
+the sickness roll 0x41E120, before the pregnancy loss 0x4204EE and the food drop):
+the feeder sets food (+0x44) to 50, the healer clears sickness (+0x40, one Fish
+Cured, state + 0x34) and sets health (+0x3C) to 100. The death hook 0x420622 sets
+health 100 again for a fish above 0. A fish at health 0 is never touched. Every
+tank the update runs (0-3, and Tanks 4-6 through Extra Tanks' second run) and every
+slot it reaches gets it. A purchase tends every live fish at once (and the blocks
+FtfpExtraTanksHeld returns).
+
+Food: feeding gives +50 and costs 2 health when food would pass 100 (0x4121CB); at
+50 a feeding by hand reaches 100 at most. Below 5 health gains are lost; at 2 or
+less the fish starves. The game has no water quality.
+
+Ownership: "Fish Tycoon Fix Patcher Data\Auto Upgrades <slot>.dat", 16 bytes
+("FTAU", version 1, feeder, healer), written before the game's save through a
+.tmp; read after a load; a new game clears both. Tests: tests/test_auto_upgrades.py.

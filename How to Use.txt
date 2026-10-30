@@ -69,19 +69,28 @@ Fish Tycoon options:
   isolation tank. A "Counts: On/Off" button at the top right of the water
   hides them; the choice is kept in Tank Counts.ini. Display only.)
 - Optimize Prices button (on by default; an "Optimize Prices" button on the
-  Species Chart. Asks Yes/No, then sets every discovered species to its best
-  price per day for your shop as it is now, as in the Breeding Guide.)
+  Species Chart and the same one on the Fish Store screen, opened with Sell
+  Fish, so you can use it any time. Asks Yes/No, then sets every discovered species to its
+  best price per day for your shop as it is now, as in the Breeding Guide.)
 - DS Exclusive Fish (off by default; adds the DS version's 7 bodies and
   7 fins. Sell or trash every DS fish before turning it off again.)
 - DS Store Items (off by default; needs DS Exclusive Fish. Adds an
   Upgrades button to the Supplies store with the DS Puffer Fish, Sting Ray,
   Moray Eel and Exotic Fish Eggs, the Radioactive Growth Hormone (every fish
-  in the tank on screen: pregnant ones give birth, then all get full health,
-  are cured and young ones become adults), the Revival Potion (revives the
-  tank's dead fish) and ClonaFish (clones every unique fish). The animals
+  in the tank on screen: pregnant ones give birth, then the fish that were
+  there get full health, are cured and young ones become adults; the newborns
+  stay babies), the Revival Potion (revives the
+  tank's dead fish), ClonaFish (clones every unique fish), and the
+  Auto-Feeder and Auto-Healer ($10,000 each, bought once: every live fish in
+  every tank stays fed at 50 food, never overfed, and is cured and kept at
+  full health; dead fish are left alone. Click an owned one again and answer
+  Yes to unpurchase it: it switches off, no refund, buying it again costs the
+  full price; kept in "Auto Upgrades <slot>.dat"). The animals
   never take a fish's place: each tank has 5 animal places of its own, kept
-  in "Tank Animals <slot>.dat". Trash the animals and let the eel out of
-  its rock before turning it off again.)
+  in "Tank Animals <slot>.dat". Its eggs and chemicals can be thrown in
+  the trash can (no question; the food and the game's own supplies never
+  can), and the eel and its rock go together, from any tank. Trash the animals and let the eel
+  out of its rock before turning it off again.)
 - 3 extra tanks (off by default; EXPERIMENTAL - USE AT OWN RISK; needs DS
   Store Items, which it turns on. Tank 4, Tank 5 and Tank 6, full
   tanks like Tank 1 and Tank 2, bought on the store's Upgrades screen:
@@ -107,11 +116,13 @@ Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
   pregnancy), the Golden Seahorse, the DS store animals (Puffer Fish,
   Sting Ray, Moray Eel), ornaments, the Moray Eel's rock (with the eel
   inside it when it is home), and Multiple ornaments' extra copies.
-- How: pick it up and drop it on a tank's button, or on an arrow: the left
-  arrow is the previous tank and the right arrow the next one, in the order
-  Tank 1, Tank 2, Sale Tank, then the extra tanks you have bought, and
-  round again. Click an arrow to see the other three buttons. A tank not
-  bought yet is greyed out: "You don't own this tank yet!".
+- How: pick it up and drop it on a tank's button. To reach the other
+  three buttons (Tank 1, Tank 2, Sale Tank or Tank 4, Tank 5, Tank 6),
+  carry it over one of the small arrows left of the buttons: the buttons
+  switch, and you drop it on the tank you want. Letting go on an arrow
+  itself keeps it where it was. Click an arrow to see the other three
+  buttons. A tank not bought yet is greyed out: "You don't own this tank
+  yet!" just under the top bar.
 - A full tank: "The tank is full!" and the fish swims back (or the
   ornament stays). Tank 2 not bought yet: "You don't own a second tank
   yet!". Exactly as on the game's own buttons.
@@ -143,7 +154,14 @@ Plant Tycoon options:
   Radioactive Plant Formula and its Bomb (one dose for every plant in the
   greenhouse on screen), the Revival Potion (revives a dead plant),
   Revita-Seed (a plant that has given all its seeds can be pollinated
-  again) and the Fourth, Fifth and Sixth Seed Box. Move
+  again), Automatic Sprinklers and the Auto-Healer ($10,000 each, bought
+  once: every live plant in every greenhouse is kept at the best water level,
+  free of pests and at full health; dead plants are left alone. Click an owned
+  one and answer Yes to unpurchase it: it switches off, no refund, buying it
+  again costs the full price; kept in "Auto Upgrades <slot>.dat") and the
+  Fourth, Fifth and Sixth Seed Box. The four new chemicals can be thrown in
+  the Trash bin (let go or clicked there), like a seed packet; the tools and
+  the game's own chemicals never go in it. Move
   seeds out of boxes 4-6 before turning it off.)
 - Tank and greenhouse counts (on by default; "Plants: 9 of 15 (5 mature,
   2 with buds, 2 seedlings)" along the top of the greenhouse on screen,
@@ -204,7 +222,9 @@ Getting a plant into a nursery (5 extra nurseries):
   plant at its own pot's spot, as in the unpatched game), then Nursery 2, and
   so on, Greenhouse 1's plants before Greenhouse 2's, pot by pot. When a
   plant sells or is taken off sale, the ones after it move up.
-- Use the arrows on the nursery screen to see each nursery. While you are
+- Use the arrows on the nursery screen to see each nursery. Only the plants
+  on the stands change: the customers stay where they are and keep doing
+  what they were doing. While you are
   in the nursery, all your nurseries sell at once (the visitors you see are
   the ones of the nursery on screen). Away from the nursery nothing sells,
   as in the unpatched game.
@@ -220,7 +240,13 @@ your save has discovered only; tick Show Spoilers under Options to see
 everything. The pane under each sheet scrolls. Click a column to sort, type
 in Search to filter, and Export saves the open sheet as .xlsx or .csv. It
 never changes a save. Its "?" button explains the rules and what the prices
-assume.
+assume. The picture tabs (Fin, Body, Egg; Flower, Foliage, Seed Pictures)
+use the game's own art: the first time the guide finds your game (the game
+folder on the Game tab, or the "- Modded" / "- Modded Upgrades" copies) it
+copies the pictures into a "Breeding Guide Pictures" folder beside the
+patcher and shows them from there for every save and player. If a picture
+tab says it has no pictures yet, click "Find game..." and pick your game
+folder. Your game folder and saves are only read.
 
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.

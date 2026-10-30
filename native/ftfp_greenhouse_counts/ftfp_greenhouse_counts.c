@@ -37,21 +37,37 @@
    lies on the stone wall at the top right, above the pots and the tables.
 
    WITH EXTRA GREENHOUSES.  Once a greenhouse is bought, "5 extra
-   greenhouses" draws gold arrows in the top corners (x 222-271 and 748-797,
-   y 10-59) and the greenhouse's name centred at (510, 26): the lines then
-   start at y 62, under the arrows, and the button moves to (646, 4), left of
-   the right arrow and above the name.
+   greenhouses" draws gold arrows beside the greenhouse's name on the top wall
+   (x 367-416 and 583-632, y 11-60) and the name centred at (500, 26): the
+   lines then start at y 62, under the arrows, and the button moves to
+   (646, 4), right of the right arrow and above the name.
+
+   ON TOP.  The game paints a screen with 0x40B6B0: the screen's draw (its
+   table's +0x18, 0x469238: 0x4257A0, main_bg.png), then its controls
+   (0x40B510, the buttons; with "5 extra greenhouses" its gold arrows), then
+   its overlay (+0x1C, 0x46923C: 0x428E70), then the controls' own overlays
+   (0x40B540); popups and dialogs are other screens, painted after this one.
+   The overlay draws the tables, the pots, the plants, the bugs, the tools on
+   their shelf and the selected pot's marks, then (0x4291D2) what the hand
+   holds -- a seed, a tool, the pollen, a pot of seeds -- and after it the
+   money and the news line in the bottom bar and the game's timed messages.
+   The counts are drawn at 0x4291D2, just before what the hand holds: over
+   everything in the greenhouse, under the held item, the bottom bar's text,
+   the messages and every popup.  "5 extra greenhouses" draws its
+   greenhouse's name after the whole overlay (wrapping 0x46923C); the name is
+   centred at (500, 26), clear of the lines (from y 62 once its arrows show)
+   and of the button (646-744, y 4-24), so neither covers the other.
 
    HOW.  The startup loader loads this DLL and calls FtfpStartup() before
    WinMain ("Extra Greenhouses.dll" starts it instead when its settings are
-   on, before wrapping the same two slots itself).  It first loads the DLL the loader would load without this
-   setting ("Unused Flowers.dll", else "Sort Seeds.dll", when their settings
-   put them beside this one), then wraps two slots of the greenhouse scene's
-   vtable, its background draw (0x469238, 0x4257A0: main_bg.png) and its
-   mouse (above), after checking each holds the stock function, or writes
-   neither.  The draw wrapper draws the background and then the lines, so
-   the pots, plants, tools and buttons (drawn after it) are always drawn
-   over them, never under. */
+   on, before wrapping the mouse slot itself).  It first loads the DLL the
+   loader would load without this setting ("Unused Flowers.dll", else "Sort
+   Seeds.dll", when their settings put them beside this one), then writes
+   two sites, after checking each holds its vanilla bytes, or writes
+   neither: the overlay's two instructions at 0x4291D2 (`mov ecx, [esi+0x68];
+   mov edi, [ecx+0x56C]`, the held item) become a jump to a stub here that
+   draws the counts, does those two instructions and jumps back to 0x4291DB;
+   and the greenhouse scene's mouse slot (above). */
 #include <windows.h>
 #include "../ftfp_ds_fish/install_sites.h"
 #include "../common/count_text.h"
@@ -78,8 +94,8 @@
 #define LINE_H 22                   /* PTfontsmall's glyphs are 21 px tall */
 #define BUTTON_X 694
 #define BUTTON_Y (LABEL_Y + LINE_H)
-#define LABEL_Y_ARROWS 62           /* under Extra Greenhouses' arrows (y 10-59), on the floor's edge */
-#define BUTTON_X_ARROWS 646         /* "Counts: Off" is 98 px: it ends left of the right arrow (x 748) */
+#define LABEL_Y_ARROWS 62           /* under Extra Greenhouses' arrows (y 11-60), on the floor's edge */
+#define BUTTON_X_ARROWS 646         /* "Counts: Off" is 98 px (646-744): right of the right arrow (x 583-632) */
 #define BUTTON_Y_ARROWS 4           /* above the greenhouse's name (y 26) */
 #define WHITE 0xFFFFFFFFu
 #define YELLOW 0xFFFFD040u
@@ -93,7 +109,6 @@ typedef void (__fastcall *text_fn)(void *graphics, int edx, const char *text, in
 
 static const getter_fn graphics_get = (getter_fn)0x00407A90u;
 static const text_fn draw_text = (text_fn)0x004092A0u;          /* (text, x, y, colour, font 0 = PTfontsmall) */
-static const scene_fn stock_draw = (scene_fn)0x004257A0u;
 static const mouse_fn stock_mouse = (mouse_fn)0x004273D0u;
 
 static count_toggle toggle = { 1, 0, 0, { BUTTON_X - 4, BUTTON_Y - 2, 798, BUTTON_Y + LINE_H - 2 }, { 0 } };
@@ -152,8 +167,10 @@ static int health_line(count_line *line, const greenhouse_count *c) {
 
 /* --------------------------------------------------------------- the draw */
 
-#define DRAW_SLOT_VA 0x00469238u
-static const unsigned char DRAW_SLOT_STOCK[4] = { 0xA0, 0x57, 0x42, 0x00 };     /* 0x4257A0 */
+#define HELD_SITE_VA 0x004291D2u
+#define HELD_SITE_BACK 0x004291DBu
+static const unsigned char HELD_SITE[9] = { 0x8B, 0x4E, 0x68,                         /* mov ecx, [esi+0x68] */
+                                            0x8B, 0xB9, 0x6C, 0x05, 0x00, 0x00 };     /* mov edi, [ecx+0x56C] */
 #define MOUSE_SLOT_VA 0x00469224u
 static const unsigned char MOUSE_SLOT_STOCK[4] = { 0xD0, 0x73, 0x42, 0x00 };    /* 0x4273D0 */
 
@@ -198,11 +215,27 @@ static void draw_counts(char *scene) {
     if (health_line(&line, &count)) draw_at(graphics, line.text, LABEL_X, y + LINE_H, WHITE);
 }
 
-static void __fastcall on_draw(char *scene, int edx) {
-    stock_draw(scene, edx);
+static void __fastcall on_held(char *scene) {
     __try {
         draw_counts(scene);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+}
+
+/* Jumped to from 0x4291D2 (esi = the greenhouse scene): every register and
+   flag kept, then the two instructions the jump replaced, then back. */
+static const DWORD held_back = HELD_SITE_BACK;
+__declspec(naked) static void stub_held(void) {
+    __asm {
+        pushad
+        pushfd
+        mov ecx, esi
+        call on_held
+        popfd
+        popad
+        mov ecx, [esi + 0x68]
+        mov edi, [ecx + 0x56C]
+        jmp dword ptr [held_back]
     }
 }
 
@@ -265,7 +298,7 @@ int __stdcall FtfpStartup(void) {
     }
     __try {
         toggle_load(&toggle, L"Greenhouse Counts.ini");
-        slot_write(&writes[0], DRAW_SLOT_VA, DRAW_SLOT_STOCK, (const void *)(UINT_PTR)on_draw);
+        ftfp_site_branch(&writes[0], HELD_SITE_VA, sizeof HELD_SITE, HELD_SITE, 0xE9, (const void *)(UINT_PTR)stub_held);
         slot_write(&writes[1], MOUSE_SLOT_VA, MOUSE_SLOT_STOCK, (const void *)(UINT_PTR)on_mouse);
         installed = ftfp_install_sites(writes, 2);
     } __except (EXCEPTION_EXECUTE_HANDLER) {

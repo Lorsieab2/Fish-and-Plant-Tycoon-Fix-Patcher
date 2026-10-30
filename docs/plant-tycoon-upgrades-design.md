@@ -57,6 +57,21 @@ with the setting is therefore the same as the pin without it
     - raises every count to 6 only while it flowers the plant, and restores
       them, so stock flowering and the stock items are unchanged;
     - answers "free" for every spot while it flowers (hook at `0x42D330`);
+    - always gives 5 seeds (owner, 2026-10-31). Pollination (`0x4240A0`)
+      sets `+0x6C`, `+0x98` = the age, `+0x90` = 0 ripe and `+0x94` = the
+      seeds counted as taken already (Random(3) - `+0x7C`: 5, 4 or 3 given;
+      4 if infested); ripening (`0x42E0C6`) makes
+      min(age - `+0x98` - 2, 5) - `+0x94` ripe each update. On a pollinated
+      plant the formula gives back the held-back seeds (`+0x94` = the seeds
+      picked), sets `+0x98` = age - 7 so the game's ripening counts all 5
+      ripe, and `+0x90` = 5 - `+0x94` at once. On any other it marks `+0x7C`
+      ("RFS5"), and `on_pollinated` then gives all 5. The new site
+      `plant_seed` (`0x42FCDD`, in planting `0x42FC70`) sets a new plant's
+      `+0x7C` to 0, so the mark never passes to the pot's next plant; the
+      mark is in the pot record, so it moves with the pot when Extra
+      Greenhouses exchanges records. Before this fix the formula only gave
+      back held-back seeds, still ripening over 7 units, and a plant
+      pollinated later got the stock 5, 4 or 3;
     - then adds flowers until no spot is left (`0x42ED60(360, 0)`).
     Live: a rose bush went from 5 flowers to 276, a 37-branch plant from 4 to
     276, and every one of the 14 new flowers from a handful to 39-132.
@@ -112,6 +127,12 @@ a New Flowers site).
 | store_draw | 0x447DA2 | draws the link, or the Upgrades view instead of the stock grids (then 0x447FF8) |
 | store_click | 0x448173 | button-down: the link, the Supplies plate, the Upgrades items (the dialog is run from the DLL: ctor 0x432E90, modal 0x401C90, dtor 0x4307A0) |
 | store_hover | 0x448433 | hover for the link |
+| trash_drop | 0x425FF2 | the greenhouse mouse-up's `call 0x424680` (the stock trash): a held chemical 36-39 let go on the bin is thrown away (tray record present byte 0, held 0, sound 0x23), else the stock trash |
+| trash_press | 0x4272DC | the press off the pots: the same for a held chemical 36-39 pressed on the bin, ending through 0x42739C, so the selected plant is never asked about or emptied |
+| joint_free | 0x42D330 | "is this flower spot free?": every spot answers free while the formula flowers |
+| plant_seed | 0x42FCDD | planting: a new plant's formula mark (+0x7C) starts at 0 |
+| unit_top / units_done | 0x42E134 / 0x42E2DF | Automatic Sprinklers and the Auto-Healer, each age unit and after the loop (below) |
+| dead_untag | 0x42DF91 | the plant update's dead-plant untag: remembers a plant was for sale (+0x9F) for the Revival Potion (below) |
 | chem_picture_bound | 0x4308D3 | immediate 0x24 -> 0x28: the dialog draws chemicals 36-39 |
 | seed/chem sheet records, link record | 0x485F4C, 0x485F5C, 0x4875A4, 0x4875B4, 0x4882D4 | the sprite records above |
 
@@ -158,10 +179,12 @@ Boxes DLL.
 | Radioactive Plant Formula | 36 / row 9 | $10,000, 3 doses | (598, 55) |
 | Revival Potion | 37 / row 10 | $10,000, 3 doses | (655, 55) |
 | Revita-Seed | 38 / row 11 | $2,500, 3 doses | (712, 55) |
-| Radioactive Plant Formula Bomb | 39 / row 12 | $30,000, 3 bombs | (598, 116) |
+| Radioactive Plant Formula Bomb | 39 / row 12 | $30,000, 3 doses | (598, 116) |
 
 The Time Warp clock moved to row 13 (frame 26) and Add Money's coins to row
-14 (frame 28); the sheet has 15 rows. The game draws chemical c as frame
+14 (frame 28), the Extra Greenhouse item is row 15 (frame 30), and Automatic
+Sprinklers and the Auto-Healer are rows 16 and 17 (frames 32 and 34); the sheet
+has 18 rows (`chem_rows = 18`). The game draws chemical c as frame
 2c - 54, so a chemical's row is c - 27. Dialog indices 37-51 are stock store
 items, so 37-39 are these chemicals only while a dialog opened from the
 Upgrades view is up (`upgrade_dialog`): the dialog entry rides the Vaporbomb
@@ -179,6 +202,28 @@ each update; the greenhouse draws every part brown (`0x42E7AE`). A dose:
 health 100, `+0x3C` = 0, `+0x04` = the game clock (`0x403430`, as a
 planting, `0x42FCAA`), the value by `0x42DD80` and the price by the
 planting rule (`0x42FD11`-`0x42FD9E`). Parts dead before it died stay dead.
+The price: the only code that writes a pot's `+0x44` is the planting rule
+and the death above (the player never sets a price), so the planting rule
+is the stock rule for a plant that has none.
+
+The Sell tag (owner, 2026-10-30: "the chemicals should not clear the Sell
+tag"). The game writes `+0x9D` only at the Sell button and Sell All
+(`0x427CE5`, `0x427D3E`, `0x427F05`, `0x428038`), a visitor's purchase
+(`0x435C90`, which sets the sold byte `+0x9E`) and the dead-plant clear
+(`0x42DF91`); no stock chemical touches it. The formula's "branch roll done"
+(`+0x9C`, a byte the game sets at `0x42E482`) was written as a 4-byte int,
+clearing `+0x9D`, `+0x9E` and `+0x9F`: it is one byte now. `dead_untag`
+(`0x42DF91`, 7 bytes, `stub_dead_untag`): when it is about to clear a set
+`+0x9D`, it first sets `+0x9F` = `'S'` (`0x53`). `+0x9F` is the padding
+after the three flag bytes: no instruction of the game addresses it (no
+`+0x9F` / `+0x2227` operand; the dword operands at `+0x9C` all belong to
+other objects). In the record, it moves with the plant (the save body is the
+state, Extra Greenhouses moves whole records). Planting clears it
+(`plant_seed`). A Revival dose consumes it: `+0x9D` = 1 when the plant passes
+the Sell button's test (`+0x38`, `+0x4C`, age `+0x10` >= 24.0 at
+`0x4677E8`, alive) and Extra Greenhouses' `FtfpExtraGreenhousesForSale()` is
+below 15 x (`FtfpExtraNurseriesOwned()` + 1); otherwise a "Revival Potion"
+message says the nurseries are full and the plant stays off sale.
 
 Revita-Seed. Pollination (`0x4240A0`) sets `+0x6C` (byte) for good, `+0x98`
 the age, `+0x90` = 0, `+0x94` = 0-2 or 4; ripening (`0x42E0C6`) and picking
@@ -233,3 +278,32 @@ cannot show any tooltip, stock ones included).
   drawers could change). The window is the few seconds the dialog is open.
 - Like New Flowers, the sidecars follow the slot number, not the game's backup
   rotation.
+
+## Automatic Sprinklers and the Auto-Healer
+
+`native/ftfp_plant_upgrades/auto_upgrades.h`. Two permanent items, $10,000 each
+($0 with Free upgrades), drawn from chemical-sheet rows 16 and 17 (frames 32 and
+34, upright only; row 15 is the Extra Greenhouse's): the sprinklers at (409, 111)
+on the tool shelf under the Extra Greenhouse, the healer at (655, 116) beside the
+Formula Bomb, each with the owned tick. Click: Yes / No to buy; owned, Yes / No to
+unpurchase (no refund). Tooltips: "<name>\nPrice: $ 10000" or "<name>\nOwned,
+click to unpurchase".
+
+Hooks (upgrade_sites.h): `unit_top` 0x42E134 (`cmp [edi+0x28], ebp; jne 0x42E144`,
+the top of the plant update's age-unit loop, edi = the pot, esi = the plant) and
+`units_done` 0x42E2DF (after the loop). Both call auto_tend: water (+0x20) = 500,
+pests (+0x28) = 0 with one Plants Cured (state + 0x40), health (+0x24) = 100. A pot
+at health 0 is never touched, and once one is seen at 0 within an update the rest
+of that update leaves it (the stock loop can lift a plant that died of old age
+back above 0). Extra Greenhouses runs the stock update once per greenhouse with its
+pots moved in, so every greenhouse gets the same. A purchase tends every live pot
+at once (FtfpExtraGreenhousesPot for Greenhouses 2-6).
+
+Water: each unit drops 6 + difficulty - the water upgrade (cacti 3 less); below
+100 after the drop is too dry (-1 health, no gain, size loss before 21); above 900
+the pest roll (0x42CB9E) triples. 500 sits in the middle of 108-900.
+
+Ownership: "Plant Tycoon Fix Patcher Data\Auto Upgrades <slot>.dat", 16 bytes
+("PPAU", version 1, sprinklers, healer), written with the save through a .tmp;
+read at load (no file: neither owned; a bad file is set aside as .unreadable);
+deleted with the slot; a new game clears both. Tests: tests/test_auto_upgrades.py.

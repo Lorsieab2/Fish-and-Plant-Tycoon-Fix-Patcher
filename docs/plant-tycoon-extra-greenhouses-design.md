@@ -44,8 +44,20 @@ items (`requires_settings: plant_upgrades`).
   - Place: the tool shelf at (404, 50), the fourth tool column, beside the
     Seed Boxes in the fifth. The chemical shelves, where the other branch's
     Revival Potion, Revita-Seed and Formula Bomb go, are left free.
-  - Picture: the game's own greenhouse picture (`greenhouse1.png`, sprite
-    0xC2) at 0.29 scale.
+  - Picture: a small, fully opaque greenhouse the size of the shelf's tools,
+    drawn at scale 1: row 15 (frame 30) of the mod's
+    `Chemicals_Grid_upgrades.png`, made by
+    `scripts/build_plant_upgrades_assets.py` from the game's repaired
+    greenhouse (`greenhouse2.png`): the building only, cut to opaque and
+    shrunk. Its visible part is x 414-451, y 58-111: on the shelf line as the
+    seed boxes beside it (their art starts at x 468), inside the click
+    rectangle {404, 52, 461, 113}; its shadow and tick are centred under it.
+  - v1.0.17 drew the game's `greenhouse1.png` (sprite 0xC2), a 157 x 207
+    garden picture with soft, see-through edges, with a 0.29 scale that the
+    game's draw does not apply: it came out full size over the seed boxes and
+    three shelves. The game's sprite table has one spare record (the Upgrades
+    link's), so the icon shares the mod's chemicals sheet, as the Time Warp
+    clock and Add Money's coins do.
   - Sold out: the stock tick (sprite 0x25) once all five are owned.
   - Tooltip: "Extra Greenhouse n of 5 / Price: $ 10000", or "Sold out".
 - **Buying:** the same Yes / No and "can't afford" boxes as Add Money.
@@ -216,10 +228,19 @@ same code:
   (`at_pos` / `where_home`). Any place can be moved into any state spot, and
   every move is taken back, last first.
 - **Switching:** the stock gold arrows (ids 40/41 on the nursery scene, at
-  220/530 in the sky band) and "Nursery n" in the game's font. A switch runs
-  the stock nursery close (`activate(0)`: sold plants leave their pots), the
-  rearrangement, then the stock open (`activate(1)`: the new nursery's
-  visitor limit). This is exactly leaving one nursery and entering another.
+  220/530 in the sky band) and "Nursery n" in the game's font. A switch only
+  rearranges the 15 pots (the owner: switching must not reset the customers).
+  It does not close or reopen the nursery, and the nursery scene and its
+  visitor list are not touched, so the visitors, their timers, the visitor
+  limit and the browsing count all stay.
+  - Why it is safe: no visitor holds a plant. A comment picks a stand and
+    reads its plant at that moment (0x4399D5), the buy roll goes stand by
+    stand, and a sale pays and marks its pot at once.
+  - A plant held to rearrange the nursery is put back first, as the stock
+    close does (0x4363C3).
+  - Sold plants keep their stand on their own nursery. When the nursery
+    closes, the stock close empties the screen's sold pots and the DLL
+    empties every other nursery's.
 - **Limit:** 15 × (1 + nurseries owned). Button 6 refuses the next one with
   "Your nurseries are full! Only N plants ...", and button 9 stops at the
   limit.

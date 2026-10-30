@@ -1,12 +1,22 @@
 """The Breeding Guide's picture tabs: every fin, body and egg (Fish Tycoon) and every
 flower, foliage and seed packet (Plant Tycoon), grouped by rarity in the games' own words.
 
-No game art is shipped: every picture is read at run time from the game copy the guide
-found for the chosen save (Fish Tycoon: its Images folder, then Assets\\ft.dat, the same
-order as the game's loader 0x409B00, where a file on disk wins over ft.dat; Plant Tycoon:
-its Images folder). The patcher's own parts come from the files the patcher installed in
-that copy (DS Exclusive Fish's FISH_23..29 sheets, DS Store Items' Exotic Fish Eggs icon,
-the Store Upgrades seed sheet; the Unused Flowers are cells of the stock flower sheets).
+No game art is shipped. The first time the guide finds any copy of the game (the folder
+picked on the patcher's Game tab, the patcher's "- Modded" and "- Modded Upgrades" copies,
+a default install, or a folder picked with "Find game..."), it copies every sheet the
+pictures are cut from into its own picture cache, "<patcher folder>\\Breeding Guide
+Pictures\\Fish" (or "\\Plant"), with a manifest of each file's size and SHA-256, written
+into a temporary folder and swapped in whole. From then on the pictures come from that
+cache, with no game copy needed; a cache whose manifest or files do not match is rebuilt,
+never used. The cache is built on the player's own machine from their own copy and is not
+in the repository or the release.
+
+Each sheet is read from the game copy as the game's loader 0x409B00 finds it (Fish
+Tycoon: its Images folder, then Assets\\ft.dat, a file on disk winning; Plant Tycoon: its
+Images folder). The patcher's own parts come from the patcher's own assets, the files it
+installs in a patched copy (DS Exclusive Fish's FISH_23..29 sheets, DS Store Items' Exotic
+Fish Eggs icon, Unused Flowers' flowers64x64_grid.png, the Store Upgrades seed sheet), so
+they show whichever copy the stock art came from.
 
 Where each picture comes from:
 
@@ -38,8 +48,16 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
 from pathlib import Path
+import shutil
+import uuid
 import zipfile
+
+PATCHER_ROOT = Path(__file__).resolve().parents[1]
 
 # ------------------------------------------------------------------ the art, as data
 
@@ -257,6 +275,261 @@ class ArtSource:
     def close(self) -> None:
         if self._zip is not None:
             self._zip.close()
+            self._zip = None
+
+
+# ------------------------------------------------------------------ the picture cache
+
+CACHE_FOLDER = "Breeding Guide Pictures"
+CACHE_GAME_FOLDERS = {"fish": "Fish", "plant": "Plant"}
+CACHE_FORMAT = "Fish and Plant Tycoon Fix Patcher: Breeding Guide Pictures"
+CACHE_VERSION = 1
+MANIFEST = "manifest.json"
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+GAME_TITLES = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
+
+# Where the cache lives: the patcher's own folder. A test points it elsewhere.
+CACHE_ROOT = PATCHER_ROOT / CACHE_FOLDER
+
+
+def no_pictures_message(game: str) -> str:
+    title = GAME_TITLES.get(game, "the game")
+    return (f"No {title} pictures yet: pick your {title} game folder on the patcher's Game tab, or click "
+            f"\"Find game...\" here. The guide then keeps its own copy of the pictures, so they show from then on.")
+
+
+def patcher_art(game: str) -> dict[str, Path]:
+    """The patcher's own art, by the file name the guide asks for: the files its settings
+    install in a patched copy (data/*_manifest.json, the companions' Images)."""
+    assets = PATCHER_ROOT / "assets"
+    if game == "fish":
+        import breeding_fish as bf
+        art = {f"FISH_{g:02d}_{part}_Grid.png": assets / "fish_tycoon_ds" / "Images" / f"FISH_{g:02d}_{part}_Grid.png"
+               for g in bf.DS_GENES for part in ("body", "top", "bot")}
+        art[EXOTIC_EGGS[2]] = assets / "fish_tycoon_ds_store" / "Images" / EXOTIC_EGGS[2]
+        return art
+    return {FLOWER_SHEETS[82][0]: assets / "plant_tycoon_flowers" / "Images" / "flowers64x64_grid.png",
+            LEGENDARY_SHEET[0]: assets / "plant_tycoon_upgrades" / "Images" / "seed_grid_legendary.png"}
+
+
+# Plant Tycoon: the images "Add Missing Assets to LDW Version" puts in a patched copy where
+# the LDW copy has none (only additive, as that setting is).
+PLANT_FILL = PATCHER_ROOT / "assets" / "plant_tycoon_steam" / "Images"
+
+
+def required_files(game: str) -> list[str]:
+    """Every sheet the picture tabs cut a picture from, stock and patcher, as the guide names them."""
+    names: list[str] = []
+    if game == "fish":
+        import breeding_fish as bf
+        model = type("M", (), {"game": "fish"})()
+        for g in tuple(bf.PC_GENES) + tuple(bf.DS_GENES):
+            names += [a.file for a in part_art(model, "body", g) + part_art(model, "fin", g)]
+        names += [file for _n, _t, file in FISH_EGGS] + [EXOTIC_EGGS[2]]
+    else:
+        names += [name for name, _c, _r in FLOWER_SHEETS.values()]
+        names += list(FOLIAGE_ART.values())
+        names += [SEED_SHEET[0], LEGENDARY_SHEET[0]]
+    return list(dict.fromkeys(names))
+
+
+def _sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest().upper()
+
+
+class PatcherArt:
+    """The patcher's own art files, read only."""
+
+    def __init__(self, game: str) -> None:
+        self.files = {name.casefold(): path for name, path in patcher_art(game).items()}
+
+    def read(self, name: str) -> bytes | None:
+        path = self.files.get(name.casefold())
+        if path is None:
+            return None
+        try:
+            return path.read_bytes()
+        except OSError:
+            return None
+
+
+class CacheSource:
+    """The guide's own picture cache for one game, checked against its manifest before it is
+    used: a missing, changed or unlisted file, or an unreadable manifest, and it is not used."""
+
+    def __init__(self, game: str, root: Path | None = None, *, folder: Path | None = None) -> None:
+        self.game = game
+        self.folder = Path(folder) if folder is not None else Path(root or CACHE_ROOT) / CACHE_GAME_FOLDERS[game]
+        self.copy = self.folder
+        self.problem = ""
+        self._data: dict[str, bytes] = {}
+        self.manifest: dict = {}
+        try:
+            manifest = json.loads((self.folder / MANIFEST).read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            self.problem = "no cache"
+            return
+        except (OSError, ValueError) as exc:
+            self.problem = f"its manifest could not be read ({exc})"
+            return
+        if not isinstance(manifest, dict) or manifest.get("format") != CACHE_FORMAT \
+                or manifest.get("version") != CACHE_VERSION or manifest.get("game") != game \
+                or not isinstance(manifest.get("files"), dict):
+            self.problem = "its manifest is not this version's"
+            return
+        files = manifest["files"]
+        missing = [n for n in required_files(game) if n not in files]
+        if missing:
+            self.problem = f"it is partial ({len(missing)} picture file(s) not in it)"
+            return
+        for name, entry in files.items():
+            if not isinstance(entry, dict) or Path(name).name != name:
+                self.problem = f"its manifest entry for {name!r} is not valid"
+                return
+            try:
+                data = (self.folder / name).read_bytes()
+            except OSError:
+                self.problem = f"{name} is missing from it"
+                return
+            if len(data) != entry.get("size") or _sha256(data) != str(entry.get("sha256", "")).upper() \
+                    or not data.startswith(PNG_MAGIC):
+                self.problem = f"{name} does not match its manifest"
+                return
+            self._data[name.casefold()] = data
+        self.manifest = manifest
+
+    @property
+    def ok(self) -> bool:
+        return not self.problem
+
+    def read(self, name: str) -> bytes | None:
+        return self._data.get(name.casefold())
+
+    def close(self) -> None:
+        pass
+
+
+def _remove_tree(path: Path) -> None:
+    """Remove one of the cache's own folders (never anything else)."""
+    shutil.rmtree(path, ignore_errors=True)
+
+
+def build_cache(game: str, copy: Path, root: Path | None = None) -> tuple[bool, str]:
+    """(built, why not): copy every picture sheet from the game copy (read only) and the
+    patcher's own art into the cache, all or nothing. The new cache is written in a
+    temporary folder beside it, checked, then swapped in; the game copy is never written."""
+    root = Path(root or CACHE_ROOT)
+    final = root / CACHE_GAME_FOLDERS[game]
+    source = ArtSource(copy)
+    patcher = PatcherArt(game)
+    fill = {}
+    if game == "plant":
+        try:
+            fill = {p.name.casefold(): p for p in PLANT_FILL.iterdir() if p.is_file()}
+        except OSError:
+            fill = {}
+    try:
+        if source.problem:
+            return False, source.problem
+        files: dict[str, tuple[bytes, str]] = {}
+        missing = []
+        for name in required_files(game):
+            data, where = patcher.read(name), "the patcher's own art"
+            if data is None:
+                data, where = source.read(name), f"the game copy {copy}"
+            if data is None and name.casefold() in fill:
+                try:
+                    data, where = fill[name.casefold()].read_bytes(), "the patcher's Add Missing Assets images"
+                except OSError:
+                    data = None
+            if data is None or not data.startswith(PNG_MAGIC):
+                missing.append(name)
+                continue
+            files[name] = (data, where)
+    finally:
+        source.close()
+    if missing:
+        shown = ", ".join(missing[:4]) + (" ..." if len(missing) > 4 else "")
+        return False, f"{len(missing)} picture file(s) are not in {copy} ({shown})."
+    temp = root / f".{final.name}.building-{uuid.uuid4().hex[:12]}"
+    old = root / f".{final.name}.old-{uuid.uuid4().hex[:12]}"
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        for leftover in root.glob(f".{final.name}.*"):  # an earlier build that was cut short
+            if leftover.is_dir():
+                _remove_tree(leftover)
+        temp.mkdir()
+        entries = {}
+        for name, (data, where) in files.items():
+            (temp / name).write_bytes(data)
+            entries[name] = {"size": len(data), "sha256": _sha256(data), "from": where}
+        manifest = {"format": CACHE_FORMAT, "version": CACHE_VERSION, "game": game,
+                    "built": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                    "built_from": str(copy), "files": entries}
+        (temp / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        check = CacheSource(game, folder=temp)
+        if not check.ok:
+            raise OSError(f"the new cache did not read back: {check.problem}")
+        if final.exists():
+            os.replace(final, old)
+        os.replace(temp, final)
+    except OSError as exc:
+        _remove_tree(temp)
+        if old.exists() and not final.exists():
+            try:
+                os.replace(old, final)
+            except OSError:
+                pass
+        return False, f"The picture cache could not be written in {root} ({exc})."
+    _remove_tree(old)
+    return True, ""
+
+
+class Pictures:
+    """What a picture tab reads: the patcher's own art first, then the cache (or, when no
+    cache could be made, the game copy itself)."""
+
+    def __init__(self, game: str, base=None, problem: str = "", note: str = "") -> None:
+        self.game = game
+        self.base = base
+        self.patcher = PatcherArt(game)
+        self.problem = problem or (getattr(base, "problem", "") if base is not None else no_pictures_message(game))
+        self.copy = getattr(base, "copy", None)
+        self.note = note
+
+    def read(self, name: str) -> bytes | None:
+        data = self.patcher.read(name)
+        if data is None and self.base is not None:
+            data = self.base.read(name)
+        return data
+
+    def close(self) -> None:
+        if self.base is not None:
+            self.base.close()
+
+
+def picture_source(game: str, copies=(), root: Path | None = None) -> Pictures:
+    """The pictures for a game: the cache when it is whole; else built from the first game
+    copy that has every sheet; else read straight from a copy; else none, with one line
+    saying how to give the guide a copy."""
+    cache = CacheSource(game, root)
+    if cache.ok:
+        return Pictures(game, cache)
+    copies = [Path(c) for c in dict.fromkeys(str(c) for c in copies if c)]
+    reasons = []
+    for copy in copies:
+        built, why = build_cache(game, copy, root)
+        if built:
+            cache = CacheSource(game, root)
+            if cache.ok:
+                return Pictures(game, cache)
+            why = f"the new picture cache did not read back ({cache.problem})"
+        reasons.append(why)
+    if copies:
+        direct = ArtSource(copies[0])
+        note = reasons[0] if reasons else ""
+        return Pictures(game, direct, note=note)
+    return Pictures(game, None)
 
 
 MAX_SIDE = 120

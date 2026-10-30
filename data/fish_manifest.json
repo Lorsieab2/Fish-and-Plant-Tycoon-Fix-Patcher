@@ -18567,8 +18567,8 @@
           {
             "path": "Maximizable Window.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Maximizable Window.dll",
-            "size": 90624,
-            "sha256": "E97009B239F0E04CE61747E4B0D9F91FCCA6FB44E83E18EF67753FCCC19D68DA"
+            "size": 91648,
+            "sha256": "D55161E98AD2A7EB0DB4B966E64B927232258C62CBCCCD17DCC9AC0BF663657D"
           }
         ]
       }
@@ -18577,7 +18577,7 @@
       "id": "tank_greenhouse_counts",
       "name": "Tank and greenhouse counts",
       "summary": "Shows how many fish the tank on screen holds, how many are adults, teens and babies, which are sick, its creatures and the isolation tank, in the game's own font, with an in-game on/off button.",
-      "description": "Adds lines at the top left of the water on the tank screen, for the tank you are looking at (Tank 1 to Tank 6 with 3 extra tanks): \"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (of 30 with Bigger tanks), \"Sick: 2 fungus, 1 ick\" and \"Low Health: 3\" (fish whose health bar is red, 25 or less) when any fish is, the creatures in it (\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation tank: 1 of 1 (1 adult)\". With 3 extra tanks the lines sit lower, under the tank's name and its For sale button. Adults, teens and babies are the game's own stages: a baby is age 1-5, a teen 6-19, an adult 20 and up. Dead fish are left out of the count and shown after it as \"Dead: 2\" until you throw them away. A \"Counts: On\" button at the top right of the water hides or shows them (hidden, only the button stays); the game remembers your choice in \"Tank Counts.ini\" beside the DLL, never in a save. The lines follow the game's language (English or German), update every frame, and sit behind the fish, so nothing in the tank is ever covered. Display only: nothing in the game or your saves changes. Runs as a companion DLL the game loads at start.",
+      "description": "Adds lines at the top left of the water on the tank screen, for the tank you are looking at (Tank 1 to Tank 6 with 3 extra tanks): \"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (of 30 with Bigger tanks), \"Sick: 2 fungus, 1 ick\" and \"Low Health: 3\" (fish whose health bar is red, 25 or less) when any fish is, the creatures in it (\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation tank: 1 of 1 (1 adult)\". With 3 extra tanks the lines sit lower, under the tank's name and its For sale button. Adults, teens and babies are the game's own stages: a baby is age 1-5, a teen 6-19, an adult 20 and up. Dead fish are left out of the count and shown after it as \"Dead: 2\" until you throw them away. A \"Counts: On\" button at the top right of the water hides or shows them (hidden, only the button stays); the game remembers your choice in \"Tank Counts.ini\" beside the DLL, never in a save. The lines follow the game's language (English or German), update every frame, and are drawn over everything in the tank (fish, creatures, ornaments, decorations, bubbles, the tank's name and For sale button), under only a fish or item in your hand and the game's popups. Display only: nothing in the game or your saves changes. Runs as a companion DLL the game loads at start.",
       "category": "main",
       "default": true,
       "companion": {
@@ -18587,8 +18587,8 @@
           {
             "path": "Tank Counts.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Tank Counts.dll",
-            "size": 95232,
-            "sha256": "76AF4B3FBB52C249D8AAF224D5ADCC0E7C0C33996C419618EA2A36D9D0B8A8BE"
+            "size": 94720,
+            "sha256": "1EBDD5AF75A1974559A662918698A1830EE786EB7242CE85C5FB0482266F184D"
           }
         ]
       }
@@ -18596,8 +18596,8 @@
     {
       "id": "optimize_prices",
       "name": "Optimize Prices button",
-      "summary": "Adds an Optimize Prices button to the Species Chart: it sets every discovered species to its best price per day for your shop as it is now.",
-      "description": "Adds an \"Optimize Prices\" button on the Species Chart's bottom bar, left of Done, where you set prices. It asks \"Set every discovered species to its best price per day?\". On Yes, every species you have discovered gets the Breeding Guide's \"best per day\" asking price, the price that earns the most money over time, worked out in the game with the same maths as the guide for your shop as it is now: each species' base price (with the Advertising price rises), the ornaments you own, the Golden Seahorse and your Advertising level, with a full selling tank. Then it says how many prices it set. Species you have not discovered keep their prices and nothing else changes; the new prices are the ones you would type yourself, saved with the game as usual. With DS Exclusive Fish on, the DS species are included. Runs as a companion DLL the game loads at start; the save layout is unchanged.",
+      "summary": "Adds an Optimize Prices button to the Species Chart and the Fish Store screen: it sets every discovered species to its best price per day for your shop as it is now.",
+      "description": "Adds an \"Optimize Prices\" button on the Species Chart's bottom bar, left of Done, where you set prices, and the same button on the Fish Store screen (opened with Sell Fish), on its bottom bar left of Done, so you can use it any time: the Species Chart only opens with a fish in the isolation tank. Both buttons do the same thing. It asks \"Set every discovered species to its best price per day?\". On Yes, every species you have discovered gets the Breeding Guide's \"best per day\" asking price, the price that earns the most money over time, worked out in the game with the same maths as the guide for your shop as it is now: each species' base price (with the Advertising price rises), the ornaments you own, the Golden Seahorse and your Advertising level, with a full selling tank. Then it says how many prices it set. Species you have not discovered keep their prices and nothing else changes; the new prices are the ones you would type yourself, saved with the game as usual. With DS Exclusive Fish on, the DS species are included. Runs as a companion DLL the game loads at start; the save layout is unchanged.",
       "category": "main",
       "default": true,
       "companion": {
@@ -18607,14 +18607,20 @@
           {
             "path": "Optimize Prices.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Optimize Prices.dll",
-            "size": 90112,
-            "sha256": "CFBFCEDA919891F3ED668E9933B605699A1A0B23711D0D1D76D6216E051C051D"
+            "size": 90624,
+            "sha256": "10E7B13A261D6ABD02CB08E060FA4B16F5F2CBAA3D078D68F9226A7521952011"
           },
           {
             "path": "Images/OptimizePricesButton.png",
             "destination": "Images/OptimizePricesButton.png",
             "size": 22673,
             "sha256": "6EA06A905E06E77966EDA5FBBA0229BEC89D547CC6A0651DBFEBB0FF90790836"
+          },
+          {
+            "path": "Images/OptimizePricesStoreButton.png",
+            "destination": "Images/OptimizePricesStoreButton.png",
+            "size": 19744,
+            "sha256": "F3B2A966E15D998A596CB5E8BB56F012BC5AA8FBF83A57B173BC22F7E1601C78"
           }
         ]
       }
@@ -18636,7 +18642,7 @@
             "path": "DS Exclusive Fish.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Exclusive Fish.dll",
             "size": 105984,
-            "sha256": "46D508B986EA0C2576A950B275A6E9D3EBECE07527995970E1E836F94A97B015"
+            "sha256": "FFE6FD722C2820378053A833D9E9F9DD9F60F7BF34B9EE441FD954050E015577"
           },
           {
             "path": "Images/FISH_23_body_Grid.png",
@@ -18782,8 +18788,8 @@
     {
       "id": "ds_store",
       "name": "DS Store Items",
-      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, and ClonaFish, which clones every unique fish. Needs DS Exclusive Fish.",
-      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal places of its own, the Golden Seahorse's included, kept beside the save in \"Tank Animals <slot>.dat\" (a save from an earlier build has its animals moved there the first time it loads); with 3 extra tanks, the animals in Tanks 4-6 move with their tank and are kept with it in \"Extra Tanks <slot>.dat\". Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way, on every live fish in the tank you use it on, any age: each pregnant one gives birth at once, as at the end of a pregnancy, then each of them, the newborns too, becomes an adult at once if younger, gets full health and is cured of any sickness. The Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every unique fish in the tank you use it on (a fish no other fish there shares its body and fin with), until the tank is full. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
+      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, ClonaFish, which clones every unique fish, and the Auto-Feeder and Auto-Healer, which keep every fish in every tank fed and healthy. Needs DS Exclusive Fish.",
+      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal places of its own, the Golden Seahorse's included, kept beside the save in \"Tank Animals <slot>.dat\" (a save from an earlier build has its animals moved there the first time it loads); with 3 extra tanks, the animals in Tanks 4-6 move with their tank and are kept with it in \"Extra Tanks <slot>.dat\". Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way, on every live fish in the tank you use it on, any age: each pregnant one gives birth at once, as at the end of a pregnancy (the babies stay babies, as born), then each fish that was there before the births becomes an adult at once if younger, gets full health and is cured of any sickness. The Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every unique fish in the tank you use it on (a fish no other fish there shares its body and fin with), until the tank is full. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work on every live fish in every tank (Tanks 1-2, the Sale Tank, the isolation tank and Tanks 4-6, on screen or not, through time away and the Time Warp too): the Auto-Feeder keeps each fish's food at 50, so it never starves and feeding by hand on top never overfeeds it; the Auto-Healer cures fungus and ick (each cure counts under Fish Cured) and keeps health at 100. Neither touches a dead fish. Unpurchase: click an owned one again and answer Yes; it switches off at once, with no refund (buying it again costs the full price). Ownership is kept beside the save in \"Auto Upgrades <slot>.dat\"; a new game starts without them. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
       "warning": "Turning this off hides the store animals and the Golden Seahorse: they wait in \"Tank Animals <slot>.dat\" beside the save and come back when it is on again. The eel's rock stays in the tank as a sprite the game cannot draw; trash the eel (its rock goes with it) before switching it off if you mind.",
       "category": "main",
       "default": false,
@@ -18797,8 +18803,8 @@
           {
             "path": "DS Store Items.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
-            "size": 147456,
-            "sha256": "C9131E4E0272812D70A7AD800BA30F7920F4752487DE261059F7FBCDC0713EC2"
+            "size": 152064,
+            "sha256": "749BBD608F3163B80C915BDE85FBACFC57AB46F81C3EE4023F95FDD1D3619FF7"
           },
           {
             "path": "Images/DS_EEL_Grid.png",
@@ -18847,6 +18853,18 @@
             "destination": "Images/ITEM_ADD_MONEY.png",
             "size": 9313,
             "sha256": "EF46FDA4D0AAFD9CCED3805CF2E5FA18D5A9FF6BC12002287A4E42B3167BA9CF"
+          },
+          {
+            "path": "Images/ITEM_AUTO_FEEDER.png",
+            "destination": "Images/ITEM_AUTO_FEEDER.png",
+            "size": 8099,
+            "sha256": "B995487155A0C5A360709E772C2B9736BA992786E4F4A754B0E56FF74E7F9E24"
+          },
+          {
+            "path": "Images/ITEM_AUTO_HEALER.png",
+            "destination": "Images/ITEM_AUTO_HEALER.png",
+            "size": 8211,
+            "sha256": "5176539829637FD59DFB7BE0E03EE6A48D133CC9E4D0DA0ED7F621AAB469A539"
           },
           {
             "path": "Images/ITEM_CLONAFISH.png",
@@ -18973,7 +18991,7 @@
       "id": "free_upgrades",
       "name": "Free upgrades",
       "summary": "Every item on the store's Upgrades screen costs $0.",
-      "description": "Every item on the Supplies store's Upgrades page (DS Store Items), which this setting turns on, costs $0: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000), ClonaFish ($2,500), and the Time Warp clock ($500), Add Money ($950) and the Extra Tank ($10,000 each) when those settings are on. The price shown says $0 and no money is taken. Everything else stays: The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy Multiple Golden Seahorses is on), the eggs and the chemicals still go in a supply slot, the extra tanks are still bought in order (Tank 4, then 5, then 6), and the game's own purchase confirmations are still asked. The game's own store items keep their prices. Saves keep their layout.",
+      "description": "Every item on the Supplies store's Upgrades page (DS Store Items), which this setting turns on, costs $0: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000), ClonaFish ($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), and the Time Warp clock ($500), Add Money ($950) and the Extra Tank ($10,000 each) when those settings are on. The price shown says $0 and no money is taken. Everything else stays: The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy Multiple Golden Seahorses is on), the eggs and the chemicals still go in a supply slot, the extra tanks are still bought in order (Tank 4, then 5, then 6), and the game's own purchase confirmations are still asked. The game's own store items keep their prices. Saves keep their layout.",
       "category": "main",
       "default": false,
       "requires_settings": [
@@ -19017,7 +19035,7 @@
       "id": "extra_tanks",
       "name": "3 extra tanks",
       "summary": "EXPERIMENTAL - USE AT OWN RISK. Three more full tanks for breeding and selling, Tank 4, Tank 5 and Tank 6, bought on the store's Upgrades screen for $10,000 each and reached with two arrows beside the tank buttons. Needs DS Store Items.",
-      "description": "EXPERIMENTAL - USE AT OWN RISK. Adds Tank 4, Tank 5 and Tank 6: full tanks exactly like Tank 1 and Tank 2, made from the game's own tank and run by the game's own code. Buy them on the Supplies store's Upgrades screen (Extra Tank, $10,000 each, $0 with Free upgrades), one after the other; Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank 6 like the Sale Tank (without its sign). Fish live, age, eat, get sick, breed and give birth in them; food, medicines, chemicals, eggs, ornaments, research, the plants, the magic fish, the Golden Seahorse and the DS store animals work there as in any tank, and with Bigger tanks they hold 30 fish too. Two small arrows left of the Tank 1 button switch the tank buttons to the three new tanks and back; drag a fish, animal or ornament onto a button to move it there, or onto an arrow to move it to the previous or next tank. Every tank screen shows its name (Tank 1 to Tank 6; Tank 3 is the Sale Tank). Each extra tank has a \"For sale\" button, Off at first: On, it shows the Sale Tank's For Sale! sign and its fish sell together with the Sale Tank's, through the game's own sale (one sale a second, the same prices and odds, and never a bigger crowd than the stock game's most). Runs as a companion DLL the game loads at start; the save files keep their stock layout, and each save slot keeps its extra tanks, with their store animals and For sale buttons, in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside the saves. Needs DS Store Items, which it turns on (the Upgrades screen it is sold on).",
+      "description": "EXPERIMENTAL - USE AT OWN RISK. Adds Tank 4, Tank 5 and Tank 6: full tanks exactly like Tank 1 and Tank 2, made from the game's own tank and run by the game's own code. Buy them on the Supplies store's Upgrades screen (Extra Tank, $10,000 each, $0 with Free upgrades), one after the other; Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank 6 like the Sale Tank (without its sign). Fish live, age, eat, get sick, breed and give birth in them; food, medicines, chemicals, eggs, ornaments, research, the plants, the magic fish, the Golden Seahorse and the DS store animals work there as in any tank, and with Bigger tanks they hold 30 fish too. Two small arrows left of the Tank 1 button switch the tank buttons to the three new tanks and back; drag a fish, animal or ornament onto a button to move it there (carry it over an arrow to switch the buttons to the other three tanks). Every tank screen shows its name (Tank 1 to Tank 6; Tank 3 is the Sale Tank). Each extra tank has a \"For sale\" button, Off at first: On, it shows the Sale Tank's For Sale! sign and its fish sell together with the Sale Tank's, through the game's own sale (one sale a second, the same prices and odds, and never a bigger crowd than the stock game's most). Runs as a companion DLL the game loads at start; the save files keep their stock layout, and each save slot keeps its extra tanks, with their store animals and For sale buttons, in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside the saves. Needs DS Store Items, which it turns on (the Upgrades screen it is sold on).",
       "warning": "Empty Tank 4, Tank 5 and Tank 6 (move every fish, animal and ornament out) before turning this off: without it the game cannot reach them. Nothing is deleted (they come back if you turn it on again), but until then they are out of the game.",
       "category": "main",
       "default": false,
@@ -19034,7 +19052,7 @@
             "path": "Extra Tanks.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Extra Tanks.dll",
             "size": 105472,
-            "sha256": "6CAD750D315002038B38C10A57864B137765098FC758A1AC4877C75C1776E623"
+            "sha256": "4CDF82930020E6BE597B4AA8C9C9F0782518E8DC775971EACFDDC3552FE38D59"
           },
           {
             "path": "Images/ExtraTank1Button.png",

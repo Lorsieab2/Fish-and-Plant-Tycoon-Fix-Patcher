@@ -183,7 +183,8 @@ AGES = (
                   "beside the DLL, never the save. Dead "
                   "fish are shown apart as \"Dead: n\". With 3 extra tanks it counts Tanks 4-6 too, and the "
                   "lines sit lower (y 136), under the tank's name and For sale button. Drawn every frame "
-                  "behind the fish; display only."),),
+                  "over everything in the tank (first thing in the tank screen's overlay, 0x443A70), "
+                  "under only what the hand holds and popups; display only."),),
     ),
 )
 
@@ -590,6 +591,22 @@ CONSUMABLES = (
         "advice.",
     ),
     Fact(
+        "The trash can (bottom right of the tank screen) takes only fish: a fish dropped on it is "
+        "thrown away after \"Delete this fish?\" while it lives (a dead one at once), with the trash "
+        "sound, and counts under Fish Trashed. Food, medicines, chemicals and eggs let go anywhere "
+        "outside the tank, the trash can included, go back to their slot with a hint, and an "
+        "ornament dropped on it just rests there: none of them can be thrown away.",
+        patched=(("ds_store", "Exotic Fish Eggs, the Radioactive Growth Hormone, the Revival Potion and "
+                  "ClonaFish let go on the trash can are thrown away with everything left in their slot "
+                  "(every dose, or every hatch of a stack), with the trash sound and no question (the "
+                  "game asks only about a fish). Only that slot is emptied. The food and the game's own "
+                  "medicines, chemicals and eggs still go back to their slot. The slots belong to no "
+                  "tank, so this is the same on Tanks 4-6. The Moray Eel and its rock go together: "
+                  "trashing either takes the other, from whichever tank it is in, Tanks 4-6 included."),
+                 ("multiple_ornaments", "the extra copies can be thrown away (see Ornaments); the "
+                  "original still cannot."),),
+    ),
+    Fact(
         "Ick Treatment ($30, 3 doses): every fish with ick in the tank you use it on, and the fish in "
         "the isolation tank, is cured on Random(100) < C: Easy 70 "
         f"({chance(100, 70)}), Medium 40 ({chance(100, 40)}), Hard 25 ({chance(100, 25)}). Each fish "
@@ -636,8 +653,10 @@ CONSUMABLES = (
                   "exactly as at the end of a pregnancy: the same litter (1, +1 with a Magic Fish of "
                   "Fertility, +1 with the Plant of Fertility), the Magic Fish's 16% mutation of the "
                   "father's genes, and no baby where the tank has no room; the babies are born aged 1, "
-                  "and the isolation tank never gives birth, as in the game. Then each fish, the newborns too, so "
-                  "the whole litter comes out adult: a fish under 20 becomes 20 (an adult) at once, "
+                  "and the isolation tank never gives birth, as in the game. The babies stay babies, exactly as a natural "
+                  "birth makes them (aged 1, their species name hidden until they are adults, as for "
+                  "any baby); a later dose grows them up. Then each fish that was in the tank before the "
+                  "births: a fish under 20 becomes 20 (an adult) at once, "
                   "older fish keep their age, and every one gets health 100 and is cured of ick or "
                   "fungus (each cure counts under Fish Cured). On every difficulty, Hard included, only "
                   "one step's health, sickness and food checks run at the next update (as Growth "
@@ -794,6 +813,40 @@ PERMANENT_ITEMS = (
         "Second Tank ($450): unlocks Tank Two, a second full-size tank (21 fish) with its own fish, "
         "ornaments and magic fish. You can drop fish and ornaments on its button to move them.",
         patched=(("bigger_tanks", "it holds 30 fish, like Tank One and the selling tank."),),
+    ),
+    Fact(
+        "Auto-Feeder: not in the unpatched game.",
+        patched=(("ds_store", "Auto-Feeder ($10,000), on the store's Upgrades page, bought once: every age step of "
+                  "every live fish in every tank (Tank One, Tank Two, the selling tank and the isolation "
+                  "tank; every fish slot, 30 with Bigger tanks; time away and the Time Warp step by step, "
+                  "on screen or not) sets its food to 50, right after the step's sickness roll and before "
+                  "the step's food drop (so food rests at 49-50). Below 5 food a fish gains no health and "
+                  "at 2 or less it starves (food 0, -1 health a step): at 50 neither happens. Feeding by hand "
+                  "gives +50 and costs 2 health when it would pass 100 (overfeeding): from 50 it reaches "
+                  "100 at most, so it never hurts. The game keeps no water quality or pollution; the "
+                  "falling food is only drawn. Dead fish, the Golden Seahorse and the store animals are "
+                  "never touched. A purchase feeds every fish at once. Units of Food Given counts only "
+                  "food you drop. Click it again on the Upgrades page (once it is selected) and answer Yes "
+                  "to unpurchase it: it stops at once, nothing it did is undone, there is no refund and "
+                  "buying it again costs the full price. Kept per save slot in \"Fish Tycoon Fix Patcher "
+                  "Data\\Auto Upgrades <slot>.dat\"; a new game starts without it."),
+                 ("extra_tanks", "Tanks 4-6 too, on screen or not."),
+                 ("free_upgrades", "the Auto-Feeder costs $0."),),
+    ),
+    Fact(
+        "Auto-Healer: not in the unpatched game.",
+        patched=(("ds_store", "Auto-Healer ($10,000), on the store's Upgrades page, bought once: every age step of "
+                  "every live fish in every tank (as the Auto-Feeder), right after the sickness roll, "
+                  "clears fungus or ick (each cure counts under Fish Cured, as the medicines count) and "
+                  "sets health to 100, and again at the step's end (after the clamps, before the death "
+                  "test). So a fish never stays sick: no lost pregnancy, no health loss, no spreading, no "
+                  "lost sales. It never revives: a fish at health 0 is dead, and one whose health reaches "
+                  "0 within a step is left to die (that can only happen to a fish that was nearly dead "
+                  "when it was bought: the purchase heals every live fish at once). The Golden Seahorse "
+                  "and the store animals are never touched. Unpurchase as the Auto-Feeder. Kept in the "
+                  "same \"Auto Upgrades <slot>.dat\"."),
+                 ("extra_tanks", "Tanks 4-6 too, on screen or not."),
+                 ("free_upgrades", "the Auto-Healer costs $0."),),
     ),
 )
 
@@ -968,7 +1021,8 @@ PRICES = (
         "After that the asking price never changes by itself: only the species screen's arrows "
         "and keypad (0 to 9999) change it, and only Advertising changes B.",
         patched=(("optimize_prices", "an \"Optimize Prices\" button on the Species Chart's bottom bar, left "
-                  "of Done, asks Yes/No and then sets every discovered species' asking price to the Breeding "
+                  "of Done, and the same button on the Fish Store screen (opened with Sell Fish), on its bottom "
+                  "bar left of Done (544-693 x 547-596), asks Yes/No and then sets every discovered species' asking price to the Breeding "
                   "Guide's best price per day: the price P from 1 to 2B - 1 with the most money per real "
                   "day, the average over the two crowds 4 + ornaments owned + 2 for the Golden Seahorse + "
                   "2 x Advertising level x (a full selling tank / 3 + 2 or 3), each customer counted as "
@@ -1093,7 +1147,7 @@ EXTRA_TANKS = (
         "How to get them: on the Supplies store's Upgrades screen (DS Store Items), the Extra Tank "
         "item, $10,000 each ($0 with Free upgrades), bought one after the other: Tank 4, then Tank 5, "
         "then Tank 6. Until then a tank's button is greyed out, a click or a drop on it says \"You don't "
-        "own this tank yet!\" (and the fish swims back), and the arrows skip it. A new game owns none. "
+        "own this tank yet!\" just under the top bar (and the fish swims back). A new game owns none. "
         "Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank 6 like the Sale Tank without "
         "its For Sale sign (the game's own background and decorations, 0x41D140 and 0x41D340).",
         label="E",
@@ -1101,9 +1155,10 @@ EXTRA_TANKS = (
     Fact(
         "How to reach them: either of the two small arrows left of the Tank 1 button switches the three "
         "tank buttons to Tank 4, Tank 5 and Tank 6, and back. Click a button to look at that tank. "
-        "Drag a fish, animal or ornament onto a button to move it there, or onto the left or right arrow to "
-        "move it to the previous or next tank (Tank 1, Tank 2, the Sale Tank, Tank 4, Tank 5, Tank 6, "
-        "and round again, skipping a tank not bought): into the first free place, up to the tank's size (21 fish, 30 with "
+        "Drag a fish, animal or ornament onto a button to move it there; carried over either arrow, the "
+        "buttons switch to the other three tanks (once each time it comes onto an arrow), so it can be "
+        "dropped on any of the six, and let go on an arrow itself it stays where it was: into the first "
+        "free place, up to the tank's size (21 fish, 30 with "
         "Bigger tanks; six ornaments), by the game's own code, and \"The tank is full!\" when there "
         "is none, as on the stock buttons.",
         label="E",
@@ -1111,8 +1166,8 @@ EXTRA_TANKS = (
     Fact(
         "Moving things between tanks: fish of any age, sick or not (a pregnant fish keeps her pregnancy), "
         "the Golden Seahorse, the DS store animals, ornaments, the Moray Eel's rock (the eel goes with it "
-        "when it is home) and Multiple ornaments' copies move by dropping them on a tank's button or on an "
-        "arrow (left: the previous tank, right: the next, round the six). The game's own move code places "
+        "when it is home) and Multiple ornaments' copies move by dropping them on a tank's button, carrying "
+        "them over an arrow to reach the other page of buttons. The game's own move code places "
         "them: fish by AddFish, the store animals into the tank's own 5 animal places, ornaments by the ornament "
         "placement, six per tank.",
         label="E",
@@ -1124,6 +1179,9 @@ EXTRA_TANKS = (
             "hatch in the tank on screen. The isolation tank has no button: drop a fish on it as "
             "usual. Store purchases go to the tank on screen (the stock Golden Seahorse to Tank 1 "
             "first).",
+            "The trash can works on Tanks 4-6 as on any tank: fish, the store animals, Multiple "
+            "ornaments' copies and DS Store Items' eggs and chemicals go in it (see Consumables); the "
+            "Moray Eel and its rock go together even when one is in Tanks 4-6 and the other is not.",
         ),
     ),
     Fact(
@@ -1336,10 +1394,14 @@ HIDDEN = (
         "has a stock or a timer: medicines, chemicals and eggs can be bought at any time (one "
         "batch per supply slot), each permanent item and ornament once, and one research at a "
         "time; asking prices change only on the species screen.",
+        patched=(("optimize_prices", "the Fish Store screen (the selling shop, opened with Sell Fish) has an "
+                  "Optimize Prices button, left of Done, that also sets asking prices: every discovered "
+                  "species', exactly as the Species Chart's button does. The shop's customers and sales are "
+                  "unchanged."),),
     ),
     Fact("The patcher adds no keys. Its additions are clicks: the store's Upgrades button, the DS "
          "animals and new chemicals (with DS Store Items), the Time Warp clock (with Time Warp), the "
-         "Optimize Prices button (on the Species Chart), and the tank arrows and For sale buttons "
+         "Optimize Prices button (on the Species Chart and the Fish Store screen), and the tank arrows and For sale buttons "
          "(with 3 extra tanks)."),
 )
 

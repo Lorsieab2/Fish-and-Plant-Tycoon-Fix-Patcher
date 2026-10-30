@@ -34,6 +34,7 @@ import csv
 from dataclasses import dataclass
 import importlib
 import json
+import os
 from pathlib import Path
 import re
 import threading
@@ -117,6 +118,70 @@ class Extras:
 
 def setting_name(game_id: str) -> str:
     return Extras.SETTINGS[game_id][1]
+
+
+def default_install_parents(env=None) -> list[Path]:
+    """The folders a game is installed in by default: Program Files (both), their LDW and
+    Last Day of Work folders, and Steam's games folder."""
+    env = os.environ if env is None else env
+    found: list[Path] = []
+    for key in ("ProgramFiles(x86)", "ProgramFiles", "ProgramW6432"):
+        base = env.get(key)
+        if base:
+            base = Path(base)
+            found += [base, base / "LDW", base / "Last Day of Work", base / "Steam" / "steamapps" / "common"]
+    return list(dict.fromkeys(found))
+
+
+INSTALL_ENV = None              # the environment the default installs are read from (None: this process's)
+
+
+def lookup_parents(parents) -> list[Path]:
+    """The folders the patcher passed (its output folder, the output copies, the game folder
+    picked on the Game tab, and the folders those sit in), then the default installs."""
+    out = [Path(p) for p in parents if p] + default_install_parents(INSTALL_ENV)
+    return list(dict.fromkeys(out))
+
+
+def is_game_copy(game_id: str, folder: Path) -> bool:
+    """A folder with one of this game's executables ("<Game>*.exe": the original, "- Modded",
+    "- Modded Upgrades" ...) and its art (Images, or Fish Tycoon's Assets\\ft.dat)."""
+    title = TITLES.get(game_id, "")
+    folder = Path(folder)
+    try:
+        if not folder.is_dir():
+            return False
+        has_exe = any(p.suffix.casefold() == ".exe" and p.name.casefold().startswith(title.casefold())
+                      for p in folder.iterdir() if p.is_file())
+    except OSError:
+        return False
+    return has_exe and ((folder / "Images").is_dir() or (folder / "Assets" / "ft.dat").is_file())
+
+
+def art_copies(game_id: str, save_folder: Path | None, parents) -> list[Path]:
+    """Every copy of the game the pictures can be read from, best first: the save's own copy,
+    then each folder the patcher knows that is a copy, then the copies inside those folders
+    (so "- Modded Upgrades" is found beside "- Modded"), then the default installs. The game
+    art is the same in every copy; the patcher's own art comes from the patcher."""
+    title = TITLES.get(game_id, "").casefold()
+    folders = lookup_parents(parents)
+    found: list[Path] = []
+    own = find_game_copy(save_folder, folders) if save_folder is not None else None
+    if own is not None:
+        found.append(own)
+    for parent in folders:
+        if is_game_copy(game_id, parent):
+            found.append(parent)
+        try:
+            children = sorted((c for c in parent.iterdir() if c.is_dir() and c.name.casefold().startswith(title)),
+                              key=lambda c: c.name.casefold())
+        except OSError:
+            continue
+        found += [c for c in children if is_game_copy(game_id, c)]
+    unique: dict[str, Path] = {}
+    for copy in found:
+        unique.setdefault(os.path.normcase(str(copy)), copy)
+    return list(unique.values())
 
 
 def find_game_copy(save_folder: Path, parents) -> Path | None:
@@ -695,7 +760,8 @@ HELP = (
         "its length is shown and the list scrolls. Each species' details list the exact "
         "assumptions.",
         "In the game: with the patcher's Optimize Prices button setting (on by default), an \"Optimize "
-        "Prices\" button (Fish Tycoon: on the Species Chart; Plant Tycoon: in the Nursery) sets every "
+        "Prices\" button (Fish Tycoon: on the Species Chart and the Fish Store screen; Plant Tycoon: in the "
+        "Nursery) sets every "
         "discovered species to its best price per day, worked out with this guide's own maths for your shop "
         "as it is at that moment (Fish: your ornaments, Golden Seahorse and Advertising level, a full selling "
         "tank; Plant: your ornaments, magic plants, Golden Berries and bug collection, all 15 sale spots "
@@ -705,8 +771,13 @@ HELP = (
         "Planner finds the shortest breeding chain from the species you have to the one you want. The pane "
         "under each sheet shows the picked row's details and what the effects choice assumes; it scrolls.",
         "Picture tabs show every fin, body and egg (Fish Tycoon) or flower, foliage and seed packet (Plant "
-        "Tycoon), grouped by rarity, drawn from your own game copy's images (nothing is copied or changed). "
-        "With spoilers off an undiscovered part is a \"?\".",
+        "Tycoon), grouped by rarity. With spoilers off an undiscovered part is a \"?\". The pictures come from "
+        "your own copy of the game: the first time the guide finds one (the game folder picked on the "
+        "patcher's Game tab, the patcher's \"- Modded\" or \"- Modded Upgrades\" copies, or a default install), "
+        "it copies them into its own folder, \"Breeding Guide Pictures\" beside the patcher, and shows them "
+        "from there for every save and player, even with no game copy around. If it has not found one yet, "
+        "click \"Find game...\" on a picture tab and pick your game folder. The game folder and your saves "
+        "are only read, never changed; a damaged picture folder is made again.",
     ],
 )
 
@@ -764,16 +835,16 @@ class BreedingGuide:
         self.window.bind("<Escape>", lambda _e: self.close())
         self.window.protocol("WM_DELETE_WINDOW", self.close)
 
-        self.game_var = tk.StringVar(value=TITLES.get(game_id, TITLES["fish"]))
-        self.folder_var = tk.StringVar()
-        self.slot_var = tk.StringVar()
-        self.status_var = tk.StringVar()
-        self.spoilers_var = tk.BooleanVar(value=bool(self.settings.get("show_spoilers", False)))
-        self.search_var = tk.StringVar()
+        self.game_var = tk.StringVar(master=self.window, value=TITLES.get(game_id, TITLES["fish"]))
+        self.folder_var = tk.StringVar(master=self.window)
+        self.slot_var = tk.StringVar(master=self.window)
+        self.status_var = tk.StringVar(master=self.window)
+        self.spoilers_var = tk.BooleanVar(master=self.window, value=bool(self.settings.get("show_spoilers", False)))
+        self.search_var = tk.StringVar(master=self.window)
         # Each tab has its own effects choice, so the ticked one is always the one its table
         # was worked out with; changing it works the table out again.
-        self.calc_effects_var = tk.StringVar(value="none")
-        self.plan_effects_var = tk.StringVar(value="none")
+        self.calc_effects_var = tk.StringVar(master=self.window, value="none")
+        self.plan_effects_var = tk.StringVar(master=self.window, value="none")
         self.calc_effects_var.trace_add("write", lambda *_a: self.calculate())
         self.plan_effects_var.trace_add("write", lambda *_a: self.plan())
         self.plan_busy = False
@@ -900,9 +971,11 @@ class BreedingGuide:
     # ---- the model and the sheets
     def _reload(self) -> None:
         folder, slot = self.current_folder(), self.current_slot()
-        extras, self.extras_reason = detect_extras(self.game_id, folder, slot, self.game_parents)
-        copy = find_game_copy(folder, self.game_parents) if folder is not None else None
+        parents = lookup_parents(self.game_parents)
+        extras, self.extras_reason = detect_extras(self.game_id, folder, slot, parents)
+        copy = find_game_copy(folder, parents) if folder is not None else None
         self.game_copy = copy
+        self.art_copies = art_copies(self.game_id, folder, self.game_parents)
         self.model = load_model(self.game_id, copy, extras)
         self.discovered: set | None = None
         self.read_problem = ""
@@ -1053,8 +1126,14 @@ class BreedingGuide:
         self.notebook.add(tab, text=title)
         groups = breeding_pictures.items_for(self.view, tab_id)
         source = self.art_source()
-        message = ttk.Label(tab, text=source.problem, foreground="#a01010", wraplength=1050, justify="left")
-        message.pack(anchor="w")
+        top = ttk.Frame(tab)
+        top.pack(fill="x")
+        find = None
+        if source.problem:
+            find = ttk.Button(top, text="Find game...", command=self.find_game)
+            find.pack(side="right", padx=(8, 0))
+        message = ttk.Label(top, text=source.problem, foreground="#a01010", wraplength=950, justify="left")
+        message.pack(side="left", anchor="w")
         area = ttk.Frame(tab)
         area.pack(fill="both", expand=True)
         style = ttk.Style(self.window)
@@ -1104,10 +1183,38 @@ class BreedingGuide:
             message.configure(text=f"{missing} picture(s) could not be read from {source.copy}.")
         canvas.scrollbar = scroll
         self.pictures[tab_id] = {"groups": groups, "cells": cells, "message": message, "canvas": canvas,
-                                 "cache": cache}
+                                 "cache": cache, "source": source, "find": find}
 
     def art_source(self):
-        return breeding_pictures.ArtSource(getattr(self, "game_copy", None))
+        """The pictures: the guide's own cache, built the first time from any game copy the
+        patcher knows (see breeding_pictures.picture_source)."""
+        game = self.model.game if self.model is not None else self.game_id
+        return breeding_pictures.picture_source(game, getattr(self, "art_copies", []))
+
+    def find_game(self, chosen: str | None = None) -> str:
+        """"Find game...": pick a game folder (or the folder it is in); the pictures are copied
+        from it into the guide's cache (the game folder is only read). Returns what happened."""
+        game = self.model.game if self.model is not None else self.game_id
+        title = TITLES.get(game, "the game")
+        if chosen is None:
+            chosen = filedialog.askdirectory(parent=self.window, title=f"Choose your {title} game folder")
+        if not chosen:
+            return ""
+        folder = Path(chosen)
+        copies = [folder] if is_game_copy(game, folder) else art_copies(game, None, [folder])
+        if not copies:
+            result = f"No {title} game was found in {folder} or the folders in it."
+            messagebox.showwarning("Breeding Guide", result, parent=self.window)
+            return result
+        why = ""
+        for copy in copies:
+            built, why = breeding_pictures.build_cache(game, copy)
+            if built:
+                self.game_parents.append(str(copy))
+                self._reload()
+                return ""
+        messagebox.showwarning("Breeding Guide", f"The pictures could not be copied: {why}", parent=self.window)
+        return why
 
     def _add_sheet_tab(self, sheet_id: str, sheet: Sheet) -> None:
         tab = ttk.Frame(self.notebook, padding=6)
@@ -1145,7 +1252,7 @@ class BreedingGuide:
         self.calc_boxes = []
         for row, label in enumerate(labels):
             ttk.Label(pick, text=label + ":").grid(row=row, column=0, sticky="w", pady=2)
-            var = tk.StringVar()
+            var = tk.StringVar(master=pick)
             box = ttk.Combobox(pick, textvariable=var, values=values, state="readonly", width=48)
             box.grid(row=row, column=1, sticky="w", padx=(8, 0), pady=2)
             box.bind("<<ComboboxSelected>>", lambda _e: self.calculate())

@@ -20,7 +20,10 @@ Writes, under assets/plant_tycoon_upgrades/Images:
   Radioactive Plant Formula Bomb (chemical 39): the stock Fertilizer Bomb
   (row 5) with its white glass turned rainbow and its yellow label white,
   the cap left grey (the owner's pick), a 14th
-  with the Time Warp clock and a 15th with Add Money's gold coins. A chemical's row is
+  with the Time Warp clock, a 15th with Add Money's gold coins, a 16th (row 15)
+  with the Extra Greenhouse item (greenhouse_icon below), and rows 16 and 17
+  (the 17th and 18th) hold Automatic Sprinklers and the Auto-Healer, upright only
+  (scripts/build_auto_upgrades_assets.py). A chemical's row is
   its id - 27 (the game draws frame 2 x id - 54). The DLL points the chemical
   sheet record at it.
 * upgrades_link.png: the store's "Upgrades" link, two frames side by side
@@ -59,6 +62,12 @@ IMAGE_BASE = 0x400000
 LINK_TEXT = "Upgrades"
 LINK_SCALE = 0.8
 LINK_COLOURS = ((255, 255, 255), (255, 224, 96))     # normal, hover
+GREENHOUSE_SOURCE = "greenhouse2.png"   # the repaired greenhouse (greenhouse1.png, sprite 0xC2, is the broken one)
+GREENHOUSE_CROP = (12, 0, 119, 156)    # the building: its corner posts, roof and step; not the bushes around it
+GREENHOUSE_EAVES = 45                   # source rows above the eaves: only the roof, not the trees behind it
+GREENHOUSE_BOX = (48, 54)             # the most the picture may be (w, h): the tool shelf's items are 35-69 x 43-49
+GREENHOUSE_CENTRE_X = 28                # in the cell: x 432 on screen, the middle of the click rectangle
+GREENHOUSE_BOTTOM = 62                  # in the cell, exclusive: the last row at y 111 on screen
 
 
 def seed_box(frame: int) -> tuple[int, int, int, int]:
@@ -121,7 +130,7 @@ def formula_bottle(images: Path) -> Image.Image:
     stock = Image.open(images / "Chemicals_Grid.png").convert("RGBA")
     if stock.size != (2 * CHEM_CELL, CHEM_ROWS * CHEM_CELL):
         raise SystemExit(f"Chemicals_Grid.png is {stock.size}, expected the stock 140 x 630")
-    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 6) * CHEM_CELL))
+    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 9) * CHEM_CELL))
     sheet.paste(stock, (0, 0))
     for column in (0, 1):
         box = (column * CHEM_CELL, MUTATION_ROW * CHEM_CELL, (column + 1) * CHEM_CELL, (MUTATION_ROW + 1) * CHEM_CELL)
@@ -145,7 +154,44 @@ def formula_bottle(images: Path) -> Image.Image:
     for column in (0, 1):
         at = (column * CHEM_CELL + (CHEM_CELL - pile.width) // 2, (CHEM_ROWS + 5) * CHEM_CELL + (CHEM_CELL - pile.height) // 2)
         sheet.alpha_composite(pile, at)
+    # Row 15 (frames 30 and 31): the Extra Greenhouse item, a small opaque greenhouse.
+    icon = greenhouse_icon(images)
+    for column in (0, 1):
+        sheet.alpha_composite(icon, (column * CHEM_CELL, (CHEM_ROWS + 6) * CHEM_CELL))
+    # Rows 16 and 17 (frames 32 and 34): Automatic Sprinklers and the Auto-Healer, upright only
+    # (scripts/build_auto_upgrades_assets.py).
+    import build_auto_upgrades_assets
+    for row, cell in build_auto_upgrades_assets.plant_rows(stock, Image.open(images / "Tools_Grid.png").convert("RGBA")).items():
+        sheet.paste(cell, (0, row * CHEM_CELL))
     return sheet
+
+
+def greenhouse_icon(images: Path) -> Image.Image:
+    """The Extra Greenhouse's store icon, one 70 x 70 cell: the game's own repaired
+    greenhouse (greenhouse2.png, sprite 0x88, 157 x 207), the building alone (cropped
+    from the bushes around it, the trees behind its roof taken out), shrunk to the size
+    of the tool shelf's items and made fully opaque (every pixel opaque or empty, cut at
+    half alpha, so nothing of it is see-through). The DLL draws the cell at the item's place (404, 50) at
+    scale 1, so the picture stands on the shelf line (its last row at y 111, as the seed
+    boxes beside it) inside the item's click rectangle {404, 52, 461, 113}."""
+    stock = Image.open(images / GREENHOUSE_SOURCE).convert("RGBA")
+    if stock.size != (157, 207):
+        raise SystemExit(f"{GREENHOUSE_SOURCE} is {stock.size}, expected the stock 157 x 207")
+    a = np.asarray(stock.crop(GREENHOUSE_CROP)).copy()
+    a[..., 3] = np.where(a[..., 3] >= 128, 255, 0)
+    r, g = a[..., 0].astype(int), a[..., 1].astype(int)
+    leafy = (g > r + 8) & (g >= a[..., 2])                        # the trees behind the roof
+    a[:GREENHOUSE_EAVES, :, 3][leafy[:GREENHOUSE_EAVES]] = 0
+    solid = Image.fromarray(a, "RGBA")
+    solid = solid.crop(solid.getbbox())
+    scale = min(GREENHOUSE_BOX[0] / solid.width, GREENHOUSE_BOX[1] / solid.height)
+    small = solid.resize((round(solid.width * scale), round(solid.height * scale)), Image.LANCZOS)
+    b = np.asarray(small).copy()                 # every pixel opaque or empty: nothing see-through
+    b[..., 3] = np.where(b[..., 3] >= 128, 255, 0)
+    small = Image.fromarray(b, "RGBA")
+    cell = Image.new("RGBA", (CHEM_CELL, CHEM_CELL))
+    cell.alpha_composite(small, (GREENHOUSE_CENTRE_X - small.width // 2, GREENHOUSE_BOTTOM - small.height))
+    return cell
 
 
 def glyphs(exe: bytes) -> dict[int, tuple[int, int, int, int]]:

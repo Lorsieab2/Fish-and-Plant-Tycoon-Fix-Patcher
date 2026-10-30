@@ -91,7 +91,7 @@ class ToolsTab:
     def __init__(self, app, tab: ttk.Frame) -> None:
         self.app = app
         self.help_windows: dict[str, tk.Toplevel] = {}
-        self.chosen_text = tk.StringVar()
+        self.chosen_text = tk.StringVar(master=tab)
         self._build(tab)
         app.game_choice.trace_add("write", lambda *_a: self._show_chosen())
         self._show_chosen()
@@ -224,7 +224,7 @@ class ToolsTab:
                     label += "   (running: will be paused for the copy)"
             except save_backup.BackupError:
                 pass
-            var = tk.BooleanVar(value=save_backup.is_patcher_save_folder(game_id, folder.name))
+            var = tk.BooleanVar(master=frame, value=save_backup.is_patcher_save_folder(game_id, folder.name))
             ttk.Checkbutton(frame, text=label, variable=var).pack(anchor="w", padx=(14, 0))
             choices.append((folder, var))
         buttons = ttk.Frame(frame)
@@ -292,8 +292,8 @@ class ToolsTab:
         listbox.pack(fill="both", expand=True)
         details = ttk.Label(frame, text="", wraplength=720, justify="left")
         details.pack(anchor="w", pady=(6, 0))
-        scope = tk.StringVar(value="whole")
-        slot_choice = tk.StringVar()
+        scope = tk.StringVar(master=frame, value="whole")
+        slot_choice = tk.StringVar(master=frame)
         options = ttk.Frame(frame)
         options.pack(anchor="w", pady=(8, 0))
         ttk.Radiobutton(options, text="The whole save folder", value="whole", variable=scope).grid(
@@ -472,11 +472,11 @@ class ToolsTab:
             wraplength=560, justify="left",
         ).grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 10))
         titles = list(GAMES.values())
-        game_var = tk.StringVar(value=GAMES[game_id] if game_id else titles[0])
-        folder_var = tk.StringVar()
-        name_var = tk.StringVar()
-        counter_var = tk.StringVar()
-        problem_var = tk.StringVar()
+        game_var = tk.StringVar(master=dialog, value=GAMES[game_id] if game_id else titles[0])
+        folder_var = tk.StringVar(master=dialog)
+        name_var = tk.StringVar(master=dialog)
+        counter_var = tk.StringVar(master=dialog)
+        problem_var = tk.StringVar(master=dialog)
         state: dict = {"folders": [], "slots": []}
         ttk.Label(frame, text="Game:").grid(row=1, column=0, sticky="w")
         ttk.Combobox(frame, textvariable=game_var, values=titles, state="readonly", width=48).grid(
@@ -609,14 +609,18 @@ class ToolsTab:
     # --------------------------------------------------------------- breeding
 
     def breeding(self, game_id: str | None) -> None:
-        """The Breeding Guide, told where the game copies may be (the patcher's output
-        folders) so it can see which settings a save's copy was patched with."""
+        """The Breeding Guide, told every folder the patcher knows a game copy may be in:
+        the output folder, each game's "- Modded" output copy and the folder it sits in
+        (where "- Modded Upgrades" goes too), and the game folder picked on the Game tab
+        and the folder it sits in. The guide finds the save's own copy there, to see which
+        settings it was patched with, and any copy to read the pictures from."""
         app = self.app
         parents = [app.output_parent.get().strip()]
         for game in GAMES:
-            output = app.path_vars[game]["output"].get().strip()
-            if output:
-                parents.extend([output, str(Path(output).parent)])
+            for key in ("output", "vanilla"):
+                folder = app.path_vars[game][key].get().strip().strip('"')
+                if folder:
+                    parents.extend([folder, str(Path(folder).parent)])
         breeding_guide.open_window(
             app, game_id or app.game_choice.get(), settings=app.breeding_settings,
             save_settings=app._save_settings, game_parents=[p for p in parents if p],

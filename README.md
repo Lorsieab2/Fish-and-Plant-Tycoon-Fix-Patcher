@@ -67,10 +67,10 @@ never needs the internet.
   all work as in a stock tank, because the game's own code runs them. Two
   small arrows left of the Tank 1 button switch the tank buttons to the
   three new tanks and back. Drag a fish, a DS store animal or an ornament
-  onto a button to move it to that tank, or onto an arrow to move it to the
-  previous or next tank (Tank 1, Tank 2, the Sale Tank, then the extra
-  tanks you own, and round again); a full tank refuses it as in the stock
-  game. Each extra tank has a "For sale" button (Off at first): On, it shows
+  onto a button to move it to that tank; carry it over an arrow and the
+  buttons switch to the other three tanks, so you can drop it on any of the
+  six (letting go on the arrow itself keeps it where it was); a full tank
+  refuses it as in the stock game. Each extra tank has a "For sale" button (Off at first): On, it shows
   the Sale Tank's For Sale! sign and its fish sell together with the Sale
   Tank's, by the game's own sale code (one sale a second, the same prices,
   odds and effects; the sale scene's pictures and "Fish for sale" number count
@@ -99,7 +99,10 @@ never needs the internet.
   address: `native/ftfp_fish_window/ftfp_fish_window.c`. Plant Tycoon draws
   through SDL2, a different renderer, so this setting is Fish Tycoon's only.
 - Optimize Prices button (on by default). An "Optimize Prices" button on the
-  Species Chart's bottom bar, left of Done (where you set prices). It asks
+  Species Chart's bottom bar, left of Done (where you set prices), and the
+  same button on the Fish Store screen (opened with Sell Fish), on its bottom
+  bar left of Done, so it can be used any time: the Species Chart only opens
+  with a fish in the isolation tank. Both do the same. It asks
   "Set every discovered species to its best price per day?"; on Yes, every
   species you have discovered gets the Breeding Guide's "best per day"
   asking price (the price that earns the most money over time), worked out
@@ -111,8 +114,9 @@ never needs the internet.
   ones you would type yourself, saved with the game as usual. The DS species
   are included with DS Exclusive Fish. It runs as a companion DLL
   (`Fish Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the plain
-  "Fish Tycoon - Modded" copy. Picture:
-  [docs/images/optimize-prices-fish.png](docs/images/optimize-prices-fish.png).
+  "Fish Tycoon - Modded" copy. Pictures:
+  [docs/images/optimize-prices-fish.png](docs/images/optimize-prices-fish.png),
+  [docs/images/optimize-prices-fish-store.png](docs/images/optimize-prices-fish-store.png).
 - Tank and greenhouse counts (on by default). Lines in the game's own font
   at the top left of the water on the tank screen, for the tank you are
   looking at, Tanks 4-6 too with 3 extra tanks: "Fish: 12 of 21 (8 adults,
@@ -134,9 +138,10 @@ never needs the internet.
   Seahorse the stock game put in a fish slot, still take a place in the tank.
   The creatures are the Golden Seahorse and DS Store Items' animals (the
   Moray Eel in its rock too). In German the game's own German words are used.
-  The counts update every frame and are drawn just after the tank's
-  background, so fish, ornaments and buttons are drawn over them and nothing
-  is covered; display only, nothing in the game or the saves changes. It runs
+  The counts update every frame and are drawn over everything in the tank
+  (fish, creatures, ornaments, decorations, bubbles, the tank's name and For
+  sale button), under only a fish or item in your hand and the game's popups;
+  display only, nothing in the game or the saves changes. It runs
   as a companion DLL the game loads at start
   (`Fish Tycoon Fix Patcher DLLs\Tank Counts.dll`, which also loads DS
   Exclusive Fish's or the Maximizable window's DLL when those are on), in the
@@ -168,7 +173,8 @@ never needs the internet.
   environment of your fish (the Tools tab's Game Mechanics lists the exact
   effects). The Moray Eel comes with its rock: drop the eel on it to send it
   home, move the rock and the eel goes with it, and drag it out by its head.
-  Trashing the eel trashes its rock, and the other way round. The animals,
+  Trashing the eel trashes its rock, and the other way round, wherever the
+  other one is (Tanks 4-6 included). The animals,
   the Golden Seahorse included, never take a fish's place: each tank has 5
   animal slots of its own, kept in `Fish Tycoon Fix Patcher Data\Tank Animals
   <slot>.dat` beside the saves (with 3 extra tanks, the animals in Tanks 4-6
@@ -184,9 +190,10 @@ never needs the internet.
   dose reaches every fish in the tank on screen, any age, fry included (the
   stock Growth Hormone stops at 40 and stays stock): every pregnant one gives
   birth at once, through the game's own birth rules (the same litter, Magic
-  Fish mutation, Plant of Fertility and "no room" as a natural birth); then
-  younger ones, the newborns too, become adults (age 20), and every one gets
-  full health (100) and is cured of ick or fungus. Other tanks and the store
+  Fish mutation, Plant of Fertility and "no room" as a natural birth), and
+  the babies stay babies, as born (a later dose grows them up); then of the
+  fish that were there before, younger ones become adults (age 20), and every
+  one gets full health (100) and is cured of ick or fungus. Other tanks and the store
   animals are left alone. Picture:
   [docs/images/radioactive-growth-hormone-fish.png](docs/images/radioactive-growth-hormone-fish.png).
   The Revival Potion ($10,000, 3 doses; $0 with Free upgrades), the owner's
@@ -203,6 +210,23 @@ never needs the internet.
   Both work in every tank slot the game uses (Bigger tanks, and more) and in
   every tank the game updates. Picture:
   [docs/images/revival-potion-fish.png](docs/images/revival-potion-fish.png).
+  Exotic Fish Eggs and the three chemicals can be thrown away: let go on the
+  trash can, the whole slot (every dose or hatch left) goes, with the trash
+  sound and no question (the game only asks about a fish). The stock game
+  throws no supply away, so the food and the stock medicines, chemicals and
+  eggs still go back to their slot.
+  The Auto-Feeder and the Auto-Healer ($10,000 each, bought once; $0 with Free
+  upgrades), the owner's green feeder and the same machine in hot pink, beside
+  ClonaFish: in every tank (Tanks 1-2, the Sale Tank, the isolation tank, and
+  Tanks 4-6 with 3 extra tanks, on screen or not, through time away and the
+  Time Warp step by step), every live fish's food is kept at 50 (never hungry,
+  never starving, and feeding by hand on top never overfeeds), and every live
+  fish is cured of ick and fungus (each counted under Fish Cured) and kept at
+  health 100. Neither touches a dead fish. Click an owned one again and answer
+  Yes to unpurchase it: it switches off at once, with no refund (buying it
+  again costs the full price). Ownership is kept in `Auto Upgrades <slot>.dat`
+  beside the save. Picture:
+  [docs/images/auto-upgrades-fish.png](docs/images/auto-upgrades-fish.png).
   The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
   second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
   loaded by DS Fish's; besides the game's own save it writes only the
@@ -222,8 +246,9 @@ never needs the internet.
   Every item on the Supplies store's Upgrades screen costs $0: the Puffer Fish,
   Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the
   Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000),
-  ClonaFish ($2,500), and the Time Warp clock ($500), Add Money ($950) and
-  the Extra Tank ($10,000 each) when they are on. The price shows $0 and no
+  ClonaFish ($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), and
+  the Time Warp clock ($500), Add Money ($950) and the Extra Tank ($10,000 each)
+  when they are on. The price shows $0 and no
   money is taken; everything else (one of each animal, the supply slots,
   Tanks 4-6 bought in order, the game's purchase question) stays. The game's own store items keep their
   prices.
@@ -305,20 +330,44 @@ never needs the internet.
     beyond spamming Fertilizer Bombs and Plant Food: every branch grows (dead
     ones and the ones the plant's shape normally hides), the largest size,
     full bloom, a flower on every spot of every branch and leaf (hundreds on a
-    big plant), no dead or brown leaves, full health, and 5 seeds when
-    pollinated.
-  - Radioactive Plant Formula Bomb under the formula: $30,000, 3 bombs; the
+    big plant), no dead or brown leaves, full health, and always 5 seeds:
+    an already pollinated plant has all its seeds ripe at once, any other
+    gives all 5 at its next pollination (the Formula Bomb too).
+  - Radioactive Plant Formula Bomb under the formula: $30,000, 3 doses; the
     stock Fertilizer Bomb made rainbow. One bomb gives every live plant in the
     greenhouse on screen exactly one Radioactive Plant Formula dose (the
     plants the Fertilizer Bomb reaches, in whichever greenhouse is shown).
   - Revival Potion beside the formula: $10,000, 3 doses, the owner's amber
     flask. Dropped on a dead plant, it comes back to life at full health; the
     parts that were already dead before it died stay dead (prune them or use
-    the formula), and the seeds it lost when it died stay lost.
+    the formula), and the seeds it lost when it died stay lost. A plant that
+    was for sale when it died is for sale again, unless the nurseries are
+    already full (then a message says so). No chemical, stock or new, takes
+    a plant off sale.
   - Revita-Seed beside that: $2,500, 3 doses, the owner's teal bottle.
     Dropped on a plant that has given all its seeds, it can be pollinated
     again and give seeds again, exactly like a fresh plant.
   - Picture: [docs/images/revival-potion-plant.png](docs/images/revival-potion-plant.png).
+  - The formula, the bomb, the Revival Potion and Revita-Seed can be thrown
+    in the Trash bin: held from the chemical tray and let go or clicked on
+    the bin, the bottle goes with every dose left, with the bin's sound and
+    no question, as a seed packet does (no money back). A selected plant is
+    not asked about. The stock game never bins a chemical or a tool, and
+    still doesn't for its own. Legendary Seeds and new-flower seeds go in the
+    bin like any seed (sold for their value).
+  - Automatic Sprinklers on the tool shelf under the Extra Greenhouse, and the
+    Auto-Healer beside the Formula Bomb: $10,000 each, bought once (the
+    owner's sprinkler head, and the Fish Tycoon healer machine in hot pink).
+    In every greenhouse (Greenhouses 2-6 too, on screen or not, through time
+    away and the Time Warp unit by unit), the sprinklers keep every live
+    plant's water at 500 (never too dry, never so wet that pests come three
+    times as often), and the Auto-Healer clears pests (each counted under
+    Plants Cured) and keeps health at 100. Neither touches a dead plant (the
+    Revival Potion's job), and old age still ends a plant's life. Click an
+    owned one and answer Yes to unpurchase it: it switches off at once, with
+    no refund (buying it again costs the full price). Ownership is kept in
+    `Auto Upgrades <slot>.dat`. Picture:
+    [docs/images/auto-upgrades-plant.png](docs/images/auto-upgrades-plant.png).
   - The Fourth, Fifth and Sixth Seed Box with the tool upgrades: $1000
     each, bought in order like the stock ones. Each opens a 40-seed drawer in
     a second chest; the gold arrows on the Seed Storage title bar switch
@@ -337,7 +386,8 @@ never needs the internet.
 - Free upgrades (off by default; **needs Add new store upgrades and items,
   which it turns on**). Every item on the Supplies store's Upgrades view costs
   $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the
-  Formula Bomb ($30,000), the Revival Potion ($10,000), Revita-Seed ($2,500), the
+  Formula Bomb ($30,000), the Revival Potion ($10,000), Revita-Seed ($2,500),
+  Automatic Sprinklers ($10,000), the Auto-Healer ($10,000), the
   Fourth, Fifth and Sixth Seed Box ($1000 each), and the Time Warp clock ($500),
   Add Money ($950), the Extra Greenhouse ($10,000 each) and the Extra Nursery
   ($10,000 each) when they are on. The price shows $0 and no money is
@@ -381,7 +431,7 @@ never needs the internet.
   `Plant Tycoon Fix Patcher DLLs\Greenhouse Counts.ini`, never in a save; it
   takes only its own clicks (never while you hold a seed or tool). Once you
   own an extra greenhouse the lines sit under the gold arrows and the button
-  moves left of the right arrow, above the greenhouse's name. The stages
+  moves right of the right arrow, above the greenhouse's name. The stages
   are the selected plant's own countdown: a seedling before age 21 ("Buds in
   ... Min."), with buds from 21 ("Mature in ... Min."), mature from 24. Dead
   plants are left out of the count and shown after it as "Dead: 1" until you
@@ -592,6 +642,20 @@ folder never fails with "path too long".
   Mutation fish 0x42014C, the sale odds 0x424240), and the Plant Tycoon model
   is `src/breeding_plant.py`. The prices' assumptions (real time, a full
   selling tank, how many customers browse) are in its "?" guide.
+
+  Picture tabs (Fin, Body and Egg Pictures; Flower, Foliage and Seed
+  Pictures) show every part grouped by rarity. The pictures are kept inside
+  the patcher, in a "Breeding Guide Pictures" folder beside it: the first time
+  the guide finds any copy of the game (the game folder picked on the Game
+  tab, the patcher's "- Modded" and "- Modded Upgrades" copies, or a default
+  install) it copies the sheets it needs from it, read only, with a manifest
+  of their SHA-256 hashes, and shows them from there for every save folder
+  and player. If it has found none yet, click "Find game..." on a picture tab
+  and pick the game folder. The folder is made on your own machine from your
+  own copy; no game art is in this repository or the release, and the folder
+  is ignored by git. A damaged or partial picture folder is made again, never
+  used. The patcher's own art (DS sheets, Exotic Fish Eggs, the Unused
+  Flowers' sheet, Legendary Seeds) comes from `assets/`.
   Pictures: [docs/images/breeding-guide-fish-discovered-species.png](docs/images/breeding-guide-fish-discovered-species.png)
   and the other `docs/images/breeding-guide-*.png`.
 

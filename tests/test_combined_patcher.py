@@ -472,6 +472,41 @@ class SettingWarningTests(unittest.TestCase):
                     app.destroy()
 
 
+class GuiOwnInterpreterTests(unittest.TestCase):
+    """The patcher window keeps its images and variables in its own Tk interpreter.
+
+    A Tk image or variable made without a master belongs to tkinter's default root: whichever
+    Tk was made first and is still alive. With another root alive (a dialog's, or an earlier
+    test's), the window's title-bar icon was made in that other interpreter, and iconphoto
+    failed ("can't use pyimage9 as iconphoto: not a photo image"). This made the GUI tests fail
+    or pass depending on which tests ran before them."""
+
+    def test_the_window_builds_while_another_tk_root_is_alive(self) -> None:
+        import tkinter
+
+        try:
+            other = tkinter.Tk()
+        except tkinter.TclError as exc:
+            self.skipTest(f"no display for Tk: {exc}")
+        other.withdraw()
+        try:
+            with tempfile.TemporaryDirectory() as raw:
+                with mock.patch.object(gui, "SETTINGS_PATH", Path(raw) / "patcher_local_settings.json"):
+                    app = gui.App()
+                    try:
+                        app.withdraw()
+                        own = str(app.tk.call("image", "names"))
+                        self.assertIn(str(app.window_icon), own)
+                        self.assertNotIn(str(app.window_icon), str(other.tk.call("image", "names")))
+                        self.assertIs(app.game_choice._root, app)
+                        self.assertIs(app.status_var._root, app)
+                        self.assertTrue(all(v._root is app for game in app.patch_vars.values() for v in game.values()))
+                    finally:
+                        app.destroy()
+        finally:
+            other.destroy()
+
+
 class ReleasePackagingTests(unittest.TestCase):
     """The ZIP is what players actually get, so what it references must be in it."""
 

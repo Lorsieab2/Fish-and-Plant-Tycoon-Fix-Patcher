@@ -54,6 +54,21 @@ SITES = [
     # "is this flower spot free?" (a spot on a joint is taken while a branch grows there): the
     # formula's flowering skips that test, so every spot on every branch flowers.
     ("joint_free", 0x42D330, ["mov eax, dword ptr [esp + 0xc]", "mov edx, dword ptr [esp + 8]"]),
+    # Planting (0x42FC70, every new plant: new game, tray, pot seed): the new plant's +0x7C starts
+    # at 0, so a formula mark left by the pot's last plant never carries over.
+    ("plant_seed", 0x42FCDD, ["mov dword ptr [esi + 0x78], edx", "mov byte ptr [esi + 0x6c], 0"]),
+    # The greenhouse trash: the mouse-up's call of the stock trash (0x424680, a held item let go
+    # off the pots), and the press off the pots (0x426040 at 0x4272DC, before the selected plant's
+    # trash or the put-back): the new chemicals held there are thrown away.
+    ("trash_drop", 0x425FF2, ["call 0x424680"]),
+    ("trash_press", 0x4272DC, ["mov ecx, dword ptr [esi + 0x68]", "mov eax, dword ptr [ecx + 0x63e58]"]),
+    # Automatic Sprinklers and the Auto-Healer: the top of the plant update's age-unit loop (each
+    # caught-up unit, edi = the pot) and the code right after the loop (esi = the plant object).
+    ("unit_top", 0x42E134, ["cmp dword ptr [edi + 0x28], ebp", "jne 0x42e144"]),
+    ("units_done", 0x42E2DF, ["mov ecx, dword ptr [esi + 0xc]", "cmp byte ptr [ecx + 0x53f27], 0"]),
+    # The plant update (0x42DF80) clears a dead plant's on-sale flag (+0x9D) every update: the DLL
+    # remembers it was for sale (+0x9F) so the Revival Potion can put it back on sale.
+    ("dead_untag", 0x42DF91, ["mov byte ptr [eax + 0x9d], 0"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).

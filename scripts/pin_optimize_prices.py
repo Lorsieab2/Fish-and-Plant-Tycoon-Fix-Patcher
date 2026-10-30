@@ -6,7 +6,7 @@ Run after rebuilding the DLLs (scripts/build_ftfp_optimize_prices.ps1, and
 scripts/build_ftfp_ds_fish.ps1 / scripts/build_ftfp_new_flowers.ps1, whose
 exports it uses) or the buttons (scripts/build_optimize_prices_assets.py). It
 
-  * records each game's companion files (the DLL and its button) by size and
+  * records each game's companion files (the DLL and its buttons) by size and
     SHA-256, with their game-relative destinations, and re-records
     "DS Exclusive Fish.dll" and "Unused Flowers.dll" in place;
   * pins the output executable for every combination with the setting: the
@@ -51,10 +51,13 @@ GAMES = {
         "rerecord": ("ds_fish", "DS Exclusive Fish.dll"),
         "patcher": fish_patcher,
         "profile": ds_fish_loader.fish_profile,
-        "summary": "Adds an Optimize Prices button to the Species Chart: it sets every discovered species to its "
-                   "best price per day for your shop as it is now.",
+        "summary": "Adds an Optimize Prices button to the Species Chart and the Fish Store screen: it sets every "
+                   "discovered species to its best price per day for your shop as it is now.",
         "first": "Adds an \"Optimize Prices\" button on the Species Chart's bottom bar, left of Done, where you set "
-                 "prices. It asks \"Set every discovered species to its best price per day?\". ",
+                 "prices, and the same button on the Fish Store screen (opened with Sell Fish), on its bottom "
+                 "bar left of Done, so you can use it any time: the Species Chart only opens with a fish in the "
+                 "isolation tank. Both buttons do the same thing. It asks \"Set every discovered species to its "
+                 "best price per day?\". ",
         "shop": "your shop as it is now: each species' base price (with the Advertising price rises), the "
                 "ornaments you own, the Golden Seahorse and your Advertising level, with a full selling tank",
         "extras": "With DS Exclusive Fish on, the DS species are included.",
@@ -106,8 +109,11 @@ def setting(game: dict) -> dict:
 
 def pin(game: dict, vanilla: bytes) -> int:
     manifest = json.loads(game["manifest"].read_text(encoding="utf-8"))
+    ids = [s["id"] for s in manifest["settings"]]
     settings = [s for s in manifest["settings"] if s["id"] != SETTING_ID]
-    at = next(i for i, s in enumerate(settings) if s["id"] == game["insert_after"]) + 1
+    # Re-pinning keeps the setting where it is; a first pin puts it after insert_after.
+    at = (ids.index(SETTING_ID) if SETTING_ID in ids
+          else next(i for i, s in enumerate(settings) if s["id"] == game["insert_after"]) + 1)
     manifest["settings"] = settings[:at] + [setting(game)] + settings[at:]
 
     owner, dll = game["rerecord"]
