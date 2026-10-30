@@ -20,6 +20,12 @@ read/execute section to the executable and routes the C runtime's
 
 loads the DLL by its full path beside the executable (never the DLL search
 order), and every failure goes to `done`, so the game always starts, with
+the stack and registers exactly as the C runtime left them. A profile with
+`then_dlls` (the Optimize Prices button) loads each of them after the first
+the same way, its name copied to the same place (kept in ebp); one that is
+missing or refuses goes on to the next. A one-DLL loader is byte for byte
+what it was before that, so its pins never moved. In every case the game
+starts with
 the stack and registers exactly as the C runtime left them. The DLL itself
 checks every site it writes and installs all of them or none.
 
@@ -54,10 +60,18 @@ class LoaderProfile:
     get_module_handle_a_iat: int
     get_proc_address_iat: int
     what_it_installs: str
+    then_dlls: tuple[str, ...] = ()       # loaded after dll_name, each the same way
 
     @property
     def tail(self) -> bytes:
-        return (self.patcher_files_folder + "\\" + self.dll_name + "\0").encode("utf-16-le")
+        return self.tail_of(self.dll_name)
+
+    def tail_of(self, dll_name: str) -> bytes:
+        return (self.patcher_files_folder + "\\" + dll_name + "\0").encode("utf-16-le")
+
+    @property
+    def dll_names(self) -> tuple[str, ...]:
+        return (self.dll_name,) + self.then_dlls
 
 
 FISH = LoaderProfile(
@@ -77,9 +91,35 @@ FISH_WINDOW = replace(
 )
 
 
+OPTIMIZE_PRICES_DLL = "Optimize Prices.dll"
+OPTIMIZE_PRICES_SETTING = "optimize_prices"
+OPTIMIZE_PRICES_INSTALLS = ("That wraps two slots of the {screen}'s table (its commands and its opening) after "
+                            "checking they hold the stock functions, or writes nothing; {source} describes them.")
+FISH_OPTIMIZE = replace(
+    FISH, dll_name=OPTIMIZE_PRICES_DLL,
+    what_it_installs=OPTIMIZE_PRICES_INSTALLS.format(screen="Species Chart",
+                                                     source="native/ftfp_fish_prices/ftfp_fish_prices.c"),
+)
+
+
+def with_optimize_prices(base: LoaderProfile | None, alone: LoaderProfile) -> LoaderProfile:
+    """The loader for a game whose Optimize Prices button is on: it loads "Optimize Prices.dll"
+    after the companion it would load anyway (so that DLL has installed first), or on its own."""
+    if base is None:
+        return alone
+    return replace(base, then_dlls=base.then_dlls + (OPTIMIZE_PRICES_DLL,),
+                   what_it_installs=base.what_it_installs + f" Then it loads '{OPTIMIZE_PRICES_DLL}' the same way. "
+                   + alone.what_it_installs)
+
+
 def fish_profile(enabled: set[str]) -> LoaderProfile:
-    """The DLL Fish Tycoon's loader loads for these settings."""
-    return FISH if "ds_fish" in enabled else FISH_WINDOW
+    """The DLLs Fish Tycoon's loader loads for these settings."""
+    base = FISH if "ds_fish" in enabled else FISH_WINDOW
+    if OPTIMIZE_PRICES_SETTING not in enabled:
+        return base
+    if "ds_fish" not in enabled and "maximizable_window" not in enabled:
+        return FISH_OPTIMIZE
+    return with_optimize_prices(base, FISH_OPTIMIZE)
 
 
 PLANT = LoaderProfile(
@@ -100,9 +140,21 @@ PLANT_SORT = replace(
 )
 
 
+PLANT_OPTIMIZE = replace(
+    PLANT, dll_name=OPTIMIZE_PRICES_DLL,
+    what_it_installs=OPTIMIZE_PRICES_INSTALLS.format(screen="Nursery",
+                                                     source="native/ftfp_plant_prices/ftfp_plant_prices.c"),
+)
+
+
 def plant_profile(enabled: set[str]) -> LoaderProfile:
-    """The DLL Plant Tycoon's loader loads for these settings."""
-    return PLANT if "new_flowers" in enabled else PLANT_SORT
+    """The DLLs Plant Tycoon's loader loads for these settings."""
+    base = PLANT if "new_flowers" in enabled else PLANT_SORT
+    if OPTIMIZE_PRICES_SETTING not in enabled:
+        return base
+    if "new_flowers" not in enabled and "sort_seeds" not in enabled:
+        return PLANT_OPTIMIZE
+    return with_optimize_prices(base, PLANT_OPTIMIZE)
 
 PATH_WCHARS = 0x208
 PATH_BYTES = PATH_WCHARS * 2
@@ -126,14 +178,15 @@ def _layout(profile: LoaderProfile = FISH) -> tuple[dict[str, int], int]:
         offsets[key] = at
         at += len(text)
     at = (at + 1) & ~1
-    offsets["tail"] = at
-    at += len(profile.tail)
+    for index, name in enumerate(profile.dll_names):
+        offsets["tail" if index == 0 else f"tail{index}"] = at
+        at += len(profile.tail_of(name))
     return offsets, (at + 15) & ~15
 
 
 def _block(block_va: int, profile: LoaderProfile = FISH) -> bytes:
     offsets, code_offset = _layout(profile)
-    tail = profile.tail
+    tails = [profile.tail_of(name) for name in profile.dll_names]
     code = bytearray()
     fixups: list[tuple[int, str]] = []
     labels: dict[str, int] = {}
@@ -176,32 +229,42 @@ def _block(block_va: int, profile: LoaderProfile = FISH) -> bytes:
     code += b"\x66\x83\x3F\x5C"                           # cmp word [edi], '\\'
     jump(jne, "scan")
     code += b"\x83\xC7\x02"                               # add edi, 2
-    code += b"\x8D\x87" + u32(len(tail))                  # lea eax, [edi+tail]
-    code += b"\x2B\xC6"                                   # sub eax, esi
-    code += b"\x3D" + u32(PATH_BYTES)
-    jump(ja, "done")
-    code += b"\x56"                                       # push esi
-    code += b"\xBE" + u32(block_va + offsets["tail"])     # mov esi, tail
-    code += b"\xB9" + u32(len(tail))                      # mov ecx, len
-    code += b"\xF3\xA4"                                   # rep movsb
-    code += b"\x5E"                                       # pop esi
-    code += b"\x68" + u32(block_va + offsets["load_library"])
-    code += b"\x53"
-    code += b"\xFF\x15" + u32(profile.get_proc_address_iat)
-    code += b"\x85\xC0"
-    jump(jz, "done")
-    code += b"\x6A" + bytes([LOAD_WITH_ALTERED_SEARCH_PATH])
-    code += b"\x6A\x00"
-    code += b"\x56"
-    code += b"\xFF\xD0"                                   # LoadLibraryExW
-    code += b"\x85\xC0"
-    jump(jz, "done")
-    code += b"\x68" + u32(block_va + offsets["export"])
-    code += b"\x50"
-    code += b"\xFF\x15" + u32(profile.get_proc_address_iat)
-    code += b"\x85\xC0"
-    jump(jz, "done")
-    code += b"\xFF\xD0"                                   # FtfpStartup() (stdcall, no arguments)
+    several = len(tails) > 1
+    if several:
+        code += b"\x8B\xEF"                               # mov ebp, edi: where each DLL's name goes
+    for index, tail in enumerate(tails):
+        # one DLL after the other; a DLL that is missing or refuses goes on to the next
+        after = "done" if index == len(tails) - 1 else f"next{index + 1}"
+        if index:
+            labels[f"next{index}"] = len(code)
+        if several:
+            code += b"\x8B\xFD"                           # mov edi, ebp
+        code += b"\x8D\x87" + u32(len(tail))              # lea eax, [edi+tail]
+        code += b"\x2B\xC6"                               # sub eax, esi
+        code += b"\x3D" + u32(PATH_BYTES)
+        jump(ja, after)
+        code += b"\x56"                                   # push esi
+        code += b"\xBE" + u32(block_va + offsets["tail" if index == 0 else f"tail{index}"])   # mov esi, tail
+        code += b"\xB9" + u32(len(tail))                  # mov ecx, len
+        code += b"\xF3\xA4"                               # rep movsb
+        code += b"\x5E"                                   # pop esi
+        code += b"\x68" + u32(block_va + offsets["load_library"])
+        code += b"\x53"
+        code += b"\xFF\x15" + u32(profile.get_proc_address_iat)
+        code += b"\x85\xC0"
+        jump(jz, after)
+        code += b"\x6A" + bytes([LOAD_WITH_ALTERED_SEARCH_PATH])
+        code += b"\x6A\x00"
+        code += b"\x56"
+        code += b"\xFF\xD0"                               # LoadLibraryExW
+        code += b"\x85\xC0"
+        jump(jz, after)
+        code += b"\x68" + u32(block_va + offsets["export"])
+        code += b"\x50"
+        code += b"\xFF\x15" + u32(profile.get_proc_address_iat)
+        code += b"\x85\xC0"
+        jump(jz, after)
+        code += b"\xFF\xD0"                               # FtfpStartup() (stdcall, no arguments)
     labels["done"] = len(code)
     code += b"\x81\xC4" + u32(PATH_BYTES)                 # add esp, 0x410
     code += b"\x61"                                       # popad
@@ -212,8 +275,14 @@ def _block(block_va: int, profile: LoaderProfile = FISH) -> bytes:
     for key, text in (("kernel32", KERNEL32), ("module_file_name", MODULE_FILE_NAME),
                       ("load_library", LOAD_LIBRARY), ("export", EXPORT)):
         head[offsets[key]: offsets[key] + len(text)] = text
-    head[offsets["tail"]: offsets["tail"] + len(tail)] = tail
+    for index, tail in enumerate(tails):
+        at = offsets["tail" if index == 0 else f"tail{index}"]
+        head[at: at + len(tail)] = tail
     return bytes(head) + bytes(code)
+
+
+def _where(profile: LoaderProfile) -> str:
+    return "', then '".join(profile.patcher_files_folder + "\\" + name for name in profile.dll_names)
 
 
 def described_changes(profile: LoaderProfile = FISH) -> list[tuple[int, int | None, int, str]]:
@@ -222,7 +291,7 @@ def described_changes(profile: LoaderProfile = FISH) -> list[tuple[int, int | No
     _, code_offset = _layout(profile)
     file_end, block_va = {"fish": (0x5E000, 0x00460000), "plant": (0xAB000, 0x004AE000)}[profile.game]
     block_length = code_offset + len(_block(block_va, profile))
-    where = profile.patcher_files_folder + "\\" + profile.dll_name
+    where = _where(profile)
     return [
         (0xFE, None, 2, "NumberOfSections: one more, the .ftfpst section."),
         (0x148, None, 4, "SizeOfImage: grows to take in the .ftfpst section."),
@@ -308,7 +377,7 @@ def append_startup_loader(data: bytes, profile: LoaderProfile = FISH) -> tuple[b
                         "after": after.hex().upper(), "purpose": purpose})
         out[offset: offset + len(after)] = after
     records.append({"offset": f"0x{len(out):X}", "before": "", "after": f"{raw_size} bytes",
-                    "purpose": f"the startup loader: load '{profile.patcher_files_folder}\\{profile.dll_name}' by its full path "
+                    "purpose": f"the startup loader: load '{_where(profile)}' by its full path "
                                "and call FtfpStartup, then WinMain"})
     out.extend(bytes(raw_pointer - len(out)) + block + bytes(raw_size - len(block)))
     checksum_offset = optional + 64

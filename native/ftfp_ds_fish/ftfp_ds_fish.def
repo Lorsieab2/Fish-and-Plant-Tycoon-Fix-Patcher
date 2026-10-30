@@ -2,3 +2,4 @@ LIBRARY "DS Exclusive Fish"
 EXPORTS
     FtfpStartup = _FtfpStartup@0
     FtfpDsFishInstalled = _FtfpDsFishInstalled@0
+    FtfpDsFishEntry = _FtfpDsFishEntry@12

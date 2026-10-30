@@ -868,6 +868,15 @@ PRICES = (
     Fact(
         "After that the asking price never changes by itself: only the species screen's arrows "
         "and keypad (0 to 9999) change it, and only Advertising changes B.",
+        patched=(("optimize_prices", "an \"Optimize Prices\" button on the Species Chart's bottom bar, left "
+                  "of Done, asks Yes/No and then sets every discovered species' asking price to the Breeding "
+                  "Guide's best price per day: the price P from 1 to 2B - 1 with the most money per real "
+                  "day, the average over the two crowds 4 + ornaments owned + 2 for the Golden Seahorse + "
+                  "2 x Advertising level x (a full selling tank / 3 + 2 or 3), each customer counted as "
+                  "browsing, a full selling tank of 21 adults (26 with Bigger tanks) rolled once a real-time "
+                  "second and 5 seconds without a roll after a sale; the lowest such P on a tie. It writes only "
+                  "the asking price of discovered species (the DS species too with DS Exclusive Fish) and "
+                  "says how many it set."),),
     ),
 )
 

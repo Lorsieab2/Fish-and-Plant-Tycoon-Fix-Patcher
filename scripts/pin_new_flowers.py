@@ -92,7 +92,7 @@ def main() -> int:
             enabled = set(combo) | {SETTING_ID}
             patches = plant_patcher.active_patch_records(manifest, enabled)
             patched, _ = plant_patcher.apply_patch_bytes(vanilla, patches)
-            patched, _ = ds_fish_loader.append_startup_loader(patched, PROFILE)
+            patched, _ = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.plant_profile(enabled))
             pins[plant_patcher.settings_key(enabled, manifest)] = hashlib.sha256(patched).hexdigest().upper()
     manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
     MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

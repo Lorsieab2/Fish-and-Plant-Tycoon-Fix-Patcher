@@ -1132,6 +1132,14 @@ int __stdcall FtfpStartup(void) {
 /* For the patcher's tests and the patch log. */
 int __stdcall FtfpDsFishInstalled(void) { return installed; }
 
+/* For "Optimize Prices.dll": the species entry of a DS body (its row is
+   here, in ds_rows), or NULL when the mod is not in or the genes are not a
+   species. */
+unsigned char *__stdcall FtfpDsFishEntry(char *state, int body, int fin) {
+    if (!installed || state == NULL || !is_ds(body) || !valid_gene(fin)) return NULL;
+    return entry(state, body, fin);
+}
+
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     (void)reserved;
     if (reason == DLL_PROCESS_ATTACH) {

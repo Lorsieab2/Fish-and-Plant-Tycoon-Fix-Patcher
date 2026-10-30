@@ -467,6 +467,15 @@ PRICES = (
         "\"Set species price\": typed values above 9999 become 9999. The arrows step by 1, 5, 10, "
         "25 or 100 by price, never below 1 and with no top; they apply at once and Cancel does not "
         "undo them.",
+        patched=(("optimize_prices", "an \"Optimize Prices\" button on the Nursery's bottom bar asks Yes/No "
+                  "and then sets every discovered species' asking price to the Breeding Guide's best price per "
+                  "day: the price P (1 to 9999) with the most money per real day for one pot kept selling the "
+                  "species at Normal speed (24 age units to grow, then a nursery tick every 2 real-time seconds "
+                  "until it sells), for a healthy, flowering plant with no Plant Food or pruning, the price "
+                  "seen a quarter lower with the Golden Berries of Wealth, and visitors at the limit 8 + "
+                  "47 x S / 78, all browsing, S counting the ornaments owned, the magic plants found, the full "
+                  "bug collection and all 15 sale spots filled. It writes only the asking price of discovered "
+                  "species (the Unused Flowers too with that setting) and says how many it set."),),
     ),
 )
 
