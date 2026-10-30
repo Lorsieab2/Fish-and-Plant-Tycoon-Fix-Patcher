@@ -11,7 +11,8 @@
      * Radioactive Plant Formula (upper right, the chemicals): chemical 36,
        3 doses, $10000.  On a plant: full health, every dead branch alive
        again, the largest size, as many flowers as the plant can hold,
-       grown to full bloom, and a pollinated plant's full 5 seeds.
+       grown to full bloom, and always 5 seeds: all of them ripe at once on
+       a pollinated plant, all 5 at its next pollination on any other.
      * Revival Potion (beside it): chemical 37, 3 doses, $10000.  On a dead
        plant: alive again at full health.
      * Revita-Seed (beside that): chemical 38, 3 doses, $2500.  On a plant
@@ -259,9 +260,46 @@ static void flower_everything(char *plant) {
     while (n-- > 0) AT(table + n * DEF_STRIDE, 0xA8, int) = saved[n];
 }
 
+/* Seeds (the owner, 2026-10-31: a plant given the formula always gives 5 seeds, and an
+   already pollinated one gives all of them at once).  The game's seed state: pollination
+   (0x4240A0) sets +0x6C, +0x98 = the age then, +0x90 = 0 ripe and +0x94 = seeds counted as
+   taken already, Random(3) - +0x7C (5, 4 or 3 given), or 4 if infested (1 given); each plant
+   update ripens min(age - +0x98 - 2, 5) - +0x94 seeds into +0x90 (0x42E0C6); a pick moves one
+   from +0x90 to +0x94 (0x426208).  The old formula only gave back the held-back seeds of a
+   plant already pollinated, still to ripen over 7 age units, and did nothing for one
+   pollinated later: those got the stock 5, 4 or 3.  Now:
+     * already pollinated: the held-back seeds are given back (+0x94 = the seeds picked) and
+       all the rest are ripe now: +0x98 = age - 7, so the game's own ripening counts all 5 as
+       ripe at every update, and +0x90 = 5 - +0x94 at once;
+     * not pollinated yet: +0x7C = FORMULA_SEEDS, and the next pollination (on_pollinated)
+       gives all 5 (+0x94 = 0), infested or not.  Planting a new plant clears +0x7C
+       (stub_plant_seed), so the mark never passes to the pot's next plant.  The mark is in
+       the pot's record, so it moves with the pot wherever the game or an extra greenhouse
+       keeps it. */
+#define FORMULA_SEEDS 0x35534652            /* "RFS5": +0x7C of a formula plant not pollinated yet */
+#define RIPENING_UNITS 7                    /* 2 + 5: all 5 ripe (0x42E0DD-0x42E0E5) */
+
+/* The age in whole units, as the ripening takes it (0x42E0CF-0x42E0D2: the float age through
+   the CRT's _ftol, which truncates, as a C cast does). */
+static int age_units(char *pot) { return (int)AT(pot, 0x10, float); }
+
+static void formula_seeds(char *pot) {
+    if (AT(pot, 0x6C, unsigned char)) {
+        int held = AT(pot, POT_SEEDS_HELD_BACK, int) == FORMULA_SEEDS ? 0 : AT(pot, POT_SEEDS_HELD_BACK, int);
+        int taken = AT(pot, 0x94, int) - held;
+        if (taken < 0) taken = 0;
+        AT(pot, 0x94, int) = taken;
+        AT(pot, POT_SEEDS_HELD_BACK, int) = 0;
+        AT(pot, 0x98, int) = age_units(pot) - RIPENING_UNITS;
+        AT(pot, 0x90, int) = taken < 5 ? 5 - taken : 0;
+    } else {
+        AT(pot, POT_SEEDS_HELD_BACK, int) = FORMULA_SEEDS;
+    }
+}
+
 /* Full health, every branch alive (dead ones, and the ones the plant's shape
    hides), largest size, a flower on every spot of every branch, grown to full
-   bloom.  The dose is already used (stock order). */
+   bloom, and 5 seeds (formula_seeds).  The dose is already used (stock order). */
 static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plant) {
     char *state = AT(greenhouse, 0x68, char *);
     char *pot = state + 0x2188 + (row * 5 + col) * 0x5600;
@@ -280,11 +318,7 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
         AT(pot, 0x8C, int) = 100;
     }
     if (AT(pot, 0x10, float) < 28.0f && AT(pot, 0x14, float) < 28.0f) AT(pot, 0x14, float) = 28.0f;
-    if (AT(pot, 0x6C, unsigned char)) {                  /* pollinated: all 5 seeds */
-        int used = AT(pot, 0x94, int) - AT(pot, POT_SEEDS_HELD_BACK, int);
-        AT(pot, 0x94, int) = used < 0 ? 0 : used;
-        AT(pot, POT_SEEDS_HELD_BACK, int) = 0;
-    }
+    formula_seeds(pot);
 }
 
 /* -------------------------------------------------------- Revival Potion */
@@ -427,7 +461,8 @@ static void __cdecl apply_chemical(char *greenhouse, int col, int row, char *pla
      them back.  The stock count subtracted +0x7C, so it is added back first. */
 static void __cdecl on_pollinated(char *pot) {
     int held_back = AT(pot, 0x94, int);
-    if (held_back != 4) held_back += AT(pot, POT_SEEDS_HELD_BACK, int);
+    if (AT(pot, POT_SEEDS_HELD_BACK, int) == FORMULA_SEEDS) held_back = 0;     /* given the formula: all 5 */
+    else if (held_back != 4) held_back += AT(pot, POT_SEEDS_HELD_BACK, int);
     AT(pot, 0x94, int) = held_back;
     AT(pot, POT_SEEDS_HELD_BACK, int) = held_back;
     if (AT(pot, 0x68, int) >= FIRST_NEW_FLOWER && AT(pot, 0x64, int) >= 1 && AT(pot, 0x64, int) <= FOLIAGES) {
@@ -466,7 +501,7 @@ static const char LEGENDARY_DESC[] =
     "These ultra-rare seeds were only recently\nrediscovered on Isola and require the\nbest of care to survive.";
 static const char FORMULA_TITLE[] = "Radioactive Plant Formula\n";
 static const char FORMULA_DESC[] =
-    "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves!\nContains 3 doses.\n";
+    "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves! Always 5 seeds!\nContains 3 doses.\n";
 static const char FORMULA_NAME[] = "Radioactive Plant Formula";
 /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped as the formula's. */
 static const char REVIVAL_TITLE[] = "Revival Potion\n";
@@ -1079,6 +1114,7 @@ static const DWORD k_click_back = SITE_STORE_CLICK_BACK;
 static const DWORD k_click_done = 0x00448583u;         /* the mouse handler's exit */
 static const DWORD k_hover_back = SITE_STORE_HOVER_BACK;
 static const DWORD k_joint_free_back = SITE_JOINT_FREE_BACK;
+static const DWORD k_plant_seed_back = SITE_PLANT_SEED_BACK;
 static const DWORD k_sprite_draw = 0x004208F0u;
 static const float k_one = 1.0f;
 
@@ -1511,6 +1547,16 @@ __declspec(naked) static void stub_joint_free(void) {
     }
 }
 
+/* 0x42FCDD planting (esi = the pot): the stock writes, then +0x7C = 0 for the new plant. */
+__declspec(naked) static void stub_plant_seed(void) {
+    __asm {
+        mov dword ptr [esi + 0x78], edx
+        mov byte ptr [esi + 0x6C], 0
+        mov dword ptr [esi + POT_SEEDS_HELD_BACK], 0
+        jmp k_plant_seed_back
+    }
+}
+
 /* 0x447DA2 store draw, before the item grids: esi = store. */
 __declspec(naked) static void stub_draw(void) {
     __asm {
@@ -1572,7 +1618,7 @@ static const char CHEM_SHEET_FILE[] = "Chemicals_Grid_upgrades.png";
 static const char LINK_FILE[] = "upgrades_link.png";
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 19
+#define CODE_SITES 20
 #define DATA_SITES 6
 #define TOTAL_SITES (CODE_SITES + DATA_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -1621,6 +1667,7 @@ static int prepare(void) {
     JMP(w++, STORE_CLICK, stub_click);
     JMP(w++, STORE_HOVER, stub_hover);
     JMP(w++, JOINT_FREE, stub_joint_free);
+    JMP(w++, PLANT_SEED, stub_plant_seed);
     site_data(w++, SITE_CHEM_PICTURE_BOUND_VA, SITE_CHEM_PICTURE_BOUND_LEN, SITE_CHEM_PICTURE_BOUND_EXPECT, NULL, 0);
     writes[CODE_SITES].bytes[SITE_CHEM_PICTURE_BOUND_IMM_AT] = bound;
     site_data(w++, SITE_SEED_SHEET_FILE_VA, SITE_SEED_SHEET_FILE_LEN, SITE_SEED_SHEET_FILE_EXPECT, &seed_file, 4);

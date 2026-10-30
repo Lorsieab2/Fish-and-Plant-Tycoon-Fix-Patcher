@@ -306,8 +306,9 @@ never needs the internet.
     beyond spamming Fertilizer Bombs and Plant Food: every branch grows (dead
     ones and the ones the plant's shape normally hides), the largest size,
     full bloom, a flower on every spot of every branch and leaf (hundreds on a
-    big plant), no dead or brown leaves, full health, and 5 seeds when
-    pollinated.
+    big plant), no dead or brown leaves, full health, and always 5 seeds:
+    an already pollinated plant has all its seeds ripe at once, any other
+    gives all 5 at its next pollination (the Formula Bomb too).
   - Radioactive Plant Formula Bomb under the formula: $30,000, 3 bombs; the
     stock Fertilizer Bomb made rainbow. One bomb gives every live plant in the
     greenhouse on screen exactly one Radioactive Plant Formula dose (the
