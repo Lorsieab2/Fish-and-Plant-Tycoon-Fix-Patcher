@@ -60,7 +60,7 @@ class ManifestTests(unittest.TestCase):
         self.assertFalse(companion.get("startup_loader", False))
         destinations = {f["destination"] for f in companion["files"]}
         self.assertIn(f"{ds_fish_loader.PATCHER_FILES_FOLDER}/DS Store Items.dll", destinations)
-        self.assertEqual(len([d for d in destinations if d.startswith("Images/")]), 24)
+        self.assertEqual(len([d for d in destinations if d.startswith("Images/")]), 26)
         self.assertIn("Images/ITEM_ADD_MONEY.png", destinations)
         self.assertIn("Images/DS_PUFFER_PUFF_Grid.png", destinations)
         self.assertIn("Images/SuppliesUpgradesButton.png", destinations)

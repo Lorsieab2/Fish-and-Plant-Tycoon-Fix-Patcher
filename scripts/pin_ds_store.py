@@ -35,7 +35,7 @@ DLL_NAME = "DS Store Items.dll"
 SETTING = {
     "id": SETTING_ID,
     "name": "DS Store Items",
-    "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, and ClonaFish, which clones every unique fish. Needs DS Exclusive Fish.",
+    "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, ClonaFish, which clones every unique fish, and the Auto-Feeder and Auto-Healer, which keep every fish in every tank fed and healthy. Needs DS Exclusive Fish.",
     "description": (
         "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. "
         "The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: "
@@ -56,7 +56,14 @@ SETTING = {
         "Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at "
         "full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every unique fish in the "
         "tank you use it on (a fish no other fish there shares its body and fin with), until the "
-        "tank is full. The Golden "
+        "tank is full. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work "
+        "on every live fish in every tank (Tanks 1-2, the Sale Tank, the isolation tank and Tanks 4-6, "
+        "on screen or not, through time away and the Time Warp too): the Auto-Feeder keeps each fish's "
+        "food at 50, so it never starves and feeding by hand on top never overfeeds it; the Auto-Healer "
+        "cures fungus and ick (each cure counts under Fish Cured) and keeps health at 100. Neither "
+        "touches a dead fish. Unpurchase: click an owned one again and answer Yes; it switches off at "
+        "once, with no refund (buying it again costs the full price). Ownership is kept beside the save "
+        "in \"Auto Upgrades <slot>.dat\"; a new game starts without them. The Golden "
         "Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish."
     ),
     "warning": (

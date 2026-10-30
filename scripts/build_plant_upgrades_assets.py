@@ -20,7 +20,9 @@ Writes, under assets/plant_tycoon_upgrades/Images:
   Radioactive Plant Formula Bomb (chemical 39): the stock Fertilizer Bomb
   (row 5) with its white glass turned rainbow and its yellow label white,
   the cap left grey (the owner's pick), a 14th
-  with the Time Warp clock and a 15th with Add Money's gold coins. A chemical's row is
+  with the Time Warp clock and a 15th with Add Money's gold coins; rows 16 and 17
+  (the 17th and 18th) hold Automatic Sprinklers and the Auto-Healer, upright only
+  (scripts/build_auto_upgrades_assets.py). A chemical's row is
   its id - 27 (the game draws frame 2 x id - 54). The DLL points the chemical
   sheet record at it.
 * upgrades_link.png: the store's "Upgrades" link, two frames side by side
@@ -121,7 +123,7 @@ def formula_bottle(images: Path) -> Image.Image:
     stock = Image.open(images / "Chemicals_Grid.png").convert("RGBA")
     if stock.size != (2 * CHEM_CELL, CHEM_ROWS * CHEM_CELL):
         raise SystemExit(f"Chemicals_Grid.png is {stock.size}, expected the stock 140 x 630")
-    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 6) * CHEM_CELL))
+    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 9) * CHEM_CELL))
     sheet.paste(stock, (0, 0))
     for column in (0, 1):
         box = (column * CHEM_CELL, MUTATION_ROW * CHEM_CELL, (column + 1) * CHEM_CELL, (MUTATION_ROW + 1) * CHEM_CELL)
@@ -145,6 +147,11 @@ def formula_bottle(images: Path) -> Image.Image:
     for column in (0, 1):
         at = (column * CHEM_CELL + (CHEM_CELL - pile.width) // 2, (CHEM_ROWS + 5) * CHEM_CELL + (CHEM_CELL - pile.height) // 2)
         sheet.alpha_composite(pile, at)
+    # Rows 16 and 17 (frames 32 and 34): Automatic Sprinklers and the Auto-Healer, upright only
+    # (scripts/build_auto_upgrades_assets.py). Row 15 is the Extra Greenhouse's.
+    import build_auto_upgrades_assets
+    for row, cell in build_auto_upgrades_assets.plant_rows(stock, Image.open(images / "Tools_Grid.png").convert("RGBA")).items():
+        sheet.paste(cell, (0, row * CHEM_CELL))
     return sheet
 
 

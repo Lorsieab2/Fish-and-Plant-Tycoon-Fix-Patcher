@@ -78,7 +78,12 @@ Fish Tycoon options:
   Moray Eel and Exotic Fish Eggs, the Radioactive Growth Hormone (every fish
   in the tank on screen: pregnant ones give birth, then all get full health,
   are cured and young ones become adults), the Revival Potion (revives the
-  tank's dead fish) and ClonaFish (clones every unique fish). The animals
+  tank's dead fish), ClonaFish (clones every unique fish), and the
+  Auto-Feeder and Auto-Healer ($10,000 each, bought once: every live fish in
+  every tank stays fed at 50 food, never overfed, and is cured and kept at
+  full health; dead fish are left alone. Click an owned one again and answer
+  Yes to unpurchase it: it switches off, no refund, buying it again costs the
+  full price; kept in "Auto Upgrades <slot>.dat"). The animals
   never take a fish's place: each tank has 5 animal places of its own, kept
   in "Tank Animals <slot>.dat". Trash the animals and let the eel out of
   its rock before turning it off again.)
@@ -143,7 +148,12 @@ Plant Tycoon options:
   Radioactive Plant Formula and its Bomb (one dose for every plant in the
   greenhouse on screen), the Revival Potion (revives a dead plant),
   Revita-Seed (a plant that has given all its seeds can be pollinated
-  again) and the Fourth, Fifth and Sixth Seed Box. Move
+  again), Automatic Sprinklers and the Auto-Healer ($10,000 each, bought
+  once: every live plant in every greenhouse is kept at the best water level,
+  free of pests and at full health; dead plants are left alone. Click an owned
+  one and answer Yes to unpurchase it: it switches off, no refund, buying it
+  again costs the full price; kept in "Auto Upgrades <slot>.dat") and the
+  Fourth, Fifth and Sixth Seed Box. Move
   seeds out of boxes 4-6 before turning it off.)
 - Tank and greenhouse counts (on by default; "Plants: 9 of 15 (5 mature,
   2 with buds, 2 seedlings)" along the top of the greenhouse on screen,

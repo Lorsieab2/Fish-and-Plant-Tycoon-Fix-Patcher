@@ -54,6 +54,10 @@ SITES = [
     # "is this flower spot free?" (a spot on a joint is taken while a branch grows there): the
     # formula's flowering skips that test, so every spot on every branch flowers.
     ("joint_free", 0x42D330, ["mov eax, dword ptr [esp + 0xc]", "mov edx, dword ptr [esp + 8]"]),
+    # Automatic Sprinklers and the Auto-Healer: the top of the plant update's age-unit loop (each
+    # caught-up unit, edi = the pot) and the code right after the loop (esi = the plant object).
+    ("unit_top", 0x42E134, ["cmp dword ptr [edi + 0x28], ebp", "jne 0x42e144"]),
+    ("units_done", 0x42E2DF, ["mov ecx, dword ptr [esi + 0xc]", "cmp byte ptr [ecx + 0x53f27], 0"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).

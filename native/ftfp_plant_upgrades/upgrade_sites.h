@@ -78,6 +78,14 @@ static const unsigned char SITE_STORE_HOVER_EXPECT[] = { 0x8B, 0x86, 0xBC, 0x01,
 #define SITE_JOINT_FREE_LEN 8
 static const unsigned char SITE_JOINT_FREE_EXPECT[] = { 0x8B, 0x44, 0x24, 0x0C, 0x8B, 0x54, 0x24, 0x08 };
 #define SITE_JOINT_FREE_BACK 0x0042D338u
+#define SITE_UNIT_TOP_VA 0x0042E134u
+#define SITE_UNIT_TOP_LEN 5
+static const unsigned char SITE_UNIT_TOP_EXPECT[] = { 0x39, 0x6F, 0x28, 0x75, 0x0B };
+#define SITE_UNIT_TOP_BACK 0x0042E139u
+#define SITE_UNITS_DONE_VA 0x0042E2DFu
+#define SITE_UNITS_DONE_LEN 10
+static const unsigned char SITE_UNITS_DONE_EXPECT[] = { 0x8B, 0x4E, 0x0C, 0x80, 0xB9, 0x27, 0x3F, 0x05, 0x00, 0x00 };
+#define SITE_UNITS_DONE_BACK 0x0042E2E9u
 #define SITE_CHEM_PICTURE_BOUND_VA 0x004308D1u
 #define SITE_CHEM_PICTURE_BOUND_LEN 3
 static const unsigned char SITE_CHEM_PICTURE_BOUND_EXPECT[] = { 0x83, 0xF8, 0x24 };

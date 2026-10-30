@@ -91,7 +91,7 @@ class ManifestTests(unittest.TestCase):
         icon = ROOT / "assets" / "fish_tycoon_ds_store" / "Images" / "ITEM_ADD_MONEY.png"
         self.assertEqual(png_size(icon), (74, 60))     # the DLL's icon_w / icon_h for the item
         sheet = ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png"
-        self.assertEqual(png_size(sheet), (140, 15 * 70))   # row 14: the coins (chem_rows = 15 in the DLL)
+        self.assertEqual(png_size(sheet), (140, 18 * 70))   # row 14: the coins (chem_rows = 18 in the DLL; 16-17 the Auto items)
         self.assertEqual(png_size(ROOT / "assets" / "money_cheat" / "coins_source.png"), (195, 159))
 
 

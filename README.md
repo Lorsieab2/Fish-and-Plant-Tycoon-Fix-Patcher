@@ -203,6 +203,18 @@ never needs the internet.
   Both work in every tank slot the game uses (Bigger tanks, and more) and in
   every tank the game updates. Picture:
   [docs/images/revival-potion-fish.png](docs/images/revival-potion-fish.png).
+  The Auto-Feeder and the Auto-Healer ($10,000 each, bought once; $0 with Free
+  upgrades), the owner's green feeder and the same machine in hot pink, beside
+  ClonaFish: in every tank (Tanks 1-2, the Sale Tank, the isolation tank, and
+  Tanks 4-6 with 3 extra tanks, on screen or not, through time away and the
+  Time Warp step by step), every live fish's food is kept at 50 (never hungry,
+  never starving, and feeding by hand on top never overfeeds), and every live
+  fish is cured of ick and fungus (each counted under Fish Cured) and kept at
+  health 100. Neither touches a dead fish. Click an owned one again and answer
+  Yes to unpurchase it: it switches off at once, with no refund (buying it
+  again costs the full price). Ownership is kept in `Auto Upgrades <slot>.dat`
+  beside the save. Picture:
+  [docs/images/auto-upgrades-fish.png](docs/images/auto-upgrades-fish.png).
   The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
   second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
   loaded by DS Fish's; besides the game's own save it writes only the
@@ -222,8 +234,9 @@ never needs the internet.
   Every item on the Supplies store's Upgrades screen costs $0: the Puffer Fish,
   Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the
   Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000),
-  ClonaFish ($2,500), and the Time Warp clock ($500), Add Money ($950) and
-  the Extra Tank ($10,000 each) when they are on. The price shows $0 and no
+  ClonaFish ($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), and
+  the Time Warp clock ($500), Add Money ($950) and the Extra Tank ($10,000 each)
+  when they are on. The price shows $0 and no
   money is taken; everything else (one of each animal, the supply slots,
   Tanks 4-6 bought in order, the game's purchase question) stays. The game's own store items keep their
   prices.
@@ -319,6 +332,19 @@ never needs the internet.
     Dropped on a plant that has given all its seeds, it can be pollinated
     again and give seeds again, exactly like a fresh plant.
   - Picture: [docs/images/revival-potion-plant.png](docs/images/revival-potion-plant.png).
+  - Automatic Sprinklers on the tool shelf under the Extra Greenhouse, and the
+    Auto-Healer beside the Formula Bomb: $10,000 each, bought once (the
+    owner's sprinkler head, and the Fish Tycoon healer machine in hot pink).
+    In every greenhouse (Greenhouses 2-6 too, on screen or not, through time
+    away and the Time Warp unit by unit), the sprinklers keep every live
+    plant's water at 500 (never too dry, never so wet that pests come three
+    times as often), and the Auto-Healer clears pests (each counted under
+    Plants Cured) and keeps health at 100. Neither touches a dead plant (the
+    Revival Potion's job), and old age still ends a plant's life. Click an
+    owned one and answer Yes to unpurchase it: it switches off at once, with
+    no refund (buying it again costs the full price). Ownership is kept in
+    `Auto Upgrades <slot>.dat`. Picture:
+    [docs/images/auto-upgrades-plant.png](docs/images/auto-upgrades-plant.png).
   - The Fourth, Fifth and Sixth Seed Box with the tool upgrades: $1000
     each, bought in order like the stock ones. Each opens a 40-seed drawer in
     a second chest; the gold arrows on the Seed Storage title bar switch
@@ -337,7 +363,8 @@ never needs the internet.
 - Free upgrades (off by default; **needs Add new store upgrades and items,
   which it turns on**). Every item on the Supplies store's Upgrades view costs
   $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the
-  Formula Bomb ($30,000), the Revival Potion ($10,000), Revita-Seed ($2,500), the
+  Formula Bomb ($30,000), the Revival Potion ($10,000), Revita-Seed ($2,500),
+  Automatic Sprinklers ($10,000), the Auto-Healer ($10,000), the
   Fourth, Fifth and Sixth Seed Box ($1000 each), and the Time Warp clock ($500),
   Add Money ($950), the Extra Greenhouse ($10,000 each) and the Extra Nursery
   ($10,000 each) when they are on. The price shows $0 and no money is

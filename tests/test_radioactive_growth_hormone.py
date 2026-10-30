@@ -69,7 +69,7 @@ class ArtAndManifestTests(unittest.TestCase):
         store = (ROOT / "native" / "ftfp_ds_store" / "ftfp_ds_store.c").read_text(encoding="utf-8")
         lent = int(re.search(r"#define STORE_SPRITE_COUNT (\d+)", fish).group(1))
         named = int(re.search(r"#define STORE_SPRITES (\d+)", store).group(1))
-        self.assertEqual(named, 24)                 # with the Revival Potion's and ClonaFish's six
+        self.assertEqual(named, 26)                 # with the Revival Potion's and ClonaFish's six, the Auto items' two
         self.assertGreaterEqual(lent, named)
 
     @unittest.skipUnless(FISH_EXE is not None and FISH_EXE.is_file(), "needs the vanilla executable")
