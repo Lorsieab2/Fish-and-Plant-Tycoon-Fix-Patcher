@@ -835,16 +835,16 @@ class BreedingGuide:
         self.window.bind("<Escape>", lambda _e: self.close())
         self.window.protocol("WM_DELETE_WINDOW", self.close)
 
-        self.game_var = tk.StringVar(value=TITLES.get(game_id, TITLES["fish"]))
-        self.folder_var = tk.StringVar()
-        self.slot_var = tk.StringVar()
-        self.status_var = tk.StringVar()
-        self.spoilers_var = tk.BooleanVar(value=bool(self.settings.get("show_spoilers", False)))
-        self.search_var = tk.StringVar()
+        self.game_var = tk.StringVar(master=self.window, value=TITLES.get(game_id, TITLES["fish"]))
+        self.folder_var = tk.StringVar(master=self.window)
+        self.slot_var = tk.StringVar(master=self.window)
+        self.status_var = tk.StringVar(master=self.window)
+        self.spoilers_var = tk.BooleanVar(master=self.window, value=bool(self.settings.get("show_spoilers", False)))
+        self.search_var = tk.StringVar(master=self.window)
         # Each tab has its own effects choice, so the ticked one is always the one its table
         # was worked out with; changing it works the table out again.
-        self.calc_effects_var = tk.StringVar(value="none")
-        self.plan_effects_var = tk.StringVar(value="none")
+        self.calc_effects_var = tk.StringVar(master=self.window, value="none")
+        self.plan_effects_var = tk.StringVar(master=self.window, value="none")
         self.calc_effects_var.trace_add("write", lambda *_a: self.calculate())
         self.plan_effects_var.trace_add("write", lambda *_a: self.plan())
         self.plan_busy = False
@@ -1252,7 +1252,7 @@ class BreedingGuide:
         self.calc_boxes = []
         for row, label in enumerate(labels):
             ttk.Label(pick, text=label + ":").grid(row=row, column=0, sticky="w", pady=2)
-            var = tk.StringVar()
+            var = tk.StringVar(master=pick)
             box = ttk.Combobox(pick, textvariable=var, values=values, state="readonly", width=48)
             box.grid(row=row, column=1, sticky="w", padx=(8, 0), pady=2)
             box.bind("<<ComboboxSelected>>", lambda _e: self.calculate())
