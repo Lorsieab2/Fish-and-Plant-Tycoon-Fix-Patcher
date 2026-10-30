@@ -170,6 +170,16 @@ AGES = (
         "sickness odds above age 600 (see Sickness).",
     ),
     Fact("The Golden Seahorse never ages."),
+    Fact(
+        "The tank screen shows no count of its fish or their stages.",
+        patched=(("tank_greenhouse_counts", "three lines at the top left of the water, for the tank on "
+                  "screen: \"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (of 30 with Bigger tanks) with "
+                  "these same stages, then its creatures (the Golden Seahorse and DS Store Items' animals, "
+                  "read from their own animal records), then \"Isolation tank: 1 of 1 (1 adult)\". Dead "
+                  "fish are shown apart as \"Dead: n\". With 3 extra tanks it counts Tanks 4-6 too, and the "
+                  "lines sit lower (y 136), under the tank's name and For sale button. Drawn every frame "
+                  "behind the fish; display only."),),
+    ),
 )
 
 HEALTH = (
@@ -372,8 +382,8 @@ BREEDING = (
     Fact(
         "A baby born into a full tank (21 fish) is lost without a message. The game's "
         "\"One of your tanks is full!\" warning is never shown.",
-        patched=(("bigger_tanks", "Tank One, Tank Two and the selling tank hold 30 fish (the isolation "
-                  "tank still holds one). Fish 22-30 get everything fish 1-21 get: ageing, food, health, "
+        patched=(("bigger_tanks", "Tank 1, Tank 2 and the Sale Tank (Tank 3) hold 30 fish, and with 3 extra "
+                  "tanks so do Tanks 4-6 (the isolation tank still holds one). Fish 22-30 get everything fish 1-21 get: ageing, food, health, "
                   "sickness and its spread, breeding, magic fish, medicines, chemicals, growth hormone, "
                   "the store animals' effects, customers and selling."),),
     ),
@@ -621,14 +631,14 @@ CONSUMABLES = (
                   "exactly as at the end of a pregnancy: the same litter (1, +1 with a Magic Fish of "
                   "Fertility, +1 with the Plant of Fertility), the Magic Fish's 16% mutation of the "
                   "father's genes, and no baby where the tank has no room; the babies are born aged 1, "
-                  "and tank 3 never gives birth, as in the game. Then each fish, the newborns too, so "
+                  "and the isolation tank never gives birth, as in the game. Then each fish, the newborns too, so "
                   "the whole litter comes out adult: a fish under 20 becomes 20 (an adult) at once, "
                   "older fish keep their age, and every one gets health 100 and is cured of ick or "
                   "fungus (each cure counts under Fish Cured). On every difficulty, Hard included, only "
                   "one step's health, sickness and food checks run at the next update (as Growth "
                   "Hormone does on Easy and Medium), so the skipped steps never make the fish ill or "
                   "hungry. Dead fish, the other tanks and the store animals (Golden Seahorse included, "
-                  "in their own slots 26-30) get nothing."),
+                  "in their own animal records, never fish slots) get nothing."),
                  ("free_upgrades", "the Radioactive Growth Hormone costs $0."),),
     ),
     Fact(
@@ -664,6 +674,7 @@ PERMANENT_ITEMS = (
     Fact(
         "Each permanent item is bought once and works game-wide from then on, in all four tanks "
         "(see Which tank counts), whichever tank you were in when you bought it.",
+        patched=(("extra_tanks", "and in Tanks 4-6."),),
     ),
     Fact(
         f"Aeration System ($70): each age step, each fish gets {at_most(100, 40)} chance of +1 "
@@ -692,8 +703,8 @@ PERMANENT_ITEMS = (
             ("golden_seahorse_repurchase", "it can be bought any number of times, even while one "
              "is in a tank; extra ones add no customers or walk-over points."),
             ("ds_store", f"it also gives healthy, fed fish in its tank {below(100, 82)} chance of +1 "
-             "health each step. It lives in its tank's animal slots (26-30), which Growth Hormone "
-             "never reaches, so its age number stays."),
+             "health each step. It lives in its tank's own animal records (5 per tank, not fish "
+             "slots), which Growth Hormone never reaches, so its age number stays."),
         ),
     ),
     Fact(
@@ -710,8 +721,8 @@ PERMANENT_ITEMS = (
         "customers, 2 walk-over points) do not care: they come from owning it, from any tank, and "
         "stay after it is gone.",
         patched=(("ds_store", f"its DS health bonus does care: it works only in the tank the "
-                  f"seahorse is swimming in (Tank One, Tank Two or the selling tank; never the "
-                  f"isolation tank), and only while it is there. Each age step, every fish in that "
+                  f"seahorse is swimming in (Tank One, Tank Two or the selling tank, or Tanks 4-6 "
+                  f"with 3 extra tanks; never the isolation tank), and only while it is there. Each age step, every fish in that "
                   f"tank that is not sick, has food above 5 and is alive gets {below(100, 82)} for "
                   "+1 health (capped at 100); the seahorse itself and the other creatures get "
                   "nothing. Two seahorses in one tank (with Buy Multiple Golden Seahorses) roll "
@@ -900,7 +911,10 @@ SELLING = (
         "After a sale there is no other for 5 real-time seconds.",
         patched=(("bigger_tanks", "the selling tank holds 30, and every adult in it (slots 1-30) is "
                   "tried each second with the same odds as in the stock game; still at most one sale a "
-                  "second."),),
+                  "second."),
+                 ("extra_tanks", "each of Tanks 4-6 with its For sale button On is tried after the Sale "
+                  "Tank, in order, with the same odds; still at most one sale a second (see 3 extra "
+                  "tanks)."),),
     ),
     Fact(
         "Each fish rolls Random(900) <= T, with K = (N + 2) / 2 rounded down and N the customers "
@@ -953,7 +967,7 @@ PRICES = (
                   "Guide's best price per day: the price P from 1 to 2B - 1 with the most money per real "
                   "day, the average over the two crowds 4 + ornaments owned + 2 for the Golden Seahorse + "
                   "2 x Advertising level x (a full selling tank / 3 + 2 or 3), each customer counted as "
-                  "browsing, a full selling tank of 21 adults (26 with Bigger tanks) rolled once a real-time "
+                  "browsing, a full selling tank of 21 adults rolled once a real-time "
                   "second and 5 seconds without a roll after a sale; the lowest such P on a tie. It writes only "
                   "the asking price of discovered species (the DS species too with DS Exclusive Fish) and "
                   "says how many it set."),),
@@ -1055,7 +1069,10 @@ DS_ANIMALS = (
         "time the game saves that slot. A save from an earlier build kept them in the tank's last fish "
         "places (26-30); the first time it loads they move to their own places, and those fish "
         "places are cleared only once the file is written. Their effects reach every fish in their "
-        "tank, all 30 with Bigger tanks.",
+        "tank, all 30 with Bigger tanks. With 3 extra tanks, Tanks 4-6 have 5 animal places each "
+        "too; animals there move with their tank and are kept in its file (see 3 extra tanks). With "
+        "Buy Multiple Golden Seahorses off, an animal can be bought only while none of its kind is in "
+        "any tank, Tanks 4-6 included.",
     ),
 )
 
@@ -1069,8 +1086,8 @@ EXTRA_TANKS = (
     ),
     Fact(
         "How to get them: on the Supplies store's Upgrades screen (DS Store Items), the Extra Tank "
-        "item, $10,000 each ($0 with Free upgrades), bought one after the other: Tank 4, then Four, "
-        "then Five. Until then a tank's button is greyed out, a click or a drop on it says \"You don't "
+        "item, $10,000 each ($0 with Free upgrades), bought one after the other: Tank 4, then Tank 5, "
+        "then Tank 6. Until then a tank's button is greyed out, a click or a drop on it says \"You don't "
         "own this tank yet!\" (and the fish swims back), and the arrows skip it. A new game owns none. "
         "Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank 6 like the Sale Tank without "
         "its For Sale sign (the game's own background and decorations, 0x41D140 and 0x41D340).",
@@ -1080,9 +1097,9 @@ EXTRA_TANKS = (
         "How to reach them: either of the two small arrows left of the Tank 1 button switches the three "
         "tank buttons to Tank 4, Tank 5 and Tank 6, and back. Click a button to look at that tank. "
         "Drag a fish, animal or ornament onto a button to move it there, or onto the left or right arrow to "
-        "move it to the previous or next tank (Tank 1, Tank 2, the Sale Tank, Tank 4, Four, Five, "
-        "and round again, skipping a tank not bought): into the first free place, up to the tank's size (21 fish, or more with the "
-        "tank size setting; six ornaments), by the game's own code, and \"The tank is full!\" when there "
+        "move it to the previous or next tank (Tank 1, Tank 2, the Sale Tank, Tank 4, Tank 5, Tank 6, "
+        "and round again, skipping a tank not bought): into the first free place, up to the tank's size (21 fish, 30 with "
+        "Bigger tanks; six ornaments), by the game's own code, and \"The tank is full!\" when there "
         "is none, as on the stock buttons.",
         label="E",
     ),
@@ -1091,7 +1108,7 @@ EXTRA_TANKS = (
         "the Golden Seahorse, the DS store animals, ornaments, the Moray Eel's rock (the eel goes with it "
         "when it is home) and Multiple ornaments' copies move by dropping them on a tank's button or on an "
         "arrow (left: the previous tank, right: the next, round the six). The game's own move code places "
-        "them: fish and animals by AddFish (or the animal places 26-30), ornaments by the ornament "
+        "them: fish by AddFish, the store animals into the tank's own 5 animal places, ornaments by the ornament "
         "placement, six per tank.",
         label="E",
         subs=(
@@ -1128,7 +1145,7 @@ EXTRA_TANKS = (
         label="E",
         subs=(
             "Once a real-time second the game's sale roll (0x424240) runs over the Sale Tank, then over each "
-            "tank with For sale On (Tank 4, Four, Five), each lent the Sale Tank's place, until a fish sells: "
+            "tank with For sale On (Tanks 4-6, in order), each lent the Sale Tank's place, until a fish sells: "
             "every adult gets the game's own roll, with the same price rules and odds, and still at most one "
             "sale a second, then the 5-second pause. The fish is sold out of the tank it is really in.",
             "When the sale scene opens, its fish pictures and the \"Fish for sale\" number count every "
@@ -1139,8 +1156,8 @@ EXTRA_TANKS = (
         ),
     ),
     Fact(
-        "Every tank screen shows its name under the top bar: Tank 1, Tank 2, Sale Tank, Tank 3, Tank 4, "
-        "Tank 5 (Becken 1-6 in the German game).",
+        "Every tank screen shows its name under the top bar: Tank 1, Tank 2, Tank 3 (the Sale Tank), "
+        "Tank 4, Tank 5, Tank 6 (Becken 1-6 in the German game).",
         label="E",
     ),
     Fact(
@@ -1166,7 +1183,10 @@ EXTRA_TANKS = (
     Fact(
         "Saved per save slot in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside the "
         "saves, written whenever the game saves (on quitting and the 30-minute autosave), after the "
-        "save itself; the save file keeps its stock layout, with Tank 1 in its place. A missing file "
+        "save itself; the save file keeps its stock layout, with Tank 1 in its place. The file holds "
+        "each extra tank's block, then its 5 store-animal records (version 4), how many tanks are bought "
+        "and the For sale buttons; a version-3 file kept the animals in fish records 26-30, and they are "
+        "moved to the animal records when it loads. A missing file "
         "means empty extra tanks; a damaged one is set aside, never deleted, and a new game empties them.",
         label="E",
     ),
@@ -1176,9 +1196,7 @@ EXTRA_TANKS = (
         label="E",
     ),
     Fact(
-        "Not the same as a stock tank: with Buy Multiple Golden "
-        "Seahorses off, DS Store Items does not see a store animal kept in an extra tank you are not "
-        "looking at, so it can be bought again; the tutorial's sick-fish step can pick an extra tank's "
+        "Not the same as a stock tank: the tutorial's sick-fish step can pick an extra tank's "
         "fish while you look at it; with more than one tank selling, the sale roll goes through the "
         "tanks in order (the Sale Tank first), as the stock roll goes through one tank's fish in order.",
     ),
@@ -1315,7 +1333,9 @@ HIDDEN = (
         "time; asking prices change only on the species screen.",
     ),
     Fact("The patcher adds no keys. Its additions are clicks: the store's Upgrades button, the DS "
-         "animals (with DS Store Items) and the Time Warp clock (with Time Warp)."),
+         "animals and new chemicals (with DS Store Items), the Time Warp clock (with Time Warp), the "
+         "Optimize Prices button (on the Species Chart), and the tank arrows and For sale buttons "
+         "(with 3 extra tanks)."),
 )
 
 OTHER_GAME = (
@@ -1338,10 +1358,11 @@ OTHER_GAME = (
     Fact('Bugs (a collection): not in Fish Tycoon; the Trophy Case of magic fish is its only collection (see Goals and popups).'),
     Fact('Goals, messages and statistics: see Goals and popups.'),
     Fact("Sorting seeds: not in Fish Tycoon (the patcher's Sort Seeds button is Plant Tycoon only)."),
-    Fact("Extra greenhouses (patcher): Plant Tycoon only. Fish Tycoon's tanks have their own setting, "
-         "Bigger tanks: 26 fish (see Which tank counts)."),
-    Fact("Extra nurseries (patcher): Plant Tycoon only; Fish Tycoon sells from its own tank (see Selling and "
-         "customers)."),
+    Fact("Extra greenhouses (patcher): Plant Tycoon only. Fish Tycoon's own are 3 extra tanks, Tanks "
+         "4-6 (see 3 extra tanks), and Bigger tanks: 30 fish (see Breeding and babies)."),
+    Fact("Extra nurseries (patcher): Plant Tycoon only; Fish Tycoon sells from the Sale Tank (Tank 3), and "
+         "with 3 extra tanks also from any of Tanks 4-6 with For sale On (see Selling and customers and "
+         "3 extra tanks)."),
 )
 
 TIME_WARP = (

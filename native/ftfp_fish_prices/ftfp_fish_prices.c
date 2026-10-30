@@ -7,7 +7,7 @@
    price becomes the Breeding Guide's "best per day" price for the shop as it
    is now: the species' base price B (entry + 0x24, which already has the
    Advertising rises), the ornaments owned, the Golden Seahorse, the
-   Advertising level, and a full selling tank (21 adults, or 26 with Bigger
+   Advertising level, and a full selling tank (21 adults, or 30 with Bigger
    tanks: the exe's own slot bound says which).  The maths is
    native/common/price_math.h, the port of src/breeding_fish.py.  Then the
    game's own message box says "N prices set."
@@ -47,7 +47,7 @@
 #define ORNAMENTS 6
 #define ORNAMENT_STRIDE 0x14
 #define ADVERTISING 0x26C
-#define TANK_BOUND_VA 0x00419C74u       /* AddFish's `cmp eax, 0x15`: 0x1A with Bigger tanks */
+#define TANK_BOUND_VA 0x00419C74u       /* AddFish's `cmp eax, 0x15`: 0x1E with Bigger tanks */
 
 #define BUTTON_ID 7
 #define BUTTON_X 524
@@ -105,7 +105,8 @@ static void read_shop(const char *state, shop *s) {
     for (k = 0; k < ORNAMENTS; ++k) s->ornaments += AT(state, OWN_ORNAMENT + k * ORNAMENT_STRIDE, int);
     s->seahorse = AT(state, OWN_SEAHORSE, int) != 0;
     s->advertising = AT(state, ADVERTISING, int);
-    s->tank = *(const unsigned char *)(UINT_PTR)TANK_BOUND_VA == 0x1A ? 26 : 21;
+    s->tank = *(const unsigned char *)(UINT_PTR)TANK_BOUND_VA;
+    if (s->tank < 21 || s->tank > 30) s->tank = 21;
 }
 
 /* "DS Exclusive Fish.dll", when it is installed: its entry lookup. */

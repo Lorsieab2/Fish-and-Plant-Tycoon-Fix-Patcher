@@ -3,16 +3,23 @@
 ## v1.0.17
 
 New content for both games (DS fish, fins and store animals; the 14 unused
-flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
+flowers and a store Upgrades page), bigger tanks, 3 extra tanks (Tanks 4-6),
+5 extra greenhouses and nurseries, tank and greenhouse counts, a Tools tab,
+and fixes.
 
 ### Both games
 
 - **Tank and greenhouse counts** (on by default, both games). Fish Tycoon's
   tank screen shows, at the top left of the water, "Fish: 12 of 21 (8 adults,
-  3 teens, 1 baby)" for the tank on screen (of 26 with Bigger tanks), its
-  creatures ("Creatures: Golden Seahorse, Moray Eel") and "Isolation tank: 1
-  of 1 (1 adult)"; Plant Tycoon's greenhouse shows "Plants: 9 of 15 (5
-  mature, 2 with buds, 2 seedlings)" along the top. The stages are the games'
+  3 teens, 1 baby)" for the tank on screen (of 30 with Bigger tanks), its
+  creatures ("Creatures: Golden Seahorse, Moray Eel", read from DS Store
+  Items' animal records) and "Isolation tank: 1 of 1 (1 adult)". With 3 extra
+  tanks it counts Tanks 4-6 too, and the lines move down (y 136) under the
+  tank's name and For sale button. Plant Tycoon's greenhouse shows "Plants: 9
+  of 15 (5 mature, 2 with buds, 2 seedlings)" along the top for the
+  greenhouse on screen, Greenhouses 2-6 too; once an extra greenhouse is
+  bought (the gold arrows show) the line moves under the arrows (y 62). The
+  stages are the games'
   own: a fish is a baby at age 1-5, a teen at 6-19 and an adult from 20 (the
   view builder's picture thresholds, 0x413F1C and 0x413F65); a plant is a
   seedling before age 21 and has buds until 24, when it is mature (the
@@ -43,8 +50,8 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   species' asking price becomes the Breeding Guide's "best per day" price for
   the shop as it is now, and an OK box says "N prices set." Fish: each
   species' base price (with the Advertising rises), the ornaments owned, the
-  Golden Seahorse and the Advertising level, with a full selling tank (21,
-  or 26 with Bigger tanks). Plant: each species' value, the Golden Berries
+  Golden Seahorse and the Advertising level, with a full selling tank.
+  Plant: each species' value, the Golden Berries
   of Wealth, and the visitor limit from the ornaments owned, the magic plants
   found and the bug collection with all 15 sale spots filled, for a healthy,
   flowering plant. The maths is the guide's own, ported to C
@@ -121,6 +128,74 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   0x41ED70).
   The item is labelled "Add $1,000" (German "Plus 1.000 $"): Fish Tycoon's title
   font has no "+" and drew a box instead.
+- **Time Warp**, a new setting (both games), off by default. A clock (the owner's
+  icon) on the store's Upgrades screen: a flat $500 to play 1-72 real-time hours
+  as time away, typed into a small Windows popup and confirmed Yes/No. No
+  catch-up cap: Fish Tycoon feeds the hours in 4-hour pieces through its own
+  fish update; Plant Tycoon moves each plant's clock and runs its own plant
+  update, and the seed-restock timer moves too. Refused while time is stopped.
+  Live-tested in both games (Normal, 2x / Fast, Stop Time, cancel, no money).
+  After the warp has been played, an OK box says what it did, e.g. "Time Warp
+  done: 12 hours played (72 age steps). $500 paid." (age units in Plant Tycoon;
+  $0 paid with Free upgrades); a refusal shows no such box.
+- With a setting that adds new content on (DS Exclusive Fish or DS Store
+  Items; Add unused flowers or Add new store upgrades and items), the copy is
+  "Fish Tycoon - Modded Upgrades" / "Plant Tycoon - Modded Upgrades" (folder
+  and EXE), beside the plain "- Modded" copy, so the two never replace each
+  other. A folder you name yourself keeps its name.
+- **Restore Saves, one player slot:** the patcher's own files of that slot now
+  include their temporary, previous and set-aside copies (for example
+  "DS Fish 2.unreadable-1.dat", "Tank Animals 2.previous.dat") and the files
+  beside the game's older copies of that save (slot + 20, and + 40 in Plant
+  Tycoon). Before, such a file counted as belonging to no slot, so one copy
+  that differed refused every one-slot restore.
+- **Game Mechanics: every magic fish and magic plant, one by one.** How to get
+  each (eggs or shop seeds with exact odds, breeding pairs, the Unknown Chemical
+  or Mutation Liquid), its value and what finding it does, plus the win screens,
+  the Trophy Case, statistics and one-time messages. Found from the code: a new
+  game's two Seed Storage seeds always breed Plant Tycoon's Magic Tree of
+  Fragrance. Both pages now cover the same topics, each mapping the other
+  game's topics (or saying "not in <game>"), and both say the stores handle no
+  hidden keys (no timed stock in Fish Tycoon; only the seed shelves in Plant
+  Tycoon). Tests keep the parity.
+- **Game Mechanics: Clocks and Hidden keys, clicks and cheats.** Each page now
+  starts with a Clocks section (game time = age steps/units, real time = wall
+  clock; what Stop Time, message boxes and a closed game do to each timer), and
+  every duration names its clock (a test enforces it). New section listing every
+  hidden key, click and cheat, from the code: Fish Tycoon's typed tank cheats
+  (c +$1000, u full version, w fake win), the hidden Trophy Case strip, the
+  selling shop's hidden click spots and all 40 shop tips; Plant Tycoon's
+  hotkeys (Space pauses, F1 snapshot, F3 pointer, F10 unchecked price box), the
+  faucet's 50 random tips, the nursery decoration clicks and the Sundial. Dead
+  code (Fish's expiry check, Plant's "d then w" $50,000 cheat) is marked not
+  reachable, also enforced by a test.
+- **Game Mechanics accuracy pass.** Every fact on both pages was re-checked
+  against the game code: 18 Fish and 21 Plant corrections (for example Growth
+  Hormone runs one step's checks, the first-sale bonus only exists in tutorial
+  games, the plant-bug qualifier lists, the Crude Butterfly Net, exact Extinct
+  and Legendary seed odds), new patched lines for Bigger tanks and Add unused
+  flowers, and every time now says real-life time or in-game age steps/units.
+- **Game Mechanics: every store item, upgrade and research explained.** Fish:
+  each medicine and chemical (doses, odds, which tank), every permanent item,
+  ornament and the Second Tank, and Fish Environment and Advertising in full.
+  Plant: Soil, Water, Shears, Net and Seed box upgrades one by one, every
+  chemical's reach, each nursery ornament's two scores, and the modded Legendary
+  Seeds, Radioactive Plant Formula and Fourth-Sixth Seed Boxes.
+- **Game Mechanics**: a new "Which tank counts" section (Fish) and "Where things count" section (Plant): magic fish only in their own tank, owned items and ornaments everywhere, food and Ick/Fungal treatment also reach the isolation fish, magic plants permanent once discovered, plants for sale still in their pot.
+- **Game Mechanics**: Fish Food research is explained in full (food
+  duration per level, sickness odds, food look), and the starter-eggs entry
+  shows why the first baby is always a Greenfin Spotanus and how a player
+  can still end up without one.
+- **Game Mechanics** covers every setting of this release in one consistent
+  account: Bigger tanks at 30 fish (Tank 1, Tank 2, the Sale Tank and, with
+  3 extra tanks, Tanks 4-6; the isolation tank holds 1), the store animals'
+  own records, the Radioactive Growth Hormone's instant births, the Revival
+  Potion, ClonaFish, the Revita-Seed and the Formula Bomb, Tanks 4-6 with
+  their For sale buttons, the extra greenhouses and nurseries, and the tank
+  and greenhouse counts.
+- **Breeding Guide**: the Plant Tycoon help now says how "best price per
+  day" is worked out (one pot grown to age 24 and sold, then replanted), in
+  place of an old sentence that called it the highest price that sells.
 
 ### Plant Tycoon
 
@@ -161,17 +236,6 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   Picture: docs/images/extra-nurseries-switch.png.
 - The Time Warp also moves the clocks of the extra greenhouses' plants.
 - Free upgrades also makes the Extra Greenhouse and Extra Nursery free.
-
-- **Time Warp**, a new setting (both games), off by default. A clock (the owner's
-  icon) on the store's Upgrades screen: a flat $500 to play 1-72 real-time hours
-  as time away, typed into a small Windows popup and confirmed Yes/No. No
-  catch-up cap: Fish Tycoon feeds the hours in 4-hour pieces through its own
-  fish update; Plant Tycoon moves each plant's clock and runs its own plant
-  update, and the seed-restock timer moves too. Refused while time is stopped.
-  Live-tested in both games (Normal, 2x / Fast, Stop Time, cancel, no money).
-  After the warp has been played, an OK box says what it did, e.g. "Time Warp
-  done: 12 hours played (72 age steps). $500 paid." (age units in Plant Tycoon;
-  $0 paid with Free upgrades); a refusal shows no such box.
 - **R refreshes the seed shop**, a new setting, on by default. Press R in the
   Supplies store to restock the seed shelves at once (Legendary Seeds too),
   through the game's own restock roll (0x41DC60). Three byte changes: the
@@ -261,14 +325,8 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   Flowers re-prices its 322 species in the New Flowers file by the same rule.
   Proven by emulating the vanilla and patched load
   (tests/test_knowledge_price_load_repair.py).
-
-### Both games
-
-- With a setting that adds new content on (DS Exclusive Fish or DS Store
-  Items; Add unused flowers or Add new store upgrades and items), the copy is
-  "Fish Tycoon - Modded Upgrades" / "Plant Tycoon - Modded Upgrades" (folder
-  and EXE), beside the plain "- Modded" copy, so the two never replace each
-  other. A folder you name yourself keeps its name.
+- **Credits:** Plant Tycoon's new flower names are by Virtual_Lady and
+  Lorsieab2 (README, How to Use, the patcher window and the setting).
 
 ### Fish Tycoon
 
@@ -283,17 +341,25 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   like Tank 1 and Tank 2, for breeding: fish live, age, eat, get sick,
   breed and give birth in them, and food, medicines, chemicals, eggs,
   ornaments, research, the plants, the magic fish, the Golden Seahorse, the
-  DS store animals and Bigger tanks work there exactly as in a stock tank. Two
+  DS store animals and Bigger tanks (30 fish) work there exactly as in a stock
+  tank. Two
   small arrows left of the Tank 1 button page the tank buttons to the three
   new tanks and back; drag a fish, animal or ornament onto a button to move it
   there, or onto an arrow to move it to the previous or next tank (Tank 1,
-  Tank 2, the Sale Tank, Tank 4, Four, Five, round). Each extra tank
+  Tank 2, the Sale Tank, Tank 4, Tank 5, Tank 6, round). Each extra tank
   has a "For sale" button (Off at first): On shows the Sale Tank's For Sale!
   sign and sells its fish together with the Sale Tank's through the game's
   own sale roll, each selling tank lent the Sale Tank's place in turn (one
   sale a second, the same odds; the sale scene's pictures and "Fish for sale"
   count cover every selling tank; the crowd stays within the stock maximum).
-  Every tank screen shows its name. The toggles are saved per slot. The game has room for four tanks
+  Every tank screen shows its name: Tank 1, Tank 2, Tank 3 (the Sale Tank),
+  Tank 4, Tank 5, Tank 6. The toggles are saved per slot. The DS store
+  animals move with their tank: in Tanks 4-6 they keep their own 5 animal
+  places per tank, saved in the extra tanks' file (version 4 of it stores
+  each tank's 5 animal records after its block; a version-3 file's animals,
+  kept in fish records 26-30, are moved over when it loads), and DS Store
+  Items' "one of each" check (with Buy Multiple Golden Seahorses off) sees
+  the animals in Tanks 4-6 too. The game has room for four tanks
   only, so a companion DLL (`Fish Tycoon Fix Patcher DLLs\Extra Tanks.dll`)
   keeps three more tank blocks and runs the game's own code on them: the tank
   on screen is swapped into Tank 1's place, and every fish update runs the
@@ -338,48 +404,10 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   exactly as before. Proven by emulating the game's purchase and load code,
   stock and patched, and the DS Store Items DLL's (tests/test_vanilla_fixes.py,
   tests/test_store_extras.py).
-- **Game Mechanics: every magic fish and magic plant, one by one.** How to get
-  each (eggs or shop seeds with exact odds, breeding pairs, the Unknown Chemical
-  or Mutation Liquid), its value and what finding it does, plus the win screens,
-  the Trophy Case, statistics and one-time messages. Found from the code: a new
-  game's two Seed Storage seeds always breed Plant Tycoon's Magic Tree of
-  Fragrance. Both pages now cover the same topics, each mapping the other
-  game's topics (or saying "not in <game>"), and both say the stores handle no
-  hidden keys (no timed stock in Fish Tycoon; only the seed shelves in Plant
-  Tycoon). Tests keep the parity.
-- **Game Mechanics: Clocks and Hidden keys, clicks and cheats.** Each page now
-  starts with a Clocks section (game time = age steps/units, real time = wall
-  clock; what Stop Time, message boxes and a closed game do to each timer), and
-  every duration names its clock (a test enforces it). New section listing every
-  hidden key, click and cheat, from the code: Fish Tycoon's typed tank cheats
-  (c +$1000, u full version, w fake win), the hidden Trophy Case strip, the
-  selling shop's hidden click spots and all 40 shop tips; Plant Tycoon's
-  hotkeys (Space pauses, F1 snapshot, F3 pointer, F10 unchecked price box), the
-  faucet's 50 random tips, the nursery decoration clicks and the Sundial. Dead
-  code (Fish's expiry check, Plant's "d then w" $50,000 cheat) is marked not
-  reachable, also enforced by a test.
-- **Game Mechanics accuracy pass.** Every fact on both pages was re-checked
-  against the game code: 18 Fish and 21 Plant corrections (for example Growth
-  Hormone runs one step's checks, the first-sale bonus only exists in tutorial
-  games, the plant-bug qualifier lists, the Crude Butterfly Net, exact Extinct
-  and Legendary seed odds), new patched lines for Bigger tanks and Add unused
-  flowers, and every time now says real-life time or in-game age steps/units.
-- **Game Mechanics: every store item, upgrade and research explained.** Fish:
-  each medicine and chemical (doses, odds, which tank), every permanent item,
-  ornament and the Second Tank, and Fish Environment and Advertising in full.
-  Plant: Soil, Water, Shears, Net and Seed box upgrades one by one, every
-  chemical's reach, each nursery ornament's two scores, and the modded Legendary
-  Seeds, Radioactive Plant Formula and Fourth-Sixth Seed Boxes.
-- **Credits:** Plant Tycoon's new flower names are by Virtual_Lady and
-  Lorsieab2 (README, How to Use, the patcher window and the setting).
-- **Game Mechanics**: a new "Which tank counts" section (Fish) and "Where things count" section (Plant): magic fish only in their own tank, owned items and ornaments everywhere, food and Ick/Fungal treatment also reach the isolation fish, magic plants permanent once discovered, plants for sale still in their pot.
-- **Game Mechanics**: Fish Food research is explained in full (food
-  duration per level, sickness odds, food look), and the starter-eggs entry
-  shows why the first baby is always a Greenfin Spotanus and how a player
-  can still end up without one.
-- **Bigger tanks: 30 fish**, a new setting, off by default. Tank One, Tank
-  Two and the selling tank hold 30 fish instead of 21 (the isolation tank
-  still holds one): 28 byte changes to every place that assumes 21, so fish
+- **Bigger tanks: 30 fish**, a new setting, off by default. Tank 1, Tank 2
+  and the Sale Tank (Tank 3) hold 30 fish instead of 21 (the isolation tank
+  still holds one; with 3 extra tanks, Tanks 4-6 hold 30 too, by the game's
+  own AddFish limit): 28 byte changes to every place that assumes 21, so fish
   22-30 get everything fish 1-21 get (ageing, food, health, sickness and its
   spread, breeding, magic fish, medicines, chemicals, growth hormone, the
   store animals' effects, customers, selling). 30 is 10 x 3, so the loops the
@@ -462,7 +490,7 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
     birth code, call for call (the litter, the Magic Fish mutation of the
     father's genes, the Magic Fish of Fertility's and the Plant of
     Fertility's extra babies, and a full tank losing the babies, all as a
-    natural birth; tank 3 never gives birth, as stock). Then each one, the
+    natural birth; the isolation tank never gives birth, as stock). Then each one, the
     newborns too, so the whole litter comes out adult, becomes an adult
     (age 20) if younger, gets full health (100) and is cured of ick or
     fungus (counted under Fish Cured); older fish keep their age. Dead fish,
@@ -496,8 +524,9 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   - Selling-tank customers no longer look at any seahorse-type companion
     (stock code read the Golden Seahorse's species data out of range).
   - Runs as "DS Store Items.dll", loaded by "DS Exclusive Fish.dll"; all or
-    nothing, with its own log. Nothing new is saved outside the game's own
-    save.
+    nothing, with its own log. Besides the game's own save, only the
+    animals' "Tank Animals <slot>.dat" (and, with 3 extra tanks, the extra
+    tanks' file) is written.
 - **Multiple ornaments**, a new setting, off by default, in the "- Modded
   Upgrades" copy (owner's request: "the effect only works once and doesn't
   stack, the others are just for decorating!"):

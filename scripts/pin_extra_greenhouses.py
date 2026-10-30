@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import ds_fish_loader  # noqa: E402
+import experimental  # noqa: E402
 import plant_patcher  # noqa: E402
 
 MANIFEST = ROOT / "data" / "plant_manifest.json"
@@ -106,6 +107,8 @@ NURSERIES = {
     "ini": "Extra Nurseries.ini",
 }
 
+GREENHOUSES = experimental.mark(GREENHOUSES)
+NURSERIES = experimental.mark(NURSERIES)
 SETTINGS = (GREENHOUSES, NURSERIES)
 IDS = {s["id"] for s in SETTINGS}
 

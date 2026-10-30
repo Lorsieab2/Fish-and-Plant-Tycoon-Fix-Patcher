@@ -60,8 +60,9 @@ static double pm_fish_income(int price, int base, int browsing, int fish) {
     return (double)(price * PM_DAY_SECONDS) / (PM_FISH_SALE_PAUSE + 1.0 / q);
 }
 
-/* 4 + ornaments + 2 for the Golden Seahorse + 2 x Advertising x (adults / 3 + Random(2) + 2). */
+/* 4 + ornaments + 2 for the Golden Seahorse + 2 x Advertising x (min(adults, 21) / 3 + Random(2) + 2). */
 static int pm_fish_crowd(int ornaments, int seahorse, int advertising, int adults, int extra) {
+    if (adults > 21) adults = 21;           /* the crowd counts at most 21 adults (Bigger tanks, 0x423EEA) */
     return 4 + ornaments + (seahorse ? 2 : 0) + 2 * advertising * (adults / 3 + extra + 2);
 }
 

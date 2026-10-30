@@ -61,11 +61,11 @@ def fish_queries() -> list[tuple[int, int, bool, int, int]]:
         for f in BF.PC_GENES + BF.DS_GENES:
             for level in (1, 2, 3):
                 bases.add(BF.advertised(BF.base_price(b, f), level))
-    shops = [(o, s, a, t) for o in range(7) for s in (False, True) for a in (1, 2, 3) for t in (21, 26)]
+    shops = [(o, s, a, t) for o in range(7) for s in (False, True) for a in (1, 2, 3) for t in (21, 26, 30)]
     rng = random.Random(1717)
     out = [(b, *shop) for b in sorted(bases) for shop in rng.sample(shops, 8)]
     out += [(b, *shop) for b in (4, 26, 70, 190, 239) for shop in shops]
-    out += [(rng.randint(1, 400), rng.randint(0, 6), rng.random() < 0.5, rng.randint(0, 3), rng.choice((21, 26)))
+    out += [(rng.randint(1, 400), rng.randint(0, 6), rng.random() < 0.5, rng.randint(0, 3), rng.choice((21, 26, 30)))
             for _ in range(200)]
     return out
 
@@ -527,7 +527,7 @@ class FishButtonTests(unittest.TestCase):
         ds_rows = {}
         emu = self.game(ds=ds_rows)
         self.install(emu)
-        emu.write8(0x00419C74, 0x1A)                                       # Bigger tanks' slot bound
+        emu.write8(0x00419C74, 0x1E)                                       # Bigger tanks' slot bound (30)
         entries = {(3, 25): (40, BF.base_price(3, 25)), (5, 5): (-1, 24), (2, 2): (9, 15)}
         state, scene = self.shop(emu, entries, ornaments=(0,) * 6, seahorse=0, advertising=1)
         rows = emu.alloc(0x100)
@@ -540,7 +540,7 @@ class FishButtonTests(unittest.TestCase):
         emu.write32(rows + 0x60, -1)
         emu.write32(rows + 0x64, BF.base_price(27, 9))
         self.click(emu, scene)
-        price = lambda base: BF.shop_best_price(base, 0, False, 1, 26)       # noqa: E731
+        price = lambda base: BF.shop_best_price(base, 0, False, 1, 30)       # noqa: E731
         cell = lambda b, f: state + F_SPECIES + (b * F_STRIDE + f) * F_ENTRY + 0x20  # noqa: E731
         self.assertEqual(emu.read32(cell(3, 25)), price(BF.base_price(3, 25)))
         self.assertEqual(emu.read32(cell(2, 2)), price(15))

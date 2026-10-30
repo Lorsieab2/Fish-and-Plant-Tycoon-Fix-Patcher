@@ -43,6 +43,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import ds_fish_loader  # noqa: E402
+import experimental  # noqa: E402
 import fish_patcher  # noqa: E402
 
 MANIFEST = ROOT / "data" / "fish_manifest.json"
@@ -56,19 +57,22 @@ STOCK_SALE = 21                  # the stock selling tank's most adults: the cro
 SETTING = {
     "id": SETTING_ID,
     "name": "Bigger tanks: 30 fish",
-    "summary": "Every tank holds 30 fish instead of 21, the selling tank too; each fish sells with the stock odds.",
+    "summary": "Every tank holds 30 fish instead of 21, the Sale Tank too; each fish sells with the stock odds. "
+               "The isolation tank still holds one.",
     "description": (
-        "Raises every tank (Tank One, Tank Two and the selling tank) from 21 fish to 30. Each tank's block in "
+        "Raises every tank (Tank 1, Tank 2 and the Sale Tank, Tank 3) from 21 fish to 30; with 3 extra tanks, "
+        "Tanks 4-6 hold 30 too. Each tank's block in "
         "the game's state already has room for 31 fish records and the save already stores all of them, so "
         "nothing about the save changes; the game simply only ever used the first 21. Every place that "
         "assumes 21 is raised, so fish 22-30 get everything fish 1-21 get: adding a fish, the swimming fish "
         "on screen, the per-step update (age, food, health, sickness, breeding, death), new game, the "
         "magic-fish check, thought bubbles, medicines, chemicals and growth hormone, customers, the selling "
-        "screen, the starter-egg check and the sickness crowding count. Every adult in the selling tank is "
+        "screen, the starter-egg check and the sickness crowding count. Every adult in the Sale Tank is "
         "for sale with the stock odds per fish, and as in the stock game at most one fish sells a second; "
         "the crowd counts at most 21 adults (the stock game's most), so no fish's odds go past the stock "
         "game's best. The isolation tank still holds one fish. With DS Store Items on, the store's animals "
-        "live in their own file beside the save, so they never take a fish's place. Touches 28 places in "
+        "have 5 places of their own per tank, kept in their own file beside the save, so they never take a "
+        "fish's place. Touches 28 places in "
         "the game's code, plus one short routine for the crowd. See docs/fish-tycoon-tank-expansion.md."
     ),
     "warning": (
@@ -78,6 +82,7 @@ SETTING = {
     "category": "main",
     "default": False,
 }
+SETTING = experimental.mark(SETTING)       # src/experimental.py: the owner's label
 
 # The routine lives in the .text slack (file offset = VA - 0x400000; zero in the vanilla file).
 CAVE = 0x43FE00

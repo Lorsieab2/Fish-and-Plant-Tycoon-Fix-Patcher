@@ -1421,15 +1421,32 @@ typedef void (__fastcall *fish_update_fn)(void *tank, int edx);
 static const fish_update_fn fish_update = (fish_update_fn)0x0041FE70u;
 static void *volatile tank_scene = NULL;
 
+static void warp_fish(char *f, unsigned int seconds) {
+    if (*I(f, 0x00) == 0 || *I(f, 0x3C) <= 0 || *I(f, 0x4C) == BODY_SEAHORSE) return;
+    *(unsigned int *)(f + 0x04) += seconds;
+}
+
+/* "3 extra tanks": the tanks Extra Tanks.dll holds (Tanks 4-6, or Tank 1 while
+   one of them is on screen) are warped too, and its own pass of the fish update
+   over them (FtfpExtraTanksUpdate, what it runs after every stock update) runs
+   after each of the stock ones here. */
+typedef void (__stdcall *tanks_update_fn)(void *scene);
+static void update_held_tanks(void *scene) {
+    HMODULE tanks = GetModuleHandleW(L"Extra Tanks.dll");
+    tanks_update_fn fn = tanks != NULL ? (tanks_update_fn)GetProcAddress(tanks, "FtfpExtraTanksUpdate") : NULL;
+    if (fn != NULL) fn(scene);
+}
+
 static void warp_chunk(char *state, unsigned int seconds) {
-    int tank, slot, r, slots = TANK_SLOTS;
+    int tank, slot, r, e, slots = TANK_SLOTS;
     if (slots > RECORDS - 1) slots = RECORDS - 1;
     for (tank = 0; tank < 4; ++tank) {
-        for (slot = 0; slot < slots; ++slot) {
-            char *f = FISH_RECORD(state, tank, slot);
-            if (*I(f, 0x00) == 0 || *I(f, 0x3C) <= 0 || *I(f, 0x4C) == BODY_SEAHORSE) continue;
-            *(unsigned int *)(f + 0x04) += seconds;
-        }
+        for (slot = 0; slot < slots; ++slot) warp_fish(FISH_RECORD(state, tank, slot), seconds);
+    }
+    for (e = 0; e < HELD_TANKS; ++e) {
+        unsigned char *b = held_block(e);
+        if (b == NULL) break;
+        for (slot = 0; slot < slots; ++slot) warp_fish((char *)b + slot * SLOT_STRIDE, seconds);
     }
     for (r = 0x17; r <= 0x19; ++r) {                    /* Fish Food, Environment, Advertising */
         if (*I(state, r * 20 + 0x7C) != 0) *(unsigned int *)(state + r * 20 + 0x84) += seconds;
@@ -1463,11 +1480,13 @@ static void time_warp(char *impl, char *state) {
     if (*I(state, S_MONEY) < price) return;
     charge(state, price);
     fish_update(tank_scene, 0);                         /* the real time so far, by the stock rules */
+    update_held_tanks(tank_scene);
     for (left = (unsigned int)hours * 3600u; left > 0;) {
         unsigned int c = left > WARP_CHUNK ? WARP_CHUNK : left;
         left -= c;
         warp_chunk(state, c);
         fish_update(tank_scene, 0);
+        update_held_tanks(tank_scene);
     }
     /* What the update made of those seconds: one age step per 60 x speed seconds (0x41FFE9); a
        chunk plus a fish's banked part of a step stays under every cap, so none of it was cut. */

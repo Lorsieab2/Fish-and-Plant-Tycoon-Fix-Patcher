@@ -26,8 +26,8 @@ font at the mouse, as the game's hints are drawn (0x417E90), the fish swims
 back, and the arrows skip it. The number bought is in the sidecar; a new game
 resets it to none.
 
-**Art.** Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank
-Five like the Sale Tank: the game draws a tank's background (0x41D140:
+**Art.** Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank 6
+like the Sale Tank: the game draws a tank's background (0x41D140:
 MAINTANK1/2/3_BG_PNG, sprites 27, 26, 25) and its own wood and plants
 (0x41D340) by the tank number, so the DLL lends the number for those two calls
 (and holds back the Sale Tank's one-time tutorial tip 0x1A). The Sale Tank's
@@ -53,8 +53,8 @@ Tank 4, Tank 5 and Tank 6: three more tanks exactly like Tank 1
 and Tank 2. Fish live, age, eat, get sick, breed and give birth in them;
 food, medicines, chemicals, eggs, ornaments, research, the plants, the
 magic fish (the Wasp Grouper's mutation included), the Golden Seahorse and
-the DS store animals work there as in any tank; "Bigger tanks" makes them 26
-fish too. They are reached from the tank screen's top bar: two small arrows
+the DS store animals work there as in any tank; "Bigger tanks" makes them 30
+fish too (the game's own AddFish limit). They are reached from the tank screen's top bar: two small arrows
 (the game's own UP_ARROW.png turned on its side, left above right) left of
 the Tank 1 button page the three tank buttons from Tank 1 / Tank 2 /
 Sale Tank to Tank 4 / Tank 5 / Tank 6 and back. Click a button to
@@ -70,11 +70,11 @@ the label written in the game's own font
 `scripts/build_extra_tanks_assets.py`; the tank itself is the stock tank,
 drawn with Tank 1's background.
 
-Only the Sale Tank sells: fish for sale, customers and the sale scene read
-tank 2, which is never anything but the Sale Tank, so the stock game's
-limits hold however many fish the extra tanks have: the Sale Tank is a stock
-tank, its size follows the tank size setting (21, 26 with Bigger tanks), and
-the extra tanks never add selling room.
+With every "For sale" button Off only the Sale Tank sells, exactly as stock:
+fish for sale, customers and the sale scene read tank 2, the Sale Tank, whose
+size follows the tank size setting (21, 30 with Bigger tanks). An extra tank
+with For sale On sells together with it (see Selling from the extra tanks
+below), and the crowd still never passes the stock maximum.
 
 ## Phase 1: how many tanks the game has, and where that is fixed
 
@@ -165,8 +165,9 @@ routine is rewritten:
   own AddFish into that block (a held block is swapped into Tank 1's place
   for the call, the record copied first), REMOVE_FISH from the held fish's
   tank, as the stock drop (`0x41EFF0`), with "The tank is full!" at the
-  game's own limit. DS store animals (slots 26-30) go to the block's animal
-  slots, as DS Store Items moves them.
+  game's own limit. DS store animals go to the target tank's own 5 animal
+  records (DS Store Items' records for Tanks 1-3; for Tanks 4-6 the records
+  this DLL keeps after each block), as DS Store Items moves them.
 * **Moving ornaments.** As the stock ornament drop (`0x41F660`): the game's
   own placement (`0x419C00`, six per tank), lift (`0x41E980`), new place
   (`0x41E9C0`) and settle (`0x41EA10`), with a held block lent the place of a
@@ -269,22 +270,20 @@ the DLL rebuilt from source:
 * **Selling order:** with several tanks selling, the roll goes through the
   tanks in order (the Sale Tank first), as the stock roll goes through one
   tank's fish in order.
-* **DS Store Items, one of each:** with "Buy Multiple Golden Seahorses" off,
-  DS Store Items lets you buy a store animal again when it finds none in tanks
-  0-3; an animal kept in an extra tank (not on screen) is not seen there. The
-  stock setting has "Buy Multiple Golden Seahorses" on, which buys them
-  regardless. Fixing it needs a change to DS Store Items' DLL.
 * **The tutorial's sick fish** (`0x425567`) picks from tank 0 or 2: with an
   extra on screen during the tutorial's step 13 it can pick the extra's fish.
-* **Other patcher branches** that count fish per tank from the stock blocks
-  (an in-game tank count) see an extra tank only while it is on screen.
+* DS Store Items' "one of each" check (with "Buy Multiple Golden Seahorses"
+  off) also sees the animals kept in Tanks 4-6, and the Tank and greenhouse
+  counts show whichever tank is on screen, Tanks 4-6 included.
 
 ## Selling from the extra tanks
 
 Each of Tanks 4-6 has a "For sale: Off/On" button under its name label
 (ForSaleOff/On.png, two frames, at (12, 96); German "Verkauf: Aus/An"), Off
-when bought and in a new game; it is saved per slot in the sidecar (version
-3: a bit per tank). On draws the Sale Tank's sign: on Tank 6 (drawn as the
+when bought and in a new game; it is saved per slot in the sidecar (a bit
+per tank, since version 3). Version 4 of the sidecar also stores each extra
+tank's 5 store-animal records after its block; a version-3 file kept them in
+fish records 26-30, and they are moved to the animal records on load. On draws the Sale Tank's sign: on Tank 6 (drawn as the
 Sale Tank) the stock draws are let through, on Tanks 4 and 5 the DLL
 draws the same sprites (3 and 4) at the same places after the decorations.
 

@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import ds_fish_loader  # noqa: E402
+import experimental  # noqa: E402
 import fish_patcher  # noqa: E402
 
 MANIFEST = ROOT / "data" / "fish_manifest.json"
@@ -60,6 +61,7 @@ SETTING = {
     "default": False,
     "separate_output": True,
 }
+SETTING = experimental.mark(SETTING)       # src/experimental.py: the owner's label
 
 
 def sha256(data: bytes) -> str:

@@ -41,9 +41,11 @@ FISH_SETTING = {
     "summary": "Shows how many fish the tank on screen holds, and how many are adults, teens and babies, its "
                "creatures and the isolation tank, in the game's own font.",
     "description": (
-        "Adds three lines at the top left of the water on the tank screen, for the tank you are looking at: "
-        "\"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (26 with Bigger tanks), then the creatures in it "
-        "(\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation tank: 1 of 1 (1 adult)\". Adults, teens "
+        "Adds three lines at the top left of the water on the tank screen, for the tank you are looking at "
+        "(Tank 1 to Tank 6 with 3 extra tanks): \"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (of 30 with "
+        "Bigger tanks), then the creatures in it (\"Creatures: Golden Seahorse, Moray Eel\"), then "
+        "\"Isolation tank: 1 of 1 (1 adult)\". With 3 extra tanks the lines sit lower, under the tank's name "
+        "and its For sale button. Adults, teens "
         "and babies are the game's own stages: a baby is age 1-5, a teen 6-19, an adult 20 and up. Dead fish "
         "are left out of the count and shown after it as \"Dead: 2\" until you throw them away. The lines "
         "follow the game's language (English or German), update every frame, and sit behind the fish, so "
@@ -57,11 +59,13 @@ FISH_SETTING = {
 PLANT_SETTING = {
     "id": SETTING_ID,
     "name": NAME,
-    "summary": "Shows how many of the greenhouse's 15 pots hold a living plant, and how many are mature, have "
-               "buds or are seedlings, in the game's own font.",
+    "summary": "Shows how many of the 15 pots of the greenhouse on screen hold a living plant, and how many are "
+               "mature, have buds or are seedlings, in the game's own font.",
     "description": (
         "Adds one line along the top of the greenhouse screen: \"Plants: 9 of 15 (5 mature, 2 with buds, "
-        "2 seedlings)\", counting the pots that hold a living plant. The stages are the game's own: a plant "
+        "2 seedlings)\", counting the pots of the greenhouse you are looking at (Greenhouse 1 to Greenhouse 6 "
+        "with 5 extra greenhouses) that hold a living plant; once you own an extra greenhouse the line sits "
+        "under the gold arrows. The stages are the game's own: a plant "
         "is a seedling before age 21 (its countdown says \"Buds in ... Min.\"), has buds from 21 (\"Mature in "
         "... Min.\") and is mature from 24. Dead plants are left out of the count and shown after it as "
         "\"Dead: 1\" until you trash them. The line updates every frame and sits behind the plants, so no "

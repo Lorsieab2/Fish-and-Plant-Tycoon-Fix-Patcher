@@ -218,6 +218,15 @@ AGES = (
         "min at Normal and 17 days 22 h at Slow.",
         patched=(("no_old_age_plant_deaths", "plants never die of old age."),),
     ),
+    Fact(
+        "The greenhouse screen shows no count of its plants or their stages.",
+        patched=(("tank_greenhouse_counts", "one line along the top of the greenhouse on screen: \"Plants: "
+                  "9 of 15 (5 mature, 2 with buds, 2 seedlings)\", the pots holding a living plant, with "
+                  "these same stages (a seedling before age 21, buds from 21, mature from 24); dead plants "
+                  "are shown apart as \"Dead: n\". With 5 extra greenhouses it counts Greenhouses 2-6 too, "
+                  "and once one is bought (the gold arrows show) the line sits under the arrows (y 62). "
+                  "Drawn every frame behind the plants; display only."),),
+    ),
 )
 
 WATER = (
@@ -994,7 +1003,9 @@ HIDDEN = (
         "(R refreshes the seed shop, on by default; nothing on any other screen). The patcher's "
         "other additions are clicks, not keys: the Upgrades link in the Supplies store "
         "and the gold box arrows (Add new store upgrades and items), the Sort Seeds button "
-        "(Sort Seeds button), and the Time Warp clock (Time Warp).",
+        "(Sort Seeds button), the Time Warp clock (Time Warp), the Optimize Prices button in the "
+        "Nursery (Optimize Prices button), and the gold arrows on the greenhouse and nursery screens "
+        "(5 extra greenhouses, 5 extra nurseries).",
     ),
 )
 
@@ -1013,9 +1024,13 @@ OTHER_GAME = (
     Fact('Selling and customers: see Selling and visitors.'),
     Fact('Species and prices: see Prices.'),
     Fact('Goals and popups: see Goals, messages and statistics.'),
-    Fact("DS store animals: not in Plant Tycoon. The patcher's new Plant Tycoon items are in Shop seeds (Legendary Seeds), Chemicals (Radioactive Plant Formula) and Tools and shears (Fourth to Sixth Seed Box)."),
-    Fact("3 extra tanks (patcher): not in Plant Tycoon (plants have no tanks; the Fourth to Sixth Seed Box "
-         "add storage, see Tools and shears)."),
+    Fact("DS store animals: not in Plant Tycoon. The patcher's new Plant Tycoon items are in Shop seeds "
+         "(Legendary Seeds), Chemicals (the Radioactive Plant Formula and its Bomb, the Revival Potion and "
+         "Revita-Seed), Tools and shears (Fourth to Sixth Seed Box), Extra greenhouses and Extra "
+         "nurseries."),
+    Fact("3 extra tanks (patcher): not in Plant Tycoon (plants have no tanks). Its counterparts are 5 extra "
+         "greenhouses, Greenhouses 2-6 (see Extra greenhouses), and 5 extra nurseries (see Extra nurseries); "
+         "the Fourth to Sixth Seed Box add storage (see Tools and shears)."),
 )
 
 TIME_WARP = (

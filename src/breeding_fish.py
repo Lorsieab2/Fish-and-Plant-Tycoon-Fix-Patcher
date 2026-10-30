@@ -257,7 +257,13 @@ def income_per_day(price: int, base: int, browsing: int, fish: int = SELLING_TAN
 
 # The crowd counted when the selling scene opens (Game Mechanics, Selling):
 # 4 + ornaments + 2 (Golden Seahorse) + 2 x Advertising level x (adults / 3 + Random(2) + 2).
+# The selling scene counts at most 21 adults for its crowd (stock: the tank holds 21; Bigger tanks
+# caps its count at 21 at 0x423EEA, docs/fish-tycoon-tank-expansion.md section 2E).
+CROWD_ADULTS_MAX = 21
+
+
 def crowd(ornaments: int, seahorse: bool, advertising: int, adults: int, extra: int) -> int:
+    adults = min(adults, CROWD_ADULTS_MAX)
     return 4 + ornaments + (2 if seahorse else 0) + 2 * advertising * (adults // 3 + extra + 2)
 
 
@@ -289,7 +295,7 @@ def shop_best_price(base: int, ornaments: int, seahorse: bool, advertising: int,
     """The Optimize Prices button's price for a species of base price B (entry + 0x24, which
     already has the Advertising rises): the Breeding Guide's best per day for the shop as it is,
     its ornaments, Golden Seahorse and Advertising level, with a full selling tank of `tank`
-    adults (21, or 26 with Bigger tanks)."""
+    adults (21, or 30 with Bigger tanks; the crowd counts at most 21 of them)."""
     return best_asking_price(base, shop_crowds(ornaments, seahorse, advertising, tank), tank)[0]
 
 

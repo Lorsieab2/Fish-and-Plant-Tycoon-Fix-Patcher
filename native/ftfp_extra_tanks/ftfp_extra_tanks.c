@@ -1583,6 +1583,16 @@ unsigned char *__stdcall FtfpExtraTanksHeld(int e) {
     return store[e];
 }
 
+/* For DS Store Items' Time Warp, which runs the stock fish update itself: the
+   same pass over the held tanks this DLL runs after every stock update. */
+void __stdcall FtfpExtraTanksUpdate(char *impl) {
+    if (!installed || impl == NULL) return;
+    __try {
+        tick_extras(impl);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+}
+
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     (void)reserved;
     if (reason == DLL_PROCESS_ATTACH) {

@@ -44,9 +44,10 @@ never needs the internet.
   Seahorses, in case you trash or lose it somehow. It shipped broken from
   v1.0.6 and was fixed in v1.0.12; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
-- Bigger tanks: 30 fish (off by default). Tank One, Tank Two and the selling
-  tank hold 30 fish instead of 21 (the isolation tank still holds one), and
-  fish 22-30 get everything fish 1-21 get. Every adult in the selling tank is
+- Bigger tanks: 30 fish (off by default). Tank 1, Tank 2 and the Sale Tank
+  (Tank 3) hold 30 fish instead of 21 (the isolation tank still holds one;
+  with 3 extra tanks, Tanks 4-6 hold 30 too), and
+  fish 22-30 get everything fish 1-21 get. Every adult in the Sale Tank is
   for sale with the stock odds per fish, one sale a second at most as in the
   stock game; the crowd counts at most 21 adults, the stock game's most. The
   game's save already has room for them, so saves keep their layout. Sell or
@@ -79,7 +80,8 @@ never needs the internet.
   and the other `extra-tank-*` pictures and the Sale Tank beside Tank 6: [docs/images/tank-3-sale-vs-tank-6-for-sale-on.png](docs/images/tank-3-sale-vs-tank-6-for-sale-on.png). It runs as a companion DLL the game loads at start
   (`Fish Tycoon Fix Patcher DLLs\Extra Tanks.dll`), in the "Modded Upgrades"
   copy; the saves keep their stock layout and each save slot keeps its extra
-  tanks, and how many are bought, in `Fish Tycoon Fix Patcher Data\Extra
+  tanks, with their DS store animals and For sale buttons, and how many are
+  bought, in `Fish Tycoon Fix Patcher Data\Extra
   Tanks <slot>.dat` beside the saves; a new game starts with none. Empty the
   three tanks before turning it off again. Design and the emulated checks:
   [docs/fish-tycoon-extra-tanks-design.md](docs/fish-tycoon-extra-tanks-design.md).
@@ -103,8 +105,8 @@ never needs the internet.
   asking price (the price that earns the most money over time), worked out
   in the game with the guide's own maths for your shop as it is now: each
   species' base price (with the Advertising rises), the ornaments you own,
-  the Golden Seahorse and your Advertising level, with a full selling tank
-  (26 fish with Bigger tanks). Then it says "N prices set." Undiscovered
+  the Golden Seahorse and your Advertising level, with a full selling tank.
+  Then it says "N prices set." Undiscovered
   species keep their prices and nothing else changes; the prices are the
   ones you would type yourself, saved with the game as usual. The DS species
   are included with DS Exclusive Fish. It runs as a companion DLL
@@ -113,9 +115,11 @@ never needs the internet.
   [docs/images/optimize-prices-fish.png](docs/images/optimize-prices-fish.png).
 - Tank and greenhouse counts (on by default). Three lines in the game's own
   font at the top left of the water on the tank screen, for the tank you are
-  looking at: "Fish: 12 of 21 (8 adults, 3 teens, 1 baby)" (of 26 with
-  Bigger tanks), "Creatures: Golden Seahorse, Moray Eel" when it has any, and
-  "Isolation tank: 1 of 1 (1 adult)". The stages are the game's own: a baby
+  looking at, Tanks 4-6 too with 3 extra tanks: "Fish: 12 of 21 (8 adults,
+  3 teens, 1 baby)" (of 30 with Bigger tanks), "Creatures: Golden Seahorse,
+  Moray Eel" when it has any, and "Isolation tank: 1 of 1 (1 adult)". With 3
+  extra tanks the lines sit lower, under the tank's name and For sale button.
+  The stages are the game's own: a baby
   is age 1-5, a teen 6-19, an adult 20 and up (the ages at which the game
   switches the fish's picture). Dead fish are left out of the count and shown
   after it as "Dead: 2" until you throw them away; they, and a Golden
@@ -157,7 +161,11 @@ never needs the internet.
   home, move the rock and the eel goes with it, and drag it out by its head.
   Trashing the eel trashes its rock, and the other way round. The animals,
   the Golden Seahorse included, never take a fish's place: each tank has 5
-  animal slots of its own. The store animals arrive with full health and
+  animal slots of its own, kept in `Fish Tycoon Fix Patcher Data\Tank Animals
+  <slot>.dat` beside the saves (with 3 extra tanks, the animals in Tanks 4-6
+  move with their tank and are kept in its `Extra Tanks <slot>.dat`). Without
+  Buy Multiple Golden Seahorses each animal is one of each, counting every
+  tank, Tanks 4-6 included. The store animals arrive with full health and
   food (100 and 100), and ones already in a save (the eel in its rock too)
   are filled up the first time the save is loaded with the patch; nothing in
   the game lowers their meters. Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins.
@@ -188,7 +196,8 @@ never needs the internet.
   [docs/images/revival-potion-fish.png](docs/images/revival-potion-fish.png).
   The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
   second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
-  loaded by DS Fish's; everything it adds is kept in the game's own save.
+  loaded by DS Fish's; besides the game's own save it writes only the
+  animals' `Tank Animals <slot>.dat`.
   Design and live checks:
   [docs/fish-tycoon-ds-store-items-design.md](docs/fish-tycoon-ds-store-items-design.md).
   Trash the store animals, and let the eel out of its rock, before turning it
@@ -204,10 +213,10 @@ never needs the internet.
   Every item on the Supplies store's Upgrades screen costs $0: the Puffer Fish,
   Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the
   Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000),
-  ClonaFish ($2,500), and the Time Warp clock ($500) and Add Money ($950) when
-  they are on. The price shows $0 and no money is taken;
-  everything else (one of each animal, the supply slots,
-  the game's purchase question) stays. The game's own store items keep their
+  ClonaFish ($2,500), and the Time Warp clock ($500), Add Money ($950) and
+  the Extra Tank ($10,000 each) when they are on. The price shows $0 and no
+  money is taken; everything else (one of each animal, the supply slots,
+  Tanks 4-6 bought in order, the game's purchase question) stays. The game's own store items keep their
   prices.
 - Add Money cheat ($1,000) (off by default; **needs DS Store Items, which it
   turns on**). A pile of gold coins on the Upgrades screen, next to the Time
@@ -320,10 +329,11 @@ never needs the internet.
   which it turns on**). Every item on the Supplies store's Upgrades view costs
   $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the
   Formula Bomb ($30,000), the Revival Potion ($10,000), Revita-Seed ($2,500), the
-  Fourth, Fifth and Sixth Seed Box ($1000 each), and the Time Warp clock ($500)
-  and Add Money ($950) when they are on. The price shows $0 and no money is
+  Fourth, Fifth and Sixth Seed Box ($1000 each), and the Time Warp clock ($500),
+  Add Money ($950), the Extra Greenhouse ($10,000 each) and the Extra Nursery
+  ($10,000 each) when they are on. The price shows $0 and no money is
   taken; everything else (three Legendary Seeds a day, room in the trays, the
-  boxes in order) stays. The game's own store items keep their prices.
+  boxes, greenhouses and nurseries in order) stays. The game's own store items keep their prices.
 - Add Money cheat ($1,000) (off by default; **needs Add new store upgrades and
   items, which it turns on**). A pile of gold coins on the Upgrades view's
   Nursery shelf, next to the Time Warp clock: $950 ($0 with Free upgrades),
@@ -353,7 +363,9 @@ never needs the internet.
   [docs/images/optimize-prices-plant.png](docs/images/optimize-prices-plant.png).
 - Tank and greenhouse counts (on by default). One line in the game's own font
   along the top of the greenhouse screen: "Plants: 9 of 15 (5 mature, 2 with
-  buds, 2 seedlings)", counting the pots that hold a living plant. The stages
+  buds, 2 seedlings)", counting the pots of the greenhouse on screen
+  (Greenhouses 2-6 too, with 5 extra greenhouses) that hold a living plant;
+  once you own an extra greenhouse the line sits under the gold arrows. The stages
   are the selected plant's own countdown: a seedling before age 21 ("Buds in
   ... Min."), with buds from 21 ("Mature in ... Min."), mature from 24. Dead
   plants are left out of the count and shown after it as "Dead: 1" until you

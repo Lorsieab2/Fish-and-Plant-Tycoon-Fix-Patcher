@@ -141,6 +141,7 @@ class CombinedPatcherTests(unittest.TestCase):
                 "time_warp",
                 "free_upgrades",
                 "add_money",
+                "extra_tanks",
                 "multiple_ornaments",
             ],
         )

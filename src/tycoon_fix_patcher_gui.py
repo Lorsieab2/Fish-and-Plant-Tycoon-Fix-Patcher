@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import webbrowser
 
+import experimental
 import tools_tab
 
 from tycoon_fix_patcher import (
@@ -482,15 +483,29 @@ class App(tk.Tk):
         for setting_id, setting in patch_settings(game_id).items():
             entry = ttk.Frame(body)
             entry.pack(fill="x", anchor="w", pady=(0, 6))
+            header = ttk.Frame(entry)
+            header.pack(anchor="w")
             ttk.Checkbutton(
-                entry,
+                header,
                 text=str(setting.get("name", setting_id)),
                 variable=self.patch_vars[game_id][setting_id],
                 command=self._save_settings,
-            ).pack(anchor="w")
+            ).pack(side="left")
+            # The owner's label for the settings that change how much the game
+            # holds (src/experimental.py): beside the name, in every tab.
+            experimental_setting = experimental.is_experimental(setting)
+            if experimental_setting:
+                ttk.Label(
+                    header,
+                    text=experimental.LABEL,
+                    foreground="#b00020",
+                    font=("Segoe UI", 9, "bold"),
+                ).pack(side="left", padx=(8, 0))
             # What the setting adds or does, in plain words: shown everywhere,
             # including the compact Both Games panels.
             summary = str(setting.get("summary", "")).strip()
+            if experimental_setting:
+                summary = experimental.labelled(summary)
             if summary:
                 ttk.Label(
                     entry,
@@ -511,9 +526,10 @@ class App(tk.Tk):
                 ).pack(anchor="w", padx=(24, 0))
             if compact:
                 continue
+            description = str(setting.get("description", ""))
             ttk.Label(
                 entry,
-                text=str(setting.get("description", "")),
+                text=experimental.labelled(description) if experimental_setting else description,
                 wraplength=820,
                 foreground="#444444",
                 justify="left",

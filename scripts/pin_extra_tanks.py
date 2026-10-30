@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import ds_fish_loader  # noqa: E402
+import experimental  # noqa: E402
 import fish_patcher  # noqa: E402
 
 MANIFEST = ROOT / "data" / "fish_manifest.json"
@@ -40,21 +41,24 @@ DLL_NAME = ds_fish_loader.FISH_EXTRA_TANKS.dll_name
 SETTING = {
     "id": SETTING_ID,
     "name": "3 extra tanks",
-    "summary": "EXPERIMENTAL - USE AT OWN RISK. Three more full tanks for breeding, Tank 4, Tank 5 and Tank 6, bought on the store's Upgrades screen for $10,000 each and reached with two arrows beside the tank buttons. Needs DS Store Items.",
+    "summary": "EXPERIMENTAL - USE AT OWN RISK. Three more full tanks for breeding and selling, Tank 4, Tank 5 and Tank 6, bought on the store's Upgrades screen for $10,000 each and reached with two arrows beside the tank buttons. Needs DS Store Items.",
     "description": (
         "EXPERIMENTAL - USE AT OWN RISK. Adds Tank 4, Tank 5 and Tank 6: full tanks exactly like Tank 1 and Tank 2, made from the "
         "game's own tank and run by the game's own code. Buy them on the Supplies store's Upgrades screen "
         "(Extra Tank, $10,000 each, $0 with Free upgrades), one after the other; Tank 4 looks like Tank 1, "
         "Tank 5 like Tank 2 and Tank 6 like the Sale Tank (without its sign). Fish live, age, eat, get sick, breed and give birth in "
         "them; food, medicines, chemicals, eggs, ornaments, research, the plants, the magic fish, the Golden "
-        "Seahorse and the DS store animals work there as in any tank, and Bigger tanks applies to them too. A "
-        "Two small arrows left of the Tank 1 button switch the tank buttons to the three new tanks and back; "
-        "drag a fish, animal or ornament onto a button to move it there, or onto an arrow to move it to the "
-        "previous or next tank. The extra tanks never sell: only the Sale Tank does, with the stock game's "
-        "limits. "
+        "Seahorse and the DS store animals work there as in any tank, and with Bigger tanks they hold 30 fish "
+        "too. Two small arrows left of the Tank 1 button switch the tank buttons to the three new tanks and "
+        "back; drag a fish, animal or ornament onto a button to move it there, or onto an arrow to move it to "
+        "the previous or next tank. Every tank screen shows its name (Tank 1 to Tank 6; Tank 3 is the Sale "
+        "Tank). Each extra tank has a \"For sale\" button, Off at first: On, it shows the Sale Tank's For "
+        "Sale! sign and its fish sell together with the Sale Tank's, through the game's own sale (one sale a "
+        "second, the same prices and odds, and never a bigger crowd than the stock game's most). "
         "Runs as a companion DLL the game loads at start; the save files keep their stock layout, and each "
-        "save slot keeps its extra tanks in \"Fish Tycoon Fix Patcher Data\\Extra Tanks <slot>.dat\" beside "
-        "the saves. Needs DS Store Items, which it turns on (the Upgrades screen it is sold on)."
+        "save slot keeps its extra tanks, with their store animals and For sale buttons, in \"Fish Tycoon Fix "
+        "Patcher Data\\Extra Tanks <slot>.dat\" beside the saves. Needs DS Store Items, which it turns on (the "
+        "Upgrades screen it is sold on)."
     ),
     "warning": (
         "Empty Tank 4, Tank 5 and Tank 6 (move every fish, animal and ornament out) before turning this "
@@ -66,6 +70,7 @@ SETTING = {
     "separate_output": True,
     "requires_settings": ["ds_store"],
 }
+SETTING = experimental.mark(SETTING)       # src/experimental.py: the owner's label
 
 
 def sha256(data: bytes) -> str:
