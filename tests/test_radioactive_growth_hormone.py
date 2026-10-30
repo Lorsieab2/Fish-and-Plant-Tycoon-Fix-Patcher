@@ -310,12 +310,23 @@ class HormoneTests(unittest.TestCase):
         for at in (old, dead, other_tank, seahorse):
             self.assertEqual(bytes(emu.uc.mem_read(at, REC)), before[at - emu.state:at - emu.state + REC])
 
-    def test_on_hard_the_last_processed_age_is_left_as_the_stock_hormone_leaves_it(self) -> None:
+    def test_no_catch_up_on_hard_while_the_stock_hormone_is_unchanged(self) -> None:
+        # Radioactive: last-processed age 19 on Hard too, so the update runs one step's checks.
         emu = self.tank(hard=True)
         fry = self.fish(emu, 0, 1, 40, 0)
         self.dose(emu)
-        self.assertEqual((self.field(emu, fry, F_AGE), self.field(emu, fry, F_LAST_AGE)), (20, 1))
+        self.assertEqual((self.field(emu, fry, F_AGE), self.field(emu, fry, F_LAST_AGE)), (20, 19))
         self.assertEqual(self.field(emu, fry, F_HEALTH), 100)
+        # Stock Growth Hormone (Random = 0: +2): on Hard it leaves the last-processed age, as stock ...
+        emu = self.tank(hard=True, item=3)
+        young = self.fish(emu, 0, 1, 40, 0)
+        self.dose(emu)
+        self.assertEqual((self.field(emu, young, F_AGE), self.field(emu, young, F_LAST_AGE)), (3, 1))
+        # ... and off Hard sets it to age - 1.
+        emu = self.tank(item=3)
+        young = self.fish(emu, 0, 1, 40, 0)
+        self.dose(emu)
+        self.assertEqual((self.field(emu, young, F_AGE), self.field(emu, young, F_LAST_AGE)), (3, 2))
 
     def test_bigger_tanks_reach_26_records_and_never_the_animals(self) -> None:
         emu = self.tank(bigger=True)

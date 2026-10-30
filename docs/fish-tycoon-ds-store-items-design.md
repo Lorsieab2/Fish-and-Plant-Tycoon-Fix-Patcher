@@ -233,8 +233,10 @@ into the stock sparkle and tail; every other item goes on exactly as before.
 from `0x421190`, so Bigger tanks counts too, never past the animals' slots)
 and, for each:
 - age below 20 (the game's adult age: `0x4200AC`, the sickness roll's
-  `0x420498`, sales' `0x42426F`): age 20, and the last-processed age 19
-  unless Hard, as the stock hormone writes it; older fish keep their age;
+  `0x420498`, sales' `0x42426F`): age 20, and the last-processed age 19 on
+  every difficulty (the stock hormone skips this on Hard; the owner,
+  2026-10-30: the fish stay healthy on Hard too), so the next update runs
+  one step's checks; older fish keep their age;
 - health 100, the game's maximum;
 - sickness (+0x40: 1 fungus, 2 ick, the only values `0x41E120` sets)
   cleared as the medicines clear it (`0x420D1D`, `0x420D57`): +0x40 = 0

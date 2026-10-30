@@ -604,8 +604,9 @@ CONSUMABLES = (
                   "the same fish Growth Hormone reaches, each live fish aged 40 or less in the tank you "
                   "use it on, fry included: a fish under 20 becomes 20 (an adult) at once, and every "
                   "one gets health 100 and is cured of ick or fungus (each cure counts under Fish "
-                  "Cured). The age is written as Growth Hormone writes it, so on Easy and Medium only "
-                  "one step's checks run at the next update and on Hard every skipped step's do. Fish "
+                  "Cured). On every difficulty, Hard included, only one step's health, sickness and "
+                  "food checks run at the next update (as Growth Hormone does on Easy and Medium), "
+                  "so the skipped steps never make the fish ill or hungry. Fish "
                   "older than 40, dead fish, the other tanks and the store animals (Golden Seahorse "
                   "included, in their own slots 26-30) get nothing, as with Growth Hormone."),
                  ("free_upgrades", "the Radioactive Growth Hormone costs $0."),),

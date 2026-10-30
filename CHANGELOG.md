@@ -328,9 +328,10 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
     and isolation-tank fish and the store animals are not reached, as with
     the stock hormone. Fry are fish in the tank (eggs hatch straight into
     age-1 fish), so they grow up too; eggs on the shelf are not touched.
-    The age is written as the stock hormone writes it: on Easy and Medium
-    the next update runs one step's checks; on Hard every skipped step's
-    checks run, as for the stock hormone. DS Exclusive Fish now lends the
+    On every difficulty, Hard included, the next update runs only one
+    step's health, sickness and food checks, as the stock hormone does on
+    Easy and Medium, so the fish stay healthy (the stock Growth Hormone is
+    unchanged: on Hard it still runs every skipped step). DS Exclusive Fish now lends the
     store 20 sprite entries (was 16).
   - Selling-tank customers no longer look at any seahorse-type companion
     (stock code read the Golden Seahorse's species data out of range).

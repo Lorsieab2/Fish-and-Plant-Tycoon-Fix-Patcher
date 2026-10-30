@@ -780,9 +780,10 @@ static void __cdecl exotic_hatch(char *impl, int x, int y) {
 /* One dose on the tank being looked at (0x384), on exactly the fish the stock Growth Hormone
    reaches (0x421100-0x421194): live (+0x00), health not 0 (+0x3C), age (+0x0C) 40 or less.
    Each one:
-     * younger than 20: age 20, written as the stock dose writes an age (0x42114F), and, as it
-       does unless the game is on Hard (state + 0x14 == 2, 0x421157), last-processed age 19,
-       so the next update runs one step's checks, not one for every skipped step;
+     * younger than 20: age 20, written as the stock dose writes an age (0x42114F), and
+       last-processed age 19 on every difficulty (the stock dose does this only off Hard,
+       0x421157; the owner, 2026-10-30: the fish stay healthy on Hard too), so the next
+       update runs one step's checks, not one for every skipped step;
      * health 100, the game's maximum (0x41E0FE, 0x42127E);
      * sickness (+0x40: 1 fungus, 2 ick, set at 0x41E120) cleared as the medicine clears it
        (0x420D1D / 0x420D57: +0x40 = 0, and one more Fish Cured).
@@ -800,7 +801,7 @@ static void __cdecl rgh_dose(char *impl) {
         if (*I(f, F_LIVE) == 0 || *I(f, F_HEALTH) == 0 || *I(f, F_AGE) > GH_MAX_AGE) continue;
         if (*I(f, F_AGE) < ADULT_AGE) {
             *I(f, F_AGE) = ADULT_AGE;
-            if (*I(state, S_EASY) != 2) *I(f, F_LAST_AGE) = ADULT_AGE - 1;
+            *I(f, F_LAST_AGE) = ADULT_AGE - 1;
         }
         *I(f, F_HEALTH) = FULL_METER;
         if (*I(f, F_DISEASE) != 0) {
