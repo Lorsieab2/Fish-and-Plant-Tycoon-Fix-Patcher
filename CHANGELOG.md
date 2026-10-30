@@ -665,10 +665,12 @@ Auto-Feeder, Automatic Sprinklers and Auto-Healers, a Tools tab, and fixes.
     lay dead is not played as time away. Age, food, sickness and pregnancy
     stay as they were.
   - ClonaFish, $2,500 ($0 with Free upgrades), 3 doses, the owner's magenta
-    bottle: each dose clones every unique fish in the tank on screen once
-    (a live fish no other live fish there shares both its body and fin
-    with), an exact copy of its record, through the game's own AddFish, in
-    slot order until the tank is full. "The tank is full!" shows if not one
+    bottle: each dose clones every live fish in the tank on screen once,
+    any species, so each dose doubles the tank (the owner: it first cloned
+    only fish no other fish shared a species with); an exact copy of its
+    record, through the game's own AddFish, in slot order until the tank is
+    full. The fish there before the dose are copied, so this dose's clones
+    are cloned by the next dose, not this one. "The tank is full!" shows if not one
     could be cloned.
   - The new items read the game's own limits (the update's slots and tanks,
     the hormone's loop end, AddFish's), so they work the same with Bigger

@@ -13,12 +13,12 @@
 # ClonaFish (was "Fish Cloner"): Fish Tycoon only (owner, 2026-10-30)
 
 - **Name:** "ClonaFish"
-- **Description:** "A wonder drug that instantly clones all unique fish in the tank. Make sure there's enough space in the tank! Contains 3 doses."
+- **Description:** "A wonder drug that instantly clones all fish in the tank. Make sure there's enough space in the tank! Contains 3 doses." (owner, 2026-10-31; was "all unique fish")
 - **Price and doses:** $2,500 for 3 doses ($0 with Free upgrades), on the Upgrades screen.
-- **Unique fish:** a live fish whose species (fin AND body together) no other live fish in the same tank shares. Two fish with the same fin but different bodies are both unique.
-- **Effect** (each dose, on the tank on screen): every unique fish gets one clone, an **exact copy**: same species, age, health, hunger, sickness and gender, and the same everything else the game stores, except whatever must be unique per fish (a slot or index, an id).
+- **Every fish** (owner, 2026-10-31: "it should double all fish"): every live fish is cloned once a dose, any species; the earlier unique-species rule is gone. The fish there before the dose are cloned, not this dose's clones.
+- **Effect** (each dose, on the tank on screen): every live fish gets one clone, an **exact copy**: same species, age, health, hunger, sickness and gender, and the same everything else the game stores, except whatever must be unique per fish (a slot or index, an id).
   - Clones are added one at a time through the game's own add-fish path (AddFish 0x419C50).
-  - If the tank runs out of room, it stops: unique fish are processed in slot order and the rest get no clone.
+  - If the tank runs out of room, it stops: fish are processed in slot order and the rest get no clone.
   - The game's "tank is full" message shows if nothing could be cloned.
 - **Expanded tanks:** it must work identically in the extra tanks and with 30 fish per tank (read the tank's slot limit the way the Radioactive Growth Hormone reads its loop end).
 - **Icon:** the owner will send one, saved as `assets/clonafish/clonafish_source.png`. Until then use a marked placeholder that a release build refuses.

@@ -71,7 +71,7 @@ class ArtAndManifestTests(unittest.TestCase):
         for name, size in FISH_ART.items():
             self.assertIn(f"Images/{name}", destinations)
             self.assertEqual(png_size(FISH_IMAGES / name), size, name)          # the stock pictures' sizes
-        for text in ("Revival Potion ($10,000, 3 doses)", "ClonaFish ($2,500, 3 doses)", "unique fish"):
+        for text in ("Revival Potion ($10,000, 3 doses)", "ClonaFish ($2,500, 3 doses)", "every live fish", "doubling"):
             self.assertIn(text, store["description"])
         free = combined.patch_settings("fish")["free_upgrades"]["description"]
         self.assertIn("the Revival Potion ($10,000), ClonaFish ($2,500)", free)
@@ -197,7 +197,7 @@ class FishTests(unittest.TestCase):
         for item, name, words, price in (
                 (REVIVAL, "Revival Potion", "This magical potion instantly revives dead fish and restores them to "
                  "full health. Contains 3 doses.", 10000),
-                (CLONA, "ClonaFish", "A wonder drug that instantly clones all unique fish in the tank. Make sure "
+                (CLONA, "ClonaFish", "A wonder drug that instantly clones all fish in the tank. Make sure "
                  "there's enough space in the tank! Contains 3 doses.", 2500)):
             texts = self.shown(self.store(0), item)
             self.assertIn(name, texts)
@@ -360,34 +360,48 @@ class FishTests(unittest.TestCase):
             self.assertEqual(self.slot_record(emu), (0, 0, 0))
             self.assertEqual(emu.read32(emu.impl + 0x1C), 0x63)
 
-    # --- ClonaFish
-    def test_clonafish_clones_each_unique_fish_exactly(self) -> None:
+    # --- ClonaFish: every live fish, once a dose (the owner, 2026-10-31: "it should double all fish")
+    def live_count(self, emu, tank: int = 0) -> int:
+        return sum(1 for s in range(31) if emu.read32(self.at(emu, s, tank)) != 0)
+
+    def test_clonafish_doubles_the_tank_with_exact_copies(self) -> None:
         emu = self.tank(CLONA)
-        a = self.fish(emu, 0, 3, 5, extra={F_DUE: 44, F_DISEASE: 1})          # unique
-        b = self.fish(emu, 1, 4, 5)                                        # same fin, other body: unique
-        self.fish(emu, 2, 6, 6)                                            # two of the same species:
-        self.fish(emu, 4, 6, 6)                                            # neither is cloned
-        self.fish(emu, 5, 3, 5, health=0)                                  # a dead twin of a: does not count
-        self.fish(emu, 7, 9, 9, health=0)                                  # dead: never cloned
-        self.fish(emu, 8, 22, 22)                                          # a seahorse-type record: never
-        self.fish(emu, 26, 7, 7, extra={F_MARK: 0x41435446})                   # a store animal: never
-        originals = [self.record(emu, a), self.record(emu, b)]
+        same = [self.fish(emu, s, 6, 6, extra={F_DUE: 44, F_DISEASE: 1}) for s in (0, 2, 4)]   # 3 of one species
+        originals = [self.record(emu, at) for at in same]
         self.dose(emu)
-        self.assertEqual([self.record(emu, self.at(emu, s)) for s in (3, 6)], originals)   # the first free records
-        self.assertEqual(emu.read32(self.at(emu, 9)), 0)                   # nothing else added
+        self.assertEqual(self.live_count(emu), 6)                          # 3 become 6
+        self.assertEqual([self.record(emu, self.at(emu, s)) for s in (1, 3, 5)], originals)   # first free records
         self.assertIn(("view sync", (self.at(emu, 0),)), emu.calls)
         self.assertNotIn("hint", [c[0] for c in emu.calls])
+        self.dose(emu)
+        self.assertEqual(self.live_count(emu), 12)                         # then 12
+        self.dose(emu)
+        self.assertEqual(self.live_count(emu), 21)                         # then full (21 of 24)
+        self.assertEqual(self.slot_record(emu), (0, 0, 0))                 # three doses used
+
+    def test_this_doses_clones_are_not_cloned_again_by_it(self) -> None:
+        emu = self.tank(CLONA)
+        self.fish(emu, 0, 1, 2)
+        self.dose(emu)
+        self.assertEqual(self.live_count(emu), 2)                          # 1 + 1, not 1 + 1 + 1 + ...
+
+    def test_clonafish_skips_dead_fish_animals_and_seahorses(self) -> None:
+        emu = self.tank(CLONA)
+        live = self.fish(emu, 0, 3, 5)
+        self.fish(emu, 1, 9, 9, health=0)                                  # dead: never cloned
+        self.fish(emu, 2, 22, 22)                                          # a seahorse-type record: never
+        self.fish(emu, 26, 7, 7, extra={F_MARK: 0x41435446})               # a store animal: never
+        self.dose(emu)
+        self.assertEqual(self.record(emu, self.at(emu, 3)), self.record(emu, live))
+        self.assertEqual(emu.read32(self.at(emu, 4)), 0)                   # nothing else added
 
     def test_clonafish_stops_when_the_tank_is_full(self) -> None:
         emu = self.tank(CLONA)
         for slot in range(19):
-            self.fish(emu, slot, 10, 10)                                   # 19 of one species: not unique
-        self.fish(emu, 2, 1, 1)
-        self.fish(emu, 5, 2, 2)
-        self.fish(emu, 9, 3, 3)                                            # 3 unique fish, 2 free records
-        firsts = [self.record(emu, self.at(emu, s)) for s in (2, 5)]
+            self.fish(emu, slot, slot, 1)                                  # 19 fish, 2 free records
+        firsts = [self.record(emu, self.at(emu, s)) for s in (0, 1)]
         self.dose(emu)
-        self.assertEqual([self.record(emu, self.at(emu, s)) for s in (19, 20)], firsts)   # slot order; the third gets none
+        self.assertEqual([self.record(emu, self.at(emu, s)) for s in (19, 20)], firsts)   # slot order; the rest get none
         self.assertEqual(emu.read32(self.at(emu, 21)), 0)
         self.assertNotIn("hint", [c[0] for c in emu.calls])                # something was cloned
         self.assertEqual(self.slot_record(emu)[2], 2)                      # the dose is spent
@@ -395,27 +409,30 @@ class FishTests(unittest.TestCase):
     def test_a_full_tank_shows_the_games_tank_is_full(self) -> None:
         emu = self.tank(CLONA)
         for slot in range(21):
-            self.fish(emu, slot, slot % 21, 0)                             # 21 unique fish, no room
+            self.fish(emu, slot, 1, 1)                                     # 21 fish, no room
         before = bytes(emu.uc.mem_read(self.at(emu, 0), 31 * REC))
         self.dose(emu)
         self.assertIn(("hint", (6,)), emu.calls)                           # "The tank is full!"
         self.assertEqual(bytes(emu.uc.mem_read(self.at(emu, 0), 31 * REC)), before)
-        emu = self.tank(CLONA)                                             # no unique fish: no message
-        self.fish(emu, 0, 1, 1)
-        self.fish(emu, 1, 1, 1)
+        emu = self.tank(CLONA)                                             # no fish at all: no message
         self.dose(emu)
         self.assertNotIn("hint", [c[0] for c in emu.calls])
 
-    def test_clonafish_with_30_per_tank_and_in_an_extra_tank(self) -> None:
-        emu = self.tank(CLONA, slots=30, last_tank=5)
-        emu.write32(emu.state + S_TANK, 5)
-        for slot in range(28):
-            self.fish(emu, slot, 10, 10, tank=5)
-        original = self.record(emu, self.fish(emu, 28, 1, 2, tank=5))     # unique, in slot 28
+    def test_clonafish_with_30_per_tank_and_in_tanks_4_to_6(self) -> None:
+        emu = self.tank(CLONA, slots=30)
+        for slot in range(15):
+            self.fish(emu, slot, 10, 10)
         self.dose(emu)
-        self.assertEqual(self.record(emu, self.at(emu, 29, tank=5)), original)
-        self.assertEqual(emu.read32(self.at(emu, 0, tank=0)), 0)          # the other tanks are untouched
-
+        self.assertEqual(self.live_count(emu), 30)                         # 15 doubled into slots 15-29
+        for tank in (4, 5, 6):
+            emu = self.tank(CLONA, slots=30, last_tank=6)
+            emu.write32(emu.state + S_TANK, tank)
+            original = self.record(emu, self.fish(emu, 28, 1, 2, tank=tank))
+            self.fish(emu, 0, 1, 2, tank=tank)
+            self.dose(emu)
+            self.assertEqual(self.live_count(emu, tank), 4, tank)
+            self.assertEqual(self.record(emu, self.at(emu, 2, tank=tank)), original, tank)
+            self.assertEqual(self.live_count(emu, 0), 0, tank)             # the other tanks are untouched
 
 PLANT_STATE = 0x60000
 POT0, POT_SIZE = 0x2188, 0x5600

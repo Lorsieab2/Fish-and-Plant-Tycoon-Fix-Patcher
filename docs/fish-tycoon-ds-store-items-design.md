@@ -365,11 +365,13 @@ sickness, pregnancy and the bank stay.
 
 ## ClonaFish (item 31)
 
-$2,500, 3 doses, slot #3 (sprites 241-243, the owner's magenta bottle). A
-unique fish is live with health above 0, not a marked animal nor a
-seahorse-type record, and no other such fish in the tank has both its body
-(`+0x4C`) and fin (`+0x50`). The unique fish are found first, copied whole
-(0x288 bytes); then each, in slot order, goes through AddFish `0x419C50`,
+$2,500, 3 doses, slot #3 (sprites 241-243, the owner's magenta bottle).
+Every live fish (health above 0, not a marked animal nor a seahorse-type
+record) is cloned once a dose, any species: each dose doubles the tank (the
+owner, 2026-10-31; the first build cloned only fish no other fish shared
+both body and fin with). The fish there before the dose are found first and
+copied whole (0x288 bytes), so this dose's clones wait for the next dose;
+then each, in slot order, goes through AddFish `0x419C50`,
 which is a plain copy into the first free record under its limit (`cmp
 eax, 0x15` at `0x419C72`) and answers -1 when full: the dose stops there.
 A record has no slot number or id of its own, so the clone is exact. New

@@ -203,9 +203,10 @@ never needs the internet.
   away. Dead fish stay in the tank until you throw them away (the game never
   removes them), so every dead fish still there can be revived. ClonaFish
   ($2,500, 3 doses; $0 with Free upgrades), the owner's magenta bottle: each
-  dose adds one exact copy of every unique fish in the tank on screen (a live
-  fish no other live fish there shares both its body and its fin with), in
-  slot order, through the game's own add-fish code, until the tank is full;
+  dose adds one exact copy of every live fish in the tank on screen, any
+  species, so each dose doubles the tank (the fish there before the dose are
+  copied; a clone is cloned again by the next dose), in slot order, through
+  the game's own add-fish code, until the tank is full;
   if there was no room for even one, the game's "The tank is full!" shows.
   Both work in every tank slot the game uses (Bigger tanks, and more) and in
   every tank the game updates. Picture:

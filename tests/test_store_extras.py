@@ -324,8 +324,8 @@ class FishStoreTests(unittest.TestCase):
         self.assertLessEqual({"Add $1,000", "Plus 1.000 $", "Time Warp", "Zeitsprung", "Price:  $0",
                               "Radioactive Growth Hormone", "Radioaktive Wachstumshormone",
                               "Revival Potion", "Wiederbelebungstrank", "ClonaFish", "Price:  $10000", "Price:  $2500",
-                              "A wonder drug that instantly clones all\nunique fish in the tank. Make sure\n"
-                              "there's enough space in the tank!\nContains 3 doses.",
+                              "A wonder drug that instantly clones all\nfish in the tank. Make sure there's\n"
+                              "enough space in the tank!\nContains 3 doses.",
                               "This magical potion instantly revives\ndead fish and restores them to full\n"
                               "health. Contains 3 doses."}, drawn)
         for text in drawn:

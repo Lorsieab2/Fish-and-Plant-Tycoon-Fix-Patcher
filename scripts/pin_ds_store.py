@@ -35,7 +35,7 @@ DLL_NAME = "DS Store Items.dll"
 SETTING = {
     "id": SETTING_ID,
     "name": "DS Store Items",
-    "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, ClonaFish, which clones every unique fish, and the Auto-Feeder and Auto-Healer, which keep every fish in every tank fed and healthy. Needs DS Exclusive Fish.",
+    "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, ClonaFish, which clones every fish in the tank, and the Auto-Feeder and Auto-Healer, which keep every fish in every tank fed and healthy. Needs DS Exclusive Fish.",
     "description": (
         "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. "
         "The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: "
@@ -54,9 +54,8 @@ SETTING = {
         "gives birth at once, as at the end of a pregnancy (the babies stay babies, as born), then each fish that was there before the births "
         "becomes an adult at once if younger, gets full health and is cured of any sickness. The "
         "Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at "
-        "full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every unique fish in the "
-        "tank you use it on (a fish no other fish there shares its body and fin with), until the "
-        "tank is full. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work "
+        "full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every live fish in the "
+        "tank you use it on, doubling it, until the tank is full. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work "
         "on every live fish in every tank (Tanks 1-2, the Sale Tank, the isolation tank and Tanks 4-6, "
         "on screen or not, through time away and the Time Warp too): the Auto-Feeder keeps each fish's "
         "food full at 100, so it never starves, and while it is owned feeding by hand never costs health; the Auto-Healer "

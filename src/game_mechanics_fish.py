@@ -680,12 +680,12 @@ CONSUMABLES = (
     Fact(
         "ClonaFish: not in the unpatched game.",
         patched=(("ds_store", "ClonaFish ($2,500, 3 doses), on the store's Upgrades page: a chemical "
-                  "for slot #3 like the Radioactive Growth Hormone. Each dose clones every unique fish "
-                  "in the tank you use it on once: a live fish whose body and fin together no other "
-                  "live fish in that tank has (two fish with the same fin but different bodies are "
-                  "both unique; two of the same species are not). The clone is an exact copy, the "
+                  "for slot #3 like the Radioactive Growth Hormone. Each dose clones every live fish "
+                  "in the tank you use it on once, any species, so each dose doubles the tank (3 fish "
+                  "become 6, then 12). The fish there before the dose are cloned; this dose's clones "
+                  "are cloned by the next dose. The clone is an exact copy, the "
                   "same species, age, health, food, sickness, gender and pregnancy, added through the "
-                  "game's own add-fish code into the first free slot. Unique fish are cloned in slot "
+                  "game's own add-fish code into the first free slot. Fish are cloned in slot "
                   "order until the tank is full; the rest get no clone. If not one clone fits, the "
                   "game's \"The tank is full!\" shows. Dead fish, the Golden Seahorse and the store "
                   "animals are never cloned. The dose is used either way."),
