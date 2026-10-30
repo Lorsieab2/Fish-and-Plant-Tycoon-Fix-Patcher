@@ -155,6 +155,21 @@ never needs the internet.
   $1,000 to your money, as often as you like. Money stops at the largest
   value the game holds ($2,147,483,647). Picture:
   [docs/images/add-money-fish.png](docs/images/add-money-fish.png).
+- Multiple ornaments (off by default). The Shell, Pagoda, Diver, Fancy Coral,
+  Sunken Antique Column and Sunken Ship can be bought again once you own
+  them, at their normal price, up to 10 extra copies per tank. The copies are
+  only for decorating: they are drawn, fall, and are dragged, placed and
+  moved to another tank's button by the game's own ornament code, exactly
+  like the original, and the trash can takes them (never the original). The
+  ornament's effect comes from owning it, once, game-wide, as in the stock
+  game: copies never add to it, and throwing copies away never removes it.
+  The copies are kept beside each save slot in `Fish Tycoon Fix Patcher
+  Data\Ornaments <slot>.dat`; the save itself is unchanged. It runs as a
+  companion DLL (`Fish Tycoon Fix Patcher DLLs\Multiple Ornaments.dll`), the
+  first one the game loads. Picture:
+  [docs/images/multiple-ornaments-tank.png](docs/images/multiple-ornaments-tank.png).
+  Trash the extra copies before turning it off again (with it off they are
+  not shown; they come back if you turn it on).
 
 ### Plant Tycoon
 
@@ -315,7 +330,7 @@ output folders named `Fish Tycoon - Modded` and `Plant Tycoon - Modded`.
 Their executables are named `Fish Tycoon - Modded.exe` and
 `Plant Tycoon - Modded.exe`. Original folders and executables are not replaced.
 With a setting that adds new content on (DS Exclusive Fish, DS Store Items,
-Add unused flowers, Add new store upgrades and items), the copy is
+Multiple ornaments, Add unused flowers, Add new store upgrades and items), the copy is
 `Fish Tycoon - Modded Upgrades` / `Plant Tycoon - Modded Upgrades` (folder and
 EXE) instead, beside the plain copy; the game names its save folder after the
 EXE, so it keeps its own saves.

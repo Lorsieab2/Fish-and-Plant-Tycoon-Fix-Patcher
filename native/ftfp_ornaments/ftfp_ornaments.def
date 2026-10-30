@@ -1,0 +1,6 @@
+LIBRARY "Multiple Ornaments"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpOrnamentsInstalled = _FtfpOrnamentsInstalled@0
+    FtfpOrnamentsSetTankMap = _FtfpOrnamentsSetTankMap@4
+    FtfpOrnamentsCount = _FtfpOrnamentsCount@4

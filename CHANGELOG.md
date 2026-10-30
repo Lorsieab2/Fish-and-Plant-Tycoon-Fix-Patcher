@@ -360,6 +360,29 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   - Runs as "DS Store Items.dll", loaded by "DS Exclusive Fish.dll"; all or
     nothing, with its own log. Nothing new is saved outside the game's own
     save.
+- **Multiple ornaments**, a new setting, off by default, in the "- Modded
+  Upgrades" copy (owner's request: "the effect only works once and doesn't
+  stack, the others are just for decorating!"):
+  - The Shell, Pagoda, Diver, Fancy Coral, Sunken Antique Column and Sunken
+    Ship can be bought again once owned, at their stock price, even with one
+    already in that tank or another. Up to 10 extra copies per tank.
+  - A copy is drawn, falls to the gravel, and is picked up, dragged, dropped
+    and moved to another tank's button by the game's own ornament code, so it
+    behaves exactly like the original; the trash can takes a copy (after the
+    game's "Delete?" question), never an original.
+  - The effect is counted once, as in the stock game: an ornament's only
+    effect is that you own it (one more customer in the selling scene, fewer
+    "more decor" thoughts), game-wide. Copies never touch it, and the
+    customer and thought numbers are identical with 0, 1 or 3 copies
+    (checked by emulating the game's own code).
+  - Copies are kept beside each save slot in "Fish Tycoon Fix Patcher
+    Data\Ornaments <slot>.dat" (written whole, then moved into place); the
+    save keeps its stock layout and size. A file that cannot be read is set
+    aside as "Ornaments <slot>.unreadable-N.dat", never deleted.
+  - Runs as "Multiple Ornaments.dll", loaded by the startup loader before
+    DS Exclusive Fish's or the Maximizable window's DLL; ten places, all or
+    none, with its own log. Picture:
+    docs/images/multiple-ornaments-tank.png.
 
 ## v1.0.16
 
