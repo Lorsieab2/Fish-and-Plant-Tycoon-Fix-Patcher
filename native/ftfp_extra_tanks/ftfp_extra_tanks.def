@@ -1,0 +1,4 @@
+LIBRARY "Extra Tanks"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpExtraTanksInstalled = _FtfpExtraTanksInstalled@0

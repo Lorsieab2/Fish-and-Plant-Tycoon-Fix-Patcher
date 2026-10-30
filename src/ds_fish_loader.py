@@ -77,8 +77,20 @@ FISH_WINDOW = replace(
 )
 
 
+# With "3 extra tanks" on, the loader loads that DLL, which first loads the one
+# the loader would have loaded otherwise (DS Exclusive Fish, else the window's).
+FISH_EXTRA_TANKS = replace(
+    FISH, dll_name="Extra Tanks.dll",
+    what_it_installs="That first loads DS Exclusive Fish.dll or Maximizable Window.dll when they are there, "
+                     "then checks the eleven places it changes in the running game and writes all of them or "
+                     "none; docs/fish-tycoon-extra-tanks-design.md lists them.",
+)
+
+
 def fish_profile(enabled: set[str]) -> LoaderProfile:
     """The DLL Fish Tycoon's loader loads for these settings."""
+    if "extra_tanks" in enabled:
+        return FISH_EXTRA_TANKS
     return FISH if "ds_fish" in enabled else FISH_WINDOW
 
 
