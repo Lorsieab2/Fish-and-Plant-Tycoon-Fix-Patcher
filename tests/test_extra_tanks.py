@@ -570,6 +570,224 @@ class StarterEggsAndSeahorse(unittest.TestCase):
         self.assertEqual(self.purchase(rig, 0x0B, ds_store=True), extra)
 
 
+BUTTON_CENTRES = ((555, 28), (652, 28), (749, 28))
+ARROW_LEFT, ARROW_RIGHT = (500, 12), (500, 36)
+
+
+def animal(now: int, fin: int) -> bytes:
+    """A DS Store Items animal: a seahorse-type record marked "FTCA", as its DLL builds them."""
+    rec = bytearray(fish(now, 22, fin, 21, 100, 100))
+    struct.pack_into("<II", rec, 0x14, 0x41435446, fin)
+    return bytes(rec)
+
+
+def ornament(sprite: int, spare: bytes = b"\0\0\0") -> bytes:
+    rec = bytearray(0x2C)
+    rec[0] = 1
+    rec[1:4] = spare
+    struct.pack_into("<II", rec, 0x04, 300, 400)
+    struct.pack_into("<III", rec, 0x1C, 60, 70, sprite)
+    return bytes(rec)
+
+
+class Screen:
+    """The six tanks in page order on a Rig: which is on screen, and where each block is."""
+
+    def __init__(self, rig: Rig) -> None:
+        self.rig = rig
+        rig.emu.hook(0x0040AE20, lambda e: 0, 4)                    # the stock code plays sounds
+        rig.emu.hook(0x00407AB0, lambda e: 7000, 0)                 # the screen's clock (ornament x)
+
+    def show(self, tank: int) -> None:
+        rig = self.rig
+        if tank < 3:
+            rig.set(0x384, tank)
+            rig.var("_shown", -1)
+        else:
+            rig.set(0x384, 0)
+            rig.var("_shown", tank - 3)
+
+    def block(self, tank: int) -> bytes:
+        rig, shown = self.rig, self.rig.var("_shown")
+        if tank == 0:
+            return rig.extra(shown) if shown >= 0 else rig.tank(0)
+        if tank < 3:
+            return rig.tank(tank)
+        return rig.tank(0) if shown == tank - 3 else rig.extra(tank - 3)
+
+    def put(self, tank: int, data: bytes) -> None:
+        rig, shown = self.rig, self.rig.var("_shown")
+        if tank == 0:
+            if shown >= 0:
+                rig.put_extra(shown, data)
+            else:
+                rig.put_tank(0, data)
+        elif tank < 3:
+            rig.put_tank(tank, data)
+        elif shown == tank - 3:
+            rig.put_tank(0, data)
+        else:
+            rig.put_extra(tank - 3, data)
+
+    def control(self, source: int, target: int) -> tuple[int, int]:
+        """The arrow for a neighbour, else the target's button on its page."""
+        if target == (source + 1) % 6:
+            return ARROW_RIGHT
+        if target == (source - 1) % 6:
+            return ARROW_LEFT
+        self.rig.var("_page", 1 if target >= 3 else 0)
+        return BUTTON_CENTRES[target % 3]
+
+    def hold_fish(self, source: int, slot: int) -> None:
+        rig = self.rig
+        entry = rig.view + 0x1080 + 3 * 0x84
+        rig.emu.write8(entry, 1)
+        rig.emu.write32(entry + 0x40, 0 if source >= 3 else source)
+        rig.emu.write32(entry + 0x44, slot)
+        rig.set(0x1E4E8, 3)
+
+    def release(self, x: int, y: int) -> None:
+        self.rig.emu.call(self.rig.sym["@release_hook@16"], x, y, ecx=self.rig.impl)
+
+
+PAIRS = [(s, t) for s in range(6) for t in range(6) if s != t]
+
+
+@unittest.skipUnless(HAVE_UNICORN and EXE.is_file() and DLL.is_file() and E.toolchain_ready(),
+                     "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and the built DLL")
+class MovingBetweenAnyTwoTanks(unittest.TestCase):
+    """Every kind of thing between every two of the six tanks, by arrow or button; the stock
+    buttons run the game's own drop (0x41EFF0 / 0x41F660)."""
+
+    FISH = {
+        "baby": fish(NOW, 4, 8, 2, 100, 90),
+        "sick adult": fish(NOW, 9, 3, 25, 40, 30, disease=2),
+        "pregnant adult": fish(NOW, 16, 0, 30, 90, 80, due=32, mate=(4, 4)),
+        "Golden Seahorse": fish(NOW, 22, 22, 21, 100, 100),
+    }
+
+    def move_fish(self, kind: str, rec: bytes, source: int, target: int, slot: int = 4) -> None:
+        rig = Rig()
+        screen = Screen(rig)
+        screen.show(source)
+        screen.put(source, block_with({slot: rec}))
+        screen.hold_fish(source, slot)
+        screen.release(*screen.control(source, target))
+        where = 26 if slot >= 26 else 0
+        self.assertEqual(screen.block(target)[where * SLOT: (where + 1) * SLOT], rec, f"{kind} {source}->{target}")
+        self.assertEqual(struct.unpack_from("<I", screen.block(source), slot * SLOT)[0], 0, f"{kind} left {source}")
+
+    def test_fish_and_the_golden_seahorse(self) -> None:
+        for kind, rec in self.FISH.items():
+            for source, target in PAIRS:
+                with self.subTest(kind=kind, source=source, target=target):
+                    self.move_fish(kind, rec, source, target)
+
+    def test_ds_store_animals(self) -> None:
+        """Into the target's animal slots (26-30). The stock buttons of Tank Two and the Sale Tank
+        (a stock tank in its own place) are DS Store Items' own drop, as before; every other way\n        is this DLL's."""
+        for fin in (30, 31, 32):
+            for source, target in PAIRS:
+                if target < 3 and (target - source) % 6 not in (1, 5) and not (target == 0 and source >= 3):
+                    continue
+                with self.subTest(fin=fin, source=source, target=target):
+                    self.move_fish(f"animal {fin}", animal(NOW, fin), source, target, slot=27)
+
+    def test_ornaments_and_the_eels_rock(self) -> None:
+        kinds = {"shell": ornament(177), "the eel at home in its rock": ornament(229, bytes((90, 80, 0xE1))),
+                 "the empty rock": ornament(228)}
+        for kind, rec in kinds.items():
+            for source, target in PAIRS:
+                with self.subTest(kind=kind, source=source, target=target):
+                    rig = Rig()
+                    screen = Screen(rig)
+                    screen.show(source)
+                    block = bytearray(TANK)
+                    block[0x4E78 + 0x2C: 0x4E78 + 2 * 0x2C] = rec
+                    screen.put(source, bytes(block))
+                    rig.emu.write32(rig.impl + 0x1C, 0x63)
+                    rig.emu.write32(rig.impl + 0x28, 1)
+                    screen.release(*screen.control(source, target))
+                    moved = screen.block(target)[0x4E78: 0x4E78 + 0x2C]
+                    self.assertEqual(moved[:4], rec[:4], "the active byte and the eel's home bytes")
+                    self.assertEqual(moved[0x1C:0x28], rec[0x1C:0x28], "size and sprite")
+                    self.assertEqual(screen.block(source)[0x4E78 + 0x2C], 0, "it left its tank")
+                    self.assertEqual(rig.emu.read32(rig.impl + 0x28), 0x63)
+
+    def test_a_full_target_refuses_as_stock(self) -> None:
+        for source, target in ((0, 3), (4, 5), (5, 0), (3, 2), (0, 2)):
+            with self.subTest(source=source, target=target):
+                rig = Rig()
+                screen = Screen(rig)
+                screen.show(source)
+                screen.put(target, block_with({s: fish(NOW, 4, 4, 25) for s in range(21)}))
+                mover = fish(NOW, 6, 6, 25)
+                screen.put(source, block_with({5: mover}))
+                screen.hold_fish(source, 5)
+                screen.release(*screen.control(source, target))
+                self.assertIn(("hint", 6), rig.calls)
+                self.assertEqual(screen.block(source)[5 * SLOT: 6 * SLOT], mover)
+
+    def test_decorative_copies_are_handed_to_multiple_ornaments(self) -> None:
+        """Nothing of the game's held: the drop goes on to Multiple Ornaments' own drop as a drop on
+        a stock button, with the tank map naming the target for that call only."""
+        for source, target, want_to, override in ((0, 1, 1, -1), (1, 5, 2, 5), (2, 3, 0, 3), (3, 0, 2, 0),
+                                                  (4, 2, 2, -1)):
+            with self.subTest(source=source, target=target):
+                rig = Rig()
+                screen = Screen(rig)
+                screen.show(source)
+                rig.emu.write32(rig.impl + 0x1C, 0x63)
+                rig.emu.write32(rig.impl + 0x28, 0x63)
+                prev = rig.emu.thunk()
+                seen = []
+                rig.emu.hook(prev, lambda e, r=rig, s=seen: s.append(
+                    (e.arg(0), e.arg(1), r.var("_map_override_to"), r.var("_map_override_tank"))) or 1, 8)
+                rig.var("_prev_release", prev)
+                screen.release(*screen.control(source, target))
+                cx, cy = BUTTON_CENTRES[want_to]
+                self.assertEqual(seen, [(cx, cy, want_to if override >= 0 else -1, override)])
+                self.assertEqual(rig.var("_map_override_to"), -1, "the override lasts one call")
+
+    def test_a_held_item_is_left_to_the_stock_code(self) -> None:
+        """A chemical, medicine, food or egg on the cursor let go on a button or an arrow: the stock
+        release, as on a stock button (0x420B70 uses it only inside the tank)."""
+        for item in (0, 2, 4):
+            with self.subTest(item=item):
+                rig = Rig()
+                rig.emu.write32(rig.impl + 0x1C, item)
+                prev = rig.emu.thunk()
+                seen = []
+                rig.emu.hook(prev, lambda e, s=seen: s.append((e.arg(0), e.arg(1))) or 0, 8)
+                rig.var("_prev_release", prev)
+                rig.var("_page", 1)
+                for at in (ARROW_RIGHT, BUTTON_CENTRES[1]):
+                    rig.emu.call(rig.sym["@release_hook@16"], *at, ecx=rig.impl)
+                self.assertEqual(seen, [ARROW_RIGHT, BUTTON_CENTRES[1]])
+
+    def test_switching_to_an_extra_tank_is_the_stock_switch(self) -> None:
+        """Something held when switching: the stock switch 0x421940 puts it back (it sets the held
+        item and ornament to none at 0x421A4B-0x421A55), for an extra tank as for a stock one."""
+        self.assertEqual(EXE.read_bytes()[0x21A4B:0x21A58], bytes.fromhex("B86300000033F689451C894528"))
+        rig = Rig()
+        rig.emu.write32(rig.impl + 0x1C, 2)                         # a chemical held
+        rig.var("_page", 1)
+        rig.emu.call(rig.sym["@mouse_hook@20"], 2, *BUTTON_CENTRES[1], ecx=rig.impl)
+        rig.emu.call(rig.sym["@mouse_hook@20"], 3, *BUTTON_CENTRES[1], ecx=rig.impl)
+        self.assertIn(("switch", 0), rig.calls)
+        self.assertEqual(rig.var("_shown"), 1)
+
+    def test_eggs_hatch_into_the_extra_tank_on_screen(self) -> None:
+        rig = Rig()
+        Screen(rig).show(4)
+        one = block_with({0: fish(NOW, 1, 1, 22)})
+        rig.put_extra(1, one)                                        # Tank One, waiting in the DLL
+        rig.emu.call(0x0041FC90, ecx=rig.impl)                       # the game's own egg hatch, current tank
+        hatched = [struct.unpack_from("<I", rig.tank(0), s * SLOT)[0] != 0 for s in range(21)]
+        self.assertEqual(sum(hatched), 7, "the stock 7 (the stock tanks look empty to it) in Tank Four")
+        self.assertEqual(rig.extra(1), one, "Tank One untouched")
+
+
 class FakeFiles:
     """CreateFileW / ReadFile / WriteFile / MoveFileExW / ... over a dict."""
 

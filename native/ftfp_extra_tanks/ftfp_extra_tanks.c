@@ -619,6 +619,33 @@ static int move_ornament(char *impl, char *state, int target, int x, int y) {
     return 1;
 }
 
+/* Multiple Ornaments' decorative copies (PR #60) move by that DLL's own drop,
+   which knows the three stock buttons and asks the tank map which tank each
+   shows.  A drop on an arrow, on an extra tank's button, or on Tank One's
+   while an extra is on screen is handed to it as a drop on the middle of a
+   stock button whose tank the map names as the target, for that call only.
+   With no copy held, the stock release with nothing held does nothing. */
+static int map_override_to = -1, map_override_tank = -1;
+
+static char copy_drop(char *impl, char *state, int target) {
+    int current = *I(state, S_CURRENT_TANK), to, *r;
+    char result = 0;
+    if (target < 3 && !(target == 0 && shown >= 0)) {
+        to = target;                                             /* a stock tank in its own place */
+    } else {
+        to = current == 2 ? 0 : 2;                               /* any other button; Tank Two's asks if bought */
+        map_override_to = to;
+        map_override_tank = target;
+    }
+    r = I(impl, I_BUTTON + to * 0x10);
+    __try {
+        result = (char)CALL_PREV2(prev_release, impl, (r[0] + r[2]) / 2, (r[1] + r[3]) / 2);
+    } __finally {
+        map_override_to = map_override_tank = -1;
+    }
+    return result;
+}
+
 static char __fastcall release_hook(char *impl, void *edx, int x, int y) {
     char *state = (char *)P(impl, I_STATE);
     int target;
@@ -631,6 +658,7 @@ static char __fastcall release_hook(char *impl, void *edx, int x, int y) {
         if (*I(impl, I_ITEM) == NONE && *I(impl, I_ORNAMENT) != NONE && move_ornament(impl, state, target, x, y)) {
             return 1;
         }
+        if (*I(impl, I_ITEM) == NONE && target != on_screen(state)) return copy_drop(impl, state, target);
     }
     return (char)CALL_PREV2(prev_release, impl, x, y);
 }
@@ -982,6 +1010,7 @@ typedef int (__cdecl *tank_map_fn)(int stock_tank);
 typedef void (__stdcall *set_tank_map_fn)(tank_map_fn map);
 
 static int __cdecl ornaments_tank_map(int stock_tank) {
+    if (stock_tank == map_override_to && map_override_tank >= 0) return map_override_tank;
     if (stock_tank == 0 && shown >= 0) return 3 + shown;
     return stock_tank;
 }

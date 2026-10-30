@@ -985,6 +985,24 @@ EXTRA_TANKS = (
         label="E",
     ),
     Fact(
+        "Moving things between tanks: fish of any age, sick or not (a pregnant fish keeps her pregnancy), "
+        "the Golden Seahorse, the DS store animals, ornaments, the Moray Eel's rock (the eel goes with it "
+        "when it is home) and Multiple ornaments' copies move by dropping them on a tank's button or on an "
+        "arrow (left: the previous tank, right: the next, round the six). The game's own move code places "
+        "them: fish and animals by AddFish (or the animal places 26-30), ornaments by the ornament "
+        "placement, six per tank.",
+        label="E",
+        subs=(
+            "A full tank: \"The tank is full!\", and it goes back; Tank Two not bought: \"You don't "
+            "own a second tank yet!\" (both as the stock buttons).",
+            "Not moved this way: food, medicines, chemicals and eggs held on the cursor are used in the "
+            "tank on screen, and switching tanks puts them back (the stock switch, 0x421940). Eggs "
+            "hatch in the tank on screen. The isolation tank has no button: drop a fish on it as "
+            "usual. Store purchases go to the tank on screen (the stock Golden Seahorse to Tank One "
+            "first).",
+        ),
+    ),
+    Fact(
         "The tank you look at is put in Tank One's place while you look at it (Tank One waits in the "
         "patcher), so everything you use acts on it exactly as on a stock tank: food (the isolation fish "
         "fed too), the Ick and Fungal Treatments, Vitamins, Growth Hormone, the Unknown Chemical, eggs, "

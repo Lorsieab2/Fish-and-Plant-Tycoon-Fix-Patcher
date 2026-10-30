@@ -136,6 +136,15 @@ routine is rewritten:
   0-7 and asks which tank a stock place shows; this DLL tells it
   (`FtfpOrnamentsSetTankMap`: Tank One's place shows 3-5 while an extra tank
   is on screen), and loads "Multiple Ornaments.dll" first when it is there.
+  A copy dropped on an arrow, an extra tank's button, or Tank One's while an
+  extra is on screen is handed to that DLL's own drop as a drop on the middle
+  of a stock button whose tank the map names as the target for that one call
+  (with no copy held, the stock release with nothing held does nothing).
+* **Held items.** Food, medicines, chemicals and eggs on the cursor are not
+  moved: they act on the tank on screen, and the switch to an extra tank is
+  the game's own switch (`0x421940`), which puts a held item or ornament back
+  (`0x421A4B`-`0x421A55`), as every stock switch does. Eggs hatch into the
+  tank on screen, an extra tank too (the game's hatch uses the current tank).
 * **Saves.** Before every `Save(slot)` of a game slot, Tank One goes back to
   its place, so the save is exactly what the stock game would write; after a
   successful save the three blocks are written to the sidecar (to a `.tmp`
@@ -208,6 +217,11 @@ the DLL rebuilt from source:
 * the sidecar round trip (the save sees Tank One in its place), the settings
   slot untouched, a damaged file set aside, a missing file, a new game, a
   failed save writing nothing;
+* every kind of thing between every two of the six tanks, by arrow or
+  button (fish of every age, sick, pregnant, the Golden Seahorse, the DS
+  animals, ornaments, the eel's rock with the eel at home), full targets,
+  decorative copies handed on, held items left to the stock code, the
+  stock switch, eggs hatching in an extra tank on screen;
 * all sites or none, chaining DS Store Items' sites, refusing a branch into
   the game itself; the manifest pins.
 
