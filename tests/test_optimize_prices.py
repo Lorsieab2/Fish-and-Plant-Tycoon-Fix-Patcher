@@ -738,7 +738,10 @@ class FishSaleButtonPlaceTests(unittest.TestCase):
         import io
         import struct
         import zipfile
-        from PIL import Image
+        try:
+            from PIL import Image
+        except ImportError:
+            raise unittest.SkipTest("needs Pillow")
         cls.exe = FISH_EXE.read_bytes()
         with zipfile.ZipFile(FISH_EXE.parent / "Assets" / "ft.dat") as archive:
             names = {n.lower(): n for n in archive.namelist()}

@@ -1417,7 +1417,10 @@ class ArrowLayoutTests(unittest.TestCase):
     @unittest.skipUnless(PLANT_EXE.is_file(), "needs the vanilla Plant Tycoon.exe (its font)")
     def test_the_arrows_are_beside_the_name_and_clear_of_the_stock_ui(self) -> None:
         sys.path.insert(0, str(ROOT / "scripts"))
-        import render_extra_greenhouses_preview as R
+        try:
+            import render_extra_greenhouses_preview as R
+        except ImportError:
+            self.skipTest("needs Pillow")
         folder = PLANT_EXE.parent
         exe = PLANT_EXE.read_bytes()
         widest = R.words(folder, exe, "Greenhouse 6 of 6")

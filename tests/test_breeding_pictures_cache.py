@@ -26,7 +26,10 @@ sys.path.insert(0, str(ROOT / "tests"))
 
 import breeding_guide as bg  # noqa: E402
 import breeding_pictures as bpx  # noqa: E402
-import store_emulator as E  # noqa: E402
+try:
+    import store_emulator as E  # noqa: E402
+except ImportError:          # Unicorn is not installed (CI)
+    E = None
 from test_breeding_guide import make_documents, tk_root  # noqa: E402
 from test_breeding_pictures import make_fish_copy, make_plant_copy  # noqa: E402
 
@@ -196,7 +199,7 @@ class BuildTests(CacheTestCase):
         self.assertTrue(bpx.build_cache("fish", make_fish_copy(self.base))[0])
         self.assertEqual(sorted(p.name for p in self.cache_root.iterdir()), ["Fish"])
 
-    @unittest.skipUnless((E.VANILLA / "Fish Tycoon" / "Assets" / "ft.dat").is_file()
+    @unittest.skipUnless(E is not None and (E.VANILLA / "Fish Tycoon" / "Assets" / "ft.dat").is_file()
                          and (E.VANILLA / "Plant Tycoon" / "Images").is_dir(), "needs the read-only vanilla games")
     def test_builds_from_the_real_vanilla_copies_read_only(self) -> None:
         for game, folder in (("fish", "Fish Tycoon"), ("plant", "Plant Tycoon")):

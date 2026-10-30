@@ -294,7 +294,10 @@ class PlantArtTablesTests(unittest.TestCase):
         """The plant factory's switch (0x42EE61: case = (foliage - 1) % 23 + 1, table 0x42F3B0)
         and each case's class (its constructor's vtable, the RTTI name); the seed frame rule
         at 0x41DD54 ((foliage - 1) x 4, then + 3 / + 2 / + 1 by the flower)."""
-        import capstone
+        try:
+            import capstone
+        except ImportError:
+            self.skipTest("needs capstone")
         md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
         table = struct.unpack_from("<24I", self.data, self.at(0x42F3B0))
         for foliage in range(1, 24):
