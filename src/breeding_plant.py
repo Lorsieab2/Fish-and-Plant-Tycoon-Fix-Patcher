@@ -135,6 +135,18 @@ def is_new_flower(flower: int) -> bool:
     return 24 <= flower <= 37
 
 
+def part_rarity(gene: int, kind: str) -> str:
+    """A part's rarity: the shop seed packet tier that lays it (0x41DC60); the new flowers
+    are the patcher's (Unused Flowers)."""
+    if kind == "flower" and is_new_flower(gene):
+        return "Patcher"
+    if gene in COMMON_GENES:
+        return "Common"
+    if gene in ENDANGERED_GENES:
+        return "Endangered"
+    return "Extinct"
+
+
 def rarity(key: tuple[int, int]) -> str:
     """The game's class A-D (0x424100, 0x42CAA6, 0x41DD54)."""
     foliage, flower = key
@@ -297,6 +309,9 @@ class PlantModel:
         self._keys = sorted(self._species)
 
     # ------------------------------------------------------------ parts and species
+    def part_rarity(self, part: Part) -> str:
+        return part_rarity(part.index, part.kind)
+
     def parts(self, kind: str) -> list[Part]:
         if kind == "foliage":
             return list(self._foliage_parts.values())

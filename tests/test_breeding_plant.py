@@ -49,6 +49,17 @@ class ModelTests(unittest.TestCase):
         self.stock = B.load(None, extras=False)
         self.extras = B.load(None, extras=True)
 
+    def test_part_rarity_is_the_shop_packet_tier(self) -> None:
+        """0x41DC60's packets: Common 1, 5, 9, 13, 17; Endangered 3, 7, 11, 15; Extinct the
+        even genes 2-16 and 18-23; the new flowers (24-37) are the patcher's."""
+        expected = {**{g: "Common" for g in (1, 5, 9, 13, 17)}, **{g: "Endangered" for g in (3, 7, 11, 15)},
+                    **{g: "Extinct" for g in (2, 4, 6, 8, 10, 12, 14, 16, 18, 19, 20, 21, 22, 23)}}
+        for kind in ("foliage", "flower"):
+            for part in self.extras.parts(kind):
+                want = "Patcher" if kind == "flower" and part.index >= 24 else expected[part.index]
+                self.assertEqual(self.extras.part_rarity(part), want, (kind, part.index))
+        self.assertEqual(sum(self.extras.part_rarity(p) == "Patcher" for p in self.extras.parts("flower")), 14)
+
     def test_extras_adds_the_322_new_species_only_when_on(self) -> None:
         self.assertEqual(len(self.stock.species()), 529)
         self.assertEqual(len(self.extras.species()), 851)
