@@ -6299,7 +6299,7 @@
             "path": "Tank Counts.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Tank Counts.dll",
             "size": 91648,
-            "sha256": "09FA1203BBBEB25DACB95D4652D7E4A9D51ED288010A3930B21167379FA9DF05"
+            "sha256": "410CC94C7469E22920D661377768D8302E0B7E5A0C46419EF108004BA3B9E4A9"
           }
         ]
       }
@@ -6508,8 +6508,8 @@
           {
             "path": "DS Store Items.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
-            "size": 146944,
-            "sha256": "2DFE7550D3362F96BC31D3BAA4E51C66D49E3D372F719F745C81E4C261C81AB1"
+            "size": 147456,
+            "sha256": "DBDC7D802310EADE5FCF3787CFB1BDD0E7F81673BD8B168F3AD4AF1FB1950CA1"
           },
           {
             "path": "Images/DS_EEL_Grid.png",
@@ -6743,8 +6743,8 @@
           {
             "path": "Extra Tanks.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Extra Tanks.dll",
-            "size": 104960,
-            "sha256": "0DA925BD3A1A288CDF10769D5063F388CCC37478F7D9E7BC0528ED2E2ACF4722"
+            "size": 105472,
+            "sha256": "E31F15AB8B44675FFC2F5DCC67EE15304DD30E3E34D6F0519CA9253C8B65C392"
           },
           {
             "path": "Images/ExtraTank1Button.png",

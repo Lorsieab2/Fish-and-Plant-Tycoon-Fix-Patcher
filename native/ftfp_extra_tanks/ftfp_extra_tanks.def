@@ -4,3 +4,4 @@ EXPORTS
     FtfpExtraTanksInstalled = _FtfpExtraTanksInstalled@0
     FtfpExtraTanksOwned = _FtfpExtraTanksOwned@0
     FtfpExtraTanksBuy = _FtfpExtraTanksBuy@0
+    FtfpExtraTanksHeld = _FtfpExtraTanksHeld@4

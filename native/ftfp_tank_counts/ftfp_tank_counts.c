@@ -54,7 +54,7 @@
 #define TANK_STRIDE 0x51EC
 #define SLOT_STRIDE 0x288
 #define ISOLATION_TANK 3
-#define ANIMAL_FIRST 26             /* DS Store Items' animal slots, 26-30 */
+#define ANIMAL_SLOTS 5              /* DS Store Items' animal records per tank (FtfpStoreAnimals) */
 #define RECORDS 31                  /* records per tank (the tank constructor 0x41A9A0) */
 #define ORN_BASE 0x5208
 #define ORN_STRIDE 0x2C
@@ -76,11 +76,12 @@
 #define AGE_ADULT 20                /* 0x413F65 `cmp eax, 0x14` */
 
 #define ROOM_STOCK 21
-#define ROOM_BIGGER 26
-#define ROOM_AT 0x004206B3u         /* the update loop's slot bound, 21 or 26 */
+#define ROOM_BIGGER 30
+#define ROOM_AT 0x004206B3u         /* the update loop's slot bound, 21 or 30 */
 
 #define LABEL_X 12
 #define LABEL_Y 62                  /* just under the top bar (57 px) */
+#define LABEL_Y_EXTRA 136           /* under Extra Tanks' tank name (12, 62) and For sale button (12, 96-129) */
 #define LINE_H 20                   /* paddington_tt_18's glyphs are 20 px tall */
 #define WHITE 0xFFFFFFFFu
 #define SHADOW 0xFF000000u
@@ -121,8 +122,19 @@ static int kind_of(int fin) {
 
 /* Slots [0, slots) as the tank shows them, then (for the three tanks) the
    animal slots and the eel's rock. */
+/* DS Store Items keeps each tank's animals (the Golden Seahorse with it) in 5
+   records of its own, never in the tank's fish records: FtfpStoreAnimals gives
+   the 5 of the tank in a stock place, or NULL (no DS Store Items). */
+typedef char *(__stdcall *store_animals_fn)(char *state, int tank);
+static char *store_animals(char *state, int tank) {
+    HMODULE store = GetModuleHandleW(L"DS Store Items.dll");
+    store_animals_fn fn = store != NULL ? (store_animals_fn)GetProcAddress(store, "FtfpStoreAnimals") : NULL;
+    return fn != NULL ? fn(state, tank) : NULL;
+}
+
 static void count_tank(char *state, int tank, int slots, tank_count *out) {
     int s, k;
+    char *animals;
     ZeroMemory(out, sizeof *out);
     for (s = 0; s < slots; ++s) {
         char *f = record(state, tank, s);
@@ -140,8 +152,9 @@ static void count_tank(char *state, int tank, int slots, tank_count *out) {
         }
     }
     if (tank == ISOLATION_TANK) return;
-    for (s = ANIMAL_FIRST; s < RECORDS; ++s) {
-        char *f = record(state, tank, s);
+    animals = store_animals(state, tank);
+    for (s = 0; animals != NULL && s < ANIMAL_SLOTS; ++s) {
+        char *f = animals + s * SLOT_STRIDE;
         if (AT(f, F_CLOCK, int) != 0 && AT(f, F_BODY, int) == BODY_SEAHORSE && AT(f, F_MARK, int) == ANIMAL_MARK) {
             ++out->creatures[kind_of(AT(f, F_FIN, int))];
         }
@@ -154,7 +167,7 @@ static void count_tank(char *state, int tank, int slots, tank_count *out) {
 
 static int tank_room(void) {
     int room = *(const unsigned char *)(UINT_PTR)ROOM_AT;
-    return room == ROOM_BIGGER ? ROOM_BIGGER : ROOM_STOCK;
+    return room >= ROOM_STOCK && room <= ROOM_BIGGER ? room : ROOM_STOCK;
 }
 
 /* ------------------------------------------------------------------- words */
@@ -212,6 +225,15 @@ static void draw_line(void *graphics, void *font, const char *text, int y) {
     draw_text(graphics, 0, text, LABEL_X, y, WHITE, font);
 }
 
+/* With "3 extra tanks" installed every tank screen shows the tank's name and
+   the extra tanks a For sale button at the top left: the counts go under them. */
+typedef int (__stdcall *installed_fn)(void);
+static int extra_tanks_on(void) {
+    HMODULE tanks = GetModuleHandleW(L"Extra Tanks.dll");
+    installed_fn fn = tanks != NULL ? (installed_fn)GetProcAddress(tanks, "FtfpExtraTanksInstalled") : NULL;
+    return fn != NULL && fn();
+}
+
 static void draw_counts(char *impl) {
     char *state = AT(impl, IMPL_STATE, char *);
     void *graphics = AT(impl, IMPL_GRAPHICS, void *);
@@ -220,7 +242,7 @@ static void draw_counts(char *impl) {
     void *manager, *font;
     tank_count tank, isolation;
     count_line line;
-    int tank_id, y = LABEL_Y;
+    int tank_id, y = extra_tanks_on() ? LABEL_Y_EXTRA : LABEL_Y;
     if (state == NULL || graphics == NULL || AT(state, S_SCREENSAVER, unsigned char) != 0) return;
     tank_id = AT(state, S_CURRENT_TANK, int);
     if (tank_id < 0 || tank_id > 2) return;
@@ -239,9 +261,13 @@ static void draw_counts(char *impl) {
     draw_line(graphics, font, line.text, y);
 }
 
+/* What 0x422013 called before: the stock background, or another companion's
+   wrapper of it (Extra Tanks.dll draws Tanks 4-6 as Tanks 1-3 there). */
+static scene_fn next_background = (scene_fn)0x0041D140u;
+
 /* 0x422013's call of the background (thiscall, ecx = the tank screen). */
 static void __fastcall on_background(char *impl, int edx) {
-    draw_background(impl, edx);
+    next_background(impl, edx);
     __try {
         draw_counts(impl);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
@@ -285,6 +311,28 @@ static void load_next(void) {
     }
 }
 
+/* The call at 0x422013 holds the stock call, or a call into another companion
+   DLL that loaded first (never into the game itself): the bytes to check, and
+   next_background set to what it calls; NULL = neither, nothing is written. */
+static unsigned char current_call[5];
+
+static const unsigned char *chained_call(void) {
+    MEMORY_BASIC_INFORMATION info;
+    const unsigned char *site = (const unsigned char *)(UINT_PTR)BACKGROUND_CALL_VA;
+    UINT_PTR target;
+    memcpy(current_call, site, 5);
+    if (memcmp(current_call, BACKGROUND_CALL, 5) == 0) return BACKGROUND_CALL;
+    if (current_call[0] != 0xE8) return NULL;
+    target = BACKGROUND_CALL_VA + 5 + *(const int *)(current_call + 1);
+    if (VirtualQuery((const void *)target, &info, sizeof info) != sizeof info || info.AllocationBase == NULL
+        || (HMODULE)info.AllocationBase == GetModuleHandleW(NULL)
+        || (HMODULE)info.AllocationBase == (HMODULE)&__ImageBase) {
+        return NULL;
+    }
+    next_background = (scene_fn)target;
+    return current_call;
+}
+
 /* Called once by the executable's startup stub, before WinMain. */
 int __stdcall FtfpStartup(void) {
     if (installed) return 1;
@@ -293,7 +341,9 @@ int __stdcall FtfpStartup(void) {
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
     __try {
-        ftfp_site_branch(writes, BACKGROUND_CALL_VA, sizeof BACKGROUND_CALL, BACKGROUND_CALL, 0xE8,
+        const unsigned char *expect = chained_call();
+        if (expect == NULL) return installed = 0;
+        ftfp_site_branch(writes, BACKGROUND_CALL_VA, sizeof BACKGROUND_CALL, expect, 0xE8,
                          (const void *)(UINT_PTR)on_background);
         installed = ftfp_install_sites(writes, 1);
     } __except (EXCEPTION_EXECUTE_HANDLER) {

@@ -47,6 +47,7 @@
 
 #define LABEL_X 236
 #define LABEL_Y 4                   /* the stone wall above the doors' lintel */
+#define LABEL_Y_ARROWS 62           /* under Extra Greenhouses' arrows (y 10-59), on the floor's edge */
 #define WHITE 0xFFFFFFFFu
 #define SHADOW 0xFF000000u
 
@@ -98,16 +99,27 @@ static void plant_line(count_line *line, const greenhouse_count *c) {
 static const unsigned char DRAW_SLOT_STOCK[4] = { 0xA0, 0x57, 0x42, 0x00 };     /* 0x4257A0 */
 static const scene_fn stock_draw = (scene_fn)0x004257A0u;
 
+/* "5 extra greenhouses" draws gold arrows at the top corners (x 222-271 and
+   748-797, y 10-59) once a greenhouse is bought, and the greenhouse's name under
+   the line (centred at 510, y 26): with the arrows shown the line goes under them. */
+typedef int (__cdecl *owned_fn)(void);
+static int label_y(void) {
+    HMODULE greenhouses = GetModuleHandleW(L"Extra Greenhouses.dll");
+    owned_fn fn = greenhouses != NULL ? (owned_fn)GetProcAddress(greenhouses, "FtfpExtraGreenhousesOwned") : NULL;
+    return fn != NULL && fn() > 0 ? LABEL_Y_ARROWS : LABEL_Y;
+}
+
 static void draw_counts(char *scene) {
     char *state = AT(scene, SCENE_STATE, char *);
     void *graphics = graphics_get();
     greenhouse_count count;
     count_line line;
+    int y = label_y();
     if (state == NULL || graphics == NULL) return;
     count_greenhouse(state, &count);
     plant_line(&line, &count);
-    draw_text(graphics, 0, line.text, LABEL_X + 1, LABEL_Y + 1, SHADOW, 0);
-    draw_text(graphics, 0, line.text, LABEL_X, LABEL_Y, WHITE, 0);
+    draw_text(graphics, 0, line.text, LABEL_X + 1, y + 1, SHADOW, 0);
+    draw_text(graphics, 0, line.text, LABEL_X, y, WHITE, 0);
 }
 
 static void __fastcall on_draw(char *scene, int edx) {

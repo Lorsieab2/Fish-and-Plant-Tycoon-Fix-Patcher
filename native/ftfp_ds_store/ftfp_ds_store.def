@@ -2,3 +2,5 @@ LIBRARY "DS Store Items"
 EXPORTS
     FtfpStoreStartup = _FtfpStoreStartup@4
     FtfpDsStoreInstalled = _FtfpDsStoreInstalled@0
+    FtfpStoreAnimals = _FtfpStoreAnimals@8
+    FtfpStoreAnimalRecord = _FtfpStoreAnimalRecord@12

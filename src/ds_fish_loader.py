@@ -161,8 +161,9 @@ def fish_profile(enabled: set[str]) -> LoaderProfile:
 
     Extra Tanks goes first: it loads Multiple Ornaments (which loads DS Exclusive Fish, which loads DS
     Store Items and the window) before it installs, so the sites they share chain in that order. Without
-    it, Multiple Ornaments goes first the same way. The counts and the Optimize Prices button follow;
-    each loads its own companions only if they are not loaded yet (every FtfpStartup runs once)."""
+    it, Multiple Ornaments goes first the same way. The counts follow (Tank Counts.dll chains Extra Tanks'
+    wrapper of the background call, 0x422013) and the Optimize Prices button last; each loads its own
+    companions only if they are not loaded yet (every FtfpStartup runs once)."""
     profiles: list[LoaderProfile] = []
     if "extra_tanks" in enabled:
         profiles.append(FISH_EXTRA_TANKS)
@@ -222,14 +223,21 @@ PLANT_GREENHOUSES = replace(
 
 
 def plant_profile(enabled: set[str]) -> LoaderProfile:
-    """The DLLs Plant Tycoon's loader loads for these settings. Extra Greenhouses goes first (it starts
-    the counts, Unused Flowers or Sort Seeds itself, then chains the greenhouse slot the counts wrap);
-    without it the counts go first (they load Unused Flowers, else Sort Seeds, themselves); the Optimize
-    Prices button is loaded last."""
+    """The DLLs Plant Tycoon's loader loads for these settings.
+
+    With the extra greenhouses or nurseries, Extra Greenhouses.dll is loaded last: it starts the counts,
+    Unused Flowers or Sort Seeds itself, then wraps 19 screen-table slots, chaining the wrappers other
+    companions put there first -- the counts' greenhouse slots and the Optimize Prices button's two
+    Nursery slots, so the button's DLL goes before it (it only installs over the stock functions).
+    Otherwise the counts go first (they load Unused Flowers, else Sort Seeds, themselves) and the
+    Optimize Prices button last."""
     profiles: list[LoaderProfile] = []
     if "extra_greenhouses" in enabled or "extra_nurseries" in enabled:
+        if OPTIMIZE_PRICES_SETTING in enabled:
+            profiles.append(PLANT_OPTIMIZE)
         profiles.append(PLANT_GREENHOUSES)
-    elif COUNTS_SETTING in enabled:
+        return chain(profiles)
+    if COUNTS_SETTING in enabled:
         profiles.append(PLANT_COUNTS)
     elif ("new_flowers" in enabled or "sort_seeds" in enabled or OPTIMIZE_PRICES_SETTING not in enabled):
         profiles.append(PLANT if "new_flowers" in enabled else PLANT_SORT)

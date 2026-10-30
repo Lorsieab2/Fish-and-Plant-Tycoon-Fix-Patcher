@@ -378,11 +378,42 @@ static int eel_in_tank(char *state, int tank) {
     return 0;
 }
 
+/* "Extra Tanks.dll" (the "3 extra tanks" setting) holds the blocks of the tanks
+   that are not in a stock place right now (Tanks 4-6, or Tank 1 while one of
+   them is on screen), each with its 5 animal records after the block:
+   FtfpExtraTanksHeld(e) for e = 0-2, NULL when it is not loaded.  Every tank's
+   animals are therefore either in a stock place here or in one of those. */
+#define HELD_TANKS 3
+typedef unsigned char *(__stdcall *held_fn)(int e);
+static unsigned char *held_block(int e) {
+    HMODULE tanks = GetModuleHandleW(L"Extra Tanks.dll");
+    held_fn fn = tanks != NULL ? (held_fn)GetProcAddress(tanks, "FtfpExtraTanksHeld") : NULL;
+    return fn != NULL ? fn(e) : NULL;
+}
+
+static int held_owns(int fin) {
+    int e, k;
+    for (e = 0; e < HELD_TANKS; ++e) {
+        unsigned char *b = held_block(e);
+        if (b == NULL) return 0;
+        for (k = 0; k < ANIMAL_SLOTS; ++k) {
+            if (is_kind((char *)b + TANK_STRIDE + k * SLOT_STRIDE, fin)) return 1;
+        }
+        if (fin == FIN_EEL) {
+            for (k = 0; k < ORN_SLOTS; ++k) {
+                if (is_home_rock(b + (ORN_BASE - FISH_BASE) + k * ORN_STRIDE)) return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 static int owned(char *state, int fin) {
     int t;
     for (t = 0; t <= 3; ++t) {
         if (count_in_tank(state, t, fin)) return 1;
     }
+    if (held_owns(fin)) return 1;
     return fin == FIN_EEL && (eel_in_tank(state, 0) || eel_in_tank(state, 1) || eel_in_tank(state, 2));
 }
 
@@ -2604,6 +2635,25 @@ int __stdcall FtfpStoreStartup(const ftfp_store_host *host) {
 }
 
 int __stdcall FtfpDsStoreInstalled(void) { return installed; }
+
+/* For "Extra Tanks.dll" (which moves a tank's animals with its block) and
+   "Tank Counts.dll" (which counts them): the 5 animal records of the tank in
+   stock place `tank` (0 Tank 1's place, 1 Tank 2, 2 the Sale Tank), one after
+   the other, ANIMAL_SLOTS * 0x288 bytes; NULL for any other tank or when the
+   DLL is not installed. */
+char *__stdcall FtfpStoreAnimals(char *state, int tank) {
+    if (!installed || state == NULL || tank < 0 || tank >= ANIMAL_TANKS) return NULL;
+    return animal(state, tank, 0);
+}
+
+/* The animal record a swimming entry's (tank, slot) stands for, or NULL when
+   the slot is a fish slot or no animal's. */
+char *__stdcall FtfpStoreAnimalRecord(char *state, int tank, int slot) {
+    int k;
+    if (!installed || state == NULL || tank < 0 || tank >= ANIMAL_TANKS) return NULL;
+    k = animal_index(state, tank, slot);
+    return k >= 0 ? animal(state, tank, k) : NULL;
+}
 
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     (void)reserved;

@@ -56,7 +56,6 @@
 #define SLOT_STRIDE 0x288
 #define RECORDS 31
 #define EXTRA 3                       /* Tank Three, Tank Four, Tank Five */
-#define ANIMAL_FIRST 26               /* DS Store Items' animal slots 26-30 */
 #define ANIMAL_MARK 0x41435446        /* "FTCA", its animal signature at +0x14 */
 #define BODY_SEAHORSE 22
 #define SEAHORSE_ITEM 0x0B            /* the store's Golden Seahorse (0x427B30's jump table, case 0) */
@@ -154,9 +153,16 @@ static void *P(void *base, int offset) { return *(void **)((char *)base + offset
 /* store[e] holds extra tank e, except while extra tank e is on screen
    (shown == e): then the extra is in Tank One's place and store[e] holds
    Tank One. */
-static unsigned char store[EXTRA][TANK_STRIDE];
+/* Each held block is followed by that tank's 5 DS store animals: DS Store
+   Items keeps a tank's animals in records of its own, one set per stock place
+   (FtfpStoreAnimals), never in the block, so they move with the block
+   whenever a block changes places (swap_held, swap_places). */
+#define ANIMAL_SLOTS 5
+#define ANIMAL_BYTES (ANIMAL_SLOTS * SLOT_STRIDE)
+#define HELD_BYTES (TANK_STRIDE + ANIMAL_BYTES)
+static unsigned char store[EXTRA][HELD_BYTES];
 static unsigned char scratch[TANK_STRIDE];
-static unsigned char spare[TANK_STRIDE];
+static unsigned char spare[HELD_BYTES];
 static char *owner = NULL;            /* the state the extra tanks belong to */
 static int shown = -1;
 static int page = 0;                  /* 0: Tank One / Tank Two / Sale Tank; 1: Tank Three / Four / Five */
@@ -171,23 +177,48 @@ static char *record(char *state, int tank, int slot) {
     return state + FISH_BASE + tank * TANK_STRIDE + slot * SLOT_STRIDE;
 }
 
-static void swap_blocks(unsigned char *a, unsigned char *b) {
-    memcpy(scratch, a, TANK_STRIDE);
-    memcpy(a, b, TANK_STRIDE);
-    memcpy(b, scratch, TANK_STRIDE);
+static void swap_bytes(unsigned char *a, unsigned char *b, size_t n) {
+    memcpy(scratch, a, n);
+    memcpy(a, b, n);
+    memcpy(b, scratch, n);
+}
+
+/* DS Store Items' 5 animal records of the tank in stock place `place` (0-2),
+   or NULL (no DS Store Items, or the isolation tank, which has none). */
+typedef char *(__stdcall *store_animals_fn)(char *state, int tank);
+typedef char *(__stdcall *store_record_fn)(char *state, int tank, int slot);
+static unsigned char *place_animals(char *state, int place) {
+    HMODULE store_dll = GetModuleHandleW(L"DS Store Items.dll");
+    store_animals_fn fn = store_dll != NULL ? (store_animals_fn)GetProcAddress(store_dll, "FtfpStoreAnimals") : NULL;
+    return fn != NULL && place >= 0 && place <= 2 ? (unsigned char *)fn(state, place) : NULL;
+}
+
+/* A held block (with its animals after it) and the block in stock place `place` (with DS
+   Store Items' animals of that place) change places.  Its own inverse. */
+static void swap_held(char *state, int place, unsigned char *held) {
+    unsigned char *animals = place_animals(state, place);
+    swap_bytes(block(state, place), held, TANK_STRIDE);
+    if (animals != NULL) swap_bytes(animals, held + TANK_STRIDE, ANIMAL_BYTES);
+}
+
+/* The blocks (and animals) of two stock places change places.  Its own inverse. */
+static void swap_places(char *state, int p, int q) {
+    unsigned char *a = place_animals(state, p), *b = place_animals(state, q);
+    swap_bytes(block(state, p), block(state, q), TANK_STRIDE);
+    if (a != NULL && b != NULL) swap_bytes(a, b, ANIMAL_BYTES);
 }
 
 static int ready(char *state) { return state != NULL && state == owner; }
 
 static void show(char *state, int e) {
     if (shown >= 0 || e < 0 || e >= EXTRA) return;
-    swap_blocks(block(state, 0), store[e]);
+    swap_held(state, 0, store[e]);
     shown = e;
 }
 
 static void unshow(char *state) {
     if (shown < 0) return;
-    swap_blocks(block(state, 0), store[shown]);
+    swap_held(state, 0, store[shown]);
     shown = -1;
 }
 
@@ -207,21 +238,22 @@ static void tick_extras(char *impl) {
     char *state = (char *)P(impl, I_STATE);
     int t;
     if (!ready(state)) return;
-    for (t = 0; t < EXTRA; ++t) swap_blocks(block(state, t), store[t]);
+    for (t = 0; t < EXTRA; ++t) swap_held(state, t, store[t]);
     memset(spare, 0, sizeof spare);
-    swap_blocks(block(state, 3), spare);
+    swap_held(state, 3, spare);
     __try {
         FISH_UPDATE(impl, NULL);
     } __finally {
-        swap_blocks(block(state, 3), spare);
-        for (t = 0; t < EXTRA; ++t) swap_blocks(block(state, t), store[t]);
+        swap_held(state, 3, spare);
+        for (t = 0; t < EXTRA; ++t) swap_held(state, t, store[t]);
     }
 }
 
 /* ---------------------------------------------------------------- sidecar */
 
 #define SIDECAR_MAGIC 0x54585446u      /* "FTXT" */
-#define SIDECAR_VERSION 3u              /* 3: the number bought and the For sale toggles */
+#define SIDECAR_VERSION 4u              /* 4: each block followed by its 5 DS store animals */
+#define SIDECAR_VERSION_BLOCKS 3u       /* 3: the blocks alone (animals in their records 26-30) */
 typedef BOOL (WINAPI *special_folder_fn)(HWND, LPWSTR, int, BOOL);
 
 static unsigned int crc_table[256];
@@ -280,9 +312,12 @@ static int sidecar_path(int slot, wchar_t *out, DWORD cap, int make_folder) {
 
 /* The file's bytes: magic, version, tank count, block size, CRC-32 of the
    blocks, the extra tanks bought (0-3), the For sale toggles (bit e for Tank
-   Three + e), then the three blocks (the extra tanks, never Tank One). */
+   4 + e), then the three blocks (the extra tanks, never Tank 1), each
+   followed by its 5 DS store animal records (version 4). */
 #define HEADER_WORDS 7
-#define SIDECAR_BYTES (HEADER_WORDS * 4 + EXTRA * TANK_STRIDE)
+#define SIDECAR_BYTES (HEADER_WORDS * 4 + EXTRA * HELD_BYTES)
+#define SIDECAR_BYTES_V3 (HEADER_WORDS * 4 + EXTRA * TANK_STRIDE)
+#define ANIMAL_FIRST_V3 26            /* where a version-3 block kept its DS store animals */
 
 static void pack_sidecar(unsigned int *header) {
     header[0] = SIDECAR_MAGIC;
@@ -294,15 +329,42 @@ static void pack_sidecar(unsigned int *header) {
     header[6] = (unsigned int)selling;
 }
 
+static int is_animal(char *f);
+
+/* A version-3 block kept its animals in records 26-30, where DS Store Items
+   kept them before it had records of its own: they move to the block's
+   animal records (the fish records are left empty, as DS Store Items leaves
+   a migrated tank). */
+static void settle_v3_animals(unsigned char *held) {
+    int s, k = 0;
+    memset(held + TANK_STRIDE, 0, ANIMAL_BYTES);
+    for (s = ANIMAL_FIRST_V3; s < RECORDS; ++s) {
+        char *f = (char *)held + s * SLOT_STRIDE;
+        if (!is_animal(f)) continue;
+        memcpy(held + TANK_STRIDE + k * SLOT_STRIDE, f, SLOT_STRIDE);
+        memset(f, 0, SLOT_STRIDE);
+        ++k;
+    }
+}
+
 /* 1 = the bytes are a whole, intact sidecar (then store holds them). */
 static int unpack_sidecar(const unsigned char *bytes, DWORD size) {
     const unsigned int *header = (const unsigned int *)bytes;
-    if (size != SIDECAR_BYTES || header[0] != SIDECAR_MAGIC || header[1] != SIDECAR_VERSION
-        || header[2] != EXTRA || header[3] != TANK_STRIDE
-        || crc32(bytes + HEADER_WORDS * 4, EXTRA * TANK_STRIDE) != header[4] || header[5] > EXTRA || header[6] > 7u) {
+    int e, v3 = size == SIDECAR_BYTES_V3 && header[1] == SIDECAR_VERSION_BLOCKS;
+    DWORD data = v3 ? EXTRA * TANK_STRIDE : EXTRA * HELD_BYTES;
+    if ((size != SIDECAR_BYTES || header[1] != SIDECAR_VERSION) && !v3) return 0;
+    if (header[0] != SIDECAR_MAGIC || header[2] != EXTRA || header[3] != TANK_STRIDE
+        || crc32(bytes + HEADER_WORDS * 4, data) != header[4] || header[5] > EXTRA || header[6] > 7u) {
         return 0;
     }
-    memcpy(store, bytes + HEADER_WORDS * 4, sizeof store);
+    if (v3) {
+        for (e = 0; e < EXTRA; ++e) {
+            memcpy(store[e], bytes + HEADER_WORDS * 4 + e * TANK_STRIDE, TANK_STRIDE);
+            settle_v3_animals(store[e]);
+        }
+    } else {
+        memcpy(store, bytes + HEADER_WORDS * 4, sizeof store);
+    }
     owned = (int)header[5];
     selling = (int)header[6];
     return 1;
@@ -574,26 +636,37 @@ static int is_animal(char *f) {
     return *I(f, F_LIVE) != 0 && *I(f, F_BODY) == BODY_SEAHORSE && *I(f, F_MARK) == ANIMAL_MARK;
 }
 
-/* A DS store animal into the first free animal slot (26-30) of a block. */
-static int place_animal(unsigned char *dest, char *rec) {
-    int s;
-    for (s = ANIMAL_FIRST; s < RECORDS; ++s) {
-        char *f = (char *)dest + s * SLOT_STRIDE;
+/* A DS store animal into the first free one of a tank's 5 animal records
+   (DS Store Items' for a stock place, or the ones after a held block). */
+static int place_animal(unsigned char *animals, char *rec) {
+    int k;
+    if (animals == NULL) return -1;
+    for (k = 0; k < ANIMAL_SLOTS; ++k) {
+        char *f = (char *)animals + k * SLOT_STRIDE;
         if (!is_animal(f)) {
             memcpy(f, rec, SLOT_STRIDE);
-            return s;
+            return k;
         }
     }
     return -1;
+}
+
+/* The DS store animal a swimming entry's (tank, slot) stands for (DS Store
+   Items gives each one a slot number of its own, past the fish slots), or NULL. */
+static char *animal_record(char *state, int tank, int slot) {
+    HMODULE store_dll = GetModuleHandleW(L"DS Store Items.dll");
+    store_record_fn fn = store_dll != NULL ? (store_record_fn)GetProcAddress(store_dll, "FtfpStoreAnimalRecord") : NULL;
+    char *rec = fn != NULL ? fn(state, tank, slot) : NULL;
+    return rec != NULL && is_animal(rec) ? rec : NULL;
 }
 
 /* The game's own AddFish into a held block: it goes into Tank One's place
    for the call (the record is a copy, so its own tank may move freely). */
 static int add_into(char *state, unsigned char *dest, char *rec) {
     int slot;
-    swap_blocks(block(state, 0), dest);
+    swap_held(state, 0, dest);
     slot = ADD_FISH(state, NULL, 0, (int)(UINT_PTR)rec);
-    swap_blocks(block(state, 0), dest);
+    swap_held(state, 0, dest);
     return slot;
 }
 
@@ -604,7 +677,7 @@ static void move_fish(char *impl, char *state, int target) {
     void *view = P(impl, I_VIEW);                               /* as the stock code: mov ecx, [esi + 0x3C] */
     int entry = *I(state, S_HELD), tank, slot, placed, place;
     unsigned char *dest;
-    char rec[SLOT_STRIDE];
+    char rec[SLOT_STRIDE], *animal = NULL;
     *I(state, S_HELD) = -1;
     tank = VIEW_TANK(view, NULL, entry);
     slot = VIEW_SLOT(view, NULL, entry);
@@ -613,7 +686,11 @@ static void move_fish(char *impl, char *state, int target) {
         *I(state, S_TUTORIAL_DROPS) += 1;
         if (*I(state, S_TUTORIAL_DROPS) >= 2) TUTORIAL(state, NULL, 2);
     }
-    if (target == on_screen(state) || tank < 0 || tank > 3 || slot < 0 || slot >= RECORDS) {
+    if (tank >= 0 && tank <= 2 && (slot < 0 || slot >= RECORDS)) animal = animal_record(state, tank, slot);
+    else if (tank >= 0 && tank <= 3 && slot >= 0 && slot < RECORDS && is_animal(record(state, tank, slot))) {
+        animal = record(state, tank, slot);                      /* an earlier build's, not moved out yet */
+    }
+    if (target == on_screen(state) || tank < 0 || tank > 3 || ((slot < 0 || slot >= RECORDS) && animal == NULL)) {
         VIEW_MOVE(view, NULL, entry, tank, 1, -1);               /* back to swimming */
         return;
     }
@@ -623,8 +700,8 @@ static void move_fish(char *impl, char *state, int target) {
         return;
     }
     dest = where(state, target, &place);
-    memcpy(rec, record(state, tank, slot), SLOT_STRIDE);
-    if (slot >= ANIMAL_FIRST && is_animal(rec)) placed = place_animal(dest, rec);
+    memcpy(rec, animal != NULL ? animal : record(state, tank, slot), SLOT_STRIDE);
+    if (animal != NULL) placed = place_animal(place >= 0 ? place_animals(state, place) : dest + TANK_STRIDE, rec);
     else if (place >= 0) placed = ADD_FISH(state, NULL, place, (int)(UINT_PTR)rec);
     else placed = add_into(state, dest, rec);
     if (placed < 0) {
@@ -657,7 +734,7 @@ static int move_ornament(char *impl, char *state, int target, int x, int y) {
     }
     dest = where(state, target, &place);
     at = place >= 0 ? place : (current == 1 ? 2 : 1);
-    if (place < 0) swap_blocks(block(state, at), dest);
+    if (place < 0) swap_held(state, at, dest);
     __try {
         slot = PLACE_ORNAMENT(state, NULL, at, (int)(UINT_PTR)source);
         if (slot < 0) {
@@ -669,7 +746,7 @@ static int move_ornament(char *impl, char *state, int target, int x, int y) {
             SETTLE_ORNAMENT(impl, NULL, x, y, at, slot);
         }
     } __finally {
-        if (place < 0) swap_blocks(block(state, at), dest);
+        if (place < 0) swap_held(state, at, dest);
     }
     *I(impl, I_ORNAMENT) = NONE;
     return 1;
@@ -887,7 +964,7 @@ static void draw_sign_on(char *impl);
    exactly as that tank.  Given back by the same swap.  0 = not lent. */
 static int lend_art(char *state, int *tip) {
     if (!ready(state) || shown < 0 || *I(state, S_CURRENT_TANK) != 0) return 0;
-    if (shown != 0) swap_blocks(block(state, 0), block(state, shown));
+    if (shown != 0) swap_places(state, 0, shown);
     *tip = *I(state, S_TIP_SALE_TANK);
     *I(state, S_CURRENT_TANK) = shown;                       /* Three: 0, Four: 1, Five: 2 */
     *I(state, S_TIP_SALE_TANK) = 0;
@@ -899,7 +976,7 @@ static void unlend_art(char *state, int tip) {
     drawing_extra = 0;
     *I(state, S_TIP_SALE_TANK) = tip;
     *I(state, S_CURRENT_TANK) = 0;
-    if (shown != 0) swap_blocks(block(state, 0), block(state, shown));
+    if (shown != 0) swap_places(state, 0, shown);
 }
 
 static void draw_as_art(UINT_PTR prev, char *impl) {
@@ -1042,7 +1119,9 @@ static int selling_list(int *list) {
 /* Extra tank e lent the Sale Tank's place, or given back (the same swap). */
 static void lend(char *state, int e) {
     int place;
-    swap_blocks(where(state, 3 + e, &place), block(state, 2));
+    unsigned char *b = where(state, 3 + e, &place);
+    if (place >= 0) swap_places(state, place, 2);
+    else swap_held(state, 2, b);
 }
 
 static int fish_slots(void) {
@@ -1492,6 +1571,16 @@ int __stdcall FtfpExtraTanksBuy(void) {
     char *state = *(char *volatile *)(UINT_PTR)STATE_GLOBAL;
     if (!installed || !ready(state) || owned >= EXTRA) return -1;
     return ++owned;
+}
+
+/* For DS Store Items (one of each animal, unless Buy Multiple Golden Seahorses
+   is on): held block e (0-2) with its 5 animal records after it -- a tank not in
+   a stock place now (Tank 4-6, or Tank 1 while one of them is on screen) -- or
+   NULL when no game is open. */
+unsigned char *__stdcall FtfpExtraTanksHeld(int e) {
+    char *state = *(char *volatile *)(UINT_PTR)STATE_GLOBAL;
+    if (!installed || !ready(state) || e < 0 || e >= EXTRA) return NULL;
+    return store[e];
 }
 
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
