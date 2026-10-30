@@ -1,11 +1,11 @@
-"""Mockups of Tank Three, Four and Five with selling Off and On, for the owner.
+"""Mockups of Tank 4, 5 and 6 with selling Off and On, for the owner.
 
     python scripts/render_extra_tanks_mockups.py "<vanilla Fish Tycoon folder>"
 
-Writes docs/images/extra-tank-<3|4|5>-selling-<off|on>.png from the game's own
+Writes docs/images/extra-tank-<4|5|6>-selling-<off|on>.png and
+tank-3-sale-vs-tank-6-for-sale-on.png (the Sale Tank, Tank 3, beside Tank 6 with For sale On) from the game's own
 art in Assets\\ft.dat and this setting's button art: the tank's background and
-wood (Tank Three as Tank One, Tank Four as Tank Two, Tank Five as the Sale
-Tank, as 0x41D140 / 0x41D340 draw them), the top bar on the extra tanks' page
+wood (Tank 4 as Tank 1, Tank 5 as Tank 2, Tank 6 as the Sale Tank, Tank 3, as 0x41D140 / 0x41D340 draw them), the top bar on the extra tanks' page
 with that tank current, the "For sale" toggle in the game's own
 font, and the tank's name label. With selling On, the Sale Tank's sign (forsale.png, sprite 4, at
 (620, 360)) and its shadow (TANK_OBJECT_SHADOW.png at (580, 415)) are drawn
@@ -44,11 +44,13 @@ def art(game: Path) -> dict[str, Image.Image]:
     with zipfile.ZipFile(game / "Assets" / "ft.dat") as archive:
         names = {n.lower(): n for n in archive.namelist() if not n.startswith("__MACOSX")}
         wanted = BACKGROUND + tuple(w[0] for ws in WOOD for w in ws) + (SIGN[0], SHADOW[0], "ui_maintank_top_png.png",
-                                                                         "font_triplex_sanslightlin_bold_16pt.png")
+                                                                         "font_triplex_sanslightlin_bold_16pt.png",
+                                                                         "selltankbutton.png")
         return {w: Image.open(io.BytesIO(archive.read(names[w]))).convert("RGBA") for w in wanted}
 
 
-def render(game: Path, images: dict[str, Image.Image], extra: int, on: bool) -> Image.Image:
+def render(game: Path, images: dict[str, Image.Image], extra: int, on: bool, sale_tank: bool = False) -> Image.Image:
+    """Tank 4/5/6 (extra 0/1/2) with For sale Off or On; sale_tank: the stock Sale Tank (Tank 3) instead."""
     a = art(game)
     screen = a[BACKGROUND[extra]].copy()
     for name, x, y in WOOD[extra]:
@@ -60,11 +62,16 @@ def render(game: Path, images: dict[str, Image.Image], extra: int, on: bool) -> 
     x, y, w, h = A.ARROW_BOX
     screen.alpha_composite(images["TankArrowLeft.png"].crop((0, 0, w, h)), (x, y))
     screen.alpha_composite(images["TankArrowRight.png"].crop((0, 0, w, h)), (x, A.ARROW_RIGHT_Y))
+    if sale_tank:                                 # the stock page, the Sale Tank current (its frame 2)
+        left, top = A.BUTTONS[2][:2]
+        screen.alpha_composite(a["selltankbutton.png"].crop((2 * A.FRAME_W, 0, 3 * A.FRAME_W, A.FRAME_H)), (left, top))
+        screen.alpha_composite(images["TankName3.png"], NAME_AT)
+        return screen
     for b, (left, top, _r, _b) in enumerate(A.BUTTONS):
         frame = 2 if b == extra else 0
         sheet = images[f"ExtraTank{b + 1}Button.png"]
         screen.alpha_composite(sheet.crop((frame * A.FRAME_W, 0, (frame + 1) * A.FRAME_W, A.FRAME_H)), (left, top))
-    screen.alpha_composite(images[f"TankName{extra + 3}.png"], NAME_AT)
+    screen.alpha_composite(images[f"TankName{extra + 4}.png"], NAME_AT)
     toggle = images["ForSaleOn.png" if on else "ForSaleOff.png"]
     screen.alpha_composite(toggle.crop((0, 0, toggle.width // 2, toggle.height)), TOGGLE_AT)
     return screen
@@ -79,9 +86,17 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     for extra in range(3):
         for on in (False, True):
-            path = OUT / f"extra-tank-{extra + 3}-selling-{'on' if on else 'off'}.png"
+            path = OUT / f"extra-tank-{extra + 4}-selling-{'on' if on else 'off'}.png"
             render(game, images, extra, on).convert("RGB").save(path)
             print(path.relative_to(ROOT).as_posix())
+    # Side by side: the Sale Tank (Tank 3) and Tank 6 with For sale On.
+    left, right = render(game, images, 2, True, sale_tank=True), render(game, images, 2, True)
+    both = Image.new("RGB", (left.width * 2 + 16, left.height), (255, 255, 255))
+    both.paste(left.convert("RGB"), (0, 0))
+    both.paste(right.convert("RGB"), (left.width + 16, 0))
+    path = OUT / "tank-3-sale-vs-tank-6-for-sale-on.png"
+    both.save(path)
+    print(path.relative_to(ROOT).as_posix())
     return 0
 
 

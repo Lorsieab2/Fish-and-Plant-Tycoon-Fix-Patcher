@@ -49,6 +49,10 @@ SITES = [
     ("crowd", 0x423F52, "call 0x413c10", "the sale scene's crowd, set when it opens"),
     ("pictures", 0x423FEE, "call 0x4234c0", "the sale scene's fish pictures, when it opens"),
     ("for_sale_text", 0x423927, "call 0x42b20b", "the Fish for sale number's sprintf"),
+    ("snail", 0x422026, "call 0x41d1b0", "the Cleaning Snail, placed by tank number"),
+    ("equipment", 0x422062, "call 0x41ee60", "the aerator and heater by tank number, then the tank's ornaments"),
+    ("bubbles", 0x4220E7, "call 0x416bb0", "the aerator's bubbles, moved where the tank number puts it"),
+    ("bubbles_start", 0x421AF7, "call 0x416b90", "the aerator's bubbles started when the tank opens"),
 ]
 SHARED = {"tick_show"}             # DS Store Items chains this one too
 

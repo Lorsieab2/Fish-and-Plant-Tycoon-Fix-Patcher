@@ -374,7 +374,8 @@ static void read_sidecar(char *state, int slot) {
 
 /* Each site's previous target: the stock one, or another companion's stub. */
 static UINT_PTR prev_tick_idle, prev_tick_show, prev_release, prev_mouse, prev_draw, prev_save_quit,
-    prev_new_game, prev_starter_eggs, prev_load, prev_save, prev_background, prev_decor, prev_sale_sign, prev_sale_shadow;
+    prev_new_game, prev_starter_eggs, prev_load, prev_save, prev_background, prev_decor, prev_sale_sign, prev_sale_shadow,
+    prev_snail, prev_equipment, prev_bubbles, prev_bubbles_start;
 
 #define CALL_PREV0(p, self) ((this0_fn)(p))((self), NULL)
 #define CALL_PREV1(p, self, a) ((this1_fn)(p))((self), NULL, (a))
@@ -758,9 +759,9 @@ static void *toggle_art[2][2], *name_art[2][6];                 /* [German][Off,
 static const char *const TOGGLE_FILES[2][2] = { { "ForSaleOff.png", "ForSaleOn.png" },
                                                 { "ForSaleOff_de.png", "ForSaleOn_de.png" } };
 static const char *const NAME_FILES[2][6] = {
-    { "TankName1.png", "TankName2.png", "TankNameSale.png", "TankName3.png", "TankName4.png", "TankName5.png" },
-    { "TankName1_de.png", "TankName2_de.png", "TankNameSale_de.png", "TankName3_de.png", "TankName4_de.png",
-      "TankName5_de.png" } };
+    { "TankName1.png", "TankName2.png", "TankName3.png", "TankName4.png", "TankName5.png", "TankName6.png" },
+    { "TankName1_de.png", "TankName2_de.png", "TankName3_de.png", "TankName4_de.png", "TankName5_de.png",
+      "TankName6_de.png" } };
 
 static void *grid(const char *name, int cols) {
     int obj = OPERATOR_NEW(0x34);
@@ -879,24 +880,83 @@ static int drawing_extra = 0;
 static int shown_selling(void);
 static void draw_sign_on(char *impl);
 
-static void draw_as_art(UINT_PTR prev, char *impl) {
-    char *state = (char *)P(impl, I_STATE);
-    int current, tip;
-    if (!ready(state) || shown < 0 || *I(state, S_CURRENT_TANK) != 0) {
-        CALL_PREV0(prev, impl);
-        return;
-    }
-    current = *I(state, S_CURRENT_TANK);
-    tip = *I(state, S_TIP_SALE_TANK);
+/* The extra tank on screen takes the place and the number of the tank it is
+   drawn as (Tank Three: Tank One's, Four: Tank Two's, Five: the Sale Tank's)
+   for one draw, so every draw that picks by tank number -- and any that reads
+   the tank on screen, such as the ornaments after the equipment -- draws it
+   exactly as that tank.  Given back by the same swap.  0 = not lent. */
+static int lend_art(char *state, int *tip) {
+    if (!ready(state) || shown < 0 || *I(state, S_CURRENT_TANK) != 0) return 0;
+    if (shown != 0) swap_blocks(block(state, 0), block(state, shown));
+    *tip = *I(state, S_TIP_SALE_TANK);
     *I(state, S_CURRENT_TANK) = shown;                       /* Three: 0, Four: 1, Five: 2 */
     *I(state, S_TIP_SALE_TANK) = 0;
     drawing_extra = 1;
+    return 1;
+}
+
+static void unlend_art(char *state, int tip) {
+    drawing_extra = 0;
+    *I(state, S_TIP_SALE_TANK) = tip;
+    *I(state, S_CURRENT_TANK) = 0;
+    if (shown != 0) swap_blocks(block(state, 0), block(state, shown));
+}
+
+static void draw_as_art(UINT_PTR prev, char *impl) {
+    char *state = (char *)P(impl, I_STATE);
+    int tip = 0;
+    if (!lend_art(state, &tip)) {
+        CALL_PREV0(prev, impl);
+        return;
+    }
     __try {
         CALL_PREV0(prev, impl);
     } __finally {
-        drawing_extra = 0;
-        *I(state, S_TIP_SALE_TANK) = tip;
-        *I(state, S_CURRENT_TANK) = current;
+        unlend_art(state, tip);
+    }
+}
+
+/* The snail (0x41D1B0), the Aeration System and Temperature Regulator with the
+   tank's ornaments after them (0x41EE60, then 0x41D600), placed by tank number. */
+static void __fastcall snail_hook(char *impl, void *edx) {
+    (void)edx;
+    draw_as_art(prev_snail, impl);
+}
+
+static void __fastcall equipment_hook(char *impl, void *edx) {
+    (void)edx;
+    draw_as_art(prev_equipment, impl);
+}
+
+/* The aerator's bubbles (impl + 0x40's object: started at 0x416B90, moved at
+   0x416BB0), which rise where the tank number puts the aerator. */
+static void __fastcall bubbles_hook(void *bubbles, void *edx) {
+    char *state = *(char **)(UINT_PTR)STATE_GLOBAL;
+    int tip = 0;
+    (void)edx;
+    if (!lend_art(state, &tip)) {
+        CALL_PREV0(prev_bubbles, bubbles);
+        return;
+    }
+    __try {
+        CALL_PREV0(prev_bubbles, bubbles);
+    } __finally {
+        unlend_art(state, tip);
+    }
+}
+
+static void __fastcall bubbles_start_hook(void *bubbles, void *edx, int count) {
+    char *state = *(char **)(UINT_PTR)STATE_GLOBAL;
+    int tip = 0;
+    (void)edx;
+    if (!lend_art(state, &tip)) {
+        CALL_PREV1(prev_bubbles_start, bubbles, count);
+        return;
+    }
+    __try {
+        CALL_PREV1(prev_bubbles_start, bubbles, count);
+    } __finally {
+        unlend_art(state, tip);
     }
 }
 
@@ -1285,8 +1345,12 @@ static int prepare(void) {
     ok &= BRANCH(15, CROWD, 0xE8, crowd_hook, prev_crowd);
     ok &= BRANCH(16, PICTURES, 0xE8, pictures_hook, prev_pictures);
     ok &= BRANCH(17, FOR_SALE_TEXT, 0xE8, for_sale_text_hook, prev_for_sale_text);
-    ok &= slot_site(&writes[18], current_bytes[18], SITE_SLOT_LOAD_VA, SITE_SLOT_LOAD_HOLDS, CODE_ADDR(load_hook), &prev_load);
-    ok &= slot_site(&writes[19], current_bytes[19], SITE_SLOT_SAVE_VA, SITE_SLOT_SAVE_HOLDS, CODE_ADDR(save_slot_hook), &prev_save);
+    ok &= BRANCH(18, SNAIL, 0xE8, snail_hook, prev_snail);
+    ok &= BRANCH(19, EQUIPMENT, 0xE8, equipment_hook, prev_equipment);
+    ok &= BRANCH(20, BUBBLES, 0xE8, bubbles_hook, prev_bubbles);
+    ok &= BRANCH(21, BUBBLES_START, 0xE8, bubbles_start_hook, prev_bubbles_start);
+    ok &= slot_site(&writes[22], current_bytes[22], SITE_SLOT_LOAD_VA, SITE_SLOT_LOAD_HOLDS, CODE_ADDR(load_hook), &prev_load);
+    ok &= slot_site(&writes[23], current_bytes[23], SITE_SLOT_SAVE_VA, SITE_SLOT_SAVE_HOLDS, CODE_ADDR(save_slot_hook), &prev_save);
     return ok;
 }
 
@@ -1364,6 +1428,7 @@ typedef int (__cdecl *tank_map_fn)(int stock_tank);
 typedef void (__stdcall *set_tank_map_fn)(tank_map_fn map);
 
 static int __cdecl ornaments_tank_map(int stock_tank) {
+    if (drawing_extra && shown >= 0 && stock_tank == shown) return 3 + shown;   /* lent for a draw */
     if (stock_tank == map_override_to && map_override_tank >= 0) return map_override_tank;
     if (stock_tank == 0 && shown >= 0) return 3 + shown;
     return stock_tank;

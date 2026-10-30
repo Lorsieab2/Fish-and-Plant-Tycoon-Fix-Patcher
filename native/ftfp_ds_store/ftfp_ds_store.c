@@ -308,7 +308,7 @@ static const unsigned char REPURCHASE_JUMP[10] = { 0xE9, 0x49, 0x75, 0x01, 0x00,
 #define FIN_MONEY (-2)                      /* the Add Money item: not an animal */
 #define FIN_TANK (-3)                       /* the Extra Tank item (the "3 extra tanks" setting) */
 
-/* "Extra Tanks.dll" (the "3 extra tanks" setting) sells its tanks here, in
+/* "Extra Tanks.dll" (the "3 extra tanks" setting: Tank 4, 5 and 6) sells its tanks here, in
    order: how many are bought (0-3, -1 when it is not loaded or no game is
    open), and one more bought (the new count, or -1). */
 typedef int (__stdcall *tanks_fn)(void);
@@ -849,8 +849,8 @@ static const store_item ITEM[ITEMS] = {
         "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
     { FIN_TANK, 10000, 598, 246, 160, 70, SPR_STOCK_TANK2, 150, 60,       /* two net cells, bottom right */
       { "Extra Tank", "Weiteres Aquarium" },
-      { "Another tank for breeding! Each one\nyou buy opens the next of Tank Three,\nTank Four and Tank Five.",
-        "Noch ein Aquarium zum Z\xFC" "chten! Jeder\nKauf \xF6" "ffnet das n\xE4" "chste: Tank Drei,\nVier und F\xFCnf." } },
+      { "Another tank for breeding! Each one\nyou buy opens the next of Tank 4,\nTank 5 and Tank 6.",
+        "Noch ein Aquarium zum Z\xFC" "chten! Jeder\nKauf \xF6" "ffnet das n\xE4" "chste: Becken 4,\n5 und 6." } },
 };
 
 static int price_of(const store_item *it) { return free_on ? 0 : it->price; }

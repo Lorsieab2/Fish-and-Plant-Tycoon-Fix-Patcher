@@ -42,7 +42,7 @@ PREVIEWS = ROOT / "docs" / "images"
 # The stock buttons' rects (0x41CDD4: impl+0x58/0x68/0x78, left, top, right, bottom).
 BUTTONS = ((513, 2, 598, 54), (610, 2, 695, 54), (707, 2, 792, 54))
 FRAME_W, FRAME_H = 87, 53
-LABELS = ("Tank Three", "Tank Four", "Tank Five")
+LABELS = ("Tank Four", "Tank Five", "Tank Six")      # the player's Tank 4-6 (owner: Tank 1 to Tank 6)
 STOCK_STRIPS = ("tank1button.png", "tank2button.png", "selltankbutton.png")
 # The two arrows, one above the other, in the bar between the last Magic Breeds silhouette
 # (x <= 495) and Tank One (x >= 513): ftfp_extra_tanks.c ARROW_X, ARROW_Y_LEFT/RIGHT, ARROW_W/H.
@@ -158,7 +158,7 @@ def relabel(image: Image.Image, text: str, glyphs: dict[str, Image.Image], scale
     art, box = erase_label(image)
     word = label(text, glyphs, scale)
     room = FRAME_W - 2
-    if word.width > room:                 # "Tank Three" is wider than "Tank One"
+    if word.width > room:                 # a label wider than the button is fitted to it
         word = word.convert("RGBa").resize((room, max(1, round(word.height * room / word.width))),
                                            Image.LANCZOS).convert("RGBA")
     cx = (box[0] + box[2]) / 2
@@ -171,9 +171,7 @@ def relabel(image: Image.Image, text: str, glyphs: dict[str, Image.Image], scale
 
 # ------------------------------------------------------------------ name labels, toggles
 
-NAMES = (("TankName1", "Tank 1", "Becken 1"), ("TankName2", "Tank 2", "Becken 2"),
-         ("TankNameSale", "Sale Tank", "Verkaufsbecken"), ("TankName3", "Tank 3", "Becken 3"),
-         ("TankName4", "Tank 4", "Becken 4"), ("TankName5", "Tank 5", "Becken 5"))
+NAMES = tuple((f"TankName{n}", f"Tank {n}", f"Becken {n}") for n in range(1, 7))   # 3 is the Sale Tank
 TOGGLES = (("ForSaleOff", "For sale: Off", "Verkauf: Aus", False), ("ForSaleOn", "For sale: On", "Verkauf: An", True))
 TOGGLE_SIZE = (150, 34)                 # ftfp_extra_tanks.c TOGGLE_W / TOGGLE_H
 

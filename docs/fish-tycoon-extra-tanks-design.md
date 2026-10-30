@@ -16,7 +16,7 @@ DS Store Items, which it turns on: the tanks are sold on its Upgrades screen.
 **Buying.** The Extra Tank item on the Upgrades screen (two net cells,
 bottom right; the stock store's Second Tank picture, ITEM_TANK2.png, sprite
 157) costs $10,000 ($0 with Free upgrades), asks the game's "Buy this item?",
-and opens the next of Tank Three, Four and Five; once all three are bought it
+and opens the next of Tank 4, 5 and 6; once all three are bought it
 shows "This is in your inventory." and "You already own this!". DS Store
 Items asks `Extra Tanks.dll` through two exports, `FtfpExtraTanksOwned` and
 `FtfpExtraTanksBuy`; without that DLL the item is hidden. Until a tank is
@@ -26,7 +26,7 @@ font at the mouse, as the game's hints are drawn (0x417E90), the fish swims
 back, and the arrows skip it. The number bought is in the sidecar; a new game
 resets it to none.
 
-**Art.** Tank Three looks like Tank One, Tank Four like Tank Two and Tank
+**Art.** Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank
 Five like the Sale Tank: the game draws a tank's background (0x41D140:
 MAINTANK1/2/3_BG_PNG, sprites 27, 26, 25) and its own wood and plants
 (0x41D340) by the tank number, so the DLL lends the number for those two calls
@@ -34,33 +34,41 @@ MAINTANK1/2/3_BG_PNG, sprites 27, 26, 25) and its own wood and plants
 "For Sale!" sign is not part of its background: it is `forsale.png` (sprite
 4) drawn at (620, 360), with `TANK_OBJECT_SHADOW.png` (sprite 3) under it at
 (580, 415), the last two draws of the Sale Tank's decorations (0x41D435,
-0x41D44F). Both are skipped while an extra tank is drawn, so Tank Five has no
+0x41D44F). Both are skipped while an extra tank is drawn, so Tank 6 has no
 sign.
 
 Mockups with the name label and the For sale toggle, Off and On:
-`docs/images/extra-tank-3-selling-off.png`, `extra-tank-3-selling-on.png`,
-and the same for 4 and 5 (`scripts/render_extra_tanks_mockups.py`).
+`docs/images/extra-tank-4-selling-off.png`, `extra-tank-4-selling-on.png`,
+and the same for 5 and 6, and the Sale Tank (Tank 3) beside Tank 6 with For
+sale On: `docs/images/tank-3-sale-vs-tank-6-for-sale-on.png`
+(`scripts/render_extra_tanks_mockups.py`). Tank 6 with For sale On draws
+exactly the Sale Tank's draw calls (background, wood, plants, snail, aerator,
+heater, ornaments, sign and shadow); Tanks 4 and 5 exactly Tank 1's and Tank
+2's: `tests/test_extra_tanks.py`, SameLookAsTheStockTank. Besides the
+background and decorations, the snail (0x41D1B0), the aerator and heater with
+the ornaments after them (0x41EE60, 0x41D600) and the aerator's bubbles
+(0x416B90, 0x416BB0) are drawn with the tank's number and place lent.
 
-Tank Three, Tank Four and Tank Five: three more tanks exactly like Tank One
-and Tank Two. Fish live, age, eat, get sick, breed and give birth in them;
+Tank 4, Tank 5 and Tank 6: three more tanks exactly like Tank 1
+and Tank 2. Fish live, age, eat, get sick, breed and give birth in them;
 food, medicines, chemicals, eggs, ornaments, research, the plants, the
 magic fish (the Wasp Grouper's mutation included), the Golden Seahorse and
 the DS store animals work there as in any tank; "Bigger tanks" makes them 26
 fish too. They are reached from the tank screen's top bar: two small arrows
 (the game's own UP_ARROW.png turned on its side, left above right) left of
-the Tank One button page the three tank buttons from Tank One / Tank Two /
-Sale Tank to Tank Three / Tank Four / Tank Five and back. Click a button to
+the Tank 1 button page the three tank buttons from Tank 1 / Tank 2 /
+Sale Tank to Tank 4 / Tank 5 / Tank 6 and back. Click a button to
 look at that tank. Drag a fish, a DS store animal or an ornament onto a
 button to move it to that tank, or onto an arrow to move it to the previous
-(left) or next (right) tank in page order: Tank One, Tank Two, the Sale
-Tank, Tank Three, Tank Four, Tank Five, and round again. As on the stock
+(left) or next (right) tank in page order: Tank 1, Tank 2, the Sale
+Tank, Tank 4, Tank 5, Tank 6, and round again. As on the stock
 buttons, a full tank refuses it ("The tank is full!") and an unbought Tank
 Two too ("You don't own a second tank yet!"); a young fish dropped into the
 Sale Tank gets the stock tutorial tip. The stock buttons work as stock. The buttons are the stock button art with
 the label written in the game's own font
 (`font_triplex_sanslightlin_bold_16pt.png`), built by
 `scripts/build_extra_tanks_assets.py`; the tank itself is the stock tank,
-drawn with Tank One's background.
+drawn with Tank 1's background.
 
 Only the Sale Tank sells: fish for sale, customers and the sale scene read
 tank 2, which is never anything but the Sale Tank, so the stock game's
@@ -75,7 +83,7 @@ Static analysis of the vanilla `Fish Tycoon.exe` (image base 0x400000).
 ### The state
 
 * The game state (global pointer `0x45ABDC`) holds **four tank blocks of
-  0x51EC bytes** at `state + 0x390 + tank * 0x51EC`: tank 0 Tank One, 1 Tank
+  0x51EC bytes** at `state + 0x390 + tank * 0x51EC`: tank 0 Tank 1, 1 Tank
   Two (bought: `state + 0x230`), 2 the Sale Tank, 3 the isolation tank. A
   block is 31 fish records of 0x288 bytes (`+0`), 11 ornament records of 0x2C
   (`+0x4E7C`, 6 used), and 10 more records of 0x28 (`+0x5060`). The
@@ -134,14 +142,14 @@ blocks of the same layout and **lets the game's own code run on them**,
 swapping blocks in and out of the four places the code knows. No tank
 routine is rewritten:
 
-* **On screen.** Clicking Tank Three/Four/Five swaps that block into Tank
-  One's place (and Tank One's block into the DLL) and runs the game's own tank
+* **On screen.** Clicking Tank 4/5/6 swaps that block into Tank
+  One's place (and Tank 1's block into the DLL) and runs the game's own tank
   switch with the current tank 0. Everything the game does to the tank you
   are looking at -- drawing it, food, medicines, chemicals (stock, Unknown
   Chemical, Growth Hormone, Vitamins, and any later one that acts on the
   current tank), eggs, ornaments, the trash, breeding through the isolation
   tank -- therefore happens to the extra tank, by the stock code. Clicking any
-  stock button puts Tank One back first.
+  stock button puts Tank 1 back first.
 * **Every fish update.** The two calls of the update (`0x4218FF`, every 301 s
   on the tank screen, and `0x421AAA`, when it opens or switches tank) are
   followed by one more run of the game's own update with the three held blocks
@@ -154,7 +162,7 @@ routine is rewritten:
   own banked time, so the second run adds no research. An empty block rolls
   no dice. The isolation fish is updated once.
 * **Moving fish.** A drop on an extra tank's button or an arrow: the game's
-  own AddFish into that block (a held block is swapped into Tank One's place
+  own AddFish into that block (a held block is swapped into Tank 1's place
   for the call, the record copied first), REMOVE_FISH from the held fish's
   tank, as the stock drop (`0x41EFF0`), with "The tank is full!" at the
   game's own limit. DS store animals (slots 26-30) go to the block's animal
@@ -165,9 +173,9 @@ routine is rewritten:
   stock tank other than the one on screen for the calls.
 * **Multiple ornaments** (PR #60): its DLL keeps decorative copies per tank
   0-7 and asks which tank a stock place shows; this DLL tells it
-  (`FtfpOrnamentsSetTankMap`: Tank One's place shows 3-5 while an extra tank
+  (`FtfpOrnamentsSetTankMap`: Tank 1's place shows 3-5 while an extra tank
   is on screen), and loads "Multiple Ornaments.dll" first when it is there.
-  A copy dropped on an arrow, an extra tank's button, or Tank One's while an
+  A copy dropped on an arrow, an extra tank's button, or Tank 1's while an
   extra is on screen is handed to that DLL's own drop as a drop on the middle
   of a stock button whose tank the map names as the target for that one call
   (with no copy held, the stock release with nothing held does nothing).
@@ -176,7 +184,7 @@ routine is rewritten:
   the game's own switch (`0x421940`), which puts a held item or ornament back
   (`0x421A4B`-`0x421A55`), as every stock switch does. Eggs hatch into the
   tank on screen, an extra tank too (the game's hatch uses the current tank).
-* **Saves.** Before every `Save(slot)` of a game slot, Tank One goes back to
+* **Saves.** Before every `Save(slot)` of a game slot, Tank 1 goes back to
   its place, so the save is exactly what the stock game would write; after a
   successful save the three blocks are written to the sidecar (to a `.tmp`
   file, flushed, then moved over the old one) and the extra tank goes back
@@ -201,15 +209,15 @@ checked first and all are written or none (`install_sites.h`).
 |---|---|---|
 | `0x4218FF` | `call 0x41FE70` | the update, then the held blocks' update |
 | `0x421AAA` | `call 0x41FE70` (DS Store Items chains it first) | the same |
-| `0x421FFB` | `call 0x421B80` (the tank screen's mouse) | the arrows (either turns the page); the extra buttons on their page; Tank One back before a stock button |
-| `0x421D43` | `call 0x421B20` (a held fish let go) | a fish, animal or ornament dropped on an arrow, on an extra tank's button, or on Tank One's while an extra is on screen |
+| `0x421FFB` | `call 0x421B80` (the tank screen's mouse) | the arrows (either turns the page); the extra buttons on their page; Tank 1 back before a stock button |
+| `0x421D43` | `call 0x421B20` (a held fish let go) | a fish, animal or ornament dropped on an arrow, on an extra tank's button, or on Tank 1's while an extra is on screen |
 | `0x42208E` | `jmp 0x4216E0` (the button overlay) | the arrows and the extra buttons, after the stock ones |
-| `0x41A663` | `call 0x419100` (the save on quitting) | Tank One back, the save, the sidecar |
+| `0x41A663` | `call 0x419100` (the save on quitting) | Tank 1 back, the save, the sidecar |
 | `0x4424D4` | Save `0x419100` | the same, for every virtual save |
 | `0x4424D0` | Load `0x41AE70` (DS Store Items chains it first) | the sidecar back |
 | `0x41AAC3` | `call 0x41A8F0` (new game) | the extra tanks emptied |
 | `0x421646` | `call 0x41FC90` (starter eggs) | a fish in an extra tank counts as a fish in a tank |
-| `0x427B30` | `sub esp, 0x2B4` (the store's purchase) | Tank One back for the stock Golden Seahorse's placement |
+| `0x427B30` | `sub esp, 0x2B4` (the store's purchase) | Tank 1 back for the stock Golden Seahorse's placement |
 
 None overlaps a Fix Patcher patch. The two shared with DS Store Items are
 chained: the DLL accepts the stock bytes or a branch into another loaded
@@ -224,28 +232,28 @@ before it. Its log is `Fish Tycoon Fix Patcher DLLs\Extra Tanks.log`.
 `tests/test_extra_tanks.py`, in Unicorn against the vanilla executable, with
 the DLL rebuilt from source:
 
-* the same fish in Tank Two and in an extra tank, 12 updates: the tank
+* the same fish in Tank 2 and in an extra tank, 12 updates: the tank
   bytes, the species table, the rest of the state and every die rolled are
   identical after every update, for ageing/food/health, sickness and its
   spread, breeding and births, the Magic Fish of Fertility and the Wasp
   Grouper's mutation, the Magic Fish of Curing, Health and Sustenance, a full
   tank (babies lost as stock), each with no upgrades and with every research
   level, plant and owned item; each extra against its own stock place; an
-  extra on screen against Tank One; 30 hours of catch-up; the isolation fish;
+  extra on screen against Tank 1; 30 hours of catch-up; the isolation fish;
 * an extra on screen is the block the game's current-tank code reads (the
-  game's own ornament placement lands in it), and Tank One comes back;
+  game's own ornament placement lands in it), and Tank 1 comes back;
 * the Sale Tank never changes with full extra tanks;
-* moving fish to an extra tank, from an extra on screen to Tank One, from the
+* moving fish to an extra tank, from an extra on screen to Tank 1, from the
   isolation tank, a full extra tank refusing as stock, stock drops left
   stock; dragging onto the right arrow (the next tank), round the six tanks
-  both ways, onto a full tank and onto an unbought Tank Two (refused as
+  both ways, onto a full tank and onto an unbought Tank 2 (refused as
   stock); an ornament moved to an extra tank by the game's own ornament code;
   the page-0 buttons passed to the stock handler; either arrow turning the
   page; the tank map given to Multiple Ornaments;
 * the starter eggs counting a fish in an extra tank; the stock Golden
-  Seahorse going to Tank One, and with DS Store Items to the tank you came
+  Seahorse going to Tank 1, and with DS Store Items to the tank you came
   from;
-* the sidecar round trip (the save sees Tank One in its place), the settings
+* the sidecar round trip (the save sees Tank 1 in its place), the settings
   slot untouched, a damaged file set aside, a missing file, a new game, a
   failed save writing nothing;
 * every kind of thing between every two of the six tanks, by arrow or
@@ -273,11 +281,11 @@ the DLL rebuilt from source:
 
 ## Selling from the extra tanks
 
-Each of Tanks 3-5 has a "For sale: Off/On" button under its name label
+Each of Tanks 4-6 has a "For sale: Off/On" button under its name label
 (ForSaleOff/On.png, two frames, at (12, 96); German "Verkauf: Aus/An"), Off
 when bought and in a new game; it is saved per slot in the sidecar (version
-3: a bit per tank). On draws the Sale Tank's sign: on Tank Five (drawn as the
-Sale Tank) the stock draws are let through, on Tanks Three and Four the DLL
+3: a bit per tank). On draws the Sale Tank's sign: on Tank 6 (drawn as the
+Sale Tank) the stock draws are let through, on Tanks 4 and 5 the DLL
 draws the same sprites (3 and 4) at the same places after the decorations.
 
 The game's sale code reads the Sale Tank at fixed addresses, so every piece
@@ -302,9 +310,11 @@ With every toggle Off each hook is the stock call as it is.
 ## Name labels
 
 Every tank screen shows its name at (12, 62), in the game's own font
-(TankName*.png, the label art made like the buttons'): Tank 1, Tank 2, Sale
-Tank, Tank 3, Tank 4, Tank 5; in the German game (`[[0x45B314]] == 1`) Becken
-1, Becken 2, Verkaufsbecken, Becken 3-5.
+(TankName*.png, the label art made like the buttons'): Tank 1, Tank 2, Tank 3 (the Sale
+Tank), Tank 4, Tank 5, Tank 6; in the German game (`[[0x45B314]] == 1`) Becken
+1 to Becken 6. The extra page's top-bar buttons read Tank Four, Tank Five and
+Tank Six (the stock buttons' style); the stock page keeps the game's Tank One,
+Tank Two and Sale Tank.
 
 ## Live checks still needed
 

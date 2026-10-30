@@ -109,6 +109,30 @@ static const unsigned char SITE_PICTURES_EXPECT[] = { 0xE8, 0xCD, 0xF4, 0xFF, 0x
 static const unsigned char SITE_FOR_SALE_TEXT_EXPECT[] = { 0xE8, 0xDF, 0x78, 0x00, 0x00 };
 #define SITE_FOR_SALE_TEXT_TARGET 0x0042B20Bu
 
+/* the Cleaning Snail, placed by tank number: call 0x41d1b0 */
+#define SITE_SNAIL_VA 0x00422026u
+#define SITE_SNAIL_LEN 5
+static const unsigned char SITE_SNAIL_EXPECT[] = { 0xE8, 0x85, 0xB1, 0xFF, 0xFF };
+#define SITE_SNAIL_TARGET 0x0041D1B0u
+
+/* the aerator and heater by tank number, then the tank's ornaments: call 0x41ee60 */
+#define SITE_EQUIPMENT_VA 0x00422062u
+#define SITE_EQUIPMENT_LEN 5
+static const unsigned char SITE_EQUIPMENT_EXPECT[] = { 0xE8, 0xF9, 0xCD, 0xFF, 0xFF };
+#define SITE_EQUIPMENT_TARGET 0x0041EE60u
+
+/* the aerator's bubbles, moved where the tank number puts it: call 0x416bb0 */
+#define SITE_BUBBLES_VA 0x004220E7u
+#define SITE_BUBBLES_LEN 5
+static const unsigned char SITE_BUBBLES_EXPECT[] = { 0xE8, 0xC4, 0x4A, 0xFF, 0xFF };
+#define SITE_BUBBLES_TARGET 0x00416BB0u
+
+/* the aerator's bubbles started when the tank opens: call 0x416b90 */
+#define SITE_BUBBLES_START_VA 0x00421AF7u
+#define SITE_BUBBLES_START_LEN 5
+static const unsigned char SITE_BUBBLES_START_EXPECT[] = { 0xE8, 0x94, 0x50, 0xFF, 0xFF };
+#define SITE_BUBBLES_START_TARGET 0x00416B90u
+
 /* the state's Load(slot) */
 #define SITE_SLOT_LOAD_VA 0x004424D0u
 #define SITE_SLOT_LOAD_HOLDS 0x0041AE70u
@@ -117,6 +141,6 @@ static const unsigned char SITE_FOR_SALE_TEXT_EXPECT[] = { 0xE8, 0xDF, 0x78, 0x0
 #define SITE_SLOT_SAVE_VA 0x004424D4u
 #define SITE_SLOT_SAVE_HOLDS 0x00419100u
 
-#define TANK_SITE_COUNT 20
+#define TANK_SITE_COUNT 24
 
 #endif
