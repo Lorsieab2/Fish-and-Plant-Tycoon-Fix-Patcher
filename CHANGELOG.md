@@ -19,8 +19,8 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   selected plant's countdowns, 0x4237E3 and 0x423866). Dead fish and plants
   are shown apart as "Dead: n"; Fish Tycoon follows the game's German. Sick
   fish are named by sickness ("Sick: 2 fungus, 1 ick", German "Krank: ...
-  Pilzinfektion, ... Weisspünktchen"; fish +0x40, 1 and 2), with "Critical
-  health: n" (German "Kritische Gesundheit") for live fish whose health bar
+  Pilzinfektion, ... Weisspünktchen"; fish +0x40, 1 and 2), with "Low
+  Health: n" (German "Niedrige Gesundheit") for live fish whose health bar
   the game draws red (health 25 or less, 0x41BF33), and plants by
   the status panel's words ("Infested: 2  Unhealthy: 1"; pot +0x28 set, else
   health below 30). A "Counts: On" / "Counts: Off" button (the water's top

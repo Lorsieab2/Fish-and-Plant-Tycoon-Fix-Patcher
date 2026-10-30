@@ -4,7 +4,7 @@
    tank on screen (Tank One, Tank Two or the Sale Tank, as the tank buttons
    choose it):
      Fish: 12 of 21 (8 adults, 3 teens, 1 baby)  Dead: 2
-     Sick: 2 fungus, 1 ick  Critical health: 3  (only when one is)
+     Sick: 2 fungus, 1 ick  Low Health: 3  (only when one is)
      Creatures: Golden Seahorse, Moray Eel      (only when there are any)
      Isolation tank: 1 of 1 (1 adult)  Sick: 1 ick
    in English or German, as the game is, and a "Counts: On" / "Counts: Off"
@@ -32,12 +32,12 @@
    game's medicines name them: "Fungus looks like a green growth", "Ick
    looks like white specks" (German "Pilzinfektions-Medikament",
    "Weisspünktchen-Medikament"), under its status word "Sick" / "Krank".
-   A live fish has critical health exactly when the game draws its health bar
+   A live fish has Low Health exactly when the game draws its health bar
    red: the meter (0x41BF10, health from +0x3C, 0x41D8CD) picks the green bar
    above 50 and the yellow one above 25 (0x41BF33 `cmp esi, 0x19; jle`), so
    health 1-25 shows UI_meter_red_bar.bmp (sprite 0x1E, record 0x455728).
-   The game names no such state, so the line says "Critical health" /
-   "Kritische Gesundheit".
+   The game names no such state, so the line says "Low Health" /
+   "Niedrige Gesundheit".
    Body 22 (+0x4C) is the Golden Seahorse's (0x41F3C4), and its fin (+0x50)
    tells the DS Store Items' animals apart (22 seahorse, 30 puffer, 31 ray,
    32 eel): those are "Creatures", never fish, whether they sit in a fish
@@ -212,19 +212,19 @@ typedef struct words {
    panel use (the Golden Seahorse's is the game's own store item). */
 static const words ENGLISH = {
     "Fish: ", " of ", "adult", "adults", "teen", "teens", "baby", "babies", "Dead: ", "Sick: ", "fungus", "ick",
-    "Critical health: ", "Creatures: ", "Isolation tank: ", "Counts: On", "Counts: Off",
+    "Low Health: ", "Creatures: ", "Isolation tank: ", "Counts: On", "Counts: Off",
     { "Golden Seahorse", "Magic Pufferfish", "Blue-Spotted Stingray", "Moray Eel" },
 };
 static const words GERMAN = {
     "Fische: ", " von ", "ausgewachsen", "ausgewachsen", "halbw\xFC" "chsig", "halbw\xFC" "chsig", "jung", "jung",
-    "Tot: ", "Krank: ", "Pilzinfektion", "Weissp\xFCnktchen", "Kritische Gesundheit: ",
+    "Tot: ", "Krank: ", "Pilzinfektion", "Weissp\xFCnktchen", "Niedrige Gesundheit: ",
     "Tiere: ", "Zuchtaquarium: ", "Z\xE4hlung: An", "Z\xE4hlung: Aus",
     { "Goldenes Seepferdchen", "Magischer Kugelfisch", "Blaupunktrochen", "Mur\xE4ne" },
 };
 
 static int unwell(const tank_count *c) { return c->fungus + c->ick + c->critical; }
 
-/* "Sick: 2 fungus, 1 ick  Critical health: 3", each part only when non-zero
+/* "Sick: 2 fungus, 1 ick  Low Health: 3", each part only when non-zero
    (the caller checked unwell()). */
 static void health_parts(count_line *line, const words *w, const tank_count *c) {
     if (c->fungus + c->ick > 0) {

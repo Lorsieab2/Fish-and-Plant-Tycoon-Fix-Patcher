@@ -43,7 +43,7 @@ FISH_SETTING = {
     "description": (
         "Adds lines at the top left of the water on the tank screen, for the tank you are looking at: "
         "\"Fish: 12 of 21 (8 adults, 3 teens, 1 baby)\" (26 with Bigger tanks), \"Sick: 2 fungus, 1 ick\" and "
-        "\"Critical health: 3\" (fish whose health bar is red, 25 or less) when any fish is, the creatures in it (\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation "
+        "\"Low Health: 3\" (fish whose health bar is red, 25 or less) when any fish is, the creatures in it (\"Creatures: Golden Seahorse, Moray Eel\"), then \"Isolation "
         "tank: 1 of 1 (1 adult)\". Adults, teens and babies are the game's own stages: a baby is age 1-5, a "
         "teen 6-19, an adult 20 and up. Dead fish are left out of the count and shown after it as \"Dead: 2\" "
         "until you throw them away. A \"Counts: On\" button at the top right of the water hides or shows them "

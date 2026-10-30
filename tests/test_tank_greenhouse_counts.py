@@ -557,7 +557,7 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
             self.setUp()
             self.fish(0, 0, 30, health=health)
             line = self.lines()[1]
-            critical = line == "Critical health: 1"
+            critical = line == "Low Health: 1"
             self.assertTrue(critical or line == "Isolation tank: 0 of 1", (health, line))
             self.assertEqual(critical, self.health_bar(health) == 0x1E, health)   # 0x1E: UI_meter_red_bar.bmp
             if critical:
@@ -573,14 +573,14 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         self.fish(3, 0, 30, health=12)
         self.assertEqual(self.lines(), [
             "Fish: 3 of 21 (1 adult, 1 teen, 1 baby)  Dead: 1",
-            "Sick: 1 ick  Critical health: 2",
+            "Sick: 1 ick  Low Health: 2",
             "Creatures: Golden Seahorse",
-            "Isolation tank: 1 of 1 (1 adult)  Critical health: 1",
+            "Isolation tank: 1 of 1 (1 adult)  Low Health: 1",
         ])
         self.setUp()
         self.german()
         self.fish(0, 0, 30, health=20)
-        self.assertEqual(self.lines()[1], "Kritische Gesundheit: 1")
+        self.assertEqual(self.lines()[1], "Niedrige Gesundheit: 1")
 
     def test_singular_words_and_several_of_a_creature(self) -> None:
         self.fish(0, 0, 25)
