@@ -14,7 +14,7 @@ startup loader (`src/ds_fish_loader.py`, `PLANT_GREENHOUSES`).
 
 - Six greenhouses of 15 pots (90 pots). The game's own gold arrows
   (`leftarrow.png` / `rightarrow.png`, the ones the Seed Storage screen uses for
-  boxes 4-6) at the top of the greenhouse screen page through Greenhouse 1 (the
+  boxes 4-6) on both sides of the greenhouse screen, beside the middle shelf, page through Greenhouse 1 (the
   stock one) to Greenhouse 6 and round again. "Greenhouse n of 6" is drawn in
   the game's font (the same call the Seed Boxes DLL uses for "Boxes 1-3").
   Picture: `docs/images/extra-greenhouses-switch.png`
@@ -161,7 +161,8 @@ screen is up, and time away is caught up from each pot's own clock.
 
 Generated and checked by `scripts/build_extra_greenhouses_headers.py` (stock
 instructions, no branch target inside, no overlap with a Fix Patcher patch or
-a New Flowers, Plant Upgrades or Seed Boxes site). All 29 writes are checked
+a New Flowers, Plant Upgrades or Seed Boxes site). All 32 writes (13 code sites,
+19 vtable slots) are checked
 first and written all or none.
 
 | Site | VA | What |
@@ -176,7 +177,8 @@ first and written all or none.
 | seed_box | 0x42819B (7 bytes) | carried seeds into the seed box: the same |
 | seed_trash | 0x424711 (7 bytes) | carried seeds in the trash: their own value (+0x74) |
 | seed_return | 0x424508 (6 bytes) | carried seeds put back: to their own pot (+0x90 + 1, +0x94 - 1, as 0x424480) |
-| greenhouse vtable | 0x469224, 0x469228, 0x46922C, 0x469238, 0x46923C, 0x469240, 0x469244 | mouse (drop on an arrow), keys, command (arrows, the for-sale limit), overlay, draw (the label), tick, activate (the arrows; other greenhouses' sold pots emptied through 0x42F410) |
+| arrows_over_plants | 0x429066 (6 bytes) | in the greenhouse draw, after the pots, plants (0x423580) and sparkles, before what the hand holds: the two arrows drawn again (each its own vtable + 0x18), so they show over the plants and under the hand |
+| greenhouse vtable | 0x469224, 0x469228, 0x46922C, 0x469238, 0x46923C, 0x469240, 0x469244 | mouse (a press or drop on an arrow, before the plants' own hit test), keys, command (arrows, the for-sale limit), overlay, draw (the label), tick, activate (the arrows; other greenhouses' sold pots emptied through 0x42F410) |
 | nursery vtable | 0x469734, 0x469738, 0x46973C, 0x469748, 0x46974C, 0x469750, 0x469754 | the nursery's pots |
 | snapshot vtable | 0x46988C, 0x469890, 0x469894, 0x4698A0, 0x4698AC | the snapshot's pots |
 

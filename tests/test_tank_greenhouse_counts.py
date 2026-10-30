@@ -931,11 +931,11 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
             (237, 27, 0xFF000000, 0, GRAPHICS), (236, 26, 0xFFFFFFFF, 0, GRAPHICS)])
 
     def test_under_the_extra_greenhouses_arrows_once_one_is_bought(self) -> None:
-        """5 extra greenhouses draws gold arrows beside the greenhouse's name on the top wall
-        (x 367-416 and 583-632, y 11-60) and the name centred at (500, 26) once one is bought: the
-        lines go under the arrows and the button right of the right arrow, above the name; with
-        none bought (or the setting off: -1) everything stays where it was."""
-        arrows = ((367, 11, 416, 60), (583, 11, 632, 60))
+        """5 extra greenhouses draws the greenhouse's name centred at (500, 26) on the top wall once
+        one is bought, and gold arrows on the sides of the middle shelf row (x 220-269 and 748-797,
+        y 236-285): the lines go under the name and the button to its right, above it; with none
+        bought (or the setting off: -1) everything stays where it was."""
+        arrows = ((220, 236, 269, 285), (748, 236, 797, 285))
         owned = [0]
         self.export("Extra Greenhouses.dll", "FtfpExtraGreenhousesOwned", lambda e: owned[0], 0)
         self.pot(0, 25.0, infested=1)
@@ -950,7 +950,8 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
                 for a_left, a_top, a_right, a_bottom in arrows:
                     self.assertTrue(right < a_left or left > a_right or bottom < a_top or top > a_bottom,
                                     "the button is clear of the arrows")
-                self.assertGreater(line_y, arrows[0][3], "the lines start under the arrows")
+                self.assertGreater(line_y, 26 + 21, "the lines start under the name")
+                self.assertLess(line_y + 22 + 22, arrows[0][1], "and end above the arrows")
                 self.assertLess(bottom, 26 + 4, "above the greenhouse's name")
             self.assertEqual(self.inside()[0] in range(left, right + 1), True)
         owned[0] = 2

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Plant Tycoon, 5 extra greenhouses: the gold arrows moved from beside the
+  greenhouse's name to the two sides of the screen, centred on the middle
+  shelf (x 220-269 and 748-797, y 236-285). Both lie wholly outside the grid
+  the game picks a pot by (0x423970: x 270-730, y 43-475), so a click or drag
+  on any plant, pruning included, works everywhere as in the stock game; tall
+  top-row plants no longer cover them. They are drawn over the plants (from
+  0x429066, after the pots, plants and sparkles) and under whatever the hand
+  holds (a dragged plant, seeds, pollen, a tool) and popups. A press inside an
+  arrow is the arrow's even where the widest full-grown plants (Fern, Bonsai,
+  Dieffenbachia, Oak, Tiger Fern) reach under it, and switches greenhouse once;
+  a plant dropped on an arrow moves on as before. The name and the greenhouse
+  counts stay where they were. The nursery arrows move up 3 px (y 1-50) so
+  they end above every nursery plant's click box (0x436420).
+
 ## v1.0.17
 
 New content for both games (DS fish, fins and store animals; the 14 unused

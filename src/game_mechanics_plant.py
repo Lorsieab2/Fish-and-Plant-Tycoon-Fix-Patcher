@@ -228,8 +228,8 @@ AGES = (
                   "0x428551). A \"Counts: On/Off\" button on the wall (694, 26) hides them, remembered in "
                   "Greenhouse Counts.ini beside the DLL, never the save. With 5 extra greenhouses it counts "
                   "Greenhouses 2-6 too, "
-                  "and once one is bought (the gold arrows show) the lines sit under the arrows (y 62) and the "
-                  "button moves to (646, 4), right of the right arrow (x 583-632). "
+                  "and once one is bought (the gold arrows show) the lines sit under the greenhouse's name (y 62) "
+                  "and the button moves to (646, 4), right of the name. "
                   "Drawn every frame over everything in the greenhouse (at 0x4291D2 in its overlay), under "
                   "only what the hand holds, the bottom bar's text and popups; display only."),),
     ),
@@ -1151,8 +1151,8 @@ EXTRA_GREENHOUSES = (
         patched=(("extra_greenhouses", "up to six greenhouses of 15 pots, 90 pots in all. Greenhouses 2-6 are "
                   "bought in order with the Extra Greenhouse item on the store's Upgrades screen (the tool "
                   "shelf): $10,000 each, $0 with Free upgrades, ticked once all five are owned; a new game "
-                  "starts with none. Once one is owned, gold arrows on the greenhouse screen (the game's own, "
-                  "as on the Seed Storage screen) page through Greenhouse 1, the stock one, and the ones you "
+                  "starts with none. Once one is owned, gold arrows on both sides of the greenhouse screen (the "
+                  "game's own, as on the Seed Storage screen, beside the middle shelf) page through Greenhouse 1, the stock one, and the ones you "
                   "own, round again; the screen says \"Greenhouse n of m\". A greenhouse not yet bought "
                   "cannot be reached and takes no plant. Leaving the greenhouse and coming back shows the one "
                   "you last looked at."),),

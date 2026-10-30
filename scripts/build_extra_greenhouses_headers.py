@@ -4,7 +4,7 @@
 
 writes native/ftfp_extra_greenhouses/greenhouse_sites.h.
 
-Ten code sites, pinned like scripts/build_new_flowers_headers.py pins its own
+Thirteen code sites, pinned like scripts/build_new_flowers_headers.py pins its own
 (stock instructions, no branch target inside, no overlap with a Fix Patcher
 patch or a New Flowers, Plant Upgrades or Seed Boxes site), and the slots of
 three scenes' vtables (greenhouse, nursery, snapshot), pinned by the stock
@@ -60,6 +60,10 @@ SITES = [
     ("sales_roll", 0x437A1C, ["call 0x436be0"]),
     # A sale (0x435C70) hands the plant to a visitor when there is one (0x43ACD0, the visitor count).
     ("sale_visitor", 0x435D21, ["call 0x43acd0"]),
+    # The greenhouse draw (0x428E70), after every pot and plant (0x423580 at 0x428FC0) and their
+    # sparkles (0x423B00), just before what the hand holds (from here: a dragged pot, 0x4290C6; seeds,
+    # pollen, a tool): the arrows go over the plants and under the hand.
+    ("arrows_over_plants", 0x429066, ["mov ecx, dword ptr [esi + 0x88]"]),
 ]
 
 # (name, slot address, stock function): the vtables at 0x469220 (greenhouse),

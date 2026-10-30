@@ -431,8 +431,8 @@ never needs the internet.
   Off" button at the top right hides or shows them, kept in
   `Plant Tycoon Fix Patcher DLLs\Greenhouse Counts.ini`, never in a save; it
   takes only its own clicks (never while you hold a seed or tool). Once you
-  own an extra greenhouse the lines sit under the gold arrows and the button
-  moves right of the right arrow, above the greenhouse's name. The stages
+  own an extra greenhouse the lines sit under the greenhouse's name and the
+  button moves right of the name, above it. The stages
   are the selected plant's own countdown: a seedling before age 21 ("Buds in
   ... Min."), with buds from 21 ("Mature in ... Min."), mature from 24. Dead
   plants are left out of the count and shown after it as "Dead: 1" until you
@@ -454,8 +454,8 @@ never needs the internet.
   pictured with the game's own greenhouse) sells Greenhouses 2-6 in order,
   $10,000 each ($0 with Free upgrades), and gets a tick once all five are
   yours; a new game starts with none. Once you own one, the game's own gold
-  arrows (as on the Seed Storage screen) at the top of the greenhouse screen
-  page through Greenhouse 1, the stock one, and the ones you own, and the
+  arrows (as on the Seed Storage screen) on both sides of the greenhouse
+  screen, beside the middle shelf, page through Greenhouse 1, the stock one, and the ones you own, and the
   screen says "Greenhouse 2 of 3". Greenhouses you have not bought cannot be
   reached, and no plant can be moved into them. Each greenhouse is the stock screen with the
   game's own code running on its pots: plants grow, need water and care,

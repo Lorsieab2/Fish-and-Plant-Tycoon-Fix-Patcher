@@ -79,19 +79,27 @@
 #define ARROW_NEXT 41
 #define ARROW_W 50
 #define ARROW_H 50
-/* The greenhouse's name and arrows, on the top wall between the stock left panel (to about x 240)
-   and the camera button (from about x 760).  The name is centred at LABEL_X; at its widest,
-   "Greenhouse 6 of 6", it is 154 px of PTfontsmall (x 423-577, y 26-47).  The arrows stand at
-   fixed places just outside that, vertically centred on the text (x 367-416 and 583-632, y 11-60),
-   clear of the greenhouse counts' "Counts: On" (x 646-744, y 4-24) and Plants line (y 62). */
-#define LEFT_X 367
-#define RIGHT_X 583
-#define ARROW_Y 11
+/* The greenhouse's arrows (the owner, 2026-10-30): one on each side, vertically centred on the middle
+   shelf row (its pots at y 261), clear of the pots so the plants above them can be pruned.
+   Both lie wholly outside the grid the game picks a pot by (0x423970: x 270-730, y 43-475), so
+   nothing they cover could ever select or prune a plant.  Left: x 220-269, over the stock panel's
+   gold flourish (decoration, no button: it reaches x 242 at y 247-290).  Right: x 748-797, past the
+   shelves (to x 744), inside the screen.  The widest full-size plants (Fern, Bonsai,
+   Dieffenbachia, Oak, Tiger Fern) can still reach under them; they are drawn over the plants and a
+   press wins only inside their own 50 x 50 squares.  The name stays on the top wall, centred at
+   LABEL_X (at its widest, "Greenhouse 6 of 6", x 423-577, y 26-47). */
+#define LEFT_X 220
+#define RIGHT_X 748
+#define ARROW_Y 236
 #define LABEL_X 500
 #define LABEL_Y 26
-#define NU_LEFT_X 220                    /* the nursery's arrows and label, in its sky */
+/* The nursery's arrows and label, in its sky, drawn after its plants (its controls come after its
+   draw).  The arrows end above every plant's click box (0x436420: the plant's place in 0x48EA88
+   less (27, 43), 55 x 86; the back stand at (288, 94) is clicked from y 51), so a press on a
+   plant is never an arrow's; the tallest plants on the back stands can reach up behind them. */
+#define NU_LEFT_X 220
 #define NU_RIGHT_X 530
-#define NU_ARROW_Y 4
+#define NU_ARROW_Y 1
 #define NU_LABEL_X 400
 #define NU_LABEL_Y 20
 #define SOUND_BUTTON 0xC
@@ -99,6 +107,7 @@
 #define SCENE_STATE 0x68
 #define BUTTON_NURSERY 6
 #define BUTTON_ALL_NURSERY 9
+#define MOUSE_DOWN 2
 #define MOUSE_UP 3
 
 #define NOINLINE __declspec(noinline)   /* keeps the name in the map file the tests read */
@@ -629,9 +638,31 @@ static int in_arrow(int i, int x, int y) {
     return x >= left && x < left + ARROW_W && y >= ARROW_Y && y < ARROW_Y + ARROW_H;
 }
 
+/* A press on an arrow is the arrow's, whatever plant grows behind it: the greenhouse's own press
+   (which would pick that plant) never sees it.  One press switches once, whether this handler or the
+   arrow button's command (gh_command) sees it first. */
+static int press_switched = 0;          /* this press switched already */
+static unsigned int frame = 0, command_frame = 0xFFFFFFFFu;
+
+static int on_arrow(int x, int y) { return in_arrow(0, x, y) ? 0 : in_arrow(1, x, y) ? 1 : -1; }
+
 static int __fastcall gh_mouse(char *scene, int edx, int msg, int x, int y) {
     char *state = AT(scene, SCENE_STATE, char *);
+    int arrow = on_arrow(x, y);
     enter(1);
+    if (msg == MOUSE_DOWN && (owned == 0 || arrow < 0 || state == NULL)) press_switched = 0;
+    if (msg == MOUSE_DOWN && owned > 0 && arrow >= 0 && state != NULL
+        && AT(state, STATE_HELD, int) < HELD_POT) {
+        if (command_frame != frame) {
+            play_sound(AT(scene, SCENE_SOUND, void *), 0, SOUND_BUTTON);
+            show_greenhouse(scene, shown + (arrow == 0 ? -1 : 1));
+        }
+        press_switched = 1;
+        return 1;
+    }
+    if (msg == MOUSE_UP && owned > 0 && arrow >= 0 && state != NULL && AT(state, STATE_HELD, int) < HELD_POT) {
+        return 1;                                    /* the end of an arrow press: no plant is picked */
+    }
     if (msg == MOUSE_UP && owned > 0 && state != NULL && AT(state, STATE_HELD, int) >= HELD_POT
         && AT(state, STATE_HELD, int) < HELD_POT + POTS) {
         int i;
@@ -639,6 +670,7 @@ static int __fastcall gh_mouse(char *scene, int edx, int msg, int x, int y) {
             if (in_arrow(i, x, y)) {
                 carry_plant(scene, shown + (i == 0 ? -1 : 1));
                 moved_this_frame = 1;
+                press_switched = 1;
                 return 1;
             }
         }
@@ -660,10 +692,12 @@ static int __fastcall gh_command(char *scene, int edx, int msg, int id) {
     char *state = AT(scene, SCENE_STATE, char *);
     enter(1);
     if (msg == 8 && (id == ARROW_PREV || id == ARROW_NEXT)) {
-        if (!moved_this_frame && owned > 0) {                  /* hidden until one is bought */
+        if (!moved_this_frame && !press_switched && owned > 0) {   /* hidden until one is bought */
             play_sound(AT(scene, SCENE_SOUND, void *), 0, SOUND_BUTTON);
             show_greenhouse(scene, shown + (id == ARROW_PREV ? -1 : 1));
+            command_frame = frame;
         }
+        press_switched = 0;                                    /* the press is over */
         return 1;
     }
     if (msg == 8 && id == BUTTON_NURSERY && state != NULL) {
@@ -727,6 +761,7 @@ static void __fastcall gh_draw(char *scene, int edx) {
 static void __fastcall gh_tick(char *scene, int edx) {
     char *state = AT(scene, SCENE_STATE, char *);
     moved_this_frame = 0;
+    ++frame;
     if (state != NULL && AT(state, STATE_HELD, int) != HELD_POLLEN) pollen_g = pollen_k = -1;
     if (state != NULL && AT(state, STATE_HELD, int) != HELD_POT_SEEDS) seed_g = seed_k = -1;
     enter(1);
@@ -1062,6 +1097,39 @@ static const DWORD k_manager = 0x0042FBC0u;
 static const DWORD k_rebuild = 0x0042FC40u;
 static const DWORD k_load_back = SITE_LOAD_DONE_BACK;
 static const DWORD k_seed_plant_back = SITE_SEED_PLANT_BACK;
+static const DWORD k_arrows_back = SITE_ARROWS_OVER_PLANTS_BACK;
+
+/* The arrows again, over every pot and plant: the frame draws the screen's buttons (0x40B510)
+   before the greenhouse's own draw (0x428E70) puts the plants over them.  Each arrow draws itself
+   through its own method (vtable + 0x18, as 0x40B520 calls it), so it shows the same picture and
+   state, now on top; what the hand holds (a dragged pot, seeds, pollen, a tool) comes later. */
+typedef void (__fastcall *control_draw_fn)(void *control, int edx);
+
+NOINLINE static void __cdecl draw_arrows_over(char *scene) {
+    int i;
+    (void)scene;
+    if (!greenhouses_on || owned == 0) return;
+    for (i = 0; i < 2; ++i) {
+        void *arrow = arrows[i];
+        if (arrow != NULL && AT(arrow, 8, unsigned char)) {
+            ((control_draw_fn)AT(AT(arrow, 0, char *), 0x18, void *))(arrow, 0);
+        }
+    }
+}
+
+/* 0x429066 in the greenhouse draw (esi = the scene), after the plants and their sparkles: the
+   arrows, then the stock `mov ecx, [esi + 0x88]` (the dragged pot's holder) and on. */
+__declspec(naked) static void stub_arrows_over(void) {
+    __asm {
+        pushad
+        push esi
+        call draw_arrows_over
+        add esp, 4
+        popad
+        mov ecx, dword ptr [esi + 0x88]
+        jmp dword ptr [k_arrows_back]
+    }
+}
 static const DWORD k_seed_box_back = SITE_SEED_BOX_BACK;
 static const DWORD k_seed_trash_back = SITE_SEED_TRASH_BACK;
 static const DWORD k_seed_return_back = SITE_SEED_RETURN_BACK;
@@ -1214,7 +1282,7 @@ static int __fastcall delete_slot(void *state, int edx, int slot) {
 /* ----------------------------------------------------------------- install */
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 12
+#define CODE_SITES 13
 #define VTABLE_SLOTS 19
 #define TOTAL_SITES (CODE_SITES + VTABLE_SLOTS)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -1299,6 +1367,8 @@ NOINLINE static int prepare(void) {
     ftfp_site_branch(w++, SITE_SALES_ROLL_VA, SITE_SALES_ROLL_LEN, SITE_SALES_ROLL_EXPECT, 0xE8, CODE_ADDR(sales_roll));
     ftfp_site_branch(w++, SITE_SALE_VISITOR_VA, SITE_SALE_VISITOR_LEN, SITE_SALE_VISITOR_EXPECT, 0xE8,
                      CODE_ADDR(sale_visitors));
+    ftfp_site_branch(w++, SITE_ARROWS_OVER_PLANTS_VA, SITE_ARROWS_OVER_PLANTS_LEN, SITE_ARROWS_OVER_PLANTS_EXPECT,
+                     0xE9, CODE_ADDR(stub_arrows_over));
     for (i = 0; i < VTABLE_SLOTS; ++i) {
         DWORD held, to = (DWORD)(UINT_PTR)SLOTS[i].wrapper;
         if (!known_slot(SLOTS[i].va, SLOTS[i].stock)) {
