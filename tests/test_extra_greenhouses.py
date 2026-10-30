@@ -1006,14 +1006,18 @@ class StoreItemTests(unittest.TestCase):
         emu.hook(0x004207F0, lambda e: (draws.append(("shadow",) + tuple(e.arg(i) for i in range(5))), 0)[1], 0x14)
         emu.call(emu.sym("_on_draw"), emu.scene)
         as_float = lambda bits: struct.unpack("<f", struct.pack("<I", bits))[0]
-        # The extra items are drawn last, each as its shadow then its picture; only the greenhouse is on.
-        (_s, *shadow), (_p, sheet, frame, x, y, scale, alpha, _flag) = draws[-2:]
+        # The extra items are drawn each as its shadow then its picture; only the greenhouse is on.
+        # Automatic Sprinklers and the Auto-Healer (frames 32 and 34 of the same sheet) come after them.
+        at = [i for i, d in enumerate(draws) if d[0] == "sprite" and d[1] == 0xB3 and d[2] == 30]
+        self.assertEqual(len(at), 1)
+        (_s, *shadow), (_p, sheet, frame, x, y, scale, alpha, _flag) = draws[at[0] - 1:at[0] + 1]
         self.assertEqual((_s, _p), ("shadow", "sprite"))
         self.assertEqual((sheet, frame, x, y, as_float(scale), alpha), (0xB3, 30, 404, 50, 1.0, 100))
+        self.assertEqual([d[2] for d in draws[at[0] + 1:] if d[0] == "sprite" and d[1] == 0xB3], [32, 34])
 
         art = ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png"
         chems = np.asarray(Image.open(art).convert("RGBA"))
-        self.assertEqual(chems.shape[0], 16 * 70)                     # chem_rows = 16 in the DLL
+        self.assertEqual(chems.shape[0], 18 * 70)                     # chem_rows = 18 in the DLL
         cell = chems[(frame // 2) * 70:(frame // 2 + 1) * 70, (frame % 2) * 70:(frame % 2 + 1) * 70, 3]
         ys, xs = np.nonzero(cell)
         left, top, right, bottom = x + xs.min(), y + ys.min(), x + xs.max(), y + ys.max()   # inclusive, on screen

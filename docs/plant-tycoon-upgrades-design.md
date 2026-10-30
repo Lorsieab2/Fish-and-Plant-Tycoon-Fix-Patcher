@@ -129,6 +129,10 @@ a New Flowers site).
 | store_hover | 0x448433 | hover for the link |
 | trash_drop | 0x425FF2 | the greenhouse mouse-up's `call 0x424680` (the stock trash): a held chemical 36-39 let go on the bin is thrown away (tray record present byte 0, held 0, sound 0x23), else the stock trash |
 | trash_press | 0x4272DC | the press off the pots: the same for a held chemical 36-39 pressed on the bin, ending through 0x42739C, so the selected plant is never asked about or emptied |
+| joint_free | 0x42D330 | "is this flower spot free?": every spot answers free while the formula flowers |
+| plant_seed | 0x42FCDD | planting: a new plant's formula mark (+0x7C) starts at 0 |
+| unit_top / units_done | 0x42E134 / 0x42E2DF | Automatic Sprinklers and the Auto-Healer, each age unit and after the loop (below) |
+| dead_untag | 0x42DF91 | the plant update's dead-plant untag: remembers a plant was for sale (+0x9F) for the Revival Potion (below) |
 | chem_picture_bound | 0x4308D3 | immediate 0x24 -> 0x28: the dialog draws chemicals 36-39 |
 | seed/chem sheet records, link record | 0x485F4C, 0x485F5C, 0x4875A4, 0x4875B4, 0x4882D4 | the sprite records above |
 
@@ -178,8 +182,9 @@ Boxes DLL.
 | Radioactive Plant Formula Bomb | 39 / row 12 | $30,000, 3 doses | (598, 116) |
 
 The Time Warp clock moved to row 13 (frame 26) and Add Money's coins to row
-14 (frame 28), and the Extra Greenhouse item is row 15 (frame 30); the sheet
-has 16 rows. The game draws chemical c as frame
+14 (frame 28), the Extra Greenhouse item is row 15 (frame 30), and Automatic
+Sprinklers and the Auto-Healer are rows 16 and 17 (frames 32 and 34); the sheet
+has 18 rows (`chem_rows = 18`). The game draws chemical c as frame
 2c - 54, so a chemical's row is c - 27. Dialog indices 37-51 are stock store
 items, so 37-39 are these chemicals only while a dialog opened from the
 Upgrades view is up (`upgrade_dialog`): the dialog entry rides the Vaporbomb

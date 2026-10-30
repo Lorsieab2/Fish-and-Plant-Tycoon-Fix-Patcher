@@ -37,10 +37,10 @@
    lies on the stone wall at the top right, above the pots and the tables.
 
    WITH EXTRA GREENHOUSES.  Once a greenhouse is bought, "5 extra
-   greenhouses" draws gold arrows in the top corners (x 222-271 and 748-797,
-   y 10-59) and the greenhouse's name centred at (510, 26): the lines then
-   start at y 62, under the arrows, and the button moves to (646, 4), left of
-   the right arrow and above the name.
+   greenhouses" draws gold arrows beside the greenhouse's name on the top wall
+   (x 367-416 and 583-632, y 11-60) and the name centred at (500, 26): the
+   lines then start at y 62, under the arrows, and the button moves to
+   (646, 4), right of the right arrow and above the name.
 
    ON TOP.  The game paints a screen with 0x40B6B0: the screen's draw (its
    table's +0x18, 0x469238: 0x4257A0, main_bg.png), then its controls
@@ -55,7 +55,7 @@
    everything in the greenhouse, under the held item, the bottom bar's text,
    the messages and every popup.  "5 extra greenhouses" draws its
    greenhouse's name after the whole overlay (wrapping 0x46923C); the name is
-   centred at (510, 26), clear of the lines (from y 62 once its arrows show)
+   centred at (500, 26), clear of the lines (from y 62 once its arrows show)
    and of the button (646-744, y 4-24), so neither covers the other.
 
    HOW.  The startup loader loads this DLL and calls FtfpStartup() before
@@ -94,8 +94,8 @@
 #define LINE_H 22                   /* PTfontsmall's glyphs are 21 px tall */
 #define BUTTON_X 694
 #define BUTTON_Y (LABEL_Y + LINE_H)
-#define LABEL_Y_ARROWS 62           /* under Extra Greenhouses' arrows (y 10-59), on the floor's edge */
-#define BUTTON_X_ARROWS 646         /* "Counts: Off" is 98 px: it ends left of the right arrow (x 748) */
+#define LABEL_Y_ARROWS 62           /* under Extra Greenhouses' arrows (y 11-60), on the floor's edge */
+#define BUTTON_X_ARROWS 646         /* "Counts: Off" is 98 px (646-744): right of the right arrow (x 583-632) */
 #define BUTTON_Y_ARROWS 4           /* above the greenhouse's name (y 26) */
 #define WHITE 0xFFFFFFFFu
 #define YELLOW 0xFFFFD040u

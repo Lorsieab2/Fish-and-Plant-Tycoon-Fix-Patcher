@@ -431,7 +431,7 @@ never needs the internet.
   `Plant Tycoon Fix Patcher DLLs\Greenhouse Counts.ini`, never in a save; it
   takes only its own clicks (never while you hold a seed or tool). Once you
   own an extra greenhouse the lines sit under the gold arrows and the button
-  moves left of the right arrow, above the greenhouse's name. The stages
+  moves right of the right arrow, above the greenhouse's name. The stages
   are the selected plant's own countdown: a seedling before age 21 ("Buds in
   ... Min."), with buds from 21 ("Mature in ... Min."), mature from 24. Dead
   plants are left out of the count and shown after it as "Dead: 1" until you

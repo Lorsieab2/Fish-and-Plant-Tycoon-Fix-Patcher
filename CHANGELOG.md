@@ -2,142 +2,12 @@
 
 ## Unreleased
 
-- Plant Tycoon, 5 extra greenhouses: the gold arrows now stand right beside
-  "Greenhouse n of 6" on the top wall (x 367-416 and 583-632), where they can
-  be seen and clicked; they were under the stock left panel and the camera
-  button. Dragging a plant onto them uses the new places.
-
-### Both games
-
-- **Tank and greenhouse counts are drawn on top.** The counts and their
-  "Counts: On" button were drawn right after the screen's background, so
-  decorations, ornaments, a big rock or the aerator's bubbles could cover
-  them. Fish Tycoon's counts are now drawn first thing in the tank screen's
-  overlay (its table's slot 0x443A70), after the tank's whole draw and its
-  controls (3 extra tanks' arrows, tank name and For sale button and
-  Multiple ornaments' copies included) and before what the hand holds (a
-  dragged fish or ornament, a held tool). Plant Tycoon's are drawn at
-  0x4291D2 in the greenhouse overlay, after the tables, pots, plants, bugs and
-  tools and before what the hand holds, the bottom bar's money and news line
-  and the timed messages; 5 extra greenhouses' greenhouse name, drawn after
-  the overlay, never overlaps them. Popups and dialogs stay on top. The
-  text, its places and the button are unchanged. Neither DLL touches the
-  tank's background call (0x422013) or the greenhouse's background slot
-  (0x469238) any more.
-
-### Fish Tycoon
-
-- **Maximizable window: clicks land under the cursor.** In a maximized or
-  resized window the game's own cursor was drawn at the unscaled pointer
-  position (SDL reads the pointer itself with GetCursorPos + ScreenToClient
-  after every batch of messages), while clicks were scaled, so a click landed
-  up and to the left of the cursor: Tank Five or Six opened the Trophy Case
-  (the magic fish shelf) and its Done button could not be hit. The DLL now
-  also scales SDL's own ScreenToClient, so the cursor, hovers, clicks and drags
-  all agree. At the window's own size nothing changes.
-- **3 extra tanks: one place for "You don't own this tank yet!".** It was
-  drawn beside the mouse, so a click on Tank Six put it off screen. It is now
-  centred across the screen just under the top bar, for every button, arrow
-  and drop.
-- **3 extra tanks: carry over an arrow to reach Tanks 4-6.** Carrying a fish,
-  DS store animal or ornament over either small arrow turns the tank buttons
-  to the other page (once each time it comes onto an arrow), so it can be
-  dropped on any of the six tanks' buttons. Letting go on an arrow itself
-  keeps it where it was (before, an arrow moved it to the previous or next
-  tank).
-
-### Fish Tycoon
-
-- **Optimize Prices on the Fish Store screen.** The Species Chart opens only
-  with a fish in the isolation tank, so the Optimize Prices button is now also
-  on the Fish Store screen, opened with Sell Fish, on its bottom bar between
-  "Your cash" and Done. It is the Species Chart's button, lettered in the
-  game's own font on that screen's bar, and a click does exactly what the
-  chart's does: the same question, the same prices for every discovered
-  species (native/common/price_math.h) and the same "N prices set." The chart
-  keeps its button. "Optimize Prices.dll" now wraps four slots, the chart's
-  command and opening and the Fish Store's, all four or none; the sale
-  scene's customers and sales (and Extra Tanks' changes to them) are
-  untouched. Picture: docs/images/optimize-prices-fish-store.png.
-- The Optimize Prices pin script keeps the setting where it is in the
-  manifest when it re-pins (it used to move it after the Maximizable window).
-
-### Both games
-
-- **What the patcher adds goes in the trash.** The stock trash can (Fish: bottom
-  right of the tank screen; Plant: the Trash bin by the cash) takes fish, seeds
-  and plants, never a supply, chemical or ornament. Audited every item the
-  patcher adds; the ones it did not take now go:
-  - Fish (DS Store Items): Exotic Fish Eggs, the Radioactive Growth Hormone,
-    the Revival Potion and ClonaFish let go on the trash can are thrown away,
-    the whole slot with every dose or hatch left (the slot emptied as the game
-    empties a used-up one), with the fish trash's sound and no question (the
-    game asks only about a live fish). New site 0x421B52 (the release's call
-    of the supply use).
-  - Fish (DS Store Items): the Moray Eel and its rock now go together also
-    when one of them is in Tanks 4-6 and the other is not (3 extra tanks'
-    held tanks are searched after the stock ones).
-  - Plant (Add new store upgrades and items): the Radioactive Plant Formula,
-    the Formula Bomb, the Revival Potion and Revita-Seed, held from the
-    chemical tray and let go or clicked on the bin, are thrown away with
-    every dose left, with the bin's sound and no question, as a seed packet
-    (the bottle leaves the tray as the game empties a used-up one). A plant
-    selected at the time is never asked about or deleted. New sites 0x425FF2
-    (the mouse-up's trash call) and 0x4272DC (the press off the pots).
-  - Already taken, unchanged: Multiple ornaments' copies (after the game's
-    question, any tank, Tanks 4-6 too; never the original), the DS store
-    animals and the Golden Seahorse (the fish trash), anything in Tanks 4-6
-    and Greenhouses 2-6 (shown in a stock place, so the stock trash runs),
-    Legendary and new-flower seeds (sold for their value).
-  - Never taken, as stock: the tools (Fish: the food; Plant: the watering
-    can, shears, net and the other rack tools) and the game's own medicines,
-    chemicals and eggs.
-  - Tests: tests/test_trash_patcher_items.py runs every case on the vanilla
-    executables in Unicorn (dropped on the can, by one pixel off it, in a
-    maximized window, Tanks 1-6, the tools and stock supplies kept).
-### Fish Tycoon
-
-- **Auto-Feeder and Auto-Healer** on DS Store Items' Upgrades page, beside
-  ClonaFish: $10,000 each ($0 with Free upgrades), bought once with the
-  game's purchase question. In each age step of every live fish in every tank
-  (Tanks 1-2, the Sale Tank, the isolation tank, all 30 slots with Bigger
-  tanks, Tanks 4-6 with 3 extra tanks, on screen or not, time away and the Time
-  Warp included), right after the sickness roll (a new hook at 0x4204B3): the
-  Auto-Feeder sets food to 50 (never below 5, never starving, and a feeding by
-  hand reaches 100 at most, so it never overfeeds); the Auto-Healer clears
-  fungus and ick (one Fish Cured each) and sets health to 100, again at the
-  step's death test. A dead fish is never touched. The owner's art: the green
-  feeder and the same machine in hot pink (scripts/build_auto_healer_source.py),
-  57 px tall like the store's other pictures (scripts/build_auto_upgrades_assets.py;
-  DS Exclusive Fish lends two more sprite entries, 244 and 245).
-- Clicking an owned one again asks "Unpurchase ...?" (Yes / No): Yes switches it
-  off at once, no refund; buying it again costs the full price.
-- Ownership per slot in "Fish Tycoon Fix Patcher Data\Auto Upgrades <slot>.dat",
-  written with the save (a .tmp renamed over); a new game owns neither.
-
-### Plant Tycoon
-
-- **Automatic Sprinklers and Auto-Healer** on the store's Upgrades view (the
-  sprinklers on the tool shelf under the Extra Greenhouse, the healer beside the
-  Formula Bomb; chemical sheet rows 16 and 17): $10,000 each ($0 with Free
-  upgrades), bought once with the same Yes / No as Add Money. At the top of
-  every age unit of every live potted plant (every greenhouse, Greenhouses 2-6
-  too, time away and the Time Warp unit by unit; hooks at 0x42E134 and
-  0x42E2DF) and after each update: water 500 (the band that is never dry, below
-  100, and never triples the pest odds, above 900); pests cleared (one Plants
-  Cured each) and health 100. A dead plant is never touched; a plant that dies of
-  old age during a catch-up stays as the game leaves it. Dead branches from the
-  age-7 roll are part of growth and stay.
-- Unpurchase as in Fish Tycoon; ownership in "Plant Tycoon Fix Patcher
-  Data\Auto Upgrades <slot>.dat".
-- Mockups: docs/images/auto-upgrades-fish.png, docs/images/auto-upgrades-plant.png.
-
 ## v1.0.17
 
 New content for both games (DS fish, fins and store animals; the 14 unused
 flowers and a store Upgrades page), bigger tanks, 3 extra tanks (Tanks 4-6),
-5 extra greenhouses and nurseries, tank and greenhouse counts, a Tools tab,
-and fixes.
+5 extra greenhouses and nurseries, tank and greenhouse counts, the
+Auto-Feeder, Automatic Sprinklers and Auto-Healers, a Tools tab, and fixes.
 
 ### Both games
 
@@ -156,8 +26,8 @@ and fixes.
     Buying an animal again ("one of each" with Buy Multiple Golden Seahorses off)
     sees the ones in Tanks 4-6.
   - The Time Warp warps Tanks 4-6 too.
-  - Tank counts chain 3 extra tanks' wrapper of the tank background and count
-    the tank on screen, Tanks 4-6 included; the Optimize Prices button loads
+  - Tank counts count the tank on screen, Tanks 4-6 included, and are drawn
+    over 3 extra tanks' arrows, tank name and For sale button; the Optimize Prices button loads
     before Extra Greenhouses, which chains its two Nursery slots.
   - The Radioactive Growth Hormone, Revival Potion and ClonaFish reach all 30
     slots with Bigger tanks (they read the game's own bounds, which Bigger tanks
@@ -188,12 +58,12 @@ and fixes.
   right; the greenhouse wall's top right) hides or shows them, remembered in
   "Tank Counts.ini" / "Greenhouse Counts.ini" beside the DLL, never in a
   save; it takes only a press on itself while nothing is held. Once an extra
-  greenhouse is bought the plant button moves to (646, 4), left of the right
+  greenhouse is bought the plant button moves to (646, 4), right of the right
   gold arrow and above the greenhouse's name. Drawn
-  every frame in each game's own font right after the screen's background,
-  so nothing is ever covered, and display only. Each game's companion DLL
+  every frame in each game's own font, on top of the tank or greenhouse (see
+  "drawn on top" below), and display only. Each game's companion DLL
   (`Tank Counts.dll`, `Greenhouse Counts.dll`) is loaded by the startup loader
-  (after Extra Tanks.dll, whose wrapper of the tank background it chains; Extra
+  (after Extra Tanks.dll; Extra
   Greenhouses.dll starts it itself) and loads the DLL the loader loaded before,
   so every combination without the counts keeps its pin. Pictures:
   [docs/images/tank-counts-fish.png](docs/images/tank-counts-fish.png),
@@ -384,6 +254,63 @@ and fixes.
   knows (the Game tab's game folder, the output folder and copies and the
   folders they sit in, the default installs) and keeps the pictures in its
   own cache, so they show for every save folder and player of both games.
+- **Tank and greenhouse counts are drawn on top.** The counts and their
+  "Counts: On" button were drawn right after the screen's background, so
+  decorations, ornaments, a big rock or the aerator's bubbles could cover
+  them. Fish Tycoon's counts are now drawn first thing in the tank screen's
+  overlay (its table's slot 0x443A70), after the tank's whole draw and its
+  controls (3 extra tanks' arrows, tank name and For sale button and
+  Multiple ornaments' copies included) and before what the hand holds (a
+  dragged fish or ornament, a held tool). Plant Tycoon's are drawn at
+  0x4291D2 in the greenhouse overlay, after the tables, pots, plants, bugs and
+  tools and before what the hand holds, the bottom bar's money and news line
+  and the timed messages; 5 extra greenhouses' greenhouse name, drawn after
+  the overlay, never overlaps them. Popups and dialogs stay on top. The
+  text, its places and the button are unchanged. Neither DLL touches the
+  tank's background call (0x422013) or the greenhouse's background slot
+  (0x469238) any more.
+- **What the patcher adds goes in the trash.** The stock trash can (Fish: bottom
+  right of the tank screen; Plant: the Trash bin by the cash) takes fish, seeds
+  and plants, never a supply, chemical or ornament. Audited every item the
+  patcher adds; the ones it did not take now go:
+  - Fish (DS Store Items): Exotic Fish Eggs, the Radioactive Growth Hormone,
+    the Revival Potion and ClonaFish let go on the trash can are thrown away,
+    the whole slot with every dose or hatch left (the slot emptied as the game
+    empties a used-up one), with the fish trash's sound and no question (the
+    game asks only about a live fish). New site 0x421B52 (the release's call
+    of the supply use).
+  - Fish (DS Store Items): the Moray Eel and its rock now go together also
+    when one of them is in Tanks 4-6 and the other is not (3 extra tanks'
+    held tanks are searched after the stock ones).
+  - Plant (Add new store upgrades and items): the Radioactive Plant Formula,
+    the Formula Bomb, the Revival Potion and Revita-Seed, held from the
+    chemical tray and let go or clicked on the bin, are thrown away with
+    every dose left, with the bin's sound and no question, as a seed packet
+    (the bottle leaves the tray as the game empties a used-up one). A plant
+    selected at the time is never asked about or deleted. New sites 0x425FF2
+    (the mouse-up's trash call) and 0x4272DC (the press off the pots).
+  - Already taken, unchanged: Multiple ornaments' copies (after the game's
+    question, any tank, Tanks 4-6 too; never the original), the DS store
+    animals and the Golden Seahorse (the fish trash), anything in Tanks 4-6
+    and Greenhouses 2-6 (shown in a stock place, so the stock trash runs),
+    Legendary and new-flower seeds (sold for their value).
+  - Never taken, as stock: the tools (Fish: the food; Plant: the watering
+    can, shears, net and the other rack tools) and the game's own medicines,
+    chemicals and eggs.
+  - Tests: tests/test_trash_patcher_items.py runs every case on the vanilla
+    executables in Unicorn (dropped on the can, by one pixel off it, in a
+    maximized window, Tanks 1-6, the tools and stock supplies kept).
+- **"Contains N doses."** Every patcher chemical's store description ends
+  with the stock wording (the owner's rule): the Radioactive Growth Hormone
+  said "Enough for 3 treatments." and the Radioactive Plant Formula Bomb
+  "Contains 3 bombs."; both now say "Contains 3 doses.", as the Revival
+  Potion, ClonaFish, Revita-Seed and the formula already did. The German
+  Fish Tycoon texts keep the game's own "Reicht für 3 Behandlungen.".
+  tests/test_consumable_doses.py checks every store item's text against the
+  doses a purchase really gives.
+- The patcher window keeps its pictures and remembered choices in its own
+  Tk interpreter: with another Tk window still open, its title-bar icon
+  could fail to load ("can't use pyimage as iconphoto").
 
 ### Plant Tycoon
 
@@ -534,6 +461,24 @@ and fixes.
   (tests/test_knowledge_price_load_repair.py).
 - **Credits:** Plant Tycoon's new flower names are by Virtual_Lady and
   Lorsieab2 (README, How to Use, the patcher window and the setting).
+- Plant Tycoon, 5 extra greenhouses: the gold arrows now stand right beside
+  "Greenhouse n of 6" on the top wall (x 367-416 and 583-632), where they can
+  be seen and clicked; they were under the stock left panel and the camera
+  button. Dragging a plant onto them uses the new places.
+- **Automatic Sprinklers and Auto-Healer** on the store's Upgrades view (the
+  sprinklers on the tool shelf under the Extra Greenhouse, the healer beside the
+  Formula Bomb; chemical sheet rows 16 and 17): $10,000 each ($0 with Free
+  upgrades), bought once with the same Yes / No as Add Money. At the top of
+  every age unit of every live potted plant (every greenhouse, Greenhouses 2-6
+  too, time away and the Time Warp unit by unit; hooks at 0x42E134 and
+  0x42E2DF) and after each update: water 500 (the band that is never dry, below
+  100, and never triples the pest odds, above 900); pests cleared (one Plants
+  Cured each) and health 100. A dead plant is never touched; a plant that dies of
+  old age during a catch-up stays as the game leaves it. Dead branches from the
+  age-7 roll are part of growth and stay.
+- Unpurchase as in Fish Tycoon; ownership in "Plant Tycoon Fix Patcher
+  Data\Auto Upgrades <slot>.dat".
+- Mockups: docs/images/auto-upgrades-fish.png, docs/images/auto-upgrades-plant.png.
 
 ### Fish Tycoon
 
@@ -760,6 +705,54 @@ and fixes.
     DS Exclusive Fish's or the Maximizable window's DLL; ten places, all or
     none, with its own log. Picture:
     docs/images/multiple-ornaments-tank.png.
+- **Maximizable window: clicks land under the cursor.** In a maximized or
+  resized window the game's own cursor was drawn at the unscaled pointer
+  position (SDL reads the pointer itself with GetCursorPos + ScreenToClient
+  after every batch of messages), while clicks were scaled, so a click landed
+  up and to the left of the cursor: Tank Five or Six opened the Trophy Case
+  (the magic fish shelf) and its Done button could not be hit. The DLL now
+  also scales SDL's own ScreenToClient, so the cursor, hovers, clicks and drags
+  all agree. At the window's own size nothing changes.
+- **3 extra tanks: one place for "You don't own this tank yet!".** It was
+  drawn beside the mouse, so a click on Tank Six put it off screen. It is now
+  centred across the screen just under the top bar, for every button, arrow
+  and drop.
+- **3 extra tanks: carry over an arrow to reach Tanks 4-6.** Carrying a fish,
+  DS store animal or ornament over either small arrow turns the tank buttons
+  to the other page (once each time it comes onto an arrow), so it can be
+  dropped on any of the six tanks' buttons. Letting go on an arrow itself
+  keeps it where it was (before, an arrow moved it to the previous or next
+  tank).
+- **Optimize Prices on the Fish Store screen.** The Species Chart opens only
+  with a fish in the isolation tank, so the Optimize Prices button is now also
+  on the Fish Store screen, opened with Sell Fish, on its bottom bar between
+  "Your cash" and Done. It is the Species Chart's button, lettered in the
+  game's own font on that screen's bar, and a click does exactly what the
+  chart's does: the same question, the same prices for every discovered
+  species (native/common/price_math.h) and the same "N prices set." The chart
+  keeps its button. "Optimize Prices.dll" now wraps four slots, the chart's
+  command and opening and the Fish Store's, all four or none; the sale
+  scene's customers and sales (and Extra Tanks' changes to them) are
+  untouched. Picture: docs/images/optimize-prices-fish-store.png.
+- The Optimize Prices pin script keeps the setting where it is in the
+  manifest when it re-pins (it used to move it after the Maximizable window).
+- **Auto-Feeder and Auto-Healer** on DS Store Items' Upgrades page, beside
+  ClonaFish: $10,000 each ($0 with Free upgrades), bought once with the
+  game's purchase question. In each age step of every live fish in every tank
+  (Tanks 1-2, the Sale Tank, the isolation tank, all 30 slots with Bigger
+  tanks, Tanks 4-6 with 3 extra tanks, on screen or not, time away and the Time
+  Warp included), right after the sickness roll (a new hook at 0x4204B3): the
+  Auto-Feeder sets food to 50 (never below 5, never starving, and a feeding by
+  hand reaches 100 at most, so it never overfeeds); the Auto-Healer clears
+  fungus and ick (one Fish Cured each) and sets health to 100, again at the
+  step's death test. A dead fish is never touched. The owner's art: the green
+  feeder and the same machine in hot pink (scripts/build_auto_healer_source.py),
+  57 px tall like the store's other pictures (scripts/build_auto_upgrades_assets.py;
+  DS Exclusive Fish lends two more sprite entries, 244 and 245).
+- Clicking an owned one again asks "Unpurchase ...?" (Yes / No): Yes switches it
+  off at once, no refund; buying it again costs the full price.
+- Ownership per slot in "Fish Tycoon Fix Patcher Data\Auto Upgrades <slot>.dat",
+  written with the save (a .tmp renamed over); a new game owns neither.
 
 ## v1.0.16
 

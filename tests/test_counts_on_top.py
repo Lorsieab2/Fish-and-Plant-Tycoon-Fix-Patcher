@@ -578,7 +578,7 @@ class PlantCountsOnTopTests(unittest.TestCase):
 
     def test_the_greenhouse_name_and_the_counts_never_overlap(self) -> None:
         """Extra Greenhouses draws the greenhouse's name after the whole overlay, centred at
-        (510, 26); with its arrows shown the lines start at y 62 and the button is at (646, 4),
+        (500, 26); with its arrows shown the lines start at y 62 and the button is at (646, 4),
         clear of it."""
         w = self.world()
         w.emu.write32(self.greenhouses.symbols["_shown"], 5)
@@ -590,9 +590,9 @@ class PlantCountsOnTopTests(unittest.TestCase):
         w.record(0x4092A0, "text", 0x14, lambda e: texts.append((e.cstring(e.arg(0)).decode(), e.arg(1), e.arg(2))) or 0)
         self.frame(w)
         name = [label for label in labels if label[0].startswith("Greenhouse")]
-        self.assertEqual(name, [("Greenhouse 6 of 6", 510, 26)])
+        self.assertEqual(name, [("Greenhouse 6 of 6", 500, 26)])
         width = 9 * len(name[0][0])                                   # PTfontsmall is narrower than 9 px a glyph
-        name_box = (510 - width // 2, 26, 510 + width // 2, 26 + 21)
+        name_box = (500 - width // 2, 26, 500 + width // 2, 26 + 21)
         for text, x, y in texts:
             box = (x, y, x + 9 * len(text), y + 21)
             self.assertTrue(box[2] < name_box[0] or box[0] > name_box[2] or box[3] <= name_box[1]
