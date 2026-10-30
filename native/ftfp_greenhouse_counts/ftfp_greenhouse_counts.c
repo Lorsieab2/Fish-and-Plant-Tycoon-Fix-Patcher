@@ -37,10 +37,10 @@
    lies on the stone wall at the top right, above the pots and the tables.
 
    WITH EXTRA GREENHOUSES.  Once a greenhouse is bought, "5 extra
-   greenhouses" draws gold arrows beside the greenhouse's name on the top wall
-   (x 367-416 and 583-632, y 11-60) and the name centred at (500, 26): the
-   lines then start at y 62, under the arrows, and the button moves to
-   (646, 4), right of the right arrow and above the name.
+   greenhouses" draws the greenhouse's name centred at (500, 26) on the top
+   wall (its gold arrows stand on the sides of the middle shelf row): the
+   lines then start at y 62, under the name, and the button moves to
+   (646, 4), right of the name and above it.
 
    ON TOP.  The game paints a screen with 0x40B6B0: the screen's draw (its
    table's +0x18, 0x469238: 0x4257A0, main_bg.png), then its controls
@@ -95,7 +95,7 @@
 #define BUTTON_X 694
 #define BUTTON_Y (LABEL_Y + LINE_H)
 #define LABEL_Y_ARROWS 62           /* under Extra Greenhouses' arrows (y 11-60), on the floor's edge */
-#define BUTTON_X_ARROWS 646         /* "Counts: Off" is 98 px (646-744): right of the right arrow (x 583-632) */
+#define BUTTON_X_ARROWS 646         /* "Counts: Off" is 98 px (646-744): right of the name (to x 577) */
 #define BUTTON_Y_ARROWS 4           /* above the greenhouse's name (y 26) */
 #define WHITE 0xFFFFFFFFu
 #define YELLOW 0xFFFFD040u

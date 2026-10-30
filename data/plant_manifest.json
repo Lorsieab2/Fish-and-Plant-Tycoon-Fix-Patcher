@@ -4209,7 +4209,7 @@
       "id": "tank_greenhouse_counts",
       "name": "Tank and greenhouse counts",
       "summary": "Shows how many of the 15 pots of the greenhouse on screen hold a living plant, how many are mature, have buds or are seedlings, and which are infested or unhealthy, in the game's own font, with an in-game on/off button.",
-      "description": "Adds a line along the top of the greenhouse screen: \"Plants: 9 of 15 (5 mature, 2 with buds, 2 seedlings)\", counting the pots of the greenhouse you are looking at (Greenhouse 1 to Greenhouse 6 with 5 extra greenhouses) that hold a living plant, and under it \"Infested: 2  Unhealthy: 1\" when any plant is (the game's own status words: one pest, the small black insects, and Unhealthy below health 30). The stages are the game's own: a plant is a seedling before age 21 (its countdown says \"Buds in ... Min.\"), has buds from 21 (\"Mature in ... Min.\") and is mature from 24. Dead plants are left out of the count and shown after it as \"Dead: 1\" until you trash them. A \"Counts: On\" button at the top right hides or shows them (hidden, only the button stays); the game remembers your choice in \"Greenhouse Counts.ini\" beside the DLL, never in a save. Once you own an extra greenhouse the lines sit under the gold arrows and the button moves right of the right arrow. The lines update every frame and are drawn over everything in the greenhouse (tables, pots, plants, bugs, tools), under only what your hand holds, the bottom bar's text and the game's popups. Display only: nothing in the game or your saves changes. Runs as a companion DLL the game loads at start.",
+      "description": "Adds a line along the top of the greenhouse screen: \"Plants: 9 of 15 (5 mature, 2 with buds, 2 seedlings)\", counting the pots of the greenhouse you are looking at (Greenhouse 1 to Greenhouse 6 with 5 extra greenhouses) that hold a living plant, and under it \"Infested: 2  Unhealthy: 1\" when any plant is (the game's own status words: one pest, the small black insects, and Unhealthy below health 30). The stages are the game's own: a plant is a seedling before age 21 (its countdown says \"Buds in ... Min.\"), has buds from 21 (\"Mature in ... Min.\") and is mature from 24. Dead plants are left out of the count and shown after it as \"Dead: 1\" until you trash them. A \"Counts: On\" button at the top right hides or shows them (hidden, only the button stays); the game remembers your choice in \"Greenhouse Counts.ini\" beside the DLL, never in a save. Once you own an extra greenhouse the lines sit under the greenhouse's name and the button moves right of the name. The lines update every frame and are drawn over everything in the greenhouse (tables, pots, plants, bugs, tools), under only what your hand holds, the bottom bar's text and the game's popups. Display only: nothing in the game or your saves changes. Runs as a companion DLL the game loads at start.",
       "category": "main",
       "default": true,
       "companion": {
@@ -4429,7 +4429,7 @@
       "id": "extra_greenhouses",
       "name": "5 extra greenhouses",
       "summary": "EXPERIMENTAL - USE AT OWN RISK. Five more greenhouses of 15 pots (90 pots in all), bought one by one on the store's Upgrades screen for $10,000 each; gold arrows on the greenhouse screen page through the ones you own, and every pot works exactly like the stock ones. Needs Add new store upgrades and items.",
-      "description": "EXPERIMENTAL - USE AT OWN RISK. An Extra Greenhouse item on the store's Upgrades screen (tool shelf, beside the Fourth to Sixth Seed Box) sells Greenhouses 2-6 in order, $10,000 each ($0 with Free upgrades), with a tick once all five are yours. Once you own one, gold arrows (the game's own, as on the Seed Storage screen) on the greenhouse screen page through Greenhouse 1, the stock one, and the ones you own, and the screen says \"Greenhouse 2 of 3\". Each greenhouse is the stock greenhouse screen, and the game's own code runs on its 15 pots: plants grow, age, need water and care, flower, take pollen, give seeds, get pests and die exactly as in Greenhouse 1, also while you look at another greenhouse or another screen, while you are away (caught up when you come back) and through the Time Warp. Every chemical, tool, upgrade and magic plant works in every greenhouse. Drag a plant onto an arrow to move it to the same pot place in the greenhouse that arrow leads to (or its first empty pot if that place is taken); pollen and seeds you take from a plant are carried along, and tools, chemicals and tray seeds stay in your hand. Plants tagged for sale in any greenhouse go to the nursery; without 5 extra nurseries the game's limit holds: at most 15 plants are for sale at once, counting every greenhouse. Greenhouses 2-6 are kept beside each save in \"Plant Tycoon Fix Patcher Data\\Extra Greenhouses <slot>.dat\"; the save itself keeps the stock layout. Runs as a companion DLL the game loads at start.",
+      "description": "EXPERIMENTAL - USE AT OWN RISK. An Extra Greenhouse item on the store's Upgrades screen (tool shelf, beside the Fourth to Sixth Seed Box) sells Greenhouses 2-6 in order, $10,000 each ($0 with Free upgrades), with a tick once all five are yours. Once you own one, gold arrows (the game's own, as on the Seed Storage screen) on both sides of the greenhouse screen page through Greenhouse 1, the stock one, and the ones you own, and the screen says \"Greenhouse 2 of 3\". Each greenhouse is the stock greenhouse screen, and the game's own code runs on its 15 pots: plants grow, age, need water and care, flower, take pollen, give seeds, get pests and die exactly as in Greenhouse 1, also while you look at another greenhouse or another screen, while you are away (caught up when you come back) and through the Time Warp. Every chemical, tool, upgrade and magic plant works in every greenhouse. Drag a plant onto an arrow to move it to the same pot place in the greenhouse that arrow leads to (or its first empty pot if that place is taken); pollen and seeds you take from a plant are carried along, and tools, chemicals and tray seeds stay in your hand. Plants tagged for sale in any greenhouse go to the nursery; without 5 extra nurseries the game's limit holds: at most 15 plants are for sale at once, counting every greenhouse. Greenhouses 2-6 are kept beside each save in \"Plant Tycoon Fix Patcher Data\\Extra Greenhouses <slot>.dat\"; the save itself keeps the stock layout. Runs as a companion DLL the game loads at start.",
       "warning": "Greenhouses 2-6 only exist while this setting is on. Before switching it off, empty them: move every plant to Greenhouse 1, or sell or compost it. Their plants stay in the slot's Extra Greenhouses file and come back if you switch the setting on again.",
       "category": "main",
       "default": false,
@@ -4445,8 +4445,8 @@
           {
             "path": "Extra Greenhouses.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Extra Greenhouses.dll",
-            "size": 102912,
-            "sha256": "D175BEC5A38A74DCD1B42748D587BF1B534E84B2B9CD8C1E24B4D42601265F94"
+            "size": 103424,
+            "sha256": "941B69418B7B33E89B2452F980FF4648110F90A3CA4FEB2952AAB236DA42E8C7"
           },
           {
             "path": "Extra Greenhouses.ini",
@@ -4477,8 +4477,8 @@
           {
             "path": "Extra Greenhouses.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Extra Greenhouses.dll",
-            "size": 102912,
-            "sha256": "D175BEC5A38A74DCD1B42748D587BF1B534E84B2B9CD8C1E24B4D42601265F94"
+            "size": 103424,
+            "sha256": "941B69418B7B33E89B2452F980FF4648110F90A3CA4FEB2952AAB236DA42E8C7"
           },
           {
             "path": "Extra Nurseries.ini",

@@ -30,7 +30,7 @@ import plant_patcher  # noqa: E402
 
 try:
     import store_emulator as E
-    from unicorn import x86_const as X
+    from unicorn import UC_HOOK_CODE, x86_const as X
 except ImportError:          # Unicorn is not installed
     E = None
 
@@ -476,6 +476,184 @@ class MoveTests(unittest.TestCase):
         emu.call(emu.sym("@gh_command@16"), 8, 40, ecx=game.scene)
         emu.call(emu.sym("@gh_command@16"), 8, 40, ecx=game.scene)
         self.assertEqual(emu.read32(emu.sym("_shown")), 5)
+
+
+# The greenhouse draw (0x428E70) and the plant manager's pot draw (0x42F740), which it reaches for each
+# pot through 0x423580 and 0x42FDE0 (those run for real): every other function they call, with the bytes
+# each one's `ret` takes off the stack.
+DRAW_CALLEES = {0x4033B0: 0, 0x403430: 0, 0x407A90: 0, 0x4092B0: 20, 0x416650: 4, 0x4166D0: 4, 0x416810: 4,
+                0x41B1C0: 0, 0x41C1F0: 28, 0x41DDE0: 0, 0x41DE00: 0, 0x41DE20: 0, 0x41DE40: 0, 0x420730: 4,
+                0x4207F0: 20, 0x4208F0: 28, 0x4211F0: 0, 0x421200: 0, 0x423970: 16, 0x423B00: 0,
+                0x423C40: 8, 0x4241C0: 0, 0x424290: 0, 0x428250: 4, 0x44CA70: 4, 0x44CC20: 16, 0x44CDE0: 20,
+                0x44DD70: 4, 0x44ECC5: 0, 0x44F30B: 0}
+GH_DRAW, POT_DRAW, ARROWS_SITE, ARROWS_BACK = 0x428E70, 0x42F740, 0x429066, 0x42906C
+WIDE = (5, 9, 0)                     # the middle row's side pots, whose widest plants reach under the arrows
+
+
+@needs_game
+class ArrowsOverPlantsTests(unittest.TestCase):
+    """The arrows are drawn over the plants and take the clicks and drops made on them."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        _build()
+
+    def frame(self, game: Game, held: int = 0) -> list[tuple]:
+        """The greenhouse's own draw with the arrows' site wired, in the order things are drawn."""
+        emu = game.emu
+        drawn: list[tuple] = []
+
+        def other(e, address=0):
+            drawn.append(("call", address, e.read32(e.uc.reg_read(X.UC_X86_REG_ESP))))
+            return 0xFFFFFFFF if address == 0x421200 else 0      # the hand's holders: nothing held (-1)
+        for address, pop in DRAW_CALLEES.items():
+            emu.hook(address, lambda e, a=address: other(e, a), pop)
+
+        # The pot draw runs for real; its plant draw (each plant object's vtable + 0x1C) is recorded.
+        for k in range(POTS):
+            obj = emu.read32(game.manager + 8 + 4 * k)
+            if obj:
+                method = emu.read32(emu.read32(obj) + 0x1C)
+                emu.hook(method, lambda e: drawn.append(("plant", e.uc.reg_read(X.UC_X86_REG_ECX))) or 0, 0xC)
+        method = emu.thunk()
+        emu.hook(method, lambda e: drawn.append(("arrow", e.uc.reg_read(X.UC_X86_REG_ECX))) or 0, 0)
+        controls = []
+        for i in range(2):
+            control, vtable = emu.alloc(0x40), emu.alloc(0x40)
+            emu.write32(control, vtable)
+            emu.write32(vtable + 0x18, method)
+            emu.write8(control + 8, 1)
+            emu.write32(emu.sym("_arrows") + 4 * i, control)
+            controls.append(control)
+        emu.uc.mem_write(ARROWS_SITE, b"\xE9" + struct.pack("<i", emu.sym("_stub_arrows_over") - (ARROWS_SITE + 5)))
+        emu.write32(game.state + HELD, held)
+        emu.call(GH_DRAW, ecx=game.scene)
+        self.controls = controls
+        return drawn
+
+    def test_the_arrows_are_drawn_after_every_pot_and_plant_in_all_six(self) -> None:
+        game = Game(3)
+        for g in range(EXTRA + 1):
+            for k in WIDE:
+                game.plant(g, k, 13, 13)
+        for g in range(EXTRA + 1):
+            game.show(g)
+            drawn = self.frame(game)
+            plants = [i for i, d in enumerate(drawn) if d[0] == "plant"]
+            arrows = [i for i, d in enumerate(drawn) if d[0] == "arrow"]
+            pots = [i for i, d in enumerate(drawn) if d[0] == "call" and d[1] == 0x4208F0 and d[2] < POT_DRAW + 0x130
+                    and d[2] > POT_DRAW]
+            self.assertEqual(len(plants), len(WIDE), g)          # each plant, drawn by its pot
+            self.assertGreaterEqual(len(pots), POTS, g)          # every pot's own picture
+            self.assertEqual([drawn[i][1] for i in arrows], self.controls, g)
+            self.assertGreater(min(arrows), max(plants + pots), g)
+            # Everything drawn after them is the hand's or later (from the site on), never a plant's or a pot's.
+            later = [d for d in drawn[max(arrows) + 1:] if d[0] != "call" or d[2] < ARROWS_BACK]
+            self.assertEqual(later, [], g)
+
+    def test_a_held_item_is_still_drawn_over_the_arrows(self) -> None:
+        """The site draws the arrows and goes on to the stock `mov ecx, [esi + 0x88]` at 0x429066, the start
+        of what the hand holds: a dragged pot (0x4290C6), seeds, pollen, a tool are all drawn after it."""
+        game = Game(3)
+        game.show(0)
+        emu = game.emu
+        self.frame(game)                                          # wires the site and the arrow controls
+        drawn = []
+        method = emu.read32(emu.read32(self.controls[0]) + 0x18)
+        emu.hook(method, lambda e: drawn.append(e.uc.reg_read(X.UC_X86_REG_ECX)) or 0, 0)
+        holder = emu.alloc(0x40)
+        emu.write32(game.scene + 0x88, holder)
+        emu.uc.hook_add(UC_HOOK_CODE, lambda uc, *_: uc.emu_stop(), begin=ARROWS_BACK, end=ARROWS_BACK)
+        emu.run_until(ARROWS_SITE, ARROWS_BACK, esi=game.scene)
+        self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_EIP), ARROWS_BACK)
+        self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_ECX), holder)
+        self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_ESI), game.scene)
+        self.assertEqual(drawn, self.controls)
+        # Statically: every draw of the hand's things is called from after the site.
+        exe = PLANT_EXE.read_bytes()
+        for site in (0x4290C6, 0x4295E9):                         # the dragged pot, the pot of seeds
+            self.assertEqual(exe[site - 0x400000], 0xE8)
+            self.assertGreater(site, ARROWS_SITE)
+
+    def test_hidden_arrows_are_not_drawn(self) -> None:
+        game = Game(3)
+        game.show(0)
+        game.emu.write32(game.emu.sym("_owned"), 0)
+        self.assertEqual([d for d in self.frame(game) if d[0] == "arrow"], [])
+
+    # ------------------------------------------------------------ clicks and drops
+    def press(self, game: Game, msg: int, at: tuple[int, int]) -> list:
+        emu = game.emu
+        stock = []
+        emu.hook(0x004273D0, lambda e: stock.append((e.arg(0), e.arg(1), e.arg(2))) or 0, 0xC)
+        emu.call(emu.sym("@gh_mouse@20"), msg, *at, ecx=game.scene)
+        return stock
+
+    def test_a_click_on_an_arrow_switches_and_picks_no_plant_under_it(self) -> None:
+        game = Game(3)
+        game.plant(0, 9, 13, 13)                                               # a Bonsai beside the right arrow
+        game.show(0)
+        emu = game.emu
+        self.assertEqual(self.press(game, 2, RIGHT_ARROW), [])                # the press never reaches the plants
+        self.assertEqual(emu.read32(emu.sym("_shown")), 1)
+        self.assertEqual(self.press(game, 3, RIGHT_ARROW), [])
+        emu.call(emu.sym("@gh_command@16"), 8, 41, ecx=game.scene)            # the arrow button's own click
+        self.assertEqual(emu.read32(emu.sym("_shown")), 1)                     # one press, one greenhouse
+        self.assertEqual(emu.read32(game.state + HELD), 0)
+        self.assertEqual(self.press(game, 2, LEFT_ARROW), [])
+        self.assertEqual(emu.read32(emu.sym("_shown")), 0)
+        self.assertEqual(self.press(game, 2, LEFT_ARROW), [])                 # round to greenhouse 6
+        self.assertEqual(emu.read32(emu.sym("_shown")), 5)
+
+    def test_the_button_seeing_the_press_first_still_switches_once(self) -> None:
+        game = Game(3)
+        game.show(0)
+        emu = game.emu
+        emu.call(emu.sym("@gh_command@16"), 8, 41, ecx=game.scene)
+        self.assertEqual(self.press(game, 2, RIGHT_ARROW), [])
+        self.press(game, 3, RIGHT_ARROW)
+        self.assertEqual(emu.read32(emu.sym("_shown")), 1)
+
+    def test_a_plant_dropped_on_an_arrow_over_a_wide_plant_moves_on(self) -> None:
+        game = grow(0, 4, ((4, 13, 13), (9, 13, 13)), (7200,))
+        plant = game.pot_bytes(0, 4)
+        game.show(0)
+        emu = game.emu
+        emu.write32(game.state + HELD, HELD_POT + 4)
+        self.assertEqual(self.press(game, 3, RIGHT_ARROW), [])
+        emu.call(emu.sym("@gh_command@16"), 8, 41, ecx=game.scene)
+        self.assertEqual(emu.read32(emu.sym("_shown")), 1)
+        game.show(0, active=0)
+        self.assertEqual(game.pot_bytes(1, 4), plant)
+
+    def test_a_click_beside_the_arrows_is_the_greenhouse_own(self) -> None:
+        game = Game(3)
+        game.plant(0, 2, 13, 13)
+        game.show(0)
+        emu = game.emu
+        for at in ((LEFT_ARROW[0], LEFT_ARROW[1] - 30), (RIGHT_ARROW[0], RIGHT_ARROW[1] + 30),
+                   (constant("LEFT_X") + 50, LEFT_ARROW[1]), (constant("RIGHT_X") - 1, RIGHT_ARROW[1]), (500, 200)):
+            for msg in (2, 3):
+                self.assertEqual(self.press(game, msg, at), [(msg, *at)], at)
+            self.assertEqual(emu.read32(emu.sym("_shown")), 0)
+        # with none bought there are no arrows: their places are the greenhouse's
+        emu.write32(emu.sym("_owned"), 0)
+        self.assertEqual(self.press(game, 2, RIGHT_ARROW), [(2, *RIGHT_ARROW)])
+
+    def test_every_point_of_every_pot_still_reaches_the_greenhouse(self) -> None:
+        """The whole grid the game picks a pot by (0x423970: x 270-730, y 43-475): a press, a release
+        and a drop anywhere on it are the greenhouse's own, so every plant can be selected and pruned."""
+        game = Game(3)
+        game.show(0)
+        emu = game.emu
+        stock = []
+        emu.hook(0x004273D0, lambda e: stock.append((e.arg(0), e.arg(1), e.arg(2))) or 0, 0xC)
+        points = [(x, y) for x in range(270, 731, 5) for y in range(43, 476, 6)]
+        for x, y in points:
+            for msg in (2, 3):
+                emu.call(emu.sym("@gh_mouse@20"), msg, x, y, ecx=game.scene)
+        self.assertEqual(len(stock), 2 * len(points))
+        self.assertEqual(emu.read32(emu.sym("_shown")), 0)
 
 
 SEED_SITES = ((0x425C1B, "_stub_seed_plant"), (0x42819B, "_stub_seed_box"), (0x424711, "_stub_seed_trash"),
@@ -1076,7 +1254,8 @@ class InstallTests(unittest.TestCase):
                                    (0x41EEFE, "_stub_load", 0xE9), (0x41D3DC, "@new_game_clear@8", 0xE8),
                                    (0x415F5E, "@delete_slot@12", 0xE8), (0x425F54, "@pollinate@16", 0xE8),
                                    *((va, stub, 0xE9) for va, stub in SEED_SITES),
-                                   (0x437A1C, "@sales_roll@12", 0xE8), (0x435D21, "@sale_visitors@8", 0xE8)):
+                                   (0x437A1C, "@sales_roll@12", 0xE8), (0x435D21, "@sale_visitors@8", 0xE8),
+                                   (0x429066, "_stub_arrows_over", 0xE9)):
             code = bytes(emu.uc.mem_read(va, 5))
             self.assertEqual(code[0], opcode)
             self.assertEqual(va + 5 + struct.unpack("<i", code[1:])[0], emu.sym(target))
@@ -1401,10 +1580,28 @@ class BackupTests(unittest.TestCase):
         self.assertEqual((self.data / "Extra Greenhouses 1.dat").read_bytes(), b"later 1")
 
 
+def pot_grid(exe: bytes) -> tuple[int, int, int, int, int, int]:
+    """The grid the greenhouse picks a pot by (0x423970): first column x, width, end; first row y, height, end."""
+    at = 0x423970 - 0x400000                                         # .text is mapped 1:1 (VA 0x401000 at 0x1000)
+    code = exe[at:at + 0x80]
+    x0 = struct.unpack_from("<I", code, 0x23)[0]                       # mov esi, 0x10E
+    w = code[0x3E]                                                    # push 0x5C (also the column step)
+    h = struct.unpack_from("<I", code, 0x39)[0]                        # push 0x90 (also the row step)
+    x_end = struct.unpack_from("<I", code, 0x54)[0]                    # cmp esi, 0x2DA
+    y0 = struct.unpack_from("<I", code, 0x18)[0]                       # mov edi, 0x2B
+    y_end = struct.unpack_from("<I", code, 0x67)[0]                    # cmp edi, 0x1DB
+    return x0, w, x_end, y0, h, y_end
+
+
+# The greenhouse screen's stock controls (its constructor, 0x424BB0): every control at its place, as
+# (x, y, the most it can take: 80 x 50).  The panel's buttons, the bottom bar's five, the camera.
+STOCK_CONTROLS = ((71, 345), (159, 345), (107, 7), (107, 105), (201, 543), (236, 540), (349, 540), (462, 540),
+                  (575, 540), (688, 540), (755, 4), (31, 369), (31, 407), (115, 407))
+
+
 class ArrowLayoutTests(unittest.TestCase):
-    """The greenhouse arrows stand on the top wall beside the name, where the player can see and click them:
-    clear of the stock left panel (to x 240), the camera button (from x 760), the name at its widest
-    ("Greenhouse 6 of 6") and the greenhouse counts ("Counts: On" at 646-744 x 4-24, the Plants line from y 62)."""
+    """The greenhouse arrows (the owner, 2026-10-30) stand on the sides, centred on the middle shelf row,
+    wholly outside the grid the game picks a pot by, so nothing they cover could select or prune a plant."""
 
     @staticmethod
     def rect(x: int, y: int, w: int, h: int) -> tuple[int, int, int, int]:
@@ -1414,31 +1611,65 @@ class ArrowLayoutTests(unittest.TestCase):
     def apart(a, b) -> bool:
         return a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1]
 
-    @unittest.skipUnless(PLANT_EXE.is_file(), "needs the vanilla Plant Tycoon.exe (its font)")
-    def test_the_arrows_are_beside_the_name_and_clear_of_the_stock_ui(self) -> None:
-        sys.path.insert(0, str(ROOT / "scripts"))
-        try:
-            import render_extra_greenhouses_preview as R
-        except ImportError:
-            self.skipTest("needs Pillow")
-        folder = PLANT_EXE.parent
+    def arrows(self):
+        return (self.rect(constant("LEFT_X"), constant("ARROW_Y"), 50, 50),
+                self.rect(constant("RIGHT_X"), constant("ARROW_Y"), 50, 50))
+
+    @unittest.skipUnless(PLANT_EXE.is_file(), "needs the vanilla Plant Tycoon.exe")
+    def test_the_arrows_are_outside_the_pot_grid(self) -> None:
         exe = PLANT_EXE.read_bytes()
-        widest = R.words(folder, exe, "Greenhouse 6 of 6")
-        x, y = constant("LABEL_X") - widest.width // 2, constant("LABEL_Y")
-        name = (x, y, x + widest.width, y + widest.height)
-        left = self.rect(constant("LEFT_X"), constant("ARROW_Y"), 50, 50)
-        right = self.rect(constant("RIGHT_X"), constant("ARROW_Y"), 50, 50)
-        free = (240, 0, 760, 62)                                        # the top wall, panel to camera, above the Plants line
+        self.assertEqual(exe[0x23970:0x23975], bytes.fromhex("83EC085355"), "0x423970 is the pot grid")
+        x0, w, x_end, y0, h, y_end = pot_grid(exe)
+        self.assertEqual((x0, w, x_end, y0, h, y_end), (270, 92, 730, 43, 144, 475))
+        cells = [(x, y, x + w, y + h) for y in range(y0, y_end, h) for x in range(x0, x_end, w)]
+        self.assertEqual(len(cells), POTS)
+        for arrow in self.arrows():
+            for cell in cells:
+                self.assertTrue(self.apart(arrow, cell), (arrow, cell))
+
+    def test_the_arrows_are_on_the_sides_of_the_middle_row_and_clear_of_the_stock_controls(self) -> None:
+        left, right = self.arrows()
+        self.assertEqual(left, (220, 236, 270, 286))
+        self.assertEqual(right, (748, 236, 798, 286))
         for arrow in (left, right):
-            self.assertTrue(free[0] <= arrow[0] and arrow[2] <= free[2] and free[1] <= arrow[1] and arrow[3] <= free[3], arrow)
-            self.assertTrue(self.apart(arrow, name), arrow)
-            self.assertTrue(self.apart(arrow, (646, 4, 744, 24)), arrow)  # "Counts: On"
-        self.assertLess(left[2], name[0])
-        self.assertGreater(right[0], name[2])
-        self.assertLessEqual(name[0] - left[2], 12)                     # just beside the name
-        self.assertLessEqual(right[0] - name[2], 12)
-        middle = (name[1] + name[3]) / 2
-        self.assertLessEqual(abs((left[1] + left[3]) / 2 - middle), 2)  # centred on the text
+            self.assertTrue(0 <= arrow[0] and arrow[2] <= 800 and arrow[3] <= 505, arrow)   # above the bottom bar
+            self.assertEqual((arrow[1] + arrow[3]) // 2, 261)                          # the middle row's pots
+            for x, y in STOCK_CONTROLS:
+                self.assertTrue(self.apart(arrow, (x, y, x + 80, y + 50)), (arrow, x, y))
+        self.assertGreaterEqual(right[0], 745)                                          # past the shelves (to x 744)
+
+    @unittest.skipUnless(PLANT_EXE.is_file(), "needs the vanilla Plant Tycoon.exe")
+    def test_the_nursery_arrows_are_outside_every_plants_click_box(self) -> None:
+        """The nursery's press (0x436420) tests each plant's box: its place (x, y) from the table at
+        0x48EA88 less (0x1B, 0x2B), 0x37 x 0x56.  Neither nursery arrow overlaps one."""
+        exe = PLANT_EXE.read_bytes()
+        at = 0x436420 - 0x400000
+        self.assertEqual(exe[at:at + 7], bytes.fromhex("8B0CED8CEA4800"))       # mov ecx, [ebp*8 + 0x48EA8C]
+        self.assertEqual(exe[at + 0x12:at + 0x16], bytes.fromhex("6A566A37"))   # push 0x56; push 0x37
+        self.assertEqual(exe[at + 0x16:at + 0x19], bytes.fromhex("83E92B"))     # sub ecx, 0x2B
+        self.assertEqual(exe[at + 0x1E:at + 0x21], bytes.fromhex("83EA1B"))     # sub edx, 0x1B
+        pe = struct.unpack_from("<I", exe, 0x3C)[0]
+        table = None
+        for i in range(struct.unpack_from("<H", exe, pe + 6)[0]):
+            o = pe + 24 + struct.unpack_from("<H", exe, pe + 20)[0] + 40 * i
+            vsize, va, rsize, raw = struct.unpack_from("<IIII", exe, o + 8)
+            if va <= 0x48EA88 - 0x400000 < va + max(vsize, rsize):
+                table = 0x48EA88 - 0x400000 - va + raw
+        places = [struct.unpack_from("<2i", exe, table + 8 * k) for k in range(POTS)]
+        self.assertIn((288, 94), places)
+        boxes = [(x - 0x1B, y - 0x2B, x - 0x1B + 0x37, y - 0x2B + 0x56) for x, y in places]
+        for x in (constant("NU_LEFT_X"), constant("NU_RIGHT_X")):
+            arrow = self.rect(x, constant("NU_ARROW_Y"), 50, 50)
+            self.assertGreaterEqual(arrow[1], 0)
+            for box in boxes:
+                self.assertTrue(self.apart(arrow, box), (arrow, box))
+
+    def test_the_arrows_are_clear_of_every_pot(self) -> None:
+        for arrow in self.arrows():
+            for row in range(3):
+                for column in range(5):
+                    x, y = 323 + 93 * column - 28, 117 + 144 * row - 15             # pot.png, 76 x 64, at 0x42F740
+                    self.assertTrue(self.apart(arrow, (x, y, x + 76, y + 64)), (arrow, row, column))
 
 
 class ManifestTests(unittest.TestCase):

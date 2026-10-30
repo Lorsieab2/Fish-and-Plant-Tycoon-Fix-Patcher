@@ -185,8 +185,8 @@ Plant Tycoon options:
   turns on the store's Upgrades screen. Buy Greenhouses 2-6 there, in order,
   $10,000 each ($0 with Free upgrades): the Extra Greenhouse item on the tool
   shelf. Every greenhouse screen is named at the top ("Greenhouse 1" is the
-  stock one), and the gold arrows there page through the ones you own. Every
-  greenhouse works like the stock one and keeps growing while you look at
+  stock one), and the gold arrows on both sides page through the ones you
+  own. Every greenhouse works like the stock one and keeps growing while you look at
   another. Empty Greenhouses 2-6 before turning it off.)
 - 5 extra nurseries (EXPERIMENTAL - USE AT OWN RISK. Off by default; turns
   on the store's Upgrades screen. Without them at most 15 plants can be for

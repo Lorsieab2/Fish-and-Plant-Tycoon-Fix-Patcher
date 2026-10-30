@@ -76,7 +76,7 @@ PLANT_SETTING = {
         "are left out of the count and shown after it as \"Dead: 1\" until you trash them. A \"Counts: On\" "
         "button at the top right hides or shows them (hidden, only the button stays); the game remembers your "
         "choice in \"Greenhouse Counts.ini\" beside the DLL, never in a save. Once you own an extra greenhouse "
-        "the lines sit under the gold arrows and the button moves right of the right arrow. The lines update "
+        "the lines sit under the greenhouse's name and the button moves right of the name. The lines update "
         "every frame and are drawn over everything in the greenhouse (tables, pots, plants, bugs, tools), "
         "under only what your hand holds, the bottom bar's text and the game's popups. Display only: "
         "nothing in the game or your saves changes. Runs as a companion DLL the game loads at start."
