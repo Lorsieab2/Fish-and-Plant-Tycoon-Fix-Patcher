@@ -111,6 +111,10 @@ The same design as the DS Fish mod:
 9. **Price setup `0x41DBD0`** (new game, Flower of Knowledge) and **new game
    `0x41EF30`**: price and reset the new species.
 10. **Save `0x41D120`, load `0x41EE00`, delete `0x41D1F0`:** the sidecar.
+    With Fix Vanilla Bugs (seen as its call at `0x41EEF9` to `0x464970`), a
+    loaded sidecar whose undiscovered species all ask the Flower of Knowledge
+    price, in a save that has not found it, has those species re-priced as a
+    new game prices them; discovered ones keep their prices.
 11. **Mutation Liquid's flower bounce** `0x42FACE` / `0x42FAD5`: 23 becomes
     37, 22 becomes 36.
 12. **Tier-4 seeds:** built as the Legendary Seeds of the Add new store upgrades and items

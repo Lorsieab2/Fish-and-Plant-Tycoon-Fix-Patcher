@@ -79,7 +79,7 @@ class ManifestTests(unittest.TestCase):
         self.assertFalse(setting.get("separate_output"))
         self.assertNotIn("companion", setting)
         self.assertIn("Flower of Knowledge", setting["summary"])
-        self.assertIn("stay as they are", setting["description"])
+        self.assertIn("Discovered species keep their prices", setting["description"])
 
     def test_its_patches(self) -> None:
         manifest = combined.load_manifest("plant")
@@ -122,7 +122,9 @@ class PatchedBytesTests(unittest.TestCase):
         vanilla, data = PLANT_EXE.read_bytes(), patched_exe({SETTING})
         allowed = (set(range(0x150, 0x154)) | set(range(0x1F8, 0x1FC))
                    | set(range(file_at(PRICE_CALL), file_at(PRICE_CALL) + 5))
-                   | set(range(file_at(CAVE), file_at(CAVE) + 19)))
+                   | set(range(file_at(CAVE), file_at(CAVE) + 19))
+                   # the load's price repair (tests/test_knowledge_price_load_repair.py)
+                   | set(range(0x1EEF9, 0x1EEFE)) | set(range(0x64970, 0x64A4D)))
         changed = [i for i in range(len(vanilla)) if vanilla[i] != data[i]]
         self.assertTrue(set(changed) <= allowed, [hex(i) for i in changed if i not in allowed])
         for at in range(0x1EE00, 0x1EF30):           # the load 0x41EE00..0x41EF2F never calls the new game
