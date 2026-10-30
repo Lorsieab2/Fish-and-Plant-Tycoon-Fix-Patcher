@@ -1,13 +1,12 @@
 /* Optimize Prices -- an "Optimize Prices" button on Fish Tycoon's Species
-   Chart and in its Supplies store.
+   Chart and on its Fish Store screen.
 
    WHAT.  The Species Chart is where the player sets a species' asking price
    (its arrows and keypad).  The button sits on its bottom bar, left of Done.
    The Species Chart opens only with a fish in the isolation tank, so the
-   same button is also on the Supplies store's bottom bar, between the money
-   box and Buy (left of DS Store Items' Upgrades link, 440), on both of the
-   store's views; a click there does exactly what the chart's does.  It
-   asks "Set every discovered species to its best price per day?" (Yes /
+   same button is also on the Fish Store screen (the sale scene, opened with
+   Sell Fish on the tank screen), on its bottom bar between "Your cash" and
+   Done; a click there does exactly what the chart's does.  It asks "Set every discovered species to its best price per day?" (Yes /
    No, the game's own question box).  On Yes, every discovered species' asking
    price becomes the Breeding Guide's "best per day" price for the shop as it
    is now: the species' base price B (entry + 0x24, which already has the
@@ -27,16 +26,14 @@
 
    HOW.  The startup loader loads this DLL after any other companion and
    calls FtfpStartup() before WinMain.  It wraps four vtable slots, command
-   and activate of the Species Chart (0x443C90) and of the Supplies store
-   (0x44C294), after checking all four, or writes none: the chart's must
-   hold the stock functions; the store's the stock ones or, with DS Store
-   Items installed (it is loaded first and wraps the same two slots, calling
-   the stock functions itself), functions inside "DS Store Items.dll", which
-   this DLL then calls in turn.  Activate adds the button once per screen,
-   command runs it for the button's id.  The button is a stock image button
-   (the game draws it and routes its click to command), so it is there and
-   clickable on the store's stock view and on DS Store Items' Upgrades view
-   alike. */
+   and activate of the Species Chart (0x443C90) and of the Fish Store
+   (0x443B08), after checking all four still hold the stock functions, or
+   writes none.  No other companion writes these slots (Extra Tanks changes
+   calls inside the sale scene's code -- its roll, crowd, pictures and "Fish
+   for sale" text -- which the stock functions called here still run).
+   Activate adds the button once per screen, command runs it for the
+   button's id.  The button is a stock image button: the game draws it and
+   routes its click to command. */
 #include <windows.h>
 #include <string.h>
 #include "../common/price_math.h"
@@ -94,18 +91,20 @@ typedef unsigned char *(__stdcall *ds_entry_fn)(char *state, int body, int fin);
 #define SPECIES_VT_ACTIVATE 0x00443CB4u
 #define SPECIES_ACTIVATE_STOCK 0x00401C90u
 
-/* The Supplies store (vtable 0x44C294): its buttons are Buy (1, at 578, 551)
-   and Done (2, at 695, 551), DS Store Items' Upgrades is 3 (at 440, 551);
-   its impl (scene + 8) keeps the game state at +0x10 (0x427155). */
-#define STORE_VT_COMMAND 0x0044C2A0u
-#define STORE_COMMAND_STOCK 0x00428300u
-#define STORE_VT_ACTIVATE 0x0044C2B8u
-#define STORE_ACTIVATE_STOCK 0x00427960u
-#define STORE_IMPL_STATE 0x10
-#define STORE_BUTTON_ID 7
-#define STORE_BUTTON_X 296              /* 296-435 x 551-600: the bar between the money box and 440 */
-#define STORE_BUTTON_Y 551
-#define STORE_BUTTON_IMAGE "OptimizePricesStoreButton.png"
+/* The Fish Store, the sale scene (vtable 0x443B08, built at 0x424500): its
+   one button is Done (1, at 701, 547); its command is the chart's own
+   0x425B00 (Done goes back to the tank), its activate 0x424160 runs the
+   scene's opening 0x423E00 (customers, pictures, the "Fish for sale" count);
+   its impl (scene + 8) keeps the game state at +0x70 (0x4241B1). */
+#define SALE_VT_COMMAND 0x00443B14u
+#define SALE_COMMAND_STOCK 0x00425B00u
+#define SALE_VT_ACTIVATE 0x00443B2Cu
+#define SALE_ACTIVATE_STOCK 0x00424160u
+#define SALE_IMPL_STATE 0x70
+#define SALE_BUTTON_ID 7
+#define SALE_BUTTON_X 544               /* 544-693 x 547-596: the bar between "Your cash" (to 300) and Done */
+#define SALE_BUTTON_Y 547
+#define SALE_BUTTON_IMAGE "OptimizePricesStoreButton.png"
 
 /* The string table (0x426FD0 looks ids up here): { id, English, German }. */
 #define STRINGS 0x00457340u
@@ -115,10 +114,10 @@ typedef unsigned char *(__stdcall *ds_entry_fn)(char *state, int body, int fin);
 
 static command_fn next_command = NULL;
 static activate_fn next_activate = NULL;
-static command_fn next_store_command = NULL;
-static activate_fn next_store_activate = NULL;
+static command_fn next_sale_command = NULL;
+static activate_fn next_sale_activate = NULL;
 static void *button_scene = NULL;
-static void *store_button_scene = NULL;
+static void *sale_button_scene = NULL;
 static int installed = 0;
 
 /* ------------------------------------------------------------ the prices */
@@ -242,9 +241,9 @@ static char *scene_state(void *scene) {
     return impl != NULL ? AT(impl, 4, char *) : NULL;
 }
 
-static char *store_state(void *scene) {
+static char *sale_state(void *scene) {
     char *impl = AT(scene, 8, char *);
-    return impl != NULL ? AT(impl, STORE_IMPL_STATE, char *) : NULL;
+    return impl != NULL ? AT(impl, SALE_IMPL_STATE, char *) : NULL;
 }
 
 /* The button's click, the same on both screens: the question, the prices,
@@ -271,12 +270,12 @@ static int __fastcall scene_command(void *scene, void *edx, int msg, int id) {
     return next_command(scene, edx, msg, id);
 }
 
-static int __fastcall store_command(void *scene, void *edx, int msg, int id) {
-    if (msg == 8 && id == STORE_BUTTON_ID) {
-        click(scene, store_state);
+static int __fastcall sale_command(void *scene, void *edx, int msg, int id) {
+    if (msg == 8 && id == SALE_BUTTON_ID) {
+        click(scene, sale_state);
         return 1;
     }
-    return next_store_command(scene, edx, msg, id);
+    return next_sale_command(scene, edx, msg, id);
 }
 
 static int add_button(void *scene, int id, const char *image, int x, int y) {
@@ -304,9 +303,9 @@ static void __fastcall scene_activate(void *scene, void *edx, int on) {
     add_once(scene, on, &button_scene, BUTTON_ID, BUTTON_IMAGE, BUTTON_X, BUTTON_Y);
 }
 
-static void __fastcall store_activate(void *scene, void *edx, int on) {
-    next_store_activate(scene, edx, on);
-    add_once(scene, on, &store_button_scene, STORE_BUTTON_ID, STORE_BUTTON_IMAGE, STORE_BUTTON_X, STORE_BUTTON_Y);
+static void __fastcall sale_activate(void *scene, void *edx, int on) {
+    next_sale_activate(scene, edx, on);
+    add_once(scene, on, &sale_button_scene, SALE_BUTTON_ID, SALE_BUTTON_IMAGE, SALE_BUTTON_X, SALE_BUTTON_Y);
 }
 
 /* ---------------------------------------------------------------- install */
@@ -316,26 +315,6 @@ static DWORD slot_value(unsigned int va) {
     MEMORY_BASIC_INFORMATION info;
     if (VirtualQuery((const void *)(UINT_PTR)va, &info, sizeof info) != sizeof info || info.State != MEM_COMMIT) return 0;
     return *(const DWORD *)(UINT_PTR)va;
-}
-
-/* "DS Store Items.dll" when it is loaded and installed, else NULL. */
-static HMODULE ds_store(void) {
-    HMODULE dll = GetModuleHandleW(L"DS Store Items.dll");
-    installed_fn ds_installed;
-    if (dll == NULL) return NULL;
-    ds_installed = (installed_fn)GetProcAddress(dll, "FtfpDsStoreInstalled");
-    return ds_installed != NULL && ds_installed() ? dll : NULL;
-}
-
-/* A store slot may hold the stock function or, with DS Store Items
-   installed, one of that DLL's own (its image, by VirtualQuery). */
-static int store_slot_ok(DWORD value, DWORD stock, HMODULE ds) {
-    MEMORY_BASIC_INFORMATION info;
-    if (value == stock) return 1;
-    if (ds == NULL || value == 0) return 0;
-    if (VirtualQuery((const void *)(UINT_PTR)value, &info, sizeof info) != sizeof info || info.State != MEM_COMMIT)
-        return 0;
-    return info.AllocationBase == (void *)ds;
 }
 
 static int write_slot(unsigned int va, const void *to) {
@@ -348,8 +327,8 @@ static int write_slot(unsigned int va, const void *to) {
 
 static void write_install_log(void) {
     wchar_t path[1024];
-    const char *line = installed ? "Optimize Prices: installed (Species Chart and Supplies store)\r\n"
-                                 : "Optimize Prices: NOT installed (the Species Chart or the Supplies store is not "
+    const char *line = installed ? "Optimize Prices: installed (Species Chart and Fish Store)\r\n"
+                                 : "Optimize Prices: NOT installed (the Species Chart or the Fish Store is not "
                                    "the stock one)\r\n";
     DWORD n = GetModuleFileNameW(NULL, path, 1024), written;
     wchar_t *slash;
@@ -369,23 +348,22 @@ static void write_install_log(void) {
 /* Checks all four slots, then writes them in order; a refused write puts
    the ones already written back, so it is all of them or none. */
 static int install(void) {
-    static const unsigned int va[SLOTS] = { SPECIES_VT_COMMAND, SPECIES_VT_ACTIVATE, STORE_VT_COMMAND, STORE_VT_ACTIVATE };
+    static const unsigned int va[SLOTS] = { SPECIES_VT_COMMAND, SPECIES_VT_ACTIVATE, SALE_VT_COMMAND, SALE_VT_ACTIVATE };
     const void *to[SLOTS];
     DWORD was[SLOTS];
-    HMODULE ds = ds_store();
     int k;
     to[0] = (const void *)(UINT_PTR)scene_command;
     to[1] = (const void *)(UINT_PTR)scene_activate;
-    to[2] = (const void *)(UINT_PTR)store_command;
-    to[3] = (const void *)(UINT_PTR)store_activate;
+    to[2] = (const void *)(UINT_PTR)sale_command;
+    to[3] = (const void *)(UINT_PTR)sale_activate;
     for (k = 0; k < SLOTS; ++k) was[k] = slot_value(va[k]);
     if (was[0] != SPECIES_COMMAND_STOCK || was[1] != SPECIES_ACTIVATE_STOCK
-        || !store_slot_ok(was[2], STORE_COMMAND_STOCK, ds) || !store_slot_ok(was[3], STORE_ACTIVATE_STOCK, ds))
+        || was[2] != SALE_COMMAND_STOCK || was[3] != SALE_ACTIVATE_STOCK)
         return 0;
     next_command = (command_fn)(UINT_PTR)was[0];
     next_activate = (activate_fn)(UINT_PTR)was[1];
-    next_store_command = (command_fn)(UINT_PTR)was[2];
-    next_store_activate = (activate_fn)(UINT_PTR)was[3];
+    next_sale_command = (command_fn)(UINT_PTR)was[2];
+    next_sale_activate = (activate_fn)(UINT_PTR)was[3];
     for (k = 0; k < SLOTS; ++k) {
         if (!write_slot(va[k], to[k])) {
             while (k-- > 0) write_slot(va[k], (const void *)(UINT_PTR)was[k]);

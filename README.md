@@ -100,9 +100,9 @@ never needs the internet.
   through SDL2, a different renderer, so this setting is Fish Tycoon's only.
 - Optimize Prices button (on by default). An "Optimize Prices" button on the
   Species Chart's bottom bar, left of Done (where you set prices), and the
-  same button on the Supplies store's bottom bar, left of Buy (and of the
-  Upgrades link with DS Store Items), so it can be used any time: the Species
-  Chart only opens with a fish in the isolation tank. Both do the same. It asks
+  same button on the Fish Store screen (opened with Sell Fish), on its bottom
+  bar left of Done, so it can be used any time: the Species Chart only opens
+  with a fish in the isolation tank. Both do the same. It asks
   "Set every discovered species to its best price per day?"; on Yes, every
   species you have discovered gets the Breeding Guide's "best per day"
   asking price (the price that earns the most money over time), worked out

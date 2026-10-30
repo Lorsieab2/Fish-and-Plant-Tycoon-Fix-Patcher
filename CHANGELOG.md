@@ -4,18 +4,17 @@
 
 ### Fish Tycoon
 
-- **Optimize Prices in the Supplies store.** The Species Chart opens only with
-  a fish in the isolation tank, so the Optimize Prices button is now also on
-  the Supplies store's bottom bar, between the money box and Buy (left of DS
-  Store Items' Upgrades link), on the store's stock view and its Upgrades view.
-  It is the Species Chart's button, lettered in the game's own font on the
-  store's bar, and a click does exactly what the chart's does: the same
-  question, the same prices for every discovered species
-  (native/common/price_math.h) and the same "N prices set." The chart keeps
-  its button. "Optimize Prices.dll" now wraps four slots, the chart's command
-  and opening and the store's, all four or none; the store's may already be
-  DS Store Items' (loaded first), which it then calls. Picture:
-  docs/images/optimize-prices-fish-store.png.
+- **Optimize Prices on the Fish Store screen.** The Species Chart opens only
+  with a fish in the isolation tank, so the Optimize Prices button is now also
+  on the Fish Store screen, opened with Sell Fish, on its bottom bar between
+  "Your cash" and Done. It is the Species Chart's button, lettered in the
+  game's own font on that screen's bar, and a click does exactly what the
+  chart's does: the same question, the same prices for every discovered
+  species (native/common/price_math.h) and the same "N prices set." The chart
+  keeps its button. "Optimize Prices.dll" now wraps four slots, the chart's
+  command and opening and the Fish Store's, all four or none; the sale
+  scene's customers and sales (and Extra Tanks' changes to them) are
+  untouched. Picture: docs/images/optimize-prices-fish-store.png.
 - The Optimize Prices pin script keeps the setting where it is in the
   manifest when it re-pins (it used to move it after the Maximizable window).
 

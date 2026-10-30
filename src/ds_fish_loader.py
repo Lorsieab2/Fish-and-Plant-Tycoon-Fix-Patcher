@@ -97,10 +97,9 @@ OPTIMIZE_PRICES_INSTALLS = ("That wraps two slots of the {screen}'s table (its c
                             "checking they hold the stock functions, or writes nothing; {source} describes them.")
 FISH_OPTIMIZE = replace(
     FISH, dll_name=OPTIMIZE_PRICES_DLL,
-    what_it_installs="That wraps four slots, two of the Species Chart's table and two of the Supplies store's "
-                     "(their commands and their opening), after checking the chart's hold the stock functions and "
-                     "the store's the stock ones or DS Store Items' (loaded before it), or writes nothing; "
-                     "native/ftfp_fish_prices/ftfp_fish_prices.c describes them.",
+    what_it_installs="That wraps four slots, two of the Species Chart's table and two of the Fish Store "
+                     "screen's (their commands and their opening), after checking all four hold the stock "
+                     "functions, or writes nothing; native/ftfp_fish_prices/ftfp_fish_prices.c describes them.",
 )
 
 

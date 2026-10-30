@@ -51,13 +51,13 @@ GAMES = {
         "rerecord": ("ds_fish", "DS Exclusive Fish.dll"),
         "patcher": fish_patcher,
         "profile": ds_fish_loader.fish_profile,
-        "summary": "Adds an Optimize Prices button to the Species Chart and the Supplies store: it sets every "
+        "summary": "Adds an Optimize Prices button to the Species Chart and the Fish Store screen: it sets every "
                    "discovered species to its best price per day for your shop as it is now.",
         "first": "Adds an \"Optimize Prices\" button on the Species Chart's bottom bar, left of Done, where you set "
-                 "prices, and the same button on the Supplies store's bottom bar, left of Buy (and of the "
-                 "Upgrades link with DS Store Items on), so you can use it any time: the Species Chart only "
-                 "opens with a fish in the isolation tank. Both buttons do the same thing. It asks \"Set every "
-                 "discovered species to its best price per day?\". ",
+                 "prices, and the same button on the Fish Store screen (opened with Sell Fish), on its bottom "
+                 "bar left of Done, so you can use it any time: the Species Chart only opens with a fish in the "
+                 "isolation tank. Both buttons do the same thing. It asks \"Set every discovered species to its "
+                 "best price per day?\". ",
         "shop": "your shop as it is now: each species' base price (with the Advertising price rises), the "
                 "ornaments you own, the Golden Seahorse and your Advertising level, with a full selling tank",
         "extras": "With DS Exclusive Fish on, the DS species are included.",

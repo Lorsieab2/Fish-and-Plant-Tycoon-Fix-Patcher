@@ -695,7 +695,7 @@ HELP = (
         "its length is shown and the list scrolls. Each species' details list the exact "
         "assumptions.",
         "In the game: with the patcher's Optimize Prices button setting (on by default), an \"Optimize "
-        "Prices\" button (Fish Tycoon: on the Species Chart and in the Supplies store; Plant Tycoon: in the "
+        "Prices\" button (Fish Tycoon: on the Species Chart and the Fish Store screen; Plant Tycoon: in the "
         "Nursery) sets every "
         "discovered species to its best price per day, worked out with this guide's own maths for your shop "
         "as it is at that moment (Fish: your ornaments, Golden Seahorse and Advertising level, a full selling "
