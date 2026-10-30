@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Plant Tycoon, 5 extra greenhouses: the gold arrows now stand right beside
+  "Greenhouse n of 6" on the top wall (x 367-416 and 583-632), where they can
+  be seen and clicked; they were under the stock left panel and the camera
+  button. Dragging a plant onto them uses the new places.
+
 ## v1.0.17
 
 New content for both games (DS fish, fins and store animals; the 14 unused
