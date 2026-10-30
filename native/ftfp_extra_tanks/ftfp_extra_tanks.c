@@ -6,7 +6,9 @@
    store animals work there; fish are dragged to and from them.  They are
    reached from the tank screen's top bar: a small arrow left of the Tank One
    button pages from the stock buttons (Tank One, Tank Two, Sale Tank) to
-   Tank Three, Tank Four and Tank Five and back.  Selling is untouched: only
+   Tank Three, Tank Four and Tank Five and back; carrying a fish, creature
+   or ornament over an arrow turns the page too, so it can be dropped on any
+   tank's button.  Selling is untouched: only
    the Sale Tank sells, with the stock game's limits.
 
    HOW.  The game keeps its four tanks (Tank One, Tank Two, the Sale Tank and
@@ -111,7 +113,7 @@ typedef int (__fastcall *this1_fn)(void *self, void *edx, int a);
 typedef int (__fastcall *this2_fn)(void *self, void *edx, int a, int b);
 typedef int (__fastcall *this3_fn)(void *self, void *edx, int a, int b, int c);
 typedef int (__fastcall *this4_fn)(void *self, void *edx, int a, int b, int c, int d);
-typedef int (__fastcall *this5_fn)(void *self, void *edx, int a, int b, int c, int d, int e);
+typedef int (__fastcall *this6_fn)(void *self, void *edx, int a, int b, int c, int d, int e, int f);
 
 #define GAME(T, VA) ((T)(UINT_PTR)(VA))
 #define FISH_UPDATE GAME(this0_fn, 0x0041FE70u)        /* the fish update, all four tanks */
@@ -137,7 +139,9 @@ typedef int (__fastcall *this5_fn)(void *self, void *edx, int a, int b, int c, i
 #define SPRITE_GET GAME(this1_fn, 0x0041BE70u)         /* stock sprite id -> image */
 #define RANDOM GAME(random_fn, 0x00403240u)            /* the game's Random(n) */
 #define CLOCK_SECONDS GAME(pressed_fn, 0x004020D0u)    /* the hints' clock (0x417FAF: shown until now + 2) */
-#define DRAW_TEXT GAME(this5_fn, 0x00408B80u)          /* (text, x, y, font, attr) */
+#define CENTRE_TEXT GAME(this6_fn, 0x00408C30u)        /* (text, left, right, y, font, attr): centred, as the hints */
+#define REFUSAL_RIGHT 800                              /* the refusal: centred across the 800 px screen */
+#define REFUSAL_Y 70                                   /* just under the top bar (57 px) */
 #define HINT_FONT (*(void **)(UINT_PTR)0x0045B26Cu)    /* the hints' font (0x417EB3) */
 #define LANGUAGE_PTR (*(int **)(UINT_PTR)0x0045B314u)  /* 1 = German */
 #define PLACE_ORNAMENT GAME(this2_fn, 0x00419C00u)     /* (tank, record) -> ornament slot or -1 */
@@ -508,10 +512,31 @@ static int toggle_at(char *state, int x, int y) {
 
 static unsigned char arrow_down = 0, extra_down[EXTRA];
 
+/* Carrying a fish, creature or ornament over an arrow turns the page, once
+   each time it comes onto an arrow, so it can be dropped on the button of
+   the tank wanted (Tank One/Two/Sale Tank or Tank Four/Five/Six). */
+static unsigned char over_arrow = 0;
+
+static void carry_over_arrow(char *impl, int x, int y) {
+    if (arrow_at(x, y) < 0) {
+        over_arrow = 0;
+        return;
+    }
+    if (over_arrow) return;
+    over_arrow = 1;
+    page ^= 1;
+    play_sound(impl, 1);
+}
+
 /* -1 = the stock handler takes it; else handled (the stock return value). */
 static int extra_mouse(char *impl, char *state, int type, int x, int y) {
     int b;
-    if (*(unsigned char *)impl != 0) return -1;                 /* dragging: the stock drop */
+    if (*(unsigned char *)impl != 0) {                          /* dragging: the stock move and drop */
+        if (type == 1) carry_over_arrow(impl, x, y);
+        else over_arrow = 0;
+        return -1;
+    }
+    over_arrow = 0;
     if (type == 2) {
         if (toggle_at(state, x, y)) {
             toggle_down = 1;
@@ -614,17 +639,14 @@ static unsigned char *where(char *state, int tank, int *place) {
     return store[tank - 3];
 }
 
-/* The tank a drop at (x, y) goes to, or -1 for the stock drop: the arrows
-   move to the previous or next tank in page order (round), the buttons on
-   page 1 to the extra tanks, Tank One's button to Tank One while an extra
-   tank is in its place. */
+/* The tank a drop at (x, y) goes to, or -1 for the stock drop: the buttons
+   on page 1 to the extra tanks, Tank One's button to Tank One while an extra
+   tank is in its place.  The arrows are no target: carrying something over
+   one turns the page (carry_over_arrow), and a drop on one is the stock drop
+   on the bar, which keeps what was held. */
 static int drop_target(char *impl, char *state, int x, int y) {
-    int a = arrow_at(x, y), b, t;
-    if (a >= 0) {                                                /* round the tanks, past any not bought yet */
-        t = on_screen(state);
-        do t = (t + (a ? 1 : LOGICAL - 1)) % LOGICAL; while (t >= 3 + owned);
-        return t;
-    }
+    int b;
+    (void)state;
     b = button_at(impl, x, y);
     if (b < 0) return -1;
     if (page == 1) return b < owned ? 3 + b : LOCKED;
@@ -752,18 +774,19 @@ static int move_ornament(char *impl, char *state, int target, int x, int y) {
     return 1;
 }
 
-/* An extra tank not bought yet: "You don't own this tank yet!" near the mouse
-   for 2 seconds, as the game's own hints are shown (0x417FA0 / 0x417E90: the
-   hint font at the mouse, x + 0x16), and whatever was dropped goes back as
-   from a full tank. */
+/* An extra tank not bought yet: "You don't own this tank yet!" for 2 seconds,
+   drawn as the game's own hints are (0x417FA0 / 0x417E90: the hint font,
+   centred by 0x408C30), but always in one place whatever was clicked or
+   dropped on -- across the screen's middle just under the top bar, clear of
+   the tank's name and For sale button (left) and the counts' button (right)
+   -- and whatever was dropped goes back as from a full tank. */
 static unsigned int locked_until = 0;
-static int locked_x, locked_y;
 
 static void refuse_locked(char *impl, int x, int y) {
     (void)impl;
+    (void)x;
+    (void)y;
     locked_until = (unsigned int)CLOCK_SECONDS() + 2u;
-    locked_x = x;
-    locked_y = y;
 }
 
 static char refuse_locked_drop(char *impl, char *state, int x, int y) {
@@ -786,7 +809,7 @@ static char refuse_locked_drop(char *impl, char *state, int x, int y) {
 
 /* Multiple Ornaments' decorative copies (PR #60) move by that DLL's own drop,
    which knows the three stock buttons and asks the tank map which tank each
-   shows.  A drop on an arrow, on an extra tank's button, or on Tank One's
+   shows.  A drop on an extra tank's button, or on Tank One's
    while an extra is on screen is handed to it as a drop on the middle of a
    stock button whose tank the map names as the target, for that call only.
    With no copy held, the stock release with nothing held does nothing. */
@@ -927,8 +950,8 @@ static void draw_refusal(char *impl) {
         locked_until = 0;
         return;
     }
-    DRAW_TEXT(P(impl, I_GFX), NULL, (int)(UINT_PTR)TEXT[lang != NULL && *lang == 1], locked_x + 0x16, locked_y,
-              (int)(UINT_PTR)HINT_FONT, 0);
+    CENTRE_TEXT(P(impl, I_GFX), NULL, (int)(UINT_PTR)TEXT[lang != NULL && *lang == 1], 0, REFUSAL_RIGHT, REFUSAL_Y,
+                (int)(UINT_PTR)HINT_FONT, 0);
 }
 
 static void __fastcall draw_hook(char *impl, void *edx) {

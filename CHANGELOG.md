@@ -25,6 +25,27 @@
   tank's background call (0x422013) or the greenhouse's background slot
   (0x469238) any more.
 
+### Fish Tycoon
+
+- **Maximizable window: clicks land under the cursor.** In a maximized or
+  resized window the game's own cursor was drawn at the unscaled pointer
+  position (SDL reads the pointer itself with GetCursorPos + ScreenToClient
+  after every batch of messages), while clicks were scaled, so a click landed
+  up and to the left of the cursor: Tank Five or Six opened the Trophy Case
+  (the magic fish shelf) and its Done button could not be hit. The DLL now
+  also scales SDL's own ScreenToClient, so the cursor, hovers, clicks and drags
+  all agree. At the window's own size nothing changes.
+- **3 extra tanks: one place for "You don't own this tank yet!".** It was
+  drawn beside the mouse, so a click on Tank Six put it off screen. It is now
+  centred across the screen just under the top bar, for every button, arrow
+  and drop.
+- **3 extra tanks: carry over an arrow to reach Tanks 4-6.** Carrying a fish,
+  DS store animal or ornament over either small arrow turns the tank buttons
+  to the other page (once each time it comes onto an arrow), so it can be
+  dropped on any of the six tanks' buttons. Letting go on an arrow itself
+  keeps it where it was (before, an arrow moved it to the previous or next
+  tank).
+
 ## v1.0.17
 
 New content for both games (DS fish, fins and store animals; the 14 unused

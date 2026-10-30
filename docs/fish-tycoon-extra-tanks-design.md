@@ -21,9 +21,11 @@ shows "This is in your inventory." and "You already own this!". DS Store
 Items asks `Extra Tanks.dll` through two exports, `FtfpExtraTanksOwned` and
 `FtfpExtraTanksBuy`; without that DLL the item is hidden. Until a tank is
 bought its button is greyed (a fourth frame of its button art), a click or a
-drop on it shows "You don't own this tank yet!" for 2 seconds in the hint
-font at the mouse, as the game's hints are drawn (0x417E90), the fish swims
-back, and the arrows skip it. The number bought is in the sidecar; a new game
+drop on it shows "You don't own this tank yet!" for 2 seconds, drawn as the
+game's hints are (0x417E90's centred draw, 0x408C30) but always in one place:
+centred across the screen at y 70, just under the top bar and clear of the
+tank's name, the For sale button and the counts' button. The fish swims
+back. The number bought is in the sidecar; a new game
 resets it to none.
 
 **Art.** Tank 4 looks like Tank 1, Tank 5 like Tank 2 and Tank 6
@@ -59,9 +61,10 @@ fish too (the game's own AddFish limit). They are reached from the tank screen's
 the Tank 1 button page the three tank buttons from Tank 1 / Tank 2 /
 Sale Tank to Tank 4 / Tank 5 / Tank 6 and back. Click a button to
 look at that tank. Drag a fish, a DS store animal or an ornament onto a
-button to move it to that tank, or onto an arrow to move it to the previous
-(left) or next (right) tank in page order: Tank 1, Tank 2, the Sale
-Tank, Tank 4, Tank 5, Tank 6, and round again. As on the stock
+button to move it to that tank; carried over either arrow (once each time
+it comes onto one, so resting there does not flicker), the buttons turn to
+the other page, so it can be dropped on any of the six tanks. Let go on an
+arrow itself, it is the stock drop on the bar: it stays where it was. As on the stock
 buttons, a full tank refuses it ("The tank is full!") and an unbought Tank
 Two too ("You don't own a second tank yet!"); a young fish dropped into the
 Sale Tank gets the stock tutorial tip. The stock buttons work as stock. The buttons are the stock button art with
@@ -161,7 +164,7 @@ routine is rewritten:
   upgrades are the same flags. The update's research part is driven by its
   own banked time, so the second run adds no research. An empty block rolls
   no dice. The isolation fish is updated once.
-* **Moving fish.** A drop on an extra tank's button or an arrow: the game's
+* **Moving fish.** A drop on an extra tank's button: the game's
   own AddFish into that block (a held block is swapped into Tank 1's place
   for the call, the record copied first), REMOVE_FISH from the held fish's
   tank, as the stock drop (`0x41EFF0`), with "The tank is full!" at the
@@ -176,7 +179,7 @@ routine is rewritten:
   0-7 and asks which tank a stock place shows; this DLL tells it
   (`FtfpOrnamentsSetTankMap`: Tank 1's place shows 3-5 while an extra tank
   is on screen), and loads "Multiple Ornaments.dll" first when it is there.
-  A copy dropped on an arrow, an extra tank's button, or Tank 1's while an
+  A copy dropped on an extra tank's button, or on Tank 1's while an
   extra is on screen is handed to that DLL's own drop as a drop on the middle
   of a stock button whose tank the map names as the target for that one call
   (with no copy held, the stock release with nothing held does nothing).
@@ -210,8 +213,8 @@ checked first and all are written or none (`install_sites.h`).
 |---|---|---|
 | `0x4218FF` | `call 0x41FE70` | the update, then the held blocks' update |
 | `0x421AAA` | `call 0x41FE70` (DS Store Items chains it first) | the same |
-| `0x421FFB` | `call 0x421B80` (the tank screen's mouse) | the arrows (either turns the page); the extra buttons on their page; Tank 1 back before a stock button |
-| `0x421D43` | `call 0x421B20` (a held fish let go) | a fish, animal or ornament dropped on an arrow, on an extra tank's button, or on Tank 1's while an extra is on screen |
+| `0x421FFB` | `call 0x421B80` (the tank screen's mouse) | the arrows (either turns the page, clicked or with something carried over it); the extra buttons on their page; Tank 1 back before a stock button |
+| `0x421D43` | `call 0x421B20` (a held fish let go) | a fish, animal or ornament dropped on an extra tank's button, or on Tank 1's while an extra is on screen |
 | `0x42208E` | `jmp 0x4216E0` (the button overlay) | the arrows and the extra buttons, after the stock ones |
 | `0x41A663` | `call 0x419100` (the save on quitting) | Tank 1 back, the save, the sidecar |
 | `0x4424D4` | Save `0x419100` | the same, for every virtual save |
@@ -246,9 +249,9 @@ the DLL rebuilt from source:
 * the Sale Tank never changes with full extra tanks;
 * moving fish to an extra tank, from an extra on screen to Tank 1, from the
   isolation tank, a full extra tank refusing as stock, stock drops left
-  stock; dragging onto the right arrow (the next tank), round the six tanks
-  both ways, onto a full tank and onto an unbought Tank 2 (refused as
-  stock); an ornament moved to an extra tank by the game's own ornament code;
+  stock; carrying over an arrow turning the page once per visit and back,
+  nothing held turning nothing, then a drop on Tank 5 and on an unbought
+  tank (refused), a drop on an arrow keeping the fish; an ornament moved to an extra tank by the game's own ornament code;
   the page-0 buttons passed to the stock handler; either arrow turning the
   page; the tank map given to Multiple Ornaments;
 * the starter eggs counting a fish in an extra tank; the stock Golden
@@ -257,8 +260,8 @@ the DLL rebuilt from source:
 * the sidecar round trip (the save sees Tank 1 in its place), the settings
   slot untouched, a damaged file set aside, a missing file, a new game, a
   failed save writing nothing;
-* every kind of thing between every two of the six tanks, by arrow or
-  button (fish of every age, sick, pregnant, the Golden Seahorse, the DS
+* every kind of thing between every two of the six tanks, on its button
+  (its page reached by carrying it over an arrow) (fish of every age, sick, pregnant, the Golden Seahorse, the DS
   animals, ornaments, the eel's rock with the eel at home), full targets,
   decorative copies handed on, held items left to the stock code, the
   stock switch, eggs hatching in an extra tank on screen;

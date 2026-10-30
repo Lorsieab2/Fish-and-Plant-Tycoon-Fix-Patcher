@@ -37,6 +37,9 @@ SETTING = "maximizable_window"
 WINDOW_DLL = ROOT / "assets" / "fish_tycoon_window" / "Maximizable Window.dll"
 DS_FISH_DLL = ROOT / "assets" / "fish_tycoon_ds" / "DS Exclusive Fish.dll"
 FISH_EXE = (E.VANILLA / "Fish Tycoon" / "Fish Tycoon.exe") if E else None
+SDL_DLL = (E.VANILLA / "Fish Tycoon" / "SDL.dll") if E else None
+SDL_BASE, USER32 = 0x68100000, 0x77000000
+SDL_SCREEN_TO_CLIENT_SLOT = 0x68151698     # SDL.dll's import slot for USER32!ScreenToClient
 
 SET_VIDEO_MODE_SLOT, FLIP_SLOT = 0x440190, 0x4401C8
 SDL_FULLSCREEN = 0x80000000
@@ -164,8 +167,9 @@ class ManifestTests(unittest.TestCase):
 
 
 def _needs():
-    ready = E is not None and E.toolchain_ready() and FISH_EXE is not None and FISH_EXE.is_file()
-    return unittest.skipUnless(ready, "needs Unicorn, the pinned MSVC toolset and the vanilla executable")
+    ready = (E is not None and E.toolchain_ready() and FISH_EXE is not None and FISH_EXE.is_file()
+             and SDL_DLL.is_file())
+    return unittest.skipUnless(ready, "needs Unicorn, the pinned MSVC toolset and the vanilla executable and SDL.dll")
 
 
 @_needs()
@@ -197,8 +201,13 @@ class EmulatedDllTests(unittest.TestCase):
         self.surface = self._surface()
         emu.write32(SET_VIDEO_MODE_SLOT, self.sdl["SDL_SetVideoMode"])
         emu.write32(FLIP_SLOT, self.sdl["SDL_Flip"])
+        # The real SDL.dll, mapped at its own base: the DLL finds its ScreenToClient import slot there.
+        self.sdl_imports = emu._map(SDL_DLL.read_bytes(), resolve=True)
+        self.user32_screen_to_client = self.sdl_imports["ScreenToClient"]
 
-        emu.hook_import("GetModuleHandleA", lambda e: 0x66000000 if e.cstring(e.arg(0)) == b"SDL.dll" else 0, 4)
+        emu.hook_import("GetModuleHandleA", self._module, 4)
+        emu.hook_import("lstrcmpA", lambda e: self._compare(e, False), 8)
+        emu.hook_import("lstrcmpiA", lambda e: self._compare(e, True), 8)
         emu.hook_import("GetProcAddress", self._get_proc, 8)
         emu.hook_import("VirtualProtect", self._virtual_protect, 16)
         emu.hook_import("GetWindowLongA", lambda e: self.style if e.arg(1) == GWL_STYLE else 0, 8)
@@ -243,9 +252,23 @@ class EmulatedDllTests(unittest.TestCase):
             return result
         return handler
 
+    def _module(self, e) -> int:
+        return {b"sdl.dll": SDL_BASE, b"user32.dll": USER32}.get(e.cstring(e.arg(0)).lower(), 0)
+
+    @staticmethod
+    def _compare(e, fold: bool) -> int:
+        a, b = e.cstring(e.arg(0)), e.cstring(e.arg(1))
+        if fold:
+            a, b = a.lower(), b.lower()
+        return (a > b) - (a < b)
+
     def _get_proc(self, e) -> int:
         name = e.cstring(e.arg(1)).decode()
-        return 0 if name in self.missing else self.sdl.get(name, 0)
+        if name in self.missing:
+            return 0
+        if e.arg(0) == USER32:
+            return self.user32_screen_to_client if name == "ScreenToClient" else 0
+        return self.sdl.get(name, 0) if e.arg(0) == SDL_BASE else 0
 
     def _virtual_protect(self, e) -> int:
         self.calls.append(("VirtualProtect", e.arg(0), e.arg(1), e.arg(2)))
@@ -336,15 +359,34 @@ class EmulatedDllTests(unittest.TestCase):
         self.assertEqual(self.startup(), 1)
         video_mode, flip = self.emu.read32(SET_VIDEO_MODE_SLOT), self.emu.read32(FLIP_SLOT)
         base = E.pe_image(self.dll.read_bytes())[0]
-        for slot in (video_mode, flip):
+        cursor = self.emu.read32(SDL_SCREEN_TO_CLIENT_SLOT)
+        for slot in (video_mode, flip, cursor):
             self.assertTrue(base <= slot < base + 0x100000, hex(slot))
-        self.assertEqual(self.named("VirtualProtect")[0][1:3], (SET_VIDEO_MODE_SLOT, FLIP_SLOT + 4 - SET_VIDEO_MODE_SLOT))
+        protected = [call[1:3] for call in self.named("VirtualProtect")]
+        self.assertIn((SET_VIDEO_MODE_SLOT, FLIP_SLOT + 4 - SET_VIDEO_MODE_SLOT), protected)
+        self.assertIn((SDL_SCREEN_TO_CLIENT_SLOT, 4), protected)
+
+    def test_the_slot_found_is_sdls_own_screen_to_client(self) -> None:
+        # SDL.dll's pointer reads all go through this one slot (DIB_PumpEvents, focus, DirectX).
+        for site in (0x6812F820, 0x6812D9D6, 0x68132400):
+            self.assertEqual(bytes(self.emu.uc.mem_read(site, 6)), b"\xFF\x15" + struct.pack("<I", SDL_SCREEN_TO_CLIENT_SLOT))
+        self.assertEqual(self.emu.read32(SDL_SCREEN_TO_CLIENT_SLOT), self.user32_screen_to_client)
 
     def _refused(self) -> None:
-        before = (self.emu.read32(SET_VIDEO_MODE_SLOT), self.emu.read32(FLIP_SLOT))
+        before = (self.emu.read32(SET_VIDEO_MODE_SLOT), self.emu.read32(FLIP_SLOT),
+                  self.emu.read32(SDL_SCREEN_TO_CLIENT_SLOT))
         self.assertEqual(self.startup(), 0)
-        self.assertEqual((self.emu.read32(SET_VIDEO_MODE_SLOT), self.emu.read32(FLIP_SLOT)), before)
+        self.assertEqual((self.emu.read32(SET_VIDEO_MODE_SLOT), self.emu.read32(FLIP_SLOT),
+                          self.emu.read32(SDL_SCREEN_TO_CLIENT_SLOT)), before)
         self.assertEqual(self.named("VirtualProtect"), [])
+
+    def test_sdls_screen_to_client_already_changed_installs_nothing(self) -> None:
+        self.emu.write32(SDL_SCREEN_TO_CLIENT_SLOT, 0x12345678)
+        self._refused()
+
+    def test_no_user32_screen_to_client_installs_nothing(self) -> None:
+        self.missing.add("ScreenToClient")
+        self._refused()
 
     def test_a_slot_already_changed_installs_nothing(self) -> None:
         self.emu.write32(FLIP_SLOT, 0x12345678)
@@ -484,6 +526,94 @@ class EmulatedDllTests(unittest.TestCase):
         self.client = [1920, 1017]
         lparam = ((-20 & 0xFFFF) << 16) | (5000 & 0xFFFF)       # left of / above the window, signed
         self.assertEqual(self.message(WM_LBUTTONDOWN, lparam)[5], (0 << 16) | 799)
+
+    # ------------------------------------------------------------ SDL's own mouse code
+    # The real SDL.dll's windib code runs from here on: its window procedure (WinMessage,
+    # 0x6812C6A0) for the messages, its event pump (DIB_PumpEvents, 0x6812F6C0), which reads
+    # the pointer itself with GetCursorPos + ScreenToClient after every batch of messages,
+    # SDL_PrivateMouseMotion / SDL_PrivateMouseButton, and SDL_GetMouseState (0x68107EA0),
+    # where the game draws its own cursor (0x408650) and what its hovers read. Only Windows
+    # and SDL's event queue (0x68106C10, SDL_PushEvent) are Python.
+    ORIGIN = (300, 200)                        # the client area's top-left on the screen
+
+    def sdl_ready(self) -> None:
+        emu = self.emu
+        self.events: list[tuple[int, int, int]] = []
+        self.pointer = self.ORIGIN
+        video = emu.alloc(0x200)
+        emu.uc.mem_write(video, bytes(0x200))
+        emu.write32(video, 0x68144588)         # current_video->name: "windib" (bootstrap[0], 0x68144228)
+        emu.write32(video + 0x134, self.surface)
+        emu.write32(0x68149390, video)         # current_video
+        emu.write32(0x681493B0, HWND)          # SDL_Window
+        emu.write32(0x681493D0, 0)             # mouse_relative: no grab
+        emu.write8(0x68147500, 7)              # SDL_GetAppState: mouse and input focus, active
+        emu.uc.mem_write(0x68149000, struct.pack("<HH", 800, 600))   # SDL_MouseMaxX / Y
+        for kind in (4, 5, 6):                 # SDL_ProcessEvents[MOUSEMOTION / BUTTONDOWN / BUTTONUP]
+            emu.write8(0x6814ED60 + kind, 1)
+        emu.write32(0x68147520, 0)             # no event filter
+        emu.hook(0x68121DF0, lambda e: 0)      # SDL_MoveCursor: the game draws its own
+        emu.hook(0x68106C10, self._push_event)
+        user = self.sdl_imports
+
+        def screen_to_client(e) -> int:
+            x, y = struct.unpack("<2i", e.uc.mem_read(e.arg(1), 8))
+            e.uc.mem_write(e.arg(1), struct.pack("<2i", x - self.ORIGIN[0], y - self.ORIGIN[1]))
+            return 1
+
+        def cursor(e) -> int:
+            e.uc.mem_write(e.arg(0), struct.pack("<2i", *self.pointer))
+            return 1
+        emu.hook(user["PeekMessageA"], lambda e: 0, 20)
+        emu.hook(user["GetCursorPos"], cursor, 4)
+        emu.hook(user["ScreenToClient"], screen_to_client, 8)
+        emu.hook(user["SetCapture"], lambda e: 0, 4)
+        emu.hook(user["ReleaseCapture"], lambda e: 1, 0)
+        emu.hook(user["SetFocus"], lambda e: HWND, 4)
+
+    def _push_event(self, e) -> int:
+        kind, _which, _state, _pad, x, y = struct.unpack("<4BHH", e.uc.mem_read(e.arg(0), 8))
+        self.events.append((kind, x, y))
+        return 1
+
+    def mouse_state(self) -> tuple[int, int]:
+        out = self.emu.alloc(8)
+        self.emu.call(0x68107EA0, out, out + 4)
+        return struct.unpack("<2i", self.emu.uc.mem_read(out, 8))
+
+    def sdl_message(self, msg: int, cx: int, cy: int) -> None:
+        """The message through this DLL's window procedure, then SDL's own WinMessage as it was
+        handed on (CallWindowProcA), then SDL's pump, which reads the pointer itself."""
+        self.pointer = (self.ORIGIN[0] + cx, self.ORIGIN[1] + cy)
+        handed = self.message(msg, ((cy & 0xFFFF) << 16) | (cx & 0xFFFF))
+        self.emu.call(0x6812C6A0, HWND, msg, handed[4], handed[5])
+        self.emu.call(0x6812F6C0)
+
+    def test_sdls_pointer_and_clicks_agree_at_every_size(self) -> None:
+        """Where the game draws its cursor (SDL_GetMouseState) is where the click lands
+        (the button events), maximized or not: the picture point under the real pointer."""
+        self.windowed()
+        self.sdl_ready()
+        for cw, ch in FitMathsTests.SIZES:
+            self.client = [cw, ch]
+            x, y, w, h = fit(cw, ch)
+            for cx, cy in ((x + w // 2, y + 10), (x + w - 3, y + h // 2), (x + w // 3, y + h // 5), (0, 0),
+                           (cw - 1, ch - 1)):
+                expected = (to_picture(cx, x, w, 800), to_picture(cy, y, h, 600))
+                self.events.clear()
+                for msg in (WM_MOUSEMOVE, WM_LBUTTONDOWN, 0x202):
+                    self.sdl_message(msg, cx, cy)
+                    self.assertEqual(self.mouse_state(), expected, (cw, ch, cx, cy, hex(msg)))
+                self.assertIn((5, *expected), self.events)       # SDL_MOUSEBUTTONDOWN
+                self.assertIn((6, *expected), self.events)       # SDL_MOUSEBUTTONUP
+                self.assertEqual({(px, py) for _k, px, py in self.events}, {expected}, (cw, ch, cx, cy))
+
+    def test_own_size_pointer_is_stock(self) -> None:
+        self.windowed()
+        self.sdl_ready()
+        for cx, cy in ((0, 0), (513, 20), (799, 599)):
+            self.sdl_message(WM_LBUTTONDOWN, cx, cy)
+            self.assertEqual(self.mouse_state(), (cx, cy))
 
 
 if __name__ == "__main__":
