@@ -105,7 +105,7 @@ PLANT_SORT = replace(
 # installed.
 PLANT_GREENHOUSES = replace(
     PLANT, dll_name="Extra Greenhouses.dll",
-    what_it_installs="That starts the other companion DLLs beside it, then checks the six places in the game's "
+    what_it_installs="That starts the other companion DLLs beside it, then checks the ten places in the game's "
                      "code and the 19 screen-table slots it changes and writes all of them or none; "
                      "docs/plant-tycoon-extra-greenhouses-design.md lists them.",
 )

@@ -26,6 +26,22 @@ static const unsigned char SITE_DELETE_SLOT_EXPECT[] = { 0xE8, 0x8D, 0x72, 0x00,
 #define SITE_POLLINATE_CALL_LEN 5
 static const unsigned char SITE_POLLINATE_CALL_EXPECT[] = { 0xE8, 0x47, 0xE1, 0xFF, 0xFF };
 #define SITE_POLLINATE_CALL_BACK 0x00425F59u
+#define SITE_SEED_PLANT_VA 0x00425C1Bu
+#define SITE_SEED_PLANT_LEN 7
+static const unsigned char SITE_SEED_PLANT_EXPECT[] = { 0x8D, 0xB4, 0x02, 0xDC, 0x21, 0x00, 0x00 };
+#define SITE_SEED_PLANT_BACK 0x00425C22u
+#define SITE_SEED_BOX_VA 0x0042819Bu
+#define SITE_SEED_BOX_LEN 7
+static const unsigned char SITE_SEED_BOX_EXPECT[] = { 0x8D, 0xB4, 0x0A, 0xDC, 0x21, 0x00, 0x00 };
+#define SITE_SEED_BOX_BACK 0x004281A2u
+#define SITE_SEED_TRASH_VA 0x00424711u
+#define SITE_SEED_TRASH_LEN 7
+static const unsigned char SITE_SEED_TRASH_EXPECT[] = { 0x8B, 0x9C, 0x39, 0xFC, 0x21, 0x00, 0x00 };
+#define SITE_SEED_TRASH_BACK 0x00424718u
+#define SITE_SEED_RETURN_VA 0x00424508u
+#define SITE_SEED_RETURN_LEN 6
+static const unsigned char SITE_SEED_RETURN_EXPECT[] = { 0x8B, 0xA9, 0x58, 0x3E, 0x06, 0x00 };
+#define SITE_SEED_RETURN_BACK 0x0042450Eu
 #define SLOT_GH_MOUSE_VA 0x00469224u
 #define SLOT_GH_MOUSE_STOCK 0x004273D0u
 #define SLOT_GH_KEY_VA 0x00469228u

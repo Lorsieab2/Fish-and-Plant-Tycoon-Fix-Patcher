@@ -2155,8 +2155,8 @@
           {
             "path": "Extra Greenhouses.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Extra Greenhouses.dll",
-            "size": 98304,
-            "sha256": "9A806A986A9333776E8FA16334F5F3CDA6459EBF6FB8C4B0DD1BF139FB49D98D"
+            "size": 99840,
+            "sha256": "F12317E5F44114EE6BA7791C9DA93E606B6F8BCAB14B6BDD1AC829069E7BEFC0"
           }
         ]
       }

@@ -102,6 +102,28 @@ Plant Tycoon options:
 - Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
   screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
   and adds $1,000 each time)
+- 5 extra greenhouses (off by default; six greenhouses of 15 pots, paged
+  with the gold arrows at the top of the greenhouse screen. Every greenhouse
+  works like the stock one and keeps growing while you look at another. At
+  most 15 plants can be for sale at once, counting every greenhouse. Empty
+  Greenhouses 2-6 before turning it off.)
+
+Moving things between greenhouses (5 extra greenhouses):
+- A plant: drag it onto the left or right arrow, as you would drag it to
+  another pot. It goes to the same pot place in that greenhouse, or to its
+  first empty pot if that place is taken. If that greenhouse is full, a box
+  says so and the plant stays where it was.
+- Pollen: take it as usual, click an arrow, and drop it on a plant there.
+  The seeds it makes are the same as within one greenhouse.
+- Seeds taken from a plant: click an arrow while holding them, then plant
+  them in an empty pot there, drop them on the seed box, or throw them away.
+  Dropped anywhere else they go back to the plant they came from.
+- Seeds from the seed tray (Legendary Seeds too), tools and chemicals stay in
+  your hand when you click an arrow and work in the new greenhouse. (Changing
+  to another screen, such as the store or the nursery, empties your hand as
+  in the unpatched game.)
+- Nursery ornaments are never placed anywhere: each counts as soon as it is
+  bought, so there is nothing to move.
 
 Tools tab, Breeding Guide: pick the game, a save folder and a player. Tabs
 for each part (Fish: Fins and Bodies; Plant: Flowers and Foliage), the

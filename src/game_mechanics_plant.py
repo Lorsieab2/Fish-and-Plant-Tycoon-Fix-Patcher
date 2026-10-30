@@ -1043,14 +1043,22 @@ EXTRA_GREENHOUSES = (
         "six greenhouses.",
     ),
     Fact(
-        "Moving plants: drag a plant onto an arrow, as you drag it to another pot, to move it to the same "
-        "pot place in the greenhouse that arrow leads to, or to its first empty pot if that place is taken "
-        "(it then shows that greenhouse). If that greenhouse has no empty pot, a box says so "
-        "and the plant stays. Moving within a greenhouse is the stock drag to another pot.",
+        "Moving things between greenhouses. The arrows do not change screen, so whatever you hold stays in "
+        "your hand, as it does while you move over one greenhouse (the unpatched game empties your hand only "
+        "when a screen opens: the greenhouse's own opening clears it, and so does the nursery's):",
         subs=(
-            "Pollen you collect can be carried to another greenhouse with the arrows; the seeds it makes are "
-            "the same as from the same two plants in one greenhouse.",
-            "Seeds you take from a plant, or a plant you hold, go back to their pot if you switch greenhouses.",
+            "A plant: drag it onto an arrow, as you drag it to another pot. It moves to the same pot place in "
+            "the greenhouse that arrow leads to, or to that greenhouse's first empty pot if the place is taken, "
+            "and that greenhouse is shown. If it has no empty pot, a box says so and the plant stays.",
+            "Pollen: carried; dropped on a plant in another greenhouse it pollinates it exactly as the same two "
+            "plants would within one greenhouse.",
+            "Seeds taken from a plant: carried; plant them in an empty pot, drop them on the seed box or in the "
+            "trash in any greenhouse, and they are the seeds of the plant they came from. Dropped anywhere "
+            "else they go back to that plant.",
+            "Seeds from the seed tray (Legendary Seeds too), tools and chemicals: carried, and they work on the "
+            "new greenhouse's pots.",
+            "Nursery ornaments are never placed: each counts as soon as it is bought, so there is nothing to "
+            "move.",
         ),
     ),
     Fact(

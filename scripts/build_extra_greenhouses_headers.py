@@ -4,7 +4,7 @@
 
 writes native/ftfp_extra_greenhouses/greenhouse_sites.h.
 
-Six code sites, pinned like scripts/build_new_flowers_headers.py pins its own
+Ten code sites, pinned like scripts/build_new_flowers_headers.py pins its own
 (stock instructions, no branch target inside, no overlap with a Fix Patcher
 patch or a New Flowers, Plant Upgrades or Seed Boxes site), and the slots of
 three scenes' vtables (greenhouse, nursery, snapshot), pinned by the stock
@@ -49,6 +49,13 @@ SITES = [
     ("delete_slot", 0x415F5E, ["call 0x41d1f0"]),
     # The greenhouse's pollen drop: 0x4240A0(target pot, donor pot = the selected pot).
     ("pollinate_call", 0x425F54, ["call 0x4240a0"]),
+    # Seeds taken from a plant (held 0x14) read the selected pot's seed record (+0x54):
+    # planted into a pot (0x425810), sent to the seed box (0x427960), trashed for their value
+    # (+0x74, 0x424680), or put back (0x4244C0: 0x424480(selected) gives them back).
+    ("seed_plant", 0x425C1B, ["lea esi, [edx + eax + 0x21dc]"]),
+    ("seed_box", 0x42819B, ["lea esi, [edx + ecx + 0x21dc]"]),
+    ("seed_trash", 0x424711, ["mov ebx, dword ptr [ecx + edi + 0x21fc]"]),
+    ("seed_return", 0x424508, ["mov ebp, dword ptr [ecx + 0x63e58]"]),
 ]
 
 # (name, slot address, stock function): the vtables at 0x469220 (greenhouse),

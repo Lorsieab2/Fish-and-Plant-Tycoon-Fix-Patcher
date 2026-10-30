@@ -25,8 +25,12 @@ startup loader (`src/ds_fish_loader.py`, `PLANT_GREENHOUSES`).
 - Moving: drag a plant onto an arrow (as the stock game drags it to another
   pot) and it moves to the same pot place in the greenhouse that arrow leads
   to, or to its first empty pot if that place is taken (which is then shown). A full greenhouse says
-  "Greenhouse n is full! There is no empty pot to move this plant to." Pollen
-  can be carried to another greenhouse.
+  "Greenhouse n is full! There is no empty pot to move this plant to."
+- Everything held stays held across the arrows (they do not change screen;
+  the stock game empties the hand only when a screen opens: 0x423206 in the
+  greenhouse's 0x4231E0, 0x4363C3 in the nursery's 0x4360D0). Pollen and
+  seeds taken from a plant keep their own plant (see "Moving things between
+  greenhouses"); seed-tray seeds, tools and chemicals belong to no pot.
 - Selling: the stock nursery's 15 spots and the stock limit. At most 15 plants
   are for sale at once, counted over all six greenhouses.
 
@@ -119,7 +123,7 @@ screen is up, and time away is caught up from each pot's own clock.
 
 Generated and checked by `scripts/build_extra_greenhouses_headers.py` (stock
 instructions, no branch target inside, no overlap with a Fix Patcher patch or
-a New Flowers, Plant Upgrades or Seed Boxes site). All 25 writes are checked
+a New Flowers, Plant Upgrades or Seed Boxes site). All 29 writes are checked
 first and written all or none.
 
 | Site | VA | What |
@@ -130,6 +134,10 @@ first and written all or none.
 | new_game_clear | 0x41D3DC (call) | a new game empties every greenhouse |
 | delete_slot | 0x415F5E (call) | deleting a slot deletes its sidecar |
 | pollinate_call | 0x425F54 (call) | pollen carried from another greenhouse keeps its donor |
+| seed_plant | 0x425C1B (7 bytes) | carried seeds planted: the seed record of the plant they came from |
+| seed_box | 0x42819B (7 bytes) | carried seeds into the seed box: the same |
+| seed_trash | 0x424711 (7 bytes) | carried seeds in the trash: their own value (+0x74) |
+| seed_return | 0x424508 (6 bytes) | carried seeds put back: to their own pot (+0x90 + 1, +0x94 - 1, as 0x424480) |
 | greenhouse vtable | 0x469224, 0x469228, 0x46922C, 0x469238, 0x46923C, 0x469240, 0x469244 | mouse (drop on an arrow), keys, command (arrows, the for-sale limit), overlay, draw (the label), tick, activate (the arrows; other greenhouses' sold pots emptied through 0x42F410) |
 | nursery vtable | 0x469734, 0x469738, 0x46973C, 0x469748, 0x46974C, 0x469750, 0x469754 | the nursery's pots |
 | snapshot vtable | 0x46988C, 0x469890, 0x469894, 0x4698A0, 0x4698AC | the snapshot's pots |
@@ -151,6 +159,23 @@ the extra pots' clocks move by the same rule before the update.
   just put up for sale, last first, until 15 are for sale, and says so.
 - The nursery shows exactly the plants for sale (at most 15), so the visitor
   limit, the buy roll, the prices and the comments are the stock game's.
+
+## Moving things between greenhouses
+
+The cursor's item is `state + 0x56C`: 1-4 tools, 5-8 the chemical tray,
+9 pollen (0x42631F), 10-19 the seed tray (Legendary Seeds too), 0x14 seeds
+taken from a plant (0x426228), 0x3E8 + k a plant (pot k). The arrows do not
+open a screen, so the stock rule (the hand is emptied only when a screen
+opens: 0x423206, 0x4363C3) keeps everything held:
+
+| Held | Across an arrow |
+|---|---|
+| a plant | dropped on an arrow: moved to the same pot place there, else the first empty pot (stock-style box when full); clicking an arrow while dragging leaves it in its pot |
+| pollen | carried; the drop's donor (0x425F54) is the plant it came from |
+| seeds from a plant | carried; planting (0x425C1B), the seed box (0x42819B) and the trash (0x424711) read the source plant's seed record, and putting them back (0x424508) returns them to it. Taking them already moved one seed from the pot's +0x90 to +0x94 (0x42625D), exactly as stock |
+| seed tray, tools, chemicals | stay held; they belong to no pot and work on the new greenhouse's pots |
+
+Ornaments are never placed (each counts once bought), so nothing moves.
 
 ## The sidecar
 
@@ -198,7 +223,7 @@ plants made and grown by the game's own code:
   stock game (one greenhouse per dose); they do not reach the other five.
 - Bugs come to the greenhouse on screen only (stock: only while you are in the
   greenhouse).
-- Seeds taken from a plant, or a held plant, go back to their pot when you
-  switch greenhouses (pollen is carried).
+- A plant held on the cursor stays in its pot when you click an arrow
+  (moving it is the drag onto an arrow).
 - Like the other sidecars, the file follows the slot number, not the game's
   backup copies.

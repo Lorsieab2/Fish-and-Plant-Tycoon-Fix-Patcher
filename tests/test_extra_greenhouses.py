@@ -421,6 +421,116 @@ class MoveTests(unittest.TestCase):
         self.assertEqual(emu.read32(emu.sym("_shown")), 5)
 
 
+SEED_SITES = ((0x425C1B, "_stub_seed_plant"), (0x42819B, "_stub_seed_box"), (0x424711, "_stub_seed_trash"),
+              (0x424508, "_stub_seed_return"))
+
+
+@needs_game
+class CarryTests(unittest.TestCase):
+    """What the cursor holds across the arrows. The arrows do not change screen: the stock game drops a
+    held item only when a screen opens (0x423206 in the greenhouse's 0x4231E0, 0x4363C3 in the
+    nursery's 0x4360D0), so everything stays held, and what belongs to a pot keeps its pot."""
+
+    SEED = bytes(range(0x40, 0x40 + 0x24))
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        _build()
+
+    def seeds_taken(self, game: Game, g: int, k: int) -> int:
+        """Seeds taken from greenhouse g's pot k, as 0x426228 leaves them: held 0x14, the pot selected,
+        one seed moved from +0x90 (left) to +0x94 (taken) by 0x42625D / 0x42626F."""
+        emu = game.emu
+        pot = game.pot(g, k)
+        emu.uc.mem_write(pot + 0x54, self.SEED)
+        emu.write32(pot + 0x90, 2)
+        emu.write32(pot + 0x94, 1)
+        for va, stub in SEED_SITES:
+            emu.uc.mem_write(va, b"\xE9" + struct.pack("<i", emu.sym(stub) - (va + 5)))
+        game.show(g)
+        emu.write32(game.state + HELD, 0x14)
+        emu.write32(game.state + SELECTED, k)
+        emu.call(emu.sym("@gh_command@16"), 8, 41, ecx=game.scene)          # the right arrow
+        self.assertEqual(emu.read32(game.state + HELD), 0x14)               # still held
+        self.assertEqual(emu.read32(emu.sym("_seed_g"), signed=True), g)
+        return pot
+
+    def test_seeds_carried_to_another_greenhouse_go_into_seed_storage(self) -> None:
+        game = Game(5)
+        emu = game.emu
+        self.seeds_taken(game, 0, 6)
+        game.show(1)                                                        # on screen: greenhouse 2
+        before = bytes(emu.uc.mem_read(game.state + POTS_AT + 6 * POT, POT))
+
+        def mouse(e):                                        # the pointer on the seed box button
+            e.uc.mem_write(e.arg(0), struct.pack("<ii", 400, 560))
+            return e.arg(0)
+        emu.hook(0x00407D20, mouse, 4)
+        emu.call(emu.sym("@gh_command@16"), 9, 1, ecx=game.scene)          # the stock drop on the seed box
+        box = game.state + 0x52CCC
+        self.assertEqual(bytes(emu.uc.mem_read(box, 0x24)), self.SEED)      # greenhouse 1's seed, in box 1
+        self.assertEqual(emu.read32(game.state + HELD), 0)
+        self.assertEqual(bytes(emu.uc.mem_read(game.state + POTS_AT + 6 * POT, POT)), before)
+
+    def test_carried_seeds_are_read_from_their_own_pot(self) -> None:
+        game = Game(5)
+        emu = game.emu
+        self.seeds_taken(game, 2, 4)
+        game.show(3)                                                        # on screen: greenhouse 4
+        source = game.pot(2, 4)
+        # planting (0x425C1B) and the seed box (0x42819B) copy the record their esi points at
+        for va, back, regs in ((0x425C1B, 0x425C22, (X.UC_X86_REG_EDX, X.UC_X86_REG_EAX)),
+                               (0x42819B, 0x4281A2, (X.UC_X86_REG_EDX, X.UC_X86_REG_ECX))):
+            emu.uc.reg_write(regs[0], 4 * POT)
+            emu.uc.reg_write(regs[1], game.state)
+            emu.run_until(va, back)
+            self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_ESI), source + 0x54, hex(va))
+        # the trash pays the seeds' own value (+0x74)
+        emu.uc.reg_write(X.UC_X86_REG_ECX, 4 * POT)
+        emu.uc.reg_write(X.UC_X86_REG_EDI, game.state)
+        emu.run_until(0x424711, 0x424718)
+        self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_EBX), struct.unpack_from("<i", self.SEED, 0x20)[0])
+        # put back (0x424508 in 0x4244C0): to its own pot, which gets its seed back
+        emu.uc.reg_write(X.UC_X86_REG_ECX, game.state)
+        emu.run_until(0x424508, 0x4245DD)
+        self.assertEqual((emu.read32(source + 0x90), emu.read32(source + 0x94)), (3, 0))
+        self.assertEqual(emu.read32(emu.sym("_seed_g"), signed=True), -1)
+
+    def test_seeds_back_in_their_own_greenhouse_take_the_stock_path(self) -> None:
+        game = Game(5)
+        emu = game.emu
+        self.seeds_taken(game, 0, 4)
+        emu.call(emu.sym("@gh_command@16"), 8, 40, ecx=game.scene)          # back to greenhouse 1
+        emu.uc.reg_write(X.UC_X86_REG_EDX, 4 * POT)
+        emu.uc.reg_write(X.UC_X86_REG_EAX, game.state)
+        emu.run_until(0x425C1B, 0x425C22)
+        self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_ESI), game.state + POTS_AT + 4 * POT + 0x54)
+        emu.uc.reg_write(X.UC_X86_REG_ECX, game.state)
+        emu.run_until(0x424508, 0x42450E)                                   # the stock put-back, by the selected pot
+        self.assertEqual(emu.uc.reg_read(X.UC_X86_REG_EBP), 4)
+
+    def test_tools_chemicals_and_tray_seeds_stay_held(self) -> None:
+        for held in (1, 2, 3, 4, 5, 8, 10, 13, 19):                         # tools, chemical tray, seed tray
+            game = Game(1)
+            emu = game.emu
+            game.show(0)
+            emu.write32(game.state + HELD, held)
+            emu.write32(game.state + SELECTED, 3)
+            emu.call(emu.sym("@gh_command@16"), 8, 41, ecx=game.scene)
+            self.assertEqual(emu.read32(game.state + HELD), held)
+            self.assertEqual(emu.read32(game.state + SELECTED), 0x63)       # no pot selected in the new greenhouse
+
+    def test_pollen_stays_held_with_its_donor(self) -> None:
+        game = Game(1)
+        emu = game.emu
+        game.show(3)
+        emu.write32(game.state + HELD, 9)
+        emu.write32(game.state + SELECTED, 7)
+        emu.call(emu.sym("@gh_command@16"), 8, 40, ecx=game.scene)
+        self.assertEqual(emu.read32(game.state + HELD), 9)
+        self.assertEqual((emu.read32(emu.sym("_pollen_g")), emu.read32(emu.sym("_pollen_k"))), (3, 7))
+
+
 @needs_game
 class NurseryLimitTests(unittest.TestCase):
     """The stock nursery has 15 spots, one per pot: at most 15 plants are for sale, over all six greenhouses."""
@@ -668,7 +778,8 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(result & 0xFF, 1)
         for va, target, opcode in ((0x41D810, "_stub_update", 0xE9), (0x41D156, "_stub_save", 0xE9),
                                    (0x41EEFE, "_stub_load", 0xE9), (0x41D3DC, "@new_game_clear@8", 0xE8),
-                                   (0x415F5E, "@delete_slot@12", 0xE8), (0x425F54, "@pollinate@16", 0xE8)):
+                                   (0x415F5E, "@delete_slot@12", 0xE8), (0x425F54, "@pollinate@16", 0xE8),
+                                   *((va, stub, 0xE9) for va, stub in SEED_SITES)):
             code = bytes(emu.uc.mem_read(va, 5))
             self.assertEqual(code[0], opcode)
             self.assertEqual(va + 5 + struct.unpack("<i", code[1:])[0], emu.sym(target))

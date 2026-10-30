@@ -382,18 +382,30 @@ static activate_fn next_gh_activate, next_nu_activate, next_sn_activate;
    plant it came from (greenhouse pollen_g, pot pollen_k). */
 static int pollen_g = -1, pollen_k = -1;
 
+/* Seeds taken from a plant (0x426228; the pot's +0x90 seeds left and +0x94
+   seeds taken are counted at once, 0x42625D) and carried to another
+   greenhouse: wherever the game reads the selected pot's seed record (+0x54),
+   or gives the seeds back (0x424480), it gets their own pot's. */
+static int seed_g = -1, seed_k = -1;
+
+/* Tools, chemicals and seed-tray seeds (Legendary Seeds too) belong to no
+   pot and stay held, as they do while you move over one greenhouse: the
+   arrows do not change screen (the stock game drops what you hold only when
+   a screen opens: 0x423206 in the greenhouse's 0x4231E0, 0x4363C3 in the
+   nursery's 0x4360D0). */
 static void reset_hold(char *scene, char *state) {
     int held = AT(state, STATE_HELD, int), selected = AT(state, STATE_SELECTED, int);
-    if (held == HELD_POLLEN && selected >= 0 && selected < POTS) {
-        if (pollen_g < 0) {
-            pollen_g = shown;
-            pollen_k = selected;
+    if ((held == HELD_POLLEN || held == HELD_POT_SEEDS) && selected >= 0 && selected < POTS) {
+        int *g = held == HELD_POLLEN ? &pollen_g : &seed_g, *k = held == HELD_POLLEN ? &pollen_k : &seed_k;
+        if (*g < 0) {
+            *g = shown;
+            *k = selected;
         }
     } else {
-        /* A held pot or seeds taken from a pot belong to that pot's greenhouse: put back. */
-        if (held >= HELD_POT || held == HELD_POT_SEEDS) AT(state, STATE_HELD, int) = 0;
+        /* A held plant belongs to its pot: it stays there (moving it is the drop on an arrow). */
+        if (held >= HELD_POT) AT(state, STATE_HELD, int) = 0;
         AT(state, STATE_SELECTED, int) = NO_SELECTION;
-        pollen_g = pollen_k = -1;
+        pollen_g = pollen_k = seed_g = seed_k = -1;
     }
     AT(scene, 8, unsigned char) = 0;           /* as after a drop (0x427467) */
     AT(scene, 0x104, unsigned char) = 0;       /* as on entering (0x42320D) */
@@ -416,6 +428,40 @@ static void __fastcall pollinate(void *scene, int edx, char *target, char *donor
     }
     pollen_g = pollen_k = -1;
     ((pollinate_fn)(UINT_PTR)0x004240A0u)(scene, edx, target, donor);
+}
+
+/* The carried seeds' own pot, or NULL when they come from a pot of the greenhouse on screen. */
+static char *seed_source(void) {
+    char *state = GAME_STATE;
+    if (state == NULL || seed_g < 0 || seed_g == shown || arranged != shown) return NULL;
+    return locate(state, seed_g, seed_k);
+}
+
+#define POT_SEED_RECORD 0x54
+#define POT_SEED_VALUE 0x74
+#define POT_SEEDS_LEFT 0x90
+#define POT_SEEDS_TAKEN 0x94
+
+/* 0x425C1B (planted) and 0x42819B (to the seed box): the seed record to copy. */
+static char *__cdecl seed_record(char *stock) {
+    char *pot = seed_source();
+    return pot != NULL ? pot + POT_SEED_RECORD : stock;
+}
+
+/* 0x424711 (the trash): what the seeds are worth. */
+static int __cdecl seed_value(int stock) {
+    char *pot = seed_source();
+    return pot != NULL ? AT(pot, POT_SEED_VALUE, int) : stock;
+}
+
+/* 0x424508 (put back): the seeds go back to their own pot, as 0x424480 does; 1 when done here. */
+static int __cdecl seed_put_back(void) {
+    char *pot = seed_source();
+    if (pot == NULL) return 0;
+    AT(pot, POT_SEEDS_TAKEN, int) -= 1;
+    AT(pot, POT_SEEDS_LEFT, int) += 1;
+    seed_g = seed_k = -1;
+    return 1;
 }
 
 /* Sold plants leave their pots when the greenhouse opens (0x4231E0); the
@@ -558,6 +604,7 @@ static void __fastcall gh_tick(char *scene, int edx) {
     char *state = AT(scene, SCENE_STATE, char *);
     moved_this_frame = 0;
     if (state != NULL && AT(state, STATE_HELD, int) != HELD_POLLEN) pollen_g = pollen_k = -1;
+    if (state != NULL && AT(state, STATE_HELD, int) != HELD_POT_SEEDS) seed_g = seed_k = -1;
     enter(1);
     next_gh_tick(scene, edx);
 }
@@ -582,7 +629,7 @@ static void __fastcall gh_activate(char *scene, int edx, int on) {
         }
     } else {
         next_gh_activate(scene, edx, on);
-        pollen_g = pollen_k = -1;
+        pollen_g = pollen_k = seed_g = seed_k = -1;
         leave(1);
     }
 }
@@ -750,6 +797,84 @@ static const DWORD k_write = 0x00403690u;
 static const DWORD k_manager = 0x0042FBC0u;
 static const DWORD k_rebuild = 0x0042FC40u;
 static const DWORD k_load_back = SITE_LOAD_DONE_BACK;
+static const DWORD k_seed_plant_back = SITE_SEED_PLANT_BACK;
+static const DWORD k_seed_box_back = SITE_SEED_BOX_BACK;
+static const DWORD k_seed_trash_back = SITE_SEED_TRASH_BACK;
+static const DWORD k_seed_return_back = SITE_SEED_RETURN_BACK;
+static const DWORD k_seed_return_done = 0x004245DDu;    /* 0x4244C0's end: nothing held, nothing animated */
+
+/* 0x425C1B: esi = the seed record to plant (stock: the selected pot's +0x54). */
+__declspec(naked) static void stub_seed_plant(void) {
+    __asm {
+        lea esi, [edx + eax + 0x21DC]
+        push eax
+        push ecx
+        push edx
+        push esi
+        call seed_record
+        add esp, 4
+        mov esi, eax
+        pop edx
+        pop ecx
+        pop eax
+        jmp dword ptr [k_seed_plant_back]
+    }
+}
+
+/* 0x42819B: esi = the seed record for the seed box. */
+__declspec(naked) static void stub_seed_box(void) {
+    __asm {
+        lea esi, [edx + ecx + 0x21DC]
+        push eax
+        push ecx
+        push edx
+        push esi
+        call seed_record
+        add esp, 4
+        mov esi, eax
+        pop edx
+        pop ecx
+        pop eax
+        jmp dword ptr [k_seed_box_back]
+    }
+}
+
+/* 0x424711: ebx = what the seeds are worth in the trash. */
+__declspec(naked) static void stub_seed_trash(void) {
+    __asm {
+        mov ebx, dword ptr [ecx + edi + 0x21FC]
+        push eax
+        push ecx
+        push edx
+        push ebx
+        call seed_value
+        add esp, 4
+        mov ebx, eax
+        pop edx
+        pop ecx
+        pop eax
+        jmp dword ptr [k_seed_trash_back]
+    }
+}
+
+/* 0x424508 in 0x4244C0 (put the held item back), held seeds: carried ones go back to their own pot. */
+__declspec(naked) static void stub_seed_return(void) {
+    __asm {
+        push eax
+        push ecx
+        push edx
+        call seed_put_back
+        test eax, eax
+        pop edx
+        pop ecx
+        pop eax
+        jnz handled
+        mov ebp, dword ptr [ecx + 0x63E58]
+        jmp dword ptr [k_seed_return_back]
+    handled:
+        jmp dword ptr [k_seed_return_done]
+    }
+}
 
 /* The stock 0x41D810 (thiscall, ecx = state). */
 __declspec(naked) static void stock_update(void) {
@@ -825,7 +950,7 @@ static int __fastcall delete_slot(void *state, int edx, int slot) {
 /* ----------------------------------------------------------------- install */
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 6
+#define CODE_SITES 10
 #define VTABLE_SLOTS 19
 #define TOTAL_SITES (CODE_SITES + VTABLE_SLOTS)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -900,6 +1025,13 @@ NOINLINE static int prepare(void) {
     ftfp_site_branch(w++, SITE_DELETE_SLOT_VA, SITE_DELETE_SLOT_LEN, SITE_DELETE_SLOT_EXPECT, 0xE8, CODE_ADDR(delete_slot));
     ftfp_site_branch(w++, SITE_POLLINATE_CALL_VA, SITE_POLLINATE_CALL_LEN, SITE_POLLINATE_CALL_EXPECT, 0xE8,
                      CODE_ADDR(pollinate));
+    ftfp_site_branch(w++, SITE_SEED_PLANT_VA, SITE_SEED_PLANT_LEN, SITE_SEED_PLANT_EXPECT, 0xE9,
+                     CODE_ADDR(stub_seed_plant));
+    ftfp_site_branch(w++, SITE_SEED_BOX_VA, SITE_SEED_BOX_LEN, SITE_SEED_BOX_EXPECT, 0xE9, CODE_ADDR(stub_seed_box));
+    ftfp_site_branch(w++, SITE_SEED_TRASH_VA, SITE_SEED_TRASH_LEN, SITE_SEED_TRASH_EXPECT, 0xE9,
+                     CODE_ADDR(stub_seed_trash));
+    ftfp_site_branch(w++, SITE_SEED_RETURN_VA, SITE_SEED_RETURN_LEN, SITE_SEED_RETURN_EXPECT, 0xE9,
+                     CODE_ADDR(stub_seed_return));
     for (i = 0; i < VTABLE_SLOTS; ++i) {
         DWORD held, to = (DWORD)(UINT_PTR)SLOTS[i].wrapper;
         if (!known_slot(SLOTS[i].va, SLOTS[i].stock)) {
