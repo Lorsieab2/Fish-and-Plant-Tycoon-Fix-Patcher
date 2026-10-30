@@ -77,8 +77,21 @@ FISH_WINDOW = replace(
 )
 
 
+# With Multiple ornaments on, the loader loads that DLL first; it loads
+# "DS Exclusive Fish.dll" or else "Maximizable Window.dll" when they are there.
+FISH_ORNAMENTS = replace(
+    FISH, dll_name="Multiple Ornaments.dll",
+    what_it_installs="That checks the ten places it changes in the running game (calls of the stock ornament "
+                     "code, the save and load of a game slot, and the store's Buy click and panel) and writes "
+                     "all of them or none, then loads DS Exclusive Fish or the Maximizable window when they are "
+                     "on; native/ftfp_ornaments/ftfp_ornaments.c describes them.",
+)
+
+
 def fish_profile(enabled: set[str]) -> LoaderProfile:
     """The DLL Fish Tycoon's loader loads for these settings."""
+    if "multiple_ornaments" in enabled:
+        return FISH_ORNAMENTS
     return FISH if "ds_fish" in enabled else FISH_WINDOW
 
 
