@@ -968,7 +968,8 @@ PRICES = (
         "After that the asking price never changes by itself: only the species screen's arrows "
         "and keypad (0 to 9999) change it, and only Advertising changes B.",
         patched=(("optimize_prices", "an \"Optimize Prices\" button on the Species Chart's bottom bar, left "
-                  "of Done, asks Yes/No and then sets every discovered species' asking price to the Breeding "
+                  "of Done, and the same button on the Supplies store's bottom bar, left of Buy (296-435 x "
+                  "551-600, left of the Upgrades link), asks Yes/No and then sets every discovered species' asking price to the Breeding "
                   "Guide's best price per day: the price P from 1 to 2B - 1 with the most money per real "
                   "day, the average over the two crowds 4 + ornaments owned + 2 for the Golden Seahorse + "
                   "2 x Advertising level x (a full selling tank / 3 + 2 or 3), each customer counted as "
@@ -1336,10 +1337,12 @@ HIDDEN = (
         "has a stock or a timer: medicines, chemicals and eggs can be bought at any time (one "
         "batch per supply slot), each permanent item and ornament once, and one research at a "
         "time; asking prices change only on the species screen.",
+        patched=(("optimize_prices", "the Supplies store's Optimize Prices button (left of Buy) also sets "
+                  "asking prices: every discovered species', exactly as the Species Chart's button does."),),
     ),
     Fact("The patcher adds no keys. Its additions are clicks: the store's Upgrades button, the DS "
          "animals and new chemicals (with DS Store Items), the Time Warp clock (with Time Warp), the "
-         "Optimize Prices button (on the Species Chart), and the tank arrows and For sale buttons "
+         "Optimize Prices button (on the Species Chart and in the Supplies store), and the tank arrows and For sale buttons "
          "(with 3 extra tanks)."),
 )
 

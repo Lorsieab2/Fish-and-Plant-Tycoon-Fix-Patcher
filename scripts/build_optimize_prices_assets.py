@@ -12,8 +12,16 @@
   game's own wide purple button (widePTButton.png: normal, hover, pressed)
   with "Optimize Prices" set in the game's own font (PTfontsmall.png and its
   glyph table in the executable), white, yellow on hover, as Sort Seeds'.
+* assets/fish_tycoon_optimize_prices/Images/OptimizePricesStoreButton.png:
+  the same button for the Supplies store, lettered on the store's own bottom
+  bar (supplyshop_bg_out.bmp at 296-435 x 551-600, between the money box and
+  DS Store Items' Upgrades link at 440) in the game's own font
+  (paddington_tt_18.png and its glyph table in the executable): white with a
+  dark rim like the Upgrades link's, gold on hover, pressed 1 px down.
 * docs/images/optimize-prices-fish.png and optimize-prices-plant.png: each
-  button where the DLL puts it (native/ftfp_fish_prices, native/ftfp_plant_prices).
+  button where the DLL puts it (native/ftfp_fish_prices, native/ftfp_plant_prices);
+  docs/images/optimize-prices-fish-store.png: the Supplies store with the
+  button, Buy, Done and the Upgrades link.
 """
 
 from __future__ import annotations
@@ -29,10 +37,18 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import build_counts_previews as counts  # noqa: E402
 import build_plant_upgrades_assets as upgrades  # noqa: E402
 
 TEXT = "Optimize Prices"
 FISH_OUT = ROOT / "assets" / "fish_tycoon_optimize_prices" / "Images" / "OptimizePricesButton.png"
+STORE_OUT = ROOT / "assets" / "fish_tycoon_optimize_prices" / "Images" / "OptimizePricesStoreButton.png"
+UPGRADES_LINK = ROOT / "assets" / "fish_tycoon_ds_store" / "Images" / "SuppliesUpgradesButton.png"
+
+# The Supplies store (native/ftfp_fish_prices: STORE_BUTTON_X / _Y; the stock buttons, 0x427895).
+STORE_POS, STORE_SIZE = (296, 551), (140, 50)        # the bar between the money box (to 292) and 440
+STORE_BUY, STORE_DONE, STORE_UPGRADES = (578, 551), (695, 551), (440, 551)
+STORE_RIM = (60, 15, 15)                              # the Upgrades link's rim on this red bar
 PLANT_OUT = ROOT / "assets" / "plant_tycoon_optimize_prices" / "Images" / "optimize_prices_button.png"
 PREVIEWS = ROOT / "docs" / "images"
 
@@ -65,6 +81,42 @@ def fish_button(background: Image.Image) -> Image.Image:
         draw.text((x, y), TEXT, font=font, fill=colour)
         strip.paste(frame, (f * w, 0))
     return strip
+
+
+def store_button(background: Image.Image, sheet: Image.Image, table: dict) -> Image.Image:
+    """The store's button: TEXT set glyph by glyph in paddington_tt_18 on the bar, a 3-frame strip."""
+    bg = background.convert("RGBA")
+    bg = bg.crop((0, 0, bg.width, bg.height + 1))            # the stock buttons run one row past the screen
+    x0, y0 = STORE_POS
+    w, h = STORE_SIZE
+    bar = bg.crop((x0, y0, x0 + w, y0 + h))
+    rim = counts.set_text(sheet, table, TEXT, STORE_RIM)
+    strip = Image.new("RGBA", (w * 3, h))
+    for f, (colour, drop) in enumerate((((255, 255, 255), 0), ((255, 222, 110), 0), ((225, 205, 160), 1))):
+        frame = bar.copy()
+        word = counts.set_text(sheet, table, TEXT, colour)
+        x = (w - word.width) // 2
+        y = (h - word.height) // 2 + drop
+        for dx in (-2, -1, 0, 1, 2):
+            for dy in (-2, -1, 0, 1, 2):
+                if abs(dx) + abs(dy) <= 3:
+                    frame.alpha_composite(rim, (x + dx, y + dy))
+        frame.alpha_composite(word, (x, y))
+        strip.paste(frame, (f * w, 0))
+    return strip.convert("RGB")
+
+
+def store_preview(background: Image.Image, buy: Image.Image, done: Image.Image, button: Image.Image) -> Image.Image:
+    """The store as the game shows it: the stock Buy and Done, the Upgrades link and the button."""
+    screen = background.convert("RGBA")
+    screen = screen.crop((0, 0, 800, 601))
+    for image, at in ((buy, STORE_BUY), (done, STORE_DONE)):
+        screen.alpha_composite(image.convert("RGBA").crop((0, 0, image.width // 3, image.height)), at)
+    if UPGRADES_LINK.is_file():
+        link = Image.open(UPGRADES_LINK).convert("RGBA")
+        screen.alpha_composite(link.crop((0, 0, link.width // 3, link.height)), STORE_UPGRADES)
+    screen.alpha_composite(button.convert("RGBA").crop((0, 0) + STORE_SIZE), STORE_POS)
+    return screen.crop((0, 0, 800, 600))
 
 
 def plant_word(folder: Path) -> Image.Image:
@@ -120,6 +172,15 @@ def main() -> int:
         background.load()
         done = Image.open(io.BytesIO(archive.read("speciesdonebutton.png")))
         done.load()
+        store = {name: Image.open(io.BytesIO(archive.read(name))) for name in (
+            "supplyshop_bg_out.bmp", "suppliesbuybutton.png", "suppliesdonebutton.png", "paddington_tt_18.png")}
+        for image in store.values():
+            image.load()
+    glyphs = counts.glyph_table((fish / "Fish Tycoon.exe").read_bytes(), counts.FISH_GLYPHS)
+    sbutton = store_button(store["supplyshop_bg_out.bmp"], store["paddington_tt_18.png"].convert("RGBA"), glyphs)
+    sbutton.save(STORE_OUT, optimize=True)
+    store_preview(store["supplyshop_bg_out.bmp"], store["suppliesbuybutton.png"], store["suppliesdonebutton.png"],
+                  sbutton).convert("RGB").save(PREVIEWS / "optimize-prices-fish-store.png", optimize=True)
     FISH_OUT.parent.mkdir(parents=True, exist_ok=True)
     PLANT_OUT.parent.mkdir(parents=True, exist_ok=True)
     fbutton = fish_button(background)

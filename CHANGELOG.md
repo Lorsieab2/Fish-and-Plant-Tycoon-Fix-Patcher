@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Fish Tycoon
+
+- **Optimize Prices in the Supplies store.** The Species Chart opens only with
+  a fish in the isolation tank, so the Optimize Prices button is now also on
+  the Supplies store's bottom bar, between the money box and Buy (left of DS
+  Store Items' Upgrades link), on the store's stock view and its Upgrades view.
+  It is the Species Chart's button, lettered in the game's own font on the
+  store's bar, and a click does exactly what the chart's does: the same
+  question, the same prices for every discovered species
+  (native/common/price_math.h) and the same "N prices set." The chart keeps
+  its button. "Optimize Prices.dll" now wraps four slots, the chart's command
+  and opening and the store's, all four or none; the store's may already be
+  DS Store Items' (loaded first), which it then calls. Picture:
+  docs/images/optimize-prices-fish-store.png.
+- The Optimize Prices pin script keeps the setting where it is in the
+  manifest when it re-pins (it used to move it after the Maximizable window).
+
 ## v1.0.17
 
 New content for both games (DS fish, fins and store animals; the 14 unused

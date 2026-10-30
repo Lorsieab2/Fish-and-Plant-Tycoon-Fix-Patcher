@@ -184,7 +184,8 @@ class SettingTests(unittest.TestCase):
             self.assertIn(SETTING, defaults, game)
 
     def test_it_ships_the_dll_and_the_button(self) -> None:
-        expected = {"fish": ("Fish Tycoon Fix Patcher DLLs/Optimize Prices.dll", "Images/OptimizePricesButton.png"),
+        expected = {"fish": ("Fish Tycoon Fix Patcher DLLs/Optimize Prices.dll", "Images/OptimizePricesButton.png",
+                             "Images/OptimizePricesStoreButton.png"),
                     "plant": ("Plant Tycoon Fix Patcher DLLs/Optimize Prices.dll", "Images/optimize_prices_button.png")}
         for game, manifest in self.manifests.items():
             companion = {s["id"]: s for s in manifest["settings"]}[SETTING]["companion"]
@@ -223,6 +224,12 @@ class SettingTests(unittest.TestCase):
         self.assertEqual(fish({SETTING, "maximizable_window", "ds_fish"}).dll_names,
                          ("DS Exclusive Fish.dll", "Optimize Prices.dll"))
         self.assertIs(fish({"maximizable_window"}), ds_fish_loader.FISH_WINDOW)
+        # DS Store Items (loaded by DS Exclusive Fish, or by the DLLs that load it) wraps the store's
+        # slots first, so the store's button chains after it whatever else is on.
+        for others in ({"ds_fish", "ds_store"}, {"ds_fish", "ds_store", "extra_tanks"},
+                       {"ds_fish", "ds_store", "multiple_ornaments", "tank_greenhouse_counts"}):
+            self.assertEqual(fish({SETTING} | others).dll_names[-1], "Optimize Prices.dll", others)
+            self.assertEqual(fish({SETTING} | others).dll_names.count("Optimize Prices.dll"), 1, others)
         plant = ds_fish_loader.plant_profile
         self.assertEqual(plant({SETTING}).dll_names, ("Optimize Prices.dll",))
         self.assertEqual(plant({SETTING, "sort_seeds"}).dll_names, ("Sort Seeds.dll", "Optimize Prices.dll"))
@@ -548,6 +555,282 @@ class FishButtonTests(unittest.TestCase):
         self.assertEqual(emu.read32(rows + 0x20), price(BF.base_price(26, 4)))
         self.assertEqual(emu.read32(rows + 0x60, signed=True), -1)
         self.assertEqual(emu.dialogs[-1][2], "3 prices set.")
+
+
+# Fish Tycoon's Supplies store
+STORE_VT_COMMAND, STORE_VT_ACTIVATE = 0x0044C2A0, 0x0044C2B8
+STORE_COMMAND, STORE_ACTIVATE = 0x00428300, 0x00427960
+STORE_BUTTON = ROOT / "assets" / "fish_tycoon_optimize_prices" / "Images" / "OptimizePricesStoreButton.png"
+DS_STORE = 0x70000000              # _hook_windows' handle for the first module: the fake "DS Store Items.dll"
+DS_COMMAND, DS_ACTIVATE = DS_STORE + 0x100, DS_STORE + 0x200
+
+
+@_emulated(FISH_EXE)
+class FishStoreButtonTests(unittest.TestCase):
+    """The same button on the Supplies store's bottom bar: its two store slots go in with the
+    chart's (all four or none), chained after DS Store Items' when that DLL wrapped them first."""
+
+    setUpClass = FishButtonTests.__dict__["setUpClass"]
+    tearDownClass = FishButtonTests.__dict__["tearDownClass"]
+    install = FishButtonTests.install
+    shop = FishButtonTests.shop
+    entries = FishButtonTests.entries
+
+    def game(self, ds_store: bool = False, ds_installed: int = 1, answer: int = 0):
+        """The vanilla game; with ds_store, "DS Store Items.dll" is loaded and has wrapped the store's
+        command and activate slots with two functions of its own (recorded, then the stock ones)."""
+        emu = FishButtonTests.game(self, answer=answer)
+        if ds_store:
+            emu.uc.mem_map(DS_STORE, 0x1000)
+            installed = emu.thunk()
+            emu.hook(installed, lambda e: ds_installed, 0)
+            emu.hook_import("GetModuleHandleW", lambda e: DS_STORE if e.wstring(e.arg(0)) == "DS Store Items.dll"
+                            else 0, 4)
+            emu.hook_import("GetProcAddress", lambda e: installed if e.arg(0) == DS_STORE and
+                            e.cstring(e.arg(1)) == b"FtfpDsStoreInstalled" else 0, 8)
+
+            def ds_command(e) -> int:
+                e.calls.append(("ds command", (e.arg(0), e.arg(1))))
+                return 0
+
+            def ds_activate(e) -> int:
+                e.calls.append(("ds activate", (e.arg(0),)))
+                return 0
+            emu.hook(DS_COMMAND, ds_command, 8)
+            emu.hook(DS_ACTIVATE, ds_activate, 4)
+            emu.write32(STORE_VT_COMMAND, DS_COMMAND)
+            emu.write32(STORE_VT_ACTIVATE, DS_ACTIVATE)
+        emu.buttons = []
+        emu.hook(0x0042A793, lambda e: e.alloc(0x14), 0)                 # operator new
+        emu.hook(0x00401B10, lambda e: (e.buttons.append([e.arg(i) for i in range(6)]),
+                                        e.uc.reg_read(E.X.UC_X86_REG_ECX))[1], 24)
+        emu.hook(0x00425120, lambda e: 0x5000, 0)                         # the sound manager
+        emu.hook(0x004251A0, emu.record("sound", 0x6000, args=1), 4)
+        emu.hook(0x004015E0, emu.record("button sound", args=2), 8)
+        emu.hook(0x0040A9E0, emu.record("add", args=1), 4)
+        return emu
+
+    def store(self, emu, state: int) -> int:
+        """A Supplies scene on `state`: scene + 8 = its impl, impl + 0x10 = the game state."""
+        scene, impl = emu.alloc(0x40), emu.alloc(0x40)
+        emu.write32(scene + 8, impl)
+        emu.write32(impl + 0x10, state)
+        return scene
+
+    def store_click(self, emu, scene, msg: int = 8, button: int = 7) -> int:
+        return emu.call(emu.read32(STORE_VT_COMMAND), msg, button, ecx=scene)
+
+    def test_all_four_slots_go_in_together(self) -> None:
+        for ds in (False, True):
+            emu = self.game(ds_store=ds)
+            self.assertEqual(self.install(emu), 1, ds)
+            for va, was in ((SPECIES_VT_COMMAND, SPECIES_COMMAND), (SPECIES_VT_ACTIVATE, SPECIES_ACTIVATE),
+                            (STORE_VT_COMMAND, DS_COMMAND if ds else STORE_COMMAND),
+                            (STORE_VT_ACTIVATE, DS_ACTIVATE if ds else STORE_ACTIVATE)):
+                self.assertNotEqual(emu.read32(va), was, (ds, hex(va)))
+                self.assertGreaterEqual(emu.read32(va), 0x10000000, (ds, hex(va)))
+                self.assertLess(emu.read32(va), DS_STORE, (ds, hex(va)))
+
+    def test_a_foreign_store_slot_means_none_goes_in(self) -> None:
+        """A store slot that is neither stock nor DS Store Items' (or DS Store Items' while that DLL
+        says it is not installed): not one of the four slots is written."""
+        cases = [(False, 1, STORE_VT_COMMAND, 0x00401234), (False, 1, STORE_VT_ACTIVATE, 0x00401234),
+                 (True, 1, STORE_VT_COMMAND, 0x00401234), (True, 0, None, None)]
+        for ds, ds_installed, changed, value in cases:
+            emu = self.game(ds_store=ds, ds_installed=ds_installed)
+            if changed is not None:
+                emu.write32(changed, value)
+            before = [emu.read32(va) for va in (SPECIES_VT_COMMAND, SPECIES_VT_ACTIVATE,
+                                                 STORE_VT_COMMAND, STORE_VT_ACTIVATE)]
+            self.assertEqual(self.install(emu), 0, (ds, ds_installed, changed))
+            after = [emu.read32(va) for va in (SPECIES_VT_COMMAND, SPECIES_VT_ACTIVATE,
+                                                STORE_VT_COMMAND, STORE_VT_ACTIVATE)]
+            self.assertEqual(after, before)
+            self.assertEqual(emu.protects, [])
+
+    def test_a_refused_store_write_puts_the_others_back(self) -> None:
+        for refused in (STORE_VT_COMMAND, STORE_VT_ACTIVATE):
+            emu = self.game()
+
+            def protect(e, refused=refused) -> int:
+                if e.arg(0) == refused:
+                    return 0
+                e.write32(e.arg(3), 0x02)
+                return 1
+            emu.hook_import("VirtualProtect", protect, 16)
+            self.assertEqual(self.install(emu), 0)
+            self.assertEqual([emu.read32(va) for va in (SPECIES_VT_COMMAND, SPECIES_VT_ACTIVATE,
+                                                        STORE_VT_COMMAND, STORE_VT_ACTIVATE)],
+                             [SPECIES_COMMAND, SPECIES_ACTIVATE, STORE_COMMAND, STORE_ACTIVATE])
+
+    def test_opening_the_store_adds_the_button_once(self) -> None:
+        """With DS Store Items on and off: the stock image button sequence, once, at 296, 551,
+        after the store's own activation (DS Store Items' runs first, then it calls the stock one)."""
+        for ds in (False, True):
+            emu = self.game(ds_store=ds)
+            self.install(emu)
+            scene = self.store(emu, emu.alloc(0x20000))
+            for on in (1, 0, 1, 1):
+                emu.call(emu.read32(STORE_VT_ACTIVATE), on, ecx=scene)
+            self.assertEqual(len(emu.buttons), 1, ds)
+            bid, image, x, y, handler, zero = emu.buttons[0]
+            self.assertEqual((bid, emu.cstring(image), x, y, handler, zero),
+                             (7, b"OptimizePricesStoreButton.png", 296, 551, scene, 0))
+            self.assertIn(("sound", (1,)), emu.calls)
+            self.assertEqual(sum(1 for c in emu.calls if c[0] == "add"), 1)
+            if ds:
+                self.assertEqual([c for c in emu.calls if c[0] == "ds activate"],
+                                 [("ds activate", (on,)) for on in (1, 0, 1, 1)])
+            # the Species Chart keeps its own button, added on its own screen
+            chart = self.shop(emu, {})[1]
+            emu.call(emu.read32(SPECIES_VT_ACTIVATE), 1, ecx=chart)
+            self.assertEqual(len(emu.buttons), 2)
+            bid, image, x, y, handler, _ = emu.buttons[1]
+            self.assertEqual((bid, emu.cstring(image), x, y, handler), (7, b"OptimizePricesButton.png", 524, 546, chart))
+
+    def test_other_store_commands_reach_the_store(self) -> None:
+        """Buy (1), Done (2), DS Store Items' Upgrades (3) and every other message go on to the slot's
+        previous function: DS Store Items' with it on, else the stock one (Done returns 1)."""
+        for ds in (False, True):
+            emu = self.game(ds_store=ds)
+            self.install(emu)
+            scene = self.store(emu, emu.alloc(0x20000))
+            if ds:
+                for msg, button in ((8, 1), (8, 2), (8, 3), (6, 7)):
+                    self.store_click(emu, scene, msg, button)
+                self.assertEqual([c for c in emu.calls if c[0] == "ds command"],
+                                 [("ds command", (8, 1)), ("ds command", (8, 2)), ("ds command", (8, 3)),
+                                  ("ds command", (6, 7))])
+            else:
+                emu.hook(0x0040AC30, emu.record("close", args=1), 4)
+                emu.hook(0x0041B070, lambda e: 0x5100, 0)
+                emu.hook(0x00418990, emu.record("goto", args=1), 4)
+                self.assertEqual(self.store_click(emu, scene, 8, 2) & 0xFF, 1)            # stock Done
+                self.assertIn(("goto", (5,)), emu.calls)
+                self.assertEqual(self.store_click(emu, scene, 6, 7) & 0xFF, 0)
+            self.assertEqual(emu.dialogs, [], ds)
+
+    def test_the_store_click_is_the_charts(self) -> None:
+        """The same shop and species: a Yes on the store's button leaves the game state, the string
+        table and the dialogs exactly as a Yes on the Species Chart's does, with DS Store Items on
+        and off (its own command never sees the click)."""
+        for ds in (False, True):
+            for answer in (0, 1):
+                results = []
+                for where in ("chart", "store"):
+                    emu = self.game(ds_store=ds, answer=answer)
+                    self.install(emu)
+                    entries, _ = self.entries()
+                    state, chart = self.shop(emu, entries)
+                    strings = bytes(emu.uc.mem_read(F_STRINGS, 12 * 0xF9))
+                    if where == "chart":
+                        handled = emu.call(emu.read32(SPECIES_VT_COMMAND), 8, 7, ecx=chart)
+                        parent = chart
+                    else:
+                        scene = self.store(emu, state)
+                        handled = self.store_click(emu, scene)
+                        parent = scene
+                    self.assertEqual(bytes(emu.uc.mem_read(F_STRINGS, 12 * 0xF9)), strings)
+                    self.assertNotIn("ds command", [c[0] for c in emu.calls])
+                    results.append((handled & 0xFF, bytes(emu.uc.mem_read(state, 0x20000)), emu.dialogs, parent))
+                (h1, s1, d1, _), (h2, s2, d2, _) = results
+                self.assertEqual((h1, h2), (1, 1), (ds, answer))
+                self.assertEqual(s2, s1, (ds, answer))
+                self.assertEqual(d2, d1, (ds, answer))
+                self.assertEqual(len(d1), 2 if answer == 0 else 1)
+
+
+@unittest.skipUnless(FISH_EXE.is_file() and STORE_BUTTON.is_file(), "needs the vanilla game and the button")
+class FishStoreButtonPlaceTests(unittest.TestCase):
+    """The store's button covers nothing: no stock item (the exe's table 0x457EF0, the research
+    shelves too), no DS Store Items item or its Upgrades link, not the stock Buy and Done, not the
+    description panel (the left panel, where the item's name, text and price are drawn) and not
+    the money box on the bar."""
+
+    BUTTON_X, BUTTON_Y = 296, 551
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        import io
+        import struct
+        import zipfile
+        from PIL import Image
+        cls.exe = FISH_EXE.read_bytes()
+        with zipfile.ZipFile(FISH_EXE.parent / "Assets" / "ft.dat") as archive:
+            names = {n.lower(): n for n in archive.namelist()}
+            cls.art = {n: Image.open(io.BytesIO(archive.read(names[n]))).convert("RGB")
+                       for n in ("supplyshop_bg_out.bmp", "suppliesbuybutton.png", "suppliesdonebutton.png")}
+        button = Image.open(STORE_BUTTON)
+        cls.button = (cls.BUTTON_X, cls.BUTTON_Y, cls.BUTTON_X + button.width // 3, cls.BUTTON_Y + button.height)
+        cls.struct = struct
+
+    def va(self, address: int) -> int:
+        """The file offset of a virtual address of the exe."""
+        data, s = self.exe, self.struct
+        pe = s.unpack_from("<I", data, 0x3C)[0]
+        count, optional = s.unpack_from("<H", data, pe + 6)[0], s.unpack_from("<H", data, pe + 20)[0]
+        for i in range(count):
+            _v, rva, size, raw = s.unpack_from("<IIII", data, pe + 24 + optional + i * 40 + 8)
+            if rva <= address - 0x400000 < rva + size:
+                return raw + address - 0x400000 - rva
+        raise KeyError(hex(address))
+
+    def assertClear(self, box, what) -> None:
+        bx0, by0, bx1, by1 = self.button
+        x0, y0, x1, y1 = box
+        self.assertTrue(bx1 <= x0 or x1 <= bx0 or by1 <= y0 or y1 <= by0, f"{what} {box} under {self.button}")
+
+    def test_the_button_is_where_the_dll_puts_it(self) -> None:
+        source = (ROOT / "native" / "ftfp_fish_prices" / "ftfp_fish_prices.c").read_text(encoding="utf-8")
+        self.assertIn(f"#define STORE_BUTTON_X {self.BUTTON_X}", source)
+        self.assertIn(f"#define STORE_BUTTON_Y {self.BUTTON_Y}", source)
+        self.assertEqual((self.button[2] - self.button[0], self.button[3] - self.button[1]), (140, 50))
+        self.assertLessEqual(self.button[2], 800)
+        self.assertLessEqual(self.button[3], 601)            # the stock buttons run one row past the screen
+
+    def test_no_stock_item(self) -> None:
+        at, items = self.va(0x00457EF0), 0
+        while True:
+            x, y, w, h = self.struct.unpack_from("<4i", self.exe, at)
+            if x == -1:
+                break
+            self.assertClear((x, y, x + w, y + h), f"stock item {items}")
+            items += 1
+            at += 0x34
+        self.assertEqual(items, 26)
+
+    def test_no_ds_store_item_or_upgrades_link(self) -> None:
+        import re
+        source = (ROOT / "native" / "ftfp_ds_store" / "ftfp_ds_store.c").read_text(encoding="latin-1")
+        items = re.findall(r"^\s*\{ (?:FIN_\w+|0), \d+, (\d+), (\d+), (\d+), (\d+), SPR_", source, re.M)
+        self.assertEqual(len(items), 10)
+        for x, y, w, h in ((int(v) for v in item) for item in items):
+            self.assertClear((x, y, x + w, y + h), "DS Store Items item")
+        layout = json.loads((ROOT / "data" / "ds_store_layout.json").read_text(encoding="utf-8"))
+        (ux, uy), (uw, uh) = layout["button"], layout["button_size"]
+        self.assertClear((ux, uy, ux + uw, uy + uh), "the Upgrades link")
+
+    def test_not_buy_or_done(self) -> None:
+        """The stock buttons' places, from the store's constructor (0x427895: y in eax, x per button)."""
+        y = self.struct.unpack_from("<i", self.exe, self.va(0x00427895) + 1)[0]
+        buy_x = self.struct.unpack_from("<i", self.exe, self.va(0x004278AD) + 4)[0]
+        done_x = self.struct.unpack_from("<i", self.exe, self.va(0x004278C5) + 4)[0]
+        self.assertEqual((buy_x, done_x, y), (578, 695, 551))
+        for x, art in ((buy_x, "suppliesbuybutton.png"), (done_x, "suppliesdonebutton.png")):
+            image = self.art[art]
+            self.assertClear((x, y, x + image.width // 3, y + image.height), art)
+
+    def test_not_the_description_panel_or_the_money_box(self) -> None:
+        """The panel's text starts at 0x39, 0x159 and its last line (the price) at y 0x1FD, all above
+        the bar; the money box is the bar's black field, read off the background."""
+        self.assertClear((47, 335, 470, 0x1FD + 30), "the description panel")
+        bg = self.art["supplyshop_bg_out.bmp"]
+        right = 60
+        while sum(bg.getpixel((right, 575))) < 60:
+            right += 1
+        self.assertGreater(self.BUTTON_X, right)
+        self.assertClear((47, 551, right, 600), "the money box")
+        self.assertEqual(self.art["supplyshop_bg_out.bmp"].size, (800, 600))
 
 
 # Plant Tycoon

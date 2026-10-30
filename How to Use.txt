@@ -69,8 +69,9 @@ Fish Tycoon options:
   isolation tank. A "Counts: On/Off" button at the top right of the water
   hides them; the choice is kept in Tank Counts.ini. Display only.)
 - Optimize Prices button (on by default; an "Optimize Prices" button on the
-  Species Chart. Asks Yes/No, then sets every discovered species to its best
-  price per day for your shop as it is now, as in the Breeding Guide.)
+  Species Chart and the same one on the Supplies store's bottom bar, so you
+  can use it any time. Asks Yes/No, then sets every discovered species to its
+  best price per day for your shop as it is now, as in the Breeding Guide.)
 - DS Exclusive Fish (off by default; adds the DS version's 7 bodies and
   7 fins. Sell or trash every DS fish before turning it off again.)
 - DS Store Items (off by default; needs DS Exclusive Fish. Adds an

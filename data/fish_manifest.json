@@ -18596,8 +18596,8 @@
     {
       "id": "optimize_prices",
       "name": "Optimize Prices button",
-      "summary": "Adds an Optimize Prices button to the Species Chart: it sets every discovered species to its best price per day for your shop as it is now.",
-      "description": "Adds an \"Optimize Prices\" button on the Species Chart's bottom bar, left of Done, where you set prices. It asks \"Set every discovered species to its best price per day?\". On Yes, every species you have discovered gets the Breeding Guide's \"best per day\" asking price, the price that earns the most money over time, worked out in the game with the same maths as the guide for your shop as it is now: each species' base price (with the Advertising price rises), the ornaments you own, the Golden Seahorse and your Advertising level, with a full selling tank. Then it says how many prices it set. Species you have not discovered keep their prices and nothing else changes; the new prices are the ones you would type yourself, saved with the game as usual. With DS Exclusive Fish on, the DS species are included. Runs as a companion DLL the game loads at start; the save layout is unchanged.",
+      "summary": "Adds an Optimize Prices button to the Species Chart and the Supplies store: it sets every discovered species to its best price per day for your shop as it is now.",
+      "description": "Adds an \"Optimize Prices\" button on the Species Chart's bottom bar, left of Done, where you set prices, and the same button on the Supplies store's bottom bar, left of Buy (and of the Upgrades link with DS Store Items on), so you can use it any time: the Species Chart only opens with a fish in the isolation tank. Both buttons do the same thing. It asks \"Set every discovered species to its best price per day?\". On Yes, every species you have discovered gets the Breeding Guide's \"best per day\" asking price, the price that earns the most money over time, worked out in the game with the same maths as the guide for your shop as it is now: each species' base price (with the Advertising price rises), the ornaments you own, the Golden Seahorse and your Advertising level, with a full selling tank. Then it says how many prices it set. Species you have not discovered keep their prices and nothing else changes; the new prices are the ones you would type yourself, saved with the game as usual. With DS Exclusive Fish on, the DS species are included. Runs as a companion DLL the game loads at start; the save layout is unchanged.",
       "category": "main",
       "default": true,
       "companion": {
@@ -18607,14 +18607,20 @@
           {
             "path": "Optimize Prices.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Optimize Prices.dll",
-            "size": 90112,
-            "sha256": "CFBFCEDA919891F3ED668E9933B605699A1A0B23711D0D1D76D6216E051C051D"
+            "size": 91648,
+            "sha256": "78C18EB90036A0A5331D2BCD65E4DD99A707B3BF5A4AF5BB74272C5AF63C62C2"
           },
           {
             "path": "Images/OptimizePricesButton.png",
             "destination": "Images/OptimizePricesButton.png",
             "size": 22673,
             "sha256": "6EA06A905E06E77966EDA5FBBA0229BEC89D547CC6A0651DBFEBB0FF90790836"
+          },
+          {
+            "path": "Images/OptimizePricesStoreButton.png",
+            "destination": "Images/OptimizePricesStoreButton.png",
+            "size": 18499,
+            "sha256": "7E2FF73BAD50409B23E20170269566C0E70B2A894A797BD2C6DB8B486F6AC481"
           }
         ]
       }
