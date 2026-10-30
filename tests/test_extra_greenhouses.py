@@ -136,8 +136,10 @@ class Game:
 
     def show(self, g: int, active: int = 1) -> None:
         """The greenhouse screen showing greenhouse g (0-5)."""
+        """The screen `active` (1 greenhouse, 2 nursery, 3 snapshot, 0 any other) with greenhouse g (0-5)."""
         self.emu.write32(self.emu.sym("_shown"), g)
-        self.emu.write32(self.emu.sym("_active"), active)
+        self.emu.uc.mem_write(self.emu.sym("_scene_on"), bytes(1 if k == active else 0 for k in range(4)))
+        self.emu.write32(self.emu.sym("_current"), active)
         self.emu.call(self.emu.sym("_ensure"))
 
     def pot(self, g: int, k: int) -> int:
@@ -354,33 +356,44 @@ class MoveTests(unittest.TestCase):
         emu.write32(game.state + HELD, HELD_POT + k)
         emu.call(emu.sym("@gh_mouse@20"), 3, 760 if right else 230, 30, ecx=game.scene)
 
-    def test_a_plant_dropped_on_an_arrow_moves_to_that_greenhouses_first_empty_pot(self) -> None:
+    def test_a_pot_dragged_onto_an_arrow_moves_to_the_same_place_in_that_greenhouse(self) -> None:
         game = grow(0, 4, ((4, 13, 13),), (7200,))
         plant = game.pot_bytes(0, 4)
-        empty_target = game.pot_bytes(1, 0)
+        empty_target = game.pot_bytes(1, 4)
         game.show(0)
         self.drop_on_arrow(game, True, 4)
         emu = game.emu
         self.assertEqual(emu.read32(emu.sym("_shown")), 1)
         self.assertEqual(emu.read32(game.state + HELD), 0)
-        self.assertEqual(bytes(emu.uc.mem_read(game.state + POTS_AT, POT)), plant)   # on screen now
+        self.assertEqual(bytes(emu.uc.mem_read(game.state + POTS_AT + 4 * POT, POT)), plant)   # on screen now
         self.assertTrue(game.objects_follow_their_records())
         game.show(0, active=0)
-        self.assertEqual(game.pot_bytes(1, 0), plant)
+        self.assertEqual(game.pot_bytes(1, 4), plant)
         self.assertEqual(game.pot_bytes(0, 4), empty_target)
-        # and on round: from greenhouse 2 to the left, back into greenhouse 1 (its pot 0 is empty)
+        # and back: greenhouse 2's left arrow leads to greenhouse 1, whose pot 4 is empty again
         game.show(1)
-        self.drop_on_arrow(game, False, 0)
+        self.drop_on_arrow(game, False, 4)
         game.show(0, active=0)
-        self.assertEqual(game.pot_bytes(0, 0), plant)
-        # greenhouse 1's left arrow leads to greenhouse 6
+        self.assertEqual(game.pot_bytes(0, 4), plant)
+        # greenhouse 1's left arrow leads round to greenhouse 6
         game.show(0)
-        self.drop_on_arrow(game, False, 0)
+        self.drop_on_arrow(game, False, 4)
         game.show(0, active=0)
-        self.assertEqual(game.pot_bytes(5, 0), plant)
+        self.assertEqual(game.pot_bytes(5, 4), plant)
         # it keeps growing there exactly as before
         game.tick(3600)
-        self.assertNotEqual(game.pot_bytes(5, 0), plant)
+        self.assertNotEqual(game.pot_bytes(5, 4), plant)
+
+    def test_a_taken_place_moves_it_to_the_first_empty_pot(self) -> None:
+        game = grow(0, 4, ((4, 13, 13),), (7200,))
+        plant = game.pot_bytes(0, 4)
+        for k in (0, 1, 4):
+            game.emu.write32(game.pot(1, k) + FOLIAGE, 9)
+        game.show(0)
+        self.drop_on_arrow(game, True, 4)
+        game.show(0, active=0)
+        self.assertEqual(game.pot_bytes(1, 2), plant)
+        self.assertEqual(game.told, [])
 
     def test_a_full_greenhouse_takes_no_plant(self) -> None:
         game = grow(0, 4, ((4, 13, 13),), TICKS[:1])
@@ -465,6 +478,40 @@ class NurseryLimitTests(unittest.TestCase):
         self.assertEqual(len(game.told), 1)
         game.show(0, active=0)
         self.assertEqual(sum(game.emu.uc.mem_read(game.pot(3, k) + FOR_SALE, 1)[0] for k in range(POTS)), 10)
+
+    def sell(self, g: int, k: int):
+        """Tag greenhouse g's pot k for sale (button 6), open the nursery, let the game's own sale code
+        (0x435C70, a visitor buying the plant in its spot) sell it, and close the nursery."""
+        game = self.full_game()
+        emu = game.emu
+        self.toggle(game, g, k)
+        nursery = emu.alloc(0xB00)
+        emu.write32(nursery + 0xA3C, game.state)
+        emu.write32(nursery + 0xA44, game.manager)
+        emu.write32(nursery + 0xA4C, emu.alloc(0x40))
+        emu.hook(0x0043ACD0, lambda e: 0)                  # no visitors left to react
+        emu.hook(0x00449F00, lambda e: emu.alloc(0x10))    # the sound bank
+        game.show(g, active=2)
+        spots = [j for j in range(POTS) if emu.uc.mem_read(game.state + POTS_AT + j * POT + FOR_SALE, 1)[0]]
+        self.assertEqual(len(spots), 1)
+        cash, sold = emu.read32(game.state + 0x217C), emu.read32(game.state + 0x38)
+        emu.call(0x00435C70, 0, 0, spots[0] // 5, spots[0] % 5, ecx=nursery)
+        price = emu.read32(game.state + ((5 + 0x37) * 26 + 5) * 4)
+        after = (emu.read32(game.state + 0x217C) - cash, emu.read32(game.state + 0x38) - sold)
+        emu.call(emu.sym("@nu_activate@12"), 0, ecx=nursery)                # leaving the nursery
+        left = game.pot_bytes(g, k)
+        return after, price, left, game
+
+    def test_a_plant_tagged_in_an_extra_greenhouse_sells_like_a_stock_plant(self) -> None:
+        stock, price, stock_left, _ = self.sell(0, 6)
+        self.assertEqual(stock, (price, 1))
+        self.assertEqual(struct.unpack_from("<i", stock_left, FOLIAGE)[0], 0)      # the sold plant left its pot
+        for g in range(1, EXTRA + 1):
+            extra, _, left, game = self.sell(g, 6)
+            self.assertEqual(extra, stock, f"greenhouse {g + 1}")
+            self.assertEqual(struct.unpack_from("<i", left, FOLIAGE)[0], 0)
+            self.assertEqual(game.emu.read32(game.emu.sym("_arranged")), HOME)
+            self.assertNotEqual(struct.unpack_from("<i", game.pot_bytes(0, 0), FOLIAGE)[0], 0)  # spot 0's own plant is home
 
     def test_the_nursery_shows_the_plants_for_sale_of_every_greenhouse_in_its_15_spots(self) -> None:
         game = self.full_game()

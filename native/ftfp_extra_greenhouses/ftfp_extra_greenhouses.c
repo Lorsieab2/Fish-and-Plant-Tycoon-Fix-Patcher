@@ -8,9 +8,9 @@
    the same screen, pots, buttons, tools and tray, and the game's own code
    runs on its pots, so plants grow, age, need water and care, flower,
    pollinate, give seeds, get pests and die exactly as in the stock pots,
-   including the catch-up of time away and the Time Warp.  A plant dropped on
-   an arrow moves to the first empty pot of the greenhouse that arrow leads
-   to.  The nursery shows the plants for sale from every greenhouse, and the
+   including the catch-up of time away and the Time Warp.  A plant dragged onto
+   an arrow moves to the same pot place in the greenhouse that arrow leads
+   to, or to its first empty pot if that place is taken.  The nursery shows the plants for sale from every greenhouse, and the
    stock limit holds: at most 15 plants are for sale at once (the stock
    nursery's 15 spots), counted over all six greenhouses.
 
@@ -132,7 +132,8 @@ static int undo_count = 0;
 #define NURSERY 100
 static int arranged = HOME;     /* HOME, 1..EXTRA (that greenhouse is in the state), NURSERY */
 static int shown = 0;           /* the greenhouse on screen, 0..EXTRA */
-static int active = 0;          /* 0 none, 1 greenhouse, 2 nursery, 3 snapshot */
+static unsigned char scene_on[4];   /* [1] greenhouse, [2] nursery, [3] snapshot open */
+static int current = 0;             /* the screen the game last drove */
 static int moved_this_frame = 0;
 static void *arrows[2];
 static int installed = 0;
@@ -224,15 +225,36 @@ NOINLINE static void arrange(char *state, int kind) {
     arranged = kind;
 }
 
+/* Which pots a screen wants.  Each screen is tracked on its own, so the order
+   in which the game opens one screen and closes the other never matters:
+   the screen the game is driving (the last one that ran) decides. */
+static int kind_wants(int kind) { return kind == 2 ? NURSERY : kind != 0 ? shown : HOME; }
+
 static int wanted(void) {
-    if (active == 1 || active == 3) return shown;
-    if (active == 2) return NURSERY;
+    int kind;
+    if (current != 0 && scene_on[current]) return kind_wants(current);
+    for (kind = 1; kind <= 3; ++kind) {
+        if (scene_on[kind]) return kind_wants(kind);
+    }
     return HOME;
 }
 
 NOINLINE static void ensure(void) {
     char *state = GAME_STATE;
     if (state != NULL) arrange(state, wanted());
+}
+
+/* A call into screen `kind` (1 greenhouse, 2 nursery, 3 snapshot). */
+static void enter(int kind) {
+    scene_on[kind] = 1;
+    current = kind;
+    ensure();
+}
+
+static void leave(int kind) {
+    scene_on[kind] = 0;
+    if (current == kind) current = 0;
+    ensure();
 }
 
 /* Plants for sale in all six greenhouses. */
@@ -400,6 +422,7 @@ static void __fastcall pollinate(void *scene, int edx, char *target, char *donor
    other greenhouses' sold plants leave theirs too, through the same call. */
 static void clear_sold_elsewhere(char *state) {
     int g, k, keep = arranged;
+    if (MANAGER == NULL) return;
     for (g = 0; g < GREENHOUSES; ++g) {
         if (g == shown) continue;
         arrange(state, g);
@@ -411,12 +434,15 @@ static void clear_sold_elsewhere(char *state) {
     arrange(state, keep);
 }
 
-/* A held plant dropped on an arrow: into the first empty pot of that greenhouse. */
-static int first_empty(char *state, int g) {
+/* A held plant dropped on an arrow: into the same pot place of that
+   greenhouse if it is empty, else its first empty pot. */
+static int pot_empty(const char *pot) { return AT(pot, POT_FOLIAGE, int) == 0 && !pot[POT_PLANTED]; }
+
+static int target_pot(char *state, int g, int same) {
     int k;
+    if (pot_empty(locate(state, g, same))) return same;
     for (k = 0; k < POTS; ++k) {
-        char *pot = locate(state, g, k);
-        if (AT(pot, POT_FOLIAGE, int) == 0 && !pot[POT_PLANTED]) return k;
+        if (pot_empty(locate(state, g, k))) return k;
     }
     return -1;
 }
@@ -427,7 +453,7 @@ NOINLINE static void carry_plant(char *scene, int to) {
     int from = AT(state, STATE_HELD, int) - HELD_POT, g = (to % GREENHOUSES + GREENHOUSES) % GREENHOUSES, k;
     ensure();
     if (from < 0 || from >= POTS || arranged != shown) return;
-    k = first_empty(state, g);
+    k = target_pot(state, g, from);
     if (k < 0) {
         int n = 0, i;
         const char *head = "Greenhouse ", *tail = " is full!\n\nThere is no empty pot to move\nthis plant to.";
@@ -453,7 +479,7 @@ static int in_arrow(int i, int x, int y) {
 
 static int __fastcall gh_mouse(char *scene, int edx, int msg, int x, int y) {
     char *state = AT(scene, SCENE_STATE, char *);
-    ensure();
+    enter(1);
     if (msg == MOUSE_UP && state != NULL && AT(state, STATE_HELD, int) >= HELD_POT
         && AT(state, STATE_HELD, int) < HELD_POT + POTS) {
         int i;
@@ -469,7 +495,7 @@ static int __fastcall gh_mouse(char *scene, int edx, int msg, int x, int y) {
 }
 
 static int __fastcall gh_key(char *scene, int edx, int msg, int a, int b) {
-    ensure();
+    enter(1);
     return next_gh_key(scene, edx, msg, a, b);
 }
 
@@ -480,7 +506,7 @@ static int sellable(const char *pot) {
 
 static int __fastcall gh_command(char *scene, int edx, int msg, int id) {
     char *state = AT(scene, SCENE_STATE, char *);
-    ensure();
+    enter(1);
     if (msg == 8 && (id == ARROW_PREV || id == ARROW_NEXT)) {
         if (!moved_this_frame) {
             play_sound(AT(scene, SCENE_SOUND, void *), 0, SOUND_BUTTON);
@@ -517,11 +543,11 @@ static int __fastcall gh_command(char *scene, int edx, int msg, int id) {
     return next_gh_command(scene, edx, msg, id);
 }
 
-static void __fastcall gh_overlay(char *scene, int edx) { ensure(); next_gh_overlay(scene, edx); }
+static void __fastcall gh_overlay(char *scene, int edx) { enter(1); next_gh_overlay(scene, edx); }
 
 static void __fastcall gh_draw(char *scene, int edx) {
     static char label[32] = "Greenhouse 1 of 6";
-    ensure();
+    enter(1);
     next_gh_draw(scene, edx);
     label[11] = (char)('1' + shown);
     label[16] = (char)('0' + GREENHOUSES);
@@ -532,15 +558,14 @@ static void __fastcall gh_tick(char *scene, int edx) {
     char *state = AT(scene, SCENE_STATE, char *);
     moved_this_frame = 0;
     if (state != NULL && AT(state, STATE_HELD, int) != HELD_POLLEN) pollen_g = pollen_k = -1;
-    ensure();
+    enter(1);
     next_gh_tick(scene, edx);
 }
 
 static void __fastcall gh_activate(char *scene, int edx, int on) {
     char *state = AT(scene, SCENE_STATE, char *);
     if (on) {
-        active = 1;
-        ensure();
+        enter(1);
         if (state != NULL) clear_sold_elsewhere(state);
         next_gh_activate(scene, edx, on);
         if (arrows[0] == NULL) {
@@ -557,50 +582,45 @@ static void __fastcall gh_activate(char *scene, int edx, int on) {
         }
     } else {
         next_gh_activate(scene, edx, on);
-        active = 0;
         pollen_g = pollen_k = -1;
-        ensure();
+        leave(1);
     }
 }
 
 /* ----------------------------------------------------- nursery and snapshot */
 
-static int __fastcall nu_mouse(char *s, int e, int m, int x, int y) { ensure(); return next_nu_mouse(s, e, m, x, y); }
-static int __fastcall nu_key(char *s, int e, int m, int a, int b) { ensure(); return next_nu_key(s, e, m, a, b); }
-static int __fastcall nu_command(char *s, int e, int m, int id) { ensure(); return next_nu_command(s, e, m, id); }
-static void __fastcall nu_draw(char *s, int e) { ensure(); next_nu_draw(s, e); }
-static void __fastcall nu_overlay(char *s, int e) { ensure(); next_nu_overlay(s, e); }
-static void __fastcall nu_tick(char *s, int e) { ensure(); next_nu_tick(s, e); }
+static int __fastcall nu_mouse(char *s, int e, int m, int x, int y) { enter(2); return next_nu_mouse(s, e, m, x, y); }
+static int __fastcall nu_key(char *s, int e, int m, int a, int b) { enter(2); return next_nu_key(s, e, m, a, b); }
+static int __fastcall nu_command(char *s, int e, int m, int id) { enter(2); return next_nu_command(s, e, m, id); }
+static void __fastcall nu_draw(char *s, int e) { enter(2); next_nu_draw(s, e); }
+static void __fastcall nu_overlay(char *s, int e) { enter(2); next_nu_overlay(s, e); }
+static void __fastcall nu_tick(char *s, int e) { enter(2); next_nu_tick(s, e); }
 
 /* The nursery counts its plants for sale (the visitor limit) as it opens, and
    empties the sold pots as it closes: both on the arranged pots. */
 static void __fastcall nu_activate(char *s, int e, int on) {
     if (on) {
-        active = 2;
-        ensure();
+        enter(2);
         next_nu_activate(s, e, on);
     } else {
         next_nu_activate(s, e, on);
-        active = 0;
-        ensure();
+        leave(2);
     }
 }
 
-static int __fastcall sn_mouse(char *s, int e, int m, int x, int y) { ensure(); return next_sn_mouse(s, e, m, x, y); }
-static int __fastcall sn_key(char *s, int e, int m, int a, int b) { ensure(); return next_sn_key(s, e, m, a, b); }
-static int __fastcall sn_command(char *s, int e, int m, int id) { ensure(); return next_sn_command(s, e, m, id); }
-static void __fastcall sn_draw(char *s, int e) { ensure(); next_sn_draw(s, e); }
+static int __fastcall sn_mouse(char *s, int e, int m, int x, int y) { enter(3); return next_sn_mouse(s, e, m, x, y); }
+static int __fastcall sn_key(char *s, int e, int m, int a, int b) { enter(3); return next_sn_key(s, e, m, a, b); }
+static int __fastcall sn_command(char *s, int e, int m, int id) { enter(3); return next_sn_command(s, e, m, id); }
+static void __fastcall sn_draw(char *s, int e) { enter(3); next_sn_draw(s, e); }
 
 /* The snapshot (F1 in the greenhouse) shows the greenhouse that was on screen. */
 static void __fastcall sn_activate(char *s, int e, int on) {
     if (on) {
-        active = 3;
-        ensure();
+        enter(3);
         next_sn_activate(s, e, on);
     } else {
         next_sn_activate(s, e, on);
-        active = 0;
-        ensure();
+        leave(3);
     }
 }
 
@@ -881,14 +901,14 @@ NOINLINE static int prepare(void) {
     ftfp_site_branch(w++, SITE_POLLINATE_CALL_VA, SITE_POLLINATE_CALL_LEN, SITE_POLLINATE_CALL_EXPECT, 0xE8,
                      CODE_ADDR(pollinate));
     for (i = 0; i < VTABLE_SLOTS; ++i) {
-        DWORD current, to = (DWORD)(UINT_PTR)SLOTS[i].wrapper;
+        DWORD held, to = (DWORD)(UINT_PTR)SLOTS[i].wrapper;
         if (!known_slot(SLOTS[i].va, SLOTS[i].stock)) {
             ftfp_failed_site = SLOTS[i].va;
             return 0;
         }
-        current = *(const DWORD *)(UINT_PTR)SLOTS[i].va;
-        memcpy(slot_expect[i], &current, 4);
-        *SLOTS[i].next = (void *)(UINT_PTR)current;
+        held = *(const DWORD *)(UINT_PTR)SLOTS[i].va;
+        memcpy(slot_expect[i], &held, 4);
+        *SLOTS[i].next = (void *)(UINT_PTR)held;
         w->va = SLOTS[i].va;
         w->length = 4;
         w->expect = slot_expect[i];
@@ -942,30 +962,32 @@ static void write_install_log(void) {
 /* The other companions beside this DLL start first, so their wrappers are in place. */
 typedef int (__stdcall *startup_fn)(void);
 
-static void start_companion(const wchar_t *name) {
+/* 1 when the companion is beside this DLL (it is then loaded and started). */
+static int start_companion(const wchar_t *name) {
     wchar_t path[1024];
     HMODULE module;
     startup_fn startup;
-    if (!own_folder(path, 1024) || wcslen(path) + wcslen(name) + 1 >= 1024) return;
+    if (!own_folder(path, 1024) || wcslen(path) + wcslen(name) + 1 >= 1024) return 0;
     wcscat_s(path, 1024, name);
-    if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) return;
+    if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES) return 0;
     module = LoadLibraryExW(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-    if (module == NULL) return;
+    if (module == NULL) return 1;
     startup = (startup_fn)GetProcAddress(module, "FtfpStartup");
     if (startup != NULL) startup();
+    return 1;
 }
 
-/* Called once by the startup loader before WinMain. */
+/* Called once by the startup loader before WinMain.  The first of these that
+   is beside this DLL starts the others it knows: "Greenhouse Counts.dll"
+   (its own setting) starts Unused Flowers or Sort Seeds, and "Unused
+   Flowers.dll" starts the store upgrades, the seed boxes and Sort Seeds. */
 int __stdcall FtfpStartup(void) {
+    static const wchar_t *const first[3] = { L"Greenhouse Counts.dll", L"Unused Flowers.dll", L"Sort Seeds.dll" };
+    int i;
     if (installed) return 1;
     __try {
-        wchar_t path[1024];
-        int flowers = 0;
-        if (own_folder(path, 1024) && wcslen(path) + 24 < 1024) {
-            wcscat_s(path, 1024, L"Unused Flowers.dll");
-            flowers = GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES;
+        for (i = 0; i < 3 && !start_companion(first[i]); ++i) {
         }
-        start_companion(flowers ? L"Unused Flowers.dll" : L"Sort Seeds.dll");
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
     __try {

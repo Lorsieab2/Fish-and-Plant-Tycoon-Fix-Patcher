@@ -3,9 +3,11 @@
 One optional Plant Tycoon setting, **5 extra greenhouses** (`extra_greenhouses`,
 off by default, in the "Modded Upgrades" copy). It ships one companion DLL,
 `Extra Greenhouses.dll`, which the startup loader loads first when the setting
-is on; the DLL starts `Unused Flowers.dll` (which starts the rest) or
-`Sort Seeds.dll` when they are beside it, then installs its own sites, so it
-wraps whatever they installed. No byte of the executable is patched beyond the
+is on; the DLL starts the first of `Greenhouse Counts.dll` (its own setting,
+which starts the next two itself), `Unused Flowers.dll` (which starts the
+rest) and `Sort Seeds.dll` that is beside it, then installs its own sites, so
+it wraps whatever they installed (a vtable slot may hold another companion's
+wrapper from the same folder; it is chained). No byte of the executable is patched beyond the
 startup loader (`src/ds_fish_loader.py`, `PLANT_GREENHOUSES`).
 
 ## What the player sees (the owner's design)
@@ -20,8 +22,9 @@ startup loader (`src/ds_fish_loader.py`, `PLANT_GREENHOUSES`).
 - Every greenhouse is the stock greenhouse screen (background, pots, buttons,
   tray), and the game's own code runs on its pots. No logic is reimplemented
   and there is no new art.
-- Moving: drag a plant onto an arrow and it moves to the first empty pot of the
-  greenhouse that arrow leads to (which is then shown). A full greenhouse says
+- Moving: drag a plant onto an arrow (as the stock game drags it to another
+  pot) and it moves to the same pot place in the greenhouse that arrow leads
+  to, or to its first empty pot if that place is taken (which is then shown). A full greenhouse says
   "Greenhouse n is full! There is no empty pot to move this plant to." Pollen
   can be carried to another greenhouse.
 - Selling: the stock nursery's 15 spots and the stock limit. At most 15 plants

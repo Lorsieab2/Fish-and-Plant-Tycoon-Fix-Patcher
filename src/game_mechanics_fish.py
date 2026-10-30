@@ -1115,6 +1115,8 @@ OTHER_GAME = (
     Fact('Bugs (a collection): not in Fish Tycoon; the Trophy Case of magic fish is its only collection (see Goals and popups).'),
     Fact('Goals, messages and statistics: see Goals and popups.'),
     Fact("Sorting seeds: not in Fish Tycoon (the patcher's Sort Seeds button is Plant Tycoon only)."),
+    Fact("Extra greenhouses (patcher): Plant Tycoon only. Fish Tycoon's tanks have their own setting, "
+         "Bigger tanks: 26 fish (see Which tank counts)."),
 )
 
 TIME_WARP = (

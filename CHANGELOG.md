@@ -91,8 +91,9 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   pots, so every plant, chemical, tool, upgrade and magic plant works the same
   in each, and every greenhouse grows while you look elsewhere, while you are
   away and through the Time Warp (checked in emulation byte for byte against
-  the stock pots). Drop a plant on an arrow to move it to the next
-  greenhouse's first empty pot; pollen can be carried between greenhouses. The
+  the stock pots). Drag a plant onto an arrow to move it to the same pot place
+  in the next (or previous) greenhouse, or its first empty pot if that place
+  is taken; pollen can be carried between greenhouses. The
   nursery keeps its 15 spots: at most 15 plants are for sale at once, counting
   every greenhouse. Greenhouses 2-6 are kept per save slot in "Plant Tycoon Fix
   Patcher Data\Extra Greenhouses <slot>.dat"; the save keeps its stock layout.

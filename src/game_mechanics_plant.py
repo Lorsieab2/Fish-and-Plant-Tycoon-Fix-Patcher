@@ -1043,8 +1043,9 @@ EXTRA_GREENHOUSES = (
         "six greenhouses.",
     ),
     Fact(
-        "Moving plants: drag a plant onto an arrow to move it to the first empty pot of the greenhouse that "
-        "arrow leads to (it then shows that greenhouse). If that greenhouse has no empty pot, a box says so "
+        "Moving plants: drag a plant onto an arrow, as you drag it to another pot, to move it to the same "
+        "pot place in the greenhouse that arrow leads to, or to its first empty pot if that place is taken "
+        "(it then shows that greenhouse). If that greenhouse has no empty pot, a box says so "
         "and the plant stays. Moving within a greenhouse is the stock drag to another pot.",
         subs=(
             "Pollen you collect can be carried to another greenhouse with the arrows; the seeds it makes are "
@@ -1053,8 +1054,11 @@ EXTRA_GREENHOUSES = (
         ),
     ),
     Fact(
-        "Selling: the nursery has the stock game's 15 spots, and at most 15 plants can be for sale at once, "
-        "counting every greenhouse. Putting a 16th up for sale says \"Your nursery is full!\"; the "
+        "Selling: in the stock game you tag any mature, living plant for sale where it stands (select it, then "
+        "the greenhouse's nursery button; or the button that tags them all), and it stays in its pot. The game "
+        "has no other cap: the nursery's 15 spots are the 15 pots, so at most 15 plants can be for sale at "
+        "once. With the extra greenhouses that stock maximum holds for all six together: at most 15 plants are "
+        "for sale at once, counting every greenhouse. Putting a 16th up for sale says \"Your nursery is full!\"; the "
         "greenhouse's put-everything-up button stops at 15. The nursery shows the plants for sale from all "
         "six greenhouses, so visitors, prices and the visitor limit (2 per plant for sale, see Selling and "
         "visitors) are exactly the stock game's. Sold plants leave their pots as in the stock game.",

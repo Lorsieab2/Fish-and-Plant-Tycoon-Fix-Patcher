@@ -219,8 +219,9 @@ never needs the internet.
   flower, take pollen, give seeds, get pests and die exactly as in Greenhouse
   1, also while you look at another greenhouse, while you are away and through
   the Time Warp, and every chemical, tool, upgrade and magic plant works in
-  each. Drop a plant on an arrow to move it to the first empty pot of the
-  greenhouse that arrow leads to; pollen can be carried across. The nursery
+  each. Drag a plant onto an arrow to move it to the same pot place in the
+  greenhouse that arrow leads to (or its first empty pot if that place is
+  taken); pollen can be carried across. The nursery
   shows the plants for sale from every greenhouse in its stock 15 spots, and at
   most 15 plants can be for sale at once. Greenhouses 2-6 are kept per slot in
   "Plant Tycoon Fix Patcher Data\Extra Greenhouses <slot>.dat" beside the
