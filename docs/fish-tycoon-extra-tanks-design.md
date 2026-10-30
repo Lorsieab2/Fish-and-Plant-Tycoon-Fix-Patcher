@@ -37,10 +37,9 @@ MAINTANK1/2/3_BG_PNG, sprites 27, 26, 25) and its own wood and plants
 0x41D44F). Both are skipped while an extra tank is drawn, so Tank Five has no
 sign.
 
-Mockups of the proposed selling toggle (not built, see "Selling from the
-extra tanks"): `docs/images/extra-tank-3-selling-off.png`,
-`extra-tank-3-selling-on.png`, and the same for 4 and 5
-(`scripts/render_extra_tanks_mockups.py`).
+Mockups with the name label and the For sale toggle, Off and On:
+`docs/images/extra-tank-3-selling-off.png`, `extra-tank-3-selling-on.png`,
+and the same for 4 and 5 (`scripts/render_extra_tanks_mockups.py`).
 
 Tank Three, Tank Four and Tank Five: three more tanks exactly like Tank One
 and Tank Two. Fish live, age, eat, get sick, breed and give birth in them;
@@ -259,8 +258,9 @@ the DLL rebuilt from source:
 
 ## Differences from a stock tank
 
-* **Selling:** the extra tanks do not sell (see "Selling from the extra
-  tanks").
+* **Selling order:** with several tanks selling, the roll goes through the
+  tanks in order (the Sale Tank first), as the stock roll goes through one
+  tank's fish in order.
 * **DS Store Items, one of each:** with "Buy Multiple Golden Seahorses" off,
   DS Store Items lets you buy a store animal again when it finds none in tanks
   0-3; an animal kept in an extra tank (not on screen) is not seen there. The
@@ -271,36 +271,40 @@ the DLL rebuilt from source:
 * **Other patcher branches** that count fish per tank from the stock blocks
   (an in-game tank count) see an extra tank only while it is on screen.
 
-## Selling from the extra tanks (not built)
+## Selling from the extra tanks
 
-The owner asked for a "For sale: Off/On" toggle on Tanks 3-5 that puts the
-sign in and sells their fish exactly like the Sale Tank. The sign part is
-simple (`forsale.png` and its shadow at the Sale Tank's places, as in the
-mockups). The selling part could not be made identical to stock in this
-change, so it is not shipped:
+Each of Tanks 3-5 has a "For sale: Off/On" button under its name label
+(ForSaleOff/On.png, two frames, at (12, 96); German "Verkauf: Aus/An"), Off
+when bought and in a new game; it is saved per slot in the sidecar (version
+3: a bit per tank). On draws the Sale Tank's sign: on Tank Five (drawn as the
+Sale Tank) the stock draws are let through, on Tanks Three and Four the DLL
+draws the same sprites (3 and 4) at the same places after the decorations.
 
-* The game's sale code reads the Sale Tank by fixed addresses, not by a tank
-  number: the per-second sale roll 0x424240 walks `state + 0xA768 + slot *
-  0x288` (tank 2), and the sale screen 0x423800, the sale scene's opening
-  0x423E00 (adults counted, the fish pictures), the thought bubbles 0x413530
-  and the sale itself (0x424010, 0x4236D0) do the same.
-* The roll could be run once per selling tank each second, with that tank
-  lent the Sale Tank's place (the game's own roll on each, the 5-second pause
-  after a sale shared). But the sale scene builds its picture of the tank's
-  fish, its "fish for sale" count and the customers' choices from tank 2 when
-  it opens, and the sale removes a fish by its slot in tank 2; a fish sold from
-  a lent tank would leave that picture out of step with the fish. Making the
-  scene show and sell from several tanks means rebuilding those parts, which
-  is a second implementation of the stock sale, not the stock one.
+The game's sale code reads the Sale Tank at fixed addresses, so every piece
+that must see several tanks is either the stock code with a tank lent the
+Sale Tank's place for one call, or a count the stock code then uses:
 
-Options for the owner:
-1. Keep the extra tanks non-selling (built): move fish to the Sale Tank by
-   its button or the arrows to sell them.
-2. A toggle that makes one extra tank the selling tank instead of the Sale
-   Tank (swapped into tank 2's place while selling): stock code, stock limits,
-   one selling tank at a time.
-3. Several selling tanks at once, with the sale scene's picture and count
-   rebuilt over all of them: needs its own design and live testing.
+| Site | Stock | With tanks selling |
+|---|---|---|
+| `0x4246FB` | `call 0x424240`, the sale roll, once a second when no pause | the Sale Tank's roll, then each selling tank lent tank 2's place, until one sells (the pause at scene + 0x58 is set) |
+| `0x415131` | `call 0x413530`, a customer's thought (Random(21) slot, 3 tries) | `Random(n + 1)` picks the Sale Tank or one selling tank, lent for the call |
+| `0x423FEE` | `call 0x4234C0`, the scene's fish pictures from scene + 0x64 | scene + 0x64 set to the live, healthy, not seahorse-type fish of every selling tank first |
+| `0x423F52` | `call 0x413C10(crowd)`, crowd = ... + 2 x Advertising x (adults / 3 + Random(2) + 2) | + 2 x Advertising x (min(all adults, tank size) / 3 - Sale Tank adults / 3): the stock die, never past the stock maximum |
+| `0x423927` | `sprintf(buf, "%d", n)`, the "Fish for sale" number | n over every selling tank (adults, healthy, not seahorse-type) |
+
+The sale itself (0x424010) is the stock one: it reads the price, adds the
+money and "fish sold", copies the sold fish's picture and name into the scene
+(0x4236D0) and removes it with REMOVE_FISH(2, slot); with the tank lent, slot
+and tank are the ones the fish is in, so the scene and the tanks stay in step
+and no other fish can be removed. A lent tank is given back in a `__finally`.
+With every toggle Off each hook is the stock call as it is.
+
+## Name labels
+
+Every tank screen shows its name at (12, 62), in the game's own font
+(TankName*.png, the label art made like the buttons'): Tank 1, Tank 2, Sale
+Tank, Tank 3, Tank 4, Tank 5; in the German game (`[[0x45B314]] == 1`) Becken
+1, Becken 2, Verkaufsbecken, Becken 3-5.
 
 ## Live checks still needed
 

@@ -199,8 +199,13 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   small arrows left of the Tank One button page the tank buttons to the three
   new tanks and back; drag a fish, animal or ornament onto a button to move it
   there, or onto an arrow to move it to the previous or next tank (Tank One,
-  Tank Two, the Sale Tank, Tank Three, Four, Five, round). The extra tanks
-  never sell; the Sale Tank keeps the stock limits. The game has room for four tanks
+  Tank Two, the Sale Tank, Tank Three, Four, Five, round). Each extra tank
+  has a "For sale" button (Off at first): On shows the Sale Tank's For Sale!
+  sign and sells its fish together with the Sale Tank's through the game's
+  own sale roll, each selling tank lent the Sale Tank's place in turn (one
+  sale a second, the same odds; the sale scene's pictures and "Fish for sale"
+  count cover every selling tank; the crowd stays within the stock maximum).
+  Every tank screen shows its name. The toggles are saved per slot. The game has room for four tanks
   only, so a companion DLL (`Fish Tycoon Fix Patcher DLLs\Extra Tanks.dll`)
   keeps three more tank blocks and runs the game's own code on them: the tank
   on screen is swapped into Tank One's place, and every fish update runs the

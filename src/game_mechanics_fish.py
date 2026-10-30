@@ -1028,9 +1028,46 @@ EXTRA_TANKS = (
         label="E",
     ),
     Fact(
-        "Selling is unchanged: only the Sale Tank sells, and the extra tanks are never in its place "
-        "while anything but the fish update runs. The number of fish for sale, customers and the sale "
-        "scene see the Sale Tank only, with the stock limit (the tank's size).",
+        "Selling: each of Tank Three, Four and Five has a \"For sale: Off/On\" button under its name "
+        "(Off in a new game and when bought). On, it shows the Sale Tank's \"For Sale!\" sign (the "
+        "game's own forsale.png and its shadow, at the Sale Tank's places) and its fish are for sale "
+        "together with the Sale Tank's. The game's own sale code does all of it:",
+        label="E",
+        subs=(
+            "Once a real-time second the game's sale roll (0x424240) runs over the Sale Tank, then over each "
+            "tank with For sale On (Tank Three, Four, Five), each lent the Sale Tank's place, until a fish sells: "
+            "every adult gets the game's own roll, with the same price rules and odds, and still at most one "
+            "sale a second, then the 5-second pause. The fish is sold out of the tank it is really in.",
+            "When the sale scene opens, its fish pictures and the \"Fish for sale\" number count every "
+            "selling tank. The crowd counts every selling tank's adults, but never more than one full tank's "
+            "(the tank size), so it never passes the stock maximum.",
+            "A customer's thought looks at one of the selling tanks, picked by the game's Random.",
+            "With every toggle Off the sale is the stock sale, call for call.",
+        ),
+    ),
+    Fact(
+        "Every tank screen shows its name under the top bar: Tank 1, Tank 2, Sale Tank, Tank 3, Tank 4, "
+        "Tank 5 (Becken 1, Becken 2, Verkaufsbecken, Becken 3-5 in the German game).",
+        label="E",
+    ),
+    Fact(
+        "Game-wide effects work in Tanks 3-5 exactly as in the stock tanks, because they are read from "
+        "the game's state by the game's own code, whatever tank is updated or sold from:",
+        label="E",
+        subs=(
+            "research (Fish Food 0x244, Environment 0x258, Advertising 0x26C), read by the fish update, the "
+            "health and sickness ticks (0x41DF50, 0x41E120) and the sale;",
+            "owned items: the Aeration System, Temperature Regulator, Cleaning Snail and the four plants "
+            "(0x118, 0x12C, 0x140, 0x168, 0x17C, 0x190, 0x1A4);",
+            "ornaments owned and the Golden Seahorse's game-wide part: the customer count (0x423EF6-0x423F23);",
+            "the magic fish found (their customer bonus) and the species prices, read by the sale;",
+            "difficulty.",
+        ),
+    ),
+    Fact(
+        "Effects that are per tank in the stock game stay per tank: a live adult magic fish, the Wasp "
+        "Grouper, a DS store animal and sick fish spreading sickness count only in their own tank, Tank 3-5 "
+        "included (0x41DE90 and the sickness count read the tank being updated).",
         label="E",
     ),
     Fact(
@@ -1049,7 +1086,8 @@ EXTRA_TANKS = (
         "Not the same as a stock tank: with Buy Multiple Golden "
         "Seahorses off, DS Store Items does not see a store animal kept in an extra tank you are not "
         "looking at, so it can be bought again; the tutorial's sick-fish step can pick an extra tank's "
-        "fish while you look at it.",
+        "fish while you look at it; with more than one tank selling, the sale roll goes through the "
+        "tanks in order (the Sale Tank first), as the stock roll goes through one tank's fish in order.",
     ),
 )
 

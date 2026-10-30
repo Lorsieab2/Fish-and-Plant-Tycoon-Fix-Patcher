@@ -2803,8 +2803,8 @@
           {
             "path": "Extra Tanks.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Extra Tanks.dll",
-            "size": 100864,
-            "sha256": "2D6ADB123BA096D774BFE16D6201C0130585014ACE6499FD0EAC94791A1A9786"
+            "size": 103936,
+            "sha256": "8E6397CC7B49D12FFD2D7794DE36DACA5AF242EF23F7870C9E765575C393EF58"
           },
           {
             "path": "Images/ExtraTank1Button.png",
@@ -2825,6 +2825,30 @@
             "sha256": "454760B653D99E5705A6DE0AAB52EF886D1EA40382F7868046FF92D47E4FB2D8"
           },
           {
+            "path": "Images/ForSaleOff.png",
+            "destination": "Images/ForSaleOff.png",
+            "size": 6807,
+            "sha256": "E690B2F410D70EBE02400D6681992EA72788456BA02E93F520A8B4FA6E8EBFE6"
+          },
+          {
+            "path": "Images/ForSaleOff_de.png",
+            "destination": "Images/ForSaleOff_de.png",
+            "size": 6776,
+            "sha256": "2625A1BD21A9B268363C258CB8E4533DFFB2762626A06604E9B82A1B4F64443F"
+          },
+          {
+            "path": "Images/ForSaleOn.png",
+            "destination": "Images/ForSaleOn.png",
+            "size": 5984,
+            "sha256": "AA472C47BC260D90B5C16792C966268AC18AFFAC5F714D944400832987A1CA0B"
+          },
+          {
+            "path": "Images/ForSaleOn_de.png",
+            "destination": "Images/ForSaleOn_de.png",
+            "size": 6339,
+            "sha256": "23DADBC664327911952D40F857B2CA3D84A4C4C83B40F786E2ACEC396ABCE54D"
+          },
+          {
             "path": "Images/Tank1ButtonNormal.png",
             "destination": "Images/Tank1ButtonNormal.png",
             "size": 11962,
@@ -2841,6 +2865,78 @@
             "destination": "Images/TankArrowRight.png",
             "size": 826,
             "sha256": "5033C11FB526C6C5362A673193B937641D3E24BCDE1C42094ACFE6421BEFFA02"
+          },
+          {
+            "path": "Images/TankName1.png",
+            "destination": "Images/TankName1.png",
+            "size": 3315,
+            "sha256": "27EF638889B43A56C574FC89E865BD307AAA0FFFBA708AD3EC7A655ED9F936C8"
+          },
+          {
+            "path": "Images/TankName1_de.png",
+            "destination": "Images/TankName1_de.png",
+            "size": 4881,
+            "sha256": "EE8F1B3F0600690FCD470B007CA24E8D4BD96C944112B35ED6F313317B3A593A"
+          },
+          {
+            "path": "Images/TankName2.png",
+            "destination": "Images/TankName2.png",
+            "size": 3858,
+            "sha256": "15CEC6E1ADC44E1575BF1AC9CA7E0E1CE7B314DAB4C46C872CCDF62D000974B4"
+          },
+          {
+            "path": "Images/TankName2_de.png",
+            "destination": "Images/TankName2_de.png",
+            "size": 5420,
+            "sha256": "FA38814FA5E9E95906833EF3B471DD8A17DBFE49E91B45C1E1F42CB7A4A9A2AA"
+          },
+          {
+            "path": "Images/TankName3.png",
+            "destination": "Images/TankName3.png",
+            "size": 3918,
+            "sha256": "6C667E01DF12236A0D25CCB3BFCBD04FBFF1012D742F727D9B1D35002E0F181C"
+          },
+          {
+            "path": "Images/TankName3_de.png",
+            "destination": "Images/TankName3_de.png",
+            "size": 5483,
+            "sha256": "F10B2B28DB1F821F0EE47D35E21870972699528A02D1958493B43C8C33C589D6"
+          },
+          {
+            "path": "Images/TankName4.png",
+            "destination": "Images/TankName4.png",
+            "size": 3822,
+            "sha256": "91FB277B7AE4681D753944348048F7F5401465F8FB67596090D34CC7F0775D0B"
+          },
+          {
+            "path": "Images/TankName4_de.png",
+            "destination": "Images/TankName4_de.png",
+            "size": 5320,
+            "sha256": "779A5FFF4166120B5693A0631A20928D4D0B0FBE31E669B041E128C399E057E8"
+          },
+          {
+            "path": "Images/TankName5.png",
+            "destination": "Images/TankName5.png",
+            "size": 3779,
+            "sha256": "697B22FF3ED9687A29CD9A12D3F91FE6C08EAA8F82447526AF4E73703DA065EF"
+          },
+          {
+            "path": "Images/TankName5_de.png",
+            "destination": "Images/TankName5_de.png",
+            "size": 5302,
+            "sha256": "400FCF8001B9EBA30695E4C673E8876721D367F735D1BD6B66905627FED71714"
+          },
+          {
+            "path": "Images/TankNameSale.png",
+            "destination": "Images/TankNameSale.png",
+            "size": 5548,
+            "sha256": "52E483E2D5655A4BBCFBC3C6CE11C23274EB98D50CF5AB2C8D8A1CA14890923A"
+          },
+          {
+            "path": "Images/TankNameSale_de.png",
+            "destination": "Images/TankNameSale_de.png",
+            "size": 10124,
+            "sha256": "D0504FBEB5A7D8E7E1F5CE882582FD64CC725889A7E0D9C55FA7C29365A6105E"
           }
         ]
       }

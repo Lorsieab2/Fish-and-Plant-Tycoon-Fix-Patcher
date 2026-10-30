@@ -1018,6 +1018,272 @@ class UpgradesScreenItem(unittest.TestCase):
         self.assertEqual(emu.read32(emu.sym("_selected"), signed=True), -1)
 
 
+@unittest.skipUnless(HAVE_UNICORN and EXE.is_file() and DLL.is_file() and E.toolchain_ready(),
+                     "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and the built DLL")
+class SellingTanks(unittest.TestCase):
+    """Tanks 3-5 with "For sale" On sell alongside the Sale Tank through the game's own sale code."""
+
+    PRICE = 40
+
+    def rig(self, rolls=None) -> tuple[Rig, int]:
+        rig = Rig()
+        emu = rig.emu
+        emu.write32(0x0045ABDC, rig.state)
+        scene = emu.alloc(0x100)
+        emu.write32(scene + 0x70, rig.state)
+        emu.write32(scene + 0x6C, rig.holder)
+        emu.write32(rig.sym["_prev_roll"], 0x00424240)
+        for va, pop in ((0x00413C50, 0), (0x00415320, 0), (0x00425120, 0), (0x0040AE20, 4)):
+            emu.hook(va, lambda e: 0, pop)
+        if rolls is not None:
+            def roll(e) -> int:
+                rig.rolls.append(e.arg(0))
+                return rolls(e.arg(0))
+            emu.hook(0x00403240, roll, 0)
+        for body in range(21):                                    # every species priced at its base price
+            for fin in range(21):
+                at = rig.state + 0x14B40 + (body * 31 + fin) * 40
+                emu.write32(at + 0x20, self.PRICE)
+                emu.write32(at + 0x24, self.PRICE)
+        rig.set(0x38C, 1000)
+        rig.set(0x26C, 2)                                         # Advertising level 2
+        return rig, scene
+
+    def roll(self, rig: Rig, scene: int, browsing: int = 10) -> None:
+        rig.emu.call(rig.sym["@roll_hook@12"], browsing, ecx=scene)
+
+    def test_a_selling_extra_tank_sells_from_its_own_block(self) -> None:
+        rig, scene = self.rig(rolls=lambda n: 0)                   # every roll succeeds
+        rig.var("_selling", 0b010)                                 # Tank Four
+        fishes = {3: fish(NOW, 4, 8, 25, 90, 60), 7: fish(NOW, 6, 6, 30, 90, 60)}
+        rig.put_extra(1, block_with(fishes))
+        sale_before = rig.tank(2)
+        self.roll(rig, scene)
+        self.assertEqual(struct.unpack_from("<I", rig.extra(1), 3 * SLOT)[0], 0, "the first fish in Tank Four sold")
+        self.assertEqual(rig.extra(1)[7 * SLOT: 8 * SLOT], fishes[7])
+        self.assertEqual(rig.tank(2), sale_before, "the Sale Tank is untouched")
+        self.assertEqual(rig.get(0x38C), 1000 + self.PRICE)
+        self.assertEqual(rig.get(0x28), 1, "fish sold")
+        self.assertNotEqual(rig.emu.read32(scene + 0x58), 0, "the 5-second pause")
+
+    def test_the_sale_tank_comes_first_and_one_sale_a_second(self) -> None:
+        rig, scene = self.rig(rolls=lambda n: 0)
+        rig.var("_selling", 0b111)
+        own = fish(NOW, 4, 8, 25, 90, 60)
+        rig.put_tank(2, block_with({5: own}))
+        extra = block_with({0: fish(NOW, 9, 9, 25, 90, 60)})
+        for e in range(3):
+            rig.put_extra(e, extra)
+        self.roll(rig, scene)
+        self.assertEqual(struct.unpack_from("<I", rig.tank(2), 5 * SLOT)[0], 0)
+        self.assertEqual([rig.extra(e) for e in range(3)], [extra] * 3, "one sale only")
+        self.assertEqual(rig.get(0x28), 1)
+
+    def test_every_fish_in_the_pool_gets_the_stock_roll(self) -> None:
+        for selling, owned, rolls in ((0b000, 3, 3), (0b001, 3, 5), (0b011, 3, 6), (0b011, 1, 5)):
+            with self.subTest(selling=selling, owned=owned):
+                rig, scene = self.rig(rolls=lambda n: n - 1)       # no roll succeeds
+                rig.var("_selling", selling)
+                rig.var("_owned", owned)
+                rig.put_tank(2, block_with({s: fish(NOW, 4, 8, 25, 90, 60) for s in range(3)}))
+                rig.put_extra(0, block_with({s: fish(NOW, 4, 8, 25, 90, 60) for s in range(2)}))
+                rig.put_extra(1, block_with({0: fish(NOW, 4, 8, 25, 90, 60)}))
+                self.roll(rig, scene)
+                self.assertEqual(rig.rolls.count(900), rolls)
+                self.assertEqual(rig.get(0x28), 0)
+
+    def test_all_off_is_the_stock_roll(self) -> None:
+        tank = block_with({s: fish(NOW, (s * 5) % 21, (s * 3) % 21, 20 + s, 90 - s, 60) for s in range(8)})
+        results = []
+        for direct in (False, True):
+            rig, scene = self.rig()
+            rig.var("_selling", 0)
+            rig.put_tank(2, tank)
+            rig.put_extra(0, tank)
+            for _ in range(40):
+                rig.emu.write32(scene + 0x58, 0)
+                if direct:
+                    rig.emu.call(0x00424240, 10, ecx=scene)
+                else:
+                    self.roll(rig, scene)
+            results.append((rig.tank(2), rig.extra(0), rig.get(0x38C), rig.get(0x28), list(rig.rolls)))
+        self.assertEqual(results[0], results[1])
+        self.assertGreater(results[0][3], 0, "something sold")
+
+    def test_a_fish_sells_from_an_extra_tank_exactly_as_from_the_sale_tank(self) -> None:
+        """The same fish, the same dice, every game-wide effect the sale reads on: research
+        (Advertising 3), every ornament and owned item, the Golden Seahorse, the magic fish found,
+        the player's own price above and below the base price."""
+        tank = block_with({s: fish(NOW, (s * 7) % 21, (s * 5) % 21, 21 + s, 90 - 3 * s, 60, disease=s % 3 == 0)
+                           for s in range(12)})
+        results = []
+        for in_extra in (False, True):
+            rig, scene = self.rig()
+            for offset in (0x154, 0x21C, 0x208, 0x1F4, 0x1E0, 0x1CC, 0x1B8, 0x1E1E4, 0x1E1E8, 0x1E1EC, 0x1E1F0):
+                rig.set(offset, 1)
+            rig.set(0x26C, 3)
+            for body in range(21):
+                for fin in range(21):
+                    at = rig.state + 0x14B40 + (body * 31 + fin) * 40
+                    rig.emu.write32(at + 0x20, 30 + (body * 3 + fin) % 50)     # asking prices around the base
+            if in_extra:
+                rig.var("_selling", 0b001)
+                rig.put_extra(0, tank)
+            else:
+                rig.put_tank(2, tank)
+            for _ in range(60):
+                rig.emu.write32(scene + 0x58, 0)
+                self.roll(rig, scene, browsing=40)
+            left = rig.extra(0) if in_extra else rig.tank(2)
+            results.append((left, rig.get(0x38C), rig.get(0x28), rig.get(0x20), list(rig.rolls)))
+        self.assertEqual(results[0], results[1])
+        self.assertGreater(results[0][2], 2, "fish sold")
+
+    def test_a_tank_with_for_sale_off_never_sells(self) -> None:
+        rig, scene = self.rig(rolls=lambda n: 0)
+        rig.var("_selling", 0b001)
+        tank = block_with({0: fish(NOW, 4, 8, 25, 90, 60)})
+        for e in range(3):
+            rig.put_extra(e, tank)
+        for _ in range(3):
+            rig.emu.write32(scene + 0x58, 0)
+            self.roll(rig, scene)
+        self.assertEqual(rig.extra(1), tank)
+        self.assertEqual(rig.extra(2), tank)
+        self.assertEqual(rig.get(0x28), 1, "Tank Three's one fish only")
+
+    def test_an_extra_tank_on_screen_sells_from_its_place(self) -> None:
+        rig, scene = self.rig(rolls=lambda n: 0)
+        rig.var("_selling", 0b100)
+        rig.var("_shown", 2)                                        # Tank Five in Tank One's place
+        rig.put_tank(0, block_with({2: fish(NOW, 4, 8, 25, 90, 60)}))
+        one = block_with({0: fish(NOW, 1, 1, 25, 90, 60)})
+        rig.put_extra(2, one)                                       # Tank One, waiting in the DLL
+        self.roll(rig, scene)
+        self.assertEqual(struct.unpack_from("<I", rig.tank(0), 2 * SLOT)[0], 0)
+        self.assertEqual(rig.extra(2), one)
+
+    def test_the_count_pictures_and_crowd_cover_every_selling_tank(self) -> None:
+        rig, scene = self.rig()
+        rig.var("_selling", 0b011)
+        rig.put_tank(2, block_with({**{s: fish(NOW, 4, 8, 25) for s in range(3)}, 3: fish(NOW, 4, 8, 3),
+                                    4: fish(NOW, 22, 22, 21)}))
+        rig.put_extra(0, block_with({s: fish(NOW, 4, 8, 25) for s in range(9)}))
+        rig.put_extra(1, block_with({0: fish(NOW, 4, 8, 4), 1: fish(NOW, 4, 8, 25, health=0)}))
+        rig.put_extra(2, block_with({s: fish(NOW, 4, 8, 25) for s in range(5)}))   # For sale Off
+        seen = []
+        for name in ("_prev_pictures", "_prev_crowd", "_prev_for_sale_text"):
+            thunk = rig.emu.thunk()
+            rig.var(name, thunk)
+            if name == "_prev_pictures":
+                rig.emu.hook(thunk, lambda e: seen.append(("pictures", e.read32(scene + 0x64))) or 0, 4)
+            elif name == "_prev_crowd":
+                rig.emu.hook(thunk, lambda e: seen.append(("crowd", e.arg(0))) or 0, 4)
+            else:
+                rig.emu.hook(thunk, lambda e: seen.append(("text", e.arg(2))) or 0, 0)
+        rig.emu.call(rig.sym["@pictures_hook@12"], 1, ecx=scene)
+        rig.emu.call(rig.sym["@crowd_hook@12"], 100, ecx=rig.holder)
+        rig.emu.call(rig.sym["_for_sale_text_hook"], rig.emu.alloc(16), rig.emu.text("%d"), 3)
+        # Pictures: live, healthy, not a seahorse: 4 (Sale Tank) + 9 + 1 = 14. Adults for the crowd:
+        # 4 (the seahorse counts, as stock) + 9 = 13 -> 2 * 2 * (13 // 3 - 4 // 3) = +12. For sale: 3 + 9 = 12.
+        self.assertEqual(seen, [("pictures", 14), ("crowd", 112), ("text", 12)])
+
+    def test_the_crowd_never_passes_a_full_tank(self) -> None:
+        rig, scene = self.rig()
+        rig.var("_selling", 0b001)
+        rig.put_tank(2, block_with({s: fish(NOW, 4, 8, 25) for s in range(20)}))
+        rig.put_extra(0, block_with({s: fish(NOW, 4, 8, 25) for s in range(21)}))
+        seen = []
+        thunk = rig.emu.thunk()
+        rig.var("_prev_crowd", thunk)
+        rig.emu.hook(thunk, lambda e: seen.append(e.arg(0)) or 0, 4)
+        rig.emu.call(rig.sym["@crowd_hook@12"], 100, ecx=rig.holder)
+        self.assertEqual(seen, [100 + 2 * 2 * (21 // 3 - 20 // 3)])
+
+    def test_all_off_leaves_count_pictures_and_crowd_stock(self) -> None:
+        rig, scene = self.rig()
+        rig.var("_selling", 0)
+        rig.put_extra(0, block_with({s: fish(NOW, 4, 8, 25) for s in range(9)}))
+        rig.emu.write32(scene + 0x64, 77)
+        seen = []
+        for name in ("_prev_pictures", "_prev_crowd", "_prev_for_sale_text"):
+            thunk = rig.emu.thunk()
+            rig.var(name, thunk)
+            rig.emu.hook(thunk, (lambda e, n=name: seen.append(
+                e.read32(scene + 0x64) if n == "_prev_pictures" else e.arg(0) if n == "_prev_crowd" else e.arg(2)) or 0),
+                0 if name == "_prev_for_sale_text" else 4)
+        rig.emu.call(rig.sym["@pictures_hook@12"], 1, ecx=scene)
+        rig.emu.call(rig.sym["@crowd_hook@12"], 100, ecx=rig.holder)
+        rig.emu.call(rig.sym["_for_sale_text_hook"], rig.emu.alloc(16), rig.emu.text("%d"), 3)
+        self.assertEqual(seen, [77, 100, 3])
+
+    def test_thoughts_look_at_one_selling_tank(self) -> None:
+        for pick, expect in ((0, "sale"), (1, "four"), (2, "five")):
+            with self.subTest(pick=pick):
+                rig, scene = self.rig(rolls=lambda n, p=pick: p)
+                rig.var("_selling", 0b110)
+                sale = block_with({0: fish(NOW, 1, 1, 25)})
+                four = block_with({0: fish(NOW, 2, 2, 25)})
+                five = block_with({0: fish(NOW, 3, 3, 25)})
+                rig.put_tank(2, sale)
+                rig.put_extra(1, four)
+                rig.put_extra(2, five)
+                seen = []
+                thunk = rig.emu.thunk()
+                rig.var("_prev_thoughts", thunk)
+                rig.emu.hook(thunk, lambda e: seen.append(rig.tank(2)) or 12, 0)
+                view = rig.emu.alloc(0x6000)
+                rig.emu.write32(view + 0x5DE4, rig.state)
+                rig.emu.call(rig.sym["@thoughts_hook@8"], ecx=view)
+                self.assertEqual(seen, [{"sale": sale, "four": four, "five": five}[expect]])
+                self.assertEqual((rig.tank(2), rig.extra(1), rig.extra(2)), (sale, four, five), "lent back")
+                self.assertIn(3, rig.rolls, "Random(3): the Sale Tank and two selling tanks")
+
+    def test_the_toggle(self) -> None:
+        rig = Rig()
+        stock = rig.emu.thunk()
+        rig.emu.hook(stock, lambda e: 0, 12)                        # the stock mouse: nothing there
+        rig.var("_prev_mouse", stock)
+        rig.var("_shown", 1)
+        for kind in (2, 3):
+            rig.emu.call(rig.sym["@mouse_hook@20"], kind, 60, 110, ecx=rig.impl)
+        self.assertEqual(rig.var("_selling"), 0b010)
+        for kind in (2, 3):
+            rig.emu.call(rig.sym["@mouse_hook@20"], kind, 60, 110, ecx=rig.impl)
+        self.assertEqual(rig.var("_selling"), 0)
+        rig.var("_owned", 1)                                        # Tank Four not bought: no toggle
+        for kind in (2, 3):
+            rig.emu.call(rig.sym["@mouse_hook@20"], kind, 60, 110, ecx=rig.impl)
+        self.assertEqual(rig.var("_selling"), 0)
+        rig.var("_shown", -1)                                       # a stock tank: no toggle
+        rig.var("_owned", 3)
+        for kind in (2, 3):
+            rig.emu.call(rig.sym["@mouse_hook@20"], kind, 60, 110, ecx=rig.impl)
+        self.assertEqual(rig.var("_selling"), 0)
+
+    def test_the_sign(self) -> None:
+        for shown, on, drawn_stock, drawn_own in ((2, 0, [], []), (2, 1, [(620, 360), (580, 415)], []),
+                                                  (0, 1, [], [(580, 415), (620, 360)]), (1, 0, [], [])):
+            with self.subTest(shown=shown, on=on):
+                rig = Rig()
+                rig.var("_shown", shown)
+                rig.var("_selling", on << shown)
+                stock, own = [], []
+                rig.emu.write32(rig.sym["_prev_sale_sign"], 0x00408A40)
+                rig.emu.write32(rig.sym["_prev_sale_shadow"], 0x00408A40)
+                rig.emu.write32(rig.sym["_prev_decor"], 0x0041D340)
+                rig.emu.hook(0x0041D340, lambda e: 0, 0)
+                rig.emu.hook(0x0041BE70, lambda e: 0x5000 + e.arg(0), 4)
+                rig.emu.hook(0x00408A40, lambda e: (own if e.arg(0) in (0x5003, 0x5004) and not rig.var("_drawing_extra")
+                                                    else stock).append((e.arg(1), e.arg(2))) or 0, 12)
+                rig.var("_drawing_extra", 1)
+                rig.emu.call(rig.sym["@sale_sign_hook@20"], 0x1234, 620, 360, ecx=rig.impl)
+                rig.emu.call(rig.sym["@sale_shadow_hook@20"], 0x1234, 580, 415, ecx=rig.impl)
+                rig.var("_drawing_extra", 0)
+                rig.emu.call(rig.sym["@decor_hook@8"], ecx=rig.impl)
+                self.assertEqual((stock, own), (drawn_stock, drawn_own))
+
+
 class FakeFiles:
     """CreateFileW / ReadFile / WriteFile / MoveFileExW / ... over a dict."""
 
@@ -1115,21 +1381,25 @@ class SavesAndSidecar(unittest.TestCase):
         rig.put_extra(2, extras[2])
         rig.var("_shown", 1)
         rig.var("_owned", 2)
+        rig.var("_selling", 0b011)
         self.assertEqual(rig.emu.call(rig.sym["@save_slot_hook@12"], 3, ecx=rig.state) & 0xFF, 1)
         self.assertEqual(saved, [(3, tank_one)], "the save got Tank One in its own place")
         self.assertEqual(rig.tank(0), extras[1], "the extra is back on screen after the save")
         data = files.files[self.PATH]
-        self.assertEqual(len(data), 24 + 3 * TANK)
-        self.assertEqual(struct.unpack_from("<6I", data)[:2], (0x54585446, 2))
+        self.assertEqual(len(data), 28 + 3 * TANK)
+        self.assertEqual(struct.unpack_from("<7I", data)[:2], (0x54585446, 3))
         self.assertEqual(struct.unpack_from("<I", data, 20)[0], 2, "two bought")
-        self.assertEqual(data[24:], b"".join(extras))
+        self.assertEqual(struct.unpack_from("<I", data, 24)[0], 0b011, "For sale on Tanks 3 and 4")
+        self.assertEqual(data[28:], b"".join(extras))
         self.assertNotIn(self.PATH + ".tmp", files.files)
         # Load: the extras come back from the file; Tank One is the save's.
         for e in range(3):
             rig.put_extra(e, bytes(TANK))
         rig.put_tank(0, tank_one)
         rig.var("_owned", 0)
+        rig.var("_selling", 0)
         rig.emu.call(rig.sym["@load_hook@12"], 3, ecx=rig.state)
+        self.assertEqual(rig.var("_selling"), 0b011)
         self.assertEqual([rig.extra(e) for e in range(3)], extras)
         self.assertEqual(rig.var("_owned"), 2)
         self.assertEqual(rig.var("_shown"), -1)
@@ -1142,7 +1412,7 @@ class SavesAndSidecar(unittest.TestCase):
 
     def test_damaged_file_is_set_aside_and_extras_start_empty(self) -> None:
         rig, files, _ = self.rig()
-        good = 24 + 3 * TANK
+        good = 28 + 3 * TANK
         files.files[self.PATH] = b"FTXT" + bytes(good - 4)
         rig.put_extra(0, block_with({0: fish(NOW, 1, 1, 22)}))
         rig.emu.call(rig.sym["@load_hook@12"], 3, ecx=rig.state)
@@ -1164,6 +1434,7 @@ class SavesAndSidecar(unittest.TestCase):
         rig.emu.call(rig.sym["@new_game_hook@8"], ecx=rig.state)
         self.assertEqual(rig.extra(1), bytes(TANK))
         self.assertEqual(rig.var("_owned"), 0, "a new game owns none")
+        self.assertEqual(rig.var("_selling"), 0, "and sells from none")
         self.assertEqual(rig.var("_owner"), rig.state)
 
     def test_a_failed_game_save_writes_no_sidecar(self) -> None:
@@ -1179,7 +1450,7 @@ class SavesAndSidecar(unittest.TestCase):
                      "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and the built DLL")
 class AllOrNone(unittest.TestCase):
     SITES = (0x4218FF, 0x421AAA, 0x421D43, 0x421FFB, 0x42208E, 0x41A663, 0x41AAC3, 0x421646, 0x427B30,
-             0x422013, 0x42203F, 0x41D44A, 0x41D467)
+             0x422013, 0x42203F, 0x41D44A, 0x41D467, 0x4246FB, 0x415131, 0x423F52, 0x423FEE, 0x423927)
     SLOTS = (0x4424D0, 0x4424D4)
 
     def rig(self, other_module: int = 0):
@@ -1244,6 +1515,58 @@ class AllOrNone(unittest.TestCase):
         rel = (0x401000 - (0x421AAA + 5)) & 0xFFFFFFFF
         rig.emu.uc.mem_write(0x421AAA, b"\xE8" + struct.pack("<I", rel))
         self.assertEqual(self.install(rig), 0)
+
+
+class BackupsHoldTheExtraTanks(unittest.TestCase):
+    """src/save_backup.py with the setting's files: "Extra Tanks <n>.dat" beside each save, the game's
+    older generation (n + 20) too, and a set-aside unreadable file."""
+
+    def setUp(self) -> None:
+        import save_backup
+        from test_save_tools import make_folder
+        self.sb = save_backup
+        self.temp = tempfile.TemporaryDirectory()
+        self.folder = make_folder(Path(self.temp.name), "fish", ["Ana", "Bo", "Cy", "Di", "Ed"],
+                                  "Fish Tycoon - Modded Upgrades")
+        self.data = self.folder / "Fish Tycoon Fix Patcher Data"
+        self.data.mkdir()
+        for name in ("Extra Tanks 1.dat", "Extra Tanks 21.dat", "Extra Tanks 2.dat", "Extra Tanks 22.dat",
+                     "Extra Tanks 2.unreadable-1.dat"):
+            (self.data / name).write_bytes(f"{name} first".encode())
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def processes(self):
+        from test_save_backup import FakeProcesses
+        return FakeProcesses()
+
+    def test_every_file_names_its_slot(self) -> None:
+        for name, slot in (("Extra Tanks 1.dat", 1), ("Extra Tanks 21.dat", 1), ("Extra Tanks 25.dat", 5),
+                           ("Extra Tanks 2.unreadable-1.dat", 2), ("Extra Tanks 3.dat.tmp", 3),
+                           ("DS Fish 22.dat", 2), ("Extra Tanks 26.dat", "unknown"), ("Extra Tanks 0.dat", "unknown")):
+            self.assertEqual(self.sb.file_slot("fish", Path("Fish Tycoon Fix Patcher Data") / name), slot, name)
+
+    def test_a_backup_holds_them_and_a_whole_restore_puts_them_back(self) -> None:
+        backup = self.sb.back_up_save_folder(self.folder, self.processes()).backup_folder
+        for name in ("Extra Tanks 1.dat", "Extra Tanks 22.dat"):
+            self.assertEqual((backup / "Fish Tycoon Fix Patcher Data" / name).read_bytes(), f"{name} first".encode())
+        (self.data / "Extra Tanks 1.dat").write_bytes(b"later")
+        (self.data / "Extra Tanks 3.dat").write_bytes(b"new")
+        self.sb.restore_backup("fish", self.folder, backup, None, self.processes())
+        self.assertEqual((self.data / "Extra Tanks 1.dat").read_bytes(), b"Extra Tanks 1.dat first")
+        self.assertFalse((self.data / "Extra Tanks 3.dat").exists())
+
+    def test_a_one_slot_restore_takes_only_that_slots_files(self) -> None:
+        backup = self.sb.back_up_save_folder(self.folder, self.processes()).backup_folder
+        for name in ("Extra Tanks 1.dat", "Extra Tanks 21.dat", "Extra Tanks 2.dat", "Extra Tanks 22.dat"):
+            (self.data / name).write_bytes(b"later")
+        (self.data / "Extra Tanks 2.unreadable-1.dat").unlink()
+        self.sb.restore_backup("fish", self.folder, backup, 2, self.processes())
+        for name in ("Extra Tanks 2.dat", "Extra Tanks 22.dat", "Extra Tanks 2.unreadable-1.dat"):
+            self.assertEqual((self.data / name).read_bytes(), f"{name} first".encode(), name)
+        for name in ("Extra Tanks 1.dat", "Extra Tanks 21.dat"):
+            self.assertEqual((self.data / name).read_bytes(), b"later", f"slot 1's {name} is left alone")
 
 
 class Manifest(unittest.TestCase):

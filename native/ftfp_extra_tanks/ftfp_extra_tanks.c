@@ -103,6 +103,8 @@
 #define ORN_SLOTS 6
 
 typedef int (__cdecl *new_fn)(unsigned int size);
+typedef int (__cdecl *random_fn)(int bound);
+typedef int (__cdecl *format_fn)(char *out, const char *format, int value);
 typedef int (__cdecl *mouse_pos_fn)(int *pt);
 typedef int (__cdecl *pressed_fn)(void);
 typedef int (__fastcall *this0_fn)(void *self, void *edx);
@@ -133,6 +135,8 @@ typedef int (__fastcall *this5_fn)(void *self, void *edx, int a, int b, int c, i
 #define IMAGE_NEW GAME(this1_fn, 0x00409540u)          /* (file name) */
 #define GRID_NEW GAME(this3_fn, 0x004096C0u)           /* (file name, columns, rows) */
 #define SPR_TANK1_BUTTON 0x89                          /* Tank1Button.png */
+#define SPRITE_GET GAME(this1_fn, 0x0041BE70u)         /* stock sprite id -> image */
+#define RANDOM GAME(random_fn, 0x00403240u)            /* the game's Random(n) */
 #define CLOCK_SECONDS GAME(pressed_fn, 0x004020D0u)    /* the hints' clock (0x417FAF: shown until now + 2) */
 #define DRAW_TEXT GAME(this5_fn, 0x00408B80u)          /* (text, x, y, font, attr) */
 #define HINT_FONT (*(void **)(UINT_PTR)0x0045B26Cu)    /* the hints' font (0x417EB3) */
@@ -157,6 +161,7 @@ static char *owner = NULL;            /* the state the extra tanks belong to */
 static int shown = -1;
 static int page = 0;                  /* 0: Tank One / Tank Two / Sale Tank; 1: Tank Three / Four / Five */
 static int owned = 0;                 /* extra tanks bought (0-3), in order: Tank Three first */
+static int selling = 0;               /* bit e: Tank Three + e has "For sale" On */
 
 static unsigned char *block(char *state, int tank) {
     return (unsigned char *)state + FISH_BASE + tank * TANK_STRIDE;
@@ -191,6 +196,7 @@ static void reset_extras(char *state) {
     shown = -1;
     page = 0;
     owned = 0;
+    selling = 0;
     memset(store, 0, sizeof store);
 }
 
@@ -215,7 +221,7 @@ static void tick_extras(char *impl) {
 /* ---------------------------------------------------------------- sidecar */
 
 #define SIDECAR_MAGIC 0x54585446u      /* "FTXT" */
-#define SIDECAR_VERSION 2u              /* 2: with the number of extra tanks bought */
+#define SIDECAR_VERSION 3u              /* 3: the number bought and the For sale toggles */
 typedef BOOL (WINAPI *special_folder_fn)(HWND, LPWSTR, int, BOOL);
 
 static unsigned int crc_table[256];
@@ -273,9 +279,9 @@ static int sidecar_path(int slot, wchar_t *out, DWORD cap, int make_folder) {
 }
 
 /* The file's bytes: magic, version, tank count, block size, CRC-32 of the
-   blocks, the extra tanks bought (0-3), then the three blocks (the extra
-   tanks, never Tank One). */
-#define HEADER_WORDS 6
+   blocks, the extra tanks bought (0-3), the For sale toggles (bit e for Tank
+   Three + e), then the three blocks (the extra tanks, never Tank One). */
+#define HEADER_WORDS 7
 #define SIDECAR_BYTES (HEADER_WORDS * 4 + EXTRA * TANK_STRIDE)
 
 static void pack_sidecar(unsigned int *header) {
@@ -285,6 +291,7 @@ static void pack_sidecar(unsigned int *header) {
     header[3] = TANK_STRIDE;
     header[4] = crc32(&store[0][0], sizeof store);
     header[5] = (unsigned int)owned;
+    header[6] = (unsigned int)selling;
 }
 
 /* 1 = the bytes are a whole, intact sidecar (then store holds them). */
@@ -292,11 +299,12 @@ static int unpack_sidecar(const unsigned char *bytes, DWORD size) {
     const unsigned int *header = (const unsigned int *)bytes;
     if (size != SIDECAR_BYTES || header[0] != SIDECAR_MAGIC || header[1] != SIDECAR_VERSION
         || header[2] != EXTRA || header[3] != TANK_STRIDE
-        || crc32(bytes + HEADER_WORDS * 4, EXTRA * TANK_STRIDE) != header[4] || header[5] > EXTRA) {
+        || crc32(bytes + HEADER_WORDS * 4, EXTRA * TANK_STRIDE) != header[4] || header[5] > EXTRA || header[6] > 7u) {
         return 0;
     }
     memcpy(store, bytes + HEADER_WORDS * 4, sizeof store);
     owned = (int)header[5];
+    selling = (int)header[6];
     return 1;
 }
 
@@ -419,6 +427,22 @@ static void clear_pressed(char *impl) {
 
 static void refuse_locked(char *impl, int x, int y);
 
+/* The "For sale" toggle and the tank's name, under the top bar on the left
+   (the tank's own art and the stock UI are elsewhere). */
+#define NAME_X 12
+#define NAME_Y 62
+#define TOGGLE_X 12
+#define TOGGLE_Y 96
+#define TOGGLE_W 150
+#define TOGGLE_H 34
+static unsigned char toggle_down = 0;
+
+/* The toggle shows on an extra tank on screen (bought, or it would not be). */
+static int toggle_at(char *state, int x, int y) {
+    if (shown < 0 || shown >= owned || *I(state, S_CURRENT_TANK) != 0) return 0;
+    return inside(x, y, TOGGLE_X, TOGGLE_Y, TOGGLE_X + TOGGLE_W - 1, TOGGLE_Y + TOGGLE_H - 1);
+}
+
 static unsigned char arrow_down = 0, extra_down[EXTRA];
 
 /* -1 = the stock handler takes it; else handled (the stock return value). */
@@ -426,6 +450,10 @@ static int extra_mouse(char *impl, char *state, int type, int x, int y) {
     int b;
     if (*(unsigned char *)impl != 0) return -1;                 /* dragging: the stock drop */
     if (type == 2) {
+        if (toggle_at(state, x, y)) {
+            toggle_down = 1;
+            return 0;
+        }
         if (arrow_at(x, y) >= 0) {
             arrow_down = (unsigned char)(1 + arrow_at(x, y));
             return 0;
@@ -437,6 +465,14 @@ static int extra_mouse(char *impl, char *state, int type, int x, int y) {
         return -1;
     }
     if (type != 3) return -1;
+    if (toggle_down) {
+        toggle_down = 0;
+        if (toggle_at(state, x, y)) {
+            selling ^= 1 << shown;
+            play_sound(impl, 1);
+            return 0;
+        }
+    }
     if (arrow_down) {
         int was = arrow_down - 1;
         arrow_down = 0;
@@ -718,6 +754,13 @@ static char __fastcall release_hook(char *impl, void *edx, int x, int y) {
 
 static const char *const BUTTON_FILES[EXTRA] = { "ExtraTank1Button.png", "ExtraTank2Button.png", "ExtraTank3Button.png" };
 static void *button_art[EXTRA], *arrow_right, *arrow_left, *tank1_normal;
+static void *toggle_art[2][2], *name_art[2][6];                 /* [German][Off, On] / [German][tank] */
+static const char *const TOGGLE_FILES[2][2] = { { "ForSaleOff.png", "ForSaleOn.png" },
+                                                { "ForSaleOff_de.png", "ForSaleOn_de.png" } };
+static const char *const NAME_FILES[2][6] = {
+    { "TankName1.png", "TankName2.png", "TankNameSale.png", "TankName3.png", "TankName4.png", "TankName5.png" },
+    { "TankName1_de.png", "TankName2_de.png", "TankNameSale_de.png", "TankName3_de.png", "TankName4_de.png",
+      "TankName5_de.png" } };
 
 static void *grid(const char *name, int cols) {
     int obj = OPERATOR_NEW(0x34);
@@ -735,7 +778,30 @@ static void load_art(void) {
     for (b = 0; b < EXTRA; ++b) button_art[b] = grid(BUTTON_FILES[b], 4);      /* normal, hover, current, locked */
     arrow_left = grid("TankArrowLeft.png", 2);
     tank1_normal = image("Tank1ButtonNormal.png");
+    for (b = 0; b < 2; ++b) {
+        int k;
+        toggle_art[b][0] = grid(TOGGLE_FILES[b][0], 2);              /* normal, hover */
+        toggle_art[b][1] = grid(TOGGLE_FILES[b][1], 2);
+        for (k = 0; k < 6; ++k) name_art[b][k] = image(NAME_FILES[b][k]);
+    }
     arrow_right = grid("TankArrowRight.png", 2);
+}
+
+static int german(void) {
+    int *lang = LANGUAGE_PTR;
+    return lang != NULL && *lang == 1;
+}
+
+/* The name of the tank on screen, and on an extra tank its For sale toggle. */
+static void draw_name_and_toggle(char *impl, char *state, int *pt) {
+    void *gfx = P(impl, I_GFX), *art;
+    int de = german(), tank = on_screen(state);
+    if (tank < 0 || tank >= LOGICAL) return;
+    art = name_art[de][tank];
+    if (art != NULL) DRAW(gfx, NULL, (int)(UINT_PTR)art, NAME_X, NAME_Y);
+    if (!toggle_at(state, TOGGLE_X, TOGGLE_Y)) return;
+    art = toggle_art[de][(selling >> shown) & 1];
+    if (art != NULL) DRAW_CELL(gfx, NULL, (int)(UINT_PTR)art, TOGGLE_X, TOGGLE_Y, toggle_at(state, pt[0], pt[1]));
 }
 
 /* After the stock buttons: the arrow, and on page 1 the extra tanks'
@@ -773,6 +839,7 @@ static void draw_extras(char *impl) {
             }
         }
     }
+    draw_name_and_toggle(impl, state, pt);
 }
 
 static void draw_refusal(char *impl) {
@@ -809,6 +876,8 @@ static void __fastcall draw_hook(char *impl, void *edx) {
    are skipped while an extra tank is drawn. */
 #define S_TIP_SALE_TANK 0x1E1D8                     /* the tip flag of 0x41A940(0x1A): state + 0x1E170 + 0x1A * 4 */
 static int drawing_extra = 0;
+static int shown_selling(void);
+static void draw_sign_on(char *impl);
 
 static void draw_as_art(UINT_PTR prev, char *impl) {
     char *state = (char *)P(impl, I_STATE);
@@ -837,21 +906,175 @@ static void __fastcall background_hook(char *impl, void *edx) {
 }
 
 static void __fastcall decor_hook(char *impl, void *edx) {
+    char *state = (char *)P(impl, I_STATE);
     (void)edx;
     draw_as_art(prev_decor, impl);
+    if (ready(state) && *I(state, S_CURRENT_TANK) == 0 && shown_selling() && shown != 2) draw_sign_on(impl);
 }
 
 /* The Sale Tank's sign and the shadow under it: drawn as stock, except on an extra tank. */
+static int shown_selling(void) { return shown >= 0 && shown < owned && ((selling >> shown) & 1); }
+
 static int __fastcall sale_sign_hook(void *gfx, void *edx, int image, int x, int y) {
     (void)edx;
-    if (drawing_extra) return 0;
+    if (drawing_extra && !(shown == 2 && shown_selling())) return 0;   /* only Tank Five draws the Sale Tank's own */
     return CALL_PREV3(prev_sale_sign, gfx, image, x, y);
 }
 
 static int __fastcall sale_shadow_hook(void *gfx, void *edx, int image, int x, int y) {
     (void)edx;
-    if (drawing_extra) return 0;
+    if (drawing_extra && !(shown == 2 && shown_selling())) return 0;   /* only Tank Five draws the Sale Tank's own */
     return CALL_PREV3(prev_sale_shadow, gfx, image, x, y);
+}
+
+/* "For sale" On on Tank Three or Four (drawn as Tank One or Two, whose
+   decorations have no sign): the Sale Tank's sign and its shadow, the same
+   sprites at the same places, after the decorations as on the Sale Tank. */
+#define SPR_SHADOW 3
+#define SPR_FOR_SALE 4
+static void draw_sign_on(char *impl) {
+    void *gfx = P(impl, I_GFX), *art;
+    art = (void *)(UINT_PTR)SPRITE_GET(P(impl, I_SPRITES), NULL, SPR_SHADOW);
+    if (art) DRAW(gfx, NULL, (int)(UINT_PTR)art, 580, 415);
+    art = (void *)(UINT_PTR)SPRITE_GET(P(impl, I_SPRITES), NULL, SPR_FOR_SALE);
+    if (art) DRAW(gfx, NULL, (int)(UINT_PTR)art, 620, 360);
+}
+
+/* ---------------------------------------------------------------- selling */
+
+/* The Sale Tank sells as stock; a bought extra tank with "For sale" On sells
+   too, as if it were the Sale Tank.  The game's sale code reads the Sale Tank
+   at fixed addresses (state + 0xA768 + slot * 0x288), so:
+     * the sale roll (0x424240, once a second, the first fish whose roll
+       succeeds is sold, then a 5-second pause) runs on the Sale Tank, then
+       with each selling extra tank lent the Sale Tank's place, until one
+       sells: every fish gets the game's own roll, in tank order, and the sale
+       itself (0x424010: price, money, "fish sold", REMOVE_FISH(2, slot), the
+       pause) acts on the tank the fish is really in;
+     * the customers' thoughts (0x413530: a random Sale Tank slot, 3 tries)
+       look at one of the selling tanks, picked by the game's Random;
+     * when the sale scene opens (0x423E00) its fish pictures and the count
+       they follow (scene + 0x64: live, healthy, not a seahorse-type) cover
+       every selling tank, and the crowd (adults / 3 in the formula at
+       0x423F2E) counts the adults of every selling tank, but never more than
+       one full tank's (the tank size), so the crowd never passes the stock
+       maximum;
+     * the "Fish for sale" number (0x423800: adults, healthy, not a
+       seahorse-type) counts every selling tank.
+   With no extra tank selling, every one of these is the stock call, as is. */
+#define SCENE_STATE 0x70
+#define SCENE_PAUSE 0x58
+#define SCENE_COUNT 0x64
+#define F_AGE 0x0C
+#define F_HEALTH 0x3C
+#define TANK_SIZE (*(const unsigned char *)(UINT_PTR)0x00419C74u)   /* AddFish's bound: 21, or the tank size setting's */
+
+static UINT_PTR prev_roll, prev_thoughts, prev_crowd, prev_pictures, prev_for_sale_text;
+
+static int selling_list(int *list) {
+    int e, n = 0;
+    for (e = 0; e < owned && e < EXTRA; ++e) {
+        if ((selling >> e) & 1) list[n++] = e;
+    }
+    return n;
+}
+
+/* Extra tank e lent the Sale Tank's place, or given back (the same swap). */
+static void lend(char *state, int e) {
+    int place;
+    swap_blocks(where(state, 3 + e, &place), block(state, 2));
+}
+
+static int fish_slots(void) {
+    int n = TANK_SIZE;
+    return n > 0 && n <= RECORDS ? n : 21;
+}
+
+/* kind 0: the crowd's adults (live, age 20+, healthy); 1: the pictures
+   (live, healthy, not a seahorse-type); 2: "Fish for sale" (adults, healthy,
+   not a seahorse-type).  As the game's own loops count them. */
+static int count_in(const unsigned char *b, int kind) {
+    int s, n = 0;
+    for (s = 0; s < fish_slots(); ++s) {
+        const int *f = (const int *)(b + s * SLOT_STRIDE);
+        if (f[F_LIVE / 4] == 0 || f[F_HEALTH / 4] == 0) continue;
+        if (kind != 1 && f[F_AGE / 4] < 20) continue;
+        if (kind != 0 && f[F_BODY / 4] == BODY_SEAHORSE) continue;
+        ++n;
+    }
+    return n;
+}
+
+static int count_selling(char *state, int kind) {
+    int list[EXTRA], n = selling_list(list), i, place, total = count_in(block(state, 2), kind);
+    for (i = 0; i < n; ++i) total += count_in(where(state, 3 + list[i], &place), kind);
+    return total;
+}
+
+static void __fastcall roll_hook(char *scene, void *edx, int browsing) {
+    char *state = (char *)P(scene, SCENE_STATE);
+    int list[EXTRA], n, i;
+    (void)edx;
+    n = ready(state) ? selling_list(list) : 0;
+    CALL_PREV1(prev_roll, scene, browsing);
+    for (i = 0; i < n && *I(scene, SCENE_PAUSE) == 0; ++i) {         /* nothing sold yet this second */
+        lend(state, list[i]);
+        __try {
+            CALL_PREV1(prev_roll, scene, browsing);
+        } __finally {
+            lend(state, list[i]);
+        }
+    }
+}
+
+static int __fastcall thoughts_hook(char *view, void *edx) {
+    char *state = (char *)P(view, 0x5DE4);
+    int list[EXTRA], n, pick, result = 0;
+    (void)edx;
+    n = ready(state) ? selling_list(list) : 0;
+    if (n == 0) return CALL_PREV0(prev_thoughts, view);
+    pick = RANDOM(n + 1) - 1;                                       /* -1: the Sale Tank */
+    if (pick < 0) return CALL_PREV0(prev_thoughts, view);
+    lend(state, list[pick]);
+    __try {
+        result = CALL_PREV0(prev_thoughts, view);
+    } __finally {
+        lend(state, list[pick]);
+    }
+    return result;
+}
+
+/* The crowd (0x413C10(view, crowd)) with every selling tank's adults, at most a full tank's. */
+static int __fastcall crowd_hook(void *view, void *edx, int crowd) {
+    char *state = *(char **)(UINT_PTR)STATE_GLOBAL;
+    int list[EXTRA], adv, own, all;
+    (void)edx;
+    if (ready(state) && selling_list(list) > 0) {
+        adv = *I(state, 0x26C);                                      /* Advertising level (0x423F43) */
+        own = count_in(block(state, 2), 0);
+        all = count_selling(state, 0);
+        if (all > fish_slots()) all = fish_slots();
+        if (own > fish_slots()) own = fish_slots();
+        crowd += 2 * adv * (all / 3 - own / 3);
+    }
+    return CALL_PREV1(prev_crowd, view, crowd);
+}
+
+/* The sale scene's fish pictures: drawn from scene + 0x64, set over every selling tank. */
+static int __fastcall pictures_hook(char *scene, void *edx, int show) {
+    char *state = (char *)P(scene, SCENE_STATE);
+    int list[EXTRA];
+    (void)edx;
+    if (ready(state) && selling_list(list) > 0) *I(scene, SCENE_COUNT) = count_selling(state, 1);
+    return CALL_PREV1(prev_pictures, scene, show);
+}
+
+/* "Fish for sale: n": the game's sprintf(buffer, "%d", n) at 0x423927. */
+static int __cdecl for_sale_text_hook(char *out, const char *format, int value) {
+    char *state = *(char **)(UINT_PTR)STATE_GLOBAL;
+    int list[EXTRA];
+    if (ready(state) && selling_list(list) > 0) value = count_selling(state, 2);
+    return ((format_fn)prev_for_sale_text)(out, format, value);
 }
 
 /* ------------------------------------------------------------ the update */
@@ -1057,8 +1280,13 @@ static int prepare(void) {
     ok &= BRANCH(10, DECOR, 0xE8, decor_hook, prev_decor);
     ok &= BRANCH(11, SALE_SHADOW, 0xE8, sale_shadow_hook, prev_sale_shadow);
     ok &= BRANCH(12, SALE_SIGN, 0xE8, sale_sign_hook, prev_sale_sign);
-    ok &= slot_site(&writes[13], current_bytes[13], SITE_SLOT_LOAD_VA, SITE_SLOT_LOAD_HOLDS, CODE_ADDR(load_hook), &prev_load);
-    ok &= slot_site(&writes[14], current_bytes[14], SITE_SLOT_SAVE_VA, SITE_SLOT_SAVE_HOLDS, CODE_ADDR(save_slot_hook), &prev_save);
+    ok &= BRANCH(13, SALE_ROLL, 0xE8, roll_hook, prev_roll);
+    ok &= BRANCH(14, THOUGHTS, 0xE8, thoughts_hook, prev_thoughts);
+    ok &= BRANCH(15, CROWD, 0xE8, crowd_hook, prev_crowd);
+    ok &= BRANCH(16, PICTURES, 0xE8, pictures_hook, prev_pictures);
+    ok &= BRANCH(17, FOR_SALE_TEXT, 0xE8, for_sale_text_hook, prev_for_sale_text);
+    ok &= slot_site(&writes[18], current_bytes[18], SITE_SLOT_LOAD_VA, SITE_SLOT_LOAD_HOLDS, CODE_ADDR(load_hook), &prev_load);
+    ok &= slot_site(&writes[19], current_bytes[19], SITE_SLOT_SAVE_VA, SITE_SLOT_SAVE_HOLDS, CODE_ADDR(save_slot_hook), &prev_save);
     return ok;
 }
 

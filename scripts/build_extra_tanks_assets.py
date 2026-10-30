@@ -33,7 +33,7 @@ import zipfile
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "fish_tycoon_extra_tanks" / "Images"
@@ -169,6 +169,42 @@ def relabel(image: Image.Image, text: str, glyphs: dict[str, Image.Image], scale
     return art
 
 
+# ------------------------------------------------------------------ name labels, toggles
+
+NAMES = (("TankName1", "Tank 1", "Becken 1"), ("TankName2", "Tank 2", "Becken 2"),
+         ("TankNameSale", "Sale Tank", "Verkaufsbecken"), ("TankName3", "Tank 3", "Becken 3"),
+         ("TankName4", "Tank 4", "Becken 4"), ("TankName5", "Tank 5", "Becken 5"))
+TOGGLES = (("ForSaleOff", "For sale: Off", "Verkauf: Aus", False), ("ForSaleOn", "For sale: On", "Verkauf: An", True))
+TOGGLE_SIZE = (150, 34)                 # ftfp_extra_tanks.c TOGGLE_W / TOGGLE_H
+
+
+def toggle(glyphs, text: str, on: bool, lit: bool) -> Image.Image:
+    """A small plate in the top bar's colours with the label in the game's font; lit = hovered."""
+    plate = Image.new("RGBA", TOGGLE_SIZE, (0, 0, 0, 0))
+    fill = (40, 90, 40, 230) if on else (70, 45, 30, 230)
+    if lit:
+        fill = tuple(min(255, c + 35) for c in fill[:3]) + (fill[3],)
+    ImageDraw.Draw(plate).rounded_rectangle((0, 0, TOGGLE_SIZE[0] - 1, TOGGLE_SIZE[1] - 1), radius=8, fill=fill,
+                                            outline=(235, 225, 195, 255), width=2)
+    word = label(text, glyphs, 0.9)
+    plate.alpha_composite(word, ((TOGGLE_SIZE[0] - word.width) // 2, (TOGGLE_SIZE[1] - word.height) // 2))
+    return plate
+
+
+def names_and_toggles(glyphs) -> dict[str, Image.Image]:
+    out: dict[str, Image.Image] = {}
+    for name, en, de in NAMES:
+        out[f"{name}.png"] = label(en, glyphs, 1.4)
+        out[f"{name}_de.png"] = label(de, glyphs, 1.4)
+    for name, en, de, on in TOGGLES:
+        for suffix, text in (("", en), ("_de", de)):
+            sheet = Image.new("RGBA", (2 * TOGGLE_SIZE[0], TOGGLE_SIZE[1]), (0, 0, 0, 0))
+            sheet.paste(toggle(glyphs, text, on, False), (0, 0))
+            sheet.paste(toggle(glyphs, text, on, True), (TOGGLE_SIZE[0], 0))
+            out[f"{name}{suffix}.png"] = sheet
+    return out
+
+
 # ------------------------------------------------------------------ build
 
 def build(game: Path) -> dict[str, Image.Image]:
@@ -206,6 +242,7 @@ def build(game: Path) -> dict[str, Image.Image]:
         sheet.paste(normal_img, (0, 0))
         sheet.paste(lit, (w, 0))
         out[name] = sheet
+    out.update(names_and_toggles(glyphs))
     return out
 
 

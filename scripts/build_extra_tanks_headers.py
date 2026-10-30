@@ -44,6 +44,11 @@ SITES = [
     ("decor", 0x42203F, "call 0x41d340", "the tank's own decorations, chosen by tank number"),
     ("sale_shadow", 0x41D44A, "call 0x408a40", "the shadow under the Sale Tank's sign (sprite 3 at 580, 415)"),
     ("sale_sign", 0x41D467, "call 0x408a40", "the Sale Tank's For Sale sign (forsale.png, sprite 4, at 620, 360)"),
+    ("sale_roll", 0x4246FB, "call 0x424240", "the sale scene's roll, once a second"),
+    ("thoughts", 0x415131, "call 0x413530", "a customer's thought about a fish for sale"),
+    ("crowd", 0x423F52, "call 0x413c10", "the sale scene's crowd, set when it opens"),
+    ("pictures", 0x423FEE, "call 0x4234c0", "the sale scene's fish pictures, when it opens"),
+    ("for_sale_text", 0x423927, "call 0x42b20b", "the Fish for sale number's sprintf"),
 ]
 SHARED = {"tick_show"}             # DS Store Items chains this one too
 

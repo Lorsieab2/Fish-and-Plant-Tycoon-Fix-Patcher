@@ -79,6 +79,36 @@ static const unsigned char SITE_SALE_SHADOW_EXPECT[] = { 0xE8, 0xF1, 0xB5, 0xFE,
 static const unsigned char SITE_SALE_SIGN_EXPECT[] = { 0xE8, 0xD4, 0xB5, 0xFE, 0xFF };
 #define SITE_SALE_SIGN_TARGET 0x00408A40u
 
+/* the sale scene's roll, once a second: call 0x424240 */
+#define SITE_SALE_ROLL_VA 0x004246FBu
+#define SITE_SALE_ROLL_LEN 5
+static const unsigned char SITE_SALE_ROLL_EXPECT[] = { 0xE8, 0x40, 0xFB, 0xFF, 0xFF };
+#define SITE_SALE_ROLL_TARGET 0x00424240u
+
+/* a customer's thought about a fish for sale: call 0x413530 */
+#define SITE_THOUGHTS_VA 0x00415131u
+#define SITE_THOUGHTS_LEN 5
+static const unsigned char SITE_THOUGHTS_EXPECT[] = { 0xE8, 0xFA, 0xE3, 0xFF, 0xFF };
+#define SITE_THOUGHTS_TARGET 0x00413530u
+
+/* the sale scene's crowd, set when it opens: call 0x413c10 */
+#define SITE_CROWD_VA 0x00423F52u
+#define SITE_CROWD_LEN 5
+static const unsigned char SITE_CROWD_EXPECT[] = { 0xE8, 0xB9, 0xFC, 0xFE, 0xFF };
+#define SITE_CROWD_TARGET 0x00413C10u
+
+/* the sale scene's fish pictures, when it opens: call 0x4234c0 */
+#define SITE_PICTURES_VA 0x00423FEEu
+#define SITE_PICTURES_LEN 5
+static const unsigned char SITE_PICTURES_EXPECT[] = { 0xE8, 0xCD, 0xF4, 0xFF, 0xFF };
+#define SITE_PICTURES_TARGET 0x004234C0u
+
+/* the Fish for sale number's sprintf: call 0x42b20b */
+#define SITE_FOR_SALE_TEXT_VA 0x00423927u
+#define SITE_FOR_SALE_TEXT_LEN 5
+static const unsigned char SITE_FOR_SALE_TEXT_EXPECT[] = { 0xE8, 0xDF, 0x78, 0x00, 0x00 };
+#define SITE_FOR_SALE_TEXT_TARGET 0x0042B20Bu
+
 /* the state's Load(slot) */
 #define SITE_SLOT_LOAD_VA 0x004424D0u
 #define SITE_SLOT_LOAD_HOLDS 0x0041AE70u
@@ -87,6 +117,6 @@ static const unsigned char SITE_SALE_SIGN_EXPECT[] = { 0xE8, 0xD4, 0xB5, 0xFE, 0
 #define SITE_SLOT_SAVE_VA 0x004424D4u
 #define SITE_SLOT_SAVE_HOLDS 0x00419100u
 
-#define TANK_SITE_COUNT 15
+#define TANK_SITE_COUNT 20
 
 #endif

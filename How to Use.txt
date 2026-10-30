@@ -103,7 +103,11 @@ Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
   The isolation tank is not on the buttons or arrows: drop a fish on it
   as usual. Things bought in the store go to the tank you came from (the
   game's Golden Seahorse goes to Tank One first, as before).
-- Only the Sale Tank sells; Tank Three, Four and Five never do.
+- Selling: Tank 3, 4 and 5 each have a "For sale" button under their name, Off
+  at first. On puts the For Sale! sign in that tank and sells its fish together
+  with the Sale Tank's, by the game's own sale (one sale a second, the same
+  prices and odds). Off: that tank never sells. Every tank shows its name
+  (Tank 1, Tank 2, Sale Tank, Tank 3, Tank 4, Tank 5) under the top bar.
 
 Plant Tycoon options:
 - Fix Vanilla Bugs (a new game no longer starts at the Nox Orchid prices;

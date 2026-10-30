@@ -496,7 +496,10 @@ def list_backups(game_id: str, save_folder: Path) -> list[BackupInfo]:
 
 # --------------------------------------------------------------------- restore
 
-_SIDE_FILE_SLOT = re.compile(r" ([1-5])\.dat(?:\.tmp|\.unreadable[^\\/]*)?$", re.I)
+# "<name> <n>.dat", its ".tmp" while written, and a file set aside as "<name> <n>.unreadable-<k>.dat"
+# (the companions' set_aside) or "<name> <n>.dat.unreadable...". <n> is the game's own save number, so
+# a companion that writes beside each save also writes beside the game's older generation (n + 20).
+_SIDE_FILE_SLOT = re.compile(r" (\d+)(?:\.unreadable-\d+)?\.dat(?:\.tmp|\.unreadable[^\\/]*)?$", re.I)
 
 
 def file_slot(game_id: str, relative: Path) -> int | str:
@@ -516,7 +519,10 @@ def file_slot(game_id: str, relative: Path) -> int | str:
     if relative.parts[0].casefold() == f"{fmt.title} Fix Patcher Data".casefold():
         match = _SIDE_FILE_SLOT.search(name)
         if match:
-            return int(match.group(1))
+            number = int(match.group(1))
+            for extra in fmt.slot_file_offsets:
+                if 1 <= number - extra <= fmt.slots:
+                    return number - extra
     return "unknown"
 
 

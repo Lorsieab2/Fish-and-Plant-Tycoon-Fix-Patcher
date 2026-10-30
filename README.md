@@ -65,8 +65,14 @@ never needs the internet.
   onto a button to move it to that tank, or onto an arrow to move it to the
   previous or next tank (Tank One, Tank Two, the Sale Tank, then the extra
   tanks you own, and round again); a full tank refuses it as in the stock
-  game. The extra tanks do not sell: only the Sale Tank does, with the stock
-  game's limits. It runs as a companion DLL the game loads at start
+  game. Each extra tank has a "For sale" button (Off at first): On, it shows
+  the Sale Tank's For Sale! sign and its fish sell together with the Sale
+  Tank's, by the game's own sale code (one sale a second, the same prices,
+  odds and effects; the sale scene's pictures and "Fish for sale" number count
+  every selling tank; the crowd never passes the stock maximum). Every tank
+  screen shows its name (Tank 1, Tank 2, Sale Tank, Tank 3, Tank 4, Tank 5).
+  Mockups: [docs/images/extra-tank-3-selling-on.png](docs/images/extra-tank-3-selling-on.png)
+  and the other `extra-tank-*` pictures. It runs as a companion DLL the game loads at start
   (`Fish Tycoon Fix Patcher DLLs\Extra Tanks.dll`), in the "Modded Upgrades"
   copy; the saves keep their stock layout and each save slot keeps its extra
   tanks, and how many are bought, in `Fish Tycoon Fix Patcher Data\Extra
