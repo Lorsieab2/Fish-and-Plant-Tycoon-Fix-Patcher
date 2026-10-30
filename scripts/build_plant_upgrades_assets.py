@@ -18,8 +18,8 @@ Writes, under assets/plant_tycoon_upgrades/Images:
   (chemical 37) and Revita-Seed (chemical 38) from the owner's icons
   (scripts/build_potion_assets.py: upright, then pouring), a 13th with the
   Radioactive Plant Formula Bomb (chemical 39): the stock Fertilizer Bomb
-  (row 5) with its white glass turned rainbow and its yellow label white,
-  the cap left grey (the owner's pick), a 14th
+  (row 5) with its white glass and grey cap turned rainbow and its yellow
+  label white (the owner's pick), a 14th
   with the Time Warp clock and a 15th with Add Money's gold coins. A chemical's row is
   its id - 27 (the game draws frame 2 x id - 54). The DLL points the chemical
   sheet record at it.
@@ -86,13 +86,9 @@ def prismatic(cell: Image.Image, only_coloured: bool = False) -> Image.Image:
 
 def rainbow_bomb(cell: Image.Image) -> Image.Image:
     """The Formula Bomb (owner, 2026-10-30): the Fertilizer Bomb's white glass
-    turned rainbow and its yellow label turned white, shading kept. The grey
-    cap above the glass stays as it is."""
+    and grey cap turned rainbow and its yellow label turned white, shading kept."""
     a = np.asarray(cell.convert("RGBA")).astype(float) / 255
     out = a.copy()
-    rows = [y for y in range(a.shape[0]) if any(a[y, x, 3] > 0 and colorsys.rgb_to_hsv(*a[y, x, :3])[1] > 0.25
-                                                for x in range(a.shape[1]))]
-    glass_top = min(rows) if rows else 0                   # the cap ends where the label starts
     for y in range(a.shape[0]):
         for x in range(a.shape[1]):
             if a[y, x, 3] == 0:
@@ -100,7 +96,7 @@ def rainbow_bomb(cell: Image.Image) -> Image.Image:
             h, s, v = colorsys.rgb_to_hsv(*a[y, x, :3])
             if s > 0.25:                                   # the yellow label: white
                 out[y, x, :3] = (min(1, v * 1.05),) * 3
-            elif y >= glass_top:                           # the white glass: rainbow
+            else:                                          # the glass and cap: rainbow
                 out[y, x, :3] = colorsys.hsv_to_rgb(((x + y) / 40) % 1, 0.75, v)
     return Image.fromarray((out * 255).round().astype("uint8"), "RGBA")
 
