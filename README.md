@@ -317,13 +317,23 @@ folder never fails with "path too long".
   - a sheet per part (Fish Tycoon: Fins and Bodies; Plant Tycoon: Flowers and
     Foliage): how each is obtained, its rarity and the species that have it;
   - the species: the pairs of parts that breed each one, its base value, and
-    two prices each with 0 effects and with max effects: the best asking
-    price per day and the highest price that still sells;
+    two prices each with 0 effects and with Max effects: the best asking
+    price per day and the highest price that still sells (no mutation changes
+    a price);
   - a Breeding Calculator (two parents: every child and its exact odds) and
-    Have to Want (the shortest breeding chain from the species you have to the
-    one you want).
+    the Breeding Planner (the shortest breeding chain from the species you
+    have to the one you want), each with three effects choices: 0 effects,
+    Max effects without the mutation, and Max effects with it (the Wasp
+    Grouper in Fish Tycoon, Mutation Liquid in Plant Tycoon).
 
-  It opens on the save's discovered species and shows only what they reveal;
+  Rarities use the games' own words: Common, Unusual and Rare in Fish Tycoon
+  (as its Common and Unusual Fish Eggs), Common, Endangered and Extinct (the
+  seed packets) in Plant Tycoon, Legendary for the Unused Flowers. Every
+  "how it is obtained" quotes the exact odds from the game's code. A
+  scrolling pane under each sheet shows the picked row's details.
+
+  It opens on the species the save has discovered and shows only those and
+  their parts (parent suggestions and the planner use only them too);
   **Show Spoilers** (under Options, remembered) shows every species, the full
   charts and every price. The patcher's own species (DS Exclusive Fish,
   Unused Flowers) appear only when the save's game copy was patched with that

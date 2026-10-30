@@ -26,7 +26,8 @@ class Species:
     name: str                    # the game's own species name
     parts: tuple[Part, Part]
     patcher: bool
-    rarity: str                  # the game's class/rarity (e.g. Plant class A-D)
+    rarity: str                  # the rarer part's rarity, in the game's words (Fish: Common / Unusual /
+                                 # Rare; Plant: Common / Endangered / Extinct seed packets, Legendary)
     value: int                   # the game's base value V
 
 @dataclass(frozen=True)
@@ -41,18 +42,27 @@ class Model:
     def parts(self, kind: str) -> list[Part]: ...
     def species(self) -> list[Species]: ...       # every species, the patcher ones only when `extras` is on
     def children(self, a: tuple[int, int], b: tuple[int, int], effects: str) -> list[tuple[tuple[int, int], float]]:
-        """Every child two parents can give, with its probability (sums to 1), by the game's rule;
-        `effects` "none" or "max" (magic fish/plants, chemicals that change breeding)."""
+        """Every child two parents can give, with its probability (sums to 1), by the game's rule.
+        `effects` is "none" (no effects), "max" (every other effect at its best, no mutation
+        chance) or "max_mutation" (max plus the mutation: Fish, a Wasp Grouper in the mother's
+        tank; Plant, the seed after one Mutation Liquid dose)."""
     def ways_to_breed(self, key: tuple[int, int], effects: str, limit: int = 20,
                       allowed: set[tuple[int, int]] | None = None) -> list[tuple[tuple[int, int], tuple[int, int], float]]:
         """Parent pairs that can give `key`, best odds first, cut to `limit`. With `allowed`, only
         parents in it are used, filtered before ranking and cutting (the spoiler-free view)."""
-    def plan(self, have: list[tuple[int, int]], want: tuple[int, int], effects: str) -> list[dict]:
+    def plan(self, have: list[tuple[int, int]], want: tuple[int, int], effects: str,
+             allowed: set[tuple[int, int]] | None = None) -> list[dict]:
         """The shortest breeding chain from the species in `have` to `want`: steps of
-        {parents: (a, b), child: key, odds: float}; [] when impossible."""
-    def prices(self, key: tuple[int, int], effects: str) -> Prices: ...
+        {parents: (a, b), child: key, odds: float}; [] when impossible. With `allowed`, every
+        species the chain makes is in it (the spoiler-free planner: discovered species only)."""
+    def prices(self, key: tuple[int, int], effects: str) -> Prices:
+        """No mutation changes a price, so "max_mutation" gives the "max" prices."""
+    effects_choices: tuple[tuple[str, str], ...]  # ("none", "0 effects"), ("max", "Max effects, without"),
+                                                  # ("max_mutation", "Max effects, with Wasp Grouper" / "... Mutation Liquid")
+    def effects_text(self, effects: str) -> list[str]:
+        """What an effects choice assumes, in words."""
     def effects_max(self) -> list[str]:
-        """What "max effects" turns on, in words (each magic fish/plant, chemical, research, growth...)."""
+        """effects_text("max_mutation")."""
     def discovered(self, save_folder, slot: int) -> set[tuple[int, int]]:
         """The species this save has discovered: read-only, never writes the save."""
 

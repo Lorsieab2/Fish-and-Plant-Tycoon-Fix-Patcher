@@ -28,9 +28,21 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   per part (Fish: Fins and Bodies; Plant: Flowers and Foliage) with how each
   is obtained, its rarity and its species; the species with the pairs that
   breed them, the best price per day and the highest price that sells, each
-  with 0 and with max effects; a Breeding Calculator and a Have to Want
-  planner. It reads the chosen save and player only, opens on the discovered
-  species, and Show Spoilers (remembered) shows everything. DS Exclusive Fish
+  with 0 and with Max effects; a Breeding Calculator and a Breeding Planner,
+  each with three effects choices: 0 effects, Max effects without the
+  mutation, and Max effects with it (Fish: "with Wasp Grouper"; Plant: "with
+  Mutation Liquid", the seed after one dose); no mutation changes a price.
+  Rarities are in the games' own words: Fish Tycoon's Common, Unusual
+  (formerly shown as "Half-rare") and Rare, Plant Tycoon's Common,
+  Endangered and Extinct seed packets, Legendary for the Unused Flowers.
+  Every part's "how it is obtained" gives each route's exact odds and price
+  from the game's code (eggs, starter eggs, Unknown Chemical, seed packets,
+  Mutation Liquid, Legendary and Exotic eggs), checked by emulation. A
+  scrolling details pane sits under every sheet. It reads the chosen save
+  and player only, opens on the species that save has discovered (each
+  species' own discovered flag; a species merely made of seen parts is not
+  listed, suggested or planned through), and Show Spoilers (remembered)
+  shows everything. DS Exclusive Fish
   and Unused Flowers species appear only for a copy patched with them.
   Export to .xlsx (written with the standard library) or .csv. The Fish
   Tycoon rules and prices are checked against the vanilla executable in
