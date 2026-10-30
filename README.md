@@ -111,8 +111,12 @@ never needs the internet.
 - Fix Vanilla Bugs (on by default): a new game no longer starts with every
   plant at the Flower of Knowledge (Nox Orchid) price when the save open
   before it had found the Nox Orchid (the game had priced the new game before
-  forgetting the old one's magic plants). Saves already priced that way keep
-  their prices.
+  forgetting the old one's magic plants). Existing saves with Nox prices but
+  no Nox Orchid are re-priced the first time they load: if the save has not
+  found the Flower of Knowledge and every species it has not discovered is at
+  that price, those species get normal prices, the 322 Unused Flowers too.
+  Discovered species keep their prices (you may have set them), and a save
+  with any other undiscovered price is left alone.
 - No old-age plant deaths. The original age check and `Random(1000)` call remain;
   the eligible death range is empty.
 - R refreshes the seed shop (on by default). Pressing R (or r) in the Supplies

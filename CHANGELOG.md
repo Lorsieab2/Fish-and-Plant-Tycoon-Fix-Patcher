@@ -118,10 +118,23 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   it starts. The call at 0x41EFB8 now goes through a few bytes in the zero tail
   of .text (0x464950) that clear those same seven flags (state +
   0x2180..0x2186) first. Finding the Flower of Knowledge still raises every
-  price, and Unused Flowers' 322 species follow suit. Only new games change:
-  saves, including ones already priced this way, keep their prices. Proven by
-  emulating the vanilla and patched code (tests/test_knowledge_price_new_game.py).
-  Fish Tycoon has no such price.
+  price, and Unused Flowers' 322 species follow suit. Proven by emulating the
+  vanilla and patched code (tests/test_knowledge_price_new_game.py). Fish
+  Tycoon has no such price.
+- Fix Vanilla Bugs also repairs existing saves with Nox prices but no Nox
+  Orchid: they are re-priced the first time they load. The load's call at
+  0x41EEF9 (just after the save is copied in) goes through 0x464970 first. A
+  save is repaired only when its Flower of Knowledge flag is clear and every
+  species it has not discovered (V of 4 or more) asks exactly V + 3 x (V/4),
+  a price the stock rule cannot give without the flag (V -+ Random(V/2) stays
+  within V/2 - 1 of V). Only those undiscovered species are re-priced, by the
+  price setup's own formula and Random calls; discovered species keep their
+  prices, which you may have set, and a save with any other undiscovered
+  price is left alone. Nothing else in the save changes, the game saves the
+  new prices at its next save, and the repair never runs twice. Unused
+  Flowers re-prices its 322 species in the New Flowers file by the same rule.
+  Proven by emulating the vanilla and patched load
+  (tests/test_knowledge_price_load_repair.py).
 
 ### Both games
 

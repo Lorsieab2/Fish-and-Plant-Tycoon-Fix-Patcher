@@ -77,7 +77,9 @@ Fish Tycoon options:
   and adds $1,000 each time)
 
 Plant Tycoon options:
-- Fix Vanilla Bugs (a new game no longer starts at the Nox Orchid prices)
+- Fix Vanilla Bugs (a new game no longer starts at the Nox Orchid prices;
+  existing saves with Nox prices but no Nox Orchid are re-priced the first
+  time they load, undiscovered plants only)
 - No old-age plant deaths
 - R refreshes the seed shop (on by default; press R in the Supplies store to
   restock the seed shelves at once, Legendary Seeds too)

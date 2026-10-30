@@ -138,6 +138,51 @@ static void price_species(const char *state) {
     }
 }
 
+/* Fix Vanilla Bugs (the executable's own bytes, so it needs no setting file):
+   the load's call at 0x41EEF9 goes to its price repair at 0x464970. */
+#define LOAD_FIXUP_CALL 0x0041EEF9u
+#define LOAD_PRICE_REPAIR 0x00464970u
+static const unsigned char LOAD_PRICE_REPAIR_HEAD[] = { 0x60, 0x8B, 0xF1, 0x80, 0xBE, 0x81, 0x21, 0x00, 0x00, 0x00 };
+
+static int load_price_repair_on(void) {
+    const unsigned char *call = (const unsigned char *)(UINT_PTR)LOAD_FIXUP_CALL;
+    int rel;
+    if (call[0] != 0xE8) return 0;
+    memcpy(&rel, call + 1, 4);
+    if ((unsigned int)(LOAD_FIXUP_CALL + 5u + (unsigned int)rel) != LOAD_PRICE_REPAIR) return 0;
+    return memcmp((const void *)(UINT_PTR)LOAD_PRICE_REPAIR, LOAD_PRICE_REPAIR_HEAD,
+                  sizeof LOAD_PRICE_REPAIR_HEAD) == 0;
+}
+
+/* The same repair for the new species of a loaded sidecar, by the executable's
+   rule: the save has not found the Flower of Knowledge, and every new species it
+   has not discovered asks exactly V + 3*(V/4) (the price an earlier save's flag
+   gave its new game); then those, and only those, are priced as a new game
+   prices them.  Discovered species keep their prices: the player may have set
+   them.  A sidecar with any other undiscovered price is left alone. */
+static void repair_knowledge_prices(const char *state) {
+    int f, k, n = 0;
+    if (state == NULL || state[STATE_KNOWLEDGE] != 0 || !load_price_repair_on()) return;
+    for (f = 1; f <= FOLIAGES; ++f) {
+        for (k = 0; k < NEW_COUNT; ++k) {
+            int v = value[f][k];
+            if (discovered[f][k] || v < 4) continue;
+            if (price[f][k] != v + 3 * (v / 4)) return;
+            ++n;
+        }
+    }
+    if (n == 0) return;
+    for (f = 1; f <= FOLIAGES; ++f) {
+        for (k = 0; k < NEW_COUNT; ++k) {
+            int v = value[f][k];
+            int d;
+            if (discovered[f][k] || v < 4) continue;
+            d = game_random(v / 2);
+            price[f][k] = game_random(100) <= 50 ? v - d : v + d;
+        }
+    }
+}
+
 static void reset_species(void) {
     memset(discovered, 0, sizeof discovered);
     memset(price, 0, sizeof price);
@@ -280,6 +325,7 @@ static void __cdecl on_load(const char *state, int slot) {
     if (ok) {
         memcpy(price, body.price, sizeof price);
         memcpy(discovered, body.discovered, sizeof discovered);
+        repair_knowledge_prices(state);      /* saved with the sidecar at the game's next save */
     } else {
         reset_species();
         price_species(state);
