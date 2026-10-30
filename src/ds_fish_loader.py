@@ -100,9 +100,9 @@ PLANT_SORT = replace(
 )
 
 
-# With the extra greenhouses on, the loader loads that DLL, which starts
-# "Unused Flowers.dll" (or "Sort Seeds.dll") first and then wraps what they
-# installed.
+# With the extra greenhouses or the extra nurseries on, the loader loads that
+# DLL (both settings' DLL), which starts "Unused Flowers.dll" (or "Sort
+# Seeds.dll") first and then wraps what they installed.
 PLANT_GREENHOUSES = replace(
     PLANT, dll_name="Extra Greenhouses.dll",
     what_it_installs="That starts the other companion DLLs beside it, then checks the ten places in the game's "
@@ -113,7 +113,7 @@ PLANT_GREENHOUSES = replace(
 
 def plant_profile(enabled: set[str]) -> LoaderProfile:
     """The DLL Plant Tycoon's loader loads for these settings."""
-    if "extra_greenhouses" in enabled:
+    if "extra_greenhouses" in enabled or "extra_nurseries" in enabled:
         return PLANT_GREENHOUSES
     return PLANT if "new_flowers" in enabled else PLANT_SORT
 

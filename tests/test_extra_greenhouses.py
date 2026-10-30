@@ -239,6 +239,49 @@ class TickTests(unittest.TestCase):
                 self.assertTrue(other.objects_follow_their_records())
                 self.assertEqual(other.pot_bytes(0, 7), game.pot_bytes(1, 7))   # the stock pot it left alone
 
+    def test_game_wide_effects_reach_every_greenhouse(self) -> None:
+        """Permanent, game-wide effects live in the game state, outside the pots: the six magic plants
+        and the Golden Berries found (state + 0x2180..0x2186, read by the update at 0x42E171 and the
+        planting at 0x42FD77) and every tool upgrade owned (state + 0x6E8 + k * 0x20 + 4). A plant in
+        any greenhouse grows exactly as in Greenhouse 1 with all of them, and differently without."""
+        def run(g: int, effects: bool) -> list[bytes]:
+            game = Game(31)
+            if effects:
+                for flag in range(0x2180, 0x2187):
+                    game.emu.write8(game.state + flag, 1)
+                for k in range(15):
+                    game.emu.write8(game.state + 0x6E8 + k * 0x20 + 4, 1)
+            game.plant(g, 7, 13, 13)
+            out = []
+            for dt in TICKS[:4]:
+                game.tick(dt)
+                out.append(game.pot_bytes(g, 7))
+            return out
+        stock = run(0, True)
+        self.assertNotEqual(stock, run(0, False))                           # the effects really act
+        for g in range(1, EXTRA + 1):
+            self.assertEqual(run(g, True), stock, f"greenhouse {g + 1}")
+
+    def test_switching_never_touches_game_wide_state(self) -> None:
+        """Greenhouses and nurseries change only which pots are in the state: everything else (magic
+        plants, upgrades, ornaments, research, money, discoveries) is the same on every screen."""
+        game = NurseryLimitTests.full_game()
+        emu = game.emu
+        emu.write32(emu.sym("_nurseries_on"), 1)
+        emu.write32(emu.sym("_nurseries"), 2)
+        for k in range(POTS):
+            NurseryLimitTests().toggle(game, 1, k)
+            NurseryLimitTests().toggle(game, 3, k)
+        game.show(0, active=0)
+        before = game.state_outside_pots()
+        for g in range(EXTRA + 1):
+            game.show(g)
+            self.assertEqual(game.state_outside_pots(), before, f"greenhouse {g + 1}")
+        for page in range(3):
+            emu.write32(emu.sym("_nursery_shown"), page)
+            game.show(0, active=2)
+            self.assertEqual(game.state_outside_pots(), before, f"nursery {page + 1}")
+
     def test_a_full_greenhouse_ticks_like_the_stock_one(self) -> None:
         plants = [(k, 1 + (k * 5) % 23, 1 + (k * 7) % 23) for k in range(POTS)]
         stock = grow(0, 5, plants)
@@ -727,8 +770,8 @@ class SidecarTests(unittest.TestCase):
         self.assertEqual(game.emu.read32(game.emu.sym("_arranged")), 4)          # back on screen
         self.assertEqual(list(disk), [self.NAME])
         data = bytes(disk[self.NAME])
-        self.assertEqual(struct.unpack_from("<6I", data), (0x47585450, 1, EXTRA, POTS, POT, EXTRA))
-        self.assertEqual(len(data), 24 + EXTRA * POTS * POT)
+        self.assertEqual(struct.unpack_from("<7I", data), (0x47585450, 1, EXTRA, POTS, POT, EXTRA, 0))
+        self.assertEqual(len(data), 28 + EXTRA * POTS * POT)
         # a load of slot 4 brings every greenhouse back
         game.emu.call(game.emu.sym("_on_loaded"), game.state, 4)
         for g in range(1, EXTRA + 1):
@@ -801,6 +844,15 @@ class OwnershipTests(unittest.TestCase):
         self.assertEqual(got, [1, 2, 3, 4, 5, 5, 5])
         self.assertEqual(emu.call(emu.sym("_FtfpExtraGreenhousesOwned")), 5)
 
+    def test_every_screen_is_named(self) -> None:
+        """The owner's name label: "Greenhouse 1" on the stock screen, " of m" once more are owned."""
+        game = Game(1)
+        emu = game.emu
+        for name, n, of, expected in (("Greenhouse", 0, 1, "Greenhouse 1"), ("Greenhouse", 2, 4, "Greenhouse 3 of 4"),
+                                      ("Nursery", 0, 1, "Nursery 1"), ("Nursery", 5, 6, "Nursery 6 of 6")):
+            at = emu.call(emu.sym("_screen_label"), emu.text(name), n, of)
+            self.assertEqual(emu.cstring(at).decode("latin-1"), expected)
+
     def test_the_arrows_reach_only_bought_greenhouses(self) -> None:
         for owned, expected in ((0, [0, 0, 0]), (1, [1, 0, 1]), (2, [1, 2, 0])):
             game = Game(1)
@@ -872,8 +924,8 @@ class StoreItemTests(unittest.TestCase):
             e.owned = min(e.owned + 1, EXTRA)
             return e.owned
         emu.hook(buy, bought, 0)
-        emu.write32(emu.sym("_greenhouses_owned"), owned)
-        emu.write32(emu.sym("_greenhouses_buy"), buy)
+        emu.write32(emu.sym("_extra_owned"), owned)
+        emu.write32(emu.sym("_extra_buy"), buy)
         emu.write8(emu.sym("_free_upgrades"), int(free))
         state, scene = emu.alloc(0x60000), emu.alloc(0x400)
         emu.write32(scene + 0x1BC, state)
@@ -890,7 +942,7 @@ class StoreItemTests(unittest.TestCase):
         self.click(emu)
         self.assertEqual((emu.owned, emu.read32(emu.state + 0x217C)), (1, 15000))
         self.assertIn("Buy Greenhouse 2 for $10000?", [c[1] for c in emu.calls if c[0] == "MessageBoxW"][-1])
-        self.assertEqual(emu.cstring(emu.sym("_greenhouse_tip_text")).decode("latin-1"),
+        self.assertEqual(emu.cstring(emu.sym("_extra_tip_text")).decode("latin-1"),
                          "Extra Greenhouse 2 of 5\nPrice: $ 10000")
         self.click(emu)
         self.assertEqual((emu.owned, emu.read32(emu.state + 0x217C)), (2, 5000))
@@ -907,7 +959,21 @@ class StoreItemTests(unittest.TestCase):
         self.click(emu)
         self.assertEqual(emu.owned, EXTRA)
         self.assertIn("already have all five", [c[1] for c in emu.calls if c[0] == "MessageBoxW"][-1])
-        self.assertEqual(emu.cstring(emu.sym("_greenhouse_tip_text")).decode("latin-1"), "Extra Greenhouse\nSold out")
+        self.assertEqual(emu.cstring(emu.sym("_extra_tip_text")).decode("latin-1"), "Extra Greenhouse\nSold out")
+
+    def test_the_extra_nursery_item_is_sold_the_same_way(self) -> None:
+        emu = self.store(30000, False)
+        owned, buy = emu.read32(emu.sym("_extra_owned")), emu.read32(emu.sym("_extra_buy"))
+        emu.write32(emu.sym("_extra_owned") + 4, owned)                      # the nursery item, on the Nursery shelf
+        emu.write32(emu.sym("_extra_buy") + 4, buy)
+        emu.write32(emu.sym("_extra_owned"), 0)                              # the greenhouse setting off
+        emu.call(emu.sym("_on_click"), emu.scene, 470, 320)
+        self.assertEqual((emu.owned, emu.read32(emu.state + 0x217C)), (1, 20000))
+        self.assertIn("Buy Nursery 2 for $10000?", [c[1] for c in emu.calls if c[0] == "MessageBoxW"][-1])
+        self.assertEqual(emu.cstring(emu.sym("_extra_tip_text") + 64).decode("latin-1"),
+                         "Extra Nursery 2 of 5\nPrice: $ 10000")
+        emu.call(emu.sym("_on_click"), emu.scene, 430, 80)                   # no greenhouse item to click
+        self.assertEqual(emu.owned, 1)
 
     def test_answering_no_buys_nothing(self) -> None:
         emu = self.store(50000, False, answer_yes=False)
@@ -955,6 +1021,171 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(before, after, hex(corrupt))
 
 
+@needs_game
+class ExtraNurseryTests(unittest.TestCase):
+    """5 extra nurseries: each is the stock nursery screen with its own 15 spots; each one bought raises the
+    stock limit of 15 plants for sale by 15."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        _build()
+
+    @staticmethod
+    def game(nurseries: int) -> Game:
+        game = NurseryLimitTests.full_game()
+        game.emu.write32(game.emu.sym("_nurseries_on"), 1)
+        game.emu.write32(game.emu.sym("_nurseries"), nurseries)
+        return game
+
+    @staticmethod
+    def in_nursery(game: Game, page: int) -> list[bytes]:
+        game.emu.write32(game.emu.sym("_nursery_shown"), page)
+        game.show(0, active=2)
+        return [bytes(game.emu.uc.mem_read(game.state + POTS_AT + j * POT, POT)) for j in range(POTS)]
+
+    def test_each_nursery_raises_the_limit_by_15(self) -> None:
+        limits = NurseryLimitTests()
+        for nurseries in (0, 1, 3):
+            game = self.game(nurseries)
+            limit = 15 * (nurseries + 1)
+            spots = [(g, k) for k in range(POTS) for g in range(EXTRA + 1)]
+            for g, k in spots[:limit]:
+                limits.toggle(game, g, k)
+            self.assertEqual(limits.for_sale(game), limit)
+            self.assertEqual(game.told, [])
+            limits.toggle(game, *spots[limit])
+            self.assertEqual(limits.for_sale(game), limit)
+            self.assertIn(f"Only {limit} plants can be for sale at once", game.told[0])
+
+    def test_every_plant_for_sale_has_a_spot_in_one_nursery(self) -> None:
+        game = self.game(1)
+        limits = NurseryLimitTests()
+        tagged = [(0, k) for k in range(5)] + [(2, k) for k in range(POTS)]          # 20 plants for sale
+        for g, k in tagged:
+            limits.toggle(game, g, k)
+        records = {(g, k): game.pot_bytes(g, k) for g in range(EXTRA + 1) for k in range(POTS)}
+        first, second = self.in_nursery(game, 0), self.in_nursery(game, 1)
+        shown = [r for r in first if r[FOR_SALE]] + [r for r in second if r[FOR_SALE]]
+        self.assertEqual((sum(r[FOR_SALE] for r in first), sum(r[FOR_SALE] for r in second)), (15, 5))
+        self.assertEqual(sorted(shown), sorted(records[t] for t in tagged))       # each one exactly once
+        self.assertEqual(first[:5], [records[(0, k)] for k in range(5)])          # Greenhouse 1's at their own spots
+        self.assertTrue(game.objects_follow_their_records())
+        game.show(0, active=0)
+        self.assertEqual({(g, k): game.pot_bytes(g, k) for g in range(EXTRA + 1) for k in range(POTS)}, records)
+
+    def test_the_arrows_page_through_the_bought_nurseries_as_the_game_opens_them(self) -> None:
+        for nurseries, expected in ((0, [0, 0, 0]), (2, [1, 2, 0])):
+            game = self.game(nurseries)
+            emu = game.emu
+            opened = []
+            thunk = emu.thunk()
+            emu.hook(thunk, lambda e: opened.append(e.arg(0)) or 0, 4)
+            emu.write32(emu.sym("_next_nu_activate"), thunk)
+            emu.hook(0x00449F00, lambda e: e.alloc(0x10))
+            nursery = emu.alloc(0xB00)
+            seen = []
+            for _ in range(3):
+                emu.call(emu.sym("@nu_command@16"), 8, 41, ecx=nursery)
+                seen.append(emu.read32(emu.sym("_nursery_shown")))
+            self.assertEqual(seen, expected)
+            self.assertEqual(opened, [0, 1] * 3 if nurseries else [])           # closed, then opened: stock
+
+    def test_a_plant_in_the_second_nursery_sells_like_a_stock_one(self) -> None:
+        game = self.game(1)
+        emu = game.emu
+        limits = NurseryLimitTests()
+        for k in range(POTS):
+            limits.toggle(game, 1, k)
+        limits.toggle(game, 4, 9)                                              # the 16th: Nursery 2
+        nursery = emu.alloc(0xB00)
+        emu.write32(nursery + 0xA3C, game.state)
+        emu.write32(nursery + 0xA44, game.manager)
+        emu.write32(nursery + 0xA4C, emu.alloc(0x40))
+        emu.hook(0x0043ACD0, lambda e: 0)
+        emu.hook(0x00449F00, lambda e: emu.alloc(0x10))
+        spots = [j for j, r in enumerate(self.in_nursery(game, 1)) if r[FOR_SALE]]
+        self.assertEqual(len(spots), 1)
+        cash = emu.read32(game.state + 0x217C)
+        emu.call(0x00435C70, 0, 0, spots[0] // 5, spots[0] % 5, ecx=nursery)
+        self.assertEqual(emu.read32(game.state + 0x217C) - cash, emu.read32(game.state + ((5 + 0x37) * 26 + 5) * 4))
+        emu.call(emu.sym("@nu_activate@12"), 0, ecx=nursery)
+        self.assertEqual(game.emu.read32(game.pot(4, 9) + FOLIAGE), 0)          # sold: it left its pot
+        self.assertEqual(sum(game.emu.uc.mem_read(game.pot(1, k) + FOR_SALE, 1)[0] for k in range(POTS)), 15)
+
+    def test_owned_nurseries_round_trip_and_a_new_game_resets_them(self) -> None:
+        game = Game(6)
+        emu = game.emu
+        disk = SidecarTests.files(SidecarTests(), game)
+        emu.write32(emu.sym("_nurseries_on"), 1)
+        emu.write32(emu.sym("_nurseries"), 3)
+        emu.hook(0x00403690, lambda e: 1, 0xC)
+        emu.call(emu.sym("_stub_save"), 4, ecx=game.state, edx=4)
+        self.assertEqual(struct.unpack_from("<I", disk[SidecarTests.NAME], 24)[0], 3)
+        emu.write32(emu.sym("_nurseries"), 0)
+        emu.call(emu.sym("_on_loaded"), game.state, 4)
+        self.assertEqual(emu.read32(emu.sym("_nurseries")), 3)
+        emu.call(emu.sym("@new_game_clear@8"), ecx=game.manager)
+        self.assertEqual(emu.read32(emu.sym("_nurseries")), 0)
+
+    def test_a_setting_off_offers_nothing(self) -> None:
+        game = Game(1)
+        emu = game.emu
+        self.assertEqual(emu.call(emu.sym("_FtfpExtraNurseriesOwned")), 0xFFFFFFFF)     # its .ini is not there
+        emu.write32(emu.sym("_nurseries_on"), 1)
+        self.assertEqual(emu.call(emu.sym("_FtfpExtraNurseriesBuy")), 1)
+        emu.write32(emu.sym("_greenhouses_on"), 0)
+        self.assertEqual(emu.call(emu.sym("_FtfpExtraGreenhousesOwned")), 0xFFFFFFFF)
+
+
+class BackupTests(unittest.TestCase):
+    """Back Up Saves and Restore (src/save_backup.py) with the slot files of the extra greenhouses and
+    nurseries ("Plant Tycoon Fix Patcher Data\\Extra Greenhouses <slot>.dat", the pots, the greenhouses and
+    the nurseries bought)."""
+
+    def setUp(self) -> None:
+        import save_backup
+        import save_tools
+        from test_save_backup import FakeProcesses, snapshot
+        from test_save_tools import make_folder
+        self.save_backup, self.save_tools, self.processes, self.snapshot = save_backup, save_tools, FakeProcesses, snapshot
+        self.temp = tempfile.TemporaryDirectory()
+        self.folder = make_folder(Path(self.temp.name), "plant", ["Ana", "Bo", "Cy", "Di", "Ed"],
+                                  "Plant Tycoon - Modded Upgrades")
+        self.data = self.folder / "Plant Tycoon Fix Patcher Data"
+        self.data.mkdir()
+        for slot in (1, 2):
+            (self.data / f"Extra Greenhouses {slot}.dat").write_bytes(f"greenhouses {slot}".encode())
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def back_up(self) -> Path:
+        return self.save_backup.back_up_save_folder(self.folder, self.processes(), None).backup_folder
+
+    def test_each_file_belongs_to_its_slot(self) -> None:
+        for name, slot in (("Extra Greenhouses 1.dat", 1), ("Extra Greenhouses 5.dat", 5),
+                           ("Extra Greenhouses 3.dat.tmp", 3), ("Extra Greenhouses 2.dat.unreadable", 2)):
+            self.assertEqual(self.save_backup.file_slot("plant", Path("Plant Tycoon Fix Patcher Data") / name), slot)
+
+    def test_a_backup_holds_them_and_a_whole_restore_puts_them_back(self) -> None:
+        before = self.snapshot(self.folder)
+        backup = self.back_up()
+        self.assertEqual((backup / "Plant Tycoon Fix Patcher Data" / "Extra Greenhouses 2.dat").read_bytes(),
+                         b"greenhouses 2")
+        (self.data / "Extra Greenhouses 1.dat").write_bytes(b"later 1")
+        (self.data / "Extra Greenhouses 3.dat").write_bytes(b"new 3")
+        self.save_backup.restore_backup("plant", self.folder, backup, None, self.processes())
+        self.assertEqual(self.snapshot(self.folder), before)
+
+    def test_a_one_slot_restore_puts_back_only_that_slots_file(self) -> None:
+        backup = self.back_up()
+        (self.data / "Extra Greenhouses 1.dat").write_bytes(b"later 1")
+        (self.data / "Extra Greenhouses 2.dat").write_bytes(b"later 2")
+        self.save_backup.restore_backup("plant", self.folder, backup, 2, self.processes())
+        self.assertEqual((self.data / "Extra Greenhouses 2.dat").read_bytes(), b"greenhouses 2")
+        self.assertEqual((self.data / "Extra Greenhouses 1.dat").read_bytes(), b"later 1")
+
+
 class ManifestTests(unittest.TestCase):
     def setUp(self) -> None:
         self.manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
@@ -969,10 +1200,19 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("empty", s["warning"].lower())
         self.assertTrue(s["companion"]["startup_loader"])
         files = {f["destination"]: f for f in s["companion"]["files"]}
-        self.assertEqual(set(files), {f"{FOLDER}/Extra Greenhouses.dll"})
+        self.assertEqual(set(files), {f"{FOLDER}/Extra Greenhouses.dll", f"{FOLDER}/Extra Greenhouses.ini"})
         data = DLL.read_bytes()
         entry = files[f"{FOLDER}/Extra Greenhouses.dll"]
         self.assertEqual((entry["size"], entry["sha256"]), (len(data), hashlib.sha256(data).hexdigest().upper()))
+        nurseries = next(n for n in self.manifest["settings"] if n["id"] == "extra_nurseries")
+        self.assertEqual(nurseries["name"], "5 extra nurseries")
+        self.assertFalse(nurseries["default"])
+        self.assertEqual(nurseries["requires_settings"], ["plant_upgrades"])
+        self.assertEqual({f["destination"] for f in nurseries["companion"]["files"]},
+                         {f"{FOLDER}/Extra Greenhouses.dll", f"{FOLDER}/Extra Nurseries.ini"})
+        for each in (s, nurseries):                                            # the owner's label, wherever shown
+            self.assertTrue(each["summary"].startswith("EXPERIMENTAL - USE AT OWN RISK"), each["id"])
+            self.assertTrue(each["description"].startswith("EXPERIMENTAL - USE AT OWN RISK"), each["id"])
         for f in self.manifest["settings"]:
             for c in (f.get("companion") or {}).get("files", []):
                 source = ROOT / f["companion"]["source"] / c["path"]
@@ -980,16 +1220,19 @@ class ManifestTests(unittest.TestCase):
 
     def test_the_loader_loads_this_dll_first_when_the_setting_is_on(self) -> None:
         for others in (set(), {"new_flowers"}, {"sort_seeds"}, {"new_flowers", "plant_upgrades", "sort_seeds"}):
-            self.assertEqual(ds_fish_loader.plant_profile(others | {SETTING}).dll_name, "Extra Greenhouses.dll")
+            for setting in (SETTING, "extra_nurseries"):
+                self.assertEqual(ds_fish_loader.plant_profile(others | {setting}).dll_name, "Extra Greenhouses.dll")
         self.assertEqual(ds_fish_loader.plant_profile({"new_flowers"}).dll_name, "Unused Flowers.dll")
         self.assertEqual(ds_fish_loader.plant_profile({"sort_seeds"}).dll_name, "Sort Seeds.dll")
 
     def test_every_combination_with_the_setting_is_pinned(self) -> None:
         pins = self.manifest["patched_sha256_by_settings"]
-        without = [k for k in pins if SETTING not in k.split(",")]
+        ours = {SETTING, "extra_nurseries"}
+        without = [k for k in pins if not ours & set(k.split(","))]
         for key in without:
-            enabled = {s for s in key.split(",") if s} | {SETTING}
-            self.assertIn(plant_patcher.settings_key(enabled, self.manifest), pins)
+            for extra in ({SETTING}, {"extra_nurseries"}, ours):
+                enabled = {s for s in key.split(",") if s} | extra
+                self.assertIn(plant_patcher.settings_key(enabled, self.manifest), pins)
 
     def test_off_leaves_every_other_combination_as_it_was(self) -> None:
         self.assertFalse(any(SETTING in p.get("requires", []) for p in self.manifest["patches"]))
@@ -1008,7 +1251,8 @@ class ManifestTests(unittest.TestCase):
     def test_pins_are_the_patchers_output(self) -> None:
         vanilla = PLANT_EXE.read_bytes()
         pins = self.manifest["patched_sha256_by_settings"]
-        for key in (SETTING, f"new_flowers,{SETTING}", f"sort_seeds,{SETTING}"):
+        for key in (SETTING, f"new_flowers,{SETTING}", f"sort_seeds,{SETTING}", "extra_nurseries",
+                    f"extra_nurseries,{SETTING},new_flowers,plant_upgrades"):
             enabled = set(key.split(","))
             patched, _ = plant_patcher.apply_patch_bytes(vanilla, plant_patcher.active_patch_records(self.manifest, enabled))
             patched, _ = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.plant_profile(enabled))

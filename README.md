@@ -210,8 +210,10 @@ never needs the internet.
   flower, then its parents (unknown first), and packs them from the first
   slot: boxes 1-3 fill before 4-6, and locked drawers stay empty. It checks
   that exactly the same seeds come out as went in before writing anything.
-- 5 extra greenhouses (off by default; **needs Add new store upgrades and
-  items, which it turns on**; in the "Modded Upgrades" copy). Up to six
+- 5 extra greenhouses (**EXPERIMENTAL - USE AT OWN RISK**; off by default;
+  **needs Add new store upgrades and items, which it turns on**; in the
+  "Modded Upgrades" copy). Every greenhouse screen is named at the top in the
+  game's font ("Greenhouse 1" is the stock one). Up to six
   greenhouses of 15 pots, 90 pots in all. An Extra Greenhouse item on the
   store's Upgrades screen (the tool shelf, beside the Fourth to Sixth Seed Box,
   pictured with the game's own greenhouse) sells Greenhouses 2-6 in order,
@@ -229,14 +231,33 @@ never needs the internet.
   greenhouse that arrow leads to (or its first empty pot if that place is
   taken); pollen and seeds taken from a plant are carried across, and held
   tools, chemicals and tray seeds stay in your hand. The nursery
-  shows the plants for sale from every greenhouse in its stock 15 spots, and at
-  most 15 plants can be for sale at once. Greenhouses 2-6 are kept per slot in
+  shows the plants for sale from every greenhouse in its stock 15 spots, and
+  without 5 extra nurseries at most 15 plants can be for sale at once.
+  Greenhouses 2-6 are kept per slot in
   "Plant Tycoon Fix Patcher Data\Extra Greenhouses <slot>.dat" beside the
   saves (the save itself keeps its stock layout). **Empty Greenhouses 2-6
   before switching it off.**
-  - Picture: [docs/images/extra-greenhouses-switch.png](docs/images/extra-greenhouses-switch.png).
+  - Pictures: [docs/images/extra-greenhouses-switch.png](docs/images/extra-greenhouses-switch.png),
+    [docs/images/extra-greenhouses-store.png](docs/images/extra-greenhouses-store.png).
   - Design:
     [docs/plant-tycoon-extra-greenhouses-design.md](docs/plant-tycoon-extra-greenhouses-design.md).
+- 5 extra nurseries (**EXPERIMENTAL - USE AT OWN RISK**; off by default;
+  **needs Add new store upgrades and items, which it turns on**; in the
+  "Modded Upgrades" copy). Without any, the game's own limit holds: at most 15
+  plants are for sale at once. An Extra Nursery item on the Upgrades screen's
+  Nursery shelf (the game's own golden pot) sells Nurseries 2-6 in order,
+  $10,000 each ($0 with Free upgrades); each one bought adds 15 spots (90 with
+  all five). Each nursery is the stock nursery screen, run by the game's own
+  code, with its own 15 spots, visitors, prices and sales; it sells only while
+  it is on screen, as the stock nursery does. Every nursery screen is named at
+  the top ("Nursery 1" is the stock one), and gold arrows there page through
+  the ones you own. Plants are tagged for sale in the greenhouse as in the
+  stock game and fill the nurseries in order: Nursery 1 first (a Greenhouse 1
+  plant at its own pot's spot), then Nursery 2, and so on. The nurseries
+  bought are kept with the extra greenhouses in "Extra Greenhouses
+  <slot>.dat". **Take plants off sale until 15 or fewer are for sale before
+  switching it off.**
+  - Picture: [docs/images/extra-nurseries-switch.png](docs/images/extra-nurseries-switch.png).
 
 ## Use
 

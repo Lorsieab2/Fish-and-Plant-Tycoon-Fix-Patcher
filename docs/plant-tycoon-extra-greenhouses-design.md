@@ -186,6 +186,61 @@ the extra pots' clocks move by the same rule before the update.
 - The nursery shows exactly the plants for sale (at most 15), so the visitor
   limit, the buy roll, the prices and the comments are the stock game's.
 
+## 5 extra nurseries (a second setting)
+
+"5 extra nurseries" (`extra_nurseries`, EXPERIMENTAL - USE AT OWN RISK, off
+by default, needs `plant_upgrades`) ships the same DLL with "Extra
+Nurseries.ini"; "5 extra greenhouses" ships it with "Extra Greenhouses.ini".
+Each .ini turns its half of the DLL on, so either setting works alone. With
+either one on, the startup loader loads the DLL.
+
+**How the stock game limits sales.** There is no separate cap. The nursery's
+15 spots are the 15 pots: the buy roll (0x436BE0, from the nursery tick
+0x437950) walks spots 0-14, and a sale (0x435C70) marks pot k sold. The
+visitor limit (0x43FF00, run as the nursery opens, 0x4360D0) counts 2 per
+pot for sale. So the limit is 15, one per spot.
+
+**The design, the most faithful one: more nurseries, each a stock nursery.**
+A bigger nursery would need a new screen layout and a second buy roll. Each
+extra nursery is instead the same stock screen with 15 spots, run by the
+same code:
+- **Which plants go where:** the plants for sale fill the nurseries in
+  order. Nursery 1 first: a Greenhouse 1 plant keeps its own pot's spot, as
+  in the stock game, and the other greenhouses' plants take the free spots
+  in home order (greenhouse by greenhouse, pot by pot). Then Nursery 2, and
+  so on.
+- **What is in the state:** nursery n moves its plants into the state's 15
+  pots. A spot with no plant of that nursery gets an unsold pot from the
+  DLL's places, so it shows nothing for sale.
+- **Positions:** to make this possible, the DLL tracks all 90 pot places
+  (`at_pos` / `where_home`). Any place can be moved into any state spot, and
+  every move is taken back, last first.
+- **Switching:** the stock gold arrows (ids 40/41 on the nursery scene, at
+  220/530 in the sky band) and "Nursery n" in the game's font. A switch runs
+  the stock nursery close (`activate(0)`: sold plants leave their pots), the
+  rearrangement, then the stock open (`activate(1)`: the new nursery's
+  visitor limit). This is exactly leaving one nursery and entering another.
+- **Limit:** 15 × (1 + nurseries owned). Button 6 refuses the next one with
+  "Your nurseries are full! Only N plants ...", and button 9 stops at the
+  limit.
+- **Bought:** the Extra Nursery item on the Upgrades screen's Nursery shelf at
+  (440, 296), drawn with the game's own golden pot (sprite 0x2C, the
+  nursery's display), $10,000 each, in order. The count is the sidecar
+  header's seventh word; a new game resets it.
+- **As in stock:** a nursery sells only while it is on screen, as the stock
+  nursery sells only while you are in it.
+
+Pictures: `docs/images/extra-nurseries-switch.png`,
+`docs/images/extra-greenhouses-store.png`.
+
+## Screen names
+
+Every greenhouse screen draws "Greenhouse n" and every nursery screen
+"Nursery n" in the game's font. The stock screens show them too ("Greenhouse
+1", "Nursery 1"), and " of m" is added once more than one is owned. The
+glyphs are checked against the font table (0x47A550) by
+`scripts/render_extra_greenhouses_preview.py`.
+
 ## Moving things between greenhouses
 
 The cursor's item is `state + 0x56C`: 1-4 tools, 5-8 the chemical tray,

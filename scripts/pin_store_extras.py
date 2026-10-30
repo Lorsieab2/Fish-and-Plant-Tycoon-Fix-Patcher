@@ -51,10 +51,11 @@ GAMES = {
         "screen_files": pin_plant_upgrades.companion_files,
         "screen": "the Supplies store's Upgrades view (Add new store upgrades and items)",
         "items": "Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the Fourth, Fifth and Sixth "
-                 "Seed Box ($1000 each), and the Time Warp clock ($500) and Add Money ($950) when those settings "
-                 "are on",
+                 "Seed Box ($1000 each), and the Time Warp clock ($500), Add Money ($950), the Extra Greenhouse "
+                 "($10,000 each) and the Extra Nursery ($10,000 each) when those settings are on",
         "free_rules": "Legendary Seeds are still three a day and need room in the seed tray, the formula needs "
-                      "room in the chemical tray, and the seed boxes are still bought in order, once each.",
+                      "room in the chemical tray, and the seed boxes, extra greenhouses and extra nurseries are "
+                      "still bought in order, once each.",
         "where": "on the Nursery shelf next to the Time Warp clock",
     },
 }

@@ -60,6 +60,9 @@ def page() -> GamePage:
             Group("Extra greenhouses (patcher)", EXTRA_GREENHOUSES,
                   note="Only with the 5 extra greenhouses setting (off by default), which also turns on the "
                        "store's Upgrades screen the greenhouses are bought on."),
+            Group("Extra nurseries (patcher)", EXTRA_NURSERIES,
+                  note="Only with the 5 extra nurseries setting (off by default), which also turns on the "
+                       "store's Upgrades screen the nurseries are bought on."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Fish Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
@@ -1041,6 +1044,26 @@ EXTRA_GREENHOUSES = (
                   "after each update, each chemical, pollination, moving and emptying a pot."),),
     ),
     Fact(
+        "Permanent, game-wide effects are kept once for the whole game, not per greenhouse, so every "
+        "greenhouse and every nursery sees them exactly as Greenhouse 1 and Nursery 1 do:",
+        subs=(
+            "Magic plants and the Golden Berries, once found in any greenhouse (the Rose of Joy, the Flower of "
+            "Knowledge and the rest): their effects reach every plant in every greenhouse, and the visitor "
+            "bonus counts in every nursery.",
+            "Tool upgrades, the Second to Sixth Seed Box, water and soil upgrades and every store purchase.",
+            "Nursery ornaments: each counts in every nursery as soon as it is bought.",
+            "Discovered species, prices, money, goals and statistics.",
+            "Checked in emulation: with every magic plant found and every tool upgrade owned, a plant grows "
+            "byte for byte the same in all six greenhouses (and differently without them), and switching "
+            "greenhouses or nurseries never changes any of these values.",
+        ),
+    ),
+    Fact(
+        "Per greenhouse, as in the stock game, where it acts on the pots on screen: the Fertilizer Bomb and "
+        "the other bomb reach the 15 pots of the greenhouse they are used in; bugs come to the greenhouse on "
+        "screen; each nursery sells only while it is on screen.",
+    ),
+    Fact(
         "Clocks and time away: every plant update (every 61 real-time seconds in the greenhouse, at once on "
         "entering it, and after a Time Warp) updates all six greenhouses, one after the other, with the same "
         "clock. A greenhouse you are not looking at grows exactly as if it were on screen, and time away is "
@@ -1070,11 +1093,16 @@ EXTRA_GREENHOUSES = (
         "Selling: in the stock game you tag any mature, living plant for sale where it stands (select it, then "
         "the greenhouse's nursery button; or the button that tags them all), and it stays in its pot. The game "
         "has no other cap: the nursery's 15 spots are the 15 pots, so at most 15 plants can be for sale at "
-        "once. With the extra greenhouses that stock maximum holds for all six together: at most 15 plants are "
-        "for sale at once, counting every greenhouse. Putting a 16th up for sale says \"Your nursery is full!\"; the "
-        "greenhouse's put-everything-up button stops at 15. The nursery shows the plants for sale from all "
-        "six greenhouses, so visitors, prices and the visitor limit (2 per plant for sale, see Selling and "
-        "visitors) are exactly the stock game's. Sold plants leave their pots as in the stock game.",
+        "once. With the extra greenhouses (and no extra nurseries) that stock maximum holds for all six "
+        "together: at most 15 plants are for sale at once, counting every greenhouse. Putting a 16th up for sale "
+        "says \"Your nursery is full!\"; the greenhouse's put-everything-up button stops at 15. The nursery "
+        "shows the plants for sale from all six greenhouses, so visitors, prices and the visitor limit (2 per "
+        "plant for sale, see Selling and visitors) are exactly the stock game's. Sold plants leave their pots as "
+        "in the stock game. Extra nurseries raise the limit (see Extra nurseries).",
+    ),
+    Fact(
+        "Every greenhouse screen is named at the top in the game's font: \"Greenhouse 1\" (the stock one) to "
+        "\"Greenhouse 6\", with \" of m\" (m = the greenhouses you own) once you own more than one.",
     ),
     Fact(
         "Saves: the save file keeps the stock layout (Greenhouse 1's pots). Greenhouses 2-6 are kept beside "
@@ -1083,6 +1111,42 @@ EXTRA_GREENHOUSES = (
         "is set aside as \".unreadable\" and never overwritten; deleting the slot deletes it. Switching the "
         "setting off hides Greenhouses 2-6 with their plants (they come back when it is on again), so empty "
         "them first.",
+    ),
+)
+
+EXTRA_NURSERIES = (
+    Fact(
+        "Not in the unpatched game: one nursery of 15 spots, so at most 15 plants for sale at once.",
+        patched=(("extra_nurseries", "Nurseries 2-6 are bought in order with the Extra Nursery item on the store's "
+                  "Upgrades screen (the Nursery shelf): $10,000 each, $0 with Free upgrades, ticked once all five "
+                  "are owned; a new game starts with none. Without any, the stock limit of 15 holds. Each one "
+                  "bought adds 15 spots: 30, 45, 60, 75, 90 plants for sale at once."),),
+    ),
+    Fact(
+        "Each nursery is the stock nursery screen, run by the game's own code, with its own 15 spots. Gold "
+        "arrows at the top (the game's own) page through Nursery 1, the stock one, and the ones you own; each "
+        "screen is named \"Nursery 1\" to \"Nursery 6\" (\" of m\" once you own more than one). Switching is "
+        "leaving one nursery and entering the next, exactly as the stock game does it: sold plants leave their "
+        "pots, and the next nursery counts its own plants for sale for its visitor limit (2 per plant, see "
+        "Selling and visitors).",
+        subs=(
+            "Every sale rule (the buy roll, prices, visitors, comments) is the stock one, per nursery.",
+            "Like the stock nursery, a nursery sells only while it is on screen; plants in the other nurseries "
+            "wait for you.",
+        ),
+    ),
+    Fact(
+        "Getting a plant into a nursery: tag it for sale in its greenhouse (the nursery button, or the button "
+        "that tags them all), as in the stock game; it stays in its pot. Tagged plants fill the nurseries in "
+        "order: Nursery 1 first (a Greenhouse 1 plant at its own pot's spot, as in the stock game), then "
+        "Nursery 2, and so on, Greenhouse 1's plants before Greenhouse 2's, pot by pot. When a plant sells or "
+        "is taken off sale, the ones after it move up. Tagging one more than the nurseries hold says \"Your "
+        "nurseries are full!\".",
+    ),
+    Fact(
+        "Saves: the nurseries bought are kept with the extra greenhouses in \"Plant Tycoon Fix Patcher "
+        "Data\\Extra Greenhouses <slot>.dat\". Switching the setting off brings back the stock limit of 15; "
+        "take plants off sale until 15 or fewer are for sale first.",
     ),
 )
 

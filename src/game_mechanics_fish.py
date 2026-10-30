@@ -1117,6 +1117,8 @@ OTHER_GAME = (
     Fact("Sorting seeds: not in Fish Tycoon (the patcher's Sort Seeds button is Plant Tycoon only)."),
     Fact("Extra greenhouses (patcher): Plant Tycoon only. Fish Tycoon's tanks have their own setting, "
          "Bigger tanks: 26 fish (see Which tank counts)."),
+    Fact("Extra nurseries (patcher): Plant Tycoon only; Fish Tycoon sells from its own tank (see Selling and "
+         "customers)."),
 )
 
 TIME_WARP = (

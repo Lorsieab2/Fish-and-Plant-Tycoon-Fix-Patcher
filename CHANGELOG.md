@@ -83,8 +83,10 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
 
 ### Plant Tycoon
 
-- **5 extra greenhouses**, a new setting, off by default, in the "Modded
-  Upgrades" copy (needs Add new store upgrades and items): up to six greenhouses of 15
+- **5 extra greenhouses** (EXPERIMENTAL - USE AT OWN RISK), a new setting,
+  off by default, in the "Modded Upgrades" copy (needs Add new store upgrades
+  and items). Every greenhouse screen is named ("Greenhouse 1" the stock
+  one). Up to six greenhouses of 15
   pots, 90 pots in all. An Extra Greenhouse item on the store's Upgrades
   screen sells Greenhouses 2-6 in order, $10,000 each ($0 with Free
   upgrades), ticked when all five are owned; a new game starts with none.
@@ -98,14 +100,24 @@ flowers and a store Upgrades page), bigger tanks, a Tools tab, and fixes.
   the stock pots). Drag a plant onto an arrow to move it to the same pot place
   in the next (or previous) greenhouse, or its first empty pot if that place
   is taken; pollen and seeds taken from a plant are carried between
-  greenhouses, and held tools, chemicals and tray seeds stay in hand. The
-  nursery keeps its 15 spots: at most 15 plants are for sale at once, counting
-  every greenhouse. Greenhouses 2-6 are kept per save slot in "Plant Tycoon Fix
-  Patcher Data\Extra Greenhouses <slot>.dat"; the save keeps its stock layout.
-  Empty them before switching the setting off. Design:
-  docs/plant-tycoon-extra-greenhouses-design.md; picture:
-  docs/images/extra-greenhouses-switch.png.
+  greenhouses, and held tools, chemicals and tray seeds stay in hand. Without
+  extra nurseries the nursery keeps its 15 spots: at most 15 plants are for
+  sale at once, counting every greenhouse. Greenhouses 2-6 are kept per save
+  slot in "Plant Tycoon Fix Patcher Data\Extra Greenhouses <slot>.dat"; the
+  save keeps its stock layout. Empty them before switching the setting off.
+  Design: docs/plant-tycoon-extra-greenhouses-design.md; pictures:
+  docs/images/extra-greenhouses-switch.png, extra-greenhouses-store.png.
+- **5 extra nurseries** (EXPERIMENTAL - USE AT OWN RISK), a new setting, off
+  by default (needs Add new store upgrades and items). An Extra Nursery item
+  on the Upgrades screen's Nursery shelf sells Nurseries 2-6 in order,
+  $10,000 each ($0 with Free upgrades). Without any, the stock limit of 15
+  plants for sale holds; each one bought adds 15 (90 with all five). Each
+  nursery is the stock nursery screen with its own 15 spots, visitors, prices
+  and sales, named at the top ("Nursery 1" the stock one), with gold arrows
+  to page through the ones you own; tagged plants fill them in order.
+  Picture: docs/images/extra-nurseries-switch.png.
 - The Time Warp also moves the clocks of the extra greenhouses' plants.
+- Free upgrades also makes the Extra Greenhouse and Extra Nursery free.
 
 - **Time Warp**, a new setting (both games), off by default. A clock (the owner's
   icon) on the store's Upgrades screen: a flat $500 to play 1-72 real-time hours

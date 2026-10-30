@@ -30,6 +30,8 @@ FILES = [
     "docs/plant-tycoon-upgrades-design.md",
     "docs/plant-tycoon-extra-greenhouses-design.md",
     "docs/images/extra-greenhouses-switch.png",
+    "docs/images/extra-nurseries-switch.png",
+    "docs/images/extra-greenhouses-store.png",
     "docs/images/add-money-fish.png",
     "docs/images/add-money-plant.png",
     "docs/images/breeding-guide-fish-discovered-species.png",

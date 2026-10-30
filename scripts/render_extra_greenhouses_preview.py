@@ -1,15 +1,25 @@
-"""Render the extra greenhouses' switch as it looks on the greenhouse screen.
+"""Render the extra greenhouses' and nurseries' mockups from the game's own art.
 
     python scripts/render_extra_greenhouses_preview.py "<vanilla Plant Tycoon folder>"
 
-writes docs/images/extra-greenhouses-switch.png: the greenhouse background
-(main_bg.png), a pot on every table spot (pot.png, at the game's own pot
-places: 0x42FDE0 x = 323 + 93 * column, y = 117 + 144 * row, drawn at
-x - 28, y - 15 by 0x42F740), the two gold arrows (leftarrow.png /
-rightarrow.png, first frame) where Extra Greenhouses.dll puts them, and
-"Greenhouse 2 of 6" set from the game's own font (PTfontsmall.png with the
-glyph table at 0x47A550), centred where the DLL draws it. No plant art: the
-picture is about the switch.
+writes, in docs/images:
+
+* extra-greenhouses-switch.png: the greenhouse background (main_bg.png), a
+  pot on every table spot (pot.png, at the game's own pot places: 0x42FDE0
+  x = 323 + 93 * column, y = 117 + 144 * row, drawn at x - 28, y - 15 by
+  0x42F740), the two gold arrows (leftarrow.png / rightarrow.png, first frame)
+  and "Greenhouse 2 of 3", where Extra Greenhouses.dll draws them;
+* extra-nurseries-switch.png: the nursery background (Nursery_BG.jpg and its
+  bar, nurseryUI.png), the arrows and "Nursery 2 of 3";
+* extra-greenhouses-store.png: the Supplies store's background (Store_BG.jpg)
+  with the two new Upgrades items where Store Upgrades and Items.dll draws
+  them: the Extra Greenhouse (greenhouse1.png at 0.29) on the tool shelf and
+  the Extra Nursery (goldpot.png at 0.84) on the Nursery shelf, with their
+  tooltips' text below.
+
+Every word is set from the game's own font (PTfontsmall.png with the glyph
+table at 0x47A550); a missing glyph stops the script. No plant art: the
+pictures are about the switches.
 """
 
 from __future__ import annotations
@@ -23,7 +33,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "native" / "ftfp_extra_greenhouses" / "ftfp_extra_greenhouses.c"
-OUT = ROOT / "docs" / "images" / "extra-greenhouses-switch.png"
+IMAGES_OUT = ROOT / "docs" / "images"
 FONT_TABLE, IMAGE_BASE, TEXT_COLOUR = 0x47A550, 0x400000, 0x48EA2C
 
 
@@ -53,7 +63,7 @@ def glyphs(exe: bytes) -> dict[int, tuple[int, int, int, int]]:
         at += 20
 
 
-def label(folder: Path, exe: bytes, text: str) -> Image.Image:
+def words(folder: Path, exe: bytes, text: str) -> Image.Image:
     table = glyphs(exe)
     missing = sorted({ch for ch in text if ch != " " and ord(ch) not in table})
     if missing:
@@ -82,12 +92,37 @@ def label(folder: Path, exe: bytes, text: str) -> Image.Image:
     return word
 
 
+def arrows(screen: Image.Image, images: Path, left: int, right: int, y: int) -> None:
+    for name, x in (("leftarrow.png", left), ("rightarrow.png", right)):
+        arrow = Image.open(images / name).convert("RGBA")
+        screen.alpha_composite(arrow.crop((0, 0, arrow.height, arrow.height)), (x, y))
+
+
+def centred(screen: Image.Image, word: Image.Image, x: int, y: int) -> None:
+    screen.alpha_composite(word, (x - word.width // 2, y))
+
+
+def scaled(path: Path, scale: float) -> Image.Image:
+    image = Image.open(path).convert("RGBA")
+    return image.resize((round(image.width * scale), round(image.height * scale)), Image.LANCZOS)
+
+
+def save(screen: Image.Image, name: str) -> None:
+    out = IMAGES_OUT / name
+    out.parent.mkdir(parents=True, exist_ok=True)
+    screen.convert("RGB").save(out, optimize=True)
+    print(f"wrote {out.relative_to(ROOT)}")
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         raise SystemExit(__doc__)
     folder = Path(sys.argv[1])
     exe = (folder / "Plant Tycoon.exe").read_bytes()
     images = folder / "Images"
+    for text in ("Greenhouse 6 of 6", "Nursery 6 of 6", "Extra Greenhouse 5 of 5", "Extra Nursery", "Sold out"):
+        words(folder, exe, text)                         # every label the DLLs can draw has its glyphs
+
     screen = Image.open(images / "main_bg.png").convert("RGBA")
     pots = Image.open(images / "pot.png").convert("RGBA")
     frame_h = pots.height // 7
@@ -96,15 +131,25 @@ def main() -> int:
             style = (row * 5 + column) % 6
             pot = pots.crop((0, style * frame_h, pots.width, (style + 1) * frame_h))
             screen.alpha_composite(pot, (323 + 93 * column - 28, 117 + 144 * row - 15))
-    y = constant("ARROW_Y")
-    for name, x in (("leftarrow.png", constant("LEFT_X")), ("rightarrow.png", constant("RIGHT_X"))):
-        arrow = Image.open(images / name).convert("RGBA")
-        screen.alpha_composite(arrow.crop((0, 0, arrow.height, arrow.height)), (x, y))
-    word = label(folder, exe, "Greenhouse 2 of 6")
-    screen.alpha_composite(word, (constant("LABEL_X") - word.width // 2, constant("LABEL_Y")))
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    screen.convert("RGB").save(OUT, optimize=True)
-    print(f"wrote {OUT.relative_to(ROOT)}")
+    arrows(screen, images, constant("LEFT_X"), constant("RIGHT_X"), constant("ARROW_Y"))
+    centred(screen, words(folder, exe, "Greenhouse 2 of 3"), constant("LABEL_X"), constant("LABEL_Y"))
+    save(screen, "extra-greenhouses-switch.png")
+
+    screen = Image.open(images / "Nursery_BG.jpg").convert("RGBA")
+    bar = Image.open(images / "nurseryUI.png").convert("RGBA")
+    screen.alpha_composite(bar, (0, screen.height - bar.height))
+    arrows(screen, images, constant("NU_LEFT_X"), constant("NU_RIGHT_X"), constant("NU_ARROW_Y"))
+    centred(screen, words(folder, exe, "Nursery 2 of 3"), constant("NU_LABEL_X"), constant("NU_LABEL_Y"))
+    save(screen, "extra-nurseries-switch.png")
+
+    screen = Image.open(images / "Store_BG.jpg").convert("RGBA")
+    for picture, scale, x, y, tip in (("greenhouse1.png", 0.29, 404 + 6, 50, "Extra Greenhouse 2 of 5"),
+                                      ("goldpot.png", 0.84, 440 + 6, 296, "Extra Nursery 1 of 5")):
+        item = scaled(images / picture, scale)
+        screen.alpha_composite(item, (x, y))
+        centred(screen, words(folder, exe, tip), x + item.width // 2, y + item.height + 4)
+        centred(screen, words(folder, exe, "Price: $ 10000"), x + item.width // 2, y + item.height + 20)
+    save(screen, "extra-greenhouses-store.png")
     return 0
 
 

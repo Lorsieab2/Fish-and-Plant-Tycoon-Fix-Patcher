@@ -44,13 +44,13 @@
 #include <string.h>
 #include "../ftfp_ds_fish/install_sites.h"
 #include "greenhouse_sites.h"
+#include "../common/setting_file.h"
 
 #define EXTRA 5
 #define GREENHOUSES (EXTRA + 1)
 #define POTS 15
 #define COLUMNS 5
 #define POT_BYTES 0x5600
-#define FOR_SALE_LIMIT 15                /* the stock nursery's 15 spots */
 
 #define STATE_POTS 0x2188
 #define STATE_HELD 0x56C
@@ -84,6 +84,11 @@
 #define ARROW_Y 10
 #define LABEL_X 510
 #define LABEL_Y 26
+#define NU_LEFT_X 220                    /* the nursery's arrows and label, in its sky */
+#define NU_RIGHT_X 530
+#define NU_ARROW_Y 4
+#define NU_LABEL_X 400
+#define NU_LABEL_Y 20
 #define SOUND_BUTTON 0xC
 #define SCENE_SOUND 0x74
 #define SCENE_STATE 0x68
@@ -109,6 +114,8 @@ static const file_button_fn file_button = (file_button_fn)0x00401AA0u;
 static const add_control_fn add_control = (add_control_fn)0x0040B400u;
 static const sound_fn play_sound = (sound_fn)0x0044A580u;
 static const graphics_fn graphics = (graphics_fn)0x00407A90u;
+typedef void *(__cdecl *sound_bank_fn)(void);
+static const sound_bank_fn sound_bank = (sound_bank_fn)0x00449F00u;   /* the sound the nursery plays (0x435E7D) */
 static const text_fn draw_text_centred = (text_fn)0x004092B0u;
 static const random_fn game_random = (random_fn)0x004033B0u;
 static const clear_pot_fn clear_pot = (clear_pot_fn)0x0042F410u;    /* the game's "empty this pot" */
@@ -124,23 +131,39 @@ static unsigned char extra_pots[EXTRA][POTS][POT_BYTES];   /* home of Greenhouse
 static void *extra_objects[EXTRA][POTS];                     /* their plant objects, while out */
 static unsigned char swap_buffer[POT_BYTES];
 
-typedef struct exchange_t { unsigned char slot, bank, pot; } exchange_t;
-static exchange_t undo[POTS];
+/* 90 pot places ("positions"): 0-14 the game's own pots in the state, 15-89
+   the DLL's (greenhouse g's pot k is at home at g * 15 + k).  An arrangement
+   moves pot places around; at_pos / where_home say which home place is at
+   which position, and undo lists the moves to take back, last first. */
+#define POSITIONS (GREENHOUSES * POTS)
+static unsigned char at_pos[POSITIONS], where_home[POSITIONS];
+static int layout_ready = 0;
+typedef struct swap_t { unsigned char a, b; } swap_t;
+static swap_t undo[2 * POTS + 2];
 static int undo_count = 0;
 
 #define HOME 0
-#define NURSERY 100
-static int arranged = HOME;     /* HOME, 1..EXTRA (that greenhouse is in the state), NURSERY */
+#define NURSERY 100                     /* NURSERY + n: the pots for sale in nursery n */
+static int arranged = HOME;     /* HOME, 1..EXTRA (that greenhouse is in the state), NURSERY + n */
 static int shown = 0;           /* the greenhouse on screen, 0..owned */
 static int owned = 0;           /* extra greenhouses bought (Store Upgrades and Items.dll), 0..EXTRA, in order */
+static int nurseries = 0;       /* extra nurseries bought, 0..EXTRA, in order */
+static int nursery_shown = 0;   /* the nursery on screen, 0..nurseries */
+static int greenhouses_on = 1;  /* "Extra Greenhouses.ini" beside this DLL (the setting) */
+static int nurseries_on = 0;    /* "Extra Nurseries.ini" beside this DLL (the setting) */
 
 /* Greenhouse 1 and the ones bought: the arrows page through these only. */
 static int available(void) { return owned + 1; }
 static int wrap(int g) { return (g % available() + available()) % available(); }
+static int nurseries_available(void) { return nurseries + 1; }
+static int nursery_wrap(int n) { return (n % nurseries_available() + nurseries_available()) % nurseries_available(); }
+/* The stock nursery's 15 spots, and 15 more per extra nursery bought. */
+static int for_sale_limit(void) { return POTS * nurseries_available(); }
+
 static unsigned char scene_on[4];   /* [1] greenhouse, [2] nursery, [3] snapshot open */
 static int current = 0;             /* the screen the game last drove */
 static int moved_this_frame = 0;
-static void *arrows[2];
+static void *arrows[2], *nursery_arrows[2];
 static int installed = 0;
 
 static char *state_pot(char *state, int slot) { return state + STATE_POTS + slot * POT_BYTES; }
@@ -148,6 +171,21 @@ static char *state_pot(char *state, int slot) { return state + STATE_POTS + slot
 static void **manager_slot(int slot) {
     char *manager = MANAGER;
     return manager != NULL ? &AT(manager, 8 + slot * 4, void *) : NULL;
+}
+
+static void layout_identity(void) {
+    int i;
+    for (i = 0; i < POSITIONS; ++i) at_pos[i] = where_home[i] = (unsigned char)i;
+    undo_count = 0;
+    layout_ready = 1;
+}
+
+static char *pos_record(char *state, int pos) {
+    return pos < POTS ? state_pot(state, pos) : (char *)extra_pots[pos / POTS - 1][pos % POTS];
+}
+
+static void **pos_object(int pos) {
+    return pos < POTS ? manager_slot(pos) : &extra_objects[pos / POTS - 1][pos % POTS];
 }
 
 static void destroy_object(void *object) {
@@ -165,66 +203,106 @@ static void *repoint(void *object, void *from, void *to) {
     return object;
 }
 
-/* State pot `slot` <-> the DLL's pot (bank, pot): records and plant objects. */
-NOINLINE static void exchange(char *state, int slot, int bank, int pot) {
-    char *in_state = state_pot(state, slot);
-    unsigned char *in_dll = extra_pots[bank][pot];
-    void **held = manager_slot(slot);
-    void *state_object = held != NULL ? *held : NULL;
-    void *dll_object = extra_objects[bank][pot];
-    memcpy(swap_buffer, in_state, POT_BYTES);
-    memcpy(in_state, in_dll, POT_BYTES);
-    memcpy(in_dll, swap_buffer, POT_BYTES);
-    state_object = repoint(state_object, in_state, in_dll);
-    dll_object = repoint(dll_object, in_dll, in_state);
-    if (held != NULL) {
-        *held = dll_object;
-    } else {
-        destroy_object(dll_object);
-    }
-    extra_objects[bank][pot] = state_object;
+/* Positions a <-> b: the records and their plant objects (a state pot's object lives in the
+   plant manager; with no manager yet, an object moving into the state is deleted). */
+NOINLINE static void swap_pos(char *state, int a, int b) {
+    char *ra = pos_record(state, a), *rb = pos_record(state, b);
+    void **sa = pos_object(a), **sb = pos_object(b);
+    void *oa = sa != NULL ? *sa : NULL, *ob = sb != NULL ? *sb : NULL;
+    if (a == b) return;
+    memcpy(swap_buffer, ra, POT_BYTES);
+    memcpy(ra, rb, POT_BYTES);
+    memcpy(rb, swap_buffer, POT_BYTES);
+    oa = repoint(oa, ra, rb);
+    ob = repoint(ob, rb, ra);
+    if (sa != NULL) *sa = ob; else destroy_object(ob);
+    if (sb != NULL) *sb = oa; else destroy_object(oa);
 }
 
-static void push_exchange(char *state, int slot, int bank, int pot) {
-    exchange(state, slot, bank, pot);
-    undo[undo_count].slot = (unsigned char)slot;
-    undo[undo_count].bank = (unsigned char)bank;
-    undo[undo_count].pot = (unsigned char)pot;
+/* State pot `slot` <-> the DLL's pot (bank, pot), as before (contents only: the layout is unchanged). */
+NOINLINE static void exchange(char *state, int slot, int bank, int pot) {
+    swap_pos(state, slot, (bank + 1) * POTS + pot);
+}
+
+static void push_swap(char *state, int a, int b) {
+    unsigned char t;
+    if (!layout_ready) layout_identity();
+    if (a == b) return;
+    swap_pos(state, a, b);
+    undo[undo_count].a = (unsigned char)a;
+    undo[undo_count].b = (unsigned char)b;
     ++undo_count;
+    t = at_pos[a];
+    at_pos[a] = at_pos[b];
+    at_pos[b] = t;
+    where_home[at_pos[a]] = (unsigned char)a;
+    where_home[at_pos[b]] = (unsigned char)b;
 }
 
 static void go_home(char *state) {
+    if (!layout_ready) layout_identity();
     while (undo_count > 0) {
-        exchange_t e = undo[--undo_count];
-        exchange(state, e.slot, e.bank, e.pot);
+        swap_t e = undo[--undo_count];
+        unsigned char t;
+        swap_pos(state, e.a, e.b);
+        t = at_pos[e.a];
+        at_pos[e.a] = at_pos[e.b];
+        at_pos[e.b] = t;
+        where_home[at_pos[e.a]] = e.a;
+        where_home[at_pos[e.b]] = e.b;
     }
     arranged = HOME;
 }
 
-/* Where greenhouse g's pot k is now (only when `arranged` is HOME or a greenhouse). */
+/* Where greenhouse g's pot k is now, whatever the arrangement. */
 static char *locate(char *state, int g, int k) {
-    if (g == arranged) return state_pot(state, k);
-    if (g == 0) return (char *)extra_pots[arranged - 1][k];
-    return (char *)extra_pots[g - 1][k];
+    if (!layout_ready) layout_identity();
+    return pos_record(state, where_home[g * POTS + k]);
 }
 
 static int for_sale(const char *pot) { return pot[POT_FOR_SALE] != 0; }
 
+/* Which pot place stands in each spot of nursery `page` (or -1).  The plants for sale fill
+   the nurseries in order: Nursery 1 first, a Greenhouse 1 plant at its own pot's spot as in
+   the stock game, then the other greenhouses' plants, greenhouse by greenhouse and pot by
+   pot, into the free spots of Nursery 1, then Nursery 2, and so on.  Read at home. */
+static void nursery_spots(char *state, int page, int *spots) {
+    int taken[GREENHOUSES][POTS];
+    int home, p = 0, j = 0, k;
+    memset(taken, 0xFF, sizeof taken);
+    for (k = 0; k < POTS; ++k) {
+        if (for_sale(pos_record(state, k))) taken[0][k] = k;
+    }
+    for (home = POTS; home < POSITIONS; ++home) {
+        if (!for_sale(pos_record(state, home))) continue;
+        while (p < nurseries_available() && taken[p][j] >= 0) {
+            if (++j == POTS) { j = 0; ++p; }
+        }
+        if (p >= nurseries_available()) break;          /* every nursery is full: the limit */
+        taken[p][j] = home;
+    }
+    for (k = 0; k < POTS; ++k) spots[k] = page < GREENHOUSES ? taken[page][k] : -1;
+}
+
 NOINLINE static void arrange(char *state, int kind) {
-    int k, b;
+    int k;
     if (state == NULL || arranged == kind) return;
     go_home(state);
     if (kind >= 1 && kind <= EXTRA) {
-        for (k = 0; k < POTS; ++k) push_exchange(state, k, kind - 1, k);
-    } else if (kind == NURSERY) {
-        int spot = 0;
-        for (b = 0; b < EXTRA; ++b) {
-            for (k = 0; k < POTS; ++k) {
-                if (!for_sale((const char *)extra_pots[b][k])) continue;
-                while (spot < POTS && for_sale(state_pot(state, spot))) ++spot;
-                if (spot >= POTS) break;                       /* only 15 spots: the stock limit */
-                push_exchange(state, spot++, b, k);
+        for (k = 0; k < POTS; ++k) push_swap(state, k, kind * POTS + k);
+    } else if (kind >= NURSERY && kind <= NURSERY + EXTRA) {
+        int spots[POTS];
+        nursery_spots(state, kind - NURSERY, spots);
+        for (k = 0; k < POTS; ++k) {
+            if (spots[k] >= 0 && at_pos[k] != spots[k]) push_swap(state, k, where_home[spots[k]]);
+        }
+        /* A spot with no plant of this nursery shows no plant for sale: an unsold pot goes there. */
+        for (k = 0; k < POTS; ++k) {
+            int q;
+            if (spots[k] >= 0 || !for_sale(pos_record(state, k))) continue;
+            for (q = POTS; q < POSITIONS && for_sale(pos_record(state, q)); ++q) {
             }
+            if (q < POSITIONS) push_swap(state, k, q);
         }
     }
     arranged = kind;
@@ -233,7 +311,7 @@ NOINLINE static void arrange(char *state, int kind) {
 /* Which pots a screen wants.  Each screen is tracked on its own, so the order
    in which the game opens one screen and closes the other never matters:
    the screen the game is driving (the last one that ran) decides. */
-static int kind_wants(int kind) { return kind == 2 ? NURSERY : kind != 0 ? shown : HOME; }
+static int kind_wants(int kind) { return kind == 2 ? NURSERY + nursery_shown : kind != 0 ? shown : HOME; }
 
 static int wanted(void) {
     int kind;
@@ -301,9 +379,10 @@ static void empty_banks(void) {
 
 /* A save was replaced in the state (load, new game): the DLL's layout is gone with it. */
 static void reset_layout(void) {
-    undo_count = 0;
+    layout_identity();
     arranged = HOME;
     shown = 0;
+    nursery_shown = 0;
     forget_objects();
 }
 
@@ -371,10 +450,19 @@ static void tell(void *scene, const char *text) {
     dialog_done(dialog, 0);
 }
 
-static const char NURSERY_FULL[] =
-    "Your nursery is full!\n\n"
-    "Only 15 plants can be for sale at once,\n"
-    "counting every greenhouse.";
+/* "Your nursery is full! ..." with the limit: 15, and 15 more per extra nursery bought. */
+static const char *nursery_full(void) {
+    static char text[160];
+    const char *head = nurseries == 0 ? "Your nursery is full!\n\nOnly " : "Your nurseries are full!\n\nOnly ";
+    const char *tail = " plants can be for sale at once,\ncounting every greenhouse.";
+    int n = 0, i, limit = for_sale_limit();
+    for (i = 0; head[i]; ++i) text[n++] = head[i];
+    if (limit >= 10) text[n++] = (char)('0' + limit / 10);
+    text[n++] = (char)('0' + limit % 10);
+    for (i = 0; tail[i]; ++i) text[n++] = tail[i];
+    text[n] = '\0';
+    return text;
+}
 
 /* -------------------------------------------------------------- greenhouse */
 
@@ -517,8 +605,7 @@ NOINLINE static void carry_plant(char *scene, int to) {
         return;
     }
     /* Exchange the two pots' contents; the undo list keeps each position's greenhouse. */
-    if (g == 0 && arranged == 0) return;
-    exchange(state, from, g == 0 ? arranged - 1 : g - 1, k);
+    swap_pos(state, from, where_home[g * POTS + k]);       /* the contents; each place keeps its greenhouse */
     play_sound(AT(scene, SCENE_SOUND, void *), 0, SOUND_BUTTON);
     show_greenhouse(scene, g);
 }
@@ -569,9 +656,9 @@ static int __fastcall gh_command(char *scene, int edx, int msg, int id) {
         int selected = AT(state, STATE_SELECTED, int);
         if (selected >= 0 && selected < POTS) {
             char *pot = state_pot(state, selected);
-            if (!for_sale(pot) && sellable(pot) && count_for_sale(state) >= FOR_SALE_LIMIT) {
+            if (!for_sale(pot) && sellable(pot) && count_for_sale(state) >= for_sale_limit()) {
                 play_sound(AT(scene, SCENE_SOUND, void *), 0, SOUND_BUTTON);
-                tell(scene, NURSERY_FULL);
+                tell(scene, nursery_full());
                 return 1;
             }
         }
@@ -581,14 +668,14 @@ static int __fastcall gh_command(char *scene, int edx, int msg, int id) {
         int k, r, trimmed = 0;
         for (k = 0; k < POTS; ++k) before[k] = (unsigned char)for_sale(state_pot(state, k));
         r = next_gh_command(scene, edx, msg, id);
-        for (k = POTS - 1; k >= 0 && count_for_sale(state) > FOR_SALE_LIMIT; --k) {
+        for (k = POTS - 1; k >= 0 && count_for_sale(state) > for_sale_limit(); --k) {
             char *pot = state_pot(state, k);
             if (!before[k] && for_sale(pot)) {
                 pot[POT_FOR_SALE] = 0;
                 trimmed = 1;
             }
         }
-        if (trimmed) tell(scene, NURSERY_FULL);
+        if (trimmed) tell(scene, nursery_full());
         return r;
     }
     return next_gh_command(scene, edx, msg, id);
@@ -596,14 +683,31 @@ static int __fastcall gh_command(char *scene, int edx, int msg, int id) {
 
 static void __fastcall gh_overlay(char *scene, int edx) { enter(1); next_gh_overlay(scene, edx); }
 
+/* "Greenhouse n", and " of m" once more than one is owned (m the greenhouses owned, 1 + bought). */
+NOINLINE static const char *screen_label(const char *name, int n, int of) {
+    static char label[32];
+    int at = 0, i;
+    for (i = 0; name[i]; ++i) label[at++] = name[i];
+    label[at++] = ' ';
+    label[at++] = (char)('1' + n);
+    if (of > 1) {
+        label[at++] = ' ';
+        label[at++] = 'o';
+        label[at++] = 'f';
+        label[at++] = ' ';
+        label[at++] = (char)('0' + of);
+    }
+    label[at] = '\0';
+    return label;
+}
+
+/* The owner's name label on every greenhouse screen, the stock one too ("Greenhouse 1"). */
 static void __fastcall gh_draw(char *scene, int edx) {
-    static char label[32] = "Greenhouse 1 of 6";      /* "of" the greenhouses owned */
     enter(1);
     next_gh_draw(scene, edx);
-    if (owned == 0) return;                           /* only the stock greenhouse: no arrows, no label */
-    label[11] = (char)('1' + shown);
-    label[16] = (char)('0' + available());
-    draw_text_centred(graphics(), 0, label, LABEL_X, LABEL_Y, TEXT_COLOUR, 0);
+    if (!greenhouses_on) return;
+    draw_text_centred(graphics(), 0, screen_label("Greenhouse", shown, available()), LABEL_X, LABEL_Y,
+                      TEXT_COLOUR, 0);
 }
 
 static void __fastcall gh_tick(char *scene, int edx) {
@@ -654,8 +758,43 @@ static void __fastcall gh_activate(char *scene, int edx, int on) {
 
 static int __fastcall nu_mouse(char *s, int e, int m, int x, int y) { enter(2); return next_nu_mouse(s, e, m, x, y); }
 static int __fastcall nu_key(char *s, int e, int m, int a, int b) { enter(2); return next_nu_key(s, e, m, a, b); }
-static int __fastcall nu_command(char *s, int e, int m, int id) { enter(2); return next_nu_command(s, e, m, id); }
-static void __fastcall nu_draw(char *s, int e) { enter(2); next_nu_draw(s, e); }
+/* The nursery screen's arrows, once an extra nursery is owned. */
+static void show_nursery_arrows(void) {
+    int i;
+    for (i = 0; i < 2; ++i) {
+        if (nursery_arrows[i] != NULL) AT(nursery_arrows[i], 8, unsigned char) = (unsigned char)(nurseries > 0);
+    }
+}
+
+/* Another nursery: the stock nursery closes (its sold plants leave their pots) and the next one
+   opens with its own plants for sale, visitors and prices, exactly as on entering a nursery. */
+NOINLINE static void show_nursery(char *s, int e, int n) {
+    next_nu_activate(s, e, 0);
+    nursery_shown = nursery_wrap(n);
+    enter(2);
+    next_nu_activate(s, e, 1);
+}
+
+static int __fastcall nu_command(char *s, int e, int m, int id) {
+    enter(2);
+    if (m == 8 && (id == ARROW_PREV || id == ARROW_NEXT)) {
+        if (nurseries > 0) {
+            play_sound(sound_bank(), 0, SOUND_BUTTON);
+            show_nursery(s, e, nursery_shown + (id == ARROW_PREV ? -1 : 1));
+        }
+        return 1;
+    }
+    return next_nu_command(s, e, m, id);
+}
+
+/* "Nursery n" on every nursery screen, the stock one too ("Nursery 1"). */
+static void __fastcall nu_draw(char *s, int e) {
+    enter(2);
+    next_nu_draw(s, e);
+    if (!nurseries_on) return;
+    draw_text_centred(graphics(), 0, screen_label("Nursery", nursery_shown, nurseries_available()), NU_LABEL_X,
+                      NU_LABEL_Y, TEXT_COLOUR, 0);
+}
 static void __fastcall nu_overlay(char *s, int e) { enter(2); next_nu_overlay(s, e); }
 static void __fastcall nu_tick(char *s, int e) { enter(2); next_nu_tick(s, e); }
 
@@ -663,8 +802,22 @@ static void __fastcall nu_tick(char *s, int e) { enter(2); next_nu_tick(s, e); }
    empties the sold pots as it closes: both on the arranged pots. */
 static void __fastcall nu_activate(char *s, int e, int on) {
     if (on) {
+        if (nursery_shown > nurseries) nursery_shown = 0;
         enter(2);
         next_nu_activate(s, e, on);
+        if (nursery_arrows[0] == NULL) {
+            static const char *const files[2] = { "leftarrow.png", "rightarrow.png" };
+            static const int ids[2] = { ARROW_PREV, ARROW_NEXT }, xs[2] = { NU_LEFT_X, NU_RIGHT_X };
+            int i;
+            for (i = 0; i < 2; ++i) {
+                void *button = game_new(0x14);
+                if (button == NULL) break;
+                file_button(button, 0, ids[i], files[i], xs[i], NU_ARROW_Y, s, 0);
+                add_control(s, 0, button);
+                nursery_arrows[i] = button;
+            }
+        }
+        show_nursery_arrows();
     } else {
         next_nu_activate(s, e, on);
         leave(2);
@@ -724,7 +877,7 @@ static int sidecar_path(int slot, wchar_t *out, DWORD cap, int make_folder) {
 }
 
 /* Header: magic, version, greenhouses kept, pots each, bytes per pot. */
-#define HEADER_WORDS 6
+#define HEADER_WORDS 7
 
 NOINLINE static int write_sidecar(int slot) {
     wchar_t path[1024], temp[1100];
@@ -742,6 +895,7 @@ NOINLINE static int write_sidecar(int slot) {
     header[3] = POTS;
     header[4] = POT_BYTES;
     header[5] = (DWORD)owned;
+    header[6] = (DWORD)nurseries;
     ok = WriteFile(file, header, sizeof header, &written, NULL) && written == sizeof header
          && WriteFile(file, extra_pots, sizeof extra_pots, &written, NULL) && written == sizeof extra_pots
          && FlushFileBuffers(file);
@@ -765,7 +919,7 @@ NOINLINE static int read_sidecar(int slot) {
     ok = GetFileSizeEx(file, &size) && size.QuadPart == (LONGLONG)(sizeof header + sizeof body)
          && ReadFile(file, header, sizeof header, &got, NULL) && got == sizeof header
          && header[0] == SIDECAR_MAGIC && header[1] == SIDECAR_VERSION && header[2] == EXTRA
-         && header[3] == POTS && header[4] == POT_BYTES && header[5] <= EXTRA
+         && header[3] == POTS && header[4] == POT_BYTES && header[5] <= EXTRA && header[6] <= EXTRA
          && ReadFile(file, body, sizeof body, &got, NULL) && got == sizeof body;
     CloseHandle(file);
     if (!ok) {
@@ -777,6 +931,7 @@ NOINLINE static int read_sidecar(int slot) {
     }
     memcpy(extra_pots, body, sizeof body);
     owned = (int)header[5];
+    nurseries = (int)header[6];
     return 1;
 }
 
@@ -795,28 +950,41 @@ NOINLINE static void __cdecl on_loaded(char *state, int slot) {
     int b;
     (void)state;
     reset_layout();
-    owned = 0;
+    owned = nurseries = 0;
     if (read_sidecar(slot) != 1) empty_banks();
     for (b = EXTRA; b > owned; --b) {                     /* a greenhouse with plants is never locked away */
         if (has_plants(b - 1)) owned = b;
     }
+    if (!greenhouses_on) owned = 0;                       /* the setting off: kept in the file, not shown */
+    if (!nurseries_on) nurseries = 0;
     show_arrows();
+    show_nursery_arrows();
 }
 
 static void __cdecl on_new_game(void) {
     reset_layout();
-    owned = 0;
+    owned = nurseries = 0;
     empty_banks();
     show_arrows();
+    show_nursery_arrows();
 }
 
 /* For Store Upgrades and Items.dll: how many extra greenhouses are bought, and buy the next. */
-int __cdecl FtfpExtraGreenhousesOwned(void) { return owned; }
+/* -1 when that setting is off (the store then offers nothing). */
+int __cdecl FtfpExtraGreenhousesOwned(void) { return greenhouses_on ? owned : -1; }
 
 int __cdecl FtfpExtraGreenhousesBuy(void) {
-    if (owned < EXTRA) ++owned;
+    if (greenhouses_on && owned < EXTRA) ++owned;
     show_arrows();
     return owned;
+}
+
+int __cdecl FtfpExtraNurseriesOwned(void) { return nurseries_on ? nurseries : -1; }
+
+int __cdecl FtfpExtraNurseriesBuy(void) {
+    if (nurseries_on && nurseries < EXTRA) ++nurseries;
+    show_nursery_arrows();
+    return nurseries;
 }
 
 static void __cdecl on_delete(int slot) {
@@ -1152,6 +1320,8 @@ int __stdcall FtfpStartup(void) {
     static const wchar_t *const first[3] = { L"Greenhouse Counts.dll", L"Unused Flowers.dll", L"Sort Seeds.dll" };
     int i;
     if (installed) return 1;
+    greenhouses_on = ftfp_setting_on(self_module, L"Extra Greenhouses.ini");
+    nurseries_on = ftfp_setting_on(self_module, L"Extra Nurseries.ini");
     __try {
         for (i = 0; i < 3 && !start_companion(first[i]); ++i) {
         }
@@ -1177,7 +1347,6 @@ int __cdecl FtfpExtraGreenhousesLastSave(void) { return last_sidecar; }
 char *__cdecl FtfpExtraGreenhousesPot(int g, int k) {
     char *state = GAME_STATE;
     if (state == NULL || g < 0 || g >= GREENHOUSES || k < 0 || k >= POTS) return NULL;
-    if (arranged == NURSERY) arrange(state, HOME);
     return locate(state, g, k);
 }
 
