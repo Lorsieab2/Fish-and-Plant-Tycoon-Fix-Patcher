@@ -969,8 +969,8 @@ static void stock_birth(char *impl, char *f, int tank, int baby_age) {
    2026-10-30; the stock Growth Hormone, 0x421100-0x421194, stops at age 40): live (+0x00),
    health not 0 (+0x3C), over the stock loop's records.  First every pregnant one of them (+0x10 not 0) gives birth at once, through stock_birth
    (the owner, 2026-10-30), with the babies aged 1, as a birth on the due step is (age - due
-   age); tank 3 never gives birth, as stock.  Then each fish reached, the newborns included,
-   so the whole litter comes out adult:
+   age); tank 3 never gives birth, as stock.  Then each fish reached before the births (the
+   newborns stay babies, see reached_before_births):
      * younger than 20: age 20, written as the stock dose writes an age (0x42114F), and
        last-processed age 19 on every difficulty (the stock dose does this only off Hard,
        0x421157; the owner, 2026-10-30: the fish stay healthy on Hard too), so the next
@@ -985,6 +985,15 @@ static int gh_reaches(char *f) {
     return *I(f, F_LIVE) != 0 && *I(f, F_HEALTH) != 0 && !is_animal(f);
 }
 
+/* The owner, 2026-10-31 ("babies stay babies"): the newborns of a dose are left exactly as the
+   stock birth makes them (aged 1).  The game shows a fish's species name only from age 20
+   (0x41D9ED: under 20 the name is string 6), so raising them to 20 showed baby fish's names.
+   The fish the dose reaches are therefore noted before the births, by record: a newborn goes
+   only into a record that was empty then (AddFish takes a record whose +0x00 is 0), so it is
+   never among them, whatever record it reuses; the age-up, healing and cure below are for
+   those fish only.  A later dose reaches the babies like any other young fish. */
+static unsigned char reached_before_births[RECORDS];
+
 static void __cdecl rgh_dose(char *impl) {
     char *state = (char *)P(impl, 0x34);
     int tank, end = GH_LOOP_END, off, born = 0;
@@ -992,6 +1001,8 @@ static void __cdecl rgh_dose(char *impl) {
     tank = *I(state, S_CURRENT_TANK);
     if (tank < 0 || tank > last_tank()) return;
     if (end > RECORDS * SLOT_STRIDE) end = RECORDS * SLOT_STRIDE;
+    for (off = 0; off < end; off += SLOT_STRIDE)
+        reached_before_births[off / SLOT_STRIDE] = (unsigned char)gh_reaches(state + FISH_BASE + tank * TANK_STRIDE + off);
     for (off = 0; off < end && tank != NO_BIRTH_TANK; off += SLOT_STRIDE) {
         char *f = state + FISH_BASE + tank * TANK_STRIDE + off;
         if (!gh_reaches(f) || *I(f, F_DUE) == 0) continue;
@@ -1002,7 +1013,7 @@ static void __cdecl rgh_dose(char *impl) {
         VIEW_SYNC(P(impl, 0x3C), NULL, (int)(UINT_PTR)fish(state, tank, 0));
     for (off = 0; off < end; off += SLOT_STRIDE) {
         char *f = state + FISH_BASE + tank * TANK_STRIDE + off;
-        if (!gh_reaches(f)) continue;
+        if (!reached_before_births[off / SLOT_STRIDE] || !gh_reaches(f)) continue;
         if (*I(f, F_AGE) < ADULT_AGE) {
             *I(f, F_AGE) = ADULT_AGE;
             *I(f, F_LAST_AGE) = ADULT_AGE - 1;
@@ -1200,8 +1211,8 @@ static const store_item ITEM[ITEMS] = {
         "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
     { FIN_RGH, 10000, 595, 90, 79, 72, SPR_ITEM_RGH, 48, 65,
       { "Radioactive Growth Hormone", "Radioaktive Wachstumshormone" },
-      { "Every fish in your tank gets full\nhealth and no sickness, young ones grow\nup at once, and pregnant ones give\nbirth first. Enough for 3 treatments.",
-        "Jeder Fisch in deinem Becken wird\nganz gesund und heil, junge werden\nsofort erwachsen, tr\xE4" "chtige geb\xE4" "ren\nzuerst. Reicht f\xFCr 3 Behandlungen." } },
+      { "Every fish in your tank gets full\nhealth and no sickness, young ones grow\nup at once, and pregnant ones give\nbirth to babies. Enough for 3 treatments.",
+        "Jeder Fisch in deinem Becken wird\nganz gesund und heil, junge werden\nsofort erwachsen, tr\xE4" "chtige geb\xE4" "ren\nBabys. Reicht f\xFCr 3 Behandlungen." } },
     /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped to the panel. */
     { FIN_REVIVAL, 10000, 687, 90, 79, 72, SPR_ITEM_REVIVAL, 48, 65,
       { "Revival Potion", "Wiederbelebungstrank" },

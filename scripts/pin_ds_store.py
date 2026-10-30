@@ -51,7 +51,7 @@ SETTING = {
         "Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive "
         "Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way, on every "
         "live fish in the tank you use it on, any age: each pregnant one "
-        "gives birth at once, as at the end of a pregnancy, then each of them, the newborns too, "
+        "gives birth at once, as at the end of a pregnancy (the babies stay babies, as born), then each fish that was there before the births "
         "becomes an adult at once if younger, gets full health and is cured of any sickness. The "
         "Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at "
         "full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every unique fish in the "

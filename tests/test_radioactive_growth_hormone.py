@@ -428,20 +428,76 @@ class HormoneTests(unittest.TestCase):
             self.assertEqual(runs[0][1][0], 0)                # no longer pregnant
             self.assertEqual(runs[0][0][0][12:], (1, 0))      # babies aged 1, into tank 0
 
-    def test_pregnant_fish_give_birth_then_the_whole_litter_grows_up(self) -> None:
+    def test_newborns_stay_babies_and_only_the_fish_young_before_grow_up(self) -> None:
+        # The owner, 2026-10-31 ("babies stay babies"): the game shows a species name only from age
+        # 20 (0x41D9ED), so the dose's newborns keep exactly the record the stock birth gives them.
+        exe = FISH_EXE.read_bytes()
+        self.assertEqual(exe[0x41D9ED - 0x400000:0x41D9F5 - 0x400000], bytes.fromhex("83bc389c03000014"))
+        records = []
+        for natural in (True, False):
+            emu = self.tank()
+            emu.magic = {0}                                   # a Magic Fish of Fertility: +1 baby
+            emu.write32(emu.state + 0x1A4, 1)                 # the Plant of Fertility: +1 baby
+            mom = self.mother(emu, slot=0, due=29 if natural else 33)
+            young = [self.fish(emu, s, 5, 50, 0) for s in (1, 3)]   # slot 2 free between them
+            self.stock_birth(emu, slot=0) if natural else self.dose(emu)
+            babies = [emu.state + FISH + s * REC for s in (2, 4, 5)]   # AddFish: the first free records
+            records.append([bytes(emu.uc.mem_read(at, REC)) for at in babies])
+            if not natural:
+                for at in babies:
+                    self.assertNotEqual(self.field(emu, at, F_LIVE), 0)
+                    self.assertEqual((self.field(emu, at, F_AGE), self.field(emu, at, F_LAST_AGE)), (1, 0))
+                    self.assertEqual((self.field(emu, at, F_BODY), self.field(emu, at, F_FIN)), (5, 7))
+                for at in young:                              # young before the dose: adults now
+                    self.assertEqual((self.field(emu, at, F_AGE), self.field(emu, at, F_LAST_AGE)), (20, 19))
+                    self.assertEqual(self.field(emu, at, F_HEALTH), 100)
+                self.assertEqual((self.field(emu, mom, F_DUE), self.field(emu, mom, F_HEALTH)), (0, 100))
+                self.assertEqual(self.field(emu, emu.state + FISH + 6 * REC, F_LIVE), 0)
+                self.assertIn(("view sync", (emu.state + FISH,)), emu.calls)   # the newborns swim at once
+        self.assertEqual(records[1], records[0])              # each baby exactly as a natural birth makes it
+
+    def test_every_birth_source_stays_a_baby(self) -> None:
+        for magic, plant, litter in (((), 0, 1), ((0,), 0, 2), ((), 1, 2), ((0, 5), 1, 3)):
+            emu = self.tank()
+            emu.magic = set(magic)
+            emu.write32(emu.state + 0x1A4, plant)
+            self.mother(emu, slot=0)
+            self.dose(emu)
+            ages = [self.field(emu, emu.state + FISH + s * REC, F_AGE) for s in range(1, 1 + litter)]
+            self.assertEqual(ages, [1] * litter, (magic, plant))
+            self.assertEqual(self.field(emu, emu.state + FISH + (1 + litter) * REC, F_LIVE), 0, (magic, plant))
+
+    def test_a_later_dose_grows_the_babies_up(self) -> None:
         emu = self.tank()
-        emu.write32(emu.state + 0x1A4, 1)                     # Plant of Fertility: 2 babies
-        mom = self.mother(emu, slot=0)
+        self.mother(emu, slot=0)
         self.dose(emu)
-        self.assertEqual(self.field(emu, mom, F_DUE), 0)
-        for slot in (1, 2):                                   # AddFish: the first free records
-            baby = emu.state + FISH + slot * REC
-            self.assertNotEqual(self.field(emu, baby, F_LIVE), 0, slot)
-            self.assertEqual((self.field(emu, baby, F_BODY), self.field(emu, baby, F_FIN)), (5, 7))  # (3+7)/2, (5+9)/2
-            self.assertEqual((self.field(emu, baby, F_AGE), self.field(emu, baby, F_LAST_AGE)), (20, 19))
-            self.assertEqual(self.field(emu, baby, F_HEALTH), 100)
-        self.assertEqual(self.field(emu, emu.state + FISH + 3 * REC, F_LIVE), 0)
-        self.assertIn(("view sync", (emu.state + FISH,)), emu.calls)   # the newborns swim at once
+        baby = emu.state + FISH + 1 * REC
+        self.assertEqual(self.field(emu, baby, F_AGE), 1)
+        self.dose(emu)
+        self.assertEqual((self.field(emu, baby, F_AGE), self.field(emu, baby, F_LAST_AGE)), (20, 19))
+
+    def test_babies_stay_babies_with_30_per_tank_and_in_tanks_4_to_6(self) -> None:
+        emu = self.tank()
+        emu.uc.mem_write(0x421190, struct.pack("<I", 30 * REC))   # 30 per tank: the loop end ...
+        emu.uc.mem_write(0x419C74, bytes([30]))                     # ... and AddFish's limit
+        for slot in range(27):
+            self.fish(emu, slot, 30, 60, 0, body=4)
+        self.mother(emu, slot=27)
+        young = self.fish(emu, 28, 5, 50, 0)
+        self.dose(emu)
+        self.assertEqual(self.field(emu, emu.state + FISH + 29 * REC, F_AGE), 1)   # the baby, in slot 29
+        self.assertEqual(self.field(emu, young, F_AGE), 20)
+        for tank in (4, 5, 6):                                      # the update's tank bound, read
+            emu = self.tank()
+            emu.uc.mem_write(0x4206C7, bytes([6]))
+            emu.write32(emu.state + S_TANK, tank)
+            for slot in range(31):
+                emu.write32(emu.state + FISH + tank * TANK + slot * REC, 0)
+            self.mother(emu, slot=0, tank=tank)
+            young = self.fish(emu, 1, 5, 50, 0, tank=tank)
+            self.dose(emu)
+            self.assertEqual(self.field(emu, emu.state + FISH + tank * TANK + 2 * REC, F_AGE), 1, tank)
+            self.assertEqual(self.field(emu, young, F_AGE), 20, tank)
 
     def test_a_full_tank_loses_the_babies_as_stock(self) -> None:
         outcomes = []

@@ -527,8 +527,11 @@ and fixes.
     birth code, call for call (the litter, the Magic Fish mutation of the
     father's genes, the Magic Fish of Fertility's and the Plant of
     Fertility's extra babies, and a full tank losing the babies, all as a
-    natural birth; the isolation tank never gives birth, as stock). Then each one, the
-    newborns too, so the whole litter comes out adult, becomes an adult
+    natural birth; the isolation tank never gives birth, as stock). The
+    babies stay babies, exactly as born (the owner: a dose had raised them
+    to 20, the age the game shows a species name from, so baby fish showed
+    their names); a later dose grows them up. Then each fish that was in the
+    tank before the births becomes an adult
     (age 20) if younger, gets full health (100) and is cured of ick or
     fungus (counted under Fish Cured); older fish keep their age. Dead fish,
     other tanks and the store animals are not reached. Fry are fish in the
