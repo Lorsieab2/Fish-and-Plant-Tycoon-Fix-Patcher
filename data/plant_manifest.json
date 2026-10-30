@@ -4278,7 +4278,7 @@
             "path": "Store Upgrades and Items.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Store Upgrades and Items.dll",
             "size": 152576,
-            "sha256": "EE4E203B346AAA5302C1927CCE0EE7828911350DEEB740B9D51B84D8CC2BF7D0"
+            "sha256": "9B7F769C3186194FFFEF1957D103E22986168C79389E9C01ED6AD7A3BAB06297"
           },
           {
             "path": "Extra Seed Boxes.dll",
@@ -4289,8 +4289,8 @@
           {
             "path": "Images/Chemicals_Grid_upgrades.png",
             "destination": "Images/Chemicals_Grid_upgrades.png",
-            "size": 78868,
-            "sha256": "7036A177B6F2145F25C3671FA62CC7BA3BD161AC53AC7D826729B53FEF1A246C"
+            "size": 84159,
+            "sha256": "720C3639C71D0A9E36CD6CA7BD5F18CAE4B22860E5B0A12CBDC794F92ACD021D"
           },
           {
             "path": "Images/seed_grid_legendary.png",

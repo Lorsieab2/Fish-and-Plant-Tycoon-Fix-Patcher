@@ -646,9 +646,16 @@ static void add_money(char *scene) {
    bought in order like the Fourth-Sixth Seed Box, $10,000 each ($0 with Free
    upgrades), through the same Yes / No as Add Money, with the stock tick once
    all five are owned.  The greenhouse stands on the tool shelf beside the seed
-   boxes, drawn with the game's own greenhouse picture (greenhouse1.png, sprite
-   0xC2); the nursery on the Nursery shelf beside Add Money, drawn with the
-   game's own golden pot (goldpot.png, sprite 0x2C, the nursery's display).
+   boxes: a small, opaque greenhouse the size of the shelf's tools (row 15,
+   frame 30, of this mod's chemicals sheet, made from the game's greenhouse2.png
+   by scripts/build_plant_upgrades_assets.py), drawn at scale 1.  It used to be
+   the game's greenhouse1.png (sprite 0xC2), a 157 x 207 garden picture with
+   soft, see-through edges: the 0.29 passed here does not shrink it, so it
+   came out full size across three shelves.  The game's sprite table has one
+   spare record, which the Upgrades link uses, so the icon shares this mod's
+   chemicals sheet as the Time Warp clock and Add Money's coins do.  The
+   nursery stands on the Nursery shelf beside Add Money, drawn with the game's
+   own golden pot (goldpot.png, sprite 0x2C, the nursery's display).
    An item shows only while its setting is on (its Owned export says -1 when
    it is off). */
 #define EXTRA_PRICE 10000
@@ -660,20 +667,27 @@ typedef struct extra_item {
     const char *title;
     const wchar_t *caption, *all_owned, *too_poor, *confirm;
     const char *owned_export, *buy_export;
-    int sprite, x, y;
+    int sprite, frame, x, y;               /* the picture's top left */
     float scale;
+    int shadow_x, shadow_y, tick_x, tick_y;
     RECT rect;
 } extra_item;
 
+#define GREENHOUSE_FRAME 30                 /* row 15 of the chemicals sheet: rows 13 and 14 are Time Warp and Add Money */
+
 static const extra_item EXTRA_ITEM[EXTRA_ITEMS] = {
+    /* The picture's visible part is x 414..451, y 58..111 (its 70 x 70 cell at 404, 50): on the shelf line
+       as the seed boxes beside it (x 468 on), inside the click rectangle.  Shadow and tick under its middle. */
     { "Extra Greenhouse", L"Extra Greenhouse", L"You already have all five extra greenhouses!",
       L"You can't afford to buy this yet! An extra greenhouse costs $10,000.",
       L"Buy Greenhouse %d for $%d?\n\nIt has 15 empty pots. The arrows on the greenhouse screen lead to it.",
-      "FtfpExtraGreenhousesOwned", "FtfpExtraGreenhousesBuy", 0xC2, 404, 50, 0.29f, { 404, 52, 461, 113 } },
+      "FtfpExtraGreenhousesOwned", "FtfpExtraGreenhousesBuy", SHEET_CHEMICALS, GREENHOUSE_FRAME, 404, 50, 1.0f,
+      408, 80, 403, 72, { 404, 52, 461, 113 } },
     { "Extra Nursery", L"Extra Nursery", L"You already have all five extra nurseries!",
       L"You can't afford to buy this yet! An extra nursery costs $10,000.",
       L"Buy Nursery %d for $%d?\n\nIt holds 15 more plants for sale. The arrows on the nursery screen lead to it.",
-      "FtfpExtraNurseriesOwned", "FtfpExtraNurseriesBuy", 0x2C, 440, 296, 0.84f, { 440, 296, 504, 360 } },
+      "FtfpExtraNurseriesOwned", "FtfpExtraNurseriesBuy", 0x2C, 0, 440 + 6, 296, 0.84f,
+      440 + 0x19, 296 + 0x1E, 440 + 19, 296 + 22, { 440, 296, 504, 360 } },
 };
 static extra_fn extra_owned[EXTRA_ITEMS], extra_buy[EXTRA_ITEMS];
 static char *extra_tip[EXTRA_ITEMS];
@@ -849,9 +863,9 @@ static int __cdecl on_draw(char *scene) {
     for (i = 0; i < EXTRA_ITEMS; ++i) {
         const extra_item *it = &EXTRA_ITEM[i];
         if (!extra_on(i)) continue;
-        draw_shadow(mgr, 0, SHEET_SHADOW, it->x + 0x19, it->y + 0x1E, 1.0f, 100);
-        draw_sprite(mgr, 0, it->sprite, 0, it->x + 6, it->y, it->scale, 100, 1);
-        if (extra_owned[i]() >= EXTRA_COUNT) draw_shadow(mgr, 0, SHEET_TICK, it->x + 19, it->y + 22, 1.0f, 100);
+        draw_shadow(mgr, 0, SHEET_SHADOW, it->shadow_x, it->shadow_y, 1.0f, 100);
+        draw_sprite(mgr, 0, it->sprite, it->frame, it->x, it->y, it->scale, 100, 1);
+        if (extra_owned[i]() >= EXTRA_COUNT) draw_shadow(mgr, 0, SHEET_TICK, it->tick_x, it->tick_y, 1.0f, 100);
     }
     return 1;
 }
@@ -1578,7 +1592,8 @@ static void site_data(ftfp_site_write *w, unsigned int va, int length, const uns
 static int prepare(void) {
     ftfp_site_write *w = writes;
     DWORD seed_file = (DWORD)(UINT_PTR)SEED_SHEET_FILE, chem_file = (DWORD)(UINT_PTR)CHEM_SHEET_FILE;
-    DWORD seed_rows = 8, chem_rows = 15;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money */
+    DWORD seed_rows = 8, chem_rows = 16;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money,
+                                                      15: the Extra Greenhouse */
     DWORD link[6];
     unsigned char bound = SITE_CHEM_PICTURE_BOUND_NEW;
     link[0] = LINK_SPRITE;

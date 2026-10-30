@@ -980,6 +980,58 @@ class StoreItemTests(unittest.TestCase):
         self.click(emu)
         self.assertEqual((emu.owned, emu.read32(emu.state + 0x217C)), (0, 50000))
 
+    def test_the_greenhouse_icon_is_an_opaque_shelf_item_inside_its_click_rect(self) -> None:
+        """The live bug (v1.0.17): the item was the game's 157 x 207 garden picture greenhouse1.png (sprite
+        0xC2) with a 0.29 that the game's draw does not apply, so a big, see-through greenhouse covered the
+        seed boxes and three shelves. Now the DLL's own draw puts a small, opaque greenhouse (frame 30 of
+        the mod's chemicals sheet, at scale 1) on the shelf line, inside its click rectangle."""
+        import numpy as np
+        from PIL import Image
+        emu = self.store(0, False)
+        draws = []
+        emu.hook(0x004208F0, lambda e: (draws.append(("sprite",) + tuple(e.arg(i) for i in range(7))), 0)[1], 0x1C)
+        emu.hook(0x004207F0, lambda e: (draws.append(("shadow",) + tuple(e.arg(i) for i in range(5))), 0)[1], 0x14)
+        emu.call(emu.sym("_on_draw"), emu.scene)
+        as_float = lambda bits: struct.unpack("<f", struct.pack("<I", bits))[0]
+        # The extra items are drawn last, each as its shadow then its picture; only the greenhouse is on.
+        (_s, *shadow), (_p, sheet, frame, x, y, scale, alpha, _flag) = draws[-2:]
+        self.assertEqual((_s, _p), ("shadow", "sprite"))
+        self.assertEqual((sheet, frame, x, y, as_float(scale), alpha), (0xB3, 30, 404, 50, 1.0, 100))
+
+        art = ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png"
+        chems = np.asarray(Image.open(art).convert("RGBA"))
+        self.assertEqual(chems.shape[0], 16 * 70)                     # chem_rows = 16 in the DLL
+        cell = chems[(frame // 2) * 70:(frame // 2 + 1) * 70, (frame % 2) * 70:(frame % 2 + 1) * 70, 3]
+        ys, xs = np.nonzero(cell)
+        left, top, right, bottom = x + xs.min(), y + ys.min(), x + xs.max(), y + ys.max()   # inclusive, on screen
+        width, height = right - left + 1, bottom - top + 1
+        # The size of the shelf's items: at most a 57 x 61 shelf place, at least as tall as a seed box.
+        images = PLANT_EXE.parent / "Images"
+        tools = np.asarray(Image.open(images / "Tools_Grid.png").convert("RGBA"))[:, :, 3]
+        box_ys, box_xs = np.nonzero(tools[0:80, 320:400])            # the seed box on this shelf (frame 4)
+        self.assertLessEqual((width, height), (57, 61))
+        self.assertGreaterEqual(height, box_ys.max() - box_ys.min() + 1)
+        self.assertGreaterEqual(width, 30)
+        # On the shelf line, as the seed box drawn at (461, 50) beside it, and clear of that box's art.
+        self.assertLessEqual(abs(int(bottom) - (50 + int(box_ys.max()))), 1)
+        self.assertLess(right, 461 + box_xs.min())
+        # Inside its click and tooltip rectangle {404, 52, 461, 113}.
+        source = (ROOT / "native" / "ftfp_plant_upgrades" / "ftfp_plant_upgrades.c").read_text(encoding="utf-8")
+        self.assertIn('"FtfpExtraGreenhousesBuy", SHEET_CHEMICALS, GREENHOUSE_FRAME, 404, 50, 1.0f,\n'
+                      "      408, 80, 403, 72, { 404, 52, 461, 113 } }", source)
+        self.assertTrue(404 <= left and right < 461 and 52 <= top and bottom < 113, (left, top, right, bottom))
+        # Fully opaque: every pixel of the picture, nothing see-through.
+        self.assertTrue((cell[cell > 0] == 255).all())
+        # The shadow under its middle, within a few pixels.
+        peep = np.asarray(Image.open(images / "peep_shadow1.png").convert("RGBA"))[:, :, 3]
+        p_ys, p_xs = np.nonzero(peep)
+        self.assertEqual(shadow[0], 0xB0)
+        centre = shadow[1] + (p_xs.min() + p_xs.max()) / 2
+        self.assertLessEqual(abs(centre - (left + right) / 2), 3)
+        # A click on the picture is the item's.
+        emu.call(emu.sym("_on_click"), emu.scene, int((left + right) // 2), int((top + bottom) // 2))
+        self.assertIn("can't afford", [c[1] for c in emu.calls if c[0] == "MessageBoxW"][-1])
+
 
 @needs_game
 class InstallTests(unittest.TestCase):
