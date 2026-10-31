@@ -104,10 +104,10 @@
 #define BOX_DESC_ID 0x1F4
 #define BOX_TITLE_7_ID 0x1F8                /* 0x1F8..0x1FA the Seventh-Ninth's names */
 /* The Seventh-Ninth Seed Box stand in their own column on the tool shelf, left
-   of the Extra Greenhouse (404, 50) and the Automatic Sprinklers (409, 111):
+   of the Extra Greenhouse (404, 50) and the Automatic Sprinklers (397, 111):
    the box art is visible over x + 6 .. x + 76 of its 80 px frame, so at x 322
    it ends at 398, 16 px before the greenhouse's art (414), as the Fourth's
-   art (468) starts 17 px after it. */
+   art (468) starts 17 px after it, and 5 px before the sprinklers' (403). */
 #define BOX_X(box) ((box) < 3 ? 233 + 57 * 4 : 322)
 #define BOX_Y(box) (50 + 61 * ((box) % 3))
 

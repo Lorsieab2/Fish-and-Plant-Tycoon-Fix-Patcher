@@ -291,35 +291,39 @@ class ShelfTests(unittest.TestCase):
         for x, y in ((322, 50), (322, 111), (322, 172)):
             self.assertIn(("shadow", 0x25, 0, x + 19, y + 22), ticks)
 
-    def test_boxes_7_to_9_overlap_nothing(self) -> None:
+    def test_no_two_items_overlap(self) -> None:
+        """Every picture on the Upgrades view against every other (the art's visible pixels)."""
         def inter(a, b):
             return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
         sprites = [(d, self.P.visible_rect(self.sheets, d)) for d in self.draws if d[0] == "sprite"]
-        mine = [(d, r) for d, r in sprites if d[1] == 0xB2 and d[3] == 322]
-        others = [(d, r) for d, r in sprites if not (d[1] == 0xB2 and d[3] == 322)]
-        self.assertEqual(len(mine), 3)
-        for d, r in mine:
-            for o, q in others + [m for m in mine if m[0] is not d]:
+        self.assertEqual(len([d for d, _ in sprites if d[1] == 0xB2 and d[3] == 322]), 3)
+        for i, (d, r) in enumerate(sprites):
+            for o, q in sprites[i + 1:]:
                 self.assertFalse(inter(r, q), (d, o, r, q))
         greenhouse = next(r for d, r in sprites if d[1] == 0xB3 and d[2] == 30)
-        sprinklers = next(r for d, r in sprites if d[1] == 0xB3 and d[2] == 32)
-        for d, r in mine:
-            self.assertGreaterEqual(min(greenhouse[0], sprinklers[0]) - r[2], 14, d)   # a clear gap, as box 4's
+        sprinklers = next(d for d, r in sprites if d[1] == 0xB3 and d[2] == 32)
+        sprinkler_art = self.P.visible_rect(self.sheets, sprinklers)
+        self.assertEqual((sprinklers[3], sprinklers[4]), (397, 111))           # its shelf line kept
+        self.assertLessEqual(abs((sprinkler_art[0] + sprinkler_art[2]) - (greenhouse[0] + greenhouse[2])), 2)
+        box7 = next(r for d, r in sprites if d[1] == 0xB2 and d[3] == 322 and d[4] == 50)
+        box5 = next(r for d, r in sprites if d[1] == 0xB2 and d[3] == 461 and d[4] == 111)
+        self.assertGreaterEqual(greenhouse[0] - box7[2], 14)                   # a clear gap, as box 4's
+        self.assertGreaterEqual(sprinkler_art[0] - box7[2], 5)
+        self.assertGreaterEqual(box5[0] - sprinkler_art[2], 5)
 
-    def test_click_rectangles_overlap_nothing(self) -> None:
+    def test_no_two_click_rectangles_overlap(self) -> None:
+        """The tool shelf's and the Nursery shelf's click rectangles (inside() counts every edge)."""
         import re
         source = (ROOT / "native" / "ftfp_plant_upgrades" / "ftfp_plant_upgrades.c").read_text(encoding="utf-8")
         auto = (ROOT / "native" / "ftfp_plant_upgrades" / "auto_upgrades.h").read_text(encoding="utf-8")
         rects = [tuple(int(v) for v in m) for m in re.findall(r"\{ (\d+), (\d+), (\d+), (\d+) \} \}", source + auto)]
-        self.assertGreaterEqual(len(rects), 4)                          # extra greenhouse/nursery, both auto items
+        self.assertEqual(len(rects), 4)                                 # extra greenhouse/nursery, both auto items
+        self.assertIn((403, 114, 461, 174), rects)                      # the sprinklers, under the greenhouse's
         for box in range(6):
             x = 461 if box < 3 else 322
             rects.append((x + 10, 52 + 70 * (box % 3), x + 67, 113 + 70 * (box % 3)))
-        mine = rects[-3:]
-        for r in mine:
-            for q in rects:
-                if q is r:
-                    continue
+        for i, r in enumerate(rects):
+            for q in rects[i + 1:]:
                 self.assertFalse(r[0] <= q[2] and q[0] <= r[2] and r[1] <= q[3] and q[1] <= r[3], (r, q))
 
     def test_mockups_are_committed(self) -> None:

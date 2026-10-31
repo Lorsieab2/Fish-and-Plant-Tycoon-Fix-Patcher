@@ -77,11 +77,16 @@ typedef struct auto_item {
 } auto_item;
 
 /* Sprinklers on the tool shelf under the Extra Greenhouse (the stock tool column 3, row 2),
-   the Auto-Healer on the chemicals shelf beside the Formula Bomb. */
+   the Auto-Healer on the chemicals shelf beside the Formula Bomb.  The sprinklers' art is visible
+   over x + 6 .. x + 64 of its 70 px cell, so at x 397 it spans 403-460, centred on the Extra
+   Greenhouse's art (414-450, centre 432): clear of the Seventh Seed Box's art (to 397) and the
+   Fifth's (from 468); at 409 it ran to 472, into the Fifth's.  Its click rectangle (403-461,
+   114-174) starts below the greenhouse's (to y 113: inside() counts both edges). */
+#define AUTO_SPRINKLERS_X 397
 static const auto_item AUTO_ITEM[AUTO_ITEMS] = {
     { "Automatic Sprinklers", L"Automatic Sprinklers",
       L"Automatically waters all pots in the greenhouse. Optimizes water levels for minimal pest infestations "
-      L"and problems.", AUTO_SPRINKLERS_FRAME, 409, 111, { 404, 113, 461, 174 } },
+      L"and problems.", AUTO_SPRINKLERS_FRAME, AUTO_SPRINKLERS_X, 111, { 403, 114, 461, 174 } },
     { "Auto-Healer", L"Auto-Healer",
       L"Magically cures all diseases from plants and restores them to full health. Works in every greenhouse.",
       AUTO_HEALER_FRAME, 655, 116, { 667, 124, 712, 176 } },

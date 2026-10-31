@@ -83,7 +83,7 @@ with the setting is therefore the same as the pin without it
     the Sixth, the same description, the Fourth-Sixth's art (Tools_Grid frames
     4, 9, 14) in their own column at (322, 50 / 111 / 172), drawn at scale 1:
     the art is visible over x + 6 .. x + 76, so it ends at 398, 16 px before
-    the Extra Greenhouse's art (414) and the Automatic Sprinklers' (415), as
+    the Extra Greenhouse's art (414) and 5 px before the Automatic Sprinklers' (403), as
     the Fourth's starts 17 px after the greenhouse's. Click rectangles
     (332-389, 52 + 70 r .. 113 + 70 r) touch no other item's. Bought after the
     Sixth, in order (below). Mockup: `docs/images/seed-boxes-7-9-store.png`,
@@ -375,7 +375,7 @@ and log so.
 
 `native/ftfp_plant_upgrades/auto_upgrades.h`. Two permanent items, $10,000 each
 ($0 with Free upgrades), drawn from chemical-sheet rows 16 and 17 (frames 32 and
-34, upright only; row 15 is the Extra Greenhouse's): the sprinklers at (409, 111)
+34, upright only; row 15 is the Extra Greenhouse's): the sprinklers at (397, 111), their art (403-460) centred on the Extra Greenhouse's (414-450),
 on the tool shelf under the Extra Greenhouse, the healer at (655, 116) beside the
 Formula Bomb, each with the owned tick. Click: Yes / No to buy; owned, Yes / No to
 unpurchase (no refund). Tooltips: "<name>\nPrice: $ 10000" or "<name>\nOwned,
