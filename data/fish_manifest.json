@@ -70001,7 +70001,7 @@
       "id": "ds_store",
       "name": "DS Store Items",
       "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, ClonaFish, which clones every fish in the tank, and the Auto-Feeder and Auto-Healer, which keep every fish in every tank fed and healthy. Needs DS Exclusive Fish.",
-      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal places of its own, the Golden Seahorse's included, kept beside the save in \"Tank Animals <slot>.dat\" (a save from an earlier build has its animals moved there the first time it loads); with 3 extra tanks, the animals in Tanks 4-6 move with their tank and are kept with it in \"Extra Tanks <slot>.dat\". Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way, on every live fish in the tank you use it on, any age: each pregnant one gives birth at once, as at the end of a pregnancy (the babies stay babies, as born), then each fish that was there before the births becomes an adult at once if younger, gets full health and is cured of any sickness. Treated fish sell for the highest possible price: when a fish the hormone healed is sold, from the Sale Tank or Tanks 4-6, you are paid its species' highest selling price (2B - 1, B its base price after both Advertising levels; the Breeding Guide's Highest selling with Max effects) instead of your asking price, while which fish sells and when still follow your asking price. The mark stays with the fish through moves, saves and ClonaFish clones, and ends when it is sold, dies or is thrown away. The Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every live fish in the tank you use it on, doubling it, until the tank is full. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work on every live fish in every tank (Tanks 1-2, the Sale Tank, the isolation tank and Tanks 4-6, on screen or not, through time away and the Time Warp too): the Auto-Feeder keeps each fish's food full at 100, so it never starves, and while it is owned feeding by hand never costs health; the Auto-Healer cures fungus and ick (each cure counts under Fish Cured) and keeps health at 100. Neither touches a dead fish. Unpurchase: click an owned one again and answer Yes; it switches off at once, with no refund (buying it again costs the full price). Ownership is kept beside the save in \"Auto Upgrades <slot>.dat\"; a new game starts without them. The Golden Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish.",
+      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal places of its own, the Golden Seahorse's included, kept beside the save in \"Tank Animals <slot>.dat\" (a save from an earlier build has its animals moved there the first time it loads); with 3 extra tanks, the animals in Tanks 4-6 move with their tank and are kept with it in \"Extra Tanks <slot>.dat\". Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way, on every live fish in the tank you use it on, any age: each pregnant one gives birth at once, as at the end of a pregnancy (the babies stay babies, as born), then each fish that was there before the births becomes an adult at once if younger, gets full health and is cured of any sickness. Treated fish sell for the highest possible price: when a fish the hormone healed is sold, from the Sale Tank or Tanks 4-6, you are paid its species' highest selling price (2B - 1, B its base price after both Advertising levels; the Breeding Guide's Highest selling with Max effects) instead of your asking price, while which fish sells and when still follow your asking price. The mark stays with the fish through moves, saves and ClonaFish clones, and ends when it is sold, dies or is thrown away. The Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every live fish in the tank you use it on, doubling it, until the tank is full. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work on every live fish in every tank (Tanks 1-2, the Sale Tank, the isolation tank and Tanks 4-6, on screen or not, through time away and the Time Warp too): the Auto-Feeder keeps each fish's food full at 100, so it never starves, and while it is owned feeding by hand never costs health; the Auto-Healer cures fungus and ick (each cure counts under Fish Cured) and keeps health at 100. Neither touches a dead fish. Unpurchase: click an owned one again and answer Yes; it switches off at once, with no refund (buying it again costs the full price). Ownership is kept beside the save in \"Auto Upgrades <slot>.dat\"; a new game starts without them. The Golden Seahorse keeps its PC effects and gains its DS one. Every supply slot (the stock four, and the extra ones with Extra supply slots) shows a tooltip while the mouse is over it, in the game's own hint box: the item's name and what is left of it, as the game will spend it (doses, the Unknown Chemical's uses, egg batches; the fish food: its name only). Needs DS Exclusive Fish.",
       "warning": "Turning this off hides the store animals and the Golden Seahorse: they wait in \"Tank Animals <slot>.dat\" beside the save and come back when it is on again. The eel's rock stays in the tank as a sprite the game cannot draw; trash the eel (its rock goes with it) before switching it off if you mind.",
       "category": "main",
       "default": false,
@@ -70015,8 +70015,8 @@
           {
             "path": "DS Store Items.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
-            "size": 154624,
-            "sha256": "172F9160868AB0538AFFD0980C317BF6FC86285ACD42D67E738FB906393E68BE"
+            "size": 157184,
+            "sha256": "441479EADF87F4D49450E593A18C5ACC429745D7498C914558E24D7B99F13BD2"
           },
           {
             "path": "Images/DS_EEL_Grid.png",
@@ -70441,8 +70441,8 @@
           {
             "path": "Extra Supply Slots.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Extra Supply Slots.dll",
-            "size": 100352,
-            "sha256": "1F1AA6A5163ED9FB913498A358A3F1FF5B9C58C77D65CC83B0168A3A923BA309"
+            "size": 100864,
+            "sha256": "229A2792AFA02F05F2EDF9C88418836C078F8C57A5EAFAD228CAED7CD0E08A85"
           },
           {
             "path": "Images/ITEM_EXTRA_SUPPLY_SLOTS.png",
@@ -70461,6 +70461,24 @@
             "destination": "Images/SupplyArrowRight.png",
             "size": 1141,
             "sha256": "A38674B21561366CCB8CB0E61F0B67AF7C6A9B033CC7BF3EB079AF99455AE0D0"
+          },
+          {
+            "path": "Images/SupplyPage1.png",
+            "destination": "Images/SupplyPage1.png",
+            "size": 505,
+            "sha256": "41239CFEC4D9BABB6EF3B8B3625627969B7FC036DC732B855E38E063528F107B"
+          },
+          {
+            "path": "Images/SupplyPage2.png",
+            "destination": "Images/SupplyPage2.png",
+            "size": 563,
+            "sha256": "C5E302D31B5A8DF894E257B05CD0D48FBD45806642086B49648B4521EA803567"
+          },
+          {
+            "path": "Images/SupplyPage3.png",
+            "destination": "Images/SupplyPage3.png",
+            "size": 548,
+            "sha256": "63C2E2C658BE2C9A05864A093C5A811C7E4715BB02C4830834F215DD6437CE3A"
           },
           {
             "path": "Images/SupplySlotUnused.png",

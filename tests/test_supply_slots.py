@@ -1378,7 +1378,8 @@ class Manifest(unittest.TestCase):
         source = ROOT / companion["source"]
         names = {e["path"] for e in companion["files"]}
         self.assertEqual(names, {"Extra Supply Slots.dll", "Images/SupplyArrowLeft.png", "Images/SupplyArrowRight.png",
-                                 "Images/SupplySlotUnused.png", "Images/ITEM_EXTRA_SUPPLY_SLOTS.png"})
+                                 "Images/SupplySlotUnused.png", "Images/ITEM_EXTRA_SUPPLY_SLOTS.png",
+                                 "Images/SupplyPage1.png", "Images/SupplyPage2.png", "Images/SupplyPage3.png"})
         for entry in companion["files"]:
             data = (source / entry["path"]).read_bytes()
             self.assertEqual(len(data), entry["size"], entry["path"])

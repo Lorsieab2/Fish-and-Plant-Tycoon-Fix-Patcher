@@ -85,6 +85,9 @@ SITES = [
     # picture and price, REMOVE_FISH(2, slot)), its only caller: a fish treated with the Radioactive
     # Growth Hormone is sold for its species' highest selling price.
     ("sale", 0x4244D4, ["call 0x424010"]),
+    # The tank screen's overlay draws the hints last (after what the hand holds): with no hint up,
+    # the supply slot under the mouse gets its tooltip there, in the hint's own box and font.
+    ("slot_tooltip", 0x41D127, ["call 0x417fd0"]),
 ]
 
 # The Supplies scene's vtable (0x44C294): slot address -> the function it holds.

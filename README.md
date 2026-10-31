@@ -248,7 +248,19 @@ never needs the internet.
   again costs the full price). Ownership is kept in `Auto Upgrades <slot>.dat`
   beside the save. Picture:
   [docs/images/auto-upgrades-fish.png](docs/images/auto-upgrades-fish.png).
-  The Golden Seahorse keeps its PC effects and gains its DS one. It runs as a
+  The Golden Seahorse keeps its PC effects and gains its DS one. Every supply
+  slot (the stock four, and the extra ones with Extra supply slots) shows a
+  tooltip while the mouse is over it, in the game's own hint box just under
+  the top bar: the item's name and what is left of it as the game will spend
+  it -- doses for medicines and chemicals, uses for the Unknown Chemical (one
+  in the stock game, three with Unknown Chemical: 3 uses or Universal supply
+  slots), batches for eggs (one, or the stack with Universal supply slots) --
+  in German when the game is; the fish food shows its name only (the game
+  keeps no amount of it); nothing shows over an empty slot, while a hint is
+  up or while something is held. Pictures:
+  [docs/images/supply-slot-tooltip-hormone.png](docs/images/supply-slot-tooltip-hormone.png),
+  [the fish food](docs/images/supply-slot-tooltip-food.png),
+  [eggs](docs/images/supply-slot-tooltip-eggs.png). It runs as a
   second companion DLL (`Fish Tycoon Fix Patcher DLLs\DS Store Items.dll`),
   loaded by DS Fish's; besides the game's own save it writes only the
   animals' `Tank Animals <slot>.dat`.
@@ -303,7 +315,9 @@ never needs the internet.
   once on the Supplies store's Upgrades screen: Extra Supply Slots, $10,000
   ($0 with Free upgrades), then "This is in your inventory." and "You already
   own this!". Until then the arrows are grey and say "You don't own the extra
-  supply slots yet!" under the top bar. Every extra slot works like slots
+  supply slots yet!" under the top bar. Once bought, "1/3", "2/3" or "3/3"
+  under the arrows, small and in the bar's yellow, says which page shows
+  (nothing before the purchase: there is only one page then). Every extra slot works like slots
   2-4: the store fills the first free slot over all three pages (with
   Universal supply slots a stack of the same item first, anywhere); every
   medicine, chemical and egg -- the stock ones and DS Store Items'
@@ -317,8 +331,8 @@ never needs the internet.
   eggs) and each extra slot takes any one item, one purchase at a time, as a
   stock slot does; with all eleven full the store asks the stock "Replace
   ...?" questions. The fish food stays in slot 1, the Supplies store still
-  shows the stock four, and the stock game never shows a dose count or a
-  tooltip on the slots, so neither do the extra ones. Mockups:
+  shows the stock four; DS Store Items' tooltips name the item in every
+  slot, extra ones too, and what is left of it. Mockups:
   [docs/images/extra-supply-slots-page-1.png](docs/images/extra-supply-slots-page-1.png),
   [page 2](docs/images/extra-supply-slots-page-2.png),
   [page 3](docs/images/extra-supply-slots-page-3.png),

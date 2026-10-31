@@ -1335,6 +1335,163 @@ static int __cdecl supply_trash(char *impl, int x, int y) {
     return 1;
 }
 
+/* ------------------------------------------------------ supply slot tooltips */
+
+/* The owner, 2026-10-31: every supply slot shows its item's name and what is left of it while
+   the mouse is over it, in the game's own popup style.  The stock game has no tooltips; its one
+   on-screen popup is the hint panel (0x417E90): the rope-edged box of the hint object (its
+   vtable[1], 0x423280: the fill colour at +0x14 inside a rectangle, CUSTOMPOPUP_FTROPESTYLE_BAR_*
+   along its edges) with centred text in the hint font (0x408C30, the font at 0x45B26C).  The tank
+   screen's overlay draws the hint last (0x41D127, after what the hand holds); when no hint is up
+   and nothing is held, the slot under the mouse gets a box of the same kind just under the top bar.
+   The slot boxes are 0x41E450's (0x45B2A8).  With "Extra supply slots" the slot a position shows
+   comes from that DLL (FtfpSupplySlotsShown: its page of extra slots, or the stock one).
+     * the name: the stock items' own store names (string 0xAE + 2 x item, English or German as the
+       game is set), the starter eggs as Common Fish Eggs, this store's supplies their names here,
+       the fish food "Fish Food" / "Fischfutter" (the game keeps no amount of it: the name alone);
+     * what is left: doses (medicines and chemicals), uses (the Unknown Chemical) or batches (eggs),
+       as the game will really spend them: the stock Unknown Chemical is one use whatever its count
+       (0x4210B7 sets it to 1 before the use) unless a setting removed that, and eggs are one batch
+       unless Universal supply slots stacks them (vanilla clears the egg slot at the hatch). */
+#define TIP_LINE 20
+#define TIP_PAD_X 10
+#define TIP_PAD_Y 6
+#define TIP_TOP 60                          /* just under the 57-pixel top bar */
+#define FOOD_ITEM 0x17
+#define STARTER_EGGS 26
+#define S_HINT_FONT (*(void **)(UINT_PTR)0x0045B26Cu)
+#define MOUSE_POS GAME(mouse_pos_fn, 0x00402060u)
+#define CENTRE_TEXT GAME(this6_fn, 0x00408C30u)       /* (text, left, right, y, font, attr) */
+#define TEXT_WIDTH GAME(text_width_fn, 0x004023D0u)    /* font (text, scale) */
+typedef int (__cdecl *mouse_pos_fn)(int *pt);
+typedef int (__fastcall *text_width_fn)(void *font, void *edx, const char *text, float scale);
+typedef const unsigned char *(__stdcall *slots_shown_fn)(int position);
+static const int TIP_SLOT[4][4] = { { 14, 9, 49, 48 }, { 63, 9, 98, 48 }, { 113, 9, 148, 48 }, { 164, 9, 199, 48 } };
+static const unsigned char UNKNOWN_ONE_USE[10] = { 0xC7, 0x80, 0xF8, 0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
+
+/* What position p (0-3) shows: the stock slot, or what Extra Supply Slots shows there (NULL: no
+   slot there, page 3's fourth place). */
+static const unsigned char *shown_slot(char *state, int p) {
+    HMODULE slots = GetModuleHandleW(L"Extra Supply Slots.dll");
+    slots_shown_fn fn = slots != NULL ? (slots_shown_fn)GetProcAddress(slots, "FtfpSupplySlotsShown") : NULL;
+    if (fn != NULL) {
+        const unsigned char *r = fn(p);
+        if (r != (const unsigned char *)1) return r;               /* 1: no game of its own, the stock slot */
+    }
+    return (const unsigned char *)SLOT_RECORD(state, p);
+}
+
+static const char *game_string(int id);
+
+static const char *const STORE_NAMES[4][2] = {
+    { "Exotic Fish Eggs", "Exotische Fischeier" },
+    { "Radioactive Growth Hormone", "Radioaktive Wachstumshormone" },
+    { "Revival Potion", "Wiederbelebungstrank" },
+    { "ClonaFish", "ClonaFish" },
+};
+
+static const char *slot_name(int item, int de) {
+    if (item == FOOD_ITEM) return de ? "Fischfutter" : "Fish Food";
+    if (item >= EXOTIC_ITEM && item <= CLONA_ITEM) return STORE_NAMES[item - EXOTIC_ITEM][de];
+    if (item == STARTER_EGGS) item = 5;                               /* the common eggs' name */
+    if (item >= 0 && item <= 7) return game_string(0xAE + 2 * item);
+    return NULL;
+}
+
+/* How many times the record can still be used, as the game will spend it. */
+static int uses_left(int item, int count) {
+    if (item == 5 || item == 6 || item == 7 || item == STARTER_EGGS || item == EXOTIC_ITEM) {
+        return universal_slots() && item != STARTER_EGGS ? count : 1;
+    }
+    if (item == 4 && ftfp_site_holds(0x004210B7u, UNKNOWN_ONE_USE, sizeof UNKNOWN_ONE_USE)) return 1;
+    return count;
+}
+
+/* "3 doses left", "1 use left", "2 batches left" (German "Noch 3 Dosen", ...). */
+static void left_line(char *out, int item, int n, int de) {
+    int egg = item == 5 || item == 6 || item == 7 || item == STARTER_EGGS || item == EXOTIC_ITEM;
+    const char *en = egg ? (n == 1 ? " batch left" : " batches left")
+                   : item == 4 ? (n == 1 ? " use left" : " uses left") : (n == 1 ? " dose left" : " doses left");
+    const char *ge = egg ? " Gelege" : item == 4 ? (n == 1 ? " Anwendung" : " Anwendungen") : (n == 1 ? " Dosis" : " Dosen");
+    char digits[12];
+    int d = 0, at = 0;
+    unsigned int v = n < 0 ? 0u : (unsigned int)n;
+    const char *s;
+    if (de) for (s = "Noch "; *s; ++s) out[at++] = *s;
+    do { digits[d++] = (char)('0' + v % 10); v /= 10; } while (v && d < 11);
+    while (d) out[at++] = digits[--d];
+    for (s = de ? ge : en; *s && at < 60; ++s) out[at++] = *s;
+    out[at] = '\0';
+}
+
+static int text_width(const char *text) {
+    void *font = S_HINT_FONT;
+    return font != NULL && text != NULL ? TEXT_WIDTH(font, NULL, text, 1.0f) : 0;
+}
+
+/* The tooltip of the slot under the mouse, if any; 1 = drawn. */
+static int __cdecl slot_tooltip(char *impl, int hint_shown) {
+    char *state = (char *)P(impl, 0x34);
+    const unsigned char *r;
+    const char *name;
+    char left[64];
+    int pt[2], p, de = german(), w, lines, rect[4], item;
+    void *hint, **vtable;
+    if ((hint_shown & 0xFF) != 0 || state == NULL || *(unsigned char *)impl != 0) return 0;
+    if (*I(impl, 0x1C) != NO_SUPPLY || *I(impl, 0x28) != NO_SUPPLY || *I(state, 0x1E4E8) != -1) return 0;
+    if (((unsigned char *)state)[0x1E4F9] != 0) return 0;              /* the intro: no top bar */
+    MOUSE_POS(pt);
+    for (p = 0; p < 4; ++p) {
+        if (inside(pt[0], pt[1], TIP_SLOT[p][0], TIP_SLOT[p][1], TIP_SLOT[p][2], TIP_SLOT[p][3])) break;
+    }
+    if (p == 4 || (r = shown_slot(state, p)) == NULL || *I((void *)r, SR_ICON) == 0) return 0;
+    item = *I((void *)r, SR_ITEM);
+    if ((name = slot_name(item, de)) == NULL) return 0;
+    lines = 1;
+    w = text_width(name);
+    if (item != FOOD_ITEM) {
+        left_line(left, item, uses_left(item, *I((void *)r, SR_COUNT)), de);
+        if (text_width(left) > w) w = text_width(left);
+        lines = 2;
+    }
+    w += 2 * TIP_PAD_X;
+    rect[0] = (TIP_SLOT[p][0] + TIP_SLOT[p][2]) / 2 - w / 2;
+    if (rect[0] < 4) rect[0] = 4;
+    if (rect[0] + w > 796) rect[0] = 796 - w;
+    rect[1] = TIP_TOP;
+    rect[2] = rect[0] + w;
+    rect[3] = TIP_TOP + 2 * TIP_PAD_Y + lines * TIP_LINE;
+    hint = P(P(impl, S_HINTS), 0);
+    if (hint != NULL) {
+        vtable = *(void ***)hint;
+        ((this1_fn)vtable[1])(hint, NULL, (int)(UINT_PTR)rect);       /* the hint's own box (0x423280) */
+    }
+    CENTRE_TEXT(P(impl, 0x54), NULL, (int)(UINT_PTR)name, rect[0], rect[2], TIP_TOP + TIP_PAD_Y,
+                (int)(UINT_PTR)S_HINT_FONT, 0);
+    if (lines == 2) {
+        CENTRE_TEXT(P(impl, 0x54), NULL, (int)(UINT_PTR)left, rect[0], rect[2], TIP_TOP + TIP_PAD_Y + TIP_LINE,
+                    (int)(UINT_PTR)S_HINT_FONT, 0);
+    }
+    return 1;
+}
+
+/* 0x41D127 `call 0x417FD0` (the hints' draw; ecx = the hints, esi = the tank screen), al = a hint
+   was drawn: the hint first, then a slot's tooltip when there was none. */
+static const DWORD k_hint_draw = 0x00417FD0u;
+
+__declspec(naked) static void stub_slot_tooltip(void) {
+    __asm {
+        call dword ptr [k_hint_draw]
+        push eax
+        push eax
+        push esi
+        call slot_tooltip
+        add esp, 8
+        pop eax
+        ret
+    }
+}
+
 /* ------------------------------------------------------- creature names */
 
 /* The names the info panel shows for a held animal (user, 2026-10-26).  The
@@ -2754,7 +2911,7 @@ __declspec(naked) static void stub_state_save(void) {
 }
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 32
+#define TOTAL_SITES 33
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -2808,6 +2965,7 @@ static int prepare(void) {
     JMP(w++, AUTO_STEP, stub_auto_step);
     JMP(w++, OVERFEED, stub_overfeed);
     CALL(w++, SALE, on_fish_sale);
+    CALL(w++, SLOT_TOOLTIP, stub_slot_tooltip);
     return (int)(w - writes) == TOTAL_SITES;
 }
 
