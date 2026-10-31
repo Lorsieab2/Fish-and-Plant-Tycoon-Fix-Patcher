@@ -237,7 +237,12 @@ Breeding Planner (the breeding chain from the species you have to the one
 you want); both offer 0 effects, Max effects without the mutation, and Max
 effects with it (Wasp Grouper / Mutation Liquid). It opens on the species
 your save has discovered only; tick Show Spoilers under Options to see
-everything. The pane under each sheet scrolls. Click a column to sort, type
+everything. With spoilers off, the Fins, Bodies, Flowers and Foliage tabs
+and their picture tabs list exactly the parts your discovered species have
+(the DS fish and the Unused Flowers too, when that setting is on for the
+save), say "n of N discovered" at the top, and leave the others out; nothing
+undiscovered is named anywhere, exports included. The pane under each sheet
+scrolls. Click a column to sort, type
 in Search to filter, and Export saves the open sheet as .xlsx or .csv. It
 never changes a save. Its "?" button explains the rules and what the prices
 assume. The picture tabs (Fin, Body, Egg; Flower, Foliage, Seed Pictures)

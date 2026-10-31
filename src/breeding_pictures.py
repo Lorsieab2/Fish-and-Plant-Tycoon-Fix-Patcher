@@ -79,10 +79,10 @@ class Whole:
 
 @dataclass
 class Item:
-    name: str                    # "" when hidden
+    name: str
     tier: str
     art: tuple = ()              # Cells / Wholes, stacked top to bottom
-    hidden: bool = False
+    hidden: bool = False         # never set now: spoilers off leaves an undiscovered part out
 
 
 @dataclass
@@ -171,16 +171,13 @@ def part_art(model, kind: str, index: int) -> tuple:
 
 
 def part_items(view, kind: str) -> list[Group]:
-    """Every part of a kind as a picture, grouped by rarity; with spoilers off a part no
-    discovered species has is a "?" with no name."""
+    """Every part of a kind as a picture, grouped by rarity; with spoilers off only the parts
+    the save has discovered (a part of a discovered species), the others left out, as the
+    part sheets leave them out."""
     model = view.model
     rarity = getattr(model, "part_rarity")
-    items = []
-    for part in model.parts(kind):
-        tier = rarity(part)
-        shown = view.spoilers or (part.kind, part.index) in view.known_parts
-        items.append(Item(part.name if shown else "", tier, part_art(model, kind, part.index) if shown else (),
-                          hidden=not shown))
+    items = [Item(part.name, rarity(part), part_art(model, kind, part.index)) for part in model.parts(kind)
+             if view.spoilers or (part.kind, part.index) in view.known_parts]
     return _grouped(items, _order(model))
 
 
@@ -191,33 +188,51 @@ def egg_items(view) -> list[Group]:
 
 def seed_items(view) -> list[Group]:
     """The seed packets by type: each foliage the type sells, with the seed's picture (the
-    picture follows the flower's tier, so Extinct packets have two)."""
+    picture follows the flower's tier, so Extinct packets have two). A packet is named by its
+    foliage, so with spoilers off only the discovered foliages' packets are in."""
     import breeding_plant as bp
     model = view.model
     name_of = {p.index: p.name for p in model.parts("foliage")}
 
-    def item(foliage, tier, art, suffix=""):
-        shown = view.spoilers or ("foliage", foliage) in view.known_parts
-        return Item(f"{name_of[foliage]} seed{suffix}" if shown else "", tier, art if shown else (), hidden=not shown)
+    def known(kind, gene):
+        return view.spoilers or (kind, gene) in view.known_parts
+
+    def items(genes, tier, art, suffix=""):
+        return [Item(f"{name_of[f]} seed{suffix}", tier, art(f)) for f in genes if known("foliage", f)]
 
     file, cols, rows = SEED_SHEET
     groups = [
-        Group("Common", [item(f, "Common", (Cell(file, cols, rows, seed_frame(f, 0)),)) for f in bp.COMMON_GENES]),
-        Group("Endangered", [item(f, "Endangered", (Cell(file, cols, rows, seed_frame(f, 1)),))
-                             for f in bp.ENDANGERED_GENES]),
+        Group("Common", items(bp.COMMON_GENES, "Common", lambda f: (Cell(file, cols, rows, seed_frame(f, 0)),))),
+        Group("Endangered", items(bp.ENDANGERED_GENES, "Endangered",
+                                  lambda f: (Cell(file, cols, rows, seed_frame(f, 1)),))),
     ]
+    # The rarest flowers' packets: named by the first and last of those flowers only when both
+    # are discovered (spoilers off never names an undiscovered flower).
+    first, last = 18, 23
+    rarest = (f" ({bp.FLOWER_WORD[first].strip()} to {bp.FLOWER_WORD[last].strip()} flower)"
+              if known("flower", first) and known("flower", last) else " (the rarest flowers)")
     extinct = []
-    rarest = f" ({bp.FLOWER_WORD[18].strip()} to {bp.FLOWER_WORD[23].strip()} flower)"
-    for f in sorted(bp.EXTINCT_GENES):
-        if f <= 23:
-            extinct.append(item(f, "Extinct", (Cell(file, cols, rows, seed_frame(f, 2)),)))
-            extinct.append(item(f, "Extinct", (Cell(file, cols, rows, seed_frame(f, 3)),), rarest))
+    for f in sorted(g for g in bp.EXTINCT_GENES if g <= 23 and known("foliage", g)):
+        extinct.append(Item(f"{name_of[f]} seed", "Extinct", (Cell(file, cols, rows, seed_frame(f, 2)),)))
+        extinct.append(Item(f"{name_of[f]} seed{rarest}", "Extinct", (Cell(file, cols, rows, seed_frame(f, 3)),)))
     groups.append(Group("Extinct", extinct))
     if model.extras:
         lfile, lcols, lrows = LEGENDARY_SHEET
-        groups.append(Group("Legendary", [item(f, "Legendary", (Cell(lfile, lcols, lrows, LEGENDARY_FRAME_BASE + f),))
-                                          for f in bp.STOCK_FOLIAGES]))
-    return groups
+        groups.append(Group("Legendary", items(bp.STOCK_FOLIAGES, "Legendary",
+                                               lambda f: (Cell(lfile, lcols, lrows, LEGENDARY_FRAME_BASE + f),))))
+    return [g for g in groups if g.items]
+
+
+def header_for(view, tab_id: str) -> str:
+    """The line at the top of a picture tab: a part tab's "n of N discovered" (the part
+    sheets' own count); the seed tab's packets follow the foliages."""
+    what = tab_id.split(":", 1)[1]
+    if what in ("eggs",):
+        return ""
+    if what == "seeds":
+        return ("" if view.spoilers else "Seed packets of the foliages you have discovered. ") \
+            + view.part_count_text("foliage")
+    return view.part_count_text(what)
 
 
 def items_for(view, tab_id: str) -> list[Group]:

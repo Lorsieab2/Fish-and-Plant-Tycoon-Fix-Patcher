@@ -403,8 +403,9 @@ class PlantModel:
                                              is_new_flower(fl), species_rarity(key), value(key))
         self._keys = sorted(self._species)
 
-    def how(self, kind: str, index: int, name=None) -> str:
-        """How a part is first obtained, one route a line, by name (see _gene_how)."""
+    def how(self, kind: str, index: int, name=None, species=None) -> str:
+        """How a part is first obtained, one route a line, by name (see _gene_how). It names
+        no species, so `species` is not needed."""
         return _gene_how(index, kind, self.extras, name)
 
     def part_combos(self, kind: str, index: int) -> list[tuple[int, int, float]]:
@@ -552,8 +553,9 @@ class PlantModel:
                        ("max_mutation", "Max effects, with Mutation Liquid"))
     mutation_name = "Mutation Liquid"
 
-    def effects_text(self, effects: str) -> list[str]:
-        """What an effects choice assumes, in words."""
+    def effects_text(self, effects: str, species=None) -> list[str]:
+        """What an effects choice assumes, in words; `species(key)` names the magic plants
+        (None from it: the magic plant only by its title, spoilers off)."""
         if effects == "none":
             return ["No effects: the seed is halfway between its parents; a healthy, flowering, unpruned plant "
                     "with no Plant Food, alone for sale, no ornaments, magic plants or bug collection."]
@@ -565,14 +567,18 @@ class PlantModel:
         else:
             first = ("Breeding: no Mutation Liquid, so no mutation chance; the seed is halfway between its parents "
                      "(nothing else changes a pollination's seed).")
-        return [first] + self._max_rest()
+        return [first] + self._max_rest(species)
 
     def effects_max(self) -> list[str]:
         return self.effects_text("max_mutation")
 
-    def _max_rest(self) -> list[str]:
+    def _max_rest(self, species=None) -> list[str]:
+        def which(key) -> str:
+            named = species_name(key) if species is None else species(key)
+            return f"{named.strip()}, a magic plant" if named else "a magic plant"
+
         return [
-            f"Golden Berries of Wealth ({species_name((2, 14)).strip()}, a magic plant): visitors see every asking "
+            f"Golden Berries of Wealth ({which((2, 14))}): visitors see every asking "
             "price a quarter lower, so a higher price still sells.",
             "Plant Food: 2 doses before age 21 make visitors see the price 1/5 lower, twice.",
             "Pruning 2 or more parts, without cutting the root or more than 65% of parts: the price seen is 1/8 "
@@ -581,7 +587,7 @@ class PlantModel:
             "not infested (x3). The Fruit of Life, Soil and Water from Isola keep plants so.",
             "More visitors: all 15 nursery ornaments (S + 30), 15 plants for sale (S + 30), the six magic plants "
             "(S + 14, the Rose of Joy 4), all 48 bugs (S + 4): the visitor limit 8 + 47 S / 78 reaches 55.",
-            f"Flower of Knowledge ({species_name((4, 4)).strip()}, a magic plant): once, every asking price becomes "
+            f"Flower of Knowledge ({which((4, 4))}): once, every asking price becomes "
             "V + 3 x (V/4); it does not change what visitors accept.",
             "Not counted: the tutorial game's first-sale bonus (until the first sale); plant size and bloom (the "
             "buy roll reads neither).",
@@ -717,7 +723,11 @@ SIDECAR_BODY = 24 * 14 * 4 + 24 * 14     # price[24][14] then discovered[24][14]
 
 def discovered(save_folder, slot: int, extras: bool) -> set[tuple[int, int]]:
     """The species slot `slot`'s save ("Plant Tycoon<slot>.ldw") has discovered; with Unused Flowers,
-    also its "Plant Tycoon Fix Patcher Data\\New Flowers <slot>.dat". Only reads."""
+    also its "Plant Tycoon Fix Patcher Data\\New Flowers <slot>.dat". The game's only discovery
+    record is this byte per species, state + 0x64 + foliage x 24 + flower, set to 1 at exactly two
+    places: a plant reaching maturity (0x42E2C4) and a Mutation Liquid dose (0x426F11); the
+    Unused Flowers DLL hooks both (mark_discovered) into its own discovered[24][14], which it
+    saves in that file. No flag is kept per flower or foliage. Only reads."""
     folder = Path(save_folder)
     data = (folder / f"Plant Tycoon{int(slot)}.ldw").read_bytes()
     if len(data) != SAVE_HEADER + SAVE_BODY or data[:4] != b"ldwg":

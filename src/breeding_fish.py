@@ -394,11 +394,23 @@ def named_list(items, kind: str, name, plural: str, text) -> str:
     return "; ".join(shown)
 
 
-def how_text(kind: str, gene: int, extras: bool, combos, name=None) -> str:
+MUTATION_TITLE = "Magic Fish of Mutation"
+
+
+def mutation_label(species=None) -> str:
+    """The Mutation fish as the guide names it: its species name ("Wasp Grouper") when
+    `species(key)` gives one (spoilers on, or the save has discovered it), else only its title,
+    so an undiscovered species is never named."""
+    named = species_name(*MUTATION_FISH) if species is None else species(MUTATION_FISH)
+    return named or MUTATION_TITLE
+
+
+def how_text(kind: str, gene: int, extras: bool, combos, name=None, species=None) -> str:
     """How a body (fin) is first obtained, each route with its exact odds from the game's code
     (and, for the DS genes, the DS Fish and DS Store DLLs' source), by the game's names only:
     the parent pairs, the parts the Unknown Chemical changes into it. `name(kind, gene)` gives
-    a part's name, or None to leave it out (spoilers off)."""
+    a part's name, or None to leave it out (spoilers off); `species(key)` likewise a species'
+    name (the Mutation fish)."""
     if name is None:
         name = _part_name
     noun = "body" if kind == "body" else "fin"
@@ -431,9 +443,11 @@ def how_text(kind: str, gene: int, extras: bool, combos, name=None) -> str:
                      "along either way; it becomes this one from "
                      + named_list(chem, kind, name, nouns,
                                   lambda n, p: f"a {n} {noun}" + (" always" if p >= 1 else f" on {_pct(p)}")) + ".")
-    lines.append(f"The Magic Fish of Mutation (Wasp Grouper) in the mother's tank: {_pct(P_MUTATE)} a litter "
+    label = mutation_label(species)
+    fish = f"The {MUTATION_TITLE}" + (f" ({label})" if label != MUTATION_TITLE else "")
+    lines.append(f"{fish} in the mother's tank: {_pct(P_MUTATE)} a litter "
                  "the father's body or fin first changes to the next one along (the Breeding Calculator's "
-                 "\"Max effects, with Wasp Grouper\").")
+                 f"\"Max effects, with {label}\").")
     return "\n".join(lines)
 
 
@@ -482,15 +496,38 @@ def _entry_discovered(data: bytes, at: int) -> bool:
     return price != -1 and base != 0
 
 
+def read_ds_sidecar(save_folder, slot: int) -> bytes | None:
+    """The DS Fish companion's "DS Fish <slot>.dat" (its on_save: "FTDS", version 1, the 7 DS
+    body rows), or None when the slot has none or it is not that file. Read only."""
+    sidecar = Path(save_folder) / SIDECAR_FOLDER / f"DS Fish {int(slot)}.dat"
+    try:
+        rows = sidecar.read_bytes()
+    except OSError:
+        return None
+    if len(rows) >= 12 + DS_ROWS_BYTES and struct.unpack_from("<3I", rows, 0) == (
+            SIDECAR_MAGIC, SIDECAR_VERSION, DS_ROWS_BYTES):
+        return rows
+    return None
+
+
 def read_discovered(save_folder, slot: int, extras: bool) -> set[tuple[int, int]]:
-    """The species slot `slot` has discovered (its asking price is set, entry +0x20 != -1):
-    "Fish Tycoon<slot>.ldw" for the stock table and the PC body x DS fin columns, and the
-    DS Fish companion's "DS Fish <slot>.dat" for the DS body rows. Read only."""
+    """The species slot `slot` has discovered: the game's only discovery record is a species
+    entry's asking price, -1 until the species is first seen as an adult (0x41E2D0, called at
+    0x420748; counted by 0x419240), and DS Exclusive Fish keeps the same field for its own
+    species (ftfp_ds_fish.c: init_entry, count_species). "Fish Tycoon<slot>.ldw" holds the
+    stock table and the PC body x DS fin columns, the companion's "DS Fish <slot>.dat" the DS
+    body rows, read as the companion's on_load reads them: the columns count once they are set
+    up (a name and a base price: pc_columns_ready), the rows only from a whole sidecar (one it
+    cannot read is set aside and its rows start undiscovered, init_ds_rows_only). The
+    companion writes the sidecar at every save of the slot (on_save). `extras` is whether DS
+    Exclusive Fish is on for this save (breeding_guide.detect_extras); off, only the stock
+    21 x 21 is read. Read only."""
     folder = Path(save_folder)
     path = folder / f"Fish Tycoon{slot}.ldw"
     data = path.read_bytes()
     if len(data) < SAVE_HEADER + STATE_SIZE or data[:4] != b"ldwg":
         raise SaveReadError(f"{path.name} is not a Fish Tycoon save.")
+    rows = read_ds_sidecar(folder, slot) if extras else None
     table = SAVE_HEADER + SPECIES_BASE - 8
     fins = PC_GENES + (DS_GENES if extras else ())
     found = set()
@@ -498,19 +535,12 @@ def read_discovered(save_folder, slot: int, extras: bool) -> set[tuple[int, int]
         for fin in fins:
             if _entry_discovered(data, table + (body * ROW_STRIDE + fin) * ENTRY_SIZE):
                 found.add((body, fin))
-    if extras:
-        sidecar = folder / SIDECAR_FOLDER / f"DS Fish {slot}.dat"
-        try:
-            rows = sidecar.read_bytes()
-        except OSError:
-            rows = b""
-        if len(rows) >= 12 + DS_ROWS_BYTES and struct.unpack_from("<3I", rows, 0) == (
-                SIDECAR_MAGIC, SIDECAR_VERSION, DS_ROWS_BYTES):
-            for body in DS_GENES:
-                for fin in PC_GENES + DS_GENES:
-                    at = 12 + ((body - DS_FIRST) * ROW_STRIDE + fin) * ENTRY_SIZE
-                    if _entry_discovered(rows, at):
-                        found.add((body, fin))
+    if rows is not None:
+        for body in DS_GENES:
+            for fin in PC_GENES + DS_GENES:
+                at = 12 + ((body - DS_FIRST) * ROW_STRIDE + fin) * ENTRY_SIZE
+                if _entry_discovered(rows, at):
+                    found.add((body, fin))
     return found
 
 
@@ -541,10 +571,10 @@ class FishModel:
         self._children: dict = {}
         self._prices: dict = {}
 
-    def how(self, kind: str, index: int, name=None) -> str:
+    def how(self, kind: str, index: int, name=None, species=None) -> str:
         """How a part is first obtained, one route a line; `name(kind, index)` gives the names
-        shown (None leaves a part out, counted)."""
-        return how_text(kind, index, self.extras, self.part_combos(kind, index), name)
+        shown (None leaves a part out, counted) and `species(key)` the species names."""
+        return how_text(kind, index, self.extras, self.part_combos(kind, index), name, species)
 
     # ---- parts and species
     def parts(self, kind: str) -> list[Part]:
@@ -778,31 +808,37 @@ class FishModel:
     effects_choices = (("none", "0 effects"), ("max", "Max effects, without"),
                        ("max_mutation", "Max effects, with Wasp Grouper"))
     mutation_name = "Wasp Grouper"
+    # Spoilers off and the Wasp Grouper undiscovered: the guide names it only by its title.
+    mutation_species = MUTATION_FISH
+    mutation_title = MUTATION_TITLE
 
-    def effects_text(self, effects: str) -> list[str]:
-        """What an effects choice assumes, in words."""
+    def effects_text(self, effects: str, species=None) -> list[str]:
+        """What an effects choice assumes, in words; `species(key)` names the Mutation fish
+        (None from it: only its title, spoilers off)."""
         if effects == "none":
             return ["No magic fish, research or ornaments: Advertising level 1 and nobody browsing; "
                     "each baby's body and fin are halfway between its parents'."]
+        label = mutation_label(species)
+        fish = MUTATION_TITLE + (f" ({label})" if label != MUTATION_TITLE else "")
         out = []
         if effects == "max_mutation":
-            out.append("Breeding: a live adult Magic Fish of Mutation (Wasp Grouper) in the mother's tank: "
+            out.append(f"Breeding: a live adult {fish} in the mother's tank: "
                        f"{100 * P_MUTATE:.2f}% per litter the father's body or fin first changes to the next one "
                        "along before the babies are made.")
         else:
-            out.append("Breeding: no Magic Fish of Mutation (Wasp Grouper), so no mutation chance; each baby's "
+            out.append(f"Breeding: no {fish}, so no mutation chance; each baby's "
                        "body and fin are halfway between its parents'.")
-        return out + self._max_rest()
+        return out + self._max_rest(label)
 
     def effects_max(self) -> list[str]:
         return self.effects_text("max_mutation")
 
-    def _max_rest(self) -> list[str]:
+    def _max_rest(self, label: str = "Wasp Grouper") -> list[str]:
         return [
             "The Magic Fish and Plant of Fertility add babies (up to 3 a litter) but do not change the odds "
             "of each baby.",
-            "Prices: Advertising research levels 2 and 3 (every base price + 1/10, then + 1/7); the Wasp "
-            "Grouper changes no price.",
+            "Prices: Advertising research levels 2 and 3 (every base price + 1/10, then + 1/7); the "
+            f"{label} changes no price.",
             "Customers: all 6 ornaments, the Golden Seahorse and Advertising level 3, with a full "
             f"selling tank: {EFFECTS['max']['browsing'][0]} or {EFFECTS['max']['browsing'][1]} customers, "
             "all counted as browsing.",
