@@ -45,7 +45,7 @@ IMAGES_OUT = ROOT / "docs" / "images"
 UPGRADE_IMAGES = ROOT / "assets" / "plant_tycoon_upgrades" / "Images"
 SPRITE_TABLE, SPRITE_RECORD, SPRITE_COUNT = 0x4855F0, 0x34, 222
 OVERRIDES = {0x2E: (UPGRADE_IMAGES / "seed_grid_legendary.png", 16, 8),     # the DLL's taller sheets
-             0xB3: (UPGRADE_IMAGES / "Chemicals_Grid_upgrades.png", 2, 18)}
+             0xB3: (UPGRADE_IMAGES / "Chemicals_Grid_upgrades.png", 2, 20)}
 SHEET_SHADOW, SHEET_TICK = 0xB0, 0x25
 
 
@@ -89,9 +89,11 @@ def visible_rect(sheets: Sheets, draw: tuple) -> tuple[int, int, int, int] | Non
     return None if box is None else (x + box[0], y + box[1], x + box[2], y + box[3])
 
 
-def store_draws(owned: tuple[int, ...] = (1, 1, 1, 1, 0, 0), version: int = 2) -> list[tuple]:
+def store_draws(owned: tuple[int, ...] = (1, 1, 1, 1, 0, 0), version: int = 2,
+                chem_slots: int | None = None) -> list[tuple]:
     """Run the Upgrades DLL's on_draw with every item shown; return its draws in order:
-    ("sprite" | "shadow", sheet, frame, x, y), frame 0 for a shadow."""
+    ("sprite" | "shadow", sheet, frame, x, y), frame 0 for a shadow.  chem_slots: None without
+    "Extra Chemical Slots.dll" (its item hidden), else what its FtfpChemSlotsOwned says (0, 1)."""
     import store_emulator as E
     with tempfile.TemporaryDirectory() as tmp:
         dll, symbols = E.build_with_map("ftfp_plant_upgrades", UPGRADE_IMAGES.parent / "Store Upgrades and Items.dll",
@@ -101,6 +103,11 @@ def store_draws(owned: tuple[int, ...] = (1, 1, 1, 1, 0, 0), version: int = 2) -
         draws: list[tuple] = []
         emu.hook(0x004208F0, lambda e: (draws.append(("sprite", e.arg(0), e.arg(1), e.arg(2), e.arg(3))), 0)[1], 0x1C)
         emu.hook(0x004207F0, lambda e: (draws.append(("shadow", e.arg(0), 0, e.arg(1), e.arg(2))), 0)[1], 0x14)
+        chem_owned = emu.thunk()
+        emu.hook(chem_owned, lambda e: chem_slots, 0)
+        emu.hook_import("GetModuleHandleW", lambda e: 0x6D000000 if chem_slots is not None and e.wstring(e.arg(0))
+                        == "Extra Chemical Slots.dll" else 0, 4)
+        emu.hook_import("GetProcAddress", lambda e: chem_owned if e.cstring(e.arg(1)) == b"FtfpChemSlotsOwned" else 0, 8)
         events, owned_fn, one = emu.alloc(0x20), emu.thunk(), emu.thunk()
         emu.hook(owned_fn, lambda e: owned[e.arg(0)] if 0 <= e.arg(0) < len(owned) else 0, 0)
         emu.hook(one, lambda e: 0, 0)

@@ -76,9 +76,8 @@
 #define ARROW_LEFT_FRAME 39
 #define SOUND_BUTTON 0x0C
 #define SOUND_DROP 0x0D                 /* a seed or bottle laid back in the tray (0x425A35) */
-#define STRING_DOSES 0x1AD              /* the tray tooltip "%s\n%s: %d" (0x46924C) */
 #define STRING_FIRST_NAME 0x189         /* + chemical id */
-#define TIP_ID 0x70                     /* page 2's tooltip controls */
+#define TIP_ID 0x170                    /* the tooltip controls' ids (no other greenhouse control's) */
 #define TIP_FONT (*(int *)0x0048C6A0u)
 #define TIP_COLOUR (*(int *)0x00493C60u)
 
@@ -101,6 +100,10 @@ static const int ROW_HIT_BOTTOM[2] = { 184, 253 };
 #define ARROW_Y 104
 #define ARROW_W 24
 #define ARROW_H 24
+#define PAGE_TEXT_X 128                 /* "1/2" / "2/2" left of the arrow, on the plaque */
+#define PAGE_TEXT_Y 109
+#define TEXT_WHITE 0xFFFFFFFFu
+#define TEXT_SHADOW 0xFF000000u
 
 typedef void (__fastcall *sprite_fn)(void *mgr, int edx, int sheet, int frame, int x, int y, float scale, int alpha, int flag);
 typedef void (__fastcall *sound_fn)(void *sound, int edx, int id);
@@ -115,6 +118,9 @@ typedef int (__fastcall *hit2_fn)(void *self, int edx, int x, int y);
 typedef void (__fastcall *draw1_fn)(void *self, int edx, int a);
 typedef int (__fastcall *mouse_fn)(void *scene, int edx, int type, int x, int y);
 typedef int (__fastcall *activate_fn)(void *scene, int edx, int on);
+typedef void *(__cdecl *getter_fn)(void);
+typedef void (__fastcall *text_fn)(void *graphics, int edx, const char *text, int x, int y, unsigned int colour,
+                                   int font);
 
 static const sprite_fn draw_sprite = (sprite_fn)0x004208F0u;
 static const sound_fn play_sound = (sound_fn)0x0044A580u;
@@ -124,6 +130,8 @@ static const tooltip_ctor_fn tooltip_ctor = (tooltip_ctor_fn)0x00409870u;
 static const tooltip_text_fn tooltip_text = (tooltip_text_fn)0x00409AA0u;
 static const add_control_fn add_control = (add_control_fn)0x0040B400u;
 static const anim_finish_fn anim_finish = (anim_finish_fn)0x004211D0u;
+static const getter_fn graphics_get = (getter_fn)0x00407A90u;
+static const text_fn draw_text = (text_fn)0x004092A0u;          /* (text, x, y, colour, font 0 = PTfontsmall) */
 static const hit2_fn stock_tool_hit = (hit2_fn)0x00423AA0u;       /* thiscall(scene)(x, y) */
 static const hit2_fn stock_tray_hit = (hit2_fn)0x004165A0u;       /* thiscall(tray)(x, y) */
 static const hit2_fn stock_tray_spot = (hit2_fn)0x00416600u;      /* (x, y), any slot, present or not */
@@ -148,8 +156,9 @@ static int lift_e = -1, lift_k = 0, suspended = 0;
 static chem_record stash;
 static int over_arrow = 0;                     /* a carried chemical is over the arrow (it turns once) */
 
-static char *tips[CHEM_PAGE_SLOTS];            /* page 2's tooltips (the stock tray's own are per stock slot) */
-static char tip_text[CHEM_PAGE_SLOTS][96];
+static char *tips[STOCK_SLOTS + CHEM_PAGE_SLOTS];  /* every slot's tooltip, both pages */
+static char tip_text[STOCK_SLOTS + CHEM_PAGE_SLOTS][96];
+static unsigned int tip_key[STOCK_SLOTS + CHEM_PAGE_SLOTS];  /* what each one's text says */
 static char *tips_scene = NULL;
 
 static chem_record *tray(char *state) { return (chem_record *)(state + STATE_TRAY); }
@@ -332,10 +341,15 @@ static int held_slot(char *state) {
     return h - HELD_TRAY;
 }
 
-/* ------------------------------------------------------------ the page's tooltips */
+/* ------------------------------------------------------------ the tooltips */
 
-/* The stock tray tooltip's text (0x4277A3): the chemical's name, "Doses", the doses.
-   Store Upgrades and Items names its four chemicals with string ids of its own (0x4277B4). */
+/* Every chemical slot of both pages has a tooltip of the game's own kind (0x409870, as the stock
+   tray's): the chemical's name and the doses left ("Revival Potion\n2 doses left"), shown only
+   over a slot that holds a bottle (not while that bottle is in the hand), only on the page
+   shown.  The stock tray's own tooltips (made at 0x427836 when the mouse is over a slot, "%s\n%s:
+   %d") are never made: the hover's spot (0x427765) answers none.  The names are the game's
+   (string 0x189 + id); Store Upgrades and Items names its four chemicals with string ids of its
+   own (its 0x4277B4), which the game's string lookup (0x44CA70, which it extends) returns. */
 static int name_id(int id) {
     switch (id) {
     case 36: return 0x1F0;
@@ -346,47 +360,80 @@ static int name_id(int id) {
     }
 }
 
+static RECT slot_rect(int g) {
+    RECT rect;
+    if (g < STOCK_SLOTS) {
+        rect.left = COL_HIT_LEFT(g);
+        rect.top = STOCK_HIT_TOP;
+        rect.right = COL_HIT_RIGHT(g);
+        rect.bottom = STOCK_HIT_BOTTOM;
+        return rect;
+    }
+    return tip_rect(g - STOCK_SLOTS);
+}
+
 static void make_tips(char *scene) {
-    int e;
+    int g;
     if (tips_scene == scene) return;
     tips_scene = scene;
     memset(tips, 0, sizeof tips);
-    for (e = 0; e < CHEM_PAGE_SLOTS; ++e) {
-        RECT r = tip_rect(e);
+    memset(tip_key, 0, sizeof tip_key);
+    for (g = 0; g < SLOTS; ++g) {
+        RECT r = slot_rect(g);
         char *tip = (char *)game_new(0x10);
         if (tip == NULL) return;
-        tip_text[e][0] = ' ';
-        tip_text[e][1] = '\0';
-        tooltip_ctor(tip, 0, TIP_ID + e, &r, scene, tip_text[e], TIP_FONT, 0, 0);
+        tip_text[g][0] = ' ';
+        tip_text[g][1] = '\0';
+        tooltip_ctor(tip, 0, TIP_ID + g, &r, scene, tip_text[g], TIP_FONT, 0, 0);
         add_control(scene, 0, tip);
         AT(tip, 8, unsigned char) = 0;
-        tips[e] = tip;
+        tips[g] = tip;
     }
 }
 
-/* Page 1 shows the stock tooltips, page 2 its own, each only over a bottle. */
-NOINLINE static void show_tips(char *scene) {
+/* The slot (0-11) whose bottle is in the hand or flying home, or -1. */
+static int slot_away(char *scene) {
     char *state = AT(scene, SC_STATE, char *);
-    int e, k;
+    int h = held(state), f = flying(scene), k;
     for (k = 0; k < STOCK_SLOTS; ++k) {
-        char *tip = AT(scene, SC_STOCK_TIPS + 4 * k, char *);
-        if (tip != NULL) AT(tip, 8, unsigned char) = (unsigned char)(page == 0);
+        if (h != HELD_TRAY + k && f != HELD_TRAY + k) continue;
+        return lifted() && k == lift_k ? STOCK_SLOTS + lift_e : k;
     }
-    if (tips_scene != scene) return;
-    for (e = 0; e < CHEM_PAGE_SLOTS; ++e) {
-        int shown = page == 1 && logical(state, STOCK_SLOTS + e)->present;
-        if (tips[e] != NULL) AT(tips[e], 8, unsigned char) = (unsigned char)shown;
-    }
+    return -1;
 }
 
-static void tip_for(char *scene, int e) {
+/* "<name>\n<n> doses left" for slot g; 0 when it holds no bottle. */
+NOINLINE static int tip_text_for(char *scene, int g, char *out, int cap) {
+    chem_record *r = logical(AT(scene, SC_STATE, char *), g);
+    if (!r->present || r->id < FIRST_CHEMICAL || r->id > LAST_CHEMICAL) return 0;
+    sprintf_s(out, (size_t)cap, "%s\n%d %s left", game_string(AT(scene, SC_STRINGS, void *), 0, name_id(r->id)),
+              r->doses, r->doses == 1 ? "dose" : "doses");
+    return 1;
+}
+
+/* Every frame: each tooltip shown only on its page over a bottle, its text kept up to date. */
+NOINLINE static void refresh_tips(char *scene) {
     char *state = AT(scene, SC_STATE, char *);
-    void *strings = AT(scene, SC_STRINGS, void *);
-    chem_record *r = logical(state, STOCK_SLOTS + e);
-    if (!r->present || tips[e] == NULL) return;
-    sprintf_s(tip_text[e], sizeof tip_text[e], "%s\n%s: %d", game_string(strings, 0, name_id(r->id)),
-              game_string(strings, 0, STRING_DOSES), r->doses);
-    tooltip_text(tips[e], 0, tip_text[e], TIP_COLOUR, 0, 0);
+    int g, k, away, shown_page = pages() ? page : 0;
+    for (k = 0; k < STOCK_SLOTS; ++k) {
+        char *stock_tip = AT(scene, SC_STOCK_TIPS + 4 * k, char *);
+        if (stock_tip != NULL) AT(stock_tip, 8, unsigned char) = 0;
+    }
+    make_tips(scene);
+    if (tips_scene != scene) return;
+    away = slot_away(scene);
+    for (g = 0; g < SLOTS; ++g) {
+        chem_record *r = logical(state, g);
+        int on_page = g < STOCK_SLOTS ? shown_page == 0 : shown_page == 1;
+        int shown = on_page && g != away && r->present;
+        unsigned int key = shown ? ((unsigned int)r->id << 24) ^ (unsigned int)r->doses ^ 0x80000000u : 0;
+        if (tips[g] == NULL) continue;
+        if (shown && key != tip_key[g] && tip_text_for(scene, g, tip_text[g], (int)sizeof tip_text[g])) {
+            tooltip_text(tips[g], 0, tip_text[g], TIP_COLOUR, 0, 0);
+        }
+        tip_key[g] = key;
+        AT(tips[g], 8, unsigned char) = (unsigned char)shown;
+    }
 }
 
 /* ------------------------------------------------------------ turning the page */
@@ -394,8 +441,7 @@ static void tip_for(char *scene, int e) {
 NOINLINE static void turn_page(char *scene) {
     page = !page;
     play_sound(AT(scene, SC_SOUNDS, void *), 0, SOUND_BUTTON);
-    make_tips(scene);
-    show_tips(scene);
+    refresh_tips(scene);
 }
 
 /* ------------------------------------------------------------ the hooks */
@@ -433,13 +479,11 @@ NOINLINE static int __cdecl tray_hit(void *tray_obj, char *scene, int x, int y) 
     return logical(state, g)->present ? 0 : -1;        /* a tool or seed: put back over a bottle, as stock */
 }
 
-/* 0x427765, the hover's tray spot (any slot, the hand empty): page 2 keeps its own tooltips. */
+/* 0x427765, the hover's tray spot (the hand empty): the stock tray tooltips are not made (this
+   DLL's own show every slot's name and doses). */
 NOINLINE static int __cdecl tray_spot(char *scene, int x, int y) {
-    int g;
-    if (!pages() || page == 0) return stock_tray_spot(NULL, 0, x, y);
-    make_tips(scene);
-    g = slot_at(x, y);
-    if (g >= STOCK_SLOTS) tip_for(scene, g - STOCK_SLOTS);
+    if (!installed || !ready) return stock_tray_spot(NULL, 0, x, y);
+    refresh_tips(scene);
     return -1;
 }
 
@@ -455,13 +499,25 @@ static void draw_bottle(char *scene, const chem_record *r, int x, int y) {
     draw_sprite(AT(scene, SC_SPRITES, void *), 0, SHEET_CHEMICALS, 2 * r->id - 54, x, y, 1.0f, 100, 1);
 }
 
+/* "1/2" or "2/2" left of the arrow, in the game's small font (PTfontsmall), white on a black
+   shadow as the greenhouse counts are written. */
+static void draw_page_number(void) {
+    void *graphics = graphics_get();
+    const char *text = page == 0 ? "1/2" : "2/2";
+    if (graphics == NULL) return;
+    draw_text(graphics, 0, text, PAGE_TEXT_X + 1, PAGE_TEXT_Y + 1, TEXT_SHADOW, 0);
+    draw_text(graphics, 0, text, PAGE_TEXT_X, PAGE_TEXT_Y, TEXT_WHITE, 0);
+}
+
 /* 0x428EFC, the tray's draw (thiscall tray, the slot not to draw): page 1 as stock (and a
-   stock slot's own bottle while a page-2 bottle uses its record), or page 2; then the arrow. */
+   stock slot's own bottle while a page-2 bottle uses its record), or page 2; then the arrow
+   and the page number. */
 NOINLINE static void __cdecl tray_draw(void *tray_obj, char *scene, int skip) {
     char *state = *(char **)tray_obj;
     int e, away;
     if (!pages()) {
         stock_tray_draw(tray_obj, 0, skip);
+        if (installed && ready) refresh_tips(scene);
         return;
     }
     resume(state);
@@ -478,7 +534,8 @@ NOINLINE static void __cdecl tray_draw(void *tray_obj, char *scene, int skip) {
     }
     draw_sprite(AT(scene, SC_SPRITES, void *), 0, SHEET_CHEMICALS, page == 0 ? ARROW_RIGHT_FRAME : ARROW_LEFT_FRAME,
                 ARROW_X, ARROW_Y, 1.0f, 100, 1);
-    if (tips_scene == scene) show_tips(scene);
+    draw_page_number();
+    refresh_tips(scene);
 }
 
 /* A page-2 bottle put back flies to its own slot (0x4244C0 aims at the stock slot it uses),

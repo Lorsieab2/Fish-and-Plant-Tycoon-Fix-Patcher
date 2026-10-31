@@ -103,19 +103,19 @@ __declspec(noinline) static void chem_off_save(int slot) {
 
 /* ------------------------------------------------------------ the events */
 
-static void chem_save(char *state, int slot) {
+__declspec(noinline) static void chem_save(char *state, int slot) {
     chem_state_fn save = (chem_state_fn)chem_export("FtfpChemSlotsSave");
     if (chem_on() && save != NULL) save(state, slot);
     else if (slot > 0) chem_off_save(slot);
 }
 
-static void chem_load(const char *state, int slot) {
+__declspec(noinline) static void chem_load(const char *state, int slot) {
     chem_state_fn load = (chem_state_fn)chem_export("FtfpChemSlotsLoad");
     if (chem_on() && load != NULL) load((char *)state, slot);
     else chem_off_load(slot);
 }
 
-static void chem_delete(int slot) {
+__declspec(noinline) static void chem_delete(int slot) {
     chem_slot_fn remove = (chem_slot_fn)chem_export("FtfpChemSlotsDelete");
     if (chem_on() && remove != NULL) remove(slot);
     else chem_file_delete(slot);
@@ -124,7 +124,7 @@ static void chem_delete(int slot) {
 
 /* A new game in the slot: its old page 2 belongs to the old game (the DLL empties it and writes the
    empty page at the next save; without the DLL, the old file is deleted at the next save). */
-static void chem_new_game(void) {
+__declspec(noinline) static void chem_new_game(void) {
     chem_void_fn fresh = (chem_void_fn)chem_export("FtfpChemSlotsNewGame");
     if (chem_on() && fresh != NULL) fresh();
     chem_off_dirty = 0;
@@ -188,5 +188,5 @@ __declspec(noinline) static void chem_buy(char *scene) {
 }
 
 static void chem_click(char *scene, int x, int y) {
-    if (chem_on() && inside(&CHEM_SLOTS_RECT, x, y)) chem_buy(scene);
+    if (inside(&CHEM_SLOTS_RECT, x, y) && chem_on()) chem_buy(scene);
 }

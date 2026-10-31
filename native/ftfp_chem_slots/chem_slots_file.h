@@ -131,6 +131,9 @@ static int chem_file_read(int slot, int *owned, chem_record *page) {
          && header[3] == CHEM_PAGE_SLOTS && header[4] == CHEM_RECORD_BYTES
          && ReadFile(file, body, sizeof body, &got, NULL) && got == sizeof body;
     CloseHandle(file);
+    for (i = 0; ok && i < CHEM_PAGE_SLOTS; ++i) {          /* a bottle is one of the game's 13 chemicals (27-39) */
+        if (body[i].present && body[i].doses > 0 && (body[i].id < 27 || body[i].id > 39)) ok = 0;
+    }
     if (!ok) {
         chem_file_set_aside(path);
         return -1;
