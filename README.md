@@ -634,9 +634,22 @@ folder never fails with "path too long".
   It opens on the species the save has discovered and shows only those and
   their parts (parent suggestions and the planner use only them too);
   **Show Spoilers** (under Options, remembered) shows every species, the full
-  charts and every price. The patcher's own species (DS Exclusive Fish,
-  Unused Flowers) appear only when the save's game copy was patched with that
-  setting, marked in a Patcher column. Columns sort with a click, a Search box
+  charts and every price. With spoilers off each part tab (Fins, Bodies,
+  Flowers, Foliage and their picture tabs) lists exactly the parts the save
+  has discovered, with "n of N discovered" at the top. Neither game keeps a
+  flag per part: Fish Tycoon's only discovery record is a species' asking
+  price (-1 until the species is first an adult, 0x41E2D0), Plant Tycoon's a
+  byte per species (set at maturity, 0x42E2C4, and by Mutation Liquid,
+  0x426F11), and both name a fish or plant only by its species. So a part is
+  discovered when a species the save has discovered has it; the DS species
+  are read from "DS Fish <slot>.dat" and the save's own spare columns, the
+  Unused Flowers from "New Flowers <slot>.dat", as their DLLs keep them.
+  Undiscovered parts are left out (no "?"), and no column, detail, effects
+  label or export names an undiscovered part or species (the Mutation fish
+  is "Magic Fish of Mutation" until it is discovered). The patcher's own
+  species (DS Exclusive Fish, Unused Flowers) appear only when the save's
+  game copy was patched with that setting, or the setting's data file is
+  beside the save, marked in a Patcher column. Columns sort with a click, a Search box
   filters, and Export saves the open sheet as .xlsx or .csv. Every rule is the
   game's own: the Fish Tycoon model (`src/breeding_fish.py`) is checked
   against the vanilla executable in Unicorn by `tests/test_breeding_fish.py`

@@ -106,13 +106,23 @@ class GroupTests(unittest.TestCase):
     def test_spoilers_off_hides_undiscovered_parts(self) -> None:
         view = bg.View(bf.load(None, False), {(0, 0), (4, 4)}, spoilers=False)
         fins = [i for g in bpx.part_items(view, "fin") for i in g.items]
-        shown = sorted(i.name for i in fins if not i.hidden)
-        self.assertEqual(shown, ["Pink", "Silky"])
-        for item in fins:
-            if item.hidden:
-                self.assertEqual((item.name, item.art), ("", ()))
+        self.assertEqual(sorted(i.name for i in fins), ["Pink", "Silky"])     # the others are left out, no "?"
+        self.assertTrue(all(i.art and not i.hidden for i in fins))
         seeds = [i for g in bpx.seed_items(bg.View(bp.load(None, False), {(1, 1)}, spoilers=False)) for i in g.items]
-        self.assertEqual([i.name for i in seeds if not i.hidden], ["Reptans seed"])
+        self.assertEqual([i.name for i in seeds], ["Reptans seed"])
+
+    def test_the_rarest_packets_name_only_discovered_flowers(self) -> None:
+        """An Extinct foliage's second packet is "the rarest flowers"; it names Arthurium and
+        Tilia only when both are discovered (or with spoilers)."""
+        model = bp.load(None, False)
+        for found, spoilers, words in (({(2, 1)}, False, "(the rarest flowers)"),
+                                       ({(2, 18), (2, 23)}, False, "(Arthurium to Tilia flower)"),
+                                       ({(2, 18)}, False, "(the rarest flowers)"),
+                                       (set(), True, "(Arthurium to Tilia flower)")):
+            seeds = [i.name for g in bpx.seed_items(bg.View(model, found, spoilers)) for i in g.items]
+            self.assertIn(f"Scandens seed {words}", seeds, found)
+            if not spoilers:
+                self.assertEqual({n.split(" seed")[0] for n in seeds}, {"Scandens"})
 
 
 class ArtSourceTests(unittest.TestCase):
@@ -194,18 +204,24 @@ class WindowTests(unittest.TestCase):
         fin = self.guide.pictures["pictures:fin"]["cells"][0][1]
         self.assertEqual((fin.width(), fin.height()), (2, 4))           # top fin cell over bottom fin cell
 
-    def test_spoilers_off_shows_question_marks(self) -> None:
+    def test_spoilers_off_shows_only_the_discovered_parts(self) -> None:
+        """No "?" cells: an undiscovered part is left out, as on the part sheets, and the count
+        of discovered parts is at the top."""
         self.use(make_fish_copy(Path(self.tmp.name)))
         self.guide.spoilers_var.set(False)
         self.root.update()
-        cells = self.guide.pictures["pictures:body"]["cells"]
-        hidden = [c for c in cells if c[0].hidden]
-        self.assertTrue(hidden)
-        for item, image, label in hidden:
-            self.assertIsNone(image)
-            self.assertTrue(label.startswith("Undiscovered\n"))
-        shown = {c[0].name for c in cells if not c[0].hidden}
-        self.assertEqual(shown, {"Shark", "Fatfish", "Goldbulb", "Spotanus", "Idle", "Quicksilver"})
+        built = self.guide.pictures["pictures:body"]
+        cells = built["cells"]
+        self.assertFalse([c for c in cells if c[0].hidden])
+        for item, image, label in cells:
+            self.assertIsNotNone(image, item.name)
+            self.assertNotIn("Undiscovered", label)
+        self.assertEqual({c[0].name for c in cells}, {"Shark", "Fatfish", "Goldbulb", "Spotanus", "Idle", "Quicksilver"})
+        self.assertEqual(built["header"].cget("text"),
+                         "6 of 28 bodies discovered (7 of them DS Exclusive Fish, 1 discovered).")
+        self.guide.spoilers_var.set(True)
+        self.root.update()
+        self.assertEqual(len(self.guide.pictures["pictures:body"]["cells"]), 28)
 
     def test_missing_art_folder_is_said_not_raised(self) -> None:
         self.use(Path(self.tmp.name) / "no such copy")

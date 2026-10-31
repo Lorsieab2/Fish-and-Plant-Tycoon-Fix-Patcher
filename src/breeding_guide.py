@@ -18,9 +18,11 @@ the mutation (the Wasp Grouper / Mutation Liquid) and Max effects with it.
 
 It reads one save slot and never writes anything but an export the player
 asks for. With Show Spoilers off it shows only the species the save has
-discovered (each one's own discovered flag) and only their parts; parent
-suggestions and the planner use only those species, and anything else is
-"Undiscovered species". The patcher's own species (DS Exclusive Fish,
+discovered (each one's own discovered flag) and only their parts (a part is
+discovered when a discovered species has it: neither game keeps a flag per
+part, see View), each part tab and picture tab saying "n of N discovered";
+parent suggestions and the planner use only those species, anything else is
+"Undiscovered species", and no text names an undiscovered part or species. The patcher's own species (DS Exclusive Fish,
 Unused Flowers) are in only when the chosen game copy was patched with that
 setting.
 
@@ -264,6 +266,7 @@ class Sheet:
         self.keys = keys or [None] * len(rows)
         self.details = details or [""] * len(rows)
         self.message = message
+        self.header = ""                                 # a line above the sheet ("n of N fins discovered")
         self.intro = ""                                  # the details pane before a row is picked
 
 
@@ -336,7 +339,16 @@ class View:
             self.shown = list(self.all_species)
         else:
             self.shown = [s for s in self.all_species if tuple(s.key) in self.discovered]
-        self.known_parts = {(p.kind, p.index) for s in self.shown for p in s.parts}
+        # A part is discovered when a species the save has discovered has it. Neither game keeps
+        # a flag per part: Fish Tycoon's only discovery record is a species entry's asking price
+        # (-1 until 0x41E2D0 sets it, called at 0x420748 when the species is first an adult;
+        # counted by 0x419240), Plant Tycoon's a byte per species (state + 0x64, set at 0x42E2C4
+        # and 0x426F11), and both name a fish or plant only by its species name. The patcher's
+        # DS Exclusive Fish and Unused Flowers keep the same per-species record in their own
+        # files ("DS Fish <slot>.dat", "New Flowers <slot>.dat").
+        self.found_parts = {(p.kind, p.index) for s in self.all_species if tuple(s.key) in self.discovered
+                            for p in s.parts}
+        self.known_parts = set(self.found_parts)
         if self.spoilers:
             self.known_parts |= {(p.kind, p.index) for k in self.kinds for p in model.parts(k)}
 
@@ -354,6 +366,50 @@ class View:
 
     def name(self, key) -> str:
         return self.by_key[tuple(key)].name if self.revealed(key) else UNDISCOVERED
+
+    def species_name(self, key):
+        """A species' name, or None when the player may not see it (spoilers off and not
+        discovered): for the texts that name a magic fish or plant."""
+        key = tuple(key)
+        return self.by_key[key].name if key in self.by_key and self.revealed(key) else None
+
+    def effects_choices(self) -> tuple:
+        """The effects choices, as labelled: the Mutation fish is named only when it may be
+        (spoilers on, or the save has discovered it); else by its title."""
+        choices = effects_choices(self.model)
+        key = getattr(self.model, "mutation_species", None)
+        if key is None or self.species_name(key) is not None:
+            return choices
+        named, title = self.model.mutation_name, self.model.mutation_title
+        return tuple((value, label.replace(named, title)) for value, label in choices)
+
+    def effects_text(self, effects: str) -> str:
+        """What an effects choice assumes, naming only species the player may see."""
+        text = getattr(self.model, "effects_text", None)
+        if text is None or self.spoilers:
+            return effects_text(self.model, effects)
+        return " ".join(text(effects, species=self.species_name))
+
+    def part_count(self, kind: str) -> tuple[int, int]:
+        """(discovered, all) parts of a kind: all counts the patcher's parts only when the
+        setting is on for this save (the model has them only then)."""
+        parts = self.model.parts(kind)
+        return sum((p.kind, p.index) in self.found_parts for p in parts), len(parts)
+
+    def part_count_text(self, kind: str) -> str:
+        """"n of N fins discovered", for the top of a part tab."""
+        found, total = self.part_count(kind)
+        plural = KIND_TITLES.get(kind, kind.title()).lower()
+        if not self.has_save:
+            return f"No save chosen: 0 of {total} {plural} discovered."
+        text = f"{found} of {total} {plural} discovered"
+        patcher = [p for p in self.model.parts(kind) if p.patcher]
+        if patcher:
+            text += f" ({len(patcher)} of them {setting_name(self.model.game)}"
+            text += f", {sum((p.kind, p.index) in self.found_parts for p in patcher)} discovered)"
+        if self.spoilers:
+            text += f"; Show Spoilers lists all {total}"
+        return text + "."
 
     def part(self, kind: str, index: int):
         return next((p for p in self.model.parts(kind) if p.index == index), None)
@@ -379,7 +435,7 @@ class View:
         if how is None:
             part = self.part(kind, index)
             return part.how if part is not None else ""
-        return how(kind, index, self.part_name)
+        return how(kind, index, self.part_name, species=self.species_name)
 
     def part_sheet(self, kind: str) -> Sheet:
         model = self.model
@@ -404,7 +460,9 @@ class View:
             details.append(f"{part.name} ({name.lower()})\n\nHow it is obtained:\n{how}\n\n"
                            f"{len(having)} species: " + (", ".join(having) or "none shown yet"))
         message = "" if rows else "No species discovered in this save yet." if not self.spoilers else ""
-        return Sheet(title, columns, rows, kinds=kinds, tags=tags, keys=keys, details=details, message=message)
+        sheet = Sheet(title, columns, rows, kinds=kinds, tags=tags, keys=keys, details=details, message=message)
+        sheet.header = self.part_count_text(kind)
+        return sheet
 
     # ---- species
     def _combos(self, species, slot: int) -> str:
@@ -518,7 +576,7 @@ class View:
         columns = ["Child", n0, n1, "Odds (%)", "Discovered"]
         kinds = ["text", "text", "text", "percent", "text"]
         rows, tags, keys, details = [], [], [], []
-        intro = effects_text(self.model, effects)
+        intro = self.effects_text(effects)
         if mother is not None and father is not None:
             for child, odds in self.model.children(tuple(mother), tuple(father), effects):
                 s = self.by_key[tuple(child)]
@@ -546,7 +604,7 @@ class View:
         kinds = ["int", "text", "text", "text", "text", "percent"]
         rows, keys, details = [], [], []
         message = ""
-        intro = effects_text(self.model, effects)
+        intro = self.effects_text(effects)
         if want is not None and have:
             if tuple(want) in {tuple(k) for k in have}:
                 message = "You already have it."
@@ -557,7 +615,7 @@ class View:
                 else:
                     steps = self.model.plan([tuple(k) for k in have], tuple(want), effects, allowed=allowed)
                 if not steps:
-                    mutation = dict(effects_choices(self.model)).get("max_mutation", "Max effects, with mutation")
+                    mutation = dict(self.effects_choices()).get("max_mutation", "Max effects, with mutation")
                     message = ("No breeding chain reaches it from these species"
                                + ("" if self.spoilers else " through the species you have discovered")
                                + (f"; try {mutation}." if effects != "max_mutation" else "."))
@@ -717,6 +775,16 @@ HELP = (
         "Spoilers: it opens on the species your save has discovered and shows only those and their parts; "
         "parent suggestions and the Breeding Planner use only them too. Under Options, Show Spoilers shows "
         "every species, the full charts and every price; the choice is remembered.",
+        "Discovered parts: neither game keeps a flag for a fin, body, flower or foliage on its own. Fish "
+        "Tycoon records a species as discovered by giving it an asking price when one of its fish first "
+        "grows up; Plant Tycoon sets a species' discovered mark when one of its plants matures or a Mutation "
+        "Liquid dose makes it; the DS fish and the Unused Flowers are kept the same way in the patcher's "
+        "data files beside the save. So a part is discovered when a species you have discovered has it. With "
+        "spoilers off the part tabs and picture tabs list exactly those parts, with \"n of N discovered\" at "
+        "the top (the DS fish and Unused Flowers counted only when that setting is on for the save), and "
+        "leave the others out. Nothing undiscovered is named anywhere, exports included: \"how it is "
+        "obtained\" counts the undiscovered parents instead of naming them, and the Magic Fish of Mutation "
+        "is named only once you have discovered it.",
         "Rarity, in the games' own words: Fish Tycoon parts are Common, Unusual or Rare (the Common and "
         "Unusual Fish Eggs lay exactly the Common and Unusual parts; no egg lays a Rare one), a fish as rare "
         "as its rarer part. Plant Tycoon parts are Common, Endangered or Extinct, the seed packets that "
@@ -730,11 +798,12 @@ HELP = (
         "fish already in the isolation tank, the father the fish you drop on it. A pair with a DS body or fin "
         "uses the DS game's rule: when two are in the middle, either one at random, one roll per litter shared "
         "by body and fin. With the patcher's \"3 extra tanks\", Tank 4, Tank 5 and Tank 6 breed "
-        "exactly like Tank 1 and Tank 2 (the game's own code runs them): the Wasp Grouper and the Fertility "
+        "exactly like Tank 1 and Tank 2 (the game's own code runs them): the Mutation and Fertility magic "
         "fish count in the tank the mother gives birth in, and they sell only with their \"For sale\" button "
         "On, together with the Sale Tank. "
         "Effects: \"0 effects\"; \"Max effects, without\" (every other effect at its best, no "
-        "mutation chance); \"Max effects, with Wasp Grouper\" adds a live adult Magic Fish of Mutation in the "
+        "mutation chance); \"Max effects, with\" the Magic Fish of Mutation (named by its species once you "
+        "have discovered it) adds a live adult Magic Fish of Mutation in the "
         "mother's tank: 16.02% per litter the father's body or fin first changes to the next one along. The "
         "Fertility fish and plant add babies but do not "
         "change each baby's odds, and no mutation changes a price, so the prices show 0 and Max effects.",
@@ -771,7 +840,8 @@ HELP = (
         "Planner finds the shortest breeding chain from the species you have to the one you want. The pane "
         "under each sheet shows the picked row's details and what the effects choice assumes; it scrolls.",
         "Picture tabs show every fin, body and egg (Fish Tycoon) or flower, foliage and seed packet (Plant "
-        "Tycoon), grouped by rarity. With spoilers off an undiscovered part is a \"?\". The pictures come from "
+        "Tycoon), grouped by rarity. With spoilers off they show only the parts you have discovered (and "
+        "the seed packets of the foliages you have discovered), like the part tabs. The pictures come from "
         "your own copy of the game: the first time the guide finds one (the game folder picked on the "
         "patcher's Game tab, the patcher's \"- Modded\" or \"- Modded Upgrades\" copies, or a default install), "
         "it copies them into its own folder, \"Breeding Guide Pictures\" beside the patcher, and shows them "
@@ -791,9 +861,20 @@ def show_help(parent: tk.Misc) -> tk.Toplevel:
     frame = ttk.Frame(window, padding=16)
     frame.pack(fill="both", expand=True)
     ttk.Label(frame, text=title, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 8))
-    for line in lines:
-        ttk.Label(frame, text=line, wraplength=480, justify="left").pack(anchor="w", pady=(0, 6))
-    ttk.Button(frame, text="Close", command=window.destroy).pack(anchor="e", pady=(6, 0))
+    # The text scrolls: it is taller than a laptop screen, so the window is kept within it.
+    ttk.Button(frame, text="Close", command=window.destroy).pack(side="bottom", anchor="e", pady=(6, 0))
+    body = ttk.Frame(frame)
+    body.pack(fill="both", expand=True)
+    rows = max(10, min(36, (window.winfo_screenheight() - 200) // 17))
+    text = tk.Text(body, width=78, height=rows, wrap="word", font=("Segoe UI", 9), relief="flat",
+                   borderwidth=0, background=ttk.Style(window).lookup("TFrame", "background") or "#f0f0f0")
+    scroll = ttk.Scrollbar(body, orient="vertical", command=text.yview)
+    text.configure(yscrollcommand=scroll.set)
+    scroll.pack(side="right", fill="y")
+    text.pack(side="left", fill="both", expand=True)
+    text.insert("1.0", "\n\n".join(lines))
+    text.configure(state="disabled")
+    window.help_text = text
     window.bind("<Escape>", lambda _e: window.destroy())
     return window
 
@@ -1074,6 +1155,9 @@ class BreedingGuide:
     def _sheet_frame(self, sheet_id: str, parent, sheet: Sheet) -> None:
         frame = ttk.Frame(parent)
         frame.pack(fill="both", expand=True)
+        header = ttk.Label(frame, text=sheet.header, font=("Segoe UI", 9, "bold"))
+        if sheet.header:
+            header.pack(anchor="w")
         message = ttk.Label(frame, text=sheet.message, foreground="#a01010")
         message.pack(anchor="w")
         grid = ttk.Frame(frame)
@@ -1096,6 +1180,7 @@ class BreedingGuide:
         tree.tag_configure("patcher", foreground="#5a3d00")
         tree.tag_configure("undiscovered", foreground="#7a7a7a")
         tree.message_label = message
+        tree.header_label = header
         self.trees[sheet_id] = tree
         self.sheets[sheet_id] = sheet
         # The details pane, in every tab: long text scrolls, with a scroll bar like the Tools
@@ -1126,6 +1211,11 @@ class BreedingGuide:
         self.notebook.add(tab, text=title)
         groups = breeding_pictures.items_for(self.view, tab_id)
         source = self.art_source()
+        header = ttk.Label(tab, text=breeding_pictures.header_for(self.view, tab_id), font=("Segoe UI", 9, "bold"))
+        if header.cget("text"):
+            header.pack(anchor="w")
+        if not groups:
+            ttk.Label(tab, text="No species discovered in this save yet.", foreground="#a01010").pack(anchor="w")
         top = ttk.Frame(tab)
         top.pack(fill="x")
         find = None
@@ -1161,20 +1251,16 @@ class BreedingGuide:
             for n, item in enumerate(group.items):
                 cell = ttk.Frame(inner, padding=4)
                 cell.grid(row=row + n // self.COLUMNS, column=n % self.COLUMNS, sticky="n")
-                image = None
-                if item.hidden:
-                    picture = ttk.Label(cell, text="?", font=("Segoe UI", 28, "bold"), foreground="#9a9a9a",
-                                        width=4, anchor="center")
+                # With spoilers off an undiscovered part is not in the groups at all (no "?").
+                image = breeding_pictures.photo(tk, self.window, source, item.art, cache) if not source.problem else None
+                if image is None:
+                    missing += 1
+                    picture = ttk.Label(cell, text="(no picture)", foreground="#7a7a7a", width=14, anchor="center")
                 else:
-                    image = breeding_pictures.photo(tk, self.window, source, item.art, cache) if not source.problem else None
-                    if image is None:
-                        missing += 1
-                        picture = ttk.Label(cell, text="(no picture)", foreground="#7a7a7a", width=14, anchor="center")
-                    else:
-                        picture = ttk.Label(cell, image=image)
-                        picture.image = image
+                    picture = ttk.Label(cell, image=image)
+                    picture.image = image
                 picture.pack()
-                label = (item.name or "Undiscovered") + "\n" + item.tier
+                label = item.name + "\n" + item.tier
                 ttk.Label(cell, text=label, justify="center", wraplength=130).pack()
                 cells.append((item, image, label))
             row += (len(group.items) + self.COLUMNS - 1) // self.COLUMNS
@@ -1183,7 +1269,7 @@ class BreedingGuide:
             message.configure(text=f"{missing} picture(s) could not be read from {source.copy}.")
         canvas.scrollbar = scroll
         self.pictures[tab_id] = {"groups": groups, "cells": cells, "message": message, "canvas": canvas,
-                                 "cache": cache, "source": source, "find": find}
+                                 "cache": cache, "source": source, "find": find, "header": header}
 
     def art_source(self):
         """The pictures: the guide's own cache, built the first time from any game copy the
@@ -1231,7 +1317,7 @@ class BreedingGuide:
         row.pack(anchor="w", pady=(4, 4))
         ttk.Label(row, text="Effects:").pack(side="left")
         buttons = []
-        for value, label in effects_choices(self.model):
+        for value, label in self.view.effects_choices():
             button = ttk.Radiobutton(row, text=label, value=value, variable=variable)
             button.pack(side="left", padx=(6, 0))
             buttons.append(button)

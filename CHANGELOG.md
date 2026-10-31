@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Breeding Guide, both games, Show Spoilers off: the Fins, Bodies, Flowers
+  and Foliage tabs and their picture tabs list exactly the parts the save has
+  discovered, with "n of N discovered" at the top (the patcher's DS fish and
+  Unused Flowers counted only when that setting is on for the save). A part
+  is discovered when a species the save has discovered has it: neither game
+  keeps a flag per part (Fish Tycoon: a species' asking price, 0x41E2D0;
+  Plant Tycoon: a byte per species, 0x42E2C4 and 0x426F11; the DS Fish and
+  Unused Flowers DLLs keep the same per-species record in their data files).
+  The picture tabs leave undiscovered parts out instead of showing a "?", as
+  the sheets do, and the Seed Pictures show only the discovered foliages'
+  packets. Nothing undiscovered is named anywhere with spoilers off: the
+  Magic Fish of Mutation is no longer called the Wasp Grouper (in "how it is
+  obtained", the effects buttons and their notes) until it is discovered, the
+  Golden Berries of Wealth and Flower of Knowledge are no longer named by
+  their species, and the rarest seed packets no longer name Arthurium and
+  Tilia until both are discovered. Exports follow the same rule.
 - Plant Tycoon, 5 extra greenhouses: the gold arrows moved from beside the
   greenhouse's name to the two sides of the screen, centred on the middle
   shelf (x 220-269 and 748-797, y 236-285). Both lie wholly outside the grid
