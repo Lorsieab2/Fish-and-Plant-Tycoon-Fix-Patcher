@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Supply slot tooltips are patch-accurate, read from the running game's own
+  code: the Unknown Chemical shows its count only when the use's "set to 1"
+  (0x4210B7) is gone (Unknown Chemical: 3 uses, Universal supply slots), and
+  each stock egg shows its stack only when that egg's own hatch keeps the
+  stack (Universal supply slots' patches at 0x4213A7, 0x421476 and 0x421549),
+  instead of inferring the eggs from the use trampoline. Tests build the
+  pinned executable of every setting that changes a count (and Enable All),
+  put each supply in its slot with 1-3 left, and use it on the tank with the
+  game's own code until the slot is empty: the uses always equal the
+  tooltip's number. Fix vanilla bugs' Plant of Incubation adds a baby to a
+  batch, never a batch, so egg tooltips are unchanged by it.
 - **Everything is Free**, both games, a new setting: "Every store item and
   upgrade is free. Obviously a cheat mod, have fun!" Off by default and the
   first **cheat** setting (`"cheat": true`, src/cheat.py): the patcher shows

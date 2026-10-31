@@ -37,8 +37,8 @@ class TipRig(T.Rig):
     """The rig with DS Store Items as the main DLL and Extra Supply Slots beside it."""
 
     def __init__(self, universal: bool = False, owned: bool = True, german: bool = False,
-                 slots_loaded: bool = True) -> None:
-        super().__init__(universal, owned=owned, with_store=True)
+                 slots_loaded: bool = True, exe: Path | None = None) -> None:
+        super().__init__(universal, owned=owned, with_store=True, exe=exe)
         emu = self.emu
         ss = emu.symbols
         emu.write32(ss["_installed"], 1)
