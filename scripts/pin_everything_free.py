@@ -25,7 +25,7 @@ read is replaced in place, the same length, by a zero:
     with -price, 0x432D96-0x432E1D) charge 0. Seeds, the Extinct and imported
     seeds, tools, chemicals, nursery items, and everything Store Upgrades and
     Items sells through the dialog (Legendary Seeds, the formula, the potions,
-    Revita-Seed, the Bomb, the Fourth to Ninth Seed Box) go through it.
+    Revita-Seed, the Bomb) go through it.
 
 The companion DLLs that sell things themselves (DS Store Items, Multiple
 Ornaments, Store Upgrades and Items) read "Everything Free.ini" beside them,

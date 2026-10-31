@@ -46,7 +46,7 @@ GREENHOUSES = {
                "items.",
     "description": (
         f"{EXPERIMENTAL} "
-        "An Extra Greenhouse item on the store's Upgrades screen (tool shelf, beside the Fourth to Sixth Seed "
+        "An Extra Greenhouse item on the store's Upgrades screen (tool shelf, beside the Extra Seed "
         "Box) sells Greenhouses 2-6 in order, $10,000 each ($0 with Free upgrades), with a tick once all five "
         "are yours. Once you own one, gold arrows (the game's own, as on the Seed Storage screen) on both "
         "sides of the greenhouse screen page through Greenhouse 1, the stock one, and the ones you own, and the screen says "
