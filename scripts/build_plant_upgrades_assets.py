@@ -130,7 +130,7 @@ def formula_bottle(images: Path) -> Image.Image:
     stock = Image.open(images / "Chemicals_Grid.png").convert("RGBA")
     if stock.size != (2 * CHEM_CELL, CHEM_ROWS * CHEM_CELL):
         raise SystemExit(f"Chemicals_Grid.png is {stock.size}, expected the stock 140 x 630")
-    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 9) * CHEM_CELL))
+    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 14) * CHEM_CELL))
     sheet.paste(stock, (0, 0))
     for column in (0, 1):
         box = (column * CHEM_CELL, MUTATION_ROW * CHEM_CELL, (column + 1) * CHEM_CELL, (MUTATION_ROW + 1) * CHEM_CELL)
@@ -163,6 +163,13 @@ def formula_bottle(images: Path) -> Image.Image:
     import build_auto_upgrades_assets
     for row, cell in build_auto_upgrades_assets.plant_rows(stock, Image.open(images / "Tools_Grid.png").convert("RGBA")).items():
         sheet.paste(cell, (0, row * CHEM_CELL))
+    # Rows 21 and 22 (frames 42-45): chemicals 48 and 49, Muta-Flower and Muta-Foliage, the stock
+    # Mutation Liquid recoloured, upright then pouring (scripts/build_muta_assets.py). Rows 18-20 are
+    # Extra Chemical Slots' (PR #91).
+    import build_muta_assets
+    for name, cells in build_muta_assets.plant_cells(stock).items():
+        for column, cell in enumerate(cells):
+            sheet.paste(cell, (column * CHEM_CELL, build_muta_assets.MUTA_ROWS[name] * CHEM_CELL))
     return sheet
 
 

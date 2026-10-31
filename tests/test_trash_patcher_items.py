@@ -7,7 +7,7 @@ takes a supply or an ornament. The patcher's
   * Multiple Ornaments' copies go after the game's question (any tank, Tanks 4-6 too);
   * the Moray Eel and its rock go together, wherever the other one is (Tanks 4-6 too).
 Plant Tycoon: the stock trash sells seeds (Legendary and new-flower seeds too) and deletes plants;
-it never takes a chemical. The patcher's four chemicals (36-39) are thrown away when let go or
+it never takes a chemical. The patcher's chemicals (36-39, 48-49) are thrown away when let go or
 pressed on the can, without the selected plant being asked about or emptied.
 
 The tools (Fish: the food; Plant: held items 1-4, the watering can, net and the rest) are never
@@ -63,9 +63,9 @@ ORN_BASE, ORN_STRIDE = 0x5208, 0x2C
 S_TANK = 0x384
 SLOT = 0x2B8                               # supply slot k: state + 0x2B8 + k * 0x1C (item, present, count, icon, cursor, x)
 NOTHING = 0x63
-EXOTIC, RGH, REVIVAL, CLONA = 28, 29, 30, 31
-ICON = {EXOTIC: 224, RGH: 236, REVIVAL: 239, CLONA: 242}
-CURSOR = {EXOTIC: 224, RGH: 237, REVIVAL: 240, CLONA: 243}
+EXOTIC, RGH, REVIVAL, CLONA, MUTA_FIN, MUTA_BODY = 28, 29, 30, 31, 32, 33
+ICON = {EXOTIC: 224, RGH: 236, REVIVAL: 239, CLONA: 242, MUTA_FIN: 247, MUTA_BODY: 250}
+CURSOR = {EXOTIC: 224, RGH: 237, REVIVAL: 240, CLONA: 243, MUTA_FIN: 248, MUTA_BODY: 251}
 # The tank screen's rectangles (0x41CE20-0x41CE88): left, top, right, bottom.
 TRASH = (650, 541, 689, 600)
 ISOLATION = (500, 489, 639, 600)
@@ -149,7 +149,9 @@ class FishSupplyTrashTests(unittest.TestCase):
 
     # (item, slot k, count, universal slots)
     CASES = ((EXOTIC, 3, 3, False), (RGH, 2, 3, False), (REVIVAL, 2, 2, False), (CLONA, 2, 1, False),
-             (EXOTIC, 1, 4, True), (RGH, 3, 6, True), (REVIVAL, 1, 3, True), (CLONA, 2, 9, True))
+             (MUTA_FIN, 2, 3, False), (MUTA_BODY, 2, 1, False),
+             (EXOTIC, 1, 4, True), (RGH, 3, 6, True), (REVIVAL, 1, 3, True), (CLONA, 2, 9, True),
+             (MUTA_FIN, 1, 5, True), (MUTA_BODY, 3, 6, True))
 
     def test_each_store_supply_on_the_trash_is_thrown_away_whole(self) -> None:
         points = [(TRASH[0], TRASH[1]), (TRASH[2], TRASH[3]), (669, 570)] + maximized_trash_points()
@@ -446,7 +448,7 @@ PLANT_STATE = 0x64000
 HELD, SELECTED = 0x56C, 0x63E58
 CHEM_TRAY = 0x53F84                        # 4 bottles: present (byte), chemical id, doses; 0xC each
 POT0, POT_SIZE = 0x2188, 0x5600
-FORMULA, REVIVAL_ID, REVITA, BOMB = 36, 37, 38, 39
+FORMULA, REVIVAL_ID, REVITA, BOMB, MUTA_FLOWER, MUTA_FOLIAGE = 36, 37, 38, 39, 48, 49
 P_TRASH = (0xAE, 0x20D, 0xAE + 0x38, 0x20D + 0x4B)       # left, top, right, bottom (inclusive, 0x435FF0)
 TRASH_BIN = 0x23                                          # close_trash_bin.ogg
 
@@ -538,7 +540,7 @@ class PlantChemicalTrashTests(unittest.TestCase):
     POINTS = ((P_TRASH[0], P_TRASH[1]), (P_TRASH[2], P_TRASH[3]), (0xC0, 0x230), (0xE0, 0x250))
 
     def test_a_new_chemical_let_go_on_the_trash_is_thrown_away(self) -> None:
-        for chemical in (FORMULA, REVIVAL_ID, REVITA, BOMB):
+        for chemical in (FORMULA, REVIVAL_ID, REVITA, BOMB, MUTA_FLOWER, MUTA_FOLIAGE):
             for slot in range(4):
                 for x, y in self.POINTS:
                     with self.subTest(chemical=chemical, slot=slot, at=(x, y)):
@@ -561,7 +563,7 @@ class PlantChemicalTrashTests(unittest.TestCase):
 
     def test_a_new_chemical_pressed_on_the_trash_is_thrown_away_and_no_plant_is_touched(self) -> None:
         for selected in (False, True):
-            for chemical in (FORMULA, REVIVAL_ID, REVITA, BOMB):
+            for chemical in (FORMULA, REVIVAL_ID, REVITA, BOMB, MUTA_FLOWER, MUTA_FOLIAGE):
                 for x, y in self.POINTS:
                     with self.subTest(selected=selected, chemical=chemical, at=(x, y)):
                         emu = self.greenhouse(answer_yes=True)

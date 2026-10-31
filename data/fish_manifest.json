@@ -69854,7 +69854,7 @@
             "path": "DS Exclusive Fish.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Exclusive Fish.dll",
             "size": 105984,
-            "sha256": "FFE6FD722C2820378053A833D9E9F9DD9F60F7BF34B9EE441FD954050E015577"
+            "sha256": "A695E1EF2C6EC1E38C9D4352659C2E7B6E3A8DDE963557BCF91A9ECA21A6D80E"
           },
           {
             "path": "Images/FISH_23_body_Grid.png",
@@ -70000,8 +70000,8 @@
     {
       "id": "ds_store",
       "name": "DS Store Items",
-      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, ClonaFish, which clones every fish in the tank, and the Auto-Feeder and Auto-Healer, which keep every fish in every tank fed and healthy. Needs DS Exclusive Fish.",
-      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal places of its own, the Golden Seahorse's included, kept beside the save in \"Tank Animals <slot>.dat\" (a save from an earlier build has its animals moved there the first time it loads); with 3 extra tanks, the animals in Tanks 4-6 move with their tank and are kept with it in \"Extra Tanks <slot>.dat\". Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way, on every live fish in the tank you use it on, any age: each pregnant one gives birth at once, as at the end of a pregnancy (the babies stay babies, as born), then each fish that was there before the births becomes an adult at once if younger, gets full health and is cured of any sickness. Treated fish sell for the highest possible price: when a fish the hormone healed is sold, from the Sale Tank or Tanks 4-6, you are paid its species' highest selling price (2B - 1, B its base price after both Advertising levels; the Breeding Guide's Highest selling with Max effects) instead of your asking price, while which fish sells and when still follow your asking price. The mark stays with the fish through moves, saves and ClonaFish clones, and ends when it is sold, dies or is thrown away. The Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every live fish in the tank you use it on, doubling it, until the tank is full. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work on every live fish in every tank (Tanks 1-2, the Sale Tank, the isolation tank and Tanks 4-6, on screen or not, through time away and the Time Warp too): the Auto-Feeder keeps each fish's food full at 100, so it never starves, and while it is owned feeding by hand never costs health; the Auto-Healer cures fungus and ick (each cure counts under Fish Cured) and keeps health at 100. Neither touches a dead fish. Unpurchase: click an owned one again and answer Yes; it switches off at once, with no refund (buying it again costs the full price). Ownership is kept beside the save in \"Auto Upgrades <slot>.dat\"; a new game starts without them. The Golden Seahorse keeps its PC effects and gains its DS one. Every supply slot (the stock four, and the extra ones with Extra supply slots) shows a tooltip while the mouse is over it, in the game's own hint box: the item's name and what is left of it, as the game will spend it (doses, the Unknown Chemical's uses, egg batches; the fish food: its name only). Needs DS Exclusive Fish.",
+      "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, ClonaFish, which clones every fish in the tank, Muta-Fin and Muta-Body, which mutate only the fins or only the bodies of fish, and the Auto-Feeder and Auto-Healer, which keep every fish in every tank fed and healthy. Needs DS Exclusive Fish.",
+      "description": "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: they swim in your tank, can be dragged between tanks, never age, breed or get sold, and magically enhance the life and environment of your fish (the exact effects are in the Tools tab's Game Mechanics). The Moray Eel comes with its rock, a decoration you can move: drop the eel on its rock to send it home, and drag it out by its head. Trashing the eel trashes its rock, and the other way round. The animals never take a fish's place: each tank has 5 animal places of its own, the Golden Seahorse's included, kept beside the save in \"Tank Animals <slot>.dat\" (a save from an earlier build has its animals moved there the first time it loads); with 3 extra tanks, the animals in Tanks 4-6 move with their tank and are kept with it in \"Extra Tanks <slot>.dat\". Exotic Fish Eggs ($2300) hatch only the DS-exclusive bodies and fins. The Radioactive Growth Hormone ($10,000, 3 doses) is a green Growth Hormone used the same way, on every live fish in the tank you use it on, any age: each pregnant one gives birth at once, as at the end of a pregnancy (the babies stay babies, as born), then each fish that was there before the births becomes an adult at once if younger, gets full health and is cured of any sickness. Treated fish sell for the highest possible price: when a fish the hormone healed is sold, from the Sale Tank or Tanks 4-6, you are paid its species' highest selling price (2B - 1, B its base price after both Advertising levels; the Breeding Guide's Highest selling with Max effects) instead of your asking price, while which fish sells and when still follow your asking price. The mark stays with the fish through moves, saves and ClonaFish clones, and ends when it is sold, dies or is thrown away. The Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every live fish in the tank you use it on, doubling it, until the tank is full. Muta-Fin ($2,500, 3 doses) and Muta-Body ($2,500, 3 doses) are the stock Unknown Chemical for one part only: each dose reaches the same fish as the Unknown Chemical (every live fish in the tank you use it on, any age, not the Golden Seahorse or the store animals; never the isolation tank or another tank), changes each one on the same 26% chance, and steps its fin (Muta-Fin) or its body (Muta-Body) one gene up or down by the game's own step, leaving the other part as it was; with DS Exclusive Fish that step reaches the DS genes as the Unknown Chemical's does. A new species is discovered as usual, once the fish is an adult. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work on every live fish in every tank (Tanks 1-2, the Sale Tank, the isolation tank and Tanks 4-6, on screen or not, through time away and the Time Warp too): the Auto-Feeder keeps each fish's food full at 100, so it never starves, and while it is owned feeding by hand never costs health; the Auto-Healer cures fungus and ick (each cure counts under Fish Cured) and keeps health at 100. Neither touches a dead fish. Unpurchase: click an owned one again and answer Yes; it switches off at once, with no refund (buying it again costs the full price). Ownership is kept beside the save in \"Auto Upgrades <slot>.dat\"; a new game starts without them. The Golden Seahorse keeps its PC effects and gains its DS one. Every supply slot (the stock four, and the extra ones with Extra supply slots) shows a tooltip while the mouse is over it, in the game's own hint box: the item's name and what is left of it, as the game will spend it (doses, the Unknown Chemical's uses, egg batches; the fish food: its name only). Needs DS Exclusive Fish.",
       "warning": "Turning this off hides the store animals and the Golden Seahorse: they wait in \"Tank Animals <slot>.dat\" beside the save and come back when it is on again. The eel's rock stays in the tank as a sprite the game cannot draw; trash the eel (its rock goes with it) before switching it off if you mind.",
       "category": "main",
       "default": false,
@@ -70015,8 +70015,8 @@
           {
             "path": "DS Store Items.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
-            "size": 157184,
-            "sha256": "7B3FAF2DE968DEFF81A0AFFBAFD71651D448745F92155BF12026E874E105734C"
+            "size": 158720,
+            "sha256": "670EF67ED61D50B43C4E99E415EAA1C5CAB979953EA78E633B428870048BDF48"
           },
           {
             "path": "Images/DS_EEL_Grid.png",
@@ -70109,6 +70109,18 @@
             "sha256": "19190AAECDCAF6A6AE0FE6FB9202869839D8E6E3293FFA87455F4C06E7888150"
           },
           {
+            "path": "Images/ITEM_MUTA_BODY.png",
+            "destination": "Images/ITEM_MUTA_BODY.png",
+            "size": 2696,
+            "sha256": "7C828AFEE94CA3018B76116A742709E8004284DB5718CEB4E3CC99CE727F48C5"
+          },
+          {
+            "path": "Images/ITEM_MUTA_FIN.png",
+            "destination": "Images/ITEM_MUTA_FIN.png",
+            "size": 2660,
+            "sha256": "81B3B4BC56F0098815564D9558CA4FC2C6552CF3E8B9C596A37EC11D42F19F6B"
+          },
+          {
             "path": "Images/ITEM_RADIOACTIVE_GROWTHHORMONE.png",
             "destination": "Images/ITEM_RADIOACTIVE_GROWTHHORMONE.png",
             "size": 3218,
@@ -70145,6 +70157,18 @@
             "sha256": "237B9AD3798F99A9AE26FA4F7D71A617DFCBED3C8D163A1A55BCD57F93EF7511"
           },
           {
+            "path": "Images/TOOL_dropper_MUTA_BODY.png",
+            "destination": "Images/TOOL_dropper_MUTA_BODY.png",
+            "size": 313,
+            "sha256": "0495E89591B371D938E3E4E65370311FA6889845D3AF6AEF90B229614AE89142"
+          },
+          {
+            "path": "Images/TOOL_dropper_MUTA_FIN.png",
+            "destination": "Images/TOOL_dropper_MUTA_FIN.png",
+            "size": 296,
+            "sha256": "C0E9F05131D2FC05222184A6210D1797F13284578C9522ECB245711C712A3AD4"
+          },
+          {
             "path": "Images/TOOL_dropper_RADIOACTIVE.png",
             "destination": "Images/TOOL_dropper_RADIOACTIVE.png",
             "size": 298,
@@ -70161,6 +70185,18 @@
             "destination": "Images/TOOL_FISHEGGS_EXOTIC.png",
             "size": 1573,
             "sha256": "45416410EA80F2E55692C04C8DBA3883D5F0B0A700F9B0E1CB604A8A3FC42019"
+          },
+          {
+            "path": "Images/TOOL_MUTA_BODY.png",
+            "destination": "Images/TOOL_MUTA_BODY.png",
+            "size": 1582,
+            "sha256": "5421A814C48B5C2B084F28AD58E33CEA681416CBCBFDB0465F7D63B39C950E0C"
+          },
+          {
+            "path": "Images/TOOL_MUTA_FIN.png",
+            "destination": "Images/TOOL_MUTA_FIN.png",
+            "size": 1542,
+            "sha256": "062528A5E34AC9DE5F88B0ACFBD15A288657B73C250F13E382C7B0B3F0C7EC77"
           },
           {
             "path": "Images/TOOL_RADIOACTIVE_GROWTHHORMONE.png",
@@ -70203,7 +70239,7 @@
       "id": "free_upgrades",
       "name": "Free upgrades",
       "summary": "Every item on the store's Upgrades screen costs $0.",
-      "description": "Every item on the Supplies store's Upgrades page (DS Store Items), which this setting turns on, costs $0: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000), ClonaFish ($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), and the Time Warp clock ($500), Add Money ($950), the Extra Tank ($10,000 each) and the Extra Supply Slots ($10,000) when those settings are on. The price shown says $0 and no money is taken. Everything else stays: The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy Multiple Golden Seahorses is on), the eggs and the chemicals still go in a supply slot, the extra tanks are still bought in order (Tank 4, then 5, then 6), the extra supply slots once, and the game's own purchase confirmations are still asked. The game's own store items keep their prices. Saves keep their layout.",
+      "description": "Every item on the Supplies store's Upgrades page (DS Store Items), which this setting turns on, costs $0: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000), ClonaFish ($2,500), Muta-Fin ($2,500), Muta-Body ($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), and the Time Warp clock ($500), Add Money ($950), the Extra Tank ($10,000 each) and the Extra Supply Slots ($10,000) when those settings are on. The price shown says $0 and no money is taken. Everything else stays: The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy Multiple Golden Seahorses is on), the eggs and the chemicals still go in a supply slot, the extra tanks are still bought in order (Tank 4, then 5, then 6), the extra supply slots once, and the game's own purchase confirmations are still asked. The game's own store items keep their prices. Saves keep their layout.",
       "category": "main",
       "default": false,
       "requires_settings": [
@@ -70425,7 +70461,7 @@
       "id": "extra_supply_slots",
       "name": "Extra supply slots",
       "summary": "EXPERIMENTAL - USE AT OWN RISK. Seven more supply slots (11 in all) in three pages beside the tank screen's slots, bought on the store's Upgrades screen for $10,000. Needs DS Store Items.",
-      "description": "EXPERIMENTAL - USE AT OWN RISK. Adds seven supply slots to the four at the top left of the tank screen: page 1 is the stock four (the fish food and slots 2-4), page 2 four more and page 3 three more. Two small arrows right of slot 4 turn the page; carry an item over an arrow to turn it while you hold it, so it can be dropped on any slot. Buy them on the Supplies store's Upgrades screen (Extra Supply Slots, $10,000, $0 with Free upgrades): one purchase opens all seven; until then the arrows are grey and say \"You don't own the extra supply slots yet!\". Every extra slot works exactly like slots 2-4: the store fills the first free slot over all three pages (with Universal supply slots, a stack of the same item first), and every medicine, chemical and egg -- the stock ones and DS Store Items' Radioactive Growth Hormone, Revival Potion, ClonaFish and Exotic Fish Eggs -- is used from it on the tank by the game's own code, with the same doses, stacking and trash as in slots 2-4. Drag a supply onto another slot, on any page, to move it there: onto an empty slot it moves, onto the same item it stacks (with Universal supply slots), onto another item the two change places. Without Universal supply slots, slots 2-4 keep their own kind (medicine, chemicals, eggs) and each extra slot holds any one item. The fish food stays in slot 1. Runs as a companion DLL the game loads at start; the save files keep their stock layout, and each save slot keeps its extra slots and the purchase in \"Fish Tycoon Fix Patcher Data\\Extra Supply Slots <slot>.dat\" beside the saves. A new game empties them. Needs DS Store Items, which it turns on (the Upgrades screen they are sold on).",
+      "description": "EXPERIMENTAL - USE AT OWN RISK. Adds seven supply slots to the four at the top left of the tank screen: page 1 is the stock four (the fish food and slots 2-4), page 2 four more and page 3 three more. Two small arrows right of slot 4 turn the page; carry an item over an arrow to turn it while you hold it, so it can be dropped on any slot. Buy them on the Supplies store's Upgrades screen (Extra Supply Slots, $10,000, $0 with Free upgrades): one purchase opens all seven; until then the arrows are grey and say \"You don't own the extra supply slots yet!\". Every extra slot works exactly like slots 2-4: the store fills the first free slot over all three pages (with Universal supply slots, a stack of the same item first), and every medicine, chemical and egg -- the stock ones and DS Store Items' Radioactive Growth Hormone, Revival Potion, ClonaFish, Muta-Fin, Muta-Body and Exotic Fish Eggs -- is used from it on the tank by the game's own code, with the same doses, stacking and trash as in slots 2-4. Drag a supply onto another slot, on any page, to move it there: onto an empty slot it moves, onto the same item it stacks (with Universal supply slots), onto another item the two change places. Without Universal supply slots, slots 2-4 keep their own kind (medicine, chemicals, eggs) and each extra slot holds any one item. The fish food stays in slot 1. Runs as a companion DLL the game loads at start; the save files keep their stock layout, and each save slot keeps its extra slots and the purchase in \"Fish Tycoon Fix Patcher Data\\Extra Supply Slots <slot>.dat\" beside the saves. A new game empties them. Needs DS Store Items, which it turns on (the Upgrades screen they are sold on).",
       "warning": "Use or move what is in the extra supply slots (pages 2 and 3) before turning this off: without it the game cannot reach them. Nothing is deleted -- they stay in \"Extra Supply Slots <slot>.dat\" and come back, with the purchase, when you turn it on again -- but until then they are out of the game.",
       "category": "main",
       "default": false,

@@ -424,7 +424,7 @@ typedef struct sprite_entry {
 #define DS_SPRITE_TEEN (GAME_SPRITES + 3 * DS_COUNT)
 #define DS_SPRITE_DEAD (DS_SPRITE_TEEN + 1)
 #define STORE_SPRITE_BASE (DS_SPRITE_DEAD + 1)        /* 220: lent to "DS Store Items.dll" */
-#define STORE_SPRITE_COUNT 26                         /* 220-245; the store names all 26 */
+#define STORE_SPRITE_COUNT 32                         /* 220-251; the store names all 32 */
 #define ALL_SPRITES (STORE_SPRITE_BASE + STORE_SPRITE_COUNT)
 static sprite_entry sprites[ALL_SPRITES];
 
@@ -1131,6 +1131,14 @@ int __stdcall FtfpStartup(void) {
 
 /* For the patcher's tests and the patch log. */
 int __stdcall FtfpDsFishInstalled(void) { return installed; }
+
+/* For "DS Store Items.dll" (Muta-Fin, Muta-Body): one step of a body or fin gene by exactly the
+   rule the Unknown Chemical's step runs with this mod in (stub_mutate_body / stub_mutate_fin:
+   step_gene, the same Random(100) roll), so the store's chemicals reach the DS genes as the stock
+   chemical does.  Nothing happens when the mod is not in. */
+void __stdcall FtfpDsFishStepGene(int *gene) {
+    if (installed && gene != NULL) step_gene(gene);
+}
 
 /* For "Optimize Prices.dll": the species entry of a DS body (its row is
    here, in ds_rows), or NULL when the mod is not in or the genes are not a

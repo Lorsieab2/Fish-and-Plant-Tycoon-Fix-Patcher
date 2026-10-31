@@ -39,7 +39,7 @@ FOLDER = ds_fish_loader.PLANT.patcher_files_folder
 SETTING = {
     "id": SETTING_ID,
     "name": "Add new store upgrades and items",
-    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula and its Bomb, the Revival Potion, Revita-Seed, Automatic Sprinklers, the Auto-Healer, and the Fourth to Ninth Seed Box. Needs Add unused flowers.",
+    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula and its Bomb, the Revival Potion, Revita-Seed, Muta-Flower, Muta-Foliage, Automatic Sprinklers, the Auto-Healer, and the Fourth to Ninth Seed Box. Needs Add unused flowers.",
     "description": (
         "Adds an Upgrades link on the bricks at the left of the Supplies store. It opens a second "
         "view of the store with only the new items, each where it would sit in the store: "
@@ -60,7 +60,11 @@ SETTING = {
         "be pollinated again, as a fresh plant can), the Radioactive Plant Formula Bomb under the "
         "formula ($30,000, 3 doses: one Radioactive Plant Formula dose for every live plant in the "
         "greenhouse on screen, the pots the Fertilizer Bomb reaches, each then treated and selling for "
-        "the highest price too), Automatic Sprinklers ($10,000) "
+        "the highest price too), Muta-Flower and Muta-Foliage on the shelf below ($2,500 each, 3 doses: "
+        "the stock Mutation Liquid for one part only, on the plant it is dropped on: Muta-Flower steps "
+        "the flower, Muta-Foliage the foliage, one up or one down, 50% each, by the game's own step and "
+        "bounces, and the other part never changes; the new species is discovered at once, as with the "
+        "Mutation Liquid, and the unused flowers come only with Add unused flowers), Automatic Sprinklers ($10,000) "
         "on the tool shelf under the Extra Greenhouse and the Auto-Healer ($10,000) beside the Formula "
         "Bomb (each bought once; they work on every live potted plant in every greenhouse, on screen or "
         "not, through time away and the Time Warp too: the sprinklers keep the water at 800, never too "
@@ -81,10 +85,11 @@ SETTING = {
     ),
     "warning": (
         "Turning this off leaves bought Legendary seeds drawn as another seed packet, the formula "
-        "drawn as an Insta-Grow Vaporbomb that does nothing (the Revival Potion, Revita-Seed and the Formula Bomb as "
+        "drawn as an Insta-Grow Vaporbomb that does nothing (the Revival Potion, Revita-Seed, the Formula Bomb, "
+        "Muta-Flower and Muta-Foliage as "
         "the last stock chemical, doing nothing too), boxes 4-6 and 7-9 hidden with their seeds, "
         "and the extra flowers the formula grew drawn away from their plants. Plant or sell the "
-        "seeds, use up the formula, the Revival Potion, Revita-Seed and the Formula Bomb, sell or compost the plants it was used on, and move seeds out "
+        "seeds, use up the formula, the Revival Potion, Revita-Seed, the Formula Bomb, Muta-Flower and Muta-Foliage, sell or compost the plants it was used on, and move seeds out "
         "of boxes 4-9 before switching it off."
     ),
     "category": "main",

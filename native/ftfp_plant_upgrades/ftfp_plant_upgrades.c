@@ -31,6 +31,9 @@
      * Automatic Sprinklers and the Auto-Healer ($10,000 each, bought once):
        every live potted plant in every greenhouse kept at the best water
        level, and free of pests at full health (auto_upgrades.h);
+     * Muta-Flower and Muta-Foliage (chemicals 48 and 49, 3 doses, $2500
+       each): the stock Mutation Liquid's dose for the flower only or the
+       foliage only (muta_chemicals.h);
      * with their settings ("<name>.ini" beside this DLL): the Time Warp
        clock and Add Money ($950 for +$1,000); with Free upgrades every item
        on this view costs $0 (the stock store keeps its prices).
@@ -907,6 +910,7 @@ static void load_extras(void) {
 }
 
 #include "auto_upgrades.h"            /* Automatic Sprinklers and the Auto-Healer */
+#include "muta_chemicals.h"           /* Muta-Flower and Muta-Foliage */
 
 static void box_tip_text(int box) {
     if (boxes != NULL && boxes->owned(box)) sprintf_s(tip_text[TIP_BOXES + box], 64, "%s", BOX_TITLES[box]);
@@ -937,6 +941,7 @@ static void set_tooltips(char *scene) {
         AT(extra_tip[i], 8, unsigned char) = (unsigned char)upgrades_view;
     }
     auto_set_tips(upgrades_view);
+    muta_set_tips(upgrades_view);
 }
 
 static char *make_tooltip(char *scene, int id, const RECT *r, const char *text) {
@@ -979,6 +984,7 @@ static void make_tooltips(char *scene) {
         extra_tip[i] = make_tooltip(scene, 56 + TIPS + i, &EXTRA_ITEM[i].rect, extra_tip_text[i]);
     }
     auto_make_tips(scene);
+    muta_make_tips(scene);
 }
 
 static void switch_view(char *scene, int on) {
@@ -1038,6 +1044,7 @@ static int __cdecl on_draw(char *scene) {
         if (extra_owned[i]() >= EXTRA_COUNT) draw_shadow(mgr, 0, SHEET_TICK, it->tick_x, it->tick_y, 1.0f, 100);
     }
     auto_draw(mgr);
+    muta_draw(mgr);
     return 1;
 }
 
@@ -1117,6 +1124,7 @@ static int __cdecl on_click(char *scene, int x, int y) {
         if (extra_on(i) && inside(&EXTRA_ITEM[i].rect, x, y)) buy_extra(scene, i);
     }
     auto_click(scene, x, y);
+    muta_click(scene, x, y);
     return 1;
 }
 
@@ -1273,7 +1281,7 @@ typedef int (__fastcall *hit_fn)(void *scene, int edx, int x, int y, int left, i
 static const hit_fn hit_rect = (hit_fn)0x00435FF0u;
 
 static int is_new_chemical(int id) {
-    return id == FORMULA_ID || id == REVIVAL_ID || id == REVITA_ID || id == BOMB_ID;
+    return id == FORMULA_ID || id == REVIVAL_ID || id == REVITA_ID || id == BOMB_ID || is_muta(id);
 }
 
 /* 1 = a new chemical was held and is thrown away. */
@@ -1308,6 +1316,7 @@ static const DWORD k_chem_price_back = SITE_CHEM_PRICE_BACK;
 static const DWORD k_chem_doses_back = SITE_CHEM_DOSES_BACK;
 static const DWORD k_apply_back = SITE_CHEM_APPLY_BACK;
 static const DWORD k_apply_tail = 0x0042720Bu;         /* sound, keep or drop the bottle */
+static const DWORD k_mutation_rest = 0x00426EFAu;      /* the Mutation Liquid's case after its step */
 static const DWORD k_name_gh_back = SITE_TRAY_NAME_GREENHOUSE_BACK;
 static const DWORD k_name_store_back = SITE_TRAY_NAME_STORE_BACK;
 static const DWORD k_string_back = SITE_STRING_LOOKUP_BACK;
@@ -1357,6 +1366,10 @@ __declspec(naked) static void stub_dialog(void) {
         je chemical
         cmp eax, REVITA_ID
         je chemical
+        cmp eax, MUTA_FLOWER_ID
+        je chemical
+        cmp eax, MUTA_FOLIAGE_ID
+        je chemical
         cmp eax, BOMB_ID
         jne seeds
     chemical:
@@ -1391,6 +1404,10 @@ __declspec(naked) static void stub_picture(void) {
         cmp eax, REVIVAL_ID
         je chemical
         cmp eax, REVITA_ID
+        je chemical
+        cmp eax, MUTA_FLOWER_ID
+        je chemical
+        cmp eax, MUTA_FOLIAGE_ID
         je chemical
         cmp eax, BOMB_ID
         jne seed_picture
@@ -1489,8 +1506,16 @@ __declspec(naked) static void stub_chem_price(void) {
         jmp maybe_free
     revita:
         cmp edx, REVITA_ID
-        jne bomb
+        jne muta
         mov edx, REVITA_PRICE
+        jmp maybe_free
+    muta:
+        cmp edx, MUTA_FLOWER_ID
+        je muta_price
+        cmp edx, MUTA_FOLIAGE_ID
+        jne bomb
+    muta_price:
+        mov edx, MUTA_PRICE
         jmp maybe_free
     bomb:
         mov edx, BOMB_PRICE
@@ -1523,6 +1548,10 @@ __declspec(naked) static void stub_chem_doses(void) {
         je three
         cmp dword ptr [ebp + 0xB8], REVITA_ID
         je three
+        cmp dword ptr [ebp + 0xB8], MUTA_FLOWER_ID
+        je three
+        cmp dword ptr [ebp + 0xB8], MUTA_FOLIAGE_ID
+        je three
         cmp dword ptr [ebp + 0xB8], BOMB_ID
         jne stock
     three:
@@ -1539,6 +1568,10 @@ __declspec(naked) static void stub_chem_doses(void) {
 __declspec(naked) static void stub_apply(void) {
     __asm {
         mov eax, [esp + 0x20]
+        cmp eax, MUTA_FLOWER_ID
+        je muta
+        cmp eax, MUTA_FOLIAGE_ID
+        je muta
         cmp eax, FORMULA_ID
         jb stock
         cmp eax, BOMB_ID
@@ -1554,6 +1587,16 @@ __declspec(naked) static void stub_apply(void) {
         add esp, 20
         popad
         jmp k_apply_tail
+    muta:                                 /* one branch of the Mutation Liquid's step, then its case */
+        pushad
+        push eax
+        push ebp
+        push ebx
+        push esi
+        call apply_muta
+        add esp, 16
+        popad
+        jmp k_mutation_rest
     stock:
         add eax, -0x1B
         jmp k_apply_back
@@ -1579,8 +1622,18 @@ __declspec(naked) static void stub_name_greenhouse(void) {
         jmp k_name_gh_back
     bomb:
         cmp eax, BOMB_ID
-        jne stock
+        jne muta_flower
         mov eax, BOMB_NAME_ID
+        jmp k_name_gh_back
+    muta_flower:
+        cmp eax, MUTA_FLOWER_ID
+        jne muta_foliage
+        mov eax, MUTA_FLOWER_NAME_ID
+        jmp k_name_gh_back
+    muta_foliage:
+        cmp eax, MUTA_FOLIAGE_ID
+        jne stock
+        mov eax, MUTA_FOLIAGE_NAME_ID
         jmp k_name_gh_back
     stock:
         add eax, 0x189
@@ -1606,8 +1659,18 @@ __declspec(naked) static void stub_name_store(void) {
         jmp k_name_store_back
     bomb:
         cmp edx, BOMB_ID
-        jne stock
+        jne muta_flower
         mov edx, BOMB_NAME_ID
+        jmp k_name_store_back
+    muta_flower:
+        cmp edx, MUTA_FLOWER_ID
+        jne muta_foliage
+        mov edx, MUTA_FLOWER_NAME_ID
+        jmp k_name_store_back
+    muta_foliage:
+        cmp edx, MUTA_FOLIAGE_ID
+        jne stock
+        mov edx, MUTA_FOLIAGE_NAME_ID
         jmp k_name_store_back
     stock:
         add edx, 0x189
@@ -1635,8 +1698,18 @@ __declspec(naked) static void stub_string(void) {
         ret 4
     bomb_name:
         cmp eax, BOMB_NAME_ID
-        jne box_4
+        jne muta_flower_name
         mov eax, offset BOMB_NAME
+        ret 4
+    muta_flower_name:
+        cmp eax, MUTA_FLOWER_NAME_ID
+        jne muta_foliage_name
+        mov eax, offset MUTA_FLOWER_NAME
+        ret 4
+    muta_foliage_name:
+        cmp eax, MUTA_FOLIAGE_NAME_ID
+        jne box_4
+        mov eax, offset MUTA_FOLIAGE_NAME
         ret 4
     box_4:
         cmp eax, BOX_TITLE_ID
@@ -1723,7 +1796,7 @@ __declspec(naked) static void stub_string(void) {
         ret 4
     bomb_texts:
         cmp byte ptr [building_chem], BOMB_ID
-        jne stock
+        jne muta_flower_texts
         cmp eax, 0x165
         jne bomb_desc
         mov eax, offset BOMB_TITLE
@@ -1732,6 +1805,30 @@ __declspec(naked) static void stub_string(void) {
         cmp eax, 0x166
         jne stock
         mov eax, offset BOMB_DESC
+        ret 4
+    muta_flower_texts:
+        cmp byte ptr [building_chem], MUTA_FLOWER_ID
+        jne muta_foliage_texts
+        cmp eax, 0x165
+        jne muta_flower_desc
+        mov eax, offset MUTA_FLOWER_TITLE
+        ret 4
+    muta_flower_desc:
+        cmp eax, 0x166
+        jne stock
+        mov eax, offset MUTA_FLOWER_DESC
+        ret 4
+    muta_foliage_texts:
+        cmp byte ptr [building_chem], MUTA_FOLIAGE_ID
+        jne stock
+        cmp eax, 0x165
+        jne muta_foliage_desc
+        mov eax, offset MUTA_FOLIAGE_TITLE
+        ret 4
+    muta_foliage_desc:
+        cmp eax, 0x166
+        jne stock
+        mov eax, offset MUTA_FOLIAGE_DESC
         ret 4
     stock:
         mov eax, [esp + 4]
@@ -1970,9 +2067,10 @@ static void site_data(ftfp_site_write *w, unsigned int va, int length, const uns
 static int prepare(void) {
     ftfp_site_write *w = writes;
     DWORD seed_file = (DWORD)(UINT_PTR)SEED_SHEET_FILE, chem_file = (DWORD)(UINT_PTR)CHEM_SHEET_FILE;
-    DWORD seed_rows = 8, chem_rows = 18;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money,
+    DWORD seed_rows = 8, chem_rows = 23;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money,
                                                       15: the Extra Greenhouse, 16: Automatic Sprinklers,
-                                                      17: Auto-Healer */
+                                                      17: Auto-Healer, 18-20: Extra Chemical Slots',
+                                                      21-22: chemicals 48-49 (Muta-Flower, Muta-Foliage) */
     DWORD link[6];
     unsigned char bound = SITE_CHEM_PICTURE_BOUND_NEW;
     link[0] = LINK_SPRITE;

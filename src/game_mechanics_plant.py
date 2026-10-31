@@ -747,6 +747,23 @@ CHEMICALS = (
                   "dose is used)."),
                  ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
+    Fact(
+        "Muta-Flower and Muta-Foliage: not in the unpatched game.",
+        patched=(("plant_upgrades", "on the store's Upgrades view, on the chemicals shelf's third row, "
+                  "$2,500 each, 3 doses, one pot per dose. Each is the Mutation Liquid for one part only, "
+                  "used the same way: on any planted plant with a foliage, at any age, live or dead. "
+                  "Muta-Flower always steps the flower, Muta-Foliage always the foliage (the Mutation "
+                  f"Liquid picks one at {chance(2, 1)}), one step up or down at {chance(2, 1)} each, with "
+                  "the Mutation Liquid's own bounces: a flower above 23 becomes 22, a foliage of 24 "
+                  "becomes 22, 0 becomes 2. The other part never changes. Muta-Foliage regrows the plant "
+                  "in its new shape, as the Mutation Liquid does. Everything else is the Mutation "
+                  "Liquid's too: the new species is discovered at once (no age needed) and becomes a "
+                  "magic plant at once if it is one. The change is immediate."),
+                 ("new_flowers", "Muta-Flower steps the flower over 1-37, as the Mutation Liquid does: a "
+                  "Tilia flower (23) can step up into the new flowers (24), and 38 bounces back to 36. "
+                  "Without it the new flowers are never reached."),
+                 ("free_upgrades", "they cost $0 (they still need room in the chemical tray)."),),
+    ),
 )
 
 ORNAMENTS = (

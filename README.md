@@ -230,7 +230,19 @@ never needs the internet.
   Both work in every tank slot the game uses (Bigger tanks, and more) and in
   every tank the game updates. Picture:
   [docs/images/revival-potion-fish.png](docs/images/revival-potion-fish.png).
-  Exotic Fish Eggs and the three chemicals can be thrown away: let go on the
+  Muta-Fin and Muta-Body ($2,500 each, 3 doses; $0 with Free upgrades), the
+  stock Unknown Chemical's flask in royal blue and in sea green, after the
+  Extra Supply Slots: each dose is the Unknown Chemical's for one part only.
+  It reaches the same fish (every live fish in the tank on screen, any age,
+  not the Golden Seahorse or the store animals, never the isolation tank),
+  changes each on the same 26% chance and steps its fin (Muta-Fin) or its
+  body (Muta-Body) one gene up or down by the game's own step; the other part
+  never changes. With DS Exclusive Fish the step reaches the DS genes, as the
+  Unknown Chemical's does. New species are discovered as usual, once the fish
+  is an adult. Pictures:
+  [docs/images/muta-chemicals-fish.png](docs/images/muta-chemicals-fish.png),
+  [docs/images/muta-chemicals-icons.png](docs/images/muta-chemicals-icons.png).
+  Exotic Fish Eggs and the five chemicals can be thrown away: let go on the
   trash can, the whole slot (every dose or hatch left) goes, with the trash
   sound and no question (the game only asks about a fish). The stock game
   throws no supply away, so the food and the stock medicines, chemicals and
@@ -279,7 +291,8 @@ never needs the internet.
   Every item on the Supplies store's Upgrades screen costs $0: the Puffer Fish,
   Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the
   Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000),
-  ClonaFish ($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), and
+  ClonaFish ($2,500), Muta-Fin ($2,500), Muta-Body ($2,500), the Auto-Feeder
+  ($10,000), the Auto-Healer ($10,000), and
   the Time Warp clock ($500), Add Money ($950), the Extra Tank ($10,000 each)
   and the Extra Supply Slots ($10,000) when they are on. The price shows $0 and no
   money is taken; everything else (one of each animal, the supply slots,
@@ -321,7 +334,8 @@ never needs the internet.
   2-4: the store fills the first free slot over all three pages (with
   Universal supply slots a stack of the same item first, anywhere); every
   medicine, chemical and egg -- the stock ones and DS Store Items'
-  Radioactive Growth Hormone, Revival Potion, ClonaFish and Exotic Fish Eggs
+  Radioactive Growth Hormone, Revival Potion, ClonaFish, Muta-Fin, Muta-Body
+  and Exotic Fish Eggs
   -- is used from it on the tank by the game's own code, with the same doses
   and hatches; the trash takes the patcher's supplies as from slots 2-4 and
   never the stock ones. Drag a supply onto any slot, on any page, to move
@@ -445,7 +459,16 @@ never needs the internet.
     Dropped on a plant that has given all its seeds, it can be pollinated
     again and give seeds again, exactly like a fresh plant.
   - Picture: [docs/images/revival-potion-plant.png](docs/images/revival-potion-plant.png).
-  - The formula, the bomb, the Revival Potion and Revita-Seed can be thrown
+  - Muta-Flower and Muta-Foliage on the chemicals shelf's third row: $2,500
+    each, 3 doses, the stock Mutation Liquid's bottle in pink and in green.
+    Each is the Mutation Liquid for one part only, on the plant it is dropped
+    on: Muta-Flower steps the flower, Muta-Foliage the foliage, one up or one
+    down, 50% each, with the game's own step and bounces; the other part never
+    changes. The new species is discovered at once, as with the Mutation
+    Liquid; the unused flowers come only with Add unused flowers. Picture:
+    [docs/images/muta-chemicals-plant.png](docs/images/muta-chemicals-plant.png).
+  - The formula, the bomb, the Revival Potion, Revita-Seed, Muta-Flower and
+    Muta-Foliage can be thrown
     in the Trash bin: held from the chemical tray and let go or clicked on
     the bin, the bottle goes with every dose left, with the bin's sound and
     no question, as a seed packet does (no money back). A selected plant is
@@ -490,6 +513,7 @@ never needs the internet.
   which it turns on**). Every item on the Supplies store's Upgrades view costs
   $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the
   Formula Bomb ($30,000), the Revival Potion ($10,000), Revita-Seed ($2,500),
+  Muta-Flower ($2,500), Muta-Foliage ($2,500),
   Automatic Sprinklers ($10,000), the Auto-Healer ($10,000), the
   Fourth to Ninth Seed Box ($1000 each), and the Time Warp clock ($500),
   Add Money ($950), the Extra Greenhouse ($10,000 each) and the Extra Nursery

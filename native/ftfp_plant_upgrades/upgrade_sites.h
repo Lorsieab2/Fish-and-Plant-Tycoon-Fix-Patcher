@@ -114,7 +114,7 @@ static const unsigned char SITE_SALE_CASH_EXPECT[] = { 0x8B, 0x14, 0x81, 0x52, 0
 #define SITE_CHEM_PICTURE_BOUND_LEN 3
 static const unsigned char SITE_CHEM_PICTURE_BOUND_EXPECT[] = { 0x83, 0xF8, 0x24 };
 #define SITE_CHEM_PICTURE_BOUND_IMM_AT 2
-#define SITE_CHEM_PICTURE_BOUND_NEW 0x28
+#define SITE_CHEM_PICTURE_BOUND_NEW 0x32
 #define SITE_SEED_SHEET_FILE_VA 0x00485F4Cu
 #define SITE_SEED_SHEET_FILE_LEN 4
 static const unsigned char SITE_SEED_SHEET_FILE_EXPECT[] = { 0x60, 0x8C, 0x46, 0x00 };

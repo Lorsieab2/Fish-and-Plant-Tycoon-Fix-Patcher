@@ -23,6 +23,10 @@
      * ClonaFish ($2,500, 3 doses): a chemical for slot #3; each dose adds an
        exact copy of every live fish in the tank you look at (it doubles the
        tank), through the game's own AddFish, until the tank is full;
+     * Muta-Fin and Muta-Body ($2,500, 3 doses each): chemicals for slot #3;
+       each dose is the stock Unknown Chemical's on the tank you look at, for
+       one part only: the same fish, the same chance each, the same step, but
+       always the fin (Muta-Fin) or always the body (Muta-Body) (muta_dose);
      * the Auto-Feeder and the Auto-Healer ($10,000 each, bought once): every
        live fish in every tank kept fed, and cured at full health
        (auto_upgrades.h);
@@ -154,7 +158,13 @@
 #define SPR_DROPPER_CLONA (STORE_SPRITE_BASE + 23)
 #define SPR_ITEM_FEEDER (STORE_SPRITE_BASE + 24)
 #define SPR_ITEM_HEALER (STORE_SPRITE_BASE + 25)
-#define STORE_SPRITES 26
+#define SPR_ITEM_MUTA_FIN (STORE_SPRITE_BASE + 26)
+#define SPR_TOOL_MUTA_FIN (STORE_SPRITE_BASE + 27)
+#define SPR_DROPPER_MUTA_FIN (STORE_SPRITE_BASE + 28)
+#define SPR_ITEM_MUTA_BODY (STORE_SPRITE_BASE + 29)
+#define SPR_TOOL_MUTA_BODY (STORE_SPRITE_BASE + 30)
+#define SPR_DROPPER_MUTA_BODY (STORE_SPRITE_BASE + 31)
+#define STORE_SPRITES 32
 
 typedef struct sprite_entry {
     int id;
@@ -197,6 +207,12 @@ static const struct { const char *name; int cols, rows; } SPRITE_FILES[STORE_SPR
     { "TOOL_dropper_CLONAFISH.png", 0, 0 },
     { "ITEM_AUTO_FEEDER.png", 0, 0 },          /* the owner's green feeder */
     { "ITEM_AUTO_HEALER.png", 0, 0 },          /* the same machine in hot pink */
+    { "ITEM_MUTA_FIN.png", 0, 0 },             /* the stock Unknown Chemical, royal blue */
+    { "TOOL_MUTA_FIN.png", 0, 0 },
+    { "TOOL_dropper_MUTA_FIN.png", 0, 0 },
+    { "ITEM_MUTA_BODY.png", 0, 0 },            /* the stock Unknown Chemical, sea green */
+    { "TOOL_MUTA_BODY.png", 0, 0 },
+    { "TOOL_dropper_MUTA_BODY.png", 0, 0 },
 };
 
 /* ------------------------------------------------------------ the game */
@@ -439,6 +455,8 @@ static const unsigned char REPURCHASE_JUMP[10] = { 0xE9, 0x49, 0x75, 0x01, 0x00,
 #define FIN_FEEDER (-7)                     /* the Auto-Feeder (auto_upgrades.h) */
 #define FIN_HEALER (-8)                     /* the Auto-Healer */
 #define FIN_SLOTS (-9)                      /* Extra Supply Slots (the "Extra supply slots" setting) */
+#define FIN_MUTA_FIN (-10)                  /* Muta-Fin */
+#define FIN_MUTA_BODY (-11)                 /* Muta-Body */
 static int auto_sold_out(int fin);
 static const char *auto_owned_line(int item);
 
@@ -1286,12 +1304,121 @@ static void __cdecl clona_dose(char *impl) {
     }
 }
 
-/* The chemical switch's new items: 1 = handled (then the stock sparkle and tail). */
+/* ------------------------------------------------------ Muta-Fin, Muta-Body */
+
+/* Items 32 and 33: the stock Unknown Chemical (item 4, 0x420E93-0x4210ED) for one part only.
+   The stock use, on the tank being looked at (0x384), over the records of its loop (`cmp ebx,
+   0x3528` at 0x421043: 21, or more with "Bigger tanks", which rewrites the immediate at 0x421045,
+   read here):
+     * a fish is reached when live (+0x00), health not 0 (+0x3C: a dead fish is not) and not a
+       seahorse-type record (body 22: the Golden Seahorse and this store's animals), any age;
+     * each one reached is changed on Random(100) <= 25 (0x420EE3);
+     * then the body on Random(100) <= 49, else the fin (0x420EF6), steps one gene: at the top
+       end always down, else up on Random(100) <= 49 or at 0, else down (0x420EFB body / 0x420F27
+       fin, each testing its own gene).  With DS Exclusive Fish those two steps are its step_gene
+       (29 the end, 20 up into 23, 23 down into 20), so the DS genes come only with that mod;
+     * the fish's seven sprite sets are rebuilt for its genes (0x415DF0, 0x420F51-0x421037);
+     * after the loop: a sparkle on every live fish on screen (effect 0x15, 0x42104F), the next
+       fish update one second on (0x4210C1) and the tank's fish re-read (0x4210E6); 0x4210B7 sets
+       the count to 1 first, which only the stock chemical has (it is one use).
+   A Muta-Fin dose does all of that with no body-or-fin roll: every fish changed steps its fin,
+   by the fin step; Muta-Body its body, by the body step.  So each fish reached has its one part
+   stepped on 26.03% a dose (the stock chemical's 26.03%, all of it on that part, where the stock
+   one splits it about half and half) and the other part never changes.  The step is the game's
+   own: the stock rule while the step site is stock, DS Exclusive Fish's step_gene
+   (FtfpDsFishStepGene) when that mod has put its step there.  A new species is discovered as
+   the stock chemical's are: by the game, when the fish is (or grows up to be) an adult.  Then the
+   stock tail spends one dose (0x421302), as for the store's other chemicals. */
+#define MUTA_FIN_ITEM 32
+#define MUTA_BODY_ITEM 33
+#define UC_LOOP_END (*(const int *)(UINT_PTR)0x00421045u)
+#define UC_SPARKLE_END (*(const signed char *)(UINT_PTR)0x004210B1u)
+#define UC_CHANGE 25                 /* Random(100) <= 25 (0x420EE3) */
+#define UC_UP 49                     /* Random(100) <= 49 (0x420F0D / 0x420F39) */
+#define UC_SPARKLE 0x15
+#define PC_TOP_GENE 20
+#define SET_SPRITES GAME(this3_fn, 0x00415DF0u)        /* (set, body, fin) */
+#define VIEW_SHOWN GAME(this1_fn, 0x00413BD0u)         /* (i) -> al */
+#define VIEW_TANK GAME(this1_fn, 0x00413B30u)          /* (i) -> tank */
+#define VIEW_SLOT GAME(this1_fn, 0x00413B50u)          /* (i) -> slot */
+#define VIEW_POS GAME(this2_fn, 0x00413BA0u)           /* (out, i) -> int[2] */
+#define SPRITE_SETS 7
+#define SPRITE_SET_STRIDE 0x58
+static const unsigned char UC_BODY_STEP[6] = { 0x8B, 0x47, 0x4C, 0x83, 0xF8, 0x14 };   /* 0x420EFB */
+static const unsigned char UC_FIN_STEP[6] = { 0x8B, 0x47, 0x50, 0x83, 0xF8, 0x14 };    /* 0x420F27 */
+typedef void (__stdcall *ds_step_fn)(int *gene);
+
+/* One step of the gene at `gene` by the step the game has at that site. */
+static void muta_step(int *gene, int body) {
+    int g = *gene;
+    if (!ftfp_site_holds(body ? 0x00420EFBu : 0x00420F27u, body ? UC_BODY_STEP : UC_FIN_STEP, sizeof UC_FIN_STEP)) {
+        HMODULE ds = GetModuleHandleW(L"DS Exclusive Fish.dll");
+        ds_step_fn step = ds != NULL ? (ds_step_fn)GetProcAddress(ds, "FtfpDsFishStepGene") : NULL;
+        if (step != NULL) step(gene);
+        return;
+    }
+    if (g == PC_TOP_GENE) *gene = g - 1;
+    else if (RANDOM(100) <= UC_UP || g == 0) *gene = g + 1;
+    else *gene = g - 1;
+}
+
+static void muta_sprites(char *impl, char *f) {
+    int k, body = *I(f, F_BODY), fin = *I(f, F_FIN);
+    if (P(impl, 0x3C) == NULL) return;
+    for (k = 0; k < SPRITE_SETS; ++k) {
+        SET_SPRITES(P(impl, 0x3C), NULL, (int)(UINT_PTR)(f + F_SPRITES + k * SPRITE_SET_STRIDE), body, fin);
+        if (k > 0) {
+            *I(f, F_SPRITES + (k - 1) * SPRITE_SET_STRIDE + 0x50) = body;
+            *I(f, F_SPRITES + (k - 1) * SPRITE_SET_STRIDE + 0x54) = fin;
+        }
+    }
+}
+
+static void muta_sparkle(char *impl, char *state) {
+    void *view = P(impl, 0x3C);
+    int i, end = UC_SPARKLE_END, out[2];
+    if (view == NULL) return;
+    for (i = 0; i < end; ++i) {
+        unsigned int tank, slot;
+        const int *at;
+        if ((VIEW_SHOWN(view, NULL, i) & 0xFF) == 0) continue;
+        tank = (unsigned int)VIEW_TANK(view, NULL, i);
+        slot = (unsigned int)VIEW_SLOT(view, NULL, i);
+        /* the stock address, 32-bit arithmetic: a store animal's slot lands on its own record */
+        if (*(const int *)(state + (UINT_PTR)(tank * TANK_STRIDE + slot * SLOT_STRIDE) + FISH_BASE + F_HEALTH) <= 0) continue;
+        at = (const int *)(UINT_PTR)VIEW_POS(view, NULL, (int)(UINT_PTR)out, i);
+        if (at != NULL) SPLASH(view, NULL, UC_SPARKLE, at[0], at[1]);
+    }
+}
+
+static void __cdecl muta_dose(char *impl, int body) {
+    char *state = (char *)P(impl, 0x34);
+    int tank, end = UC_LOOP_END, off;
+    if (state == NULL) return;
+    tank = *I(state, S_CURRENT_TANK);
+    if (tank < 0 || tank > last_tank()) return;
+    if (end > RECORDS * SLOT_STRIDE) end = RECORDS * SLOT_STRIDE;
+    for (off = 0; off < end; off += SLOT_STRIDE) {
+        char *f = state + FISH_BASE + tank * TANK_STRIDE + off;
+        if (*I(f, F_LIVE) == 0 || *I(f, F_HEALTH) == 0 || *I(f, F_BODY) == BODY_SEAHORSE) continue;
+        if (RANDOM(100) > UC_CHANGE) continue;
+        muta_step(I(f, body ? F_BODY : F_FIN), body);
+        muta_sprites(impl, f);
+    }
+    muta_sparkle(impl, state);
+    *I(impl, 0x30) = CLOCK_NOW() + 1;
+    if (P(impl, 0x3C) != NULL) VIEW_SYNC(P(impl, 0x3C), NULL, (int)(UINT_PTR)fish(state, tank, 0));
+}
+
+/* The chemical switch's new items: 1 = handled, then the stock Growth Hormone's sparkle and the
+   tail; 2 = handled with its own sparkle (Muta-Fin, Muta-Body), then the tail alone. */
 static int __cdecl new_chemical(char *impl, int item) {
     switch (item) {
     case RGH_ITEM: rgh_dose(impl); return 1;
     case REVIVAL_ITEM: revival_dose(impl); return 1;
     case CLONA_ITEM: clona_dose(impl); return 1;
+    case MUTA_FIN_ITEM: muta_dose(impl, 0); return 2;
+    case MUTA_BODY_ITEM: muta_dose(impl, 1); return 2;
     default: return 0;
     }
 }
@@ -1314,7 +1441,8 @@ static int __cdecl new_chemical(char *impl, int item) {
 #define NO_SUPPLY 0x63
 
 static int is_store_supply(int item) {
-    return item == EXOTIC_ITEM || item == RGH_ITEM || item == REVIVAL_ITEM || item == CLONA_ITEM;
+    return item == EXOTIC_ITEM || item == RGH_ITEM || item == REVIVAL_ITEM || item == CLONA_ITEM
+           || item == MUTA_FIN_ITEM || item == MUTA_BODY_ITEM;
 }
 
 static int __cdecl supply_trash(char *impl, int x, int y) {
@@ -1383,16 +1511,18 @@ static const unsigned char *shown_slot(char *state, int p) {
 
 static const char *game_string(int id);
 
-static const char *const STORE_NAMES[4][2] = {
+static const char *const STORE_NAMES[6][2] = {
     { "Exotic Fish Eggs", "Exotische Fischeier" },
     { "Radioactive Growth Hormone", "Radioaktive Wachstumshormone" },
     { "Revival Potion", "Wiederbelebungstrank" },
     { "ClonaFish", "ClonaFish" },
+    { "Muta-Fin", "Muta-Fin" },
+    { "Muta-Body", "Muta-Body" },
 };
 
 static const char *slot_name(int item, int de) {
     if (item == FOOD_ITEM) return de ? "Fischfutter" : "Fish Food";
-    if (item >= EXOTIC_ITEM && item <= CLONA_ITEM) return STORE_NAMES[item - EXOTIC_ITEM][de];
+    if (item >= EXOTIC_ITEM && item <= MUTA_BODY_ITEM) return STORE_NAMES[item - EXOTIC_ITEM][de];
     if (item == STARTER_EGGS) item = 5;                               /* the common eggs' name */
     if (item >= 0 && item <= 7) return game_string(0xAE + 2 * item);
     return NULL;
@@ -1567,7 +1697,7 @@ typedef struct store_item {
 
 /* Time Warp and Add Money show only with their settings; with Free upgrades
    every item here costs $0 (the stock store keeps its prices). */
-#define ITEMS 13
+#define ITEMS 15
 #define ITEM_WARP 4
 #define ITEM_MONEY 5
 #define FIN_RGH (-3)                        /* the Radioactive Growth Hormone: not an animal */
@@ -1643,6 +1773,15 @@ static const store_item ITEM[ITEMS] = {
       { "Extra Supply Slots", "Zus\xE4tzliche Vorratsf\xE4" "cher" },
       { "Seven more supply slots for medicine,\nchemicals and eggs, on two more pages.\nThe arrows beside the slots turn the\npage. One purchase opens all seven.",
         "Sieben weitere Vorratsf\xE4" "cher f\xFCr Medizin,\nChemikalien und Eier, auf zwei weiteren\nSeiten. Die Pfeile neben den F\xE4" "chern\nbl\xE4ttern um. Ein Kauf \xF6" "ffnet alle sieben." } },
+    /* The owner's names and descriptions, row 2 after the Extra Supply Slots. */
+    { FIN_MUTA_FIN, 2500, 411, 165, 79, 72, SPR_ITEM_MUTA_FIN, 48, 65,
+      { "Muta-Fin", "Muta-Fin" },
+      { "Mutates the fins of fish.\nContains 3 doses.",
+        "Ver\xE4ndert die Flossen von Fischen.\nReicht f\xFCr 3 Behandlungen." } },
+    { FIN_MUTA_BODY, 2500, 503, 165, 79, 72, SPR_ITEM_MUTA_BODY, 48, 65,
+      { "Muta-Body", "Muta-Body" },
+      { "Mutates the bodies of fish.\nContains 3 doses.",
+        "Ver\xE4ndert die K\xF6rper von Fischen.\nReicht f\xFCr 3 Behandlungen." } },
 };
 
 static int price_of(const store_item *it) { return free_on ? 0 : it->price; }
@@ -2002,6 +2141,14 @@ static void buy(void *scene) {
     }
     if (it->fin == FIN_CLONA) {
         buy_chemical(impl, state, price, CLONA_ITEM, SPR_TOOL_CLONA, SPR_DROPPER_CLONA);
+        return;
+    }
+    if (it->fin == FIN_MUTA_FIN) {
+        buy_chemical(impl, state, price, MUTA_FIN_ITEM, SPR_TOOL_MUTA_FIN, SPR_DROPPER_MUTA_FIN);
+        return;
+    }
+    if (it->fin == FIN_MUTA_BODY) {
+        buy_chemical(impl, state, price, MUTA_BODY_ITEM, SPR_TOOL_MUTA_BODY, SPR_DROPPER_MUTA_BODY);
         return;
     }
     if (it->fin == FIN_FEEDER || it->fin == FIN_HEALER) {
@@ -2630,6 +2777,10 @@ __declspec(naked) static void stub_egg_confirm(void) {
    then the stock Growth Hormone's sparkle loop and tail; any other item goes
    on to the stock `je 0x42120A` with its flags. */
 static const DWORD k_chem_switch = 0x00420E7Bu, k_gh_sparkle = 0x0042119Au;
+/* Muta-Fin and Muta-Body: their own sparkle is done, so straight to the Growth Hormone's end
+   (0x421203: ebp = 0, then the shared tail 0x421302 that spends the dose). */
+static const DWORD k_gh_done = 0x00421203u;
+static int chem_result;
 
 __declspec(naked) static void stub_chem_use(void) {
     __asm {
@@ -2637,15 +2788,20 @@ __declspec(naked) static void stub_chem_use(void) {
         mov eax, [ecx + 0x2F0]
         cmp eax, RGH_ITEM
         jb stock
-        cmp eax, CLONA_ITEM
+        cmp eax, MUTA_BODY_ITEM
         ja stock
         pushad
         push eax
         push esi
         call new_chemical
         add esp, 8
+        mov chem_result, eax
         popad
+        cmp chem_result, 2
+        je done
         jmp k_gh_sparkle
+    done:
+        jmp k_gh_done
     stock:
         sub eax, 2
         jmp k_chem_switch
@@ -2665,6 +2821,10 @@ __declspec(naked) static void stub_chem_confirm(void) {
         cmp ecx, SPR_TOOL_REVIVAL
         je chemical
         cmp ecx, SPR_TOOL_CLONA
+        je chemical
+        cmp ecx, SPR_TOOL_MUTA_FIN
+        je chemical
+        cmp ecx, SPR_TOOL_MUTA_BODY
         je chemical
         jmp k_chem_confirm_no
     chemical:
@@ -3125,7 +3285,7 @@ __declspec(naked) static void stub_use_gate(void) {
         je eggs
         cmp edx, RGH_ITEM
         jb other
-        cmp edx, CLONA_ITEM
+        cmp edx, MUTA_BODY_ITEM
         jbe chemicals
     other:
         jmp k_use_other

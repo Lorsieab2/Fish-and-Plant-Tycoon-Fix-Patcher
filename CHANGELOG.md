@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- **Muta-Fin and Muta-Body** (Fish Tycoon, DS Store Items) and **Muta-Flower
+  and Muta-Foliage** (Plant Tycoon, Add new store upgrades and items), four
+  new chemicals on the Upgrades screens, $2,500 for 3 doses each ($0 with Free
+  upgrades or Everything is Free). Each is its game's own mutation chemical
+  for one part only. Fish: the stock Unknown Chemical's dose (0x420E93) with
+  its body-or-fin roll left out: the same fish (live, health not 0, not a
+  seahorse-type record, any age, the tank on screen, over the stock loop's
+  records, so Bigger tanks too), the same 26.03% each, the same step (stock,
+  or DS Exclusive Fish's step_gene through a new export, so the DS genes come
+  only with it), the same sprite rebuild, sparkle and next update; the other
+  part never changes. Plant: the Mutation Liquid's own step function (0x42FA80)
+  entered at its flower or foliage branch, then the rest of its case
+  (0x426EFA: discovery, Unused Flowers' discovery, the encyclopedia, the
+  sparkles); its 50/50 direction and bounces, Unused Flowers' 37 bound, the
+  foliage regrowth. Doses, stacking, Universal and Extra supply slots, the
+  supply-slot tooltips, the trash and German texts as the other patcher
+  chemicals. Icons are recolours of the stock bottles (scripts/build_muta_assets.py:
+  royal blue, sea green, pink, green), the Plant ones in chemical-sheet rows
+  21-22 (chemicals 48-49; the sheet is 23 rows, the dialog picture bound
+  0x32). DS Exclusive Fish lends DS Store Items 32 sprite entries (was 26).
+  The Breeding Guide's how-to-get texts name them. Tests compare every Muta
+  dose with the stock chemical's, byte for byte, over many seeds of the
+  game's own rand() (tests/test_muta_chemicals.py).
 - Supply slot tooltips are patch-accurate, read from the running game's own
   code: the Unknown Chemical shows its count only when the use's "set to 1"
   (0x4210B7) is gone (Unknown Chemical: 3 uses, Universal supply slots), and
