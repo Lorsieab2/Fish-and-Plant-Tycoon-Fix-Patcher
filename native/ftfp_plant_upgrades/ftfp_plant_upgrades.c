@@ -905,6 +905,8 @@ static void load_extras(void) {
 }
 
 #include "auto_upgrades.h"            /* Automatic Sprinklers and the Auto-Healer */
+#include "../ftfp_chem_slots/chem_slots_file.h"
+#include "chem_slots_link.h"          /* Extra Chemical Slots (its own DLL and setting) */
 
 static void box_tip_text(int box) {
     if (boxes != NULL && boxes->owned(box)) sprintf_s(tip_text[TIP_BOXES + box], 64, "%s", BOX_TITLES[box]);
@@ -935,6 +937,7 @@ static void set_tooltips(char *scene) {
         AT(extra_tip[i], 8, unsigned char) = (unsigned char)upgrades_view;
     }
     auto_set_tips(upgrades_view);
+    chem_set_tip(upgrades_view);
 }
 
 static char *make_tooltip(char *scene, int id, const RECT *r, const char *text) {
@@ -977,6 +980,7 @@ static void make_tooltips(char *scene) {
         extra_tip[i] = make_tooltip(scene, 56 + TIPS + i, &EXTRA_ITEM[i].rect, extra_tip_text[i]);
     }
     auto_make_tips(scene);
+    chem_make_tip(scene);
 }
 
 static void switch_view(char *scene, int on) {
@@ -1036,6 +1040,7 @@ static int __cdecl on_draw(char *scene) {
         if (extra_owned[i]() >= EXTRA_COUNT) draw_shadow(mgr, 0, SHEET_TICK, it->tick_x, it->tick_y, 1.0f, 100);
     }
     auto_draw(mgr);
+    chem_draw(mgr);
     return 1;
 }
 
@@ -1115,6 +1120,7 @@ static int __cdecl on_click(char *scene, int x, int y) {
         if (extra_on(i) && inside(&EXTRA_ITEM[i].rect, x, y)) buy_extra(scene, i);
     }
     auto_click(scene, x, y);
+    chem_click(scene, x, y);
     return 1;
 }
 
@@ -1166,6 +1172,7 @@ static void __cdecl on_save(char *state, int slot) {
     DWORD header[3], written;
     if (boxes != NULL) boxes->save(state, slot);
     if (slot > 0) auto_save(slot);
+    chem_save(state, slot);
     if (slot <= 0 || !sidecar_path(slot, path, 1024, 1)) return;
     wcscpy_s(temp, 1100, path);
     wcscat_s(temp, 1100, L".tmp");
@@ -1205,6 +1212,7 @@ static void __cdecl on_load(const char *state, int slot) {
     seed_record body[LEGENDARY_COUNT];
     if (slot <= 0) return;
     auto_load(slot);
+    chem_load(state, slot);
     if (sidecar_path(slot, path, 1024, 0)) {
         file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (file != INVALID_HANDLE_VALUE) {
@@ -1229,11 +1237,13 @@ static void __cdecl on_delete(int slot) {
     wchar_t path[1024];
     if (slot > 0 && sidecar_path(slot, path, 1024, 0)) DeleteFileW(path);
     if (slot > 0) auto_delete(slot);
+    if (slot > 0) chem_delete(slot);
     if (boxes != NULL) boxes->remove(slot);
 }
 
 static void __cdecl on_new_game(void) {
     auto_new_game();
+    chem_new_game();
     if (boxes != NULL) boxes->new_game();
 }
 
@@ -1968,9 +1978,10 @@ static void site_data(ftfp_site_write *w, unsigned int va, int length, const uns
 static int prepare(void) {
     ftfp_site_write *w = writes;
     DWORD seed_file = (DWORD)(UINT_PTR)SEED_SHEET_FILE, chem_file = (DWORD)(UINT_PTR)CHEM_SHEET_FILE;
-    DWORD seed_rows = 8, chem_rows = 18;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money,
+    DWORD seed_rows = 8, chem_rows = 20;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money,
                                                       15: the Extra Greenhouse, 16: Automatic Sprinklers,
-                                                      17: Auto-Healer */
+                                                      17: Auto-Healer, 18: Extra Chemical Slots,
+                                                      19: its page arrows (Extra Chemical Slots.dll) */
     DWORD link[6];
     unsigned char bound = SITE_CHEM_PICTURE_BOUND_NEW;
     link[0] = LINK_SPRITE;
