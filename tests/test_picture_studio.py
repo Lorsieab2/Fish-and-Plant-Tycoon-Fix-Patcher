@@ -339,7 +339,9 @@ class PlantWindowTests(unittest.TestCase):
         self.assertTrue({"flower", "foliage", "stage"} <= plant)
         stages = [o.label.casefold() for f in studio.subjects[titles.index("Plant")].fields if f.key == "stage"
                   for o in f.options]
-        self.assertTrue(any("dead" in s for s in stages))
+        states = [o.key for f in studio.subjects[titles.index("Plant")].fields if f.key == "state" for o in f.options]
+        self.assertEqual(states, ["alive", "dead"])
+        self.assertTrue(any("budding" in s for s in stages))
         self.assertTrue(studio.items, "the save's plants are listed")
         tree = studio.save_tree
         self.assertTrue(any(tree.item(p, "text").startswith("Greenhouse") for p in tree.get_children()))

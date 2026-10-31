@@ -61,6 +61,8 @@ HELP = (
         "rules. Creatures and decorations are on their own tabs. The patcher's parts and creatures (DS "
         "Exclusive Fish, DS Store Items, Unused Flowers) are always offered, marked \"(patcher)\", and a save's "
         "DS fish and Unused Flowers plants are drawn whenever the save holds them.",
+        "States the game never draws are not offered: a plant has no wilting or infested look (the game "
+        "checks only whether it is dead), and a fish is not drawn at all before it hatches (age 0).",
         "Show Spoilers is the Breeding Guide's setting: off, Make your own offers only the parts your save "
         "has discovered.",
         "Saving: \"Save PNG...\" saves the picture shown. Pick the size first: the game's own size, 2x or 4x "

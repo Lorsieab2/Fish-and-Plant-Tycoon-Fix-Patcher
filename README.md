@@ -896,7 +896,8 @@ folder never fails with "path too long".
     with the patcher, so no setting needs to be found for the save.
   - Make your own, Plant Tycoon: Flower (the 14 Unused Flowers always too,
     marked "(patcher)"), Foliage, Stage (seed, sprout, seedling, growing, budding, normal bloom, max bloom, max
-    bloom with every effect, as after the Radioactive Plant Formula, and dead),
+    bloom with every effect, as after the Radioactive Plant Formula) and State
+    (alive, or dead at any of those stages),
     the plant's starting shape and its pot; decorations, bugs and pots on
     their own tabs. The game draws no wilting or infested look: a plant is
     drawn alive or dead (0x42E4A0 checks only health 0).

@@ -207,15 +207,16 @@ class Cells:
 
 
 def custom_specs():
-    """Every foliage with three flowers, each stage, two shapes; the Unused Flowers too."""
+    """Every foliage with three flowers, each stage alive and dead, two shapes; the Unused
+    Flowers too."""
     flowers = [1, 2, 3, 9, 13, 14, 18, 23]
     for foliage in range(1, 24):
         for i, stage in enumerate(k for k, _ in pp.STAGES):
             flower = flowers[(foliage + i) % len(flowers)]
             for shape in (1, 1 + (foliage % D.SHAPE_COUNT)):
-                yield foliage, flower, stage, shape
+                yield foliage, flower, stage, shape, shape != 1 and (foliage + i) % 2 == 0
     for flower in range(24, 38):
-        yield 1 + flower % 23, flower, "bloom", 1
+        yield 1 + flower % 23, flower, "bloom", 1, flower % 5 == 0
 
 
 @needs_game
@@ -247,9 +248,12 @@ class DrawPlanTests(unittest.TestCase):
     def test_plants_of_your_own_draw_as_the_game_draws_them(self) -> None:
         game, formula_game, flowers_game = DrawGame(), None, DrawGame().unused_flowers()
         count = 0
-        for foliage, flower, stage, shape in custom_specs():
-            plant = pp.grow_custom(foliage, flower, shape, stage)
-            label = f"{foliage}/{flower}/{stage}/{shape}"
+        dead_stages = set()
+        for foliage, flower, stage, shape, dead in custom_specs():
+            plant = pp.grow_custom(foliage, flower, shape, stage, dead)
+            label = f"{foliage}/{flower}/{stage}/{shape}" + (" dead" if dead else "")
+            if dead:
+                dead_stages.add(stage)
             if stage == "formula":
                 formula_game = formula_game or self.formula_game()
                 recorded = self.compare(plant, formula_game, label)
@@ -263,6 +267,7 @@ class DrawPlanTests(unittest.TestCase):
                 self.assertGreater(len(recorded), 2, label)
             count += 1
         self.assertGreater(count, 200)
+        self.assertEqual(dead_stages, {k for k, _ in pp.STAGES}, "every stage drawn dead too")
 
     def test_a_saved_formula_plant_draws_as_the_patched_game_draws_it(self) -> None:
         """The player's mature, size-110 formula plants (a flower on every spot), read back from
@@ -738,10 +743,15 @@ class ChoicesTests(unittest.TestCase):
         fields = self.options()
         self.assertEqual([o.key for o in fields["foliage"].options], list(range(1, 24)))
         self.assertEqual([o.key for o in fields["flower"].options], list(range(1, 38)))
-        self.assertEqual([o.key for o in fields["stage"].options], ["seed", "sprout", "seedling", "growing", "budding", "bloom", "max", "formula", "dead"])
+        self.assertEqual([o.key for o in fields["stage"].options], ["seed", "sprout", "seedling", "growing", "budding", "bloom", "max", "formula"])
         self.assertEqual([f.key for f in self.renderer.custom_choices(frozenset(), True, None)[0].fields][:2],
                          ["flower", "foliage"])
-        dead = self.renderer.plan_custom({"subject": "plant", "foliage": 14, "flower": 13, "stage": "dead"})
+        self.assertEqual([o.key for o in fields["state"].options], ["alive", "dead"])
+        self.assertEqual(self.renderer.plan_custom({"subject": "plant", "foliage": 14, "flower": 13, "stage": "dead"}),
+                         self.renderer.plan_custom({"subject": "plant", "foliage": 14, "flower": 13, "stage": "bloom",
+                                                    "state": "dead"}))
+        dead = self.renderer.plan_custom({"subject": "plant", "foliage": 14, "flower": 13, "stage": "budding",
+                                          "state": "dead"})
         self.assertTrue(dead and not any("flower" in d.file.casefold() or "fruit" in d.file.casefold() for d in dead))
         self.assertTrue(any(d.file.endswith("_dead.png") for d in dead))
         self.assertEqual(len(fields["shape"].options), D.SHAPE_COUNT)

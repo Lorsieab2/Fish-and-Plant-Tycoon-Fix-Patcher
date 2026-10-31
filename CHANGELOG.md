@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Picture Studio: dead plants at every stage.** Make your own's Plant tab has
+  a State (Alive / Dead) for any stage, seed to max bloom with every effect,
+  each checked against the game's own draw; the old "Dead" stage is "Normal
+  bloom" + "Dead". The help says what the game never draws: no wilting or
+  infested look (its plant draw checks only health 0).
 - **Picture Studio: the patcher's parts are always there.** Make your own
   offers the DS Exclusive Fish bodies and fins, DS Store Items' animals and
   the eel's rock, and the 14 Unused Flowers whatever settings are found for

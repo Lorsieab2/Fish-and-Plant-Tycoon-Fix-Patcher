@@ -706,9 +706,12 @@ STAGES = (
     ("bloom", "Normal bloom"),
     ("max", "Max bloom"),
     ("formula", "Max bloom + all effects"),
-    ("dead", "Dead"),
 )
-STAGE_AGES = {"seed": 0.5, "sprout": 3.0, "seedling": 8.0, "growing": 15.0, "budding": 22.5, "bloom": 28.0, "max": 28.0, "formula": 28.0, "dead": 28.0}
+STAGE_AGES = {"seed": 0.5, "sprout": 3.0, "seedling": 8.0, "growing": 15.0, "budding": 22.5, "bloom": 28.0, "max": 28.0,
+              "formula": 28.0, "dead": 28.0}       # "dead": the normal bloom, dead (older specs)
+# The plant's state: the game's plant draw (0x42E4A0) checks only health 0 (dead: drawn at 85% with
+# the dead sheets, no buds or flowers); the pot draw (0x42F740) only water above 500 (wet soil).
+PLANT_STATES = (("alive", "Alive"), ("dead", "Dead (health 0)"))
 STAGE_NOTE = ("Seed: just planted (under age 1 the game draws only the planted soil). Sprout: age 3, "
               "its first branches still small (a branch grows to full size over 18 days). "
               "Seedling: age 8, as the game's starting seedlings. Growing: age 15, the age-7 leaf roll "
@@ -716,13 +719,17 @@ STAGE_NOTE = ("Seed: just planted (under age 1 the game draws only the planted s
               "flowers at 24). Normal bloom: full grown, the game's first flowering. Max bloom: size 110 "
               "and a flower on every free spot (plant food and fertilizer as often as you like). "
               "Max bloom + all effects: the Radioactive Plant Formula: every branch grown, no dead leaves. "
-              "Dead: the normal bloom after it died (health 0): the game draws it at 85% with its dead "
-              "pictures and no flowers. The game's draw shows no other state: thirst, pests and poor "
-              "health change nothing in a plant's picture.")
+              "State Dead: the plant at that stage after it died (health 0): the game draws it at 85% "
+              "with its dead pictures and no buds or flowers. The game draws no other state: no wilting "
+              "look (thirst, pests and poor health change nothing in a plant's picture; only health 0 "
+              "does), and a dry or wet pot is the Pots tab's Watered choice.")
 
 
-def grow_custom(foliage: int, flower: int, shape: int, stage: str) -> Plant:
-    """A plant of your own, grown by the game's rules to `stage`."""
+def grow_custom(foliage: int, flower: int, shape: int, stage: str, dead: bool = False) -> Plant:
+    """A plant of your own, grown by the game's rules to `stage`, then dead (health 0) if `dead`
+    (the stage "dead" is the normal bloom, dead)."""
+    if stage == "dead":
+        stage, dead = "bloom", True
     if foliage not in D.STARTING_SHAPES:
         raise PictureError(f"There is no foliage {foliage}.")
     plant = starting_plant(foliage, flower, shape)
@@ -741,7 +748,7 @@ def grow_custom(foliage: int, flower: int, shape: int, stage: str) -> Plant:
         add_flowers(plant, parts, foliage, rand, 360, 0)
     if stage == "formula":
         apply_formula(plant, FORMULA_SHAPES[foliage], foliage, rand)
-    if stage == "dead":
+    if dead:
         plant.health = 0                 # 0x42E27D: a plant that dies keeps its branches and flowers
     plant.age = f32(age)
     return plant
@@ -1020,6 +1027,7 @@ class Renderer:
             Field("flower", "Flower", tuple(flowers), flowers[0].key if flowers else None),
             Field("foliage", "Foliage", tuple(foliages), foliages[0].key if foliages else None),
             Field("stage", "Stage", tuple(stages), "bloom"),
+            Field("state", "State", tuple(Option(k, label) for k, label in PLANT_STATES), "alive"),
             Field("shape", "Shape", tuple(shapes), 1),
             Field("pot", "Pot", tuple(pots), 0),
         )
@@ -1060,7 +1068,7 @@ class Renderer:
             raise PictureError("Pick a foliage.")
         if flower not in D.FLOWER_ART or flower == 0:
             raise PictureError("Pick a flower.")
-        plant = grow_custom(foliage, flower, shape, str(spec.get("stage", "bloom")))
+        plant = grow_custom(foliage, flower, shape, str(spec.get("stage", "bloom")), spec.get("state") == "dead")
         plant.pot = max(0, pot)
         return plant, pot >= 0
 

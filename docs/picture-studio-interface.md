@@ -140,8 +140,9 @@ Additions since the first version:
   ships in `assets/` (`patcher_art`). The window reads discoveries with the extras on.
 - Make your own, by the owner's spec: Fish has Fin, Body, Stage (baby, teen at each age 6-19,
   adult), State (healthy, ick, fungus, dead), Facing and Frame; Plant has Flower, Foliage and a
-  Stage of seedling / budding / normal bloom / max bloom / max bloom + all effects / dead, plus
-  any other state the game draws (wilting, infested ...). The window builds one combobox per
+  Stage of seed / sprout / seedling / growing / budding / normal bloom / max bloom / max bloom +
+  all effects and a State of alive or dead (any stage). The game draws no wilting or infested
+  look: the plant draw (0x42E4A0) checks only health 0, the pot draw (0x42F740) only water > 500. The window builds one combobox per
   `Field`, in order.
 
 Rules for both renderers:
