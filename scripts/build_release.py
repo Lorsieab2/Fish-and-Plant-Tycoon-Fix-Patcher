@@ -84,6 +84,7 @@ FILES = [
     "src/breeding_fish.py",
     "src/breeding_plant.py",
     "src/breeding_pictures.py",
+    "src/breeding_collectopedia.py",
     "src/game_mechanics.py",
     "src/game_mechanics_fish.py",
     "src/game_mechanics_plant.py",

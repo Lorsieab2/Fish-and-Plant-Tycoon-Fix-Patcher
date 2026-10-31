@@ -9,6 +9,8 @@ filterable sheet that exports to .xlsx or .csv:
   obtained, its rarity and the species that have it;
 * Discovered Species (All Species with spoilers): the pairs that breed each
   species, by each part, and its prices with 0 and with Max effects;
+* Collectopedia: every species as a checklist, ticked where the save has it
+  (src/breeding_collectopedia.py);
 * Breeding Calculator: every child two parents can give, with its odds;
 * Breeding Planner: the shortest breeding chain from the species you have.
 
@@ -638,6 +640,57 @@ class View:
         return sheet
 
 
+# ------------------------------------------------------------------ the seed picture grid
+
+FOLIAGE_CLASSES = "ABCD"
+
+
+def foliage_class(foliage: int) -> str:
+    """A foliage's own class A-D, the game's class rule (breeding_plant.rarity) on the foliage
+    alone: flower 1 is class A, so it never raises the class."""
+    import breeding_plant as bp
+    return bp.rarity((foliage, 1))
+
+
+def seed_grid(view) -> tuple[list[str], list[tuple]]:
+    """Plant Tycoon's Seed Pictures as a grid: (column words, rows). A row is one foliage:
+    (part, label, the seed picture of each column). The columns are the seed sheet's four
+    frames a foliage has, lowest tier first: frame (foliage - 1) x 4 + k, where the shop's rule
+    (0x41DD54) takes k from the packet's flower, 0 Common, 1 Endangered, 2 Extinct, 3 the
+    rarest Extinct flowers (above 17); then, with Unused Flowers, the patcher's Legendary Seed
+    (seed_grid_legendary.png, frame 95 + foliage). Rows by the foliage's class (A Common, B
+    Endangered, C and D Extinct), the game's foliage order within a class. With spoilers off
+    only the discovered foliages are rows (the packets are named by their foliage), and the
+    rarest column names its first and last flower only when both are discovered."""
+    import breeding_plant as bp
+    model = view.model
+
+    def known(kind, gene):
+        return view.spoilers or (kind, gene) in view.known_parts
+
+    first, last = 18, 23
+    rarest = (f"Extinct ({bp.FLOWER_WORD[first].strip()} to {bp.FLOWER_WORD[last].strip()} flower)"
+              if known("flower", first) and known("flower", last) else "Extinct (the rarest flowers)")
+    columns = ["Common", "Endangered", "Extinct", rarest]
+    if model.extras:
+        columns.append("Legendary")
+    file, cols, rows = breeding_pictures.SEED_SHEET
+    lfile, lcols, lrows = breeding_pictures.LEGENDARY_SHEET
+    foliages = [p for p in model.parts("foliage") if known("foliage", p.index)]
+    foliages.sort(key=lambda p: (FOLIAGE_CLASSES.index(foliage_class(p.index)), p.index))
+    out = []
+    for part in foliages:
+        cells = [breeding_pictures.Item(f"{part.name} seed", columns[k], (
+            breeding_pictures.Cell(file, cols, rows, breeding_pictures.seed_frame(part.index, k)),))
+            for k in range(4)]
+        if model.extras:
+            cells.append(breeding_pictures.Item(f"{part.name} seed", "Legendary", (breeding_pictures.Cell(
+                lfile, lcols, lrows, breeding_pictures.LEGENDARY_FRAME_BASE + part.index),)))
+        label = f"{part.name}\n{model.part_rarity(part)}, class {foliage_class(part.index)}"
+        out.append((part, label, cells))
+    return columns, out
+
+
 # ------------------------------------------------------------------ export
 
 
@@ -843,8 +896,25 @@ HELP = (
         ".csv. The Breeding Calculator lists every child two parents can give, with its odds; the Breeding "
         "Planner finds the shortest breeding chain from the species you have to the one you want. The pane "
         "under each sheet shows the picked row's details and what the effects choice assumes; it scrolls.",
+        "Collectopedia: a checklist of every species, each body x fin (Fish Tycoon) or foliage x flower "
+        "(Plant Tycoon), the DS Exclusive Fish and Unused Flowers too when that setting is on for the save. "
+        "A box is ticked when your save has ever had that species (the same discovered record as above); "
+        "only the save ticks or unticks a box, so the list follows your game and you cannot change it here. "
+        "The Grid view has a row for each body (foliage) and a column for each fin (flower), each with its "
+        "picture and \"collected/all\" count: a green tick is collected, a grey \"?\" is not yet. Point at a "
+        "box to see its species; the panel on the right shows its pictures and the progress per part. The "
+        "List view is the same as a sortable list (name, parts, rarity, collected). At the top: \"n of N "
+        "species collected\" and the count per rarity, in the game's words. Show All, Collected or Missing, "
+        "and the Search box, filter both views (the grid fades the boxes left out, so it stays lined up), "
+        "and Export writes the list as shown. With spoilers off a species you have not collected is \"?\" "
+        "with no name or picture, and a part no collected species has is \"?\" too; Show Spoilers names "
+        "them all.",
         "Picture tabs show every fin, body and egg (Fish Tycoon) or flower, foliage and seed packet (Plant "
-        "Tycoon), grouped by rarity. With spoilers off they show only the parts you have discovered (and "
+        "Tycoon), grouped by rarity. Seed Pictures is a grid: a row per foliage, the Common foliages "
+        "first, then Endangered, then Extinct (the game's classes A to D), and a column per seed tier, "
+        "lowest on the left: the shop draws a packet by its flower (Common, Endangered, Extinct, and the "
+        "rarest Extinct flowers), then the Legendary Seed with Unused Flowers on. With spoilers off they "
+        "show only the parts you have discovered (and "
         "the seed packets of the foliages you have discovered), like the part tabs. The pictures come from "
         "your own copy of the game: the first time the guide finds one (the game folder picked on the "
         "patcher's Game tab, the patcher's \"- Modded\" or \"- Modded Upgrades\" copies, or a default install), "
@@ -934,6 +1004,12 @@ class BreedingGuide:
         self.plan_effects_var.trace_add("write", lambda *_a: self.plan())
         self.plan_busy = False
         self._plan_job = 0
+        # The Collectopedia's choices, kept across a refresh (a save, player or spoiler change).
+        self.collect_filter_var = tk.StringVar(master=self.window, value="all")
+        self.collect_mode_var = tk.StringVar(master=self.window, value="grid")
+        self.collect_filter_var.trace_add("write", lambda *_a: self._collect_refilter())
+        self.collect_mode_var.trace_add("write", lambda *_a: self._collect_show_mode())
+        self.collect: dict = {}                         # the Collectopedia tab, as built
         self.folders: list[Path] = []
         self.slots: list[tuple[int, str]] = []
         self.model = None
@@ -1101,6 +1177,8 @@ class BreedingGuide:
         self.trees.clear()
         self.details.clear()
         self.pictures.clear()
+        self._collect_hide_tip()
+        self.collect = {}
         self.sheets.clear()
         self.shown_rows.clear()
         self.build_errors = []
@@ -1129,6 +1207,7 @@ class BreedingGuide:
         builds += [
             ("species", "All Species" if self.view.spoilers else "Discovered Species",
              lambda: self._add_sheet_tab("species", self.view.species_sheet())),
+            ("collectopedia", "Collectopedia", self._add_collectopedia),
             ("calculator", "Breeding Calculator", lambda: self._add_calculator(picks.get("parents"))),
             ("planner", PLANNER, lambda: self._add_planner(picks.get("have"), picks.get("want"))),
         ]
@@ -1248,6 +1327,34 @@ class BreedingGuide:
         cache: dict = {}
         cells, missing = [], 0
         row = 0
+        grid = None
+        if tab_id == "pictures:seeds":
+            # One row per foliage, a column per seed tier, lowest first (see seed_grid); an empty
+            # place keeps its cell, so the columns stay lined up.
+            grid = seed_grid(self.view)
+            groups = []
+            columns, rows = grid
+            for c, word in enumerate(columns, start=1):
+                ttk.Label(inner, text=word, font=("Segoe UI", 10, "bold"), wraplength=130,
+                          justify="center").grid(row=0, column=c, padx=4, pady=(4, 2))
+                inner.columnconfigure(c, minsize=140)
+            for r, (part, label, items) in enumerate(rows, start=1):
+                ttk.Label(inner, text=label, font=("Segoe UI", 9, "bold"), justify="left").grid(
+                    row=r, column=0, sticky="w", padx=(4, 10))
+                for c, item in enumerate(items, start=1):
+                    cell = ttk.Frame(inner, padding=4)
+                    cell.grid(row=r, column=c)
+                    image = breeding_pictures.photo(tk, self.window, source, item.art, cache) \
+                        if not source.problem else None
+                    if image is None:
+                        missing += 1
+                        ttk.Label(cell, text="(no picture)", foreground="#7a7a7a", width=14,
+                                  anchor="center").pack()
+                    else:
+                        picture = ttk.Label(cell, image=image)
+                        picture.image = image
+                        picture.pack()
+                    cells.append((item, image, f"{item.name}, {item.tier}"))
         for group in groups:
             ttk.Label(inner, text=group.tier, font=("Segoe UI", 10, "bold")).grid(
                 row=row, column=0, columnspan=self.COLUMNS, sticky="w", pady=(8, 2))
@@ -1273,7 +1380,294 @@ class BreedingGuide:
             message.configure(text=f"{missing} picture(s) could not be read from {source.copy}.")
         canvas.scrollbar = scroll
         self.pictures[tab_id] = {"groups": groups, "cells": cells, "message": message, "canvas": canvas,
-                                 "cache": cache, "source": source, "find": find, "header": header}
+                                 "cache": cache, "source": source, "find": find, "header": header,
+                                 "grid": grid}
+
+    # ---- the Collectopedia
+    CELL = 26                    # a tick box's square, in pixels
+    ROW_HEAD = 200               # the row names' width
+    COL_HEAD = 150               # the column names' height (written upwards)
+    THUMB = 24                   # a part's picture beside its name
+    BIG = 64                     # the picked species' part pictures
+
+    def _thumb(self, source, kind: str, index: int, cache: dict, side: int):
+        """A part's picture (as the picture tabs draw it), scaled to fit `side` pixels."""
+        if source.problem:
+            return None
+        image = breeding_pictures.photo(tk, self.window, source,
+                                        breeding_pictures.part_art(self.model, kind, index), cache)
+        if image is None:
+            return None
+        factor = max(1, -(-max(image.width(), image.height()) // side))
+        return image.subsample(factor) if factor > 1 else image
+
+    def _add_collectopedia(self) -> None:
+        """The Collectopedia: every species as a tick box, rows by the first part (bodies,
+        foliage) and columns by the second (fins, flowers), ticked where the save has it; or
+        the same as a sortable list. See breeding_collectopedia."""
+        import breeding_collectopedia as bc
+        cp = bc.Collectopedia(self.view)
+        tab = ttk.Frame(self.notebook, padding=6)
+        self.notebook.add(tab, text=bc.TITLE)
+        header = ttk.Label(tab, text=cp.summary(), font=("Segoe UI", 9, "bold"))
+        header.pack(anchor="w")
+        tiers = ttk.Label(tab, text=cp.tier_text())
+        tiers.pack(anchor="w")
+        controls = ttk.Frame(tab)
+        controls.pack(fill="x", pady=(4, 4))
+        ttk.Label(controls, text="Show:").pack(side="left")
+        for value, label in bc.FILTERS:
+            ttk.Radiobutton(controls, text=label, value=value, variable=self.collect_filter_var).pack(
+                side="left", padx=(6, 0))
+        ttk.Label(controls, text="View:").pack(side="left", padx=(18, 0))
+        for value, label in bc.MODES:
+            ttk.Radiobutton(controls, text=label, value=value, variable=self.collect_mode_var).pack(
+                side="left", padx=(6, 0))
+        ttk.Label(controls, text="(Search filters this tab too; only the save ticks a box)",
+                  foreground="#555555").pack(side="left", padx=(12, 0))
+
+        body = ttk.Frame(tab)
+        body.pack(fill="both", expand=True)
+        side = ttk.Frame(body, width=290)
+        side.pack(side="right", fill="y", padx=(8, 0))
+        side.pack_propagate(False)
+        picked = ttk.LabelFrame(side, text="Species", padding=6)
+        picked.pack(fill="x")
+        pictures = ttk.Frame(picked)
+        pictures.pack(anchor="w")
+        picture_a, picture_b = ttk.Label(pictures), ttk.Label(pictures)
+        picture_a.pack(side="left")
+        picture_b.pack(side="left", padx=(8, 0))
+        picked_text = ttk.Label(picked, text="Point at a box, or pick a row, to see that species.",
+                                wraplength=260, justify="left")
+        picked_text.pack(anchor="w", pady=(4, 0))
+        ttk.Label(side, text="Progress", font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(8, 2))
+        progress_box = ttk.Frame(side)
+        progress_box.pack(fill="both", expand=True)
+        progress = tk.Text(progress_box, width=34, wrap="word", font=("Segoe UI", 9), relief="flat", borderwidth=1)
+        progress_scroll = ttk.Scrollbar(progress_box, orient="vertical", command=progress.yview)
+        progress.configure(yscrollcommand=progress_scroll.set)
+        progress_scroll.pack(side="right", fill="y")
+        progress.pack(side="left", fill="both", expand=True)
+        progress.insert("1.0", cp.intro())
+        progress.configure(state="disabled")
+
+        main = ttk.Frame(body)
+        main.pack(side="left", fill="both", expand=True)
+        grid_frame, list_frame = ttk.Frame(main), ttk.Frame(main)
+        style = ttk.Style(self.window)
+        canvas = tk.Canvas(grid_frame, borderwidth=0, highlightthickness=0,
+                           background=style.lookup("TFrame", "background") or "#f0f0f0")
+        ys = ttk.Scrollbar(grid_frame, orient="vertical", command=canvas.yview)
+        xs = ttk.Scrollbar(grid_frame, orient="horizontal", command=canvas.xview)
+        canvas.configure(yscrollcommand=ys.set, xscrollcommand=xs.set)
+        canvas.grid(row=0, column=0, sticky="nsew")
+        ys.grid(row=0, column=1, sticky="ns")
+        xs.grid(row=1, column=0, sticky="ew")
+        grid_frame.rowconfigure(0, weight=1)
+        grid_frame.columnconfigure(0, weight=1)
+
+        def wheel(event) -> None:
+            step = -1 if event.delta > 0 else 1
+            try:                                         # Shift + wheel scrolls across
+                (canvas.xview_scroll if event.state & 1 else canvas.yview_scroll)(step, "units")
+            except tk.TclError:                          # the tab was rebuilt meanwhile
+                pass
+        canvas.bind("<Enter>", lambda _e: canvas.bind_all("<MouseWheel>", wheel))
+
+        # The pictures: only of parts the player may see (a "?" part has none).
+        source = self.art_source()
+        cache: dict = {}
+        thumbs, bigs = {}, {}
+        for part in cp.rows + cp.cols:
+            if cp.part_known(part):
+                thumbs[(part.kind, part.index)] = self._thumb(source, part.kind, part.index, cache, self.THUMB)
+                bigs[(part.kind, part.index)] = self._thumb(source, part.kind, part.index, cache, self.BIG)
+        source.close()
+
+        C, W, H, T = self.CELL, self.ROW_HEAD, self.COL_HEAD, self.THUMB
+        font = ("Segoe UI", 8)
+        corner = f"{KIND_TITLES.get(cp.row_kind, cp.row_kind)} down, {KIND_TITLES.get(cp.col_kind, cp.col_kind).lower()} across"
+        canvas.create_text(4, H - 4, text=corner, anchor="sw", font=("Segoe UI", 9, "bold"))
+        labels = {}
+        col_counts = {p.index: (got, total) for p, got, total in cp.part_counts(cp.col_kind)}
+        for c, part in enumerate(cp.cols):
+            x = W + c * C + C // 2
+            image = thumbs.get((part.kind, part.index))
+            if image is not None:
+                canvas.create_image(x, H - 2, image=image, anchor="s")
+            got, total = col_counts[part.index]
+            text = f"{cp.part_label(part)}  {got}/{total}"
+            canvas.create_text(x, H - T - 6, text=text, angle=90, anchor="w", font=font)
+            labels[(part.kind, part.index)] = text
+        row_counts = {p.index: (got, total) for p, got, total in cp.part_counts(cp.row_kind)}
+        for r, part in enumerate(cp.rows):
+            y = H + r * C + C // 2
+            image = thumbs.get((part.kind, part.index))
+            if image is not None:
+                canvas.create_image(4 + T // 2, y, image=image)
+            got, total = row_counts[part.index]
+            text = f"{cp.part_label(part)}  {got}/{total}"
+            canvas.create_text(T + 10, y, text=text, anchor="w", font=font)
+            labels[(part.kind, part.index)] = text
+        cells = {}
+        for r, row_part in enumerate(cp.rows):
+            for c, col_part in enumerate(cp.cols):
+                key = (row_part.index, col_part.index)
+                if key not in cp.by_key:
+                    continue
+                x0, y0 = W + c * C, H + r * C
+                rect = canvas.create_rectangle(x0 + 2, y0 + 2, x0 + C - 2, y0 + C - 2)
+                mark = canvas.create_text(x0 + C // 2, y0 + C // 2, font=("Segoe UI", 10, "bold"))
+                cells[key] = (rect, mark)
+        canvas.configure(scrollregion=(0, 0, W + len(cp.cols) * C + 6, H + len(cp.rows) * C + 6))
+        canvas.bind("<Motion>", self._collect_hover)
+        canvas.bind("<Leave>", lambda _e: (self._collect_hide_tip(), canvas.unbind_all("<MouseWheel>")))
+        canvas.bind("<Button-1>", self._collect_click)
+
+        self.collect = {"cp": cp, "tab": tab, "canvas": canvas, "cells": cells, "labels": labels,
+                        "thumbs": thumbs, "bigs": bigs, "cache": cache, "header": header, "tiers": tiers,
+                        "grid_frame": grid_frame, "list_frame": list_frame, "progress": progress,
+                        "picture_a": picture_a, "picture_b": picture_b, "picked_text": picked_text,
+                        "picked": None, "state": {}, "tip_text": ""}
+        self._sheet_frame("collectopedia", list_frame, cp.sheet(self.collect_filter_var.get()))
+        tree = self.trees["collectopedia"]
+        tree.header_label.pack_forget()                  # the tab's own header says it
+        tree.bind("<<TreeviewSelect>>", lambda _e: self._collect_tree_picked(), add="+")
+        self._collect_show_mode()
+        self._collect_draw()
+
+    def _collect_key_at(self, event):
+        c = self.collect
+        canvas, cp = c["canvas"], c["cp"]
+        x, y = canvas.canvasx(event.x) - self.ROW_HEAD, canvas.canvasy(event.y) - self.COL_HEAD
+        if x < 0 or y < 0:
+            return None
+        r, col = int(y // self.CELL), int(x // self.CELL)
+        if r >= len(cp.rows) or col >= len(cp.cols):
+            return None
+        key = (cp.rows[r].index, cp.cols[col].index)
+        return key if key in c["cells"] else None
+
+    def _collect_hover(self, event) -> None:
+        if not self.collect:
+            return
+        key = self._collect_key_at(event)
+        if key is None:
+            self._collect_hide_tip()
+            return
+        self._collect_show_tip(self.collect["cp"].tooltip(key), event.x_root, event.y_root)
+        self._collect_panel(key)
+
+    def _collect_click(self, event) -> None:
+        if not self.collect:
+            return
+        key = self._collect_key_at(event)
+        self.collect["picked"] = key
+        if key is not None:
+            self._collect_panel(key)
+        self._collect_draw()
+
+    def _collect_tree_picked(self) -> None:
+        tree = self.trees.get("collectopedia")
+        sheet = self.sheets.get("collectopedia")
+        if tree is None or sheet is None or not self.collect:
+            return
+        picked = tree.selection()
+        if picked:
+            key = sheet.keys[int(picked[0])]
+            self.collect["picked"] = key
+            self._collect_panel(key)
+            self._collect_draw()
+
+    def _collect_panel(self, key) -> None:
+        """The side panel: the species' part pictures (only when it may be named) and its text."""
+        c = self.collect
+        cp = c["cp"]
+        s = cp.by_key[tuple(key)]
+        named = cp.named(key)
+        for label, part in ((c["picture_a"], s.parts[0]), (c["picture_b"], s.parts[1])):
+            image = c["bigs"].get((part.kind, part.index)) if named else None
+            label.configure(image=image or "")
+            label.image = image
+        c["picked_text"].configure(text=cp.tooltip(key))
+
+    def _collect_show_tip(self, text: str, x: int, y: int) -> None:
+        tip = getattr(self, "_collect_tip", None)
+        if tip is None or not tip.winfo_exists():
+            tip = tk.Toplevel(self.window)
+            tip.wm_overrideredirect(True)
+            tip.label = tk.Label(tip, background="#ffffe0", relief="solid", borderwidth=1,
+                                 font=("Segoe UI", 9), justify="left", wraplength=360, padx=4, pady=2)
+            tip.label.pack()
+            self._collect_tip = tip
+        tip.label.configure(text=text)
+        tip.geometry(f"+{x + 14}+{y + 12}")
+        tip.deiconify()
+        tip.lift()
+        if self.collect:
+            self.collect["tip_text"] = text
+
+    def _collect_hide_tip(self) -> None:
+        tip = getattr(self, "_collect_tip", None)
+        try:
+            if tip is not None and tip.winfo_exists():
+                tip.withdraw()
+        except tk.TclError:
+            pass
+
+    def _collect_show_mode(self) -> None:
+        c = self.collect
+        if not c:
+            return
+        grid, listed = c["grid_frame"], c["list_frame"]
+        if self.collect_mode_var.get() == "list":
+            grid.pack_forget()
+            listed.pack(fill="both", expand=True)
+        else:
+            listed.pack_forget()
+            grid.pack(fill="both", expand=True)
+        self._collect_hide_tip()
+
+    def _collect_refilter(self) -> None:
+        """All / Collected / Missing: the list (and what Export writes) is that sheet; the grid
+        greys the boxes it leaves out, so the rows and columns stay lined up."""
+        c = self.collect
+        if not c or "collectopedia" not in self.trees:
+            return
+        sheet = c["cp"].sheet(self.collect_filter_var.get())
+        self.sheets["collectopedia"] = sheet
+        self.trees["collectopedia"].message_label.configure(text=sheet.message)
+        self._fill("collectopedia")
+        self._collect_draw()
+
+    def _collect_draw(self) -> None:
+        """Colour every box: ticked (a green tick), not yet (an empty box; with spoilers off a
+        grey "?"), and faded when the filter or the search leaves it out."""
+        c = self.collect
+        if not c or "collectopedia" not in self.sheets:
+            return
+        cp, canvas = c["cp"], c["canvas"]
+        sheet = self.sheets["collectopedia"]
+        active = cp.matching(sheet, self.search_var.get())
+        state = {}
+        for key, (rect, mark) in c["cells"].items():
+            on = key in active
+            if cp.ticked(key):
+                fill, outline, text, colour = "#cfeccb", "#3c8a3c", "✓", "#1f6a1f"
+            elif cp.named(key):
+                fill, outline, text, colour = "#ffffff", "#8a8a8a", "", "#000000"
+            else:
+                fill, outline, text, colour = "#e4e4e4", "#b0b0b0", "?", "#7a7a7a"
+            if not on:
+                fill, outline, colour = "#f7f7f7", "#e2e2e2", "#d4d4d4"
+            width = 1
+            if key == c.get("picked"):
+                outline, width = "#245a9a", 2
+            canvas.itemconfigure(rect, fill=fill, outline=outline, width=width)
+            canvas.itemconfigure(mark, text=text, fill=colour)
+            state[key] = (text, on)
+        c["state"] = state
 
     def art_source(self):
         """The pictures: the guide's own cache, built the first time from any game copy the
@@ -1501,6 +1895,8 @@ class BreedingGuide:
         sheet_id = self.current_sheet_id()
         if sheet_id is not None and sheet_id in self.trees:
             self._fill(sheet_id)
+        if sheet_id == "collectopedia":
+            self._collect_draw()
 
     def _fill(self, sheet_id: str) -> None:
         tree, sheet = self.trees[sheet_id], self.sheets[sheet_id]

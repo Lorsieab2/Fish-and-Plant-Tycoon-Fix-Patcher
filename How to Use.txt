@@ -280,7 +280,16 @@ folder on the Game tab, or the "- Modded" / "- Modded Upgrades" copies) it
 copies the pictures into a "Breeding Guide Pictures" folder beside the
 patcher and shows them from there for every save and player. If a picture
 tab says it has no pictures yet, click "Find game..." and pick your game
-folder. Your game folder and saves are only read.
+folder. Your game folder and saves are only read. Seed Pictures is a grid:
+a row per foliage (Common first, then Endangered, then Extinct) and a column
+per seed tier, lowest on the left, Legendary last with Unused Flowers.
+
+The Collectopedia tab is a checklist of every species: a row per body
+(foliage), a column per fin (flower), each box ticked where your save has
+ever had that species. Only the save ticks a box. It counts "n of N species
+collected" overall, per rarity and per part; Show All, Collected or Missing;
+the List view sorts; Export saves the list. With spoilers off a species you
+have not collected is a "?".
 
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.

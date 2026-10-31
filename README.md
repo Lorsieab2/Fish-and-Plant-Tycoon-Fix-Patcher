@@ -747,7 +747,15 @@ folder never fails with "path too long".
     the Breeding Planner (the shortest breeding chain from the species you
     have to the one you want), each with three effects choices: 0 effects,
     Max effects without the mutation, and Max effects with it (the Wasp
-    Grouper in Fish Tycoon, Mutation Liquid in Plant Tycoon).
+    Grouper in Fish Tycoon, Mutation Liquid in Plant Tycoon);
+  - the **Collectopedia**: a checklist of every species, a row per body
+    (foliage) and a column per fin (flower), each box ticked where the save
+    has ever had that species (its own discovered record; the DS Exclusive
+    Fish and Unused Flowers too when that setting is on for the save). Only
+    the save ticks a box. It counts "n of N species collected" overall, per
+    rarity and per part, filters All / Collected / Missing and by Search, has
+    a sortable List view, and exports as .xlsx or .csv. With spoilers off a
+    species not collected yet is a "?" with no name or picture.
 
   Rarities use the games' own words: Common, Unusual and Rare in Fish Tycoon
   (as its Common and Unusual Fish Eggs), Common, Endangered and Extinct (the
@@ -783,7 +791,11 @@ folder never fails with "path too long".
   selling tank, how many customers browse) are in its "?" guide.
 
   Picture tabs (Fin, Body and Egg Pictures; Flower, Foliage and Seed
-  Pictures) show every part grouped by rarity. The pictures are kept inside
+  Pictures) show every part grouped by rarity; Seed Pictures is a grid, a
+  row per foliage (Common first, then Endangered and Extinct, the game's
+  classes A to D) and a column per seed tier, lowest on the left (the shop
+  draws a packet by its flower: Common, Endangered, Extinct and the rarest
+  Extinct flowers; then Legendary with Unused Flowers). The pictures are kept inside
   the patcher, in a "Breeding Guide Pictures" folder beside it: the first time
   the guide finds any copy of the game (the game folder picked on the Game
   tab, the patcher's "- Modded" and "- Modded Upgrades" copies, or a default

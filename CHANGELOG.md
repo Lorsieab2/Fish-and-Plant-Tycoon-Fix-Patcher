@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- **Breeding Guide, Collectopedia**, both games: a new tab, a checklist of
+  every species (Fish: body x fin; Plant: foliage x flower; the DS Exclusive
+  Fish and Unused Flowers too when that setting is on for the save). A box is
+  ticked exactly where the save's own discovered record (and the setting's
+  data file) says the species was obtained; read only, fresh for each save
+  and player, and the player cannot untick it. A Grid view (a row per body or
+  foliage, a column per fin or flower, each with its picture and
+  "collected/all"; a tooltip names the species) and a sortable List view
+  (name, parts, rarity, collected); "n of N species collected", per rarity in
+  the game's words and per part; All / Collected / Missing and Search; Export
+  to .xlsx / .csv. With Show Spoilers off a species not collected is "?", no
+  name or picture, and an undiscovered part is "?" (the no-leak tests cover
+  the tab, its tooltips and its exports).
+- Breeding Guide, Plant Tycoon's Seed Pictures: a grid, a row per foliage
+  ordered by the game's classes (A Common, B Endangered, C and D Extinct; the
+  game's foliage order within) and a column per seed tier, lowest first (the
+  four frames (foliage - 1) x 4 + k, k by the packet's flower at 0x41DD54:
+  Common, Endangered, Extinct, the rarest Extinct flowers), then the patcher's
+  Legendary Seed with Unused Flowers on. Spoilers off keeps the discovered
+  foliages' rows only.
 - Supply slot tooltips are patch-accurate, read from the running game's own
   code: the Unknown Chemical shows its count only when the use's "set to 1"
   (0x4210B7) is gone (Unknown Chemical: 3 uses, Universal supply slots), and

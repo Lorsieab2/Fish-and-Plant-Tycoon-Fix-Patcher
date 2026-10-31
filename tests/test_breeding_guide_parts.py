@@ -119,6 +119,13 @@ def every_text(view: bg.View) -> list[str]:
     for tab_id, _title in bpx.TABS[view.model.game]:
         texts.append(bpx.header_for(view, tab_id))
         texts.extend(item.name for group in bpx.items_for(view, tab_id) for item in group.items)
+    if view.model.game == "plant":                       # the Seed Pictures grid
+        columns, rows = bg.seed_grid(view)
+        texts.extend(columns)
+        texts.extend(label for _part, label, _cells in rows)
+        texts.extend(f"{i.name}, {i.tier}" for _part, _label, cells in rows for i in cells)
+    import breeding_collectopedia as bc                  # the Collectopedia, every filter
+    texts.extend(bc.Collectopedia(view).texts())
     return texts
 
 
