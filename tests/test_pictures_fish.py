@@ -397,6 +397,41 @@ def make_save(folder: Path, slot: int = 1, fish=(), ornaments=(), owned=(), stat
     return path
 
 
+def put_fish(path: Path, tank: int, s: int, body: int, fin: int, age: int, health: int = 100, disease: int = 0) -> None:
+    """A fish record written into an existing synthetic save, as the game sets one up."""
+    data = bytearray(path.read_bytes())
+    at = pf.SAVE_HEADER - 8 + pf.FISH_BASE + tank * pf.TANK_STRIDE + s * pf.SLOT_STRIDE
+    struct.pack_into("<i", data, at, 1)
+    struct.pack_into("<i", data, at + 0x0C, age)
+    struct.pack_into("<i", data, at + 0x3C, health)
+    struct.pack_into("<i", data, at + 0x40, disease)
+    struct.pack_into("<ii", data, at + 0x4C, body, fin)
+    sp = pf.fish_sprites(body, fin)
+    struct.pack_into("<4i", data, at + 0x54, sp.body_id, sp.top_id, sp.bot_id, sp.alpha)
+    struct.pack_into("<4i", data, at + 0x68, *sp.top, *sp.bot)
+    path.write_bytes(bytes(data))
+
+
+def fake_game_copy(folder: Path) -> Path:
+    """A stand-in Fish Tycoon copy: an .exe and an Images folder with every sheet the pictures
+    need, each cell a small coloured block (no game art)."""
+    images = folder / "Images"
+    images.mkdir(parents=True)
+    (folder / "Fish Tycoon.exe").write_bytes(b"MZ")
+    names = {}
+    for index in list(pf.STOCK_SHEETS) + list(range(38, 101)):
+        names[pf.sheet(index)[0]] = pf.sheet(index)[1:]
+    for n, (name, (cols, rows)) in enumerate(names.items()):
+        cols, rows = max(1, cols), max(1, rows)
+        image = pi.Image(cols * 12, rows * 10)
+        block = pi.Image(8, 6, bytes(((n * 40) % 256, 90, 160, 255)) * 48)
+        for c in range(cols):
+            for r in range(rows):
+                image.draw(block, c * 12 + 2, r * 10 + 2)
+        (images / name).write_bytes(image.to_png())
+    return folder
+
+
 def animal_record(fin: int, age: int = 21) -> bytes:
     rec = bytearray(pf.SLOT_STRIDE)
     struct.pack_into("<i", rec, 0, 1)

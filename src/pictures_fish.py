@@ -842,9 +842,9 @@ class FishRenderer:
         facing = Field("facing", "Swimming", tuple(Option(k, label) for k, label, _m in FACINGS), "left")
         frame = Field("frame", "Frame", FRAMES, 0)
         fish = Subject("fish", "Fish", (
-            Field("body", "Body", bodies, bodies[0].key if bodies else None),
             Field("fin", "Fin", fins, fins[0].key if fins else None),
-            Field("stage", "Age", _stage_options(), "adult"),
+            Field("body", "Body", bodies, bodies[0].key if bodies else None),
+            Field("stage", "Stage", _stage_options(), "adult"),
             Field("state", "State", tuple(Option(k, label) for k, label in STATES), "healthy"),
             facing, frame),
             note="Ages follow the game: under 6 a baby, under 20 a teen (it grows from 100% at age 6 to 139% "
