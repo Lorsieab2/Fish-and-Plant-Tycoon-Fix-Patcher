@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.0.19
 
 - **Copy Player Slot** (Tools tab, new), both games: copies a player into an
   empty slot of the same save folder under a new name, with the patcher's own
