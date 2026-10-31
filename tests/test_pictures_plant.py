@@ -153,7 +153,7 @@ class DrawGame:
         alpha, scale = struct.unpack("<ff", struct.pack("<II", e.arg(7), e.arg(8)))
         signed = lambda v: v - (1 << 32) if v & 0x80000000 else v
         self.blits.append((D.SPRITES[self.surfaces[surface]][0], (x0, y0, x1, y1), signed(x) - ORIGIN[0],
-                           signed(y) - ORIGIN[1], round(scale * 100), round(alpha * 255)))
+                           signed(y) - ORIGIN[1], round(scale * 100), int(alpha * 255.0)))
         return 0
 
     def _plain_blit(self, e) -> int:
@@ -294,6 +294,75 @@ class DrawPlanTests(unittest.TestCase):
                                  f"foliage {foliage} at age {plant.age}")
 
 
+@needs_game
+class SceneryTests(unittest.TestCase):
+    """Decorations, bugs and pots: the renderer's draw calls are the game's."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.cells = Cells()
+        cls.planner = pp.Planner(cls.cells)
+        cls.scenery = pp.SceneryPlanner(cls.cells, cls.planner)
+
+    def nursery(self, owned: set) -> list:
+        """The game's own scenery draw (0x437070(2), then (1)) with these ornaments owned, every
+        blit recorded; the magic plants' golden pots and the visitors are left out."""
+        game = DrawGame()
+        emu = game.emu
+        for address, pop in ((0x0042F4B0, 0x10), (0x00435EE0, 0x10), (0x00417350, 0)):
+            emu.hook(address, lambda e: 0, pop)
+        emu.hook(0x00417C50, lambda e: e.alloc(0x100))
+        for k in owned:
+            emu.write8(game.state + pp.ORNAMENTS_AT + k * pp.ORNAMENT_SIZE, 1)
+        scene = emu.alloc(0x1000)
+        emu.write32(scene + 0xA3C, game.state)
+        emu.write32(scene + 0xA40, game.sprites)
+        emu.write32(scene + 0xA44, game.manager)
+        for layer in (2, 1):
+            emu.call(0x00437070, layer, ecx=scene)
+        return [(f, r, x + ORIGIN[0], y + ORIGIN[1], s, a) for f, r, x, y, s, a in game.blits]
+
+    def test_every_decoration_is_the_nurserys(self) -> None:
+        base = self.nursery(set())
+        self.assertEqual(len(D.DECORATIONS), 15)
+        for k in range(15):
+            rest, added = list(base), []
+            for call in self.nursery({k}):
+                if call in rest:
+                    rest.remove(call)
+                else:
+                    added.append(call)
+            self.assertEqual(plan_tuples(self.scenery.decoration(k)), added, pp.ORNAMENT_NAMES[k])
+        everything = self.nursery(set(range(15)))
+        for k in range(15):                             # all owned: each one's calls still drawn
+            for call in plan_tuples(self.scenery.decoration(k)):
+                self.assertIn(call, everything)
+
+    def test_every_bug_frame_is_the_sprite_draw(self) -> None:
+        game = DrawGame()
+        one = struct.unpack("<I", struct.pack("<f", 1.0))[0]
+        for bug in range(pp.BUG_COUNT):
+            for frame in range(pp.BUG_FRAMES):
+                game.blits = []
+                game.emu.call(0x004208F0, pp.BUG_SPRITE, bug * 6 + frame, ORIGIN[0], ORIGIN[1], one, 100, 1,
+                              ecx=game.sprites)
+                self.assertEqual(plan_tuples(self.scenery.bug(bug, frame)), game.blits, f"bug {bug} frame {frame}")
+
+    def test_every_pot_look_is_the_pot_draw(self) -> None:
+        game = DrawGame()
+        for style in range(7):
+            for soil, _label in pp.SOIL_LOOKS:
+                for level in pp.SOIL_LEVELS:
+                    for wet in (False, True):
+                        plan = plan_tuples(self.scenery.pot(style, soil, level, wet))
+                        plant = pp.Plant(foliage=1 if soil == "planted" else 0, flower=0, age=0.0, pot=style,
+                                         soil=0 if soil == "none" else 1, water=900 if wet else 0)
+                        recorded = game.draw_pot(plant.to_record(), level)
+                        # a planted pot's own plant (the game makes a seedling for it) is not the pot
+                        self.assertEqual(plan, recorded[:len(plan)], f"{style} {soil} {level} {wet}")
+                        self.assertEqual(len(plan), 1 if soil == "none" else 2)
+
+
 class GrownGame:
     """The vanilla game after its own new game (as tests/test_extra_greenhouses.py's Game, with no
     DLL): seeds planted and grown by the game's code."""
@@ -375,6 +444,7 @@ class GrowthTests(unittest.TestCase):
         self.assertEqual(build.starting_shapes(PLANT_EXE, table), D.STARTING_SHAPES)
         self.assertEqual(build.formula_spots(table), D.FORMULA_SPOTS)
         self.assertEqual({g: v for g, v in build.flower_art(exe).items()}, D.FLOWER_ART)
+        self.assertEqual(build.decorations(PLANT_EXE), D.DECORATIONS)
 
     def test_flowering_is_the_games(self) -> None:
         """0x42ED60(many, more) on the same plant with the same rolls: the same flowers."""
@@ -483,7 +553,8 @@ class ScalerTests(unittest.TestCase):
 
 # ------------------------------------------------------------------ the save reader (synthetic saves)
 
-def synthetic_save(folder: Path, slot: int, pots: dict, sidecar: dict | None = None, upgrade: int = 0) -> None:
+def synthetic_save(folder: Path, slot: int, pots: dict, sidecar: dict | None = None, upgrade: int = 0,
+                   ornaments: tuple = ()) -> None:
     """A save the shape of the game's ("ldwg", 0x18 + 0x53FB0 bytes) with these pot records, and
     Extra Greenhouses' sidecar when given ({(greenhouse 1-5, pot): record})."""
     data = bytearray(pp.SAVE_HEADER + pp.SAVE_BODY)
@@ -494,6 +565,8 @@ def synthetic_save(folder: Path, slot: int, pots: dict, sidecar: dict | None = N
     for at, level in pp.SOIL_UPGRADES:
         if upgrade == level:
             data[body + at] = 1
+    for k in ornaments:
+        data[body + pp.ORNAMENTS_AT + k * pp.ORNAMENT_SIZE] = 1
     (folder / f"Plant Tycoon{slot}.ldw").write_bytes(bytes(data))
     if sidecar is not None:
         side = bytearray(struct.pack("<7I", pp.SIDECAR_MAGIC, 1, 5, 15, 0x5600, 5, 0)) + bytes(5 * 15 * 0x5600)
@@ -568,6 +641,16 @@ class SaveReaderTests(unittest.TestCase):
         self.assertEqual([i.id for i in self.renderer.saved_items(self.folder, 1)], ["g0p3"])
         self.assertTrue((side / "Extra Greenhouses 1.dat").is_file())       # never set aside or touched
 
+    def test_owned_decorations_are_listed(self) -> None:
+        synthetic_save(self.folder, 6, {0: self.plant(9, 4, "bloom")}, ornaments=(0, 9, 14))
+        items = [i for i in self.renderer.saved_items(self.folder, 6) if i.kind == "decoration"]
+        self.assertEqual([(i.id, i.label, i.location) for i in items],
+                         [("d0", "Stone Turtle", "Nursery decorations"), ("d9", "Fountain", "Nursery decorations"),
+                          ("d14", "Refurbishment", "Nursery decorations")])
+        self.assertEqual(self.renderer.plan_saved(self.folder, 6, "d9"), self.renderer.scenery.decoration(9))
+        with self.assertRaises(pi.PictureError):
+            self.renderer.plan_saved(self.folder, 6, "d3")
+
     def test_the_soil_upgrade_is_drawn(self) -> None:
         synthetic_save(self.folder, 3, {0: self.plant(7, 2, "bloom")}, upgrade=2)
         plan = self.renderer.plan_saved(self.folder, 3, "g0p0")
@@ -590,7 +673,7 @@ class ChoicesTests(unittest.TestCase):
         self.renderer = pp.Renderer(FakeSource())
 
     def options(self, extras=frozenset(), spoilers=True, discovered=None) -> dict:
-        subject, = self.renderer.custom_choices(frozenset(extras), spoilers, discovered)
+        subject = self.renderer.custom_choices(frozenset(extras), spoilers, discovered)[0]
         return {f.key: f for f in subject.fields}
 
     def test_every_foliage_flower_stage_shape_and_pot(self) -> None:
@@ -620,6 +703,20 @@ class ChoicesTests(unittest.TestCase):
         self.assertEqual(len(everything["foliage"].options), 23)
         spoilers = self.options(spoilers=True, discovered={(1, 1)})
         self.assertEqual(len(spoilers["foliage"].options), 23)
+
+    def test_decorations_bugs_and_pots(self) -> None:
+        subjects = {s.key: s for s in self.renderer.custom_choices(frozenset(), True, None)}
+        self.assertEqual(list(subjects), ["plant", "decoration", "bug", "pot"])
+        self.assertEqual(len(subjects["decoration"].fields[0].options), 15)
+        self.assertEqual([len(f.options) for f in subjects["bug"].fields], [48, 6])
+        self.assertEqual([len(f.options) for f in subjects["pot"].fields], [7, 3, 3, 2])
+        for spec in ({"subject": "decoration", "ornament": 9}, {"subject": "bug", "bug": 47, "frame": 5},
+                     {"subject": "pot", "style": 6, "soil": "planted", "level": 2, "wet": True}):
+            self.assertIsNotNone(self.renderer.render_custom(spec).bbox())
+        for spec in ({"subject": "decoration", "ornament": 15}, {"subject": "bug", "bug": 48},
+                     {"subject": "pot", "style": 7}, {"subject": "pot", "soil": "mud"}):
+            with self.assertRaises(pi.PictureError):
+                self.renderer.render_custom(spec)
 
     def test_a_bad_spec_is_said_in_words(self) -> None:
         for spec in ({"subject": "fish"}, {"subject": "plant", "foliage": 0}, {"subject": "plant", "flower": 99},

@@ -730,12 +730,58 @@ def sidecar_path(save_folder, slot: int) -> Path:
     return Path(save_folder) / "Plant Tycoon Fix Patcher Data" / f"Extra Greenhouses {int(slot)}.dat"
 
 
+# ------------------------------------------------------------------ decorations, bugs and pots
+
+ORNAMENTS_AT, ORNAMENT_SIZE = 0x9EC, 0x20       # state + 0x9EC + k x 0x20: the ornament is owned
+# The store's names (Game Mechanics: Nursery ornaments), matched to each ornament's pictures.
+ORNAMENT_NAMES = ("Stone Turtle", "Sundial", "Weather Vane", "Charming Lantern", "Owl Statuette",
+                  "Country Wheelbarrow", "Bird House", "Cherub Statuette", "Bench", "Fountain", "Sign",
+                  "Fence", "Gate", "Cash Register", "Refurbishment")
+BUG_SPRITE = 0x9E                    # small_bugs.png: 12 x 24 cells, 6 per bug (0x41685A: 6 x bug + pose)
+BUG_COUNT, BUG_FRAMES = 48, 6
+SOIL_LOOKS = (("none", "No soil"), ("soil", "Soil"), ("planted", "Soil, planted"))
+SOIL_LEVELS = (0, 1, 2)              # 0x41DDE0: no soil upgrade, the first, the second
+
+
+class SceneryPlanner:
+    """The nursery's whole-picture sprite draw (0x4207F0) and the sprite manager's cell draw
+    (0x4208F0), for decorations, bugs and pots."""
+
+    def __init__(self, cells, planner: Planner) -> None:
+        self.cells = cells
+        self.planner = planner
+
+    def decoration(self, k: int) -> list:
+        """Ornament k as the nursery's scenery draws it when owned (0x437070(2), then (1)), at its
+        place on the nursery screen."""
+        out = []
+        for sprite_id, x, y, scale, alpha in D.DECORATIONS[k]:
+            if alpha != 100:
+                raise PictureError("The game draws no decoration see-through.")
+            name, _cols, _rows = sprite(sprite_id)
+            w, h = self.cells((name, 1, 1))
+            # 0x4207F0 -> 0x409090 (whole, unscaled) or 0x4091B0 -> 0x4085D0 (scaled about its centre)
+            self.planner._scaled(name, 1, 1, 0, (0, 0, w, h), x, y, scale, out)
+        return out
+
+    def bug(self, bug: int, frame: int) -> list:
+        """Cell 6 x bug + frame of small_bugs.png, unscaled (0x4208F0 with scale 1, alpha 100)."""
+        return [self.planner._cell(BUG_SPRITE, bug * BUG_FRAMES + frame, 0, 0)]
+
+    def pot(self, style: int, soil: str, level: int, wet: bool) -> list:
+        """The pot draw (0x42F740) of a pot with no plant (or a planted mound, soil frame + 1)."""
+        plant = Plant(foliage=1 if soil == "planted" else 0, flower=0, age=0.0, pot=style,
+                      soil=0 if soil == "none" else 1, water=900 if wet else 0)
+        return self.planner.plan(plant, 0, 0, soil_level=level)
+
+
 @dataclass
 class SavedPlants:
     """The pot records of a save: Greenhouse 1 (the save) and 2-6 (Extra Greenhouses' sidecar)."""
     greenhouses: list                # [greenhouse][pot] -> record bytes
     soil_level: int = 0
     note: str = ""
+    ornaments: tuple = ()            # the nursery ornaments owned (k of DECORATIONS)
 
 
 def read_save(save_folder, slot: int) -> SavedPlants:
@@ -754,7 +800,8 @@ def read_save(save_folder, slot: int) -> SavedPlants:
         if data[body + at]:
             level = value
             break
-    saved = SavedPlants([pots], level)
+    owned = tuple(k for k in sorted(D.DECORATIONS) if data[body + ORNAMENTS_AT + k * ORNAMENT_SIZE])
+    saved = SavedPlants([pots], level, ornaments=owned)
     side = sidecar_path(save_folder, slot)
     if side.is_file():
         try:
@@ -808,6 +855,9 @@ def required_files() -> list:
                     names.append(D.SPRITES[sheet][0])
     for art in D.FLOWER_ART.values():
         names.append(D.SPRITES[art[2]][0])
+    for calls in D.DECORATIONS.values():
+        names += [D.SPRITES[c[0]][0] for c in calls]
+    names.append(D.SPRITES[BUG_SPRITE][0])
     return list(dict.fromkeys(names))
 
 
@@ -860,6 +910,7 @@ class Renderer:
             problem = f"{len(missing)} Plant Tycoon picture file(s) are missing ({shown})."
         self.problem = problem
         self.planner = Planner(self._cell_size)
+        self.scenery = SceneryPlanner(self._cell_size, self.planner)
         self._saved: dict = {}
 
     def _cell_size(self, key) -> tuple:
@@ -888,7 +939,9 @@ class Renderer:
                 items.append(SavedItem(f"g{g}p{k}", label, f"Greenhouse {g + 1}", "plant", detail))
                 if plant.for_sale and plant.health > 0:
                     for_sale.append(SavedItem(f"n{g}p{k}", label, "Nursery", "plant", detail + " For sale."))
-        return items + for_sale
+        decorations = [SavedItem(f"d{k}", ORNAMENT_NAMES[k], "Nursery decorations", "decoration",
+                                 "Owned: the nursery shows it.") for k in saved.ornaments]
+        return items + for_sale + decorations
 
     def _plant(self, save_folder, slot: int, item_id: str) -> tuple:
         key = (str(save_folder), int(slot))
@@ -904,6 +957,16 @@ class Renderer:
         return plant, saved.soil_level
 
     def plan_saved(self, save_folder, slot: int, item_id: str) -> list:
+        if item_id.startswith("d"):
+            key = (str(save_folder), int(slot))
+            saved = self._saved.get(key) or self._read(save_folder, slot)
+            try:
+                k = int(item_id[1:])
+            except ValueError:
+                raise PictureError("There is no such decoration.") from None
+            if k not in saved.ornaments:
+                raise PictureError("The save no longer owns that decoration.")
+            return self.scenery.decoration(k)
         plant, level = self._plant(save_folder, slot, item_id)
         return self.planner.plan(plant, 0, 0, soil_level=level)
 
@@ -935,7 +998,27 @@ class Renderer:
         note = STAGE_NOTE
         if not spoilers and discovered is not None:
             note += " Spoilers are off: only the foliage and flowers you have discovered are offered."
-        return [Subject("plant", "Plant", fields, note)]
+        styles = tuple(Option(n, f"Pot {n + 1}") for n in range(D.SPRITES[POT_SPRITE][2]))
+        return [
+            Subject("plant", "Plant", fields, note),
+            Subject("decoration", "Decorations",
+                    (Field("ornament", "Decoration", tuple(Option(k, ORNAMENT_NAMES[k]) for k in sorted(D.DECORATIONS)),
+                           min(D.DECORATIONS)),),
+                    "Each nursery ornament as the nursery draws it once bought (the Refurbishment is the "
+                    "whole repainted nursery building)."),
+            Subject("bug", "Bugs",
+                    (Field("bug", "Bug", tuple(Option(b, f"Bug {b + 1}") for b in range(BUG_COUNT)), 0),
+                     Field("frame", "Frame", tuple(Option(f, f"Frame {f + 1}") for f in range(BUG_FRAMES)), 0)),
+                    "Every bug the greenhouse can show, in each of its 6 pictures (small_bugs.png), drawn "
+                    "as the game draws a bug."),
+            Subject("pot", "Pots",
+                    (Field("style", "Pot", styles, 0),
+                     Field("soil", "Soil", tuple(Option(k, label) for k, label in SOIL_LOOKS), "soil"),
+                     Field("level", "Soil upgrade", (Option(0, "None"), Option(1, "First"), Option(2, "Second")), 0),
+                     Field("wet", "Watered", (Option(False, "Dry"), Option(True, "Wet")), False)),
+                    "A greenhouse pot as the game draws it: wet soil is a pot with more than 500 water; "
+                    "planted soil has the mound a plant grows from."),
+        ]
 
     def _custom_plant(self, spec: dict) -> tuple:
         if spec.get("subject", "plant") != "plant":
@@ -954,6 +1037,27 @@ class Renderer:
         return plant, pot >= 0
 
     def plan_custom(self, spec: dict) -> list:
+        subject = spec.get("subject", "plant")
+        try:
+            if subject == "decoration":
+                k = int(spec.get("ornament", min(D.DECORATIONS)))
+                if k not in D.DECORATIONS:
+                    raise PictureError("Pick a decoration.")
+                return self.scenery.decoration(k)
+            if subject == "bug":
+                bug, frame = int(spec.get("bug", 0)), int(spec.get("frame", 0))
+                if not (0 <= bug < BUG_COUNT and 0 <= frame < BUG_FRAMES):
+                    raise PictureError("Pick a bug and a frame.")
+                return self.scenery.bug(bug, frame)
+            if subject == "pot":
+                style, level = int(spec.get("style", 0)), int(spec.get("level", 0))
+                soil = str(spec.get("soil", "soil"))
+                if not (0 <= style < D.SPRITES[POT_SPRITE][2] and level in SOIL_LEVELS
+                        and soil in dict(SOIL_LOOKS)):
+                    raise PictureError("Pick a pot, its soil and its upgrade.")
+                return self.scenery.pot(style, soil, level, bool(spec.get("wet", False)))
+        except (TypeError, ValueError):
+            raise PictureError("Pick one of the choices offered.") from None
         plant, pot = self._custom_plant(spec)
         return self.planner.plan(plant, 0, 0, pot=pot)
 

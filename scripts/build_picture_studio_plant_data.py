@@ -190,6 +190,60 @@ def starting_shapes(exe_path: Path, tables: dict) -> dict:
     return out
 
 
+NURSERY_LAYERS = 0x437070          # the nursery's scenery draw: (2) behind the plants, (1) in front
+ORNAMENTS_AT, ORNAMENT_SIZE, ORNAMENT_COUNT = 0x9EC, 0x20, 15     # state + 0x9EC + k x 0x20: owned byte
+SCENE_STATE, SCENE_SPRITES, SCENE_MANAGER = 0xA3C, 0xA40, 0xA44
+SPRITE_DRAW = 0x4207F0             # (sprite, x, y, alpha 0-1 float, scale %): a whole picture
+
+
+def nursery_draws(exe_path: Path, owned: set) -> list:
+    """0x437070(2) then 0x437070(1) with the ornaments `owned`: each sprite call (id, x, y, scale
+    percent, alpha percent) in order (0x4207F0 takes id, x, y, alpha, scale). Magic plants' golden pots (0x42F4B0 / 0x435EE0) and the
+    visitors (0x417C50, 0x417350) are left out."""
+    import store_emulator as E
+    emu = E.Emulator(exe_path, None, {})
+    emu.uc.mem_map(0, 0x1000)
+    calls = []
+    signed = lambda v: v - (1 << 32) if v & 0x80000000 else v
+
+    def record(e):
+        alpha = struct.unpack("<f", struct.pack("<I", e.arg(3)))[0]
+        calls.append((e.arg(0), signed(e.arg(1)), signed(e.arg(2)), e.arg(4), round(alpha * 100)))
+        return 0
+    emu.hook(SPRITE_DRAW, record, 0x14)
+    for address, pop in ((0x42F4B0, 0x10), (0x435EE0, 0x10), (0x417350, 0)):
+        emu.hook(address, lambda e: 0, pop)
+    emu.hook(0x417C50, lambda e: e.alloc(0x100))
+    state = emu.alloc(0x63E70)
+    for k in owned:
+        emu.write8(state + ORNAMENTS_AT + k * ORNAMENT_SIZE, 1)
+    scene = emu.alloc(0x1000)
+    emu.write32(scene + SCENE_STATE, state)
+    emu.write32(scene + SCENE_SPRITES, emu.alloc(0x10))
+    emu.write32(scene + SCENE_MANAGER, emu.alloc(0x100))
+    for layer in (2, 1):
+        emu.call(NURSERY_LAYERS, layer, ecx=scene)
+    return calls
+
+
+def decorations(exe_path: Path) -> dict:
+    """ornament k -> the sprite calls owning it adds to the nursery's scenery (drawn only when it is
+    owned), in the game's order."""
+    base = nursery_draws(exe_path, set())
+    out = {}
+    for k in range(ORNAMENT_COUNT):
+        rest = list(base)
+        added = []
+        for call in nursery_draws(exe_path, {k}):
+            if call in rest:
+                rest.remove(call)
+            else:
+                added.append(call)
+        if added:
+            out[k] = tuple(added)
+    return out
+
+
 def branches(record: bytes) -> tuple:
     """The branch records up to the first unused one: (part, type, born, ((joint, child), ...))."""
     out = []
@@ -255,6 +309,11 @@ def render(exe_path: Path) -> str:
         lines.append(f"    {f}: (")
         lines += [f"        {s!r}," for s in shapes]
         lines.append("    ),")
+    lines += ["}", "",
+              "# nursery ornament k (state + 0x9EC + k x 0x20 owned) -> the sprite calls (0x4207F0: id, x, y,",
+              "# scale %, alpha %) the nursery's scenery draw (0x437070(2), then (1)) adds when it is owned",
+              "DECORATIONS = {"]
+    lines += [f"    {k}: {v!r}," for k, v in decorations(exe_path).items()]
     lines += ["}", ""]
     return "\n".join(lines)
 
