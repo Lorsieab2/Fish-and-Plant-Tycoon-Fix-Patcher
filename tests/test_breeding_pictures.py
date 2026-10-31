@@ -246,8 +246,10 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(built["message"].cget("text"), "", tab_id)
             self.assertTrue(built["cells"])
             self.assertTrue(all(image is not None for _i, image, _l in built["cells"]), tab_id)
-        self.assertEqual([g.tier for g in self.guide.pictures["pictures:seeds"]["groups"]],
-                         ["Common", "Endangered", "Extinct"])
+        # Seed Pictures is a grid (tests/test_breeding_collectopedia.py: SeedGridTests)
+        columns, rows = self.guide.pictures["pictures:seeds"]["grid"]
+        self.assertEqual(columns, ["Common", "Endangered", "Extinct", "Extinct (Arthurium to Tilia flower)"])
+        self.assertEqual(len(self.guide.pictures["pictures:seeds"]["cells"]), 4 * 23)
 
     def test_export_on_a_picture_tab_does_nothing(self) -> None:
         self.use(make_fish_copy(Path(self.tmp.name)))
