@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Copy Player Slot** (Tools tab, new), both games: copies a player into an
+  empty slot of the same save folder under a new name, with the patcher's own
+  files for that player (extra tanks and greenhouses, supply slots, DS fish,
+  tank animals, seed boxes, new flowers and the rest), so the copy has
+  everything the original has. It asks first, needs the game closed, never
+  copies over a slot in use, and backs the save folder up first as
+  "(before copy)". Tests: tests/test_save_tools.py.
+- **Fixed: Fish Tycoon's supply slot tooltips** ("Fish Food", "N doses left")
+  ran off the left of the screen and outside their dark box, over the "Tank 1"
+  label. The box was always 20 pixels wide: DS Store Items measured the text
+  with the hints' colour (0x45B26C, which is 0) as if it were a font. It now
+  measures in the font the text is really drawn in (the game's default font),
+  so the box fits the text and stays on screen with its rope edge.
 - **Extra Chemical Slots: the page arrows sit beside the Tools box**, one on
   each side (as Extra Greenhouses' arrows sit beside the greenhouse), with
   "1/2" / "2/2" under the right one, instead of on the box's "Tools" plaque

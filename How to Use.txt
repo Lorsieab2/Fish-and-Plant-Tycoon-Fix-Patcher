@@ -276,6 +276,13 @@ Getting a plant into a nursery (5 extra nurseries):
   the ones of the nursery on screen). Away from the nursery nothing sells,
   as in the unpatched game.
 
+Tools tab, Copy Player Slot: pick the game, a save folder, the player to
+copy, an empty slot to copy to and a new name, then Copy and Yes. The copy
+gets the player's whole game and the patcher's own files for it (extra
+tanks or greenhouses, supply slots, DS fish and the rest); the original is
+not changed. Close the game first. The save folder is backed up first, as
+"Backup <date> (before copy)", so Restore Saves can undo it.
+
 Tools tab, Breeding Guide: pick the game, a save folder and a player. Tabs
 for each part (Fish: Fins and Bodies; Plant: Flowers and Foliage), the
 species with the pairs that breed them and their best prices, a Breeding

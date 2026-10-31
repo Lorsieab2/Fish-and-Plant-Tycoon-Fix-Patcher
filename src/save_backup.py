@@ -62,11 +62,12 @@ INCOMPLETE = " INCOMPLETE"
 DELETING = " (deleting)"
 BEFORE_RESTORE = "(before restore)"
 BEFORE_RENAME = "(before rename)"
+BEFORE_COPY = "(before copy)"
 HASH_CHUNK = 1 << 20
 RETRIES = 5
 RETRY_SECONDS = 0.5
 _BACKUP_NAME = re.compile(
-    r"^Backup (\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2})(?: \((\d+)\))?(?: (\(before (?:restore|rename)\)))?$"
+    r"^Backup (\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2})(?: \((\d+)\))?(?: (\(before (?:restore|rename|copy)\)))?$"
 )
 
 
@@ -442,7 +443,7 @@ def describe_size(size: int) -> str:
 class BackupInfo:
     folder: Path
     when: datetime
-    label: str                          # "", BEFORE_RESTORE or BEFORE_RENAME
+    label: str                          # "", BEFORE_RESTORE, BEFORE_RENAME or BEFORE_COPY
     file_count: int
     total_bytes: int
     players: dict[int, str]             # slot -> player name, for the slots it holds
@@ -501,7 +502,7 @@ def list_backups(game_id: str, save_folder: Path) -> list[BackupInfo]:
 # "... 2.dat.unreadable"), and the copies a DLL names before ".dat"
 # ("DS Fish 2.unreadable-1.dat", "Tank Animals 2.previous.dat"). <n> is the
 # game's own save number, so a DLL that writes beside each save also writes
-# beside the game's older generation (n + 20, and for Plant Tycoon n + 40).
+# beside the game's older generations (n + 20 and n + 40, in both games).
 _SIDE_FILE_SLOT = re.compile(r" (\d+)(?:\.[a-z]+(?:-\d+)?)?\.dat(?:\.tmp|\.unreadable[^\\/]*)?$", re.I)
 
 

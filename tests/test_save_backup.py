@@ -146,14 +146,14 @@ class SaveBackupTests(unittest.TestCase):
                            ("Plant Tycoon Fix Patcher Data/Extra Greenhouses 22.previous.dat", 2)):
             self.assertEqual(save_backup.file_slot("plant", Path(name)), slot, name)
         self.assertEqual(save_backup.file_slot("fish", Path("Fish Tycoon25.ldw")), 5)
-        self.assertEqual(save_backup.file_slot("fish", Path("Fish Tycoon45.ldw")), "unknown")
+        self.assertEqual(save_backup.file_slot("fish", Path("Fish Tycoon45.ldw")), 5)   # Fish keeps n + 40 too
         self.assertEqual(save_backup.file_slot("fish", Path("Fish Tycoon Fix Patcher Data/DS Fish 2.dat")), 2)
         # The copies a DLL names before ".dat": set aside when unreadable, or kept from the last save.
         for name, slot in (("DS Fish 2.unreadable-1.dat", 2), ("Ornaments 3.unreadable-12.dat", 3),
                            ("Tank Animals 4.previous.dat", 4), ("Tank Animals 4.tmp.dat", 4),
                            ("Extra Tanks 1.dat.tmp", 1), ("Tank Animals 4.dat", 4), ("Notes 2.txt", "unknown"),
                            ("DS Fish 7.dat", "unknown"), ("DS Fish 2.unreadable-1.dat.tmp", 2),
-                           ("Extra Tanks 21.dat", 1), ("DS Fish 25.unreadable-1.dat", 5), ("DS Fish 45.dat", "unknown")):
+                           ("Extra Tanks 21.dat", 1), ("DS Fish 25.unreadable-1.dat", 5), ("DS Fish 45.dat", 5), ("DS Fish 65.dat", "unknown")):
             self.assertEqual(save_backup.file_slot("fish", Path("Fish Tycoon Fix Patcher Data") / name), slot, name)
 
     def test_delete_backup(self) -> None:
