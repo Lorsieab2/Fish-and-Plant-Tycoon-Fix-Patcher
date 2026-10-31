@@ -36,6 +36,12 @@ RENDERER_MODULES = {"fish": "pictures_fish", "plant": "pictures_plant"}
 COMING = "Pictures for this game are coming in a later update."
 PREVIEW = 300                         # the preview area's side, in pixels
 CONTAINERS = {"fish": "tank", "plant": "greenhouse"}
+FACING_LABELS = ("Facing left", "Facing right", "Turning")      # the fish's ways (pictures_fish.FACINGS)
+# "From my save": in a tank or greenhouse that holds fish (plants), everything else (decorations,
+# creatures ...) is listed in its own sub-node, and "Save all" saves it in a sub-folder of that name.
+MAIN_KIND = {"fish": "fish", "plant": "plant"}
+OTHERS = {"fish": "Decorations and creatures", "plant": "Decorations and other things"}
+SAVE_ALL_WHAT = {"fish": "fish, creatures and decorations", "plant": "plants and decorations"}
 
 HELP = (
     "Picture Studio",
@@ -46,7 +52,8 @@ HELP = (
         "by tank (Fish Tycoon: Tanks 1-3, the isolation tank, and Tanks 4-6 with the patcher's 3 extra tanks) "
         "or greenhouse by greenhouse (Plant Tycoon, with the patcher's extra greenhouses), then the creatures "
         "and decorations. Click one to see it as the game draws it now, at its own age, growth and state. "
-        "Fish can be shown swimming either way, or turning, at any of their frames. As in the game, a fish "
+        "Fish can be shown facing left or right, or turning, at any of their frames (Facing and Frame, "
+        "under the picture; plants have neither, so the plant window does not show them). As in the game, a fish "
         "is named only once it is grown (age 20): younger ones are \"Baby fish\" or \"Teen fish\", in the list "
         "and in the saved pictures' names, unless Show Spoilers is on.",
         "Make your own: pick the parts (a body and a fin, or a foliage and a flower), the age or growth "
@@ -59,7 +66,9 @@ HELP = (
         "Saving: \"Save PNG...\" saves the picture shown. Pick the size first: the game's own size, 2x or 4x "
         "(each pixel made a crisp square), or your own width and height (smoothly scaled; leave one empty to "
         "keep the shape). The picture is cut to what is drawn, with a small clear margin, or none if you untick "
-        "it. \"Save all in this tank\" (or greenhouse) saves every picture in it into a new folder.",
+        "it. \"Save all in this tank\" (or greenhouse) saves every picture in it into a new folder. In a tank "
+        "(greenhouse) with fish (plants), the decorations and creatures are listed in their own \"Decorations and "
+        "creatures\" (\"Decorations and other things\") sub-list, and saved in a folder of that name inside it.",
         "The pictures come from your own copy of the game: the first time the window finds one, it copies the "
         "pictures it needs into its own folder, \"Picture Studio Pictures\" beside the patcher, and uses them "
         "from then on. If it has not found one yet, click \"Find game...\" and pick your game folder. Your saves "
@@ -400,11 +409,13 @@ class PictureStudio:
         right.pack(side="left", fill="y")
         self.save_preview = self._preview_pane(right, "save")
         self.save_preview["pane"].pack(fill="x")
-        ways = ttk.Frame(right, padding=(10, 6))
-        ways.pack(fill="x")
-        ttk.Label(ways, text="Swimming:").grid(row=0, column=0, sticky="w")
-        self.facing_box = ttk.Combobox(ways, state="readonly", width=18,
-                                       values=["Swimming left", "Swimming right", "Turning"])
+        # Facing and Frame: only Fish Tycoon draws a way of facing and frames (the Plant Tycoon
+        # pot draw has neither), so the plant window does not show them.
+        ways = self.ways_frame = ttk.Frame(right, padding=(10, 6))
+        if self.game_id == "fish":
+            ways.pack(fill="x")
+        ttk.Label(ways, text="Facing:").grid(row=0, column=0, sticky="w")
+        self.facing_box = ttk.Combobox(ways, state="readonly", width=18, values=list(FACING_LABELS))
         self.facing_box.current(0)
         self.facing_box.grid(row=0, column=1, sticky="w", padx=(4, 0))
         ttk.Label(ways, text="Frame:").grid(row=1, column=0, sticky="w", pady=(4, 0))
@@ -420,6 +431,11 @@ class PictureStudio:
         word = CONTAINERS.get(self.game_id, "tank")
         self.save_all_button = ttk.Button(buttons, text=f"Save all in this {word}...", command=self.save_all)
         self.save_all_button.pack(anchor="w", pady=(6, 0))
+        self.save_all_note = ttk.Label(
+            buttons, text=f"Saves every picture in the {word} you picked (its {SAVE_ALL_WHAT.get(self.game_id, 'pictures')}) "
+                          f"into a new folder; \"{OTHERS.get(self.game_id, 'Others')}\" go in a folder of that name inside it.",
+            wraplength=PREVIEW, justify="left", foreground="#555555")
+        self.save_all_note.pack(anchor="w", pady=(4, 0))
         self.save_tree.bind("<<TreeviewSelect>>", lambda _e: self._show_saved())
         self._fill_save_list()
 
@@ -429,6 +445,7 @@ class PictureStudio:
         self.items = []
         self.item_nodes: dict[str, pi.SavedItem] = {}
         self.location_nodes: dict[str, str] = {}
+        self.group_nodes: dict[str, str] = {}          # the "Decorations and creatures" node -> its place
         folder, slot = self.current_folder(), self.current_slot()
         if folder is None or slot is None:
             self.save_preview["info"].configure(text="Pick a save folder and a player to see what the save holds.")
@@ -438,13 +455,23 @@ class PictureStudio:
         except Exception as exc:
             self.save_preview["info"].configure(text=f"The save could not be read: {exc}", foreground="#a01010")
             return
+        others: dict[str, str] = {}
         for item in self.items:
             parent = self.location_nodes.get(item.location)
             if parent is None:
                 parent = tree.insert("", "end", text=item.location, open=True)
                 self.location_nodes[item.location] = parent
+            if self.is_other(item):
+                group = others.get(item.location)
+                if group is None:
+                    group = tree.insert(parent, "end", text=OTHERS.get(self.game_id, "Others"), open=False)
+                    others[item.location] = group
+                    self.group_nodes[group] = item.location
+                parent = group
             node = tree.insert(parent, "end", text=item.label, values=(item.kind,))
             self.item_nodes[node] = item
+        for location, group in others.items():           # the sub-node after the fish (plants)
+            tree.move(group, self.location_nodes[location], "end")
         if not self.items:
             self.save_preview["info"].configure(text="Nothing in this save is drawn yet.")
 
@@ -468,7 +495,16 @@ class PictureStudio:
             return None
         node = selection[0]
         item = self.item_nodes.get(node)
-        return item.location if item is not None else self.save_tree.item(node, "text")
+        if item is not None:
+            return item.location
+        return self.group_nodes.get(node) or self.save_tree.item(node, "text")
+
+    def is_other(self, item: pi.SavedItem) -> bool:
+        """Whether the item goes in its place's "Decorations and creatures" sub-node: it is not a
+        fish (plant) and its tank (greenhouse) holds fish (plants). A place with no fish, such
+        as "Every tank", lists its things directly."""
+        main = MAIN_KIND.get(self.game_id)
+        return item.kind != main and any(i.location == item.location and i.kind == main for i in self.items)
 
     def saved_options(self) -> dict:
         facing = ("left", "right", "turn")[max(0, self.facing_box.current())]
@@ -666,16 +702,29 @@ class PictureStudio:
         except OSError as exc:
             self._tell("warning", f"The folder could not be made: {exc}")
             return None
+        main_word = {"fish": "fish", "plant": "plant(s)"}.get(self.game_id, "picture(s)")
+        counts = {"main": 0, "other": 0}
+        others = target / pi.safe_file_name(OTHERS.get(self.game_id, "Others"))
         for item in self.items:
             if item.location != location:
                 continue
+            other = self.is_other(item)
             try:
                 image = self.render_item(item)
-                pi.save_png(image, pi.unique_path(target, pi.safe_file_name(item.label)), **options)
+                if other:
+                    others.mkdir(exist_ok=True)
+                pi.save_png(image, pi.unique_path(others if other else target, pi.safe_file_name(item.label)),
+                            **options)
                 saved += 1
+                counts["other" if other else "main"] += 1
             except (OSError, pi.PictureError) as exc:
                 failed.append(f"{item.label}: {exc}")
-        text = f"{saved} picture(s) saved in {target}."
+        text = f"{saved} picture(s) of {location} saved in {target}"
+        if counts["other"]:
+            text += (f": {counts['main']} {main_word}, and {counts['other']} in the "
+                     f"\"{OTHERS.get(self.game_id, 'Others')}\" folder.")
+        else:
+            text += "."
         if failed:
             text += "\nNot saved:\n" + "\n".join(failed[:10])
         self._tell("info", text)

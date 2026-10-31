@@ -636,7 +636,7 @@ def _read_ornament_copies(folder: Path, slot: int, notes: list) -> dict:
 
 # ------------------------------------------------------------------ the renderer
 
-FACINGS = (("left", "Swimming left", MODE_LEFT), ("right", "Swimming right", MODE_RIGHT),
+FACINGS = (("left", "Facing left", MODE_LEFT), ("right", "Facing right", MODE_RIGHT),
            ("turn", "Turning", MODE_TURN))
 FRAMES = tuple(Option(k, f"Frame {k + 1}") for k in range(6))
 STATES = (("healthy", "Healthy"), ("ick", "Sick: ick"), ("fungus", "Sick: fungus"), ("dead", "Dead"))
@@ -845,7 +845,7 @@ class FishRenderer:
         known_fins = {f for _b, f in (discovered or ())}
         bodies = tuple(Option(g, part_name("body", g), is_ds(g)) for g in genes if spoilers or g in known_bodies)
         fins = tuple(Option(g, part_name("fin", g), is_ds(g)) for g in genes if spoilers or g in known_fins)
-        facing = Field("facing", "Swimming", tuple(Option(k, label) for k, label, _m in FACINGS), "left")
+        facing = Field("facing", "Facing", tuple(Option(k, label) for k, label, _m in FACINGS), "left")
         frame = Field("frame", "Frame", FRAMES, 0)
         fish = Subject("fish", "Fish", (
             Field("fin", "Fin", fins, fins[0].key if fins else None),
@@ -854,7 +854,7 @@ class FishRenderer:
             Field("state", "State", tuple(Option(k, label) for k, label in STATES), "healthy"),
             facing, frame),
             note="Ages follow the game: under 6 a baby, under 20 a teen (it grows from 100% at age 6 to 139% "
-                 "at 19), then an adult. Sick spots show on adults swimming left or right, as in the game."
+                 "at 19), then an adult. Sick spots show on adults facing left or right, as in the game."
                  + ("" if spoilers else " Show Spoilers is off: only the bodies and fins you have discovered."))
         creatures = [Option("seahorse", "Golden Seahorse")]
         if "ds_store" in extras:
@@ -863,7 +863,7 @@ class FishRenderer:
         creatures += [Option(f"snail{index}", f"Cleaning Snail, {words}") for index, words in SNAIL_VIEWS]
         creature = Subject("creature", "Creatures", (
             Field("creature", "Creature", tuple(creatures), "seahorse"), facing, frame),
-            note="The snail has one picture for each way it crawls; Swimming and Frame are for the swimmers.")
+            note="The snail has one picture for each way it crawls; Facing and Frame are for the swimmers.")
         decorations = [Option(f"orn{sprite}", name) for sprite, name in ORNAMENTS]
         if "ds_store" in extras:
             decorations += [Option("rock", ROCK_NAME, True), Option("rock_home", ROCK_NAME + ", the eel at home", True)]

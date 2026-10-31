@@ -312,8 +312,9 @@ have not collected is a "?".
 Tools tab, Picture Studio: pick the game, a save folder and a player.
 "From my save" lists everything the save holds, tank by tank (Tanks 4-6
 too, with 3 extra tanks) or greenhouse by greenhouse (with extra
-greenhouses), then its creatures and decorations; click one to see it drawn
-as the game draws it now (fish can swim left, right or turn). As in the
+greenhouses), then its creatures and decorations (in a tank with fish they are in
+their own "Decorations and creatures" sub-list); click one to see it drawn
+as the game draws it now (fish: Facing left or right, or Turning, and Frame). As in the
 game, a fish under 20 is not named: with Show Spoilers off it is "Baby fish"
 or "Teen fish". "Make your own" draws any Fin and Body at any Stage (baby,
 teen at each age, adult) and State (healthy, ick, fungus, dead), or any

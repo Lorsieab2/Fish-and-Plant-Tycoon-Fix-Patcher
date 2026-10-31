@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Picture Studio: "Facing"**. The box under the preview is now "Facing:"
+  (Facing left / Facing right / Turning), in "From my save" and in Make your
+  own's Fish and Creatures tabs. Plant Tycoon has no facing or frames, so the
+  plant window no longer shows those fish boxes.
+- **Picture Studio: decorations and creatures in their own sub-list.** In
+  "From my save", a tank that holds fish lists its decorations, creatures and
+  anything else that is not a fish in a "Decorations and creatures" node after
+  the fish (Plant Tycoon: "Decorations and other things" in a greenhouse). "Save
+  all in this tank/greenhouse" still saves the whole tank, the non-fish in a
+  folder of that name inside it, and says how many of each it saved.
 - **Fixed: Picture Studio drew Radioactive Plant Formula plants wrong** (Plant
   Tycoon, "From my save"). A plant given the formula carries flowers on the
   extra spots Store Upgrades and Items.dll adds to the game's shape tables at

@@ -11,6 +11,7 @@ import struct
 import sys
 import tempfile
 import tkinter as tk
+from tkinter import ttk
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +20,7 @@ sys.path.insert(0, str(ROOT / "tests"))
 
 import picture_image as pi  # noqa: E402
 import picture_studio as ps  # noqa: E402
+import pictures_fish as pf  # noqa: E402
 from test_breeding_fish import make_save, make_settings  # noqa: E402
 from test_breeding_guide import tk_root  # noqa: E402
 from test_pictures_fish import fake_game_copy, put_fish  # noqa: E402
@@ -180,6 +182,85 @@ class WindowTests(unittest.TestCase):
         self.studio.spoilers_var.set(False)
         self.root.update()
         self.assertEqual(self.tree_items()["Tank 2"], ["Baby fish (age 2)"])
+
+    def add_tank_1_decoration_and_seahorse(self) -> None:
+        """A rock ornament (sprite 178) and a Golden Seahorse in Tank 1, then the list again."""
+        path = self.folder / "Fish Tycoon1.ldw"
+        data = bytearray(path.read_bytes())
+        at = pf.SAVE_HEADER - 8 + pf.ORN_BASE
+        data[at] = 1
+        struct.pack_into("<ii", data, at + 4, 100, 200)
+        struct.pack_into("<i", data, at + 0x1C, 120)
+        struct.pack_into("<i", data, at + 0x24, 178)
+        path.write_bytes(bytes(data))
+        put_fish(path, 0, 2, 22, 22, 21)
+        self.studio.renderer._save_key = None
+        self.studio._fill_save_list()
+        self.root.update()
+
+    def test_decorations_and_creatures_have_their_own_sub_list(self) -> None:
+        """The owner's rule: under each tank, the decorations, creatures and anything else that is
+        not a fish are in their own "Decorations and creatures" node, after the fish; a place
+        with no fish lists its things directly."""
+        self.add_tank_1_decoration_and_seahorse()
+        tree = self.studio.save_tree
+        tank = self.studio.location_nodes["Tank 1"]
+        children = [tree.item(c, "text") for c in tree.get_children(tank)]
+        self.assertEqual(children, ["Crimson Comet (adult, age 25)", "Teen fish (age 9)", "Decorations and creatures"])
+        group = tree.get_children(tank)[-1]
+        inside = [self.studio.item_nodes[c] for c in tree.get_children(group)]
+        self.assertEqual(sorted(i.kind for i in inside), ["creature", "decoration"])
+        self.assertIn("Golden Seahorse", [i.label for i in inside])
+        for node, item in self.studio.item_nodes.items():
+            if item.location == "Tank 1" and item.kind == "fish":
+                self.assertEqual(tree.parent(node), tank)
+        self.assertEqual([tree.item(c, "text") for c in tree.get_children(self.studio.location_nodes["Tank 2"])],
+                         ["Baby fish (age 2)"])
+        tree.selection_set(group)
+        self.root.update()
+        self.assertEqual(self.studio.selected_location(), "Tank 1")
+        self.select("Golden Seahorse")
+        self.assertIsNotNone(self.studio.shown.get("save"))
+
+    def test_save_all_says_what_it_saves(self) -> None:
+        """"Save all in this tank" (from a fish, or from the sub-list) saves the whole tank: the fish
+        in the folder, the decorations and creatures in a "Decorations and creatures" folder in
+        it, and says so."""
+        self.add_tank_1_decoration_and_seahorse()
+        self.assertIn("fish, creatures and decorations", self.studio.save_all_note.cget("text"))
+        tree = self.studio.save_tree
+        tree.selection_set(tree.get_children(self.studio.location_nodes["Tank 1"])[-1])
+        self.root.update()
+        out = Path(self.tmp.name) / "grouped"
+        out.mkdir()
+        target = self.studio.save_all(str(out))
+        self.assertEqual(target.name, "Tester - Tank 1")
+        self.assertEqual(sorted(p.name for p in target.iterdir()),
+                         ["Crimson Comet (adult, age 25).png", "Decorations and creatures", "Teen fish (age 9).png"])
+        inside = sorted(p.name for p in (target / "Decorations and creatures").iterdir())
+        self.assertEqual(len(inside), 2)
+        self.assertIn("Golden Seahorse.png", inside)
+        self.assertIn("4 picture(s) of Tank 1", self.studio.last_message)
+        self.assertIn("2 fish, and 2 in the \"Decorations and creatures\" folder", self.studio.last_message)
+
+    def test_facing_and_frame_under_the_fish_preview(self) -> None:
+        """The box under the preview is "Facing:" (Facing left / Facing right / Turning), in the
+        save tab and Make your own, and it is shown for fish."""
+        self.assertEqual(list(self.studio.facing_box.cget("values")), ["Facing left", "Facing right", "Turning"])
+        self.assertTrue(self.studio.ways_frame.winfo_ismapped())
+        labels = [w.cget("text") for w in self.studio.ways_frame.winfo_children() if isinstance(w, ttk.Label)]
+        self.assertEqual(labels, ["Facing:", "Frame:"])
+        fish = self.studio.custom_boxes["fish"]
+        self.assertEqual(fish["facing"]["field"].label, "Facing")
+        self.assertEqual(list(fish["facing"]["box"].cget("values")), ["Facing left", "Facing right", "Turning"])
+        source = "\n".join((ROOT / f).read_text(encoding="utf-8") for f in
+                           ("src/picture_studio.py", "src/pictures_fish.py", "README.md", "How to Use.txt"))
+        self.assertNotIn("Swimming left", source)
+        self.assertNotIn('"Swimming:"', source)
+        self.studio.game_var.set("Plant Tycoon")
+        self.root.update()
+        self.assertFalse(self.studio.ways_frame.winfo_ismapped(), "plants have no Facing or Frame")
+        self.assertNotIn("facing", {k for boxes in self.studio.custom_boxes.values() for k in boxes})
 
     def test_never_writes_the_save(self) -> None:
         self.select("Silky Shark (adult, age 30, sick (ick))")

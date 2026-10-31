@@ -133,9 +133,10 @@ Additions since the first version:
 - `Image.draw(alpha=A)` follows the game's blitter (0x4041C0): with A below 255 a pixel's alpha
   a becomes `(a * A + 127) >> 8` (proven in tests/test_pictures_fish.py).
 - `render_saved` may take extra keyword options; the window passes `facing` ("left" / "right" /
-  "turn") and `frame` (0-5) to the Fish renderer only.
+  "turn") and `frame` (0-5) to the Fish renderer only, from its "Facing:" (Facing left / Facing right /
+  Turning) and "Frame:" boxes under the preview; the plant window hides both (the pot draw has neither).
 - Make your own, by the owner's spec: Fish has Fin, Body, Stage (baby, teen at each age 6-19,
-  adult), State (healthy, ick, fungus, dead), Swimming and Frame; Plant has Flower, Foliage and a
+  adult), State (healthy, ick, fungus, dead), Facing and Frame; Plant has Flower, Foliage and a
   Stage of seedling / budding / normal bloom / max bloom / max bloom + all effects / dead, plus
   any other state the game draws (wilting, infested ...). The window builds one combobox per
   `Field`, in order.

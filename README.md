@@ -880,13 +880,17 @@ folder never fails with "path too long".
     Ornaments' copies, plants and equipment), each at its own age and state.
     As in the game, a fish is named only from age 20: with Show Spoilers off
     younger ones are "Baby fish" / "Teen fish", in the list and in file names.
-    "Save all in this tank" saves every picture in it into a new folder. In
+    In a tank with fish, its decorations and creatures are in their own
+    "Decorations and creatures" sub-list, after the fish. "Save all in this
+    tank" saves every picture in it into a new folder, the decorations and
+    creatures in a "Decorations and creatures" folder inside it, and says how
+    many of each it saved. In
     Plant Tycoon: every pot, greenhouse by greenhouse (Greenhouses 2-6 from
     "Extra Greenhouses <slot>.dat"), and the decorations, each plant at its own
     age, growth and health; "Save all in this greenhouse".
   - Make your own, Fish Tycoon: Fin, Body, Stage (baby, teen at every age
-    6-19, adult) and State (healthy, ick, fungus, dead), swimming left, right
-    or turning, at any frame; creatures and decorations on their own tabs.
+    6-19, adult) and State (healthy, ick, fungus, dead), facing left or right
+    or turning (Facing), at any frame; creatures and decorations on their own tabs.
   - Make your own, Plant Tycoon: Flower, Foliage (the Unused Flowers too with
     that setting), Stage (seedling, budding, normal bloom, max bloom, max
     bloom with every effect, as after the Radioactive Plant Formula, and dead),
