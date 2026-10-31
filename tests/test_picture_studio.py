@@ -333,7 +333,7 @@ class PlantWindowTests(unittest.TestCase):
         studio = self.studio
         self.assertNotEqual(studio.status_var.get(), ps.COMING)
         titles = [s.title for s in studio.subjects]
-        for title in ("Plant", "Decorations", "Bugs", "Pots"):
+        for title in ("Plant", "Unused parts", "Decorations", "Bugs", "Pots"):
             self.assertIn(title, titles)
         plant = {f.key for f in studio.subjects[titles.index("Plant")].fields}
         self.assertTrue({"flower", "foliage", "stage"} <= plant)

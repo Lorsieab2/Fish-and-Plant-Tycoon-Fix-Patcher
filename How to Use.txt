@@ -320,7 +320,8 @@ or "Teen fish". "Make your own" draws any Fin and Body at any Stage (baby,
 teen at each age, adult) and State (healthy, ick, fungus, dead), or any
 Flower and Foliage at any Stage (seed, sprout, seedling, growing, budding, normal bloom, max bloom,
 max bloom with every effect), alive or dead, in any shape and pot, and the creatures,
-decorations, bugs and pots. The patcher's own parts (DS Exclusive Fish,
+decorations, bugs and pots, and Plant Tycoon's "Unused parts" (parts in
+the game's plant tables no plant ever grows). The patcher's own parts (DS Exclusive Fish,
 DS Store Items' animals, the Unused Flowers) are always offered, marked
 "(patcher)", and a save's DS fish and Unused Flowers plants are always
 drawn. With Show Spoilers off (the Breeding Guide's setting) only the parts

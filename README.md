@@ -899,7 +899,10 @@ folder never fails with "path too long".
     bloom with every effect, as after the Radioactive Plant Formula) and State
     (alive, or dead at any of those stages),
     the plant's starting shape and its pot; decorations, bugs and pots on
-    their own tabs. The game draws no wilting or infested look: a plant is
+    their own tabs. "Unused parts": the 12 parts in the game's own plant
+    tables that no plant ever grows (Reptans 6, Astera, Fern, Ananas 2,
+    Pitcher, Ridgeball), alive or dead, as the game's branch draw draws them.
+    Neither game has unused fish bodies or fins: all 21 of each are bred. The game draws no wilting or infested look: a plant is
     drawn alive or dead (0x42E4A0 checks only health 0).
   - With Show Spoilers off (the Breeding Guide's setting) Make your own offers
     only the parts you have discovered.

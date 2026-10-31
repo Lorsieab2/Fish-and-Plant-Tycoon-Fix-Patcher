@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Picture Studio: unused plant parts.** A new Make your own tab, "Unused
+  parts", draws the 12 parts in Plant Tycoon's own shape tables that no plant
+  ever grows (no constructor makes them: checked in Unicorn with every way of
+  answering its random rolls), alive or dead, exactly as the game's branch
+  draw draws them. Fish Tycoon has no unused fish parts: its 21 bodies and 21
+  fins are all bred, and its art holds no other fish sheets.
 - **Picture Studio: dead plants at every stage.** Make your own's Plant tab has
   a State (Alive / Dead) for any stage, seed to max bloom with every effect,
   each checked against the game's own draw; the old "Dead" stage is "Normal

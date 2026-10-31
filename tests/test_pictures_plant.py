@@ -287,6 +287,44 @@ class DrawPlanTests(unittest.TestCase):
             stock = dataclasses.replace(read, formula=False)
             self.assertNotEqual(plan_tuples(self.planner.plan(stock, 0, 0)), recorded, f"foliage {foliage}")
 
+    def test_unused_parts_draw_as_the_game_draws_them(self) -> None:
+        """Each unused part, alive and dead, as the game's own pot draw draws a plant of that part
+        alone (its pot and soil left out of the picture)."""
+        game = DrawGame()
+        pot_files = {D.SPRITES[pp.POT_SPRITE][0], D.SPRITES[pp.SOIL_SPRITE][0]}
+        for foliage, parts in pp.UNUSED_PARTS.items():
+            for part in parts:
+                for dead in (False, True):
+                    plant = pp.unused_part_plant(foliage, part, dead)
+                    recorded = [b for b in game.draw_pot(plant.to_record()) if b[0] not in pot_files]
+                    planned = plan_tuples(self.planner.plan(plant, 0, 0, pot=False))
+                    self.assertEqual(planned, recorded, f"{foliage}:{part} dead {dead}")
+                    self.assertEqual(len(planned), 1)
+
+    def test_no_constructor_makes_the_unused_parts(self) -> None:
+        """No class's constructor makes a branch of an unused part, with Random answered 0, n - 1
+        or at random (20 ways), and every other part with a picture is made."""
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import build_picture_studio_plant_data as build
+        for foliage, (ctor, _v, _t) in D.CLASSES.items():
+            emu = E.Emulator(PLANT_EXE, None, {})
+            emu.uc.mem_map(0, 0x1000)
+            answer = {"f": None}
+            emu.hook(RANDOM, lambda e: answer["f"](e.arg(0)) if e.arg(0) > 0 else 0)
+            for singleton in (0x41FCD0, 0x420670, 0x407A90):
+                emu.hook(singleton, lambda e: e.alloc(0x100))
+            made = set()
+            ways = [lambda n: 0, lambda n: n - 1] + [random.Random(k).randrange for k in range(20)]
+            for way in ways:
+                answer["f"] = way
+                record = emu.alloc(build.RECORD)
+                emu.write32(record + 0x4C, foliage)
+                emu.write32(record + 0x50, 1)
+                emu.call(ctor, record, ecx=emu.alloc(0x58))
+                made |= {b[0] for b in build.branches(bytes(emu.uc.mem_read(record, build.RECORD)))}
+            pictured = {p.id for p in pp.SHAPES[foliage] if p.sheet}
+            self.assertEqual(pictured - made, set(pp.UNUSED_PARTS.get(foliage, ())), foliage)
+
     def test_every_age_and_size_and_a_dead_plant(self) -> None:
         game = DrawGame()
         for foliage in range(1, 24):
@@ -776,7 +814,15 @@ class ChoicesTests(unittest.TestCase):
 
     def test_decorations_bugs_and_pots(self) -> None:
         subjects = {s.key: s for s in self.renderer.custom_choices(frozenset(), True, None)}
-        self.assertEqual(list(subjects), ["plant", "decoration", "bug", "pot"])
+        self.assertEqual(list(subjects), ["plant", "unused", "decoration", "bug", "pot"])
+        parts = [o.key for o in subjects["unused"].fields[0].options]
+        self.assertEqual(len(parts), 12)
+        for key in parts:
+            for state in ("alive", "dead"):
+                plan = self.renderer.plan_custom({"subject": "unused", "part": key, "state": state})
+                self.assertEqual(len(plan), 1, key)
+        with self.assertRaises(pi.PictureError):
+            self.renderer.plan_custom({"subject": "unused", "part": "2:0"})
         self.assertEqual(len(subjects["decoration"].fields[0].options), 15)
         self.assertEqual([len(f.options) for f in subjects["bug"].fields], [48, 6])
         self.assertEqual([len(f.options) for f in subjects["pot"].fields], [7, 3, 3, 2])

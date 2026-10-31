@@ -696,6 +696,21 @@ def apply_formula(plant: Plant, parts: tuple, foliage: int, rand) -> None:
     plant.age = max(plant.age, AGE_FULL)
 
 
+# Parts in the game's shape tables that no plant ever grows: no class's constructor makes a branch
+# of them (checked in Unicorn with every Random answered 0, answered n - 1 and 150 random ways,
+# tests/test_pictures_plant.py), and the game adds no branches after the constructor. The game's
+# branch draw (0x42E690 -> 0x42CFE0) draws any part of the table, so these are drawn as it would
+# draw a plant of that part alone, full grown (age 28, size 100).
+UNUSED_PARTS = {1: (0, 1, 2, 3, 4, 5), 5: (0,), 7: (7,), 8: (20, 22), 20: (1,), 23: (0,)}
+
+
+def unused_part_plant(foliage: int, part: int, dead: bool = False) -> Plant:
+    if part not in UNUSED_PARTS.get(foliage, ()):
+        raise PictureError("Pick one of the unused parts.")
+    return Plant(foliage=foliage, flower=0, age=f32(AGE_FULL), size=100, health=0 if dead else 100,
+                 branches=[Branch(part, 1, 0.0)])
+
+
 # The "Make your own" growth stages.
 STAGES = (
     ("seed", "Seed (just planted)"),
@@ -1037,6 +1052,15 @@ class Renderer:
         styles = tuple(Option(n, f"Pot {n + 1}") for n in range(D.SPRITES[POT_SPRITE][2]))
         return [
             Subject("plant", "Plant", fields, note),
+            Subject("unused", "Unused parts",
+                    (Field("part", "Part", tuple(Option(f"{f}:{p}", f"{bp.FOLIAGE_WORD[f]}: unused part {n + 1}",
+                                                        patcher=False)
+                                                 for f, parts in sorted(UNUSED_PARTS.items())
+                                                 for n, p in enumerate(parts)), "7:7"),
+                     Field("state", "State", tuple(Option(k, label) for k, label in PLANT_STATES), "alive")),
+                    "Parts in the game's own plant tables that no plant ever grows (no seed's starting "
+                    "shape has them), drawn as the game's branch draw would draw them, full grown, "
+                    "without a pot. Dead: the dead picture at 85%."),
             Subject("decoration", "Decorations",
                     (Field("ornament", "Decoration", tuple(Option(k, ORNAMENT_NAMES[k]) for k in sorted(D.DECORATIONS)),
                            min(D.DECORATIONS)),),
@@ -1080,6 +1104,10 @@ class Renderer:
                 if k not in D.DECORATIONS:
                     raise PictureError("Pick a decoration.")
                 return self.scenery.decoration(k)
+            if subject == "unused":
+                foliage, part = (int(v) for v in str(spec.get("part", "7:7")).split(":"))
+                plant = unused_part_plant(foliage, part, spec.get("state") == "dead")
+                return self.planner.plan(plant, 0, 0, pot=False)
             if subject == "bug":
                 bug, frame = int(spec.get("bug", 0)), int(spec.get("frame", 0))
                 if not (0 <= bug < BUG_COUNT and 0 <= frame < BUG_FRAMES):
