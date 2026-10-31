@@ -1,0 +1,12 @@
+LIBRARY "Extra Chemical Slots"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpChemSlotsInstalled = _FtfpChemSlotsInstalled@0
+    FtfpChemSlotsOwned
+    FtfpChemSlotsBuy
+    FtfpChemSlotsSave
+    FtfpChemSlotsLoad
+    FtfpChemSlotsDelete
+    FtfpChemSlotsNewGame
+    FtfpChemSlotsPage
+    FtfpChemSlotsRecord

@@ -17,7 +17,7 @@ import experimental  # noqa: E402
 
 EXPECTED = {
     "fish": {"bigger_tanks", "extra_tanks", "extra_supply_slots", "multiple_ornaments"},
-    "plant": {"extra_greenhouses", "extra_nurseries"},
+    "plant": {"extra_greenhouses", "extra_nurseries", "extra_chemical_slots"},
 }
 
 
@@ -53,6 +53,7 @@ class ExperimentalSettings(unittest.TestCase):
     def test_pin_scripts_define_the_flag(self) -> None:
         """The pin scripts rewrite these settings from their own definitions, so the flag is there too."""
         sys.path.insert(0, str(ROOT / "scripts"))
+        import pin_chem_slots
         import pin_extra_greenhouses
         import pin_extra_tanks
         import pin_multiple_ornaments
@@ -60,7 +61,7 @@ class ExperimentalSettings(unittest.TestCase):
         import pin_tank_expansion
         defined = [pin_tank_expansion.SETTING, pin_extra_tanks.SETTING, pin_multiple_ornaments.SETTING,
                    pin_supply_slots.SETTING,
-                   *pin_extra_greenhouses.SETTINGS]
+                   *pin_extra_greenhouses.SETTINGS, pin_chem_slots.SETTING]
         self.assertEqual({s["id"] for s in defined}, EXPECTED["fish"] | EXPECTED["plant"])
         for s in defined:
             self.assertTrue(experimental.is_experimental(s), s["id"])

@@ -1195,7 +1195,7 @@ class StoreItemTests(unittest.TestCase):
 
         art = ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png"
         chems = np.asarray(Image.open(art).convert("RGBA"))
-        self.assertEqual(chems.shape[0], 18 * 70)                     # chem_rows = 18 in the DLL
+        self.assertEqual(chems.shape[0], 21 * 70)                     # chem_rows = 21 in the DLL
         cell = chems[(frame // 2) * 70:(frame // 2 + 1) * 70, (frame % 2) * 70:(frame % 2 + 1) * 70, 3]
         ys, xs = np.nonzero(cell)
         left, top, right, bottom = x + xs.min(), y + ys.min(), x + xs.max(), y + ys.max()   # inclusive, on screen

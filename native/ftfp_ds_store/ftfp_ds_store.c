@@ -1398,13 +1398,40 @@ static const char *slot_name(int item, int de) {
     return NULL;
 }
 
-/* How many times the record can still be used, as the game will spend it. */
+/* The stock egg hatches' "empty the slot" (the first of the five field clears, 0x4213A7 common,
+   0x421476 unusual, 0x421549 rare): while it is there a batch is the whole stack. Universal supply
+   slots' stack_*_egg_uses patches put a call there that takes one batch and empties the slot only
+   at 0; anything else that is not the stock store counts the same way. */
+static const unsigned char EGG_CLEAR_COMMON[6] = { 0x89, 0xA9, 0x14, 0x03, 0x00, 0x00 };
+static const unsigned char EGG_CLEAR_OTHER[6] = { 0x89, 0xAA, 0x14, 0x03, 0x00, 0x00 };
+
+/* How many times the record can still be used, as the game this DLL runs in will spend it: read
+   from the executable's own code, never from the settings' names.
+     * medicines (0-1), Fish Vitamins and Growth Hormone (2-3) and this store's chemicals (29-31):
+       one dose a use, the stock tails (0x420D87, 0x421305): the count;
+     * the Unknown Chemical (4): the stock use sets the count to 1 first (0x4210B7), so one use,
+       unless that instruction is gone (Unknown Chemical: 3 uses, Universal supply slots): the count;
+     * stock eggs (5-7): one batch while the egg's stock clear is in place, else the count;
+     * the starter eggs (26): one batch, always (their clear, 0x42161A, is never patched);
+     * Exotic Fish Eggs (28): this DLL's own hatch (exotic_hatch) takes one of the stack only with
+       Universal supply slots' use trampoline in place (universal_slots), else empties it. */
 static int uses_left(int item, int count) {
-    if (item == 5 || item == 6 || item == 7 || item == STARTER_EGGS || item == EXOTIC_ITEM) {
-        return universal_slots() && item != STARTER_EGGS ? count : 1;
+    switch (item) {
+    case 4:
+        return ftfp_site_holds(0x004210B7u, UNKNOWN_ONE_USE, sizeof UNKNOWN_ONE_USE) ? 1 : count;
+    case 5:
+        return ftfp_site_holds(0x004213A7u, EGG_CLEAR_COMMON, sizeof EGG_CLEAR_COMMON) ? 1 : count;
+    case 6:
+        return ftfp_site_holds(0x00421476u, EGG_CLEAR_OTHER, sizeof EGG_CLEAR_OTHER) ? 1 : count;
+    case 7:
+        return ftfp_site_holds(0x00421549u, EGG_CLEAR_OTHER, sizeof EGG_CLEAR_OTHER) ? 1 : count;
+    case STARTER_EGGS:
+        return 1;
+    case EXOTIC_ITEM:
+        return universal_slots() ? count : 1;
+    default:
+        return count;
     }
-    if (item == 4 && ftfp_site_holds(0x004210B7u, UNKNOWN_ONE_USE, sizeof UNKNOWN_ONE_USE)) return 1;
-    return count;
 }
 
 /* "3 doses left", "1 use left", "2 batches left" (German "Noch 3 Dosen", ...). */

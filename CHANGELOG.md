@@ -2,6 +2,66 @@
 
 ## Unreleased
 
+- **Extra Nursery item a bit smaller** (Plant Tycoon, 5 extra nurseries). The
+  golden pot on the Upgrades view's Nursery shelf was drawn at its full 76 x 64
+  (the plant store's draw ignores the 0.84 scale it was given), taller than the
+  Time Warp clock and the coins beside it. It is now pre-scaled to the clock's
+  visible height (52 px), standing on the same shelf line, from a new row 20 of
+  the Upgrades chemicals sheet, drawn at scale 1 at (449, 296); its click and
+  tooltip rectangle is its picture's (453-514 x 305-356). Tests:
+  tests/test_nursery_icon.py.
+- **Extra chemical slots** (Plant Tycoon, new setting, off by default,
+  EXPERIMENTAL; needs Add new store upgrades and items, which it turns on;
+  Enable All turns it on). The greenhouse's Tools box is a 4 x 2 grid (the
+  four tools, and the 4-slot chemical tray under them); a second page of 8
+  chemical slots fills both rows, 12 in all. Bought once on the Upgrades
+  screen: Extra Chemical Slots, on the chemicals shelf's third row under the
+  Formula Bomb, $10,000 ($0 with Free upgrades, through the Upgrades DLL's
+  price), with a tick afterwards; until then the tray is the stock four. Then
+  a small gold arrow (the game's own, pre-scaled) and "1/2" / "2/2" in the
+  game's font sit on the Tools box's plaque, clear of every other control;
+  clicking the arrow or carrying a chemical over it turns the page (the tools
+  stay on page 1; a tool in the hand stays there). Each page-2 slot is run by
+  the game's own code: picked up, its record takes a stock tray record's place
+  (that slot's own bottle waits and is drawn in its place), so every chemical,
+  the game's and the Upgrades screen's, is used with its doses, kept in the
+  hand while doses remain, and the Upgrades screen's four go in the trash
+  (PR #76) exactly as from page 1. The store fills a chemical onto its own
+  bottle on either page, else the first free slot of page 1, then of page 2,
+  and refuses ("There is no room in your Chemical Tray.") only when all 12
+  are full. A held bottle let go or clicked on another slot of either page
+  moves there (empty), stacks (the same chemical) or swaps. Every chemical
+  slot of both pages has a tooltip of the game's own kind with the chemical's
+  name and doses left ("Revival Potion / 2 doses left"), none over an empty
+  slot or the bottle in the hand; they replace the stock tray tooltips while
+  the setting is on, bought or not. The tray is shared by every greenhouse
+  (with 5 extra greenhouses too) and untouched by the Time Warp. The save
+  keeps its stock layout (a page-2 bottle in the hand is put back for the
+  save and picked up again after); page 2 and the purchase are kept per save
+  slot in "Plant Tycoon Fix Patcher Data\Extra Chemical Slots <slot>.dat"
+  (written atomically, set aside if unreadable, understood by Back Up Saves);
+  a new game empties it. Turning the setting off loses nothing: Store
+  Upgrades and Items then puts page 2's chemicals into the stock tray on load
+  as far as they fit, and the file keeps the rest and the purchase (rewritten
+  only when the game saves). New companion "Extra Chemical Slots.dll"
+  (native/ftfp_chem_slots), loaded after every other companion: seven code
+  sites (five greenhouse calls, the tray's add and room) overlapping no other
+  patch, and the greenhouse screen's mouse and activation slots, chained with
+  Greenhouse Counts and Extra Greenhouses; all or none. Store Upgrades and
+  Items: the item, the save events passed on, the setting-off fallback, and
+  two more rows of its chemicals sheet (the item and the arrows). Tests:
+  tests/test_chem_slots.py (Unicorn, the vanilla executable, both DLLs).
+- Supply slot tooltips are patch-accurate, read from the running game's own
+  code: the Unknown Chemical shows its count only when the use's "set to 1"
+  (0x4210B7) is gone (Unknown Chemical: 3 uses, Universal supply slots), and
+  each stock egg shows its stack only when that egg's own hatch keeps the
+  stack (Universal supply slots' patches at 0x4213A7, 0x421476 and 0x421549),
+  instead of inferring the eggs from the use trampoline. Tests build the
+  pinned executable of every setting that changes a count (and Enable All),
+  put each supply in its slot with 1-3 left, and use it on the tank with the
+  game's own code until the slot is empty: the uses always equal the
+  tooltip's number. Fix vanilla bugs' Plant of Incubation adds a baby to a
+  batch, never a batch, so egg tooltips are unchanged by it.
 - **Everything is Free**, both games, a new setting: "Every store item and
   upgrade is free. Obviously a cheat mod, have fun!" Off by default and the
   first **cheat** setting (`"cheat": true`, src/cheat.py): the patcher shows

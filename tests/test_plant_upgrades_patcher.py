@@ -57,7 +57,8 @@ class ManifestTests(unittest.TestCase):
         # It writes no executable bytes: the flowers' DLL loads the Upgrades DLL, which loads the boxes'.
         pins = self.manifest["patched_sha256_by_settings"]
         screen_items = {"time_warp", "free_upgrades", "add_money",       # tests/test_store_extras.py
-                        "extra_greenhouses", "extra_nurseries"}          # tests/test_extra_greenhouses.py
+                        "extra_greenhouses", "extra_nurseries",          # tests/test_extra_greenhouses.py
+                        "extra_chemical_slots"}                           # tests/test_chem_slots.py
         added = [key for key in pins if "plant_upgrades" in key.split(",") and not screen_items & set(key.split(","))]
         self.assertEqual(len(added), 128)        # with and without Sort Seeds, the R key, Fix Vanilla Bugs, Optimize Prices, the counts and Everything is Free
         for key in added:

@@ -820,8 +820,11 @@ static void add_money(char *scene) {
    came out full size across three shelves.  The game's sprite table has one
    spare record, which the Upgrades link uses, so the icon shares this mod's
    chemicals sheet as the Time Warp clock and Add Money's coins do.  The
-   nursery stands on the Nursery shelf beside Add Money, drawn with the game's
-   own golden pot (goldpot.png, sprite 0x2C, the nursery's display).
+   nursery stands on the Nursery shelf beside Add Money: the game's own golden
+   pot (goldpot.png, the nursery's display), pre-scaled to the clock's and the
+   coins' visible height (row 20, frame 40, of the chemicals sheet), drawn at
+   scale 1.  It used to be sprite 0x2C with a scale of 0.84, which the store's
+   draw ignores, so it came out at its full 76 x 64, taller than its neighbours.
    An item shows only while its setting is on (its Owned export says -1 when
    it is off). */
 #define EXTRA_PRICE 10000
@@ -840,6 +843,9 @@ typedef struct extra_item {
 } extra_item;
 
 #define GREENHOUSE_FRAME 30                 /* row 15 of the chemicals sheet: rows 13 and 14 are Time Warp and Add Money */
+#define NURSERY_FRAME 40                    /* row 20: the golden pot, 52 px tall as the clock beside it */
+#define NURSERY_X 449                       /* the pot's art at 453-514 x 305-356, centred where the full-size one was */
+#define NURSERY_Y 296
 
 static const extra_item EXTRA_ITEM[EXTRA_ITEMS] = {
     /* The picture's visible part is x 414..451, y 58..111 (its 70 x 70 cell at 404, 50): on the shelf line
@@ -852,8 +858,8 @@ static const extra_item EXTRA_ITEM[EXTRA_ITEMS] = {
     { "Extra Nursery", L"Extra Nursery", L"You already have all five extra nurseries!",
       L"You can't afford to buy this yet! An extra nursery costs $10,000.",
       L"Buy Nursery %d for $%d?\n\nIt holds 15 more plants for sale. The arrows on the nursery screen lead to it.",
-      "FtfpExtraNurseriesOwned", "FtfpExtraNurseriesBuy", 0x2C, 0, 440 + 6, 296, 0.84f,
-      440 + 0x19, 296 + 0x1E, 440 + 19, 296 + 22, { 440, 296, 504, 360 } },
+      "FtfpExtraNurseriesOwned", "FtfpExtraNurseriesBuy", SHEET_CHEMICALS, NURSERY_FRAME, NURSERY_X, NURSERY_Y, 1.0f,
+      NURSERY_X + 0x19, NURSERY_Y + 0x1E, NURSERY_X + 19, NURSERY_Y + 22, { 453, 305, 514, 356 } },
 };
 static extra_fn extra_owned[EXTRA_ITEMS], extra_buy[EXTRA_ITEMS];
 static char *extra_tip[EXTRA_ITEMS];
@@ -907,6 +913,8 @@ static void load_extras(void) {
 }
 
 #include "auto_upgrades.h"            /* Automatic Sprinklers and the Auto-Healer */
+#include "../ftfp_chem_slots/chem_slots_file.h"
+#include "chem_slots_link.h"          /* Extra Chemical Slots (its own DLL and setting) */
 
 static void box_tip_text(int box) {
     if (boxes != NULL && boxes->owned(box)) sprintf_s(tip_text[TIP_BOXES + box], 64, "%s", BOX_TITLES[box]);
@@ -937,6 +945,7 @@ static void set_tooltips(char *scene) {
         AT(extra_tip[i], 8, unsigned char) = (unsigned char)upgrades_view;
     }
     auto_set_tips(upgrades_view);
+    chem_set_tip(upgrades_view);
 }
 
 static char *make_tooltip(char *scene, int id, const RECT *r, const char *text) {
@@ -979,6 +988,7 @@ static void make_tooltips(char *scene) {
         extra_tip[i] = make_tooltip(scene, 56 + TIPS + i, &EXTRA_ITEM[i].rect, extra_tip_text[i]);
     }
     auto_make_tips(scene);
+    chem_make_tip(scene);
 }
 
 static void switch_view(char *scene, int on) {
@@ -1038,6 +1048,7 @@ static int __cdecl on_draw(char *scene) {
         if (extra_owned[i]() >= EXTRA_COUNT) draw_shadow(mgr, 0, SHEET_TICK, it->tick_x, it->tick_y, 1.0f, 100);
     }
     auto_draw(mgr);
+    chem_draw(mgr);
     return 1;
 }
 
@@ -1117,6 +1128,7 @@ static int __cdecl on_click(char *scene, int x, int y) {
         if (extra_on(i) && inside(&EXTRA_ITEM[i].rect, x, y)) buy_extra(scene, i);
     }
     auto_click(scene, x, y);
+    chem_click(scene, x, y);
     return 1;
 }
 
@@ -1168,6 +1180,7 @@ static void __cdecl on_save(char *state, int slot) {
     DWORD header[3], written;
     if (boxes != NULL) boxes->save(state, slot);
     if (slot > 0) auto_save(slot);
+    chem_save(state, slot);
     if (slot <= 0 || !sidecar_path(slot, path, 1024, 1)) return;
     wcscpy_s(temp, 1100, path);
     wcscat_s(temp, 1100, L".tmp");
@@ -1207,6 +1220,7 @@ static void __cdecl on_load(const char *state, int slot) {
     seed_record body[LEGENDARY_COUNT];
     if (slot <= 0) return;
     auto_load(slot);
+    chem_load(state, slot);
     if (sidecar_path(slot, path, 1024, 0)) {
         file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (file != INVALID_HANDLE_VALUE) {
@@ -1231,11 +1245,13 @@ static void __cdecl on_delete(int slot) {
     wchar_t path[1024];
     if (slot > 0 && sidecar_path(slot, path, 1024, 0)) DeleteFileW(path);
     if (slot > 0) auto_delete(slot);
+    if (slot > 0) chem_delete(slot);
     if (boxes != NULL) boxes->remove(slot);
 }
 
 static void __cdecl on_new_game(void) {
     auto_new_game();
+    chem_new_game();
     if (boxes != NULL) boxes->new_game();
 }
 
@@ -1970,9 +1986,11 @@ static void site_data(ftfp_site_write *w, unsigned int va, int length, const uns
 static int prepare(void) {
     ftfp_site_write *w = writes;
     DWORD seed_file = (DWORD)(UINT_PTR)SEED_SHEET_FILE, chem_file = (DWORD)(UINT_PTR)CHEM_SHEET_FILE;
-    DWORD seed_rows = 8, chem_rows = 18;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money,
+    DWORD seed_rows = 8, chem_rows = 21;           /* rows 10-12: chemicals 37-39, 13: Time Warp, 14: Add Money,
                                                       15: the Extra Greenhouse, 16: Automatic Sprinklers,
-                                                      17: Auto-Healer */
+                                                      17: Auto-Healer, 18: Extra Chemical Slots,
+                                                      19: its page arrows (Extra Chemical Slots.dll),
+                                                      20: the Extra Nursery's golden pot */
     DWORD link[6];
     unsigned char bound = SITE_CHEM_PICTURE_BOUND_NEW;
     link[0] = LINK_SPRITE;
