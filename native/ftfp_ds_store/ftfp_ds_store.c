@@ -2890,7 +2890,8 @@ int __stdcall FtfpStoreStartup(const ftfp_store_host *host) {
         host_ok = name_sprites(host);
         warp_on = tw_enabled((HMODULE)&__ImageBase);
         money_on = ftfp_setting_on((HMODULE)&__ImageBase, L"Add Money.ini");
-        free_on = ftfp_setting_on((HMODULE)&__ImageBase, L"Free Upgrades.ini");
+        free_on = ftfp_setting_on((HMODULE)&__ImageBase, L"Free Upgrades.ini")
+                  || ftfp_everything_free((HMODULE)&__ImageBase);      /* Everything is Free implies it */
         if (host_ok && prepare() && ftfp_install_sites(writes, TOTAL_SITES)) {
             installed = 1;
             install_use_gate();
