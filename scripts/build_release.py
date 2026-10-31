@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 from pathlib import Path
@@ -104,6 +105,7 @@ FILES = [
     "src/game_mechanics_window.py",
     "docs/game-mechanics-window.md",
     "src/experimental.py",
+    "src/cheat.py",
     "src/tycoon_fix_patcher.py",
     "src/tycoon_fix_patcher_gui.py",
 ]
@@ -132,8 +134,39 @@ def bundled_asset_files() -> list[str]:
     return list(dict.fromkeys(relative for relative, _size, _digest in pinned_assets()))
 
 
+def imported_modules(entry: str = "tycoon_fix_patcher_gui") -> set[str]:
+    """Every src module the patcher can import, starting from the GUI and
+    following each import (top level or inside a function) through src."""
+    sources = {path.stem for path in (ROOT / "src").glob("*.py")}
+    seen: set[str] = set()
+    todo = [entry]
+    while todo:
+        name = todo.pop()
+        if name in seen or name not in sources:
+            continue
+        seen.add(name)
+        tree = ast.parse((ROOT / "src" / f"{name}.py").read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                todo.extend(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+                todo.append(node.module.split(".")[0])
+            elif (isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "import_module"
+                  and node.args and isinstance(node.args[0], ast.Constant)):
+                todo.append(str(node.args[0].value).split(".")[0])
+    return seen
+
+
+def missing_modules(files: list[str]) -> list[str]:
+    """The src files the patcher imports that the release list leaves out."""
+    return sorted(f"src/{name}.py" for name in imported_modules() if f"src/{name}.py" not in files)
+
+
 def main() -> int:
     global FILES
+    missing = missing_modules(FILES)
+    if missing:
+        raise RuntimeError(f"release list is missing modules the patcher imports: {missing}")
     FILES = FILES + bundled_asset_files()
     OUTPUTS.mkdir(exist_ok=True)
     target = OUTPUTS / NAME

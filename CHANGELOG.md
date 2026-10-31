@@ -2,6 +2,9 @@
 
 ## v1.0.18
 
+- **Fixed: the patcher would not start** ("No module named 'cheat'") from the
+  first v1.0.18 download, which left out `src/cheat.py`. The build now refuses
+  to make a ZIP that leaves out any module the patcher imports.
 - **Picture Studio** (Tools tab, new). Shows the fish, creatures and
   decorations in a Fish Tycoon save, tank by tank (Tanks 4-6 too), and
   pictures you make from any fin, body, stage and state, drawn exactly as the
