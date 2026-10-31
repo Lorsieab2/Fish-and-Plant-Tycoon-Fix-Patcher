@@ -365,6 +365,16 @@ def shop_best_price(v: int, golden_berries: bool, score: int) -> int:
     return price_search(v, Condition(golden_berries=golden_berries), visitor_limit(score))[0]
 
 
+def shop_max_price(v: int, golden_berries: bool) -> int:
+    """The Max Prices button's price for a species of value V: price_search's highest selling
+    price for a healthy, flowering, unpruned plant without Plant Food, with the Golden Berries of
+    Wealth as found. The only save-wide effect on the price seen (0x436D4B-0x436E3C) is the
+    Golden Berries (state + 0x2183, a quarter off); the others are per plant. Visitors change the
+    odds, never the ceiling, so the score does not count (price_search's highest is the same for
+    any number of visitors)."""
+    return price_search(v, Condition(golden_berries=golden_berries), 0)[2]
+
+
 def mutation_steps(key: tuple[int, int], extras: bool) -> list[tuple[tuple[int, int], float]]:
     """One Mutation Liquid dose (0x42FA80): every result with its chance."""
     foliage, flower = key

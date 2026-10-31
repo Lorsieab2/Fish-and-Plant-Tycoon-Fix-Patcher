@@ -834,7 +834,11 @@ HELP = (
         "discovered species to its best price per day, worked out with this guide's own maths for your shop "
         "as it is at that moment (Fish: your ornaments, Golden Seahorse and Advertising level, a full selling "
         "tank; Plant: your ornaments, magic plants, Golden Berries and bug collection, all 15 sale spots "
-        "filled, a healthy flowering plant). Undiscovered species keep their prices.",
+        "filled, a healthy flowering plant). Beside it, a \"Max Prices\" button sets every discovered "
+        "species to its highest selling price instead, the guide's \"highest selling\" with your save's "
+        "game-wide effects (Fish: 2 x base price - 1, which nothing in a save raises; Plant: the Golden "
+        "Berries of Wealth raise it); at that price they sell much more slowly. Undiscovered species keep "
+        "their prices.",
         "Click a column header to sort, and type in Search to filter. Export saves the open sheet as .xlsx or "
         ".csv. The Breeding Calculator lists every child two parents can give, with its odds; the Breeding "
         "Planner finds the shortest breeding chain from the species you have to the one you want. The pane "

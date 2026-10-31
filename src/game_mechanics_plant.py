@@ -462,6 +462,16 @@ SELLING = (
 
 PRICES = (
     Fact(
+        "There are 529 species: 23 foliages x 23 flowers (genes 1-23); the price setup (0x41DBD0) "
+        "walks the same 23 x 23 value and price cells. The Statistics screen's Species Discovered "
+        "(0x44C572-0x44C59F) counts the discovered flags of those 23 x 23 species, so it tops out "
+        "at 529; no screen shows a total, and the tip \"There are over 500 different species of "
+        "Plants!\" is the only other figure.",
+        patched=(("new_flowers", "851 species: 23 foliages x 37 flowers (the 14 unused flowers, genes "
+                  "24-37), 322 more. Species Discovered (from 0x44C5A1) adds the discovered new species, "
+                  "so it tops out at 851."),),
+    ),
+    Fact(
         "Each species has a value V = its foliage's base + its flower's add, with 8 exceptions "
         "(the top is the Fabled Lemonbush at 250).",
     ),
@@ -511,6 +521,28 @@ PRICES = (
                   "47 x S / 78, all browsing, S counting the ornaments owned, the magic plants found, the full "
                   "bug collection and all 15 sale spots filled. It writes only the asking price of discovered "
                   "species (the Unused Flowers too with that setting) and says how many it set."),),
+    ),
+    Fact(
+        "The highest asking price that sells is the largest P whose price seen P' stays below 2V (the "
+        "buy roll, 0x436BE0). For a healthy, flowering, unpruned plant without Plant Food or pests that "
+        "is 2V - 1; with the Golden Berries of Wealth (P' = P - P/4) it is the largest P with P - P/4 "
+        "below 2V, higher (V = 100: 199 without, 265 with; V = 250: 499 and 665). The Golden Berries "
+        "(state + 0x2183, read at 0x436E22) are the only save-wide step of the price seen. The others "
+        "are each plant's own: Plant Food and 2+ cut parts lower that plant's P' (a higher limit for "
+        "it), dead foliage, health below 15, no flowers, over-pruning and pests raise it. Visitors, "
+        "ornaments, magic plants and bugs change only E (the odds), never the limit, and the Flower of "
+        "Knowledge only resets asking prices. Above 1.5V the roll is the lowest, k = 2, so plants at "
+        "the limit sell much more slowly than at the best price per day. The one exception is a "
+        "tutorial game before its first sale (k = 70 below 3V, see Selling).",
+        patched=(("optimize_prices", "a \"Max Prices\" button, left of Optimize Prices on the Nursery's brick "
+                  "strip (x 449-611, y 561-599), asks Yes/No (\"Set every discovered species to its highest "
+                  "selling price? Plants at this price sell much more slowly.\") and then sets every "
+                  "discovered species' asking price to that limit for a healthy, flowering, unpruned plant "
+                  "without Plant Food or pests, with the Golden Berries of Wealth if the save has found them "
+                  "(read when you click). The per-plant effects are left out, as they differ plant by plant, "
+                  "and visitors are not read, as they change only the odds. It writes only the asking price "
+                  "of discovered species (the Unused Flowers too with that setting) and says how many it "
+                  "set."),),
     ),
 )
 
@@ -1074,8 +1106,8 @@ HIDDEN = (
         "(R refreshes the seed shop, on by default; nothing on any other screen). The patcher's "
         "other additions are clicks, not keys: the Upgrades link in the Supplies store "
         "and the gold box arrows (Add new store upgrades and items), the Sort Seeds button "
-        "(Sort Seeds button), the Time Warp clock (Time Warp), the Optimize Prices button in the "
-        "Nursery (Optimize Prices button), and the gold arrows on the greenhouse and nursery screens "
+        "(Sort Seeds button), the Time Warp clock (Time Warp), the Optimize Prices and Max Prices "
+        "buttons in the Nursery (Optimize Prices button), and the gold arrows on the greenhouse and nursery screens "
         "(5 extra greenhouses, 5 extra nurseries).",
     ),
 )
