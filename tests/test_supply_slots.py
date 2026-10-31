@@ -1179,7 +1179,10 @@ class SitesOverlapNothing(unittest.TestCase):
         mine = ranges.pop("ftfp_supply_slots")
         self.assertEqual(len(mine), 10)
         others = [(name, a, b) for name, rs in ranges.items() for a, b in rs]
-        import build_ds_fish_headers as H
+        try:
+            import build_ds_fish_headers as H
+        except ImportError:
+            self.skipTest("needs capstone (the header scripts disassemble the game)")
         patches = H.fix_patcher_ranges()
         for a, b in mine:
             for start, end in patches:
@@ -1294,7 +1297,10 @@ class Layout(unittest.TestCase):
         self.assertGreater(arrows[1][1], arrows[0][3], "one above the other")
 
     def test_the_source_and_the_art_agree(self) -> None:
-        from PIL import Image
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("needs Pillow")
         text = (ROOT / "native" / "ftfp_supply_slots" / "ftfp_supply_slots.c").read_text(encoding="utf-8")
         for name, value in (("ARROW_X", ARROW_X), ("ARROW_Y_LEFT", ARROW_UP_Y), ("ARROW_Y_RIGHT", ARROW_DOWN_Y),
                             ("ARROW_W", ARROW_W), ("ARROW_H", ARROW_H)):
