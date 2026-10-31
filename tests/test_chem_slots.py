@@ -153,8 +153,8 @@ class Game:
     """The greenhouse with the DLL installed: the state, the screen and the game's helpers."""
 
     def __init__(self, test: "ChemSlotsCase", owned: bool = True, slot: int | None = None,
-                 files: dict | None = None) -> None:
-        emu = self.emu = E.Emulator(EXE, test.dll, test.symbols)
+                 files: dict | None = None, exe: Path | None = None) -> None:
+        emu = self.emu = E.Emulator(exe or EXE, test.dll, test.symbols)
         emu.uc.mem_map(0, 0x1000)                                  # fs:[0]
         emu.hook_printf()
         self.files = FakeFiles(emu)
@@ -1092,6 +1092,148 @@ class TrashTests(ChemSlotsCase):
         self.assertEqual(g.tray()[held - 5], (30, 3))
 
 
+def patched_exe(enabled: set[str]) -> Path:
+    """The executable the patcher writes for these settings (manifest patches; no loader needed here)."""
+    import plant_patcher
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    data, _ = plant_patcher.apply_patch_bytes(EXE.read_bytes(), plant_patcher.active_patch_records(manifest, enabled))
+    path = Path(tempfile.mkdtemp(prefix="ftfp_chem_exe_")) / "Plant Tycoon.exe"
+    path.write_bytes(data)
+    return path
+
+
+def buy(g: Game, chemical: int, table_doses: int, price: int = 100, start: int = 0x00432E1D) -> list[int]:
+    """The purchase dialog's chemical Buy (0x432E1D-0x432E5A, ebp = the dialog): the charge, then the
+    doses from the store's item table (state + 0x8DC, shelf row 0, column 0), into the tray (0x416410).
+    Returns the cash changes it made."""
+    emu = g.emu
+    dialog = emu.alloc(0x100)
+    emu.write32(dialog + 0x74, g.state)
+    emu.write32(dialog + 0x78, g.tray_obj)
+    emu.write32(dialog + 0x84, price)
+    emu.write32(dialog + 0x94, 0)
+    emu.write32(dialog + 0x98, 0)
+    emu.write32(dialog + 0xB8, chemical)
+    emu.write32(g.state + 0x8DC, table_doses)
+    paid = []
+    emu.hook(0x0041ED70, lambda e: (paid.append(e.arg(0) - (1 << 32) if e.arg(0) >> 31 else e.arg(0)), 0)[1], 4)
+    emu.uc.reg_write(X.UC_X86_REG_ESP, E.STACK + E.STACK_SIZE - 0x2000)
+    emu.uc.reg_write(X.UC_X86_REG_EBP, dialog)
+    emu.uc.emu_start(start, 0x00432E5A, count=200_000)
+    return paid
+
+
+def tip_of(g: Game, g_slot: int) -> str | None:
+    """The tooltip shown over slot g (0-3 page 1, 4-11 page 2) after a frame, on its page."""
+    if (g_slot >= 4) != (g.page() == 1):
+        g.press(*([a + 8 for a in ARROW[:2]]))
+    g.draw()
+    r = ((20 + 45 * g_slot, 173, 47 + 45 * g_slot, 253) if g_slot < 4 else
+         (20 + 45 * ((g_slot - 4) % 4), (136, 185)[(g_slot - 4) // 4], 47 + 45 * ((g_slot - 4) % 4),
+          (184, 253)[(g_slot - 4) // 4]))
+    return g.visible_tips().get(r)
+
+
+@_needs()
+class TooltipDosesAreTheGamesTests(ChemSlotsCase):
+    """The owner: the tooltips are patch-accurate. A bottle's doses live only in its tray record
+    (present, id, doses): the Buy writes them there (the store's item table, state + 0x8DC, or Store
+    Upgrades and Items' 3 for its four), each use takes one (0x416540, the use switch's 0x426699), and
+    the tray drops the bottle at 0 (0x416500). The tooltips read that record, so they say what the game
+    will give, whatever the settings. These tests run each Plant setting that touches a chemical's
+    doses, uses or stacking, and check that no other one touches them."""
+
+    def test_stock_doses_are_the_store_tables_and_each_use_takes_one(self) -> None:
+        g = self.game()
+        for doses in (1, 4, 7):
+            with self.subTest(doses=doses):
+                g.emu.uc.mem_write(g.state + TRAY, bytes(12))
+                buy(g, 30, doses)
+                self.assertEqual(g.tray()[0], (30, doses))
+                self.assertEqual(tip_of(g, 0), f"Chemical 30\n{doses} {'dose' if doses == 1 else 'doses'} left")
+                dose(g, 30)
+                self.assertEqual(tip_of(g, 0), None if doses == 1 else
+                                 f"Chemical 30\n{doses - 1} {'dose' if doses == 2 else 'doses'} left")
+
+    def test_extra_chemical_slots_buying_stacks_onto_the_bottle_on_either_page(self) -> None:
+        g = self.game()
+        g.put2(5, 31, 2)
+        buy(g, 31, 4)
+        self.assertEqual(g.page2()[5], (31, 6))
+        self.assertEqual(tip_of(g, 4 + 5), "Chemical 31\n6 doses left")
+        g.press(*page2_point(5))                               # used from page 2: the same record
+        dose(g, 31)
+        use_tail(g)
+        g.press(*page2_point(5))
+        land(g)
+        self.assertEqual(tip_of(g, 4 + 5), "Chemical 31\n5 doses left")
+        g.put(2, 32, 1)
+        buy(g, 32, 3)
+        self.assertEqual(tip_of(g, 2), "Chemical 32\n4 doses left")
+
+    def test_add_new_store_upgrades_and_items_gives_its_four_three_doses(self) -> None:
+        preferred = struct.unpack_from("<I", UPGRADES_DLL.read_bytes(),
+                                       struct.unpack_from("<I", UPGRADES_DLL.read_bytes(), 0x3C)[0] + 52)[0]
+        with tempfile.TemporaryDirectory() as tmp:
+            up_dll, up_symbols = E.build_with_map("ftfp_plant_upgrades", UPGRADES_DLL, Path(tmp))
+            for chemical in (FORMULA, REVIVAL, REVITA, BOMB):
+                with self.subTest(chemical=chemical):
+                    g = self.game()
+                    base = 0x18000000
+                    map_relocated(g.emu, up_dll.read_bytes(), base)
+                    at = lambda name_: up_symbols[name_] - preferred + base
+                    g.emu.write8(at("_upgrade_dialog"), 1)                   # bought on the Upgrades view
+                    g.emu.uc.mem_write(0x00432E43, b"\xE9" + struct.pack("<i", at("_stub_chem_doses") - 0x00432E48)
+                                       + b"\x90\x90")
+                    g.put2(0, 27, 1)
+                    buy(g, chemical, 9)                                      # the stock table would say 9
+                    self.assertEqual(g.tray()[0], (chemical, 3))
+                    self.assertEqual(tip_of(g, 0).splitlines()[1], "3 doses left")
+                    buy(g, chemical, 9)                                      # a second purchase stacks: 6
+                    self.assertEqual(tip_of(g, 0).splitlines()[1], "6 doses left")
+
+    def test_free_upgrades_and_everything_free_change_the_price_never_the_doses(self) -> None:
+        exe = patched_exe({"everything_free", "free_upgrades", "plant_upgrades", "new_flowers"})
+        g = self.game(exe=exe)
+        paid = buy(g, 33, 5, price=750)
+        self.assertEqual(paid, [0])                                          # Everything is Free: $0
+        self.assertEqual(tip_of(g, 0), "Chemical 33\n5 doses left")
+        g = self.game()
+        self.assertEqual(buy(g, 33, 5, price=750), [-750])                   # the vanilla charge, same doses
+        self.assertEqual(tip_of(g, 0), "Chemical 33\n5 doses left")
+
+    def test_no_other_patch_or_companion_touches_a_dose(self) -> None:
+        """Every Plant setting: its manifest patches and its DLLs' sites. Only these may touch the tray's
+        functions, the Buy's dose read and add, the dose taken by a use and the use's tail."""
+        dose_code = [(0x416340, 0x416730, "the tray's functions"), (0x432E2E, 0x432E5A, "the Buy's doses"),
+                     (0x426690, 0x4266A6, "the use's dose"), (0x42720B, 0x427258, "the use's tail")]
+        allowed = {("ftfp_plant_upgrades", 0x432E43), ("ftfp_chem_slots", 0x416410), ("ftfp_chem_slots", 0x4164B0)}
+        touching = set()
+        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        for patch in manifest["patches"]:
+            start = int(patch["offset"], 16) + 0x400000
+            end = start + len(bytes.fromhex(patch["replacement"].replace(" ", "")))
+            for a, b, _what in dose_code:
+                if start < b and a < end:
+                    touching.add((patch["id"], start))
+        plant_dlls = ("ftfp_new_flowers", "ftfp_plant_upgrades", "ftfp_seed_boxes", "ftfp_extra_greenhouses",
+                      "ftfp_greenhouse_counts", "ftfp_sort_seeds", "ftfp_plant_prices", "ftfp_chem_slots")
+        for header in sorted((ROOT / "native").glob("ftfp_*/*sites*.h")):
+            if header.parent.name not in plant_dlls:
+                continue
+            text = header.read_text(encoding="utf-8")
+            for m in re.finditer(r"#define SITE_(\w+)_VA 0x([0-9A-Fa-f]+)u", text):
+                va = int(m.group(2), 16)
+                n = re.search(rf"#define SITE_{m.group(1)}_LEN (\d+)", text)
+                end = va + (int(n.group(1)) if n else 4)
+                for a, b, _what in dose_code:
+                    if va < b and a < end:
+                        touching.add((header.parent.name, va))
+        self.assertEqual(touching, allowed)
+        counts = (ROOT / "native" / "ftfp_greenhouse_counts" / "ftfp_greenhouse_counts.c").read_text(encoding="utf-8")
+        self.assertIn("HELD_SITE_VA 0x004291D2u", counts)                     # its one code site, elsewhere
+
+
 @_needs()
 class ArtAndManifestTests(unittest.TestCase):
     def test_the_sheet_has_the_item_and_the_arrows(self) -> None:
@@ -1131,7 +1273,8 @@ class ArtAndManifestTests(unittest.TestCase):
         self.assertTrue(setting["summary"].startswith("EXPERIMENTAL - USE AT OWN RISK."))
         self.assertEqual(ids, ["fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets",
                                "tank_greenhouse_counts", "new_flowers", "plant_upgrades", "sort_seeds", "optimize_prices",
-                               "time_warp", "free_upgrades", "add_money", "extra_greenhouses", "extra_nurseries",
+                               "time_warp", "free_upgrades", "add_money", "everything_free", "extra_greenhouses",
+                               "extra_nurseries",
                                "extra_chemical_slots"])
         files = setting["companion"]["files"]
         data = DLL.read_bytes()

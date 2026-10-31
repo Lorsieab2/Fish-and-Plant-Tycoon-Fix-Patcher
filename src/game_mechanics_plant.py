@@ -1076,6 +1076,16 @@ HIDDEN = (
                   "then +$1,000 through 0x41ED70, any number of times. Cash stops at $4,000,000,000."),),
     ),
     Fact(
+        "Cheats: every store purchase goes through the purchase window (0x430950), which holds the "
+        "price at window + 0x84: its cash tests, its \"Price: $\" line and the Buy charge "
+        "(0x41ED70 with minus the price, 0x432D96-0x432E1D) all read it.",
+        patched=(("everything_free", "Everything is Free (a cheat; Enable All leaves it off): each of those "
+                  "reads gives $0, so seeds, tools, chemicals and nursery items cost $0, show \"Price: $0\" "
+                  "and are never refused for cash, and every Upgrades item (Add Money then $0 for +$1,000) "
+                  "is free as with Free upgrades. Three Legendary Seeds a day, room in the trays, owned "
+                  "tools and the buying order stay."),),
+    ),
+    Fact(
         "Keys on the other screens:",
         subs=(
             "Seed Storage: 1 or m greenhouse, 3 or p store, 4 or c Collections, 5 or n Nursery; "

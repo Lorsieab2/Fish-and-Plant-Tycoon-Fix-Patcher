@@ -43,6 +43,34 @@
   Items: the item, the save events passed on, the setting-off fallback, and
   two more rows of its chemicals sheet (the item and the arrows). Tests:
   tests/test_chem_slots.py (Unicorn, the vanilla executable, both DLLs).
+- **Everything is Free**, both games, a new setting: "Every store item and
+  upgrade is free. Obviously a cheat mod, have fun!" Off by default and the
+  first **cheat** setting (`"cheat": true`, src/cheat.py): the patcher shows
+  CHEAT beside its name, styled as the EXPERIMENTAL label, and **Enable All
+  no longer turns it on** (Defaults leaves it off too; tick it yourself;
+  Disable All turns it off). Every price the player pays is $0 and shown as
+  $0; only prices change, every limit stays. Fish Tycoon: the stock store's
+  prices all live in the state's item table (+0x74 + item x 20, research at
+  0x240/0x254/0x268), and each read of it is zeroed in place, 20 patches: the
+  panel's price line (0x4274AD), the Buy click's money test (0x428118), the
+  supply-slot purchase and its Money Spent (0x427553/0x427560; the universal
+  slots and Extra Supply Slots buy through it), the permanent-item purchase
+  (0x427B83/0x427B90), the Golden Seahorse refund (0x427EA2/0x427EAF, so it
+  refunds $0) and the six research charges (0x427600). The table, which the
+  save holds, is never written. Plant Tycoon: the purchase dialog's price
+  (dialog + 0x84) is read as 0 by its seven cash tests (never too poor), its
+  17 "Price: $%d" lines and its four Buy charges (AddCash at
+  0x432D96-0x432E1D), 28 patches; seeds, tools, chemicals, nursery items and
+  every Upgrades item sold through the dialog (Legendary Seeds, the formula,
+  the potions, Revita-Seed, the Bomb, Seed Boxes 4-9) go through it. The
+  setting ships "Everything Free.ini" beside the DLLs; DS Store Items, Store
+  Upgrades and Items (Free upgrades implied: Time Warp, Add Money for $0 that
+  still adds $1,000, the Extra Tank, Extra Supply Slots, the Extra Greenhouse
+  and Nursery, the Auto items) and Multiple Ornaments (copies) read it at
+  start-up. No patch overlaps another setting's or any companion DLL's site
+  (scripts/pin_everything_free.py checks, and tests/test_everything_free.py
+  emulates every kind of purchase, patched and stock, in Unicorn).
+
 - **Supply slot tooltips and page numbers** (Fish Tycoon). DS Store Items:
   every supply slot, the stock four and the extra ones, shows a tooltip while
   the mouse is over it, in the game's own hint box (the hint object's own

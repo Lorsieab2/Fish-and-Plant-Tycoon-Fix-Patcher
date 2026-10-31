@@ -49,7 +49,7 @@ class ManifestTests(unittest.TestCase):
         screen_items = {"time_warp", "free_upgrades", "add_money"}       # tests/test_store_extras.py
         screen_items |= {"multiple_ornaments", "extra_tanks", "extra_supply_slots"}   # their own loaders go first: tests/test_multiple_ornaments.py, tests/test_extra_tanks.py, tests/test_supply_slots.py
         with_store = [key for key in pins if SETTING in key.split(",") and not screen_items & set(key.split(","))]
-        self.assertEqual(len(with_store), 512)        # 64, each with and without the window, Optimize Prices and the counts
+        self.assertEqual(len(with_store), 1024)       # 64, each with and without the window, Optimize Prices, the counts and Everything is Free
         for key in with_store:
             enabled = set(key.split(","))
             self.assertIn("ds_fish", enabled)
