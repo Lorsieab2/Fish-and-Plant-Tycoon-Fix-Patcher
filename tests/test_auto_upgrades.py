@@ -89,7 +89,7 @@ class ArtAndManifestTests(unittest.TestCase):
             self.assertEqual((box[3] - box[1], box[3]), (57, 62), name)        # as item_growthhormone.png
             self.assertEqual(png_size(FISH_IMAGES / name), (73, 65), name)
         sheet = Image.open(PLANT_SHEET).convert("RGBA")
-        self.assertEqual(sheet.size, (140, 18 * 70))
+        self.assertEqual(sheet.size, (140, 21 * 70))   # rows 18-19: Extra Chemical Slots, 20: the Extra Nursery
         cell = lambda row, col=0: sheet.crop((col * 70, row * 70, col * 70 + 70, row * 70 + 70)).getchannel("A").getbbox()
         sprinklers, healer, formula = cell(16), cell(17), cell(9)
         self.assertEqual((sprinklers[3] - sprinklers[1], sprinklers[3]), (49, 65))    # the seed box's drawer beside it

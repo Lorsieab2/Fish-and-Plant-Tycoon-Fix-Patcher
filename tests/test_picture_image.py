@@ -96,9 +96,10 @@ def test_draw_is_source_over_with_surface_alpha_and_tint():
     canvas.draw(half_blue, 0, 0)
     r, g, b, a = canvas.pixel(0, 0)
     assert a == 255 and abs(r - 127) <= 1 and abs(b - 128) <= 1
-    # onto transparent: the source as it is; surface alpha halves it; a tint multiplies colour
+    # onto transparent: the source as it is; surface alpha A makes a pixel's alpha (a x A + 127) >> 8
+    # (the game's blitter); a tint multiplies colour
     canvas.draw(red, 1, 0, alpha=128, tint=(128, 255, 255))
-    assert canvas.pixel(1, 0) == (128, 0, 0, 128)
+    assert canvas.pixel(1, 0) == (128, 0, 0, (255 * 128 + 127) >> 8)
     # clipped off the canvas: nothing happens
     canvas.draw(red, 5, 5)
     canvas.draw(red, -1, 0)

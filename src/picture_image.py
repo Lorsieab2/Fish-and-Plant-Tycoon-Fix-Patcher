@@ -83,9 +83,9 @@ class Image:
         return out
 
     def cell(self, cols: int, rows: int, index: int) -> "Image":
-        """Cell `index` of a cols x rows grid (cells numbered across, then down)."""
-        w, h = self.width // cols, self.height // rows
-        return self.sub((index % cols) * w, (index // cols) * h, w, h)
+        """Cell `index` of a cols x rows grid (cells numbered across, then down; see cell_rect)."""
+        left, top, right, bottom = cell_rect(self.width, self.height, cols, rows, index)
+        return self.sub(left, top, right - left, bottom - top)
 
     def flipped(self) -> "Image":
         out = Image(self.width, self.height)
@@ -104,17 +104,19 @@ class Image:
         if x1 <= x0 or y1 <= y0 or alpha <= 0:
             return
         alpha = min(255, int(alpha))
+        # The games' blitter (Fish Tycoon 0x4041C0, 0x404D5E): each pixel's alpha a becomes
+        # (a * A + 127) >> 8 under a surface alpha A below 255.
+        weights = None if alpha == 255 else bytes((a * alpha + 127) >> 8 for a in range(256))
         sd, dd = src.data, self.data
         tr, tg, tb = tint if tint is not None else (255, 255, 255)
-        plain = alpha == 255 and tint is None
         for yy in range(y0, y1):
             s = ((yy - y) * src.width + (x0 - x)) * 4
             d = (yy * self.width + x0) * 4
             for _ in range(x1 - x0):
                 sa = sd[s + 3]
                 if sa:
-                    if not plain:
-                        sa = sa * alpha // 255
+                    if weights is not None:
+                        sa = weights[sa]
                     r, g, b = sd[s], sd[s + 1], sd[s + 2]
                     if tint is not None:
                         r, g, b = r * tr // 255, g * tg // 255, b * tb // 255
@@ -554,7 +556,8 @@ class Subject:
 class Draw:
     """One sprite draw, as a renderer plans it and the tests record it from the game: cell
     `cell` of a cols x rows sheet `file`, its top-left at (x, y), mirrored when `flip`, with
-    surface alpha `alpha` and colour mod `tint` (None: none)."""
+    surface alpha `alpha` (see Image.draw) and colour mod `tint` (None: none). `scale` is a
+    percentage drawn the way Fish Tycoon's scaled draw does (see scaled_cell)."""
     file: str
     cols: int
     rows: int
@@ -564,6 +567,60 @@ class Draw:
     flip: bool = False
     alpha: int = 255
     tint: tuple | None = None
+    scale: int = 100
+
+
+def cell_rect(sheet_w: int, sheet_h: int, cols: int, rows: int, cell: int) -> tuple[int, int, int, int]:
+    """The cell's (left, top, right, bottom), as Fish Tycoon's 0x4095F0 cuts it: cells of
+    width // cols by height // rows, the column and row clamped to the grid."""
+    cols, rows = max(1, cols), max(1, rows)
+    cw, ch = sheet_w // cols, sheet_h // rows
+    col, row = min(cell % cols, cols - 1), min(cell // cols, rows - 1)
+    return cw * col, ch * row, cw * col + cw, ch * row + ch
+
+
+def _f32(value: float) -> float:
+    return struct.unpack("<f", struct.pack("<f", value))[0]
+
+
+def _ctrunc_half(value: int) -> int:
+    """C's value / 2 (toward zero)."""
+    return -((-value) // 2) if value < 0 else value // 2
+
+
+def scaled_cell(sheet: "Image", rect: tuple, scale: int) -> tuple["Image", int, int]:
+    """Fish Tycoon's scaled draw (0x408190): the scale is percent / 100 as a float; 0x407750
+    centres the picture on its unscaled place using the rounded size (w x s + 0.5), and the
+    blitter 0x4041C0 draws trunc(w x s) by trunc(h x s) pixels, each the source pixel at
+    trunc(position), the position starting at the cell's left (top) and growing by w / width
+    (h / height) one pixel at a time (in doubles, as the game's x87 code adds them). Returns
+    the picture and how far its top-left moves."""
+    left, top, right, bottom = rect
+    w, h = right - left, bottom - top
+    if scale == 100 or w <= 0 or h <= 0:
+        return sheet.sub(left, top, w, h), 0, 0
+    s = _f32(scale / 100.0)
+    rounded_w, rounded_h = int(w * s + 0.5), int(h * s + 0.5)
+    dx, dy = -_ctrunc_half(rounded_w - w), -_ctrunc_half(rounded_h - h)
+    dw, dh = int(w * s), int(h * s)
+    if dw <= 0 or dh <= 0:
+        return Image(0, 0), dx, dy
+    xs, pos, step = [], float(left), w / dw
+    for _ in range(dw):
+        xs.append(int(pos))
+        pos += step
+    ys, pos, step = [], float(top), h / dh
+    for _ in range(dh):
+        ys.append(int(pos))
+        pos += step
+    out = Image(dw, dh)
+    src, dst, sw = sheet.data, out.data, sheet.width
+    for j, sy in enumerate(ys):
+        for i, sx in enumerate(xs):
+            s_at = (sy * sw + sx) * 4
+            d_at = (j * dw + i) * 4
+            dst[d_at:d_at + 4] = src[s_at:s_at + 4]
+    return out, dx, dy
 
 
 class Sheets:
@@ -595,18 +652,24 @@ def composite(sheets: Sheets, plan, width: int, height: int, origin: tuple[int, 
     moved by -origin."""
     canvas = Image(width, height)
     ox, oy = origin
-    cells: dict = {}
     for call in plan:
-        key = (call.file.casefold(), call.cols, call.rows, call.cell, call.flip)
-        piece = cells.get(key)
-        if piece is None:
-            sheet = sheets.image(call.file)
-            piece = sheet.cell(call.cols, call.rows, call.cell)
-            if call.flip:
-                piece = piece.flipped()
-            cells[key] = piece
-        canvas.draw(piece, call.x - ox, call.y - oy, call.alpha, call.tint)
+        piece, dx, dy = _piece(sheets, call)
+        canvas.draw(piece, call.x + dx - ox, call.y + dy - oy, call.alpha, call.tint)
     return canvas
+
+
+def _piece(sheets: Sheets, call: Draw) -> tuple[Image, int, int]:
+    key = ("piece", call.file.casefold(), call.cols, call.rows, call.cell, call.flip, call.scale)
+    cached = sheets._images.get(key)
+    if cached is None:
+        sheet = sheets.image(call.file)
+        rect = cell_rect(sheet.width, sheet.height, call.cols, call.rows, call.cell)
+        piece, dx, dy = scaled_cell(sheet, rect, call.scale)
+        if call.flip:
+            piece = piece.flipped()
+        cached = (piece, dx, dy)
+        sheets._images[key] = cached
+    return cached
 
 
 def plan_bounds(sheets: Sheets, plan) -> tuple[int, int, int, int]:
@@ -614,10 +677,10 @@ def plan_bounds(sheets: Sheets, plan) -> tuple[int, int, int, int]:
     left = top = 10 ** 9
     right = bottom = -10 ** 9
     for call in plan:
-        sheet = sheets.image(call.file)
-        w, h = sheet.width // call.cols, sheet.height // call.rows
-        left, top = min(left, call.x), min(top, call.y)
-        right, bottom = max(right, call.x + w), max(bottom, call.y + h)
+        piece, dx, dy = _piece(sheets, call)
+        x, y = call.x + dx, call.y + dy
+        left, top = min(left, x), min(top, y)
+        right, bottom = max(right, x + piece.width), max(bottom, y + piece.height)
     if left > right:
         return 0, 0, 1, 1
     return left, top, right, bottom
