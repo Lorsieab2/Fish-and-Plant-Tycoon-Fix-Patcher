@@ -135,6 +135,9 @@ Additions since the first version:
 - `render_saved` may take extra keyword options; the window passes `facing` ("left" / "right" /
   "turn") and `frame` (0-5) to the Fish renderer only, from its "Facing:" (Facing left / Facing right /
   Turning) and "Frame:" boxes under the preview; the plant window hides both (the pot draw has neither).
+- The patcher's own parts (DS Exclusive Fish genes 23-29, DS Store Items' animals and rock, the
+  Unused Flowers 24-37) are always offered (`Option.patcher`), whatever `extras` holds: their art
+  ships in `assets/` (`patcher_art`). The window reads discoveries with the extras on.
 - Make your own, by the owner's spec: Fish has Fin, Body, Stage (baby, teen at each age 6-19,
   adult), State (healthy, ick, fungus, dead), Facing and Frame; Plant has Flower, Foliage and a
   Stage of seedling / budding / normal bloom / max bloom / max bloom + all effects / dead, plus

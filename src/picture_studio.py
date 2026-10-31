@@ -59,8 +59,8 @@ HELP = (
         "Make your own: pick the parts (a body and a fin, or a foliage and a flower), the age or growth "
         "stage and the state, and see the picture the game would draw. The stages follow the game's own "
         "rules. Creatures and decorations are on their own tabs. The patcher's parts and creatures (DS "
-        "Exclusive Fish, DS Store Items, Unused Flowers) are offered when the save's game copy was patched "
-        "with them.",
+        "Exclusive Fish, DS Store Items, Unused Flowers) are always offered, marked \"(patcher)\", and a save's "
+        "DS fish and Unused Flowers plants are drawn whenever the save holds them.",
         "Show Spoilers is the Breeding Guide's setting: off, Make your own offers only the parts your save "
         "has discovered.",
         "Saving: \"Save PNG...\" saves the picture shown. Pick the size first: the game's own size, 2x or 4x "
@@ -351,7 +351,9 @@ class PictureStudio:
             self.renderer = self.module.load(source)
             if source.problem:
                 problems.append(source.problem)
-            model = breeding_guide.load_model(game, copy, "ds_fish" in self.extras or "new_flowers" in self.extras)
+            # The patcher's parts are always offered, so the discoveries are read with them too
+            # (the DS Fish / New Flowers sidecars, when the save has them).
+            model = breeding_guide.load_model(game, copy, True)
             if model is not None and folder is not None and slot is not None:
                 try:
                     self.discovered = set(model.discovered(folder, slot))

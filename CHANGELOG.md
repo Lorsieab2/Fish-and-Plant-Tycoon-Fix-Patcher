@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Picture Studio: the patcher's parts are always there.** Make your own
+  offers the DS Exclusive Fish bodies and fins, DS Store Items' animals and
+  the eel's rock, and the 14 Unused Flowers whatever settings are found for
+  the save (before, only when the save's game copy or data files showed the
+  setting), marked "(patcher)"; their pictures ship with the patcher. With no
+  save chosen nothing is hidden by Show Spoilers (Fish Tycoon offered no fish
+  at all). Discoveries are read with the DS Fish and New Flowers data files
+  whenever the save has them.
 - **Picture Studio: more plant stages.** Make your own's Plant Stage now also
   has Seed (just planted: the game draws the planted soil only), Sprout (age
   3) and Growing (age 15), each checked against the game's own draw in Unicorn

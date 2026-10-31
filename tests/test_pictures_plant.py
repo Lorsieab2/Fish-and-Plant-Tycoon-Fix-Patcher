@@ -737,7 +737,7 @@ class ChoicesTests(unittest.TestCase):
     def test_every_foliage_flower_stage_shape_and_pot(self) -> None:
         fields = self.options()
         self.assertEqual([o.key for o in fields["foliage"].options], list(range(1, 24)))
-        self.assertEqual([o.key for o in fields["flower"].options], list(range(1, 24)))
+        self.assertEqual([o.key for o in fields["flower"].options], list(range(1, 38)))
         self.assertEqual([o.key for o in fields["stage"].options], ["seed", "sprout", "seedling", "growing", "budding", "bloom", "max", "formula", "dead"])
         self.assertEqual([f.key for f in self.renderer.custom_choices(frozenset(), True, None)[0].fields][:2],
                          ["flower", "foliage"])
@@ -747,8 +747,10 @@ class ChoicesTests(unittest.TestCase):
         self.assertEqual(len(fields["shape"].options), D.SHAPE_COUNT)
         self.assertEqual([o.key for o in fields["pot"].options], [-1, 0, 1, 2, 3, 4, 5, 6])
 
-    def test_unused_flowers_with_the_setting(self) -> None:
-        flowers = self.options({"new_flowers"})["flower"].options
+    def test_unused_flowers_are_always_offered(self) -> None:
+        """With or without the setting found, the 14 Unused Flowers are offered, marked."""
+        self.assertEqual(self.options()["flower"].options, self.options({"new_flowers"})["flower"].options)
+        flowers = self.options()["flower"].options
         self.assertEqual([o.key for o in flowers], list(range(1, 38)))
         self.assertTrue(all(o.patcher for o in flowers[23:]) and not any(o.patcher for o in flowers[:23]))
         self.assertEqual(flowers[23].label, "Nightingale")

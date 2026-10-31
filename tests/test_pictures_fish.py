@@ -592,14 +592,26 @@ class ChoicesTests(unittest.TestCase):
         fields = {f.key: f for f in fish.fields}
         self.assertEqual([o.key for o in fields["body"].options], [11, 13])
         self.assertEqual([o.key for o in fields["fin"].options], [6, 11])
-        everything = {f.key: f for f in r.custom_choices(frozenset({"ds_fish", "ds_store"}), True, None)[0].fields}
-        self.assertEqual(len(everything["body"].options), 28)
-        self.assertTrue(all(o.patcher for o in everything["body"].options if o.key >= 23))
+        self.assertEqual([o.key for o in fields["body"].options], [11, 13])
+        with_ds = {f.key: f for f in r.custom_choices(frozenset(), False, {(11, 11), (23, 27)})[0].fields}
+        self.assertEqual([o.key for o in with_ds["body"].options], [11, 23])
+
+    def test_the_patchers_parts_are_always_offered(self) -> None:
+        """The owner's rule: the DS Exclusive Fish bodies and fins and DS Store Items' animals and
+        rock are offered whatever settings are found (none here), marked as the patcher's."""
+        r = pf.FishRenderer(None)
+        for extras in (frozenset(), frozenset({"ds_fish", "ds_store"})):
+            everything = {f.key: f for f in r.custom_choices(extras, True, None)[0].fields}
+            self.assertEqual([o.key for o in everything["body"].options], list(range(21)) + list(range(23, 30)))
+            self.assertEqual([o.key for o in everything["fin"].options], list(range(21)) + list(range(23, 30)))
+            self.assertTrue(all(o.patcher == (o.key >= 23) for o in everything["body"].options))
+            creatures = [o.key for o in r.custom_choices(extras, True, None)[1].fields[0].options]
+            self.assertTrue({"puffer", "puffer_puffed", "ray", "eel"} <= set(creatures))
+            decorations = [o.key for o in r.custom_choices(extras, True, None)[2].fields[0].options]
+            self.assertTrue({"rock", "rock_home"} <= set(decorations))
         none = {f.key: f for f in r.custom_choices(frozenset(), False, None)[0].fields}
-        self.assertEqual(none["body"].options, ())
-        creatures = [o.key for o in r.custom_choices(frozenset(), True, None)[1].fields[0].options]
-        self.assertNotIn("eel", creatures)
-        self.assertIn("eel", [o.key for o in r.custom_choices(frozenset({"ds_store"}), True, None)[1].fields[0].options])
+        self.assertEqual(len(none["body"].options), 28, "no save: nothing to hide by")
+        self.assertTrue(set(pf.patcher_files()) <= set(pf.patcher_art()), "their art ships with the patcher")
 
     def test_required_files_name_every_stock_sheet(self) -> None:
         names = pf.required_files()

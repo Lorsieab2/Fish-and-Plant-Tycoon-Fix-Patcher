@@ -891,8 +891,11 @@ folder never fails with "path too long".
   - Make your own, Fish Tycoon: Fin, Body, Stage (baby, teen at every age
     6-19, adult) and State (healthy, ick, fungus, dead), facing left or right
     or turning (Facing), at any frame; creatures and decorations on their own tabs.
-  - Make your own, Plant Tycoon: Flower, Foliage (the Unused Flowers too with
-    that setting), Stage (seed, sprout, seedling, growing, budding, normal bloom, max bloom, max
+    The DS Exclusive Fish bodies and fins, DS Store Items' animals and the
+    eel's rock are always offered, marked "(patcher)": their pictures ship
+    with the patcher, so no setting needs to be found for the save.
+  - Make your own, Plant Tycoon: Flower (the 14 Unused Flowers always too,
+    marked "(patcher)"), Foliage, Stage (seed, sprout, seedling, growing, budding, normal bloom, max bloom, max
     bloom with every effect, as after the Radioactive Plant Formula, and dead),
     the plant's starting shape and its pot; decorations, bugs and pots on
     their own tabs. The game draws no wilting or infested look: a plant is

@@ -1002,16 +1002,17 @@ class Renderer:
 
     # -------------------------------------------------------------- plants of your own
     def custom_choices(self, extras: frozenset, spoilers: bool, discovered) -> list:
+        """The Unused Flowers (genes 24-37, the patcher's flower sheet in assets/) are always
+        offered, marked "(patcher)", whatever the save's settings; with Show Spoilers off only
+        the parts the save has discovered."""
         import breeding_plant as bp
-        new = "new_flowers" in extras
         known_foliage = {f for f, _fl in discovered} if (discovered is not None and not spoilers) else None
         known_flower = {fl for _f, fl in discovered} if (discovered is not None and not spoilers) else None
         foliages = [Option(f, bp.FOLIAGE_WORD[f]) for f in range(1, 24) if known_foliage is None or f in known_foliage]
         flowers = [Option(fl, bp.FLOWER_WORD[fl].strip()) for fl in range(1, 24)
                    if known_flower is None or fl in known_flower]
-        if new:
-            flowers += [Option(fl, bp.FLOWER_WORD[fl], patcher=True) for fl in range(24, 38)
-                        if known_flower is None or fl in known_flower]
+        flowers += [Option(fl, bp.FLOWER_WORD[fl], patcher=True) for fl in range(24, 38)
+                    if known_flower is None or fl in known_flower]
         stages = [Option(k, label, patcher=(k == "formula" and "plant_upgrades" in extras)) for k, label in STAGES]
         shapes = [Option(n, f"Shape {n}") for n in range(1, D.SHAPE_COUNT + 1)]
         pots = [Option(-1, "No pot")] + [Option(n, f"Pot {n + 1}") for n in range(D.SPRITES[POT_SPRITE][2])]

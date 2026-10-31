@@ -839,12 +839,17 @@ class FishRenderer:
 
     # ---- make your own
     def custom_choices(self, extras, spoilers: bool, discovered) -> list[Subject]:
-        extras = frozenset(extras or ())
-        genes = list(range(0, PC_LAST + 1)) + (list(range(DS_FIRST, DS_LAST + 1)) if "ds_fish" in extras else [])
+        """The patcher's own parts and creatures (DS Exclusive Fish's bodies and fins, DS Store
+        Items' animals and the eel's rock) are always offered, marked "(patcher)": their art
+        ships with the patcher (patcher_art), so they draw whatever the save's settings are.
+        `extras` is kept for the window's call. With Show Spoilers off only the parts the
+        save has discovered are offered; with no save (`discovered` None) nothing is hidden."""
+        genes = list(range(0, PC_LAST + 1)) + list(range(DS_FIRST, DS_LAST + 1))
+        hide = not spoilers and discovered is not None
         known_bodies = {b for b, _f in (discovered or ())}
         known_fins = {f for _b, f in (discovered or ())}
-        bodies = tuple(Option(g, part_name("body", g), is_ds(g)) for g in genes if spoilers or g in known_bodies)
-        fins = tuple(Option(g, part_name("fin", g), is_ds(g)) for g in genes if spoilers or g in known_fins)
+        bodies = tuple(Option(g, part_name("body", g), is_ds(g)) for g in genes if not hide or g in known_bodies)
+        fins = tuple(Option(g, part_name("fin", g), is_ds(g)) for g in genes if not hide or g in known_fins)
         facing = Field("facing", "Facing", tuple(Option(k, label) for k, label, _m in FACINGS), "left")
         frame = Field("frame", "Frame", FRAMES, 0)
         fish = Subject("fish", "Fish", (
@@ -856,17 +861,15 @@ class FishRenderer:
             note="Ages follow the game: under 6 a baby, under 20 a teen (it grows from 100% at age 6 to 139% "
                  "at 19), then an adult. Sick spots show on adults facing left or right, as in the game."
                  + ("" if spoilers else " Show Spoilers is off: only the bodies and fins you have discovered."))
-        creatures = [Option("seahorse", "Golden Seahorse")]
-        if "ds_store" in extras:
-            creatures += [Option("puffer", "Magic Pufferfish", True), Option("puffer_puffed", "Magic Pufferfish, puffed up", True),
-                          Option("ray", "Blue-Spotted Stingray", True), Option("eel", "Moray Eel", True)]
+        creatures = [Option("seahorse", "Golden Seahorse"),     # then DS Store Items' animals
+                     Option("puffer", "Magic Pufferfish", True), Option("puffer_puffed", "Magic Pufferfish, puffed up", True),
+                     Option("ray", "Blue-Spotted Stingray", True), Option("eel", "Moray Eel", True)]
         creatures += [Option(f"snail{index}", f"Cleaning Snail, {words}") for index, words in SNAIL_VIEWS]
         creature = Subject("creature", "Creatures", (
             Field("creature", "Creature", tuple(creatures), "seahorse"), facing, frame),
             note="The snail has one picture for each way it crawls; Facing and Frame are for the swimmers.")
         decorations = [Option(f"orn{sprite}", name) for sprite, name in ORNAMENTS]
-        if "ds_store" in extras:
-            decorations += [Option("rock", ROCK_NAME, True), Option("rock_home", ROCK_NAME + ", the eel at home", True)]
+        decorations += [Option("rock", ROCK_NAME, True), Option("rock_home", ROCK_NAME + ", the eel at home", True)]
         decorations += [Option(f"img{sprite}", name) for _off, name, sprite in EQUIPMENT]
         decoration = Subject("decoration", "Decorations", (
             Field("decoration", "Decoration", tuple(decorations), decorations[0].key),

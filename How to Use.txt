@@ -320,8 +320,11 @@ or "Teen fish". "Make your own" draws any Fin and Body at any Stage (baby,
 teen at each age, adult) and State (healthy, ick, fungus, dead), or any
 Flower and Foliage at any Stage (seed, sprout, seedling, growing, budding, normal bloom, max bloom,
 max bloom with every effect, dead) in any shape and pot, and the creatures,
-decorations, bugs and pots; with Show Spoilers off (the Breeding Guide's
-setting) only the parts you have discovered. Pick a PNG size (the game's
+decorations, bugs and pots. The patcher's own parts (DS Exclusive Fish,
+DS Store Items' animals, the Unused Flowers) are always offered, marked
+"(patcher)", and a save's DS fish and Unused Flowers plants are always
+drawn. With Show Spoilers off (the Breeding Guide's setting) only the parts
+you have discovered. Pick a PNG size (the game's
 own, 2x, 4x, or your own width and height) and Small margin, then "Save
 PNG..." or "Save all in this tank/greenhouse...". The pictures have a clear background. Like the guide, it
 copies the pictures it needs from your game into "Picture Studio Pictures"

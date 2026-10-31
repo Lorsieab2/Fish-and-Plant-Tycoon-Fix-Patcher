@@ -148,7 +148,7 @@ class WindowTests(unittest.TestCase):
         self.assertIn("custom", self.studio.shown)
         self.studio.spoilers_var.set(True)
         self.root.update()
-        self.assertEqual(len(self.studio.custom_boxes["fish"]["body"]["box"].cget("values")), 21)
+        self.assertEqual(len(self.studio.custom_boxes["fish"]["body"]["box"].cget("values")), 28)   # 21 + 7 DS
         self.assertTrue(self.settings["show_spoilers"], "the Breeding Guide's setting, remembered")
         spec = self.studio.custom_spec()
         self.assertEqual(spec["subject"], "fish")
