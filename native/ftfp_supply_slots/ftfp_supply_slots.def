@@ -1,0 +1,10 @@
+LIBRARY "Extra Supply Slots"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpSupplySlotsInstalled = _FtfpSupplySlotsInstalled@0
+    FtfpSupplySlotsOwned = _FtfpSupplySlotsOwned@0
+    FtfpSupplySlotsBuy = _FtfpSupplySlotsBuy@0
+    FtfpSupplySlotsImage = _FtfpSupplySlotsImage@0
+    FtfpSupplySlotsLend = _FtfpSupplySlotsLend@4
+    FtfpSupplySlotsReturn = _FtfpSupplySlotsReturn@0
+    FtfpSupplySlotsRecord = _FtfpSupplySlotsRecord@4

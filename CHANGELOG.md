@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+- **Extra supply slots** (Fish Tycoon, new setting, off by default,
+  EXPERIMENTAL; needs DS Store Items, which it turns on; Enable All turns it
+  on). Eleven supply slots instead of four, in three pages beside the tank
+  screen's slots (page 1 the stock four, page 2 four more, page 3 three more),
+  turned by two small arrows right of slot 4 (the stock UP_ARROW art, as the
+  extra tanks' arrows), or by carrying an item over an arrow. Bought once on
+  the Upgrades screen: Extra Supply Slots, $10,000 ($0 with Free upgrades);
+  before that the arrows are grey and refuse with "You don't own the extra
+  supply slots yet!" where Extra Tanks says its own. Each extra slot is a
+  stock slot record run by the game's own code: picked up, it takes the
+  place of the stock slot its item is used from (the stock slot's own record
+  waits and comes back), so every medicine, chemical and egg, DS Store Items'
+  Radioactive Growth Hormone, Revival Potion, ClonaFish and Exotic Fish Eggs
+  too, works from it exactly as from slots 2-4, the trash included; the
+  stock store's Buy and DS Store Items' purchases fill the first free slot
+  over all three pages (a stack of the same item first with Universal supply
+  slots). Supplies can be dragged between any two slots, on any page (moved,
+  stacked or swapped; without Universal supply slots slots 2-4 keep their
+  kind). The save keeps its stock layout; the seven slots and the purchase
+  are kept per save slot in "Fish Tycoon Fix Patcher Data\Extra Supply Slots
+  <slot>.dat" (written atomically, set aside if unreadable, understood by
+  Back Up Saves); a new game empties them. New companion "Extra Supply
+  Slots.dll" (native/ftfp_supply_slots), loaded after Extra Tanks (or first,
+  loading Multiple Ornaments / DS Exclusive Fish itself); ten sites, all or
+  none, five of them chained with Extra Tanks, Multiple Ornaments and DS
+  Store Items. Turning it off keeps the file: the items come back when it is
+  turned on again. Tests: tests/test_supply_slots.py (Unicorn, the vanilla
+  and Universal supply slots executables, DS Store Items beside it, and the
+  executable with every Fish setting on).
 - **Seventh, Eighth and Ninth Seed Box** (Plant Tycoon, Add new store
   upgrades and items): $1000 each like the Sixth ($0 with Free upgrades),
   bought in order after the Sixth through the stock purchase dialog (its

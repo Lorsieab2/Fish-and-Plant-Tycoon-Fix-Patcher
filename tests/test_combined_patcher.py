@@ -142,6 +142,7 @@ class CombinedPatcherTests(unittest.TestCase):
                 "free_upgrades",
                 "add_money",
                 "extra_tanks",
+                "extra_supply_slots",
                 "multiple_ornaments",
             ],
         )
@@ -424,7 +425,8 @@ class SectionLayoutTests(unittest.TestCase):
             # manifest bytes: the startup loader recomputes the checksum
             # itself, after every other change.
             loader_only = {"ds_fish", "ds_store", "time_warp", "free_upgrades", "add_money", "maximizable_window",
-                           "optimize_prices", "tank_greenhouse_counts", "multiple_ornaments", "extra_tanks"}
+                           "optimize_prices", "tank_greenhouse_counts", "multiple_ornaments", "extra_tanks",
+                           "extra_supply_slots"}
             expected = 0 if not (enabled - loader_only) else 1
             self.assertEqual(
                 len(checksum_patches),

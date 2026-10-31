@@ -37,8 +37,10 @@ def toolchain_ready() -> bool:
     return (MSVC / "bin" / "Hostx64" / "x86" / "cl.exe").is_file()
 
 
-def build_with_map(project: str, committed: Path, out: Path) -> tuple[Path, dict[str, int]]:
-    """Rebuild native/<project>/<project>.c; return the DLL and its map's symbols."""
+def build_with_map(project: str, committed: Path, out: Path,
+                   link: tuple[str, ...] = ()) -> tuple[Path, dict[str, int]]:
+    """Rebuild native/<project>/<project>.c; return the DLL and its map's symbols. `link`: the
+    build script's own extra linker flags (Extra Supply Slots' /BASE, so it maps beside another)."""
     native = ROOT / "native" / project
     command = [
         str(MSVC / "bin" / "Hostx64" / "x86" / "cl.exe"), "/nologo", "/LD", "/O2", "/MT", "/W4", "/WX",
@@ -53,7 +55,7 @@ def build_with_map(project: str, committed: Path, out: Path) -> tuple[Path, dict
         f"/LIBPATH:{SDK / 'Lib' / SDK_VERSION / 'um' / 'x86'}",
         f"/LIBPATH:{SDK / 'Lib' / SDK_VERSION / 'ucrt' / 'x86'}",
         f"/IMPLIB:{out / (project + '.lib')}", f"/OUT:{out / 'rebuilt.dll'}", f"/MAP:{out / 'rebuilt.map'}",
-        "/RELEASE", "/SAFESEH:NO", "kernel32.lib", "user32.lib",
+        *link, "/RELEASE", "/SAFESEH:NO", "kernel32.lib", "user32.lib",
     ]
     result = subprocess.run(command, cwd=out, capture_output=True, text=True)
     if result.returncode != 0:

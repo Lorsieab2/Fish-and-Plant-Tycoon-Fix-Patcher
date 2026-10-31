@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import experimental  # noqa: E402
 
 EXPECTED = {
-    "fish": {"bigger_tanks", "extra_tanks", "multiple_ornaments"},
+    "fish": {"bigger_tanks", "extra_tanks", "extra_supply_slots", "multiple_ornaments"},
     "plant": {"extra_greenhouses", "extra_nurseries"},
 }
 
@@ -56,8 +56,10 @@ class ExperimentalSettings(unittest.TestCase):
         import pin_extra_greenhouses
         import pin_extra_tanks
         import pin_multiple_ornaments
+        import pin_supply_slots
         import pin_tank_expansion
         defined = [pin_tank_expansion.SETTING, pin_extra_tanks.SETTING, pin_multiple_ornaments.SETTING,
+                   pin_supply_slots.SETTING,
                    *pin_extra_greenhouses.SETTINGS]
         self.assertEqual({s["id"] for s in defined}, EXPECTED["fish"] | EXPECTED["plant"])
         for s in defined:
