@@ -120,6 +120,20 @@ class Renderer:
         """spec = {"subject": Subject.key, <Field.key>: <Option.key>, ...}. Raises PictureError."""
 ```
 
+Additions since the first version:
+
+- `Draw` has `scale` (percent, default 100): Fish Tycoon's scaled draw (0x408190), see
+  `picture_image.scaled_cell`. `cell_rect` is the game's cell cut (0x4095F0, clamped).
+- `Image.draw(alpha=A)` follows the game's blitter (0x4041C0): with A below 255 a pixel's alpha
+  a becomes `(a * A + 127) >> 8` (proven in tests/test_pictures_fish.py).
+- `render_saved` may take extra keyword options; the window passes `facing` ("left" / "right" /
+  "turn") and `frame` (0-5) to the Fish renderer only.
+- Make your own, by the owner's spec: Fish has Fin, Body, Stage (baby, teen at each age 6-19,
+  adult), State (healthy, ick, fungus, dead), Swimming and Frame; Plant has Flower, Foliage and a
+  Stage of seedling / budding / normal bloom / max bloom / max bloom + all effects / dead, plus
+  any other state the game draws (wilting, infested ...). The window builds one combobox per
+  `Field`, in order.
+
 Rules for both renderers:
 
 - An `Image` is the whole sprite composition on a transparent canvas, in game pixels, before

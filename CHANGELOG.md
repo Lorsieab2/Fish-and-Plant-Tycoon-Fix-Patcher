@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Picture Studio** (Tools tab, new). Shows the fish, creatures and
+  decorations in a Fish Tycoon save, tank by tank (Tanks 4-6 too), and
+  pictures you make from any fin, body, stage and state, drawn exactly as the
+  game draws them, and saves them as transparent PNGs at the game's size, 2x,
+  4x or a custom size, with or without a small margin; "Save all in this tank"
+  saves a folder of them. The drawing rules are the game's own, ported to
+  Python and checked against the game's draw code run in Unicorn; no Pillow is
+  needed (a small PNG reader and writer, src/picture_image.py). Plant Tycoon's
+  side follows. Tests: tests/test_pictures_fish.py, tests/test_picture_image.py,
+  tests/test_picture_studio.py.
+
 - **Extra Nursery item a bit smaller** (Plant Tycoon, 5 extra nurseries). The
   golden pot on the Upgrades view's Nursery shelf was drawn at its full 76 x 64
   (the plant store's draw ignores the 0.84 scale it was given), taller than the
