@@ -1159,7 +1159,7 @@ def site_ranges() -> dict[str, list[tuple[int, int]]]:
     for header in sorted((ROOT / "native").glob("ftfp_*/*sites*.h")):
         if "plant" in header.parent.name or header.parent.name in (
                 "ftfp_new_flowers", "ftfp_extra_greenhouses", "ftfp_seed_boxes", "ftfp_sort_seeds",
-                "ftfp_greenhouse_counts", "ftfp_plant_prices", "ftfp_plant_upgrades"):
+                "ftfp_greenhouse_counts", "ftfp_plant_prices", "ftfp_plant_upgrades", "ftfp_chem_slots"):
             continue
         text = header.read_text(encoding="utf-8")
         for m in re.finditer(r"#define SITE_(\w+)_VA 0x([0-9A-Fa-f]+)u", text):

@@ -143,6 +143,8 @@ def fish_preview(game: Path, built: dict[str, Image.Image]) -> Image.Image:
 def plant_preview(plant: Path, sheet: Image.Image) -> Image.Image:
     import build_auto_upgrades_assets
     screen = build_auto_upgrades_assets.plant_preview(plant, sheet)
+    # Extra Chemical Slots' item beside them (chem_slots_link.h: row 18 at 598, 177).
+    screen.alpha_composite(sheet.crop((0, 18 * CHEM_CELL, CHEM_CELL, 19 * CHEM_CELL)), (598, 177))
     for name, (x, y) in PLANT_PLACES.items():
         row = MUTA_ROWS[name]
         screen.alpha_composite(sheet.crop((0, row * CHEM_CELL, CHEM_CELL, (row + 1) * CHEM_CELL)), (x, y))

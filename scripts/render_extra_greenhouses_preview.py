@@ -15,7 +15,7 @@ writes, in docs/images:
   with the two new Upgrades items where Store Upgrades and Items.dll draws
   them: the Extra Greenhouse (frame 30 of the mod's Chemicals_Grid_upgrades.png,
   built by scripts/build_plant_upgrades_assets.py) on the tool shelf beside the
-  Fourth-Sixth Seed Boxes, and the Extra Nursery (goldpot.png at 0.84) on the
+  Fourth-Sixth Seed Boxes, and the Extra Nursery (frame 40: goldpot.png pre-scaled) on the
   Nursery shelf beside Time Warp and Add Money. Their tooltips pop up only
   under the mouse, so the picture leaves them out (their glyphs are checked).
 
@@ -172,7 +172,7 @@ def main() -> int:
     # (peep_shadow1.png), then its picture. The tool shelf: the Extra Greenhouse (frame 30 of the mod's
     # chemicals sheet, at scale 1) beside the Fourth-Sixth Seed Boxes (Tools_Grid.png frame 4, 9, 14 at
     # 461, 50 + 61 i). The Nursery shelf: Time Warp and Add Money (frames 26 and 28) and the Extra
-    # Nursery (goldpot.png at 0.84).
+    # Nursery (frame 40: goldpot.png pre-scaled to the clock's height, drawn at 449, 296).
     screen = Image.open(images / "Store_BG.jpg").convert("RGBA")
     shadow = Image.open(images / "peep_shadow1.png").convert("RGBA")
     chems = Image.open(ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png").convert("RGBA")
@@ -187,9 +187,8 @@ def main() -> int:
         screen.alpha_composite(chem(frame), (x, 296))
     screen.alpha_composite(shadow, (408, 80))
     screen.alpha_composite(chem(30), (404, 50))
-    screen.alpha_composite(shadow, (440 + 0x19, 296 + 0x1E))
-    pot = scaled(images / "goldpot.png", 0.84)
-    screen.alpha_composite(pot, (440 + 6, 296))
+    screen.alpha_composite(shadow, (449 + 0x19, 296 + 0x1E))
+    screen.alpha_composite(chem(40), (449, 296))                      # the golden pot, pre-scaled (row 20)
     save(screen, "extra-greenhouses-store.png")
     return 0
 
