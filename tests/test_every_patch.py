@@ -330,6 +330,14 @@ class Module:
                        if ins.mnemonic == "call" and ins.op_str.startswith("0x")}
             starts = [t for t in targets if call_at - 0x40 <= t <= call_at]
             if not starts:
+                # The C runtime may reach DllMain by a jump, not a call: then it starts right after
+                # the int3 padding that ends the function before it.
+                at = hits[0]
+                while at > max(0, hits[0] - 0x40) and code[at - 1] != 0xCC:
+                    at -= 1
+                if code[at - 1] == 0xCC:
+                    starts = [preferred + text_rva + at]
+            if not starts:
                 raise AssertionError(f"{self.name}: no DllMain found before 0x{call_at:X}")
             _DLL_MAINS[key] = max(starts) - preferred
         return self.base + _DLL_MAINS[key]
