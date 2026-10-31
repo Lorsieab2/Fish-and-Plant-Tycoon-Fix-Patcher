@@ -5,7 +5,7 @@ grids, part boxes, joints, flower spots and the plant classes' starting shapes.
 
     python scripts/build_picture_studio_plant_data.py ["<vanilla Plant Tycoon.exe>"]
 
-What it reads (docs/picture-studio-plant.md has the drawing rules):
+What it reads (src/pictures_plant.py's docstring has the drawing rules):
 
 * SPRITES: the sprite table 0x4855F0 (0x34-byte records {id, file, +8, +0xC, columns, rows}).
 * FOLIAGE_SHAPES: the plant factory 0x42EE20 (jump table 0x42F3B0, index (foliage - 1) % 23 + 1),

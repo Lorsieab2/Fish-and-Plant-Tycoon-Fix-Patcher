@@ -1,4 +1,4 @@
-﻿"""Picture Studio's Plant Tycoon renderer (src/pictures_plant.py, docs/picture-studio-plant.md).
+"""Picture Studio's Plant Tycoon renderer (src/pictures_plant.py).
 
 The emulated tests run the vanilla "Plant Tycoon.exe" in Unicorn (tests/store_emulator.py): the
 game's own pot draw (0x42F740), plant draw (vtable slots 7, 10, 13, 11: 0x42E4A0, 0x42E690,

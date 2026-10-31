@@ -91,6 +91,8 @@ FILES = [
     "src/picture_studio.py",
     "src/pictures_fish.py",
     "src/pictures_fish_ds.py",
+    "src/pictures_plant.py",
+    "src/pictures_plant_data.py",
     "docs/picture-studio-interface.md",
     "src/game_mechanics.py",
     "src/game_mechanics_fish.py",

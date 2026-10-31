@@ -1,5 +1,4 @@
-"""Picture Studio's Plant Tycoon renderer (docs/picture-studio-interface.md,
-docs/picture-studio-plant.md).
+"""Picture Studio's Plant Tycoon renderer (docs/picture-studio-interface.md).
 
 Every plant is drawn by a port of the game's own draw code, from the pot record the game keeps
 (0x5600 bytes: the save's pots, or Extra Greenhouses' sidecar):
