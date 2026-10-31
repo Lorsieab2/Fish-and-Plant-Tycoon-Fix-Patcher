@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **Fixed: Picture Studio drew Radioactive Plant Formula plants wrong** (Plant
+  Tycoon, "From my save"). A plant given the formula carries flowers on the
+  extra spots Store Upgrades and Items.dll adds to the game's shape tables at
+  start-up; the studio drew them with the stock tables, where those spots are
+  empty, so the flowers landed at the picture sheet's corner: loose flowers far
+  up and to the left, the plant itself pushed small to the right. A saved plant
+  with a flower on such a spot is now drawn with the formula's tables, as the
+  patched game draws it (checked call for call against the game's draw run in
+  Unicorn, for every formula foliage and for every pot in a real save).
+
 ## v1.0.18
 
 - **Fixed: the patcher would not start** ("No module named 'cheat'") from the

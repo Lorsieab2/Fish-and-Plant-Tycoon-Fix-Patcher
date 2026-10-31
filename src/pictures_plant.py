@@ -213,7 +213,28 @@ class Plant:
                 f = at + 0xC4 + n * FLOWER_SIZE
                 flowers.append(Flower(i(f), i(f + 4), struct.unpack_from("<f", data, f + 8)[0], i(f + 0x18)))
             plant.branches.append(Branch(i(at), kind, struct.unpack_from("<f", data, at + 8)[0], children, flowers))
+        plant.formula = plant.on_formula_spots()
         return plant
+
+    def on_formula_spots(self) -> bool:
+        """Whether a flower sits on a spot only the Radioactive Plant Formula's tables have (a
+        spot that is empty in the stock table but filled by Store Upgrades and Items.dll's
+        prepare_shapes). The stock game never puts a flower there (0x42DC60 picks from the
+        part's own spots), so such a plant grew in a game with the DLL, which fills those spots
+        at start-up for every plant it draws; drawn with the stock tables, those flowers would
+        land at the sheet's (0, 0), far from the plant."""
+        if self.foliage <= 0:
+            return False
+        foliage = (self.foliage - 1) % 23 + 1
+        stock, formula = SHAPES.get(foliage, ()), FORMULA_SHAPES.get(foliage, ())
+        for b in self.branches:
+            part, patched = find_part(stock, b.part), find_part(formula, b.part)
+            if part is None or patched is None:
+                continue
+            for fl in b.flowers:
+                if 0 <= fl.spot < 6 and part.spots[fl.spot] == (0, 0, 0) and patched.spots[fl.spot] != (0, 0, 0):
+                    return True
+        return False
 
     def to_record(self, base: bytes | None = None) -> bytes:
         """The pot record (for the tests' emulated game): these fields over `base` (zeros)."""
