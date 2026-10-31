@@ -95,13 +95,13 @@ static const int ROW_HIT_BOTTOM[2] = { 184, 253 };
 #define FLIGHT_OFFSET 35                /* 0x4244C0 aims a bottle at its picture's place + 35 */
 
 /* The arrow: on the plaque between the seed tray (y <= 98) and the tools (y >= 136),
-   right of its middle; nothing else on the plaque takes a click. */
-#define ARROW_X 154
+   right of its middle, clear of its gold scrollwork; nothing else on the plaque takes a click. */
+#define ARROW_X 136
 #define ARROW_Y 104
 #define ARROW_W 24
 #define ARROW_H 24
-#define PAGE_TEXT_X 128                 /* "1/2" / "2/2" left of the arrow, on the plaque */
-#define PAGE_TEXT_Y 109
+#define PAGE_TEXT_X 100                 /* "1/2" / "2/2" left of the arrow, on the plaque */
+#define PAGE_TEXT_Y 107
 #define TEXT_WHITE 0xFFFFFFFFu
 #define TEXT_SHADOW 0xFF000000u
 
