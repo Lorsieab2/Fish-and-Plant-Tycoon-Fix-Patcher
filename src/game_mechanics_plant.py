@@ -47,6 +47,7 @@ def page() -> GamePage:
             Group("Selling and visitors", SELLING),
             Group("Prices", PRICES),
             Group("Tools and shears", TOOLS),
+            Group("How many seeds you can hold", SEED_CAPACITY),
             Group("Chemicals", CHEMICALS),
             Group("Nursery ornaments", ORNAMENTS),
             Group("Magic plants", MAGIC),
@@ -609,10 +610,12 @@ TOOLS = (
         "Seed Storage: 40, 80 or 120 seeds. With every unlocked drawer full, the greenhouse says "
         "\"Your seed box is already full!\" and the seed is not moved.",
         patched=(("plant_upgrades", "the Fourth, Fifth and Sixth Seed Box ($1000 each, in order, on "
-                  "the store's Upgrades view) open a second 120-seed chest: gold arrows on the Seed "
-                  "Storage title bar switch between boxes 1-3 and 4-6, and the greenhouse fills "
-                  "boxes 4-6 once 1-3 are full."),
-                 ("free_upgrades", "the Fourth, Fifth and Sixth Seed Box cost $0, still in order."),
+                  "the store's Upgrades view) open a second 120-seed chest, and the Seventh, Eighth and Ninth "
+                  "($1000 each, after the Sixth, in their own column left of the Extra Greenhouse) a third: "
+                  "gold arrows on the Seed Storage title bar step through boxes 1-3, 4-6 and 7-9 (each "
+                  "chest once it has a box, then round again), and the greenhouse fills boxes 4-6 once 1-3 "
+                  "are full, then 7-9. See How many seeds you can hold."),
+                 ("free_upgrades", "the Fourth to Ninth Seed Box cost $0, still in order."),
                  ("sort_seeds", "a Sort Seeds button sorts every unlocked box (see Sorting seeds).")),
     ),
     Fact(
@@ -901,6 +904,47 @@ GOALS = (
     Fact("Autosave runs every 601 real-time seconds; quitting does not save (see Clocks)."),
 )
 
+# The numbers below are checked against the code by tests/test_game_mechanics_seed_capacity.py: the
+# drawer's 4 rows of 10 (0x4245FD, 0x424622), the 120-record box array and the three chests
+# (native/ftfp_seed_boxes), the 8 tray slots (0x430910), the 5 ripe seeds a pot holds (0x42E0E0),
+# 15 pots a greenhouse (native/ftfp_plant_upgrades POTS) and the 5 extra greenhouses.
+SEED_CAPACITY = (
+    Fact(
+        "In storage: each seed box is one drawer of 4 rows x 10 slots = 40 seeds (the greenhouse's search, "
+        "0x4245F0, and Seed Storage open 4 rows per drawer, 10 slots a row). The game's box array is 12 rows x "
+        "10 = 120 records, one chest of three drawers.",
+        subs=(
+            "Stock, the First to Third Seed Box: 3 x 40 = 120 seeds.",
+            "6 boxes (with the Fourth to Sixth): 6 x 40 = 240 seeds, in two chests.",
+            "9 boxes (with the Fourth to Ninth): 9 x 40 = 360 seeds, in three chests.",
+            "The seed tray beside the greenhouse holds 8 more, one seed a slot (2 rows x 4; the free-slot "
+            "search 0x430900 stops at 8): 128, 248 or 368 with the boxes above.",
+            "The seed shop's shelves (9 packets, and 3 Legendary Seeds on the Upgrades view) are for sale, not "
+            "yours: a bought packet goes into a free tray slot, so it counts in the tray, never on top of it.",
+            "The seed in your hand adds nothing: one picked up from the tray or a box stays in its slot until "
+            "you drop it, and one taken from a plant is one of that plant's ripe seeds, counted off the plant "
+            "as you take it (0x42625D).",
+        ),
+        patched=(("plant_upgrades", "the Fourth to Sixth Seed Box give 240 seeds of storage, and the Seventh "
+                  "to Ninth 360."),),
+    ),
+    Fact(
+        "On plants, counted separately: a pollinated plant ripens at most 5 seeds (0x42E0E0: min(age units "
+        "since pollination - 2, 5), less those already taken), and a greenhouse has 15 pots: 5 x 15 = 75 seeds "
+        "ripe at once.",
+        patched=(("extra_greenhouses", "with Greenhouses 2-6 (6 greenhouses of 15 pots): 5 x 15 x 6 = 450."),),
+    ),
+    Fact(
+        "Everything at once (storage, the tray and every ripe seed on a plant):",
+        subs=(
+            "Stock: 120 + 8 + 75 = 203.",
+            "6 boxes, 1 greenhouse: 240 + 8 + 75 = 323.",
+            "9 boxes, 1 greenhouse: 360 + 8 + 75 = 443.",
+            "9 boxes and 6 greenhouses: 360 + 8 + 450 = 818.",
+        ),
+    ),
+)
+
 SORTING = (
     Fact(
         "Clicking Sort Seeds asks first (Yes / No). Yes sorts every seed in the unlocked seed box space at once; "
@@ -908,9 +952,10 @@ SORTING = (
     ),
     Fact(
         "Where seeds go: packed from the first slot, left to right, top to bottom, through the unlocked "
-        "drawers in order: First, Second and Third Seed Box, then the Fourth, Fifth and Sixth (pages 4-6, "
-        "with Add new store upgrades and items). Boxes 1-3 fill completely before any seed goes to boxes "
-        "4-6. Locked drawers are never written, and the empty slots end up at the end.",
+        "drawers in order: First, Second and Third Seed Box, then the Fourth, Fifth and Sixth (page 4-6), "
+        "then the Seventh, Eighth and Ninth (page 7-9; both with Add new store upgrades and items). Boxes "
+        "1-3 fill completely before any seed goes to boxes 4-6, and 4-6 before 7-9. Locked drawers are "
+        "never written, and the empty slots end up at the end.",
     ),
     Fact(
         "Order, each key only breaking ties of the one before, lowest first:",
@@ -923,7 +968,8 @@ SORTING = (
             "5. The pollen donor: foliage, then flower.",
             "Unknown parents (shop seeds, the \"?\" in the info panel) count as 0, so they come before every "
             "known parent of the same plant.",
-            "6. Seeds equal on all of these keep their old order (top-left first, boxes 1-3 before 4-6).",
+            "6. Seeds equal on all of these keep their old order (top-left first, boxes 1-3 before 4-6, "
+            "4-6 before 7-9).",
         ),
     ),
     Fact(
@@ -1155,11 +1201,11 @@ OTHER_GAME = (
     Fact('Goals and popups: see Goals, messages and statistics.'),
     Fact("DS store animals: not in Plant Tycoon. The patcher's new Plant Tycoon items are in Shop seeds "
          "(Legendary Seeds), Chemicals (the Radioactive Plant Formula and its Bomb, the Revival Potion and "
-         "Revita-Seed), Tools and shears (Fourth to Sixth Seed Box), Extra greenhouses and Extra "
+         "Revita-Seed), Tools and shears (Fourth to Ninth Seed Box), Extra greenhouses and Extra "
          "nurseries."),
     Fact("3 extra tanks (patcher): not in Plant Tycoon (plants have no tanks). Its counterparts are 5 extra "
          "greenhouses, Greenhouses 2-6 (see Extra greenhouses), and 5 extra nurseries (see Extra nurseries); "
-         "the Fourth to Sixth Seed Box add storage (see Tools and shears)."),
+         "the Fourth to Ninth Seed Box add storage (see Tools and shears and How many seeds you can hold)."),
     Fact("Extra supply slots (patcher): not in Plant Tycoon, whose held items are its tools and chemical "
          "tray, not supply slots (see Tools and shears and Chemicals)."),
 )
@@ -1242,7 +1288,7 @@ EXTRA_GREENHOUSES = (
             "Magic plants and the Golden Berries, once found in any greenhouse (the Rose of Joy, the Flower of "
             "Knowledge and the rest): their effects reach every plant in every greenhouse, and the visitor "
             "bonus counts in every nursery.",
-            "Tool upgrades, the Second to Sixth Seed Box, water and soil upgrades and every store purchase.",
+            "Tool upgrades, the Second to Ninth Seed Box, water and soil upgrades and every store purchase.",
             "Nursery ornaments: each counts in every nursery as soon as it is bought.",
             "Discovered species, prices, money, goals and statistics.",
             "Checked in emulation: with every magic plant found and every tool upgrade owned, a plant grows "

@@ -437,11 +437,17 @@ never needs the internet.
     no refund (buying it again costs the full price). Ownership is kept in
     `Auto Upgrades <slot>.dat`. Picture:
     [docs/images/auto-upgrades-plant.png](docs/images/auto-upgrades-plant.png).
-  - The Fourth, Fifth and Sixth Seed Box with the tool upgrades: $1000
-    each, bought in order like the stock ones. Each opens a 40-seed drawer in
-    a second chest; the gold arrows on the Seed Storage title bar switch
-    between boxes 1-3 and 4-6, and the greenhouse fills boxes 4-6 once 1-3
-    are full.
+  - The Fourth, Fifth and Sixth Seed Box with the tool upgrades, and the
+    Seventh, Eighth and Ninth in their own column left of the Extra
+    Greenhouse: $1000 each, bought in order like the stock ones (the Seventh
+    after the Sixth). Each opens a 40-seed drawer: boxes 4-6 in a second
+    chest, boxes 7-9 in a third. The gold arrows on the Seed Storage title bar
+    step through boxes 1-3, 4-6 and 7-9 (each page once it has a box, then
+    round again), and the greenhouse fills boxes 4-6 once 1-3 are full, then
+    7-9: 360 seeds in all. Kept in `Seed Boxes <slot>.dat` (a file from an
+    older version, boxes 4-6 only, still loads). Pictures:
+    [docs/images/seed-boxes-7-9-store.png](docs/images/seed-boxes-7-9-store.png),
+    [docs/images/seed-boxes-7-9-storage.png](docs/images/seed-boxes-7-9-storage.png).
   - Click Supplies in the bottom bar to go back.
   - Design:
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
@@ -457,7 +463,7 @@ never needs the internet.
   $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the
   Formula Bomb ($30,000), the Revival Potion ($10,000), Revita-Seed ($2,500),
   Automatic Sprinklers ($10,000), the Auto-Healer ($10,000), the
-  Fourth, Fifth and Sixth Seed Box ($1000 each), and the Time Warp clock ($500),
+  Fourth to Ninth Seed Box ($1000 each), and the Time Warp clock ($500),
   Add Money ($950), the Extra Greenhouse ($10,000 each) and the Extra Nursery
   ($10,000 each) when they are on. The price shows $0 and no money is
   taken; everything else (three Legendary Seeds a day, room in the trays, the

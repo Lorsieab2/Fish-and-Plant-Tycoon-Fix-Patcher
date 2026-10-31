@@ -1541,6 +1541,8 @@ OTHER_GAME = (
     Fact('Bugs (a collection): not in Fish Tycoon; the Trophy Case of magic fish is its only collection (see Goals and popups).'),
     Fact('Goals, messages and statistics: see Goals and popups.'),
     Fact("Sorting seeds: not in Fish Tycoon (the patcher's Sort Seeds button is Plant Tycoon only)."),
+    Fact("How many seeds you can hold: not in Fish Tycoon, which has no seed storage; how many fish a tank "
+         "holds is in Breeding and babies (and 3 extra tanks)."),
     Fact("Extra greenhouses (patcher): Plant Tycoon only. Fish Tycoon's own are 3 extra tanks, Tanks "
          "4-6 (see 3 extra tanks), and Bigger tanks: 30 fish (see Breeding and babies)."),
     Fact("Extra nurseries (patcher): Plant Tycoon only; Fish Tycoon sells from the Sale Tank (Tank 3), and "

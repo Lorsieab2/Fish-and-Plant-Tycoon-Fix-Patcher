@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-# "Extra Seed Boxes.dll": the Fourth, Fifth and Sixth Seed Box in Plant Tycoon (see native/ftfp_seed_boxes/ftfp_seed_boxes.c).
+# "Extra Seed Boxes.dll": the Fourth to Ninth Seed Box in Plant Tycoon (see native/ftfp_seed_boxes/ftfp_seed_boxes.c).
 # Regenerate native/ftfp_seed_boxes/box_sites.h first with
 # scripts/build_seed_boxes_headers.py. Shipped from assets\plant_tycoon_upgrades.
 # Same toolchain and flags as the Virtual Villagers Fun Patcher's companions:

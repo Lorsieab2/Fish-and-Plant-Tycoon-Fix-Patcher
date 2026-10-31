@@ -1,16 +1,18 @@
-/* Extra Seed Boxes -- the Fourth, Fifth and Sixth Seed Box in PC Plant Tycoon.
+/* Extra Seed Boxes -- the Fourth to Ninth Seed Box in PC Plant Tycoon.
 
    WHAT.  The stock seed box is one 120-seed chest of three 40-seed drawers:
    the First Seed Box is open from the start, the Second and Third are bought
-   in the store.  This mod adds a second chest with the same three drawers,
-   the Fourth, Fifth and Sixth Seed Box ("Even more space for your seeds!"),
-   sold on the store's Upgrades view (Store Upgrades and Items.dll) and bought in
-   order like the stock ones.  Once the Fourth is owned, gold arrows on the
-   Seed Storage title bar switch between the two chests; each works exactly
-   like the stock one, because the chest on screen is always the one in the
-   game's own box array.  The greenhouse knows them too: a seed sent to the
-   seed box goes to the first free slot of boxes 1-3, then of boxes 4-6, and
-   "Your seed box is already full!" only comes when all of them are full.
+   in the store.  This mod adds two more chests with the same three drawers:
+   the Fourth, Fifth and Sixth Seed Box, then the Seventh, Eighth and Ninth
+   ("Even more space for your seeds!"), sold on the store's Upgrades view
+   (Store Upgrades and Items.dll) and bought in order like the stock ones.
+   Once the Fourth is owned, gold arrows on the Seed Storage title bar step
+   through the chests that have a box ("Boxes 1-3", "Boxes 4-6", "Boxes 7-9",
+   then round again); each works exactly like the stock one, because the
+   chest on screen is always the one in the game's own box array.  The
+   greenhouse knows them too: a seed sent to the seed box goes to the first
+   free slot of boxes 1-3, then of boxes 4-6, then of boxes 7-9, and "Your
+   seed box is already full!" only comes when all of them are full.
 
    HOW.  "Store Upgrades and Items.dll" loads this DLL and calls
    FtfpSeedBoxesStartup() before WinMain, which writes every site in
@@ -22,9 +24,10 @@
 
    STATE.  The game's box array holds the stock chest inside every save (and
    whenever the Seed Storage screen opens), so saves keep their stock
-   layout and load as vanilla without the mod.  The second chest and the
-   three purchases are kept per slot in
-   "<save folder>\Plant Tycoon Fix Patcher Data\Seed Boxes <slot>.dat". */
+   layout and load as vanilla without the mod.  The two new chests and the
+   six purchases are kept per slot in
+   "<save folder>\Plant Tycoon Fix Patcher Data\Seed Boxes <slot>.dat"
+   (version 2; a version 1 file, the Fourth-Sixth only, still loads). */
 #include <windows.h>
 #include <string.h>
 #include "../ftfp_ds_fish/install_sites.h"
@@ -37,7 +40,9 @@
 #define STATE_HELD 0x56C
 #define HELD_BOX_FIRST 100
 #define NO_HOVER 0x63
-#define EXTRA_BOXES 3
+#define EXTRA_BOXES 6                   /* Fourth to Ninth */
+#define BOXES_PER_CHEST 3
+#define CHESTS 3                        /* the stock chest (boxes 1-3), boxes 4-6, boxes 7-9 */
 #define ARROW_PREV 7
 #define ARROW_NEXT 8
 #define SOUND_BUTTON 0xC
@@ -78,56 +83,73 @@ static const box_level_fn box_level = (box_level_fn)0x0041DE60u;
 
 /* ------------------------------------------------------------------- chests */
 
-static unsigned char other_chest[BOX_BYTES];    /* the chest not in the game's array */
+/* Chest c lives in the game's array when c == resident, else in held[c]
+   (held[resident] is stale and never read). */
+static unsigned char held[CHESTS][BOX_BYTES];
 static int chest = 0;                           /* the chest the Seed Storage screen shows */
 static int resident = 0;                        /* the chest in the game's array */
-static unsigned char owned[EXTRA_BOXES];        /* Fourth, Fifth, Sixth */
+static unsigned char owned[EXTRA_BOXES];        /* Fourth to Ninth */
 static void *arrows[2];
 
-static int owned_count(void) { return owned[0] + (owned[0] && owned[1]) + (owned[0] && owned[1] && owned[2]); }
-
-static void swap_chests(char *state) {
-    static unsigned char temp[BOX_BYTES];
-    memcpy(temp, state + STATE_BOX, BOX_BYTES);
-    memcpy(state + STATE_BOX, other_chest, BOX_BYTES);
-    memcpy(other_chest, temp, BOX_BYTES);
-    resident = !resident;
+/* The boxes owned in order: a box counts only when every box before it is owned. */
+static int owned_count(void) {
+    int n = 0;
+    while (n < EXTRA_BOXES && owned[n]) ++n;
+    return n;
 }
 
-static void clear_second_chest(void) {
-    int i;
-    for (i = 0; i < BOX_RECORDS; ++i) empty_record(other_chest + i * RECORD_BYTES);
+/* Boxes owned in new chest c (1 or 2): 0 to 3. */
+static int chest_boxes(int c) {
+    int n = owned_count() - (c - 1) * BOXES_PER_CHEST;
+    return n < 0 ? 0 : n > BOXES_PER_CHEST ? BOXES_PER_CHEST : n;
+}
+
+static int chest_open(int c) { return c == 0 || (c > 0 && c < CHESTS && chest_boxes(c) > 0); }
+
+static void make_resident(char *state, int c) {
+    if (c == resident || c < 0 || c >= CHESTS) return;
+    memcpy(held[resident], state + STATE_BOX, BOX_BYTES);
+    memcpy(state + STATE_BOX, held[c], BOX_BYTES);
+    resident = c;
+}
+
+static void clear_new_chests(void) {
+    int c, i;
+    for (c = 1; c < CHESTS; ++c) {
+        for (i = 0; i < BOX_RECORDS; ++i) empty_record(held[c] + i * RECORD_BYTES);
+    }
     memset(owned, 0, sizeof owned);
     chest = resident = 0;
 }
 
-/* A save put the stock chest back while the second one was on screen. */
+/* A save put the stock chest back while another one was on screen. */
 static void ensure_resident(char *state) {
-    if (resident != chest) swap_chests(state);
+    make_resident(state, chest);
 }
 
-/* 0x41DE60 for the second chest: one drawer per box owned. */
-static int __cdecl second_chest_level(void) {
-    int n = owned_count();
+/* 0x41DE60 for a new chest: one drawer per box owned in it. */
+static int __cdecl new_chest_level(void) {
+    int n = chest_boxes(resident);
     return n > 0 ? n - 1 : 0;
 }
 
 /* 0x4245F0(this = greenhouse; tray slot, &row, &col): the stock search over
-   the chest in the game's array, run on the stock chest first, then on the
-   second one (left in the array so the caller's row/col and the flying seed
-   point at it; the Seed Storage screen and every save put the stock chest
-   back). */
+   the chest in the game's array, run on the stock chest first, then on
+   boxes 4-6, then on boxes 7-9 (the chest that took the seed is left in the
+   array so the caller's row/col and the flying seed point at it; the Seed
+   Storage screen and every save put the stock chest back). */
 typedef int (__fastcall *send_fn)(void *greenhouse, int edx, int slot, int *row, int *col);
 static void stock_send(void);
 
 static int __cdecl send_to_box(char *greenhouse, int slot, int *row, int *col) {
     char *state = AT(greenhouse, 0x68, char *);
-    if (resident != 0) swap_chests(state);
-    if ((((send_fn)(UINT_PTR)stock_send)(greenhouse, 0, slot, row, col) & 0xFF) != 0) return 1;
-    if (owned_count() == 0) return 0;
-    swap_chests(state);
-    if ((((send_fn)(UINT_PTR)stock_send)(greenhouse, 0, slot, row, col) & 0xFF) != 0) return 1;
-    swap_chests(state);
+    int c;
+    for (c = 0; c < CHESTS; ++c) {
+        if (!chest_open(c)) break;                      /* the chests open in order */
+        make_resident(state, c);
+        if ((((send_fn)(UINT_PTR)stock_send)(greenhouse, 0, slot, row, col) & 0xFF) != 0) return 1;
+    }
+    make_resident(state, 0);
     return 0;
 }
 
@@ -147,9 +169,19 @@ static void switch_chest(char *scene, int to) {
     if (anim != NULL && AT(anim, 0, unsigned char)) anim_finish(anim, 0);
     if (AT(state, STATE_HELD, int) >= HELD_BOX_FIRST) AT(state, STATE_HELD, int) = 0;   /* it never left its slot */
     AT(scene, 0x48, int) = NO_HOVER;
-    swap_chests(state);
+    make_resident(state, to);
     chest = to;
     show_upgrade_tips(scene);
+}
+
+/* The next chest with a box, forwards (+1) or backwards (-1), round again. */
+static int next_chest(int from, int step) {
+    int c = from, i;
+    for (i = 0; i < CHESTS; ++i) {
+        c = (c + step + CHESTS) % CHESTS;
+        if (chest_open(c)) return c;
+    }
+    return 0;
 }
 
 static void show_arrows(void) {
@@ -169,17 +201,18 @@ static int __fastcall scene_mouse(char *scene, int edx, int msg, int x, int y) {
 static int __fastcall scene_command(char *scene, int edx, int msg, int id) {
     if (msg == 8 && (id == ARROW_PREV || id == ARROW_NEXT) && owned[0]) {
         play_sound(AT(scene, 0x38, void *), 0, SOUND_BUTTON);
-        switch_chest(scene, !chest);
+        switch_chest(scene, next_chest(chest, id == ARROW_NEXT ? 1 : -1));
         return 1;
     }
     return stock_command(scene, edx, msg, id);
 }
 
 static void __fastcall scene_draw(char *scene, int edx) {
+    static const char *const labels[CHESTS] = { "Boxes 1-3", "Boxes 4-6", "Boxes 7-9" };
     ensure_resident(SCENE_STATE(scene));
     stock_draw(scene, edx);
-    if (owned[0]) {
-        draw_text_centred(graphics(), 0, chest ? "Boxes 4-6" : "Boxes 1-3", 660, 9, TEXT_COLOUR, 0);
+    if (owned[0] && chest >= 0 && chest < CHESTS) {
+        draw_text_centred(graphics(), 0, labels[chest], 660, 9, TEXT_COLOUR, 0);
     }
 }
 
@@ -212,22 +245,25 @@ void __cdecl FtfpSeedBoxSetOwned(int box, int value) {
 }
 
 /* For "Sort Seeds.dll": where each chest is right now and how many of its
-   rows are unlocked (4 per box owned).  Returns the number of chests. */
-int __cdecl FtfpSeedBoxesChests(char *state, unsigned char **chests, int *rows) {
-    int stock_level;
-    if (state == NULL || chests == NULL || rows == NULL) return 0;
+   rows are unlocked (4 per box owned), for up to `capacity` chests.  Returns
+   the number of chests filled in (3), or 0 when `capacity` is too small.
+   (The version 1 export, FtfpSeedBoxesChests, knew two chests; it is gone, so
+   an older Sort Seeds DLL finds no export and stays off.) */
+int __cdecl FtfpSeedBoxesChestList(char *state, unsigned char **chests, int *rows, int capacity) {
+    int stock_level, c;
+    if (state == NULL || chests == NULL || rows == NULL || capacity < CHESTS) return 0;
     stock_level = AT(state, 0x8AC, unsigned char) ? 2 : AT(state, 0x80C, unsigned char) ? 1 : 0;
-    chests[0] = resident == 0 ? (unsigned char *)state + STATE_BOX : other_chest;
-    chests[1] = resident == 0 ? other_chest : (unsigned char *)state + STATE_BOX;
-    rows[0] = (stock_level + 1) * 4;
-    rows[1] = owned_count() * 4;
-    return 2;
+    for (c = 0; c < CHESTS; ++c) {
+        chests[c] = resident == c ? (unsigned char *)state + STATE_BOX : held[c];
+        rows[c] = (c == 0 ? stock_level + 1 : chest_boxes(c)) * 4;
+    }
+    return CHESTS;
 }
 
 /* ----------------------------------------------------------------- sidecar */
 
 #define SIDECAR_MAGIC 0x58425350u      /* "PSBX" */
-#define SIDECAR_VERSION 1u
+#define SIDECAR_VERSION 2u             /* 1: the Fourth-Sixth only (sidecar_body_v1) */
 typedef BOOL (WINAPI *special_folder_fn)(HWND, LPWSTR, int, BOOL);
 
 /* "<Documents>\LDW\<exe name>\Plant Tycoon Fix Patcher Data\Seed Boxes <slot>.dat". */
@@ -260,9 +296,16 @@ static int sidecar_path(int slot, wchar_t *out, DWORD cap, int make_folder) {
     return 1;
 }
 
-typedef struct sidecar_body {
+/* Version 1: the Fourth, Fifth and Sixth (owned[0..2], owned[3] 0) and boxes 4-6. */
+typedef struct sidecar_body_v1 {
     unsigned char owned[4];
     unsigned char chest[BOX_BYTES];
+} sidecar_body_v1;
+
+/* Version 2: the Fourth to Ninth (owned[0..5], owned[6..7] 0), boxes 4-6, then boxes 7-9. */
+typedef struct sidecar_body {
+    unsigned char owned[8];
+    unsigned char chest[CHESTS - 1][BOX_BYTES];
 } sidecar_body;
 
 /* Called before the game writes its save: the stock chest goes back into the
@@ -272,11 +315,12 @@ static void __cdecl on_save(const char *state_unused, int slot) {
     HANDLE file;
     DWORD header[3], written;
     static sidecar_body body;
+    int c;
     (void)state_unused;
-    if (slot <= 0 || !sidecar_path(slot, path, 1024, 1)) return;
+    if (slot <= 0 || resident != 0 || !sidecar_path(slot, path, 1024, 1)) return;
+    memset(body.owned, 0, sizeof body.owned);
     memcpy(body.owned, owned, EXTRA_BOXES);
-    body.owned[3] = 0;
-    memcpy(body.chest, other_chest, BOX_BYTES);       /* the second chest (it is never resident here) */
+    for (c = 1; c < CHESTS; ++c) memcpy(body.chest[c - 1], held[c], BOX_BYTES);   /* never resident here */
     wcscpy_s(temp, 1100, path);
     wcscat_s(temp, 1100, L".tmp");
     file = CreateFileW(temp, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -295,27 +339,47 @@ static void __cdecl on_save(const char *state_unused, int slot) {
 }
 
 static void __cdecl before_save(char *state, int slot) {
-    if (slot > 0 && resident != 0) swap_chests(state);
+    if (slot > 0) make_resident(state, 0);
     on_save(state, slot);
+}
+
+/* Reads a version 2 file, or a version 1 file into the same body (boxes 7-9
+   not owned and empty).  1 when the file is whole and its header is right. */
+static int read_sidecar(HANDLE file, sidecar_body *body) {
+    DWORD header[3], got, more;
+    if (!ReadFile(file, header, sizeof header, &got, NULL) || got != sizeof header || header[0] != SIDECAR_MAGIC) return 0;
+    if (header[1] == SIDECAR_VERSION && header[2] == sizeof *body) {
+        return ReadFile(file, body, sizeof *body, &got, NULL) && got == sizeof *body
+               && ReadFile(file, &more, 1, &got, NULL) && got == 0;          /* nothing after it */
+    }
+    if (header[1] == 1u && header[2] == sizeof(sidecar_body_v1)) {
+        static sidecar_body_v1 old;
+        int i;
+        if (!ReadFile(file, &old, sizeof old, &got, NULL) || got != sizeof old
+            || !ReadFile(file, &more, 1, &got, NULL) || got != 0) return 0;
+        memset(body->owned, 0, sizeof body->owned);
+        memcpy(body->owned, old.owned, BOXES_PER_CHEST);
+        memcpy(body->chest[0], old.chest, BOX_BYTES);
+        for (i = 0; i < BOX_RECORDS; ++i) empty_record(body->chest[1] + i * RECORD_BYTES);
+        return 1;
+    }
+    return 0;
 }
 
 static void __cdecl on_load(const char *state, int slot) {
     wchar_t path[1024];
     HANDLE file;
-    DWORD header[3], got;
     int ok = 0;
     static sidecar_body body;
     (void)state;
     if (slot <= 0) return;
-    clear_second_chest();
+    clear_new_chests();
     if (sidecar_path(slot, path, 1024, 0)) {
         file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (file != INVALID_HANDLE_VALUE) {
-            ok = ReadFile(file, header, sizeof header, &got, NULL) && got == sizeof header
-                 && header[0] == SIDECAR_MAGIC && header[1] == SIDECAR_VERSION && header[2] == sizeof body
-                 && ReadFile(file, &body, sizeof body, &got, NULL) && got == sizeof body;
+            ok = read_sidecar(file, &body);
             CloseHandle(file);
-            if (!ok) {
+            if (!ok) {                                    /* set aside, never deleted */
                 wchar_t aside[1100];
                 wcscpy_s(aside, 1100, path);
                 wcscat_s(aside, 1100, L".unreadable");
@@ -324,9 +388,9 @@ static void __cdecl on_load(const char *state, int slot) {
         }
     }
     if (ok) {
-        int i;
+        int i, c;
         for (i = 0; i < EXTRA_BOXES; ++i) owned[i] = (unsigned char)(body.owned[i] != 0);
-        memcpy(other_chest, body.chest, BOX_BYTES);
+        for (c = 1; c < CHESTS; ++c) memcpy(held[c], body.chest[c - 1], BOX_BYTES);
     }
     show_arrows();
 }
@@ -337,7 +401,7 @@ static void __cdecl on_delete(int slot) {
 }
 
 static void __cdecl on_new_game(void) {
-    clear_second_chest();
+    clear_new_chests();
     show_arrows();
 }
 
@@ -352,7 +416,7 @@ __declspec(naked) static void stub_level(void) {
         cmp dword ptr [resident], 0
         je stock
         push ecx
-        call second_chest_level
+        call new_chest_level
         pop ecx
         ret
     stock:
@@ -461,14 +525,15 @@ typedef struct ftfp_box_events {
     void (__cdecl *set_owned)(int box, int value);
 } ftfp_box_events;
 
-static const ftfp_box_events events = { 1, before_save, on_load, on_delete, on_new_game,
+/* Version 2: owned and set_owned take boxes 0-5 (the Fourth to Ninth); version 1 took 0-2. */
+static const ftfp_box_events events = { 2, before_save, on_load, on_delete, on_new_game,
                                         FtfpSeedBoxOwned, FtfpSeedBoxSetOwned };
 
 /* Called once by "Store Upgrades and Items.dll" after it installed, before WinMain. */
 const ftfp_box_events *__stdcall FtfpSeedBoxesStartup(void) {
     if (!installed) {
         __try {
-            clear_second_chest();
+            clear_new_chests();
             if (prepare() && ftfp_install_sites(writes, TOTAL_SITES)) installed = 1;
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             installed = 0;
