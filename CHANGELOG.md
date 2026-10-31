@@ -2,6 +2,47 @@
 
 ## Unreleased
 
+- **Extra chemical slots** (Plant Tycoon, new setting, off by default,
+  EXPERIMENTAL; needs Add new store upgrades and items, which it turns on;
+  Enable All turns it on). The greenhouse's Tools box is a 4 x 2 grid (the
+  four tools, and the 4-slot chemical tray under them); a second page of 8
+  chemical slots fills both rows, 12 in all. Bought once on the Upgrades
+  screen: Extra Chemical Slots, on the chemicals shelf's third row under the
+  Formula Bomb, $10,000 ($0 with Free upgrades, through the Upgrades DLL's
+  price), with a tick afterwards; until then the tray is the stock four. Then
+  a small gold arrow (the game's own, pre-scaled) and "1/2" / "2/2" in the
+  game's font sit on the Tools box's plaque, clear of every other control;
+  clicking the arrow or carrying a chemical over it turns the page (the tools
+  stay on page 1; a tool in the hand stays there). Each page-2 slot is run by
+  the game's own code: picked up, its record takes a stock tray record's place
+  (that slot's own bottle waits and is drawn in its place), so every chemical,
+  the game's and the Upgrades screen's, is used with its doses, kept in the
+  hand while doses remain, and the Upgrades screen's four go in the trash
+  (PR #76) exactly as from page 1. The store fills a chemical onto its own
+  bottle on either page, else the first free slot of page 1, then of page 2,
+  and refuses ("There is no room in your Chemical Tray.") only when all 12
+  are full. A held bottle let go or clicked on another slot of either page
+  moves there (empty), stacks (the same chemical) or swaps. Every chemical
+  slot of both pages has a tooltip of the game's own kind with the chemical's
+  name and doses left ("Revival Potion / 2 doses left"), none over an empty
+  slot or the bottle in the hand; they replace the stock tray tooltips while
+  the setting is on, bought or not. The tray is shared by every greenhouse
+  (with 5 extra greenhouses too) and untouched by the Time Warp. The save
+  keeps its stock layout (a page-2 bottle in the hand is put back for the
+  save and picked up again after); page 2 and the purchase are kept per save
+  slot in "Plant Tycoon Fix Patcher Data\Extra Chemical Slots <slot>.dat"
+  (written atomically, set aside if unreadable, understood by Back Up Saves);
+  a new game empties it. Turning the setting off loses nothing: Store
+  Upgrades and Items then puts page 2's chemicals into the stock tray on load
+  as far as they fit, and the file keeps the rest and the purchase (rewritten
+  only when the game saves). New companion "Extra Chemical Slots.dll"
+  (native/ftfp_chem_slots), loaded after every other companion: seven code
+  sites (five greenhouse calls, the tray's add and room) overlapping no other
+  patch, and the greenhouse screen's mouse and activation slots, chained with
+  Greenhouse Counts and Extra Greenhouses; all or none. Store Upgrades and
+  Items: the item, the save events passed on, the setting-off fallback, and
+  two more rows of its chemicals sheet (the item and the arrows). Tests:
+  tests/test_chem_slots.py (Unicorn, the vanilla executable, both DLLs).
 - **Extra supply slots** (Fish Tycoon, new setting, off by default,
   EXPERIMENTAL; needs DS Store Items, which it turns on; Enable All turns it
   on). Eleven supply slots instead of four, in three pages beside the tank

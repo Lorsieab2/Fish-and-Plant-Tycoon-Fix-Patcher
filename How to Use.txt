@@ -20,7 +20,8 @@ FISH & PLANT TYCOON FIX PATCHER
 The patcher creates only "Fish Tycoon - Modded" and/or
 "Plant Tycoon - Modded" beneath the chosen location. Their executables use
 those exact names plus ".exe". With new content on (DS Exclusive Fish, DS
-Store Items, 3 extra tanks, Extra supply slots, Add unused flowers, or Add new store upgrades and items) the copy
+Store Items, 3 extra tanks, Extra supply slots, Add unused flowers, Add new store upgrades and items, or Extra
+chemical slots) the copy
 is "Fish Tycoon - Modded Upgrades" / "Plant Tycoon - Modded Upgrades" instead,
 so it never replaces the plain modded copy, and it keeps its own saves. The
 patcher remembers the chosen paths. The blue underlined paths open those
@@ -217,6 +218,18 @@ Plant Tycoon options:
   named at the top ("Nursery 1" is the stock one), and the gold arrows there
   page through the ones you own. Take plants off sale until 15 or fewer are
   for sale before turning it off.)
+- Extra chemical slots (EXPERIMENTAL - USE AT OWN RISK. Off by default;
+  turns on the store's Upgrades screen. Buy Extra Chemical Slots there once,
+  $10,000 ($0 with Free upgrades): the item on the chemicals shelf under the
+  Formula Bomb. Then a small gold arrow and "1/2" on the plaque of the
+  greenhouse's Tools box turn to page 2: 8 more chemical slots in both rows
+  (12 in all; the tools stay on page 1). Click the arrow, or carry a chemical
+  over it. The store fills page 2 once page 1 is full, every chemical works
+  from page 2, and a chemical in your hand can be put on any slot of either
+  page (moved, stacked or swapped). Every chemical slot shows its name and
+  doses left when you point at it. Turning it off loses nothing: loading a
+  save puts page 2's chemicals into free stock slots where they fit, and the
+  rest wait in the slot's Extra Chemical Slots file for when you turn it on.)
 
 Moving things between greenhouses (5 extra greenhouses):
 - A plant: drag it onto the left or right arrow, as you would drag it to

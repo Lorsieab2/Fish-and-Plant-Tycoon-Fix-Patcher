@@ -660,6 +660,23 @@ TOOLS = (
 )
 
 CHEMICALS = (
+    Fact(
+        "The chemical tray (the bottom row of the greenhouse's Tools box, under the four tools) has 4 "
+        "slots, one chemical per slot with its doses (0x416410-0x416700: four records at state + "
+        "0x53F84). Buying a chemical you already hold adds its doses to that bottle, else it takes the "
+        "first free slot; with all 4 slots holding other chemicals the store says \"There is no room in "
+        "your Chemical Tray.\" (0x4164B0). Pointing at a bottle shows a tooltip with its name and doses "
+        "(0x4277A3, made the first time you point at that slot). The tray is "
+        "shared by every greenhouse and shown in the store too.",
+        patched=(("extra_chemical_slots", "once Extra Chemical Slots is bought on the store's Upgrades "
+                  "screen ($10,000), a gold arrow on the Tools box's plaque turns to a second page of 8 "
+                  "slots in both rows of the box (the tools stay on page 1): 12 chemical slots in all. "
+                  "Buying stacks onto the same chemical on either page, else fills the first free slot "
+                  "of page 1, then of page 2; the tray is full only when all 12 are. Every slot's "
+                  "tooltip says the chemical's name and \"N doses left\". A held bottle can be put on "
+                  "any other slot (moved, stacked or swapped). The store's own tray picture shows "
+                  "page 1."),),
+    ),
     Fact("A chemical dose is used up before its effect is checked: using one where it cannot work "
          "wastes the dose."),
     Fact(
