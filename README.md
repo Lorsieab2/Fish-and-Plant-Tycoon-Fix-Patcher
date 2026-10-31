@@ -291,6 +291,20 @@ never needs the internet.
   $1,000 to your money, as often as you like. Money stops at the largest
   value the game holds ($2,147,483,647). Picture:
   [docs/images/add-money-fish.png](docs/images/add-money-fish.png).
+- Everything is Free (off by default; **CHEAT**; not turned on by Enable All:
+  tick it yourself). "Every store item and upgrade is free. Obviously a cheat
+  mod, have fun!" Every price you pay is $0 and the store says $0: every
+  Supplies store item (food, medicines, chemicals, eggs, plants, ornaments,
+  Tank Two, the Golden Seahorse), research, and everything on the Upgrades
+  screen (the DS animals, Exotic Fish Eggs, the potions, ClonaFish, the Auto
+  items, the Time Warp clock, the Extra Tank, the Extra Supply Slots, and
+  copies with Multiple ornaments), as Free upgrades does. Add Money then costs
+  $0 and still adds $1,000. Only the price changes: one of each, "already in
+  your inventory", the extra tanks in order, room in a slot, the research
+  levels and the purchase questions all stay. The executable's own price
+  reads are zeroed in place (the price table in the save is never touched);
+  the store DLLs read "Everything Free.ini" beside them. Selling fish is
+  unchanged.
 - Extra supply slots (off by default; **EXPERIMENTAL - USE AT OWN RISK**;
   **needs DS Store Items, which it turns on**). Eleven supply slots instead of
   four, in three pages at the top left of the tank screen: page 1 is the
@@ -488,6 +502,18 @@ never needs the internet.
   asked Yes/No, adds $1,000 to your money through the game's own cash code, as
   often as you like. Cash stops at the game's own maximum, $4,000,000,000.
   Picture: [docs/images/add-money-plant.png](docs/images/add-money-plant.png).
+- Everything is Free (off by default; **CHEAT**; not turned on by Enable All:
+  tick it yourself). "Every store item and upgrade is free. Obviously a cheat
+  mod, have fun!" Every price you pay is $0 and the purchase window says
+  "Price: $0": seeds, the Extinct and imported seeds, tools, chemicals,
+  nursery items, and everything on the Upgrades view (Legendary Seeds, the
+  Formula, the Bomb, the potions, Revita-Seed, the Fourth to Ninth Seed Box,
+  the Extra Greenhouse and Nursery, the Automatic Sprinklers, the
+  Auto-Healer, the Time Warp clock), as Free upgrades does. Add Money then
+  costs $0 and still adds $1,000. Only the price changes: three Legendary
+  Seeds a day, room in the seed and chemical trays, tools you already own,
+  and the boxes, greenhouses and nurseries in order all stay. Selling plants
+  is unchanged.
 - Sort Seeds button (off by default). A "Sort Seeds" button on the Seed
   Storage title bar. After a Yes/No question it sorts every seed in the
   unlocked seed box space by the class of the plant it grows, its foliage and
@@ -603,7 +629,8 @@ never needs the internet.
    folders sit in, or select each vanilla folder yourself.
 4. Select **One Game** or **Both Games**.
 5. Choose the fixes you want, using **Defaults**, **Enable All**, or
-   **Disable All** if it is quicker.
+   **Disable All** if it is quicker. Enable All turns on every setting except a
+   cheat (marked **CHEAT**, Everything is Free), which you tick yourself.
 6. Validate, dry run, or create the fixed copy/copies.
 
 The GUI remembers separate vanilla and modded paths for both games. Every blue

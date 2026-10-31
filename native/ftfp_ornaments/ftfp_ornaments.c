@@ -376,6 +376,10 @@ static int __cdecl drop_copy(char *impl, int x, int y) {
 
 /* ------------------------------------------------------------ the store */
 
+/* Everything is Free ("Everything Free.ini" beside this DLL, read at start-up):
+   a copy costs $0, as the stock purchase does with that setting's patches. */
+static int everything_free = 0;
+
 /* Buy on an owned ornament: a decorative copy for the tank you came from, at
    the item's price.  The ownership dword is never touched.  0 = not this
    DLL's (the stock click goes on), 1 = handled. */
@@ -387,7 +391,7 @@ static int __cdecl store_click(char *store, int item) {
     if (state == NULL || item < FIRST_ORNAMENT || item > LAST_ORNAMENT) return 0;
     if (*I(state, ITEM_OWNED(item)) == 0) return 0;                 /* the first one: the stock purchase */
     if (*(unsigned char *)(state + S_REGISTERED) == 0 && !trial_item(item)) return 0;
-    price = *I(state, ITEM_PRICE(item));
+    price = everything_free ? 0 : *I(state, ITEM_PRICE(item));
     if (price > *I(state, S_MONEY)) {
         api.hint(P(store, STORE_HINTS), NULL, HINT_NO_MONEY);
         return 1;
@@ -829,12 +833,19 @@ static void load_next(void) {
     }
 }
 
+/* Everything is Free's file beside this DLL. */
+static __declspec(noinline) int everything_free_setting(void) {
+    wchar_t path[1024];
+    return beside_this_dll(L"Everything Free.ini", path) && GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES;
+}
+
 /* Called once by the executable's startup stub, before WinMain. */
 int __stdcall FtfpStartup(void) {
     static int started = 0;
     if (started) return installed;
     started = 1;
     __try {
+        everything_free = everything_free_setting();
         installed = prepare() && ftfp_install_sites(writes, ORN_SITE_COUNT);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         installed = 0;

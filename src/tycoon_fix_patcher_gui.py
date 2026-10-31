@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import webbrowser
 
+import cheat
 import experimental
 import tools_tab
 
@@ -321,7 +322,12 @@ class App(tk.Tk):
         )
 
     def _set_all_patches(self, game_id: str, enabled: bool) -> None:
-        for variable in self.patch_vars[game_id].values():
+        # "Enable All" leaves a cheat (src/cheat.py) as it is: it is turned on
+        # only by ticking it. "Disable All" turns everything off.
+        settings = patch_settings(game_id)
+        for setting_id, variable in self.patch_vars[game_id].items():
+            if enabled and not cheat.in_enable_all(settings.get(setting_id, {})):
+                continue
             variable.set(enabled)
         self._save_settings()
         word = "enabled" if enabled else "disabled"
@@ -501,6 +507,14 @@ class App(tk.Tk):
                     foreground="#b00020",
                     font=("Segoe UI", 9, "bold"),
                 ).pack(side="left", padx=(8, 0))
+            # The cheat label (src/cheat.py), styled as the experimental one.
+            if cheat.is_cheat(setting):
+                ttk.Label(
+                    header,
+                    text=cheat.LABEL,
+                    foreground="#b00020",
+                    font=("Segoe UI", 9, "bold"),
+                ).pack(side="left", padx=(8, 0))
             # What the setting adds or does, in plain words: shown everywhere,
             # including the compact Both Games panels.
             summary = str(setting.get("summary", "")).strip()
@@ -527,13 +541,16 @@ class App(tk.Tk):
             if compact:
                 continue
             description = str(setting.get("description", ""))
-            ttk.Label(
-                entry,
-                text=experimental.labelled(description) if experimental_setting else description,
-                wraplength=820,
-                foreground="#444444",
-                justify="left",
-            ).pack(anchor="w", padx=(24, 0))
+            if description.strip() == str(setting.get("summary", "")).strip():
+                description = ""        # said once (Everything is Free's one sentence)
+            if description or experimental_setting:
+                ttk.Label(
+                    entry,
+                    text=experimental.labelled(description) if experimental_setting else description,
+                    wraplength=820,
+                    foreground="#444444",
+                    justify="left",
+                ).pack(anchor="w", padx=(24, 0))
             self._technical_details(entry, game_id, setting_id)
 
     def _technical_details(

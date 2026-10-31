@@ -20,4 +20,12 @@ static int ftfp_setting_on(HMODULE self, const wchar_t *name) {
     return GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES;
 }
 
+/* "Everything is Free" ships "Everything Free.ini" beside the DLLs: every
+   price the player pays is $0.  The stock store's own charges are byte
+   patches in the executable (scripts/pin_everything_free.py); a DLL that
+   sells something itself checks ftfp_everything_free() once at start-up
+   and then charges, shows and requires $0.  It implies Free upgrades. */
+#define FTFP_EVERYTHING_FREE_FILE L"Everything Free.ini"
+#define ftfp_everything_free(self) ftfp_setting_on((self), FTFP_EVERYTHING_FREE_FILE)
+
 #endif
