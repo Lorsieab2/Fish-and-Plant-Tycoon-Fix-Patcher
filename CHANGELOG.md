@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.0.19
 
 - **Copy Player Slot** (Tools tab, new), both games: copies a player into an
   empty slot of the same save folder under a new name, with the patcher's own
@@ -19,6 +19,53 @@
   each side (as Extra Greenhouses' arrows sit beside the greenhouse), with
   "1/2" / "2/2" under the right one, instead of on the box's "Tools" plaque
   where they covered the word. Either arrow turns the page.
+- **Picture Studio: fish eggs.** Make your own has an Eggs tab: the 16
+  pictures of eggs dropped into a tank, see-through as the game's tank effect
+  draws them (checked against the game's effects pass in Unicorn). The Baby
+  stage is named "Baby, just hatched". The game draws nothing for a fish
+  before it hatches (age 0), and has no old-age look.
+- **Picture Studio: unused plant parts.** A new Make your own tab, "Unused
+  parts", draws the 12 parts in Plant Tycoon's own shape tables that no plant
+  ever grows (no constructor makes them: checked in Unicorn with every way of
+  answering its random rolls), alive or dead, exactly as the game's branch
+  draw draws them. Fish Tycoon has no unused fish parts: its 21 bodies and 21
+  fins are all bred, and its art holds no other fish sheets.
+- **Picture Studio: dead plants at every stage.** Make your own's Plant tab has
+  a State (Alive / Dead) for any stage, seed to max bloom with every effect,
+  each checked against the game's own draw; the old "Dead" stage is "Normal
+  bloom" + "Dead". The help says what the game never draws: no wilting or
+  infested look (its plant draw checks only health 0).
+- **Picture Studio: the patcher's parts are always there.** Make your own
+  offers the DS Exclusive Fish bodies and fins, DS Store Items' animals and
+  the eel's rock, and the 14 Unused Flowers whatever settings are found for
+  the save (before, only when the save's game copy or data files showed the
+  setting), marked "(patcher)"; their pictures ship with the patcher. With no
+  save chosen nothing is hidden by Show Spoilers (Fish Tycoon offered no fish
+  at all). Discoveries are read with the DS Fish and New Flowers data files
+  whenever the save has them.
+- **Picture Studio: more plant stages.** Make your own's Plant Stage now also
+  has Seed (just planted: the game draws the planted soil only), Sprout (age
+  3) and Growing (age 15), each checked against the game's own draw in Unicorn
+  like the other stages.
+- **Picture Studio: "Facing"**. The box under the preview is now "Facing:"
+  (Facing left / Facing right / Turning), in "From my save" and in Make your
+  own's Fish and Creatures tabs. Plant Tycoon has no facing or frames, so the
+  plant window no longer shows those fish boxes.
+- **Picture Studio: decorations and creatures in their own sub-list.** In
+  "From my save", a tank that holds fish lists its decorations, creatures and
+  anything else that is not a fish in a "Decorations and creatures" node after
+  the fish (Plant Tycoon: "Decorations and other things" in a greenhouse). "Save
+  all in this tank/greenhouse" still saves the whole tank, the non-fish in a
+  folder of that name inside it, and says how many of each it saved.
+- **Fixed: Picture Studio drew Radioactive Plant Formula plants wrong** (Plant
+  Tycoon, "From my save"). A plant given the formula carries flowers on the
+  extra spots Store Upgrades and Items.dll adds to the game's shape tables at
+  start-up; the studio drew them with the stock tables, where those spots are
+  empty, so the flowers landed at the picture sheet's corner: loose flowers far
+  up and to the left, the plant itself pushed small to the right. A saved plant
+  with a flower on such a spot is now drawn with the formula's tables, as the
+  patched game draws it (checked call for call against the game's draw run in
+  Unicorn, for every formula foliage and for every pot in a real save).
 
 ## v1.0.18
 

@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.18**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.19**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -891,18 +891,33 @@ folder never fails with "path too long".
     Ornaments' copies, plants and equipment), each at its own age and state.
     As in the game, a fish is named only from age 20: with Show Spoilers off
     younger ones are "Baby fish" / "Teen fish", in the list and in file names.
-    "Save all in this tank" saves every picture in it into a new folder. In
+    In a tank with fish, its decorations and creatures are in their own
+    "Decorations and creatures" sub-list, after the fish. "Save all in this
+    tank" saves every picture in it into a new folder, the decorations and
+    creatures in a "Decorations and creatures" folder inside it, and says how
+    many of each it saved. In
     Plant Tycoon: every pot, greenhouse by greenhouse (Greenhouses 2-6 from
     "Extra Greenhouses <slot>.dat"), and the decorations, each plant at its own
     age, growth and health; "Save all in this greenhouse".
   - Make your own, Fish Tycoon: Fin, Body, Stage (baby, teen at every age
-    6-19, adult) and State (healthy, ick, fungus, dead), swimming left, right
-    or turning, at any frame; creatures and decorations on their own tabs.
-  - Make your own, Plant Tycoon: Flower, Foliage (the Unused Flowers too with
-    that setting), Stage (seedling, budding, normal bloom, max bloom, max
-    bloom with every effect, as after the Radioactive Plant Formula, and dead),
+    6-19, adult) and State (healthy, ick, fungus, dead), facing left or right
+    or turning (Facing), at any frame; creatures and decorations on their own tabs,
+    and Eggs: the 16 pictures of eggs dropped into a tank, as the game's tank
+    effect draws them. The game draws nothing for a fish before it hatches
+    (age 0); a hatched fish is a baby (the fry) until age 6. It has no old age
+    and no belly-up pose apart from the dead pictures.
+    The DS Exclusive Fish bodies and fins, DS Store Items' animals and the
+    eel's rock are always offered, marked "(patcher)": their pictures ship
+    with the patcher, so no setting needs to be found for the save.
+  - Make your own, Plant Tycoon: Flower (the 14 Unused Flowers always too,
+    marked "(patcher)"), Foliage, Stage (seed, sprout, seedling, growing, budding, normal bloom, max bloom, max
+    bloom with every effect, as after the Radioactive Plant Formula) and State
+    (alive, or dead at any of those stages),
     the plant's starting shape and its pot; decorations, bugs and pots on
-    their own tabs. The game draws no wilting or infested look: a plant is
+    their own tabs. "Unused parts": the 12 parts in the game's own plant
+    tables that no plant ever grows (Reptans 6, Astera, Fern, Ananas 2,
+    Pitcher, Ridgeball), alive or dead, as the game's branch draw draws them.
+    Neither game has unused fish bodies or fins: all 21 of each are bred. The game draws no wilting or infested look: a plant is
     drawn alive or dead (0x42E4A0 checks only health 0).
   - With Show Spoilers off (the Breeding Guide's setting) Make your own offers
     only the parts you have discovered.

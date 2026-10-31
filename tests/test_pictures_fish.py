@@ -136,6 +136,25 @@ class FishDrawMatchesTheGame(unittest.TestCase):
             self.check(pf.Fish(body, 5, 30, 0), 1, 0, pf.STAGE_ADULT, 50, f"dead {body}")
             self.check(pf.Fish(body, 5, 30, -3), 0, 4, pf.STAGE_ADULT, 50, f"dead {body}, health below 0")
 
+    def test_eggs_are_the_tank_effects_draw(self) -> None:
+        """Eggs dropped in a tank: the game's effects pass (0x410F50) on an effect set up as
+        0x410CE6 sets the eggs (sprite 0x70, alpha 175) draws each frame as plan_eggs does, and
+        frame 16 wraps to the first picture. Age 0 (an unhatched fish) is not drawn at all."""
+        emu = self.emu
+        for frame in range(pf.EGG_FRAMES + 2):
+            emu.emu.uc.mem_write(emu.view, bytes(66 * 0x40))
+            slot = emu.view
+            for at, value in ((0, 0xF), (4, 0x70), (0xC, frame), (0x10, 9), (0x28, 1000), (0x2C, 1000),
+                              (0x34, 7), (0x38, 0x12), (0x3C, 0xAF)):
+                emu.emu.write32(slot + at, value)
+            emu.emu.write8(slot + 0x30, 1)
+            emu.emu.write8(slot + 0x31, 1)
+            emu.blits = []
+            emu.emu.call(0x00410F50, ecx=emu.view)
+            self.assertEqual(self.expected(pf.plan_eggs(frame, 1000, 1000)), self.recorded(emu.blits), frame)
+        self.assertEqual(self.emu.table_entry(pf.SPR_EGGS), pf.sheet(pf.SPR_EGGS))
+        self.assertIsNone(pf.stage_of(pf.Fish(3, 4, 0)))       # 0x415460: age 0 is not drawn
+
     def test_teens_at_every_age_and_babies(self) -> None:
         for body in (0, 3, 9, 13, 20):
             for age in range(6, 20):
@@ -592,14 +611,26 @@ class ChoicesTests(unittest.TestCase):
         fields = {f.key: f for f in fish.fields}
         self.assertEqual([o.key for o in fields["body"].options], [11, 13])
         self.assertEqual([o.key for o in fields["fin"].options], [6, 11])
-        everything = {f.key: f for f in r.custom_choices(frozenset({"ds_fish", "ds_store"}), True, None)[0].fields}
-        self.assertEqual(len(everything["body"].options), 28)
-        self.assertTrue(all(o.patcher for o in everything["body"].options if o.key >= 23))
+        self.assertEqual([o.key for o in fields["body"].options], [11, 13])
+        with_ds = {f.key: f for f in r.custom_choices(frozenset(), False, {(11, 11), (23, 27)})[0].fields}
+        self.assertEqual([o.key for o in with_ds["body"].options], [11, 23])
+
+    def test_the_patchers_parts_are_always_offered(self) -> None:
+        """The owner's rule: the DS Exclusive Fish bodies and fins and DS Store Items' animals and
+        rock are offered whatever settings are found (none here), marked as the patcher's."""
+        r = pf.FishRenderer(None)
+        for extras in (frozenset(), frozenset({"ds_fish", "ds_store"})):
+            everything = {f.key: f for f in r.custom_choices(extras, True, None)[0].fields}
+            self.assertEqual([o.key for o in everything["body"].options], list(range(21)) + list(range(23, 30)))
+            self.assertEqual([o.key for o in everything["fin"].options], list(range(21)) + list(range(23, 30)))
+            self.assertTrue(all(o.patcher == (o.key >= 23) for o in everything["body"].options))
+            creatures = [o.key for o in r.custom_choices(extras, True, None)[1].fields[0].options]
+            self.assertTrue({"puffer", "puffer_puffed", "ray", "eel"} <= set(creatures))
+            decorations = [o.key for o in r.custom_choices(extras, True, None)[2].fields[0].options]
+            self.assertTrue({"rock", "rock_home"} <= set(decorations))
         none = {f.key: f for f in r.custom_choices(frozenset(), False, None)[0].fields}
-        self.assertEqual(none["body"].options, ())
-        creatures = [o.key for o in r.custom_choices(frozenset(), True, None)[1].fields[0].options]
-        self.assertNotIn("eel", creatures)
-        self.assertIn("eel", [o.key for o in r.custom_choices(frozenset({"ds_store"}), True, None)[1].fields[0].options])
+        self.assertEqual(len(none["body"].options), 28, "no save: nothing to hide by")
+        self.assertTrue(set(pf.patcher_files()) <= set(pf.patcher_art()), "their art ships with the patcher")
 
     def test_required_files_name_every_stock_sheet(self) -> None:
         names = pf.required_files()

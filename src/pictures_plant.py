@@ -213,7 +213,28 @@ class Plant:
                 f = at + 0xC4 + n * FLOWER_SIZE
                 flowers.append(Flower(i(f), i(f + 4), struct.unpack_from("<f", data, f + 8)[0], i(f + 0x18)))
             plant.branches.append(Branch(i(at), kind, struct.unpack_from("<f", data, at + 8)[0], children, flowers))
+        plant.formula = plant.on_formula_spots()
         return plant
+
+    def on_formula_spots(self) -> bool:
+        """Whether a flower sits on a spot only the Radioactive Plant Formula's tables have (a
+        spot that is empty in the stock table but filled by Store Upgrades and Items.dll's
+        prepare_shapes). The stock game never puts a flower there (0x42DC60 picks from the
+        part's own spots), so such a plant grew in a game with the DLL, which fills those spots
+        at start-up for every plant it draws; drawn with the stock tables, those flowers would
+        land at the sheet's (0, 0), far from the plant."""
+        if self.foliage <= 0:
+            return False
+        foliage = (self.foliage - 1) % 23 + 1
+        stock, formula = SHAPES.get(foliage, ()), FORMULA_SHAPES.get(foliage, ())
+        for b in self.branches:
+            part, patched = find_part(stock, b.part), find_part(formula, b.part)
+            if part is None or patched is None:
+                continue
+            for fl in b.flowers:
+                if 0 <= fl.spot < 6 and part.spots[fl.spot] == (0, 0, 0) and patched.spots[fl.spot] != (0, 0, 0):
+                    return True
+        return False
 
     def to_record(self, base: bytes | None = None) -> bytes:
         """The pot record (for the tests' emulated game): these fields over `base` (zeros)."""
@@ -675,27 +696,55 @@ def apply_formula(plant: Plant, parts: tuple, foliage: int, rand) -> None:
     plant.age = max(plant.age, AGE_FULL)
 
 
+# Parts in the game's shape tables that no plant ever grows: no class's constructor makes a branch
+# of them (checked in Unicorn with every Random answered 0, answered n - 1 and 150 random ways,
+# tests/test_pictures_plant.py), and the game adds no branches after the constructor. The game's
+# branch draw (0x42E690 -> 0x42CFE0) draws any part of the table, so these are drawn as it would
+# draw a plant of that part alone, full grown (age 28, size 100).
+UNUSED_PARTS = {1: (0, 1, 2, 3, 4, 5), 5: (0,), 7: (7,), 8: (20, 22), 20: (1,), 23: (0,)}
+
+
+def unused_part_plant(foliage: int, part: int, dead: bool = False) -> Plant:
+    if part not in UNUSED_PARTS.get(foliage, ()):
+        raise PictureError("Pick one of the unused parts.")
+    return Plant(foliage=foliage, flower=0, age=f32(AGE_FULL), size=100, health=0 if dead else 100,
+                 branches=[Branch(part, 1, 0.0)])
+
+
 # The "Make your own" growth stages.
 STAGES = (
+    ("seed", "Seed (just planted)"),
+    ("sprout", "Sprout (age 3)"),
     ("seedling", "Seedling"),
+    ("growing", "Growing (age 15)"),
     ("budding", "Budding"),
     ("bloom", "Normal bloom"),
     ("max", "Max bloom"),
     ("formula", "Max bloom + all effects"),
-    ("dead", "Dead"),
 )
-STAGE_AGES = {"seedling": 8.0, "budding": 22.5, "bloom": 28.0, "max": 28.0, "formula": 28.0, "dead": 28.0}
-STAGE_NOTE = ("Seedling: age 8, as the game's starting seedlings. Budding: age 22.5 (buds come at 21, "
+STAGE_AGES = {"seed": 0.5, "sprout": 3.0, "seedling": 8.0, "growing": 15.0, "budding": 22.5, "bloom": 28.0, "max": 28.0,
+              "formula": 28.0, "dead": 28.0}       # "dead": the normal bloom, dead (older specs)
+# The plant's state: the game's plant draw (0x42E4A0) checks only health 0 (dead: drawn at 85% with
+# the dead sheets, no buds or flowers); the pot draw (0x42F740) only water above 500 (wet soil).
+PLANT_STATES = (("alive", "Alive"), ("dead", "Dead (health 0)"))
+STAGE_NOTE = ("Seed: just planted (under age 1 the game draws only the planted soil). Sprout: age 3, "
+              "its first branches still small (a branch grows to full size over 18 days). "
+              "Seedling: age 8, as the game's starting seedlings. Growing: age 15, the age-7 leaf roll "
+              "done, no buds yet. Budding: age 22.5 (buds come at 21, "
               "flowers at 24). Normal bloom: full grown, the game's first flowering. Max bloom: size 110 "
               "and a flower on every free spot (plant food and fertilizer as often as you like). "
               "Max bloom + all effects: the Radioactive Plant Formula: every branch grown, no dead leaves. "
-              "Dead: the normal bloom after it died (health 0): the game draws it at 85% with its dead "
-              "pictures and no flowers. The game's draw shows no other state: thirst, pests and poor "
-              "health change nothing in a plant's picture.")
+              "State Dead: the plant at that stage after it died (health 0): the game draws it at 85% "
+              "with its dead pictures and no buds or flowers. The game draws no other state: no wilting "
+              "look (thirst, pests and poor health change nothing in a plant's picture; only health 0 "
+              "does), and a dry or wet pot is the Pots tab's Watered choice.")
 
 
-def grow_custom(foliage: int, flower: int, shape: int, stage: str) -> Plant:
-    """A plant of your own, grown by the game's rules to `stage`."""
+def grow_custom(foliage: int, flower: int, shape: int, stage: str, dead: bool = False) -> Plant:
+    """A plant of your own, grown by the game's rules to `stage`, then dead (health 0) if `dead`
+    (the stage "dead" is the normal bloom, dead)."""
+    if stage == "dead":
+        stage, dead = "bloom", True
     if foliage not in D.STARTING_SHAPES:
         raise PictureError(f"There is no foliage {foliage}.")
     plant = starting_plant(foliage, flower, shape)
@@ -714,7 +763,7 @@ def grow_custom(foliage: int, flower: int, shape: int, stage: str) -> Plant:
         add_flowers(plant, parts, foliage, rand, 360, 0)
     if stage == "formula":
         apply_formula(plant, FORMULA_SHAPES[foliage], foliage, rand)
-    if stage == "dead":
+    if dead:
         plant.health = 0                 # 0x42E27D: a plant that dies keeps its branches and flowers
     plant.age = f32(age)
     return plant
@@ -975,16 +1024,17 @@ class Renderer:
 
     # -------------------------------------------------------------- plants of your own
     def custom_choices(self, extras: frozenset, spoilers: bool, discovered) -> list:
+        """The Unused Flowers (genes 24-37, the patcher's flower sheet in assets/) are always
+        offered, marked "(patcher)", whatever the save's settings; with Show Spoilers off only
+        the parts the save has discovered."""
         import breeding_plant as bp
-        new = "new_flowers" in extras
         known_foliage = {f for f, _fl in discovered} if (discovered is not None and not spoilers) else None
         known_flower = {fl for _f, fl in discovered} if (discovered is not None and not spoilers) else None
         foliages = [Option(f, bp.FOLIAGE_WORD[f]) for f in range(1, 24) if known_foliage is None or f in known_foliage]
         flowers = [Option(fl, bp.FLOWER_WORD[fl].strip()) for fl in range(1, 24)
                    if known_flower is None or fl in known_flower]
-        if new:
-            flowers += [Option(fl, bp.FLOWER_WORD[fl], patcher=True) for fl in range(24, 38)
-                        if known_flower is None or fl in known_flower]
+        flowers += [Option(fl, bp.FLOWER_WORD[fl], patcher=True) for fl in range(24, 38)
+                    if known_flower is None or fl in known_flower]
         stages = [Option(k, label, patcher=(k == "formula" and "plant_upgrades" in extras)) for k, label in STAGES]
         shapes = [Option(n, f"Shape {n}") for n in range(1, D.SHAPE_COUNT + 1)]
         pots = [Option(-1, "No pot")] + [Option(n, f"Pot {n + 1}") for n in range(D.SPRITES[POT_SPRITE][2])]
@@ -992,6 +1042,7 @@ class Renderer:
             Field("flower", "Flower", tuple(flowers), flowers[0].key if flowers else None),
             Field("foliage", "Foliage", tuple(foliages), foliages[0].key if foliages else None),
             Field("stage", "Stage", tuple(stages), "bloom"),
+            Field("state", "State", tuple(Option(k, label) for k, label in PLANT_STATES), "alive"),
             Field("shape", "Shape", tuple(shapes), 1),
             Field("pot", "Pot", tuple(pots), 0),
         )
@@ -1001,6 +1052,15 @@ class Renderer:
         styles = tuple(Option(n, f"Pot {n + 1}") for n in range(D.SPRITES[POT_SPRITE][2]))
         return [
             Subject("plant", "Plant", fields, note),
+            Subject("unused", "Unused parts",
+                    (Field("part", "Part", tuple(Option(f"{f}:{p}", f"{bp.FOLIAGE_WORD[f]}: unused part {n + 1}",
+                                                        patcher=False)
+                                                 for f, parts in sorted(UNUSED_PARTS.items())
+                                                 for n, p in enumerate(parts)), "7:7"),
+                     Field("state", "State", tuple(Option(k, label) for k, label in PLANT_STATES), "alive")),
+                    "Parts in the game's own plant tables that no plant ever grows (no seed's starting "
+                    "shape has them), drawn as the game's branch draw would draw them, full grown, "
+                    "without a pot. Dead: the dead picture at 85%."),
             Subject("decoration", "Decorations",
                     (Field("ornament", "Decoration", tuple(Option(k, ORNAMENT_NAMES[k]) for k in sorted(D.DECORATIONS)),
                            min(D.DECORATIONS)),),
@@ -1032,7 +1092,7 @@ class Renderer:
             raise PictureError("Pick a foliage.")
         if flower not in D.FLOWER_ART or flower == 0:
             raise PictureError("Pick a flower.")
-        plant = grow_custom(foliage, flower, shape, str(spec.get("stage", "bloom")))
+        plant = grow_custom(foliage, flower, shape, str(spec.get("stage", "bloom")), spec.get("state") == "dead")
         plant.pot = max(0, pot)
         return plant, pot >= 0
 
@@ -1044,6 +1104,10 @@ class Renderer:
                 if k not in D.DECORATIONS:
                     raise PictureError("Pick a decoration.")
                 return self.scenery.decoration(k)
+            if subject == "unused":
+                foliage, part = (int(v) for v in str(spec.get("part", "7:7")).split(":"))
+                plant = unused_part_plant(foliage, part, spec.get("state") == "dead")
+                return self.planner.plan(plant, 0, 0, pot=False)
             if subject == "bug":
                 bug, frame = int(spec.get("bug", 0)), int(spec.get("frame", 0))
                 if not (0 <= bug < BUG_COUNT and 0 <= frame < BUG_FRAMES):

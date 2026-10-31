@@ -77,7 +77,7 @@ STOCK_SHEETS = {
     19: ("ITEM_snail_h_right.png", 0, 0), 20: ("ITEM_snail_vleft_down.png", 0, 0),
     34: ("FISH_baby_Grid.png", 18, 1), 35: ("FISH_teen_dead_Grid.png", 4, 1),
     36: ("FISH_teen_Grid.png", 18, 21), 37: ("FISH_adult_dead_Grid.png", 7, 3),
-    101: ("seahorse_body_Grid.png", 16, 2),
+    101: ("seahorse_body_Grid.png", 16, 2), 112: ("eggs_Grid.png", 16, 1),
     177: ("shell02.png", 0, 0), 178: ("pagoda1.png", 0, 0), 179: ("diverblue.png", 0, 0),
     180: ("column01.png", 0, 0), 181: ("beigecoral.png", 0, 0), 182: ("junk1.png", 0, 0),
 }
@@ -89,6 +89,17 @@ STORE_SHEETS = {                                      # ftfp_ds_store.c SPRITE_F
     SPR_ROCK_HOME: ("DS_EEL_ROCK.png", 0, 0), SPR_HOME_BACK: ("DS_EEL_HOME_BACK_Grid.png", 4, 8),
     SPR_HOME_FRONT: ("DS_EEL_HOME_FRONT_Grid.png", 4, 8), SPR_PUFF: ("DS_PUFFER_PUFF_Grid.png", 4, 2),
 }
+
+
+# Eggs dropped into a tank: the tank's effect 15 (set up at 0x410CE6: sprite 0x70, eggs_Grid.png,
+# surface alpha 175), drawn by the effects pass 0x410F50 at cell = its frame (16 cells, wrapping).
+# No fish is drawn before it hatches (age 0, 0x415460); a hatched fish is a baby (fry) to age 5.
+SPR_EGGS, EGGS_ALPHA, EGG_FRAMES = 112, 175, 16
+
+
+def plan_eggs(frame: int, x: int = 0, y: int = 0) -> list:
+    """0x410F50 for the eggs effect: its grid cell at (x, y), alpha 175, unscaled."""
+    return [draw_cell(SPR_EGGS, x, y, frame % EGG_FRAMES, alpha=EGGS_ALPHA)]
 
 
 def is_ds(gene: int) -> bool:
@@ -636,7 +647,7 @@ def _read_ornament_copies(folder: Path, slot: int, notes: list) -> dict:
 
 # ------------------------------------------------------------------ the renderer
 
-FACINGS = (("left", "Swimming left", MODE_LEFT), ("right", "Swimming right", MODE_RIGHT),
+FACINGS = (("left", "Facing left", MODE_LEFT), ("right", "Facing right", MODE_RIGHT),
            ("turn", "Turning", MODE_TURN))
 FRAMES = tuple(Option(k, f"Frame {k + 1}") for k in range(6))
 STATES = (("healthy", "Healthy"), ("ick", "Sick: ick"), ("fungus", "Sick: fungus"), ("dead", "Dead"))
@@ -644,7 +655,7 @@ MODE_OF = {key: mode for key, _l, mode in FACINGS}
 
 
 def _stage_options() -> tuple:
-    out = [Option("baby", "Baby (age 1-5)")]
+    out = [Option("baby", "Baby, just hatched (age 1-5)")]
     out += [Option(f"teen{a}", f"Teen, age {a} ({a * 3 + 82}%)") for a in range(6, 20)]
     out.append(Option("adult", "Adult (age 20 and up)"))
     return tuple(out)
@@ -839,13 +850,18 @@ class FishRenderer:
 
     # ---- make your own
     def custom_choices(self, extras, spoilers: bool, discovered) -> list[Subject]:
-        extras = frozenset(extras or ())
-        genes = list(range(0, PC_LAST + 1)) + (list(range(DS_FIRST, DS_LAST + 1)) if "ds_fish" in extras else [])
+        """The patcher's own parts and creatures (DS Exclusive Fish's bodies and fins, DS Store
+        Items' animals and the eel's rock) are always offered, marked "(patcher)": their art
+        ships with the patcher (patcher_art), so they draw whatever the save's settings are.
+        `extras` is kept for the window's call. With Show Spoilers off only the parts the
+        save has discovered are offered; with no save (`discovered` None) nothing is hidden."""
+        genes = list(range(0, PC_LAST + 1)) + list(range(DS_FIRST, DS_LAST + 1))
+        hide = not spoilers and discovered is not None
         known_bodies = {b for b, _f in (discovered or ())}
         known_fins = {f for _b, f in (discovered or ())}
-        bodies = tuple(Option(g, part_name("body", g), is_ds(g)) for g in genes if spoilers or g in known_bodies)
-        fins = tuple(Option(g, part_name("fin", g), is_ds(g)) for g in genes if spoilers or g in known_fins)
-        facing = Field("facing", "Swimming", tuple(Option(k, label) for k, label, _m in FACINGS), "left")
+        bodies = tuple(Option(g, part_name("body", g), is_ds(g)) for g in genes if not hide or g in known_bodies)
+        fins = tuple(Option(g, part_name("fin", g), is_ds(g)) for g in genes if not hide or g in known_fins)
+        facing = Field("facing", "Facing", tuple(Option(k, label) for k, label, _m in FACINGS), "left")
         frame = Field("frame", "Frame", FRAMES, 0)
         fish = Subject("fish", "Fish", (
             Field("fin", "Fin", fins, fins[0].key if fins else None),
@@ -854,26 +870,29 @@ class FishRenderer:
             Field("state", "State", tuple(Option(k, label) for k, label in STATES), "healthy"),
             facing, frame),
             note="Ages follow the game: under 6 a baby, under 20 a teen (it grows from 100% at age 6 to 139% "
-                 "at 19), then an adult. Sick spots show on adults swimming left or right, as in the game."
+                 "at 19), then an adult. Sick spots show on adults facing left or right, as in the game."
                  + ("" if spoilers else " Show Spoilers is off: only the bodies and fins you have discovered."))
-        creatures = [Option("seahorse", "Golden Seahorse")]
-        if "ds_store" in extras:
-            creatures += [Option("puffer", "Magic Pufferfish", True), Option("puffer_puffed", "Magic Pufferfish, puffed up", True),
-                          Option("ray", "Blue-Spotted Stingray", True), Option("eel", "Moray Eel", True)]
+        creatures = [Option("seahorse", "Golden Seahorse"),     # then DS Store Items' animals
+                     Option("puffer", "Magic Pufferfish", True), Option("puffer_puffed", "Magic Pufferfish, puffed up", True),
+                     Option("ray", "Blue-Spotted Stingray", True), Option("eel", "Moray Eel", True)]
         creatures += [Option(f"snail{index}", f"Cleaning Snail, {words}") for index, words in SNAIL_VIEWS]
         creature = Subject("creature", "Creatures", (
             Field("creature", "Creature", tuple(creatures), "seahorse"), facing, frame),
-            note="The snail has one picture for each way it crawls; Swimming and Frame are for the swimmers.")
+            note="The snail has one picture for each way it crawls; Facing and Frame are for the swimmers.")
         decorations = [Option(f"orn{sprite}", name) for sprite, name in ORNAMENTS]
-        if "ds_store" in extras:
-            decorations += [Option("rock", ROCK_NAME, True), Option("rock_home", ROCK_NAME + ", the eel at home", True)]
+        decorations += [Option("rock", ROCK_NAME, True), Option("rock_home", ROCK_NAME + ", the eel at home", True)]
         decorations += [Option(f"img{sprite}", name) for _off, name, sprite in EQUIPMENT]
         decoration = Subject("decoration", "Decorations", (
             Field("decoration", "Decoration", tuple(decorations), decorations[0].key),
             Field("shadow", "Shadow", (Option(True, "With its shadow in the gravel"), Option(False, "No shadow")), True),
             Field("home_frame", "Eel at home: frame", tuple(Option(k, f"Frame {k + 1}") for k in range(HOME_IDLE + HOME_ACTION)), 0)),
             note="Ornaments rest on a shadow in the gravel, as in the tank; plants and equipment are drawn as the tank shows them.")
-        return [fish, creature, decoration]
+        eggs = Subject("eggs", "Eggs", (
+            Field("egg_frame", "Frame", tuple(Option(k, f"Frame {k + 1}") for k in range(EGG_FRAMES)), 0),),
+            note="Eggs dropped into a tank, as the game's tank effect draws them (16 pictures as they fall "
+                 "and spread, see-through as in the game). The game draws nothing else for an egg: a fish "
+                 "is not drawn before it hatches (age 0), then it is a baby (the Fish tab's Baby stage).")
+        return [fish, creature, decoration, eggs]
 
     def plan_custom(self, spec: dict) -> list[Draw]:
         subject = spec.get("subject")
@@ -919,6 +938,8 @@ class FishRenderer:
             if key.startswith("img"):
                 return [draw_cell(int(key[3:]), 0, 0)]
             raise PictureError("Pick a decoration.")
+        if subject == "eggs":
+            return plan_eggs(int(spec.get("egg_frame", 0) or 0))
         raise PictureError("Pick what to draw.")
 
     def render_custom(self, spec: dict) -> pi.Image:

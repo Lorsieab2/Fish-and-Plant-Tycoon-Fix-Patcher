@@ -11,6 +11,7 @@ Python: the save reader on synthetic saves, the PNG output, the choices and spoi
 
 from __future__ import annotations
 
+import dataclasses
 import random
 import struct
 import sys
@@ -206,15 +207,16 @@ class Cells:
 
 
 def custom_specs():
-    """Every foliage with three flowers, each stage, two shapes; the Unused Flowers too."""
+    """Every foliage with three flowers, each stage alive and dead, two shapes; the Unused
+    Flowers too."""
     flowers = [1, 2, 3, 9, 13, 14, 18, 23]
     for foliage in range(1, 24):
         for i, stage in enumerate(k for k, _ in pp.STAGES):
             flower = flowers[(foliage + i) % len(flowers)]
             for shape in (1, 1 + (foliage % D.SHAPE_COUNT)):
-                yield foliage, flower, stage, shape
+                yield foliage, flower, stage, shape, shape != 1 and (foliage + i) % 2 == 0
     for flower in range(24, 38):
-        yield 1 + flower % 23, flower, "bloom", 1
+        yield 1 + flower % 23, flower, "bloom", 1, flower % 5 == 0
 
 
 @needs_game
@@ -229,8 +231,8 @@ class DrawPlanTests(unittest.TestCase):
     def compare(self, plant: pp.Plant, game: DrawGame, label: str, soil: int = 0) -> list:
         record = plant.to_record()
         recorded = game.draw_pot(record, soil)
-        planned = plan_tuples(self.planner.plan(pp.Plant.from_record(record), 0, 0, soil_level=soil)
-                              if not plant.formula else self.planner.plan(plant, 0, 0, soil_level=soil))
+        read = pp.Plant.from_record(record)          # as a save holds it: the formula is read from its flowers
+        planned = plan_tuples(self.planner.plan(read, 0, 0, soil_level=soil))
         self.assertEqual(planned, recorded, label)
         return recorded
 
@@ -246,9 +248,12 @@ class DrawPlanTests(unittest.TestCase):
     def test_plants_of_your_own_draw_as_the_game_draws_them(self) -> None:
         game, formula_game, flowers_game = DrawGame(), None, DrawGame().unused_flowers()
         count = 0
-        for foliage, flower, stage, shape in custom_specs():
-            plant = pp.grow_custom(foliage, flower, shape, stage)
-            label = f"{foliage}/{flower}/{stage}/{shape}"
+        dead_stages = set()
+        for foliage, flower, stage, shape, dead in custom_specs():
+            plant = pp.grow_custom(foliage, flower, shape, stage, dead)
+            label = f"{foliage}/{flower}/{stage}/{shape}" + (" dead" if dead else "")
+            if dead:
+                dead_stages.add(stage)
             if stage == "formula":
                 formula_game = formula_game or self.formula_game()
                 recorded = self.compare(plant, formula_game, label)
@@ -256,9 +261,69 @@ class DrawPlanTests(unittest.TestCase):
                 recorded = self.compare(plant, flowers_game, label)
             else:
                 recorded = self.compare(plant, game, label)
-            self.assertGreater(len(recorded), 2)
+            if stage == "seed":          # under age 1 no branch is drawn: the pot and the planted soil
+                self.assertEqual(len(recorded), 2, label)
+            else:
+                self.assertGreater(len(recorded), 2, label)
             count += 1
         self.assertGreater(count, 200)
+        self.assertEqual(dead_stages, {k for k, _ in pp.STAGES}, "every stage drawn dead too")
+
+    def test_a_saved_formula_plant_draws_as_the_patched_game_draws_it(self) -> None:
+        """The player's mature, size-110 formula plants (a flower on every spot), read back from
+        the record: the formula's flowers are drawn on the spots Store Upgrades and Items.dll
+        fills, call for call as the patched game draws them, not at the stock table's empty
+        (0, 0) spots."""
+        game = self.formula_game()
+        for foliage in D.FORMULA_FOLIAGES:
+            plant = pp.grow_custom(foliage, 1 + (foliage * 3) % 23, 1, "formula")
+            plant.age = pp.f32(134.0)
+            record = plant.to_record()
+            read = pp.Plant.from_record(record)
+            self.assertTrue(read.formula, foliage)
+            self.assertEqual(read.size, 110)
+            recorded = game.draw_pot(record)
+            self.assertEqual(plan_tuples(self.planner.plan(read, 0, 0)), recorded, f"foliage {foliage}")
+            stock = dataclasses.replace(read, formula=False)
+            self.assertNotEqual(plan_tuples(self.planner.plan(stock, 0, 0)), recorded, f"foliage {foliage}")
+
+    def test_unused_parts_draw_as_the_game_draws_them(self) -> None:
+        """Each unused part, alive and dead, as the game's own pot draw draws a plant of that part
+        alone (its pot and soil left out of the picture)."""
+        game = DrawGame()
+        pot_files = {D.SPRITES[pp.POT_SPRITE][0], D.SPRITES[pp.SOIL_SPRITE][0]}
+        for foliage, parts in pp.UNUSED_PARTS.items():
+            for part in parts:
+                for dead in (False, True):
+                    plant = pp.unused_part_plant(foliage, part, dead)
+                    recorded = [b for b in game.draw_pot(plant.to_record()) if b[0] not in pot_files]
+                    planned = plan_tuples(self.planner.plan(plant, 0, 0, pot=False))
+                    self.assertEqual(planned, recorded, f"{foliage}:{part} dead {dead}")
+                    self.assertEqual(len(planned), 1)
+
+    def test_no_constructor_makes_the_unused_parts(self) -> None:
+        """No class's constructor makes a branch of an unused part, with Random answered 0, n - 1
+        or at random (20 ways), and every other part with a picture is made."""
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import build_picture_studio_plant_data as build
+        for foliage, (ctor, _v, _t) in D.CLASSES.items():
+            emu = E.Emulator(PLANT_EXE, None, {})
+            emu.uc.mem_map(0, 0x1000)
+            answer = {"f": None}
+            emu.hook(RANDOM, lambda e: answer["f"](e.arg(0)) if e.arg(0) > 0 else 0)
+            for singleton in (0x41FCD0, 0x420670, 0x407A90):
+                emu.hook(singleton, lambda e: e.alloc(0x100))
+            made = set()
+            ways = [lambda n: 0, lambda n: n - 1] + [random.Random(k).randrange for k in range(20)]
+            for way in ways:
+                answer["f"] = way
+                record = emu.alloc(build.RECORD)
+                emu.write32(record + 0x4C, foliage)
+                emu.write32(record + 0x50, 1)
+                emu.call(ctor, record, ecx=emu.alloc(0x58))
+                made |= {b[0] for b in build.branches(bytes(emu.uc.mem_read(record, build.RECORD)))}
+            pictured = {p.id for p in pp.SHAPES[foliage] if p.sheet}
+            self.assertEqual(pictured - made, set(pp.UNUSED_PARTS.get(foliage, ())), foliage)
 
     def test_every_age_and_size_and_a_dead_plant(self) -> None:
         game = DrawGame()
@@ -641,6 +706,42 @@ class SaveReaderTests(unittest.TestCase):
         self.assertEqual([i.id for i in self.renderer.saved_items(self.folder, 1)], ["g0p3"])
         self.assertTrue((side / "Extra Greenhouses 1.dat").is_file())       # never set aside or touched
 
+    def test_formula_flowers_sit_on_the_plant(self) -> None:
+        """No flower of a saved Radioactive Plant Formula plant lies outside the plant's foliage:
+        each flower's centre is inside the box of the part pictures drawn, give or take 16 pixels
+        (with the stock tables
+        these flowers land at the sheet's (0, 0), far up and to the left of the plant)."""
+        pots = {k: self.plant(f, 1 + f % 23, "formula") for k, f in enumerate(D.FORMULA_FOLIAGES[:15])}
+        sidecar = {(1 + k // 15, k % 15): self.plant(f, 2 + f % 22, "formula")
+                   for k, f in enumerate(D.FORMULA_FOLIAGES[15:])}
+        synthetic_save(self.folder, 4, pots, sidecar)
+        flower_files = {D.SPRITES[art[2]][0] for art in D.FLOWER_ART.values()}
+        pot_files = {D.SPRITES[pp.POT_SPRITE][0], D.SPRITES[pp.SOIL_SPRITE][0]}
+        checked = 0
+        for item in self.renderer.saved_items(self.folder, 4):
+            if not item.id.startswith("g"):
+                continue
+            self.assertTrue(self.renderer._plant(self.folder, 4, item.id)[0].formula, item.label)
+            plan = self.renderer.plan_saved(self.folder, 4, item.id)
+            parts = [d for d in plan if d.file not in flower_files and d.file not in pot_files]
+            flowers = [d for d in plan if d.file in flower_files]
+            box = (min(d.x for d in parts), min(d.y for d in parts),
+                   max(d.x + (d.rect[2] - d.rect[0]) * d.scale // 100 for d in parts),
+                   max(d.y + (d.rect[3] - d.rect[1]) * d.scale // 100 for d in parts))
+            for d in flowers:
+                cx = d.x + (d.rect[2] - d.rect[0]) * d.scale // 200
+                cy = d.y + (d.rect[3] - d.rect[1]) * d.scale // 200
+                m = 16              # a flower's art offset may take its centre a little past a part's edge
+                self.assertTrue(box[0] - m <= cx <= box[2] + m and box[1] - m <= cy <= box[3] + m,
+                                f"{item.label}: a flower at ({cx}, {cy}) outside the foliage {box}")
+                checked += 1
+        self.assertGreater(checked, 500)
+
+    def test_a_stock_plant_is_not_read_as_a_formula_plant(self) -> None:
+        for foliage in range(1, 24):
+            for stage in ("bloom", "max"):
+                self.assertFalse(pp.Plant.from_record(self.plant(foliage, 5, stage)).formula, (foliage, stage))
+
     def test_owned_decorations_are_listed(self) -> None:
         synthetic_save(self.folder, 6, {0: self.plant(9, 4, "bloom")}, ornaments=(0, 9, 14))
         items = [i for i in self.renderer.saved_items(self.folder, 6) if i.kind == "decoration"]
@@ -679,18 +780,25 @@ class ChoicesTests(unittest.TestCase):
     def test_every_foliage_flower_stage_shape_and_pot(self) -> None:
         fields = self.options()
         self.assertEqual([o.key for o in fields["foliage"].options], list(range(1, 24)))
-        self.assertEqual([o.key for o in fields["flower"].options], list(range(1, 24)))
-        self.assertEqual([o.key for o in fields["stage"].options], ["seedling", "budding", "bloom", "max", "formula", "dead"])
+        self.assertEqual([o.key for o in fields["flower"].options], list(range(1, 38)))
+        self.assertEqual([o.key for o in fields["stage"].options], ["seed", "sprout", "seedling", "growing", "budding", "bloom", "max", "formula"])
         self.assertEqual([f.key for f in self.renderer.custom_choices(frozenset(), True, None)[0].fields][:2],
                          ["flower", "foliage"])
-        dead = self.renderer.plan_custom({"subject": "plant", "foliage": 14, "flower": 13, "stage": "dead"})
+        self.assertEqual([o.key for o in fields["state"].options], ["alive", "dead"])
+        self.assertEqual(self.renderer.plan_custom({"subject": "plant", "foliage": 14, "flower": 13, "stage": "dead"}),
+                         self.renderer.plan_custom({"subject": "plant", "foliage": 14, "flower": 13, "stage": "bloom",
+                                                    "state": "dead"}))
+        dead = self.renderer.plan_custom({"subject": "plant", "foliage": 14, "flower": 13, "stage": "budding",
+                                          "state": "dead"})
         self.assertTrue(dead and not any("flower" in d.file.casefold() or "fruit" in d.file.casefold() for d in dead))
         self.assertTrue(any(d.file.endswith("_dead.png") for d in dead))
         self.assertEqual(len(fields["shape"].options), D.SHAPE_COUNT)
         self.assertEqual([o.key for o in fields["pot"].options], [-1, 0, 1, 2, 3, 4, 5, 6])
 
-    def test_unused_flowers_with_the_setting(self) -> None:
-        flowers = self.options({"new_flowers"})["flower"].options
+    def test_unused_flowers_are_always_offered(self) -> None:
+        """With or without the setting found, the 14 Unused Flowers are offered, marked."""
+        self.assertEqual(self.options()["flower"].options, self.options({"new_flowers"})["flower"].options)
+        flowers = self.options()["flower"].options
         self.assertEqual([o.key for o in flowers], list(range(1, 38)))
         self.assertTrue(all(o.patcher for o in flowers[23:]) and not any(o.patcher for o in flowers[:23]))
         self.assertEqual(flowers[23].label, "Nightingale")
@@ -706,7 +814,15 @@ class ChoicesTests(unittest.TestCase):
 
     def test_decorations_bugs_and_pots(self) -> None:
         subjects = {s.key: s for s in self.renderer.custom_choices(frozenset(), True, None)}
-        self.assertEqual(list(subjects), ["plant", "decoration", "bug", "pot"])
+        self.assertEqual(list(subjects), ["plant", "unused", "decoration", "bug", "pot"])
+        parts = [o.key for o in subjects["unused"].fields[0].options]
+        self.assertEqual(len(parts), 12)
+        for key in parts:
+            for state in ("alive", "dead"):
+                plan = self.renderer.plan_custom({"subject": "unused", "part": key, "state": state})
+                self.assertEqual(len(plan), 1, key)
+        with self.assertRaises(pi.PictureError):
+            self.renderer.plan_custom({"subject": "unused", "part": "2:0"})
         self.assertEqual(len(subjects["decoration"].fields[0].options), 15)
         self.assertEqual([len(f.options) for f in subjects["bug"].fields], [48, 6])
         self.assertEqual([len(f.options) for f in subjects["pot"].fields], [7, 3, 3, 2])

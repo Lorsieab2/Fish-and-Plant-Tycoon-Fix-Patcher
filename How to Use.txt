@@ -319,15 +319,21 @@ have not collected is a "?".
 Tools tab, Picture Studio: pick the game, a save folder and a player.
 "From my save" lists everything the save holds, tank by tank (Tanks 4-6
 too, with 3 extra tanks) or greenhouse by greenhouse (with extra
-greenhouses), then its creatures and decorations; click one to see it drawn
-as the game draws it now (fish can swim left, right or turn). As in the
+greenhouses), then its creatures and decorations (in a tank with fish they are in
+their own "Decorations and creatures" sub-list); click one to see it drawn
+as the game draws it now (fish: Facing left or right, or Turning, and Frame). As in the
 game, a fish under 20 is not named: with Show Spoilers off it is "Baby fish"
 or "Teen fish". "Make your own" draws any Fin and Body at any Stage (baby,
 teen at each age, adult) and State (healthy, ick, fungus, dead), or any
-Flower and Foliage at any Stage (seedling, budding, normal bloom, max bloom,
-max bloom with every effect, dead) in any shape and pot, and the creatures,
-decorations, bugs and pots; with Show Spoilers off (the Breeding Guide's
-setting) only the parts you have discovered. Pick a PNG size (the game's
+Flower and Foliage at any Stage (seed, sprout, seedling, growing, budding, normal bloom, max bloom,
+max bloom with every effect), alive or dead, in any shape and pot, and the creatures,
+decorations, bugs and pots, Fish Tycoon's eggs dropped into a tank, and
+Plant Tycoon's "Unused parts" (parts in
+the game's plant tables no plant ever grows). The patcher's own parts (DS Exclusive Fish,
+DS Store Items' animals, the Unused Flowers) are always offered, marked
+"(patcher)", and a save's DS fish and Unused Flowers plants are always
+drawn. With Show Spoilers off (the Breeding Guide's setting) only the parts
+you have discovered. Pick a PNG size (the game's
 own, 2x, 4x, or your own width and height) and Small margin, then "Save
 PNG..." or "Save all in this tank/greenhouse...". The pictures have a clear background. Like the guide, it
 copies the pictures it needs from your game into "Picture Studio Pictures"
