@@ -609,13 +609,15 @@ TOOLS = (
         "Seed boxes: First (from the start), Second $700, Third $700. Each opens a 40-seed drawer in "
         "Seed Storage: 40, 80 or 120 seeds. With every unlocked drawer full, the greenhouse says "
         "\"Your seed box is already full!\" and the seed is not moved.",
-        patched=(("plant_upgrades", "the Fourth, Fifth and Sixth Seed Box ($1000 each, in order, on "
-                  "the store's Upgrades view) open a second 120-seed chest, and the Seventh, Eighth and Ninth "
-                  "($1000 each, after the Sixth, in their own column left of the Extra Greenhouse) a third: "
+        patched=(("plant_upgrades", "one Extra Seed Box item on the store's Upgrades view, beside the Extra "
+                  "Greenhouse, sells the Fourth to Ninth Seed Box one click at a time, in order ($1000 each, a "
+                  "Yes / No each, the tooltip saying which is next, e.g. \"Extra Seed Box 4 of 6\", a tick "
+                  "once all six are owned). The Fourth to Sixth open a second 120-seed chest, the Seventh to "
+                  "Ninth a third: "
                   "gold arrows on the Seed Storage title bar step through boxes 1-3, 4-6 and 7-9 (each "
                   "chest once it has a box, then round again), and the greenhouse fills boxes 4-6 once 1-3 "
                   "are full, then 7-9. See How many seeds you can hold."),
-                 ("free_upgrades", "the Fourth to Ninth Seed Box cost $0, still in order."),
+                 ("free_upgrades", "the Extra Seed Box costs $0, its boxes still in order."),
                  ("sort_seeds", "a Sort Seeds button sorts every unlocked box (see Sorting seeds).")),
     ),
     Fact(
@@ -1245,7 +1247,7 @@ OTHER_GAME = (
     Fact('Goals and popups: see Goals, messages and statistics.'),
     Fact("DS store animals: not in Plant Tycoon. The patcher's new Plant Tycoon items are in Shop seeds "
          "(Legendary Seeds), Chemicals (the Radioactive Plant Formula and its Bomb, the Revival Potion and "
-         "Revita-Seed), Tools and shears (Fourth to Ninth Seed Box), Extra greenhouses and Extra "
+         "Revita-Seed), Tools and shears (the Extra Seed Box: the Fourth to Ninth Seed Box), Extra greenhouses and Extra "
          "nurseries."),
     Fact("3 extra tanks (patcher): not in Plant Tycoon (plants have no tanks). Its counterparts are 5 extra "
          "greenhouses, Greenhouses 2-6 (see Extra greenhouses), and 5 extra nurseries (see Extra nurseries); "

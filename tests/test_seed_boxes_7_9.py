@@ -1,13 +1,12 @@
-"""The Seventh, Eighth and Ninth Seed Box (Plant Tycoon, Add new store upgrades and items).
+"""The extra seed boxes, the Fourth to Ninth (Plant Tycoon, Add new store upgrades and items).
 
 Emulated on the vanilla executable (tests/store_emulator.py): each DLL's own code is rebuilt from
 its committed source and run in Unicorn beside the game's own code.
 
-* The store ("Store Upgrades and Items.dll"): a click on a box runs the DLL's on_click, and the
-  dialog it builds runs the game's own purchase helper 0x430950 (the stock dialog's decisions: the
-  price, "You need the previous upgrade first!", "You already have this item!", "You can't afford
-  to buy this yet!") and, when the dialog offers Buy, the game's own Buy (0x432D00, button 3), which
-  sets the owned byte and takes the cash through 0x41ED70.
+* The store ("Store Upgrades and Items.dll"): the one Extra Seed Box item; a click runs the DLL's
+  on_click, which asks Yes / No for the next box in order and takes the cash through the game's
+  0x41ED70; its tooltip ("Extra Seed Box 4 of 6"), sold out, can't afford, free, an older Seed
+  Boxes DLL.
 * Seed Storage ("Extra Seed Boxes.dll"): the DLL's scene wrappers around the game's own mouse code
   (0x434D70): a tray seed stored in a box 7-9 slot and taken back, by click and by drag and drop;
   the arrows; the drawer level 0x41DE60 and the greenhouse's send-to-box 0x4245F0 with the DLL's
@@ -46,22 +45,7 @@ S_CASH, S_HELD, S_SECOND, S_THIRD = 0x217C, 0x56C, 0x80C, 0x8AC
 BOX, TRAY, REC, RECORDS = 0x52CCC, 0x52B88, 0x24, 120
 TOOL_RECORD = 0x6E8
 EMPTY_RECORD = 0x0041D420
-
-
-def game_string_id(name: str) -> int:
-    """A string id from the game's own table of {id, name, text, override} records."""
-    exe = PLANT_EXE.read_bytes()
-    at = exe.index(name.encode("ascii") + b"\0")
-    va = None
-    pe = struct.unpack_from("<I", exe, 0x3C)[0]
-    count = struct.unpack_from("<H", exe, pe + 6)[0]
-    table = pe + 24 + struct.unpack_from("<H", exe, pe + 20)[0]
-    for i in range(count):
-        vsize, rva, raw_size, raw = struct.unpack_from("<IIII", exe, table + 40 * i + 8)
-        if raw <= at < raw + raw_size:
-            va = 0x400000 + rva + at - raw
-    ref = exe.index(struct.pack("<I", va))
-    return struct.unpack_from("<I", exe, ref - 4)[0]
+BOX_CENTRE = (499, 82)                                  # the Extra Seed Box item (BOX_RECT 471-528 x 52-113)
 
 
 def seed_record(tag: int, foliage: int = 3, flower: int = 5) -> bytes:
@@ -80,45 +64,40 @@ def jump(emu, at: int, to: int, length: int) -> None:
 
 @needs_game
 class StoreTests(unittest.TestCase):
+    """The one Extra Seed Box item: each click asks Yes / No for the next box in order (the Fourth to
+    Ninth), as the Extra Greenhouse and Extra Nursery items do."""
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.tmp = tempfile.TemporaryDirectory()
         cls.dll, cls.symbols = E.build_with_map("ftfp_plant_upgrades", UPGRADES / "Store Upgrades and Items.dll",
                                                 Path(cls.tmp.name))
-        cls.NEED_PREREQ = game_string_id("eSayNeedPrereq")
-        cls.DONT_NEED = game_string_id("eSayDontNeed")
-        cls.NEED_CASH = game_string_id("eSayNeedCash")
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls.tmp.cleanup()
 
-    def store(self, cash: int, owned, free: bool = False, version: int = 2):
+    def store(self, cash: int, owned, free: bool = False, version: int = 2, answer_yes: bool = True):
         emu = E.Emulator(PLANT_EXE, self.dll, self.symbols)
         emu.hook_printf()
-        emu.uc.mem_map(0, 0x1000)                                       # fs:[0], the SEH chain
         emu.owned = list(owned) + [0] * (6 - len(owned))
-        emu.strings, emu.dialogs = [], []
-        for name, pop in (("GetModuleHandleW", 4), ("GetProcAddress", 8)):
+        emu.asked = []
+
+        def message(e):
+            e.asked.append((e.wstring(e.arg(2)), e.wstring(e.arg(1)), e.arg(3)))
+            return 6 if answer_yes else 7                                  # IDYES / IDNO
+        emu.hook_import("MessageBoxW", message, 16)
+        for name, pop in (("GetActiveWindow", 0), ("GetForegroundWindow", 0), ("GetModuleHandleW", 4),
+                          ("GetProcAddress", 8)):
             emu.hook_import(name, emu.record(name), pop)
         emu.hook(0x0044A580, emu.record("sound"), 4)
         emu.hook(0x0044E894, lambda e: e.alloc(max(e.arg(0), 0x40)), 0)
-        emu.hook(0x00409870, emu.record("tip"), 0x1C)
-        emu.hook(0x00409AA0, emu.record("tip text"), 0x10)
+        emu.hook(0x00409870, lambda e: (e.calls.append(("tip", e.cstring(e.arg(3)).decode("latin-1"))), 0)[1], 0x1C)
+        emu.hook(0x00409AA0, lambda e: (e.calls.append(("tip", e.cstring(e.arg(0)).decode("latin-1"))), 0)[1], 0x10)
         emu.hook(0x0040B400, emu.record("control"), 4)
-        emu.hook(0x0040CBE0, lambda e: e.alloc(0x40), 0x1C)            # a text control: built, never drawn
-        emu.hook(0x00430900, lambda e: 0, 0)
-
-        def sprintf(e):                                                  # the game's CRT sprintf: the price line
-            fmt = e.cstring(e.arg(1)).decode("latin-1")
-            e.uc.mem_write(e.arg(0), fmt.replace("%d", str(e.arg(2))).replace("%i", str(e.arg(2))).encode() + b"\0")
-            return 0
-        emu.hook(0x0044F30B, sprintf, 0)
-
-        def string(e):
-            e.strings.append(e.arg(0))
-            return e.text(f"string {e.arg(0):#x}")
-        emu.hook(0x0044CA70, string, 4)
+        emu.hook(0x00432E90, emu.record("stock dialog"), 4)
+        emu.hook(0x00401C90, emu.record("run"), 8)
+        emu.hook(0x004307A0, emu.record("dtor"), 0)
         state = emu.alloc(0x60000)
         for k in range(15):                                             # stock tool records, recognisable
             emu.uc.mem_write(state + TOOL_RECORD + k * 0x20, bytes([0xA0 + k]) * 0x20)
@@ -139,195 +118,175 @@ class StoreTests(unittest.TestCase):
             emu.write32(events + 4 * k, fn)
         emu.write32(emu.sym("_boxes"), events)
         emu.write8(emu.sym("_free_upgrades"), int(free))
-
-        def ctor(e):
-            """The stock dialog's ctor as far as the purchase goes: its fields, then the helper (same call)."""
-            dlg = e.uc.reg_read(E.X.UC_X86_REG_ECX)
-            e.write32(dlg + 0x74, state)
-            e.write32(dlg + 0x70, e.alloc(0x40))
-            e.write32(dlg + 0x7C, e.alloc(0x40))
-            for off, v in ((0x14, 100), (0x18, 100), (0x1C, 500), (0x20, 400)):
-                e.write32(dlg + off, v)
-            e.write32(dlg + 0xB8, e.arg(0))
-            e.write32(dlg + 0x90, 0xFFFFFFFF)
-            e.uc.reg_write(E.X.UC_X86_REG_EIP, 0x00430950)
-
-        def run(e):
-            """The player clicks Buy when the dialog offers it (+0xA8), else OK."""
-            dlg = e.uc.reg_read(E.X.UC_X86_REG_ECX)
-            e.dialogs.append({"index": e.read32(dlg + 0xB8), "buy": e.uc.mem_read(dlg + 0xA8, 1)[0],
-                              "price": e.read32(dlg + 0x84), "strings": list(e.strings),
-                              "record4": bytes(e.uc.mem_read(state + TOOL_RECORD + 4 * 0x20, 0x20)),
-                              "record9": bytes(e.uc.mem_read(state + TOOL_RECORD + 9 * 0x20, 0x20))})
-            e.strings.clear()
-            if e.dialogs[-1]["buy"]:
-                esp = e.uc.reg_read(E.X.UC_X86_REG_ESP)
-                e.write32(esp + 4, 8)                                   # button-up
-                e.write32(esp + 8, 3)                                   # Buy (ecx is still the dialog)
-                e.uc.reg_write(E.X.UC_X86_REG_EIP, 0x00432D00)
-            else:
-                esp = e.uc.reg_read(E.X.UC_X86_REG_ESP)
-                e.uc.reg_write(E.X.UC_X86_REG_EIP, e.read32(esp))
-                e.uc.reg_write(E.X.UC_X86_REG_ESP, esp + 12)
-        emu.uc.hook_add(E.UC_HOOK_CODE, lambda uc, a, s, d: ctor(emu), begin=0x00432E90, end=0x00432E90)
-        emu.uc.hook_add(E.UC_HOOK_CODE, lambda uc, a, s, d: run(emu), begin=0x00401C90, end=0x00401C90)
-        emu.hook(0x004307A0, emu.record("dtor"), 0)
         emu.state, emu.scene = state, scene
         return emu
 
-    def click_box(self, emu, box: int) -> None:
-        x = (461 if box < 3 else 322) + 38
-        y = 52 + 70 * (box % 3) + 30
+    def click(self, emu, at=BOX_CENTRE) -> None:
         emu.write32(emu.sym("_upgrades_view"), 1)
-        emu.call(emu.sym("_on_click"), emu.scene, x, y)
+        emu.call(emu.sym("_on_click"), emu.scene, *at)
 
     def cash(self, emu) -> int:
         return emu.read32(emu.state + S_CASH)
 
-    def title(self, emu, string_id: int) -> str:
-        return emu.cstring(emu.call(emu.sym("_stub_string"), string_id)).decode("latin-1")
-
-    def test_titles_and_description(self) -> None:
-        emu = self.store(0, [])
-        self.assertEqual([self.title(emu, 0x1F8 + k) for k in range(3)],
-                         ["Seventh Seed Box", "Eighth Seed Box", "Ninth Seed Box"])
-        self.assertEqual(self.title(emu, 0x1F4), "Even more space for your seeds!")
-        self.assertEqual([self.title(emu, 0x1F1 + k) for k in range(3)],
-                         ["Fourth Seed Box", "Fifth Seed Box", "Sixth Seed Box"])
-
-    def test_bought_in_order_after_the_sixth(self) -> None:
-        emu = self.store(5000, [1, 1, 0])
-        self.click_box(emu, 3)                                          # the Seventh before the Sixth
-        d = emu.dialogs[-1]
-        self.assertIn(self.NEED_PREREQ, d["strings"])
-        self.assertFalse(d["buy"])
-        self.assertEqual(d["index"], 14)                                # the Fourth's picture, as stock art
-        self.assertEqual((self.cash(emu), emu.owned), (5000, [1, 1, 0, 0, 0, 0]))
-        self.click_box(emu, 2)                                          # the Sixth
-        self.assertEqual((self.cash(emu), emu.owned), (4000, [1, 1, 1, 0, 0, 0]))
-        self.click_box(emu, 5)                                          # the Ninth before the Eighth
-        self.assertIn(self.NEED_PREREQ, emu.dialogs[-1]["strings"])
-        self.assertEqual(emu.owned, [1, 1, 1, 0, 0, 0])
-        for box, cash in ((3, 3000), (4, 2000), (5, 1000)):             # Seventh, Eighth, Ninth
-            self.click_box(emu, box)
-            d = emu.dialogs[-1]
-            self.assertTrue(d["buy"], box)
-            self.assertEqual(d["price"], 1000, box)                     # as the Sixth
-            self.assertEqual(d["index"], 14 + 5 * (box - 3), box)       # frames 4, 9, 14: the Fourth-Sixth's art
-            self.assertEqual(struct.unpack_from("<i", d["record9"], 0x10)[0], 0x1F8 + box - 3)
-            self.assertEqual(self.cash(emu), cash, box)
-            self.assertEqual(emu.owned[box], 1, box)
-        self.click_box(emu, 5)                                          # owned: the stock answer
-        self.assertIn(self.DONT_NEED, emu.dialogs[-1]["strings"])
-        self.assertEqual(self.cash(emu), 1000)
-        self.assertEqual(bytes(emu.uc.mem_read(emu.state + TOOL_RECORD, 15 * 0x20)), emu.stock_records)
-
-    def test_cant_afford_and_free_upgrades(self) -> None:
-        emu = self.store(999, [1, 1, 1])
-        self.click_box(emu, 3)
-        self.assertIn(self.NEED_CASH, emu.dialogs[-1]["strings"])
-        self.assertEqual((self.cash(emu), emu.owned[3]), (999, 0))
-        emu = self.store(0, [1, 1, 1], free=True)
-        for box in (3, 4, 5):
-            self.click_box(emu, box)
-            self.assertEqual(emu.dialogs[-1]["price"], 0)
-        self.assertEqual((self.cash(emu), emu.owned), (0, [1] * 6))
-        self.assertEqual(bytes(emu.uc.mem_read(emu.state + TOOL_RECORD, 15 * 0x20)), emu.stock_records)
-
-    def test_the_fourth_to_sixth_are_unchanged(self) -> None:
-        emu = self.store(3000, [])
-        self.click_box(emu, 1)
-        self.assertIn(self.NEED_PREREQ, emu.dialogs[-1]["strings"])
-        self.assertEqual(emu.dialogs[-1]["index"], 19)
-        for box in (0, 1, 2):
-            self.click_box(emu, box)
-            self.assertEqual(emu.dialogs[-1]["index"], 14 + 5 * box)
-        self.assertEqual((self.cash(emu), emu.owned), (0, [1, 1, 1, 0, 0, 0]))
-
-    def test_an_older_seed_boxes_dll_sells_only_the_fourth_to_sixth(self) -> None:
-        emu = self.store(5000, [1, 1, 1], version=1)
-        self.click_box(emu, 3)
-        self.assertEqual((emu.dialogs, self.cash(emu)), ([], 5000))
+    def tip(self, emu) -> str:
         emu.calls.clear()
-        emu.call(emu.sym("_on_activate"), emu.scene, 1)
-        tips = [c for c in emu.calls if c[0] == "tip"]
-        self.assertEqual(len(tips), 13 + 2 + 2)                         # every tip is made (both auto items', both Muta-)
         emu.write32(emu.sym("_upgrades_view"), 1)
         emu.call(emu.sym("_set_tooltips"), emu.scene)
-        shown = [emu.uc.mem_read(emu.read32(emu.sym("_tips") + 4 * i) + 8, 1)[0] for i in range(7, 13)]
-        self.assertEqual(shown, [1, 1, 1, 0, 0, 0])                    # boxes 7-9 stay hidden
+        return [c[1] for c in emu.calls if c[0] == "tip"][0]
 
-    def test_tooltips(self) -> None:
+    def made(self, emu) -> None:
+        emu.call(emu.sym("_on_activate"), emu.scene, 1)
+
+    def test_bought_in_order_four_to_nine(self) -> None:
+        emu = self.store(6000, [])
+        self.made(emu)
+        names = ("Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth")
+        for n, name in enumerate(names):
+            self.assertEqual(self.tip(emu), f"Extra Seed Box {n + 1} of 6\nPrice: $ 1000")
+            self.click(emu)
+            caption, text, _flags = emu.asked[-1]
+            self.assertEqual(caption, "Extra Seed Box")
+            self.assertEqual(text, f"Buy the {name} Seed Box for $1000?\n\nEven more space for your seeds! It opens a "
+                                   f"40-seed drawer in Seed Storage (Boxes {'4-6' if n < 3 else '7-9'}).")
+            self.assertEqual(emu.owned, [1] * (n + 1) + [0] * (5 - n), name)
+            self.assertEqual(self.cash(emu), 6000 - 1000 * (n + 1))
+        self.assertEqual(self.tip(emu), "Extra Seed Box\nSold out")
+        self.click(emu)                                                 # sold out: told so, nothing taken
+        self.assertEqual(emu.asked[-1][:2], ("Extra Seed Box", "You already have all six extra seed boxes!"))
+        self.assertEqual((self.cash(emu), emu.owned), (0, [1] * 6))
+        self.assertFalse([c for c in emu.calls if c[0] in ("stock dialog", "run")])   # never the stock dialog
+        self.assertEqual(bytes(emu.uc.mem_read(emu.state + TOOL_RECORD, 15 * 0x20)), emu.stock_records)
+
+    def test_no_and_cant_afford_change_nothing(self) -> None:
+        emu = self.store(5000, [1, 1], answer_yes=False)
+        self.click(emu)
+        self.assertTrue(emu.asked[-1][1].startswith("Buy the Sixth Seed Box for $1000?"))
+        self.assertEqual((self.cash(emu), emu.owned), (5000, [1, 1, 0, 0, 0, 0]))
+        emu = self.store(999, [1, 1, 1])
+        self.click(emu)
+        self.assertEqual(emu.asked[-1][:2], ("Extra Seed Box",
+                                             "You can't afford to buy this yet! An extra seed box costs $1,000."))
+        self.assertEqual((self.cash(emu), emu.owned), (999, [1, 1, 1, 0, 0, 0]))
+
+    def test_free_upgrades_and_everything_is_free(self) -> None:
+        # Everything is Free sets the same flag at start-up (tests/test_everything_free.py
+        # CompanionTests checks that its file turns free_upgrades on); here the flag's effect.
+        emu = self.store(0, [1, 1, 1], free=True)
+        self.made(emu)
+        self.assertEqual(self.tip(emu), "Extra Seed Box 4 of 6\nPrice: $ 0")
+        for name in ("Seventh", "Eighth", "Ninth"):
+            self.click(emu)
+            self.assertTrue(emu.asked[-1][1].startswith(f"Buy the {name} Seed Box for $0?"), emu.asked[-1])
+        self.assertEqual((self.cash(emu), emu.owned), (0, [1] * 6))
+
+    def test_an_existing_save_with_three_bought_shows_4_of_6(self) -> None:
+        emu = self.store(1000, [1, 1, 1])                               # the sidecar as an existing save left it
+        self.made(emu)
+        self.assertEqual(self.tip(emu), "Extra Seed Box 4 of 6\nPrice: $ 1000")
+        self.click(emu)
+        self.assertTrue(emu.asked[-1][1].startswith("Buy the Seventh Seed Box"))
+        self.assertEqual(emu.owned, [1, 1, 1, 1, 0, 0])
+        emu = self.store(1000, [1, 0, 1])                               # a gap: the next in order is the Fifth
+        self.made(emu)
+        self.assertEqual(self.tip(emu), "Extra Seed Box 2 of 6\nPrice: $ 1000")
+        self.click(emu)
+        self.assertEqual(emu.owned, [1, 1, 1, 0, 0, 0])
+
+    def test_an_older_seed_boxes_dll_sells_only_the_fourth_to_sixth(self) -> None:
+        emu = self.store(5000, [1, 1], version=1)
+        self.made(emu)
+        self.assertEqual(self.tip(emu), "Extra Seed Box 3 of 3\nPrice: $ 1000")
+        self.click(emu)
+        self.assertEqual(emu.owned, [1, 1, 1, 0, 0, 0])
+        self.assertEqual(self.tip(emu), "Extra Seed Box\nSold out")
+        self.click(emu)
+        self.assertEqual(emu.asked[-1][1], "You already have all three extra seed boxes!")
+        self.assertEqual((self.cash(emu), emu.owned), (4000, [1, 1, 1, 0, 0, 0]))
+
+    def test_without_the_seed_boxes_dll_the_item_is_hidden_and_does_nothing(self) -> None:
+        emu = self.store(5000, [])
+        emu.write32(emu.sym("_boxes"), 0)
+        self.made(emu)
+        self.click(emu)
+        self.assertEqual((emu.asked, self.cash(emu)), ([], 5000))
+        emu.write32(emu.sym("_upgrades_view"), 1)
+        emu.call(emu.sym("_set_tooltips"), emu.scene)
+        tip = emu.read32(emu.sym("_tips") + 4 * 7)
+        self.assertEqual(emu.uc.mem_read(tip + 8, 1)[0], 0)
+
+    def test_tooltip_glyphs(self) -> None:
         import test_store_extras
         font = test_store_extras.plant_font()
-        for free, price in ((False, "1000"), (True, "0")):
-            emu = self.store(0, [1, 1, 1, 1], free=free)
-            emu.hook(0x00409870, lambda e: (e.calls.append(("tip", e.cstring(e.arg(3)).decode("latin-1"))), 0)[1], 0x1C)
-            emu.call(emu.sym("_on_activate"), emu.scene, 1)
-            tips = [c[1] for c in emu.calls if c[0] == "tip"]
-            self.assertIn("Seventh Seed Box", tips)                     # owned: the name alone
-            self.assertIn(f"Eighth Seed Box\nPrice: $ {price}", tips)
-            self.assertIn(f"Ninth Seed Box\nPrice: $ {price}", tips)
-            for text in tips:
-                self.assertLessEqual(set(text) - {"\n"}, font, text)
+        for text in ("Extra Seed Box 4 of 6\nPrice: $ 1000", "Extra Seed Box\nSold out"):
+            self.assertLessEqual(set(text) - {"\n"}, font, text)
 
 
 @needs_game
 class ShelfTests(unittest.TestCase):
-    """The Upgrades view as the DLL draws it: boxes 7-9 overlap nothing, and nor do their click areas."""
+    """The Upgrades view as the DLL draws it, every item shown: no two pictures and no two click
+    rectangles overlap."""
 
     @classmethod
     def setUpClass(cls) -> None:
         import render_seed_boxes_preview as P
         cls.P = P
         cls.sheets = P.Sheets(PLANT_EXE.parent)
-        cls.draws = P.store_draws((1, 1, 1, 1, 1, 1))
+        cls.draws = P.store_draws((1, 1, 1, 1, 1, 1), chem_slots=1)
+        cls.part = P.store_draws((1, 1, 1, 0, 0, 0), chem_slots=0)
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.dll, cls.symbols = E.build_with_map("ftfp_plant_upgrades", UPGRADES / "Store Upgrades and Items.dll",
+                                                Path(cls.tmp.name))
 
-    def test_drawn_where_planned_at_scale_one(self) -> None:
-        boxes = [d for d in self.draws if d[0] == "sprite" and d[1] == 0xB2]
-        self.assertEqual([(d[2], d[3], d[4]) for d in boxes],
-                         [(4, 461, 50), (9, 461, 111), (14, 461, 172), (4, 322, 50), (9, 322, 111), (14, 322, 172)])
-        ticks = [d for d in self.draws if d[0] == "shadow" and d[1] == 0x25]
-        for x, y in ((322, 50), (322, 111), (322, 172)):
-            self.assertIn(("shadow", 0x25, 0, x + 19, y + 22), ticks)
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.tmp.cleanup()
+
+    def test_one_item_drawn_at_scale_one_with_the_tick_when_sold_out(self) -> None:
+        for draws, tick in ((self.draws, True), (self.part, False)):
+            boxes = [d for d in draws if d[0] == "sprite" and d[1] == 0xB2]
+            self.assertEqual(boxes, [("sprite", 0xB2, 4, 461, 50)])        # the stock seed box's art and place
+            ticks = [d for d in draws if d[0] == "shadow" and d[1] == 0x25 and d[3:] == (461 + 19, 50 + 22)]
+            self.assertEqual(bool(ticks), tick)
 
     def test_no_two_items_overlap(self) -> None:
-        """Every picture on the Upgrades view against every other (the art's visible pixels)."""
         def inter(a, b):
             return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
         sprites = [(d, self.P.visible_rect(self.sheets, d)) for d in self.draws if d[0] == "sprite"]
-        self.assertEqual(len([d for d, _ in sprites if d[1] == 0xB2 and d[3] == 322]), 3)
+        self.assertIn(("sprite", 0xB3, 36, 598, 177), [d for d, _ in sprites])     # Extra Chemical Slots
         for i, (d, r) in enumerate(sprites):
             for o, q in sprites[i + 1:]:
                 self.assertFalse(inter(r, q), (d, o, r, q))
         greenhouse = next(r for d, r in sprites if d[1] == 0xB3 and d[2] == 30)
-        sprinklers = next(d for d, r in sprites if d[1] == 0xB3 and d[2] == 32)
-        sprinkler_art = self.P.visible_rect(self.sheets, sprinklers)
-        self.assertEqual((sprinklers[3], sprinklers[4]), (397, 111))           # its shelf line kept
-        self.assertLessEqual(abs((sprinkler_art[0] + sprinkler_art[2]) - (greenhouse[0] + greenhouse[2])), 2)
-        box7 = next(r for d, r in sprites if d[1] == 0xB2 and d[3] == 322 and d[4] == 50)
-        box5 = next(r for d, r in sprites if d[1] == 0xB2 and d[3] == 461 and d[4] == 111)
-        self.assertGreaterEqual(greenhouse[0] - box7[2], 14)                   # a clear gap, as box 4's
-        self.assertGreaterEqual(sprinkler_art[0] - box7[2], 5)
-        self.assertGreaterEqual(box5[0] - sprinkler_art[2], 5)
+        box = next(r for d, r in sprites if d[1] == 0xB2)
+        self.assertGreaterEqual(box[0] - greenhouse[2], 14)                    # a clear gap on the same line
+        self.assertLessEqual(abs(box[3] - greenhouse[3]), 2)
+
+    def rects(self) -> dict[str, tuple[int, int, int, int]]:
+        """Every click rectangle of the Upgrades view, read from the DLL's own data."""
+        emu = E.Emulator(PLANT_EXE, self.dll, self.symbols)
+        rect = lambda at: struct.unpack("<4i", bytes(emu.uc.mem_read(at, 16)))
+        out = {name: rect(emu.sym("_" + name)) for name in
+               ("FORMULA_RECT", "REVIVAL_RECT", "REVITA_RECT", "BOMB_RECT", "BOX_RECT", "WARP_RECT", "MONEY_RECT",
+                "CHEM_SLOTS_RECT")}
+        out.update({f"EXTRA_ITEM[{i}]": rect(emu.sym("_EXTRA_ITEM") + 80 * i + 64) for i in range(2)})
+        out.update({f"AUTO_ITEM[{i}]": rect(emu.sym("_AUTO_ITEM") + 40 * i + 24) for i in range(2)})
+        out.update({f"seed {i}": (598 + 60 * i, 290, 648 + 60 * i, 355) for i in range(3)})
+        return out
 
     def test_no_two_click_rectangles_overlap(self) -> None:
-        """The tool shelf's and the Nursery shelf's click rectangles (inside() counts every edge)."""
-        import re
-        source = (ROOT / "native" / "ftfp_plant_upgrades" / "ftfp_plant_upgrades.c").read_text(encoding="utf-8")
-        auto = (ROOT / "native" / "ftfp_plant_upgrades" / "auto_upgrades.h").read_text(encoding="utf-8")
-        rects = [tuple(int(v) for v in m) for m in re.findall(r"\{ (\d+), (\d+), (\d+), (\d+) \} \}", source + auto)]
-        self.assertEqual(len(rects), 4)                                 # extra greenhouse/nursery, both auto items
-        self.assertIn((403, 114, 461, 174), rects)                      # the sprinklers, under the greenhouse's
-        for box in range(6):
-            x = 461 if box < 3 else 322
-            rects.append((x + 10, 52 + 70 * (box % 3), x + 67, 113 + 70 * (box % 3)))
-        for i, r in enumerate(rects):
-            for q in rects[i + 1:]:
-                self.assertFalse(r[0] <= q[2] and q[0] <= r[2] and r[1] <= q[3] and q[1] <= r[3], (r, q))
+        rects = self.rects()
+        self.assertEqual(rects["BOX_RECT"], (471, 52, 528, 113))
+        self.assertEqual(rects["EXTRA_ITEM[0]"], (404, 52, 461, 113))         # the greenhouse beside it
+        self.assertEqual(rects["AUTO_ITEM[0]"], (403, 114, 461, 174))         # the sprinklers under it
+        self.assertEqual(rects["EXTRA_ITEM[1]"], (453, 305, 514, 356))        # the Extra Nursery's pot
+        names = list(rects)
+        for i, a in enumerate(names):
+            for b in names[i + 1:]:
+                r, q = rects[a], rects[b]
+                self.assertFalse(r[0] <= q[2] and q[0] <= r[2] and r[1] <= q[3] and q[1] <= r[3], (a, r, b, q))
 
     def test_mockups_are_committed(self) -> None:
-        for name in ("seed-boxes-7-9-store.png", "seed-boxes-7-9-storage.png"):
+        for name in ("extra-seed-box-store.png", "seed-boxes-7-9-storage.png"):
             self.assertTrue((ROOT / "docs" / "images" / name).is_file(), name)
 
 

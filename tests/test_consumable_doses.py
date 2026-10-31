@@ -51,7 +51,6 @@ PLANT_ITEMS = {
     "LEGENDARY_DESC": None,               # a seed packet
     "FORMULA_DESC": 3, "REVIVAL_DESC": 3, "REVITA_DESC": 3, "BOMB_DESC": 3,
     "MUTA_FLOWER_DESC": 3, "MUTA_FOLIAGE_DESC": 3,
-    "BOX_DESC": None,                     # the Fourth to Ninth Seed Box
 }
 FISH_ITEM_IDS = {"Radioactive Growth Hormone": 29, "Revival Potion": 30, "ClonaFish": 31, "Muta-Fin": 32,
                  "Muta-Body": 33}

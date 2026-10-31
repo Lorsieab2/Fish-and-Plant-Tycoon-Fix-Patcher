@@ -366,7 +366,7 @@ class WindowTests(unittest.TestCase):
         self.root.update()
 
     def test_tabs_and_the_save(self) -> None:
-        self.assertEqual(self.tabs(), ["Fins", "Bodies", "Discovered Species", "Breeding Calculator", "Breeding Planner",
+        self.assertEqual(self.tabs(), ["Fins", "Bodies", "Discovered Species", "Collectopedia", "Breeding Calculator", "Breeding Planner",
                                        "Fin Pictures", "Body Pictures", "Egg Pictures"])
         self.assertEqual(self.guide.folder_var.get(), "Fish Tycoon - Modded Upgrades")
         self.assertEqual(self.guide.slot_var.get(), "Player 1: Tester")
@@ -518,7 +518,7 @@ class WindowTests(unittest.TestCase):
             self.root.update()
         finally:
             bg.View.species_sheet = saved
-        self.assertEqual(len(self.tabs()), 8)
+        self.assertEqual(len(self.tabs()), 9)
         self.assertIn("calculator", self.guide.trees)
         self.assertIn("planner", self.guide.trees)
         self.assertNotIn("species", self.guide.trees)
@@ -583,7 +583,7 @@ class WindowTests(unittest.TestCase):
     def test_plant_model_loads(self) -> None:
         self.guide.game_var.set("Plant Tycoon")
         self.root.update()
-        self.assertEqual(self.tabs(), ["Flowers", "Foliage", "Discovered Species", "Breeding Calculator", "Breeding Planner",
+        self.assertEqual(self.tabs(), ["Flowers", "Foliage", "Discovered Species", "Collectopedia", "Breeding Calculator", "Breeding Planner",
                                        "Flower Pictures", "Foliage Pictures", "Seed Pictures"])
         self.assertIsNotNone(self.guide.model)
         self.assertEqual(self.guide.model.game, "plant")

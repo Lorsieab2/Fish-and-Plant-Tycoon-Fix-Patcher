@@ -185,9 +185,10 @@ Plant Tycoon options:
   free of pests and at full health; dead plants are left alone. Click an owned
   one and answer Yes to unpurchase it: it switches off, no refund, buying it
   again costs the full price; kept in "Auto Upgrades <slot>.dat") and the
-  Fourth to Ninth Seed Box ($1000 each, in order; the Seventh to Ninth stand
-  left of the Extra Greenhouse; the arrows on the Seed Storage title bar step
-  through boxes 1-3, 4-6 and 7-9). The four new chemicals can be thrown in
+  Extra Seed Box beside the Extra Greenhouse (each click buys the next of
+  the Fourth to Ninth Seed Box, in order, $1000 each, with a Yes / No; the
+  tooltip says which is next, e.g. "Extra Seed Box 4 of 6"; the arrows on the
+  Seed Storage title bar step through boxes 1-3, 4-6 and 7-9). The four new chemicals can be thrown in
   the Trash bin (let go or clicked there), like a seed packet; the tools and
   the game's own chemicals never go in it. Move
   seeds out of boxes 4-9 before turning it off.)
@@ -297,7 +298,16 @@ folder on the Game tab, or the "- Modded" / "- Modded Upgrades" copies) it
 copies the pictures into a "Breeding Guide Pictures" folder beside the
 patcher and shows them from there for every save and player. If a picture
 tab says it has no pictures yet, click "Find game..." and pick your game
-folder. Your game folder and saves are only read.
+folder. Your game folder and saves are only read. Seed Pictures is a grid:
+a row per foliage (Common first, then Endangered, then Extinct) and a column
+per seed tier, lowest on the left, Legendary last with Unused Flowers.
+
+The Collectopedia tab is a checklist of every species: a row per body
+(foliage), a column per fin (flower), each box ticked where your save has
+ever had that species. Only the save ticks a box. It counts "n of N species
+collected" overall, per rarity and per part; Show All, Collected or Missing;
+the List view sorts; Export saves the list. With spoilers off a species you
+have not collected is a "?".
 
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.
