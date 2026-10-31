@@ -63,6 +63,12 @@ static int chem_file_path(int slot, wchar_t *out, DWORD cap, int make_folder) {
 }
 
 /* A record as the stock tray keeps it: an empty slot is all zero. */
+/* A chemical the game can hold: the stock 27-35, Store Upgrades and Items' 36-39 and its Muta-Flower
+   and Muta-Foliage, 48 and 49 (their sheet rows 21 and 22; 40-47 are rows of other pictures). */
+static __inline int chem_id_valid(int id) {
+    return (id >= 27 && id <= 39) || id == 48 || id == 49;
+}
+
 static void chem_record_clean(chem_record *r) {
     if (!r->present || r->doses <= 0) memset(r, 0, sizeof *r);
     else { r->present = 1; r->pad[0] = r->pad[1] = r->pad[2] = 0; }
@@ -131,8 +137,8 @@ static int chem_file_read(int slot, int *owned, chem_record *page) {
          && header[3] == CHEM_PAGE_SLOTS && header[4] == CHEM_RECORD_BYTES
          && ReadFile(file, body, sizeof body, &got, NULL) && got == sizeof body;
     CloseHandle(file);
-    for (i = 0; ok && i < CHEM_PAGE_SLOTS; ++i) {          /* a bottle is one of the game's 13 chemicals (27-39) */
-        if (body[i].present && body[i].doses > 0 && (body[i].id < 27 || body[i].id > 39)) ok = 0;
+    for (i = 0; ok && i < CHEM_PAGE_SLOTS; ++i) {          /* a bottle is one of the game's 15 chemicals */
+        if (body[i].present && body[i].doses > 0 && !chem_id_valid(body[i].id)) ok = 0;
     }
     if (!ok) {
         chem_file_set_aside(path);

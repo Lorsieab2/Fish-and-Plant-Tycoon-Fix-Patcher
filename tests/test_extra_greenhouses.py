@@ -1191,11 +1191,11 @@ class StoreItemTests(unittest.TestCase):
         (_s, *shadow), (_p, sheet, frame, x, y, scale, alpha, _flag) = draws[at[0] - 1:at[0] + 1]
         self.assertEqual((_s, _p), ("shadow", "sprite"))
         self.assertEqual((sheet, frame, x, y, as_float(scale), alpha), (0xB3, 30, 404, 50, 1.0, 100))
-        self.assertEqual([d[2] for d in draws[at[0] + 1:] if d[0] == "sprite" and d[1] == 0xB3], [32, 34])
+        self.assertEqual([d[2] for d in draws[at[0] + 1:] if d[0] == "sprite" and d[1] == 0xB3], [32, 34, 42, 44])   # + Muta-
 
         art = ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_upgrades.png"
         chems = np.asarray(Image.open(art).convert("RGBA"))
-        self.assertEqual(chems.shape[0], 21 * 70)                     # chem_rows = 21 in the DLL
+        self.assertEqual(chems.shape[0], 23 * 70)                     # chem_rows = 23 in the DLL
         cell = chems[(frame // 2) * 70:(frame // 2 + 1) * 70, (frame % 2) * 70:(frame % 2 + 1) * 70, 3]
         ys, xs = np.nonzero(cell)
         left, top, right, bottom = x + xs.min(), y + ys.min(), x + xs.max(), y + ys.max()   # inclusive, on screen

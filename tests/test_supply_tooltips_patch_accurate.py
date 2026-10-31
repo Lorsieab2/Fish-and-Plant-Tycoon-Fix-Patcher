@@ -48,7 +48,7 @@ CASES = {
     "Fix vanilla bugs": {"fix_vanilla_bugs"},
     "Everything is Free": {"everything_free"},
 }
-ITEMS = (0, 1, 2, 3, 4, 5, 6, 7, 26, T.RGH, T.REVIVAL, T.CLONA, T.EXOTIC)
+ITEMS = (0, 1, 2, 3, 4, 5, 6, 7, 26, T.RGH, T.REVIVAL, T.CLONA, T.MUTA_FIN, T.MUTA_BODY, T.EXOTIC)
 _EXES: dict[str, Path] = {}
 
 

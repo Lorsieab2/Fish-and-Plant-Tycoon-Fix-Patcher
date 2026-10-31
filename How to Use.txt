@@ -85,7 +85,9 @@ Fish Tycoon options:
   in the tank on screen: pregnant ones give birth, then the fish that were
   there get full health, are cured and young ones become adults; the newborns
   stay babies), the Revival Potion (revives the
-  tank's dead fish), ClonaFish (clones every unique fish), and the
+  tank's dead fish), ClonaFish (clones every unique fish), Muta-Fin and
+  Muta-Body ($2,500 each, 3 doses: the Unknown Chemical for the fins only
+  or the bodies only), and the
   Auto-Feeder and Auto-Healer ($10,000 each, bought once: every live fish in
   every tank stays full at 100 food (feeding by hand never hurts it), and is cured and kept at
   full health; dead fish are left alone. Click an owned one again and answer
@@ -176,7 +178,9 @@ Plant Tycoon options:
   Radioactive Plant Formula and its Bomb (one dose for every plant in the
   greenhouse on screen), the Revival Potion (revives a dead plant),
   Revita-Seed (a plant that has given all its seeds can be pollinated
-  again), Automatic Sprinklers and the Auto-Healer ($10,000 each, bought
+  again), Muta-Flower and Muta-Foliage ($2,500 each, 3 doses: the Mutation
+  Liquid for the flower only or the foliage only), Automatic Sprinklers and
+  the Auto-Healer ($10,000 each, bought
   once: every live plant in every greenhouse is kept at the best water level,
   free of pests and at full health; dead plants are left alone. Click an owned
   one and answer Yes to unpurchase it: it switches off, no refund, buying it

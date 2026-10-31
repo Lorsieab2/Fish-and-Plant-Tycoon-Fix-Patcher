@@ -35,7 +35,7 @@ DLL_NAME = "DS Store Items.dll"
 SETTING = {
     "id": SETTING_ID,
     "name": "DS Store Items",
-    "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, ClonaFish, which clones every fish in the tank, and the Auto-Feeder and Auto-Healer, which keep every fish in every tank fed and healthy. Needs DS Exclusive Fish.",
+    "summary": "Adds an Upgrades page to the Supplies store with the DS version's store items: the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel (with its rock), tank animals that help your fish without taking a fish's place, Exotic Fish Eggs that hatch only DS fish, the Radioactive Growth Hormone, which gives every fish in the tank full health and no sickness, makes young ones adults and pregnant ones give birth, the Revival Potion, which revives dead fish, ClonaFish, which clones every fish in the tank, Muta-Fin and Muta-Body, which mutate only the fins or only the bodies of fish, and the Auto-Feeder and Auto-Healer, which keep every fish in every tank fed and healthy. Needs DS Exclusive Fish.",
     "description": (
         "Adds an Upgrades button to the Supplies store with the Nintendo DS version's store items. "
         "The Magic Pufferfish, Blue-Spotted Stingray and Moray Eel are tank companions like the Golden Seahorse: "
@@ -60,7 +60,14 @@ SETTING = {
         "fish through moves, saves and ClonaFish clones, and ends when it is sold, dies or is thrown away. The "
         "Revival Potion ($10,000, 3 doses) revives every dead fish in the tank you use it on, at "
         "full health. ClonaFish ($2,500, 3 doses) adds an exact copy of every live fish in the "
-        "tank you use it on, doubling it, until the tank is full. The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work "
+        "tank you use it on, doubling it, until the tank is full. Muta-Fin ($2,500, 3 doses) and Muta-Body "
+        "($2,500, 3 doses) are the stock Unknown Chemical for one part only: each dose reaches the same fish "
+        "as the Unknown Chemical (every live fish in the tank you use it on, any age, not the Golden Seahorse "
+        "or the store animals; never the isolation tank or another tank), changes each one on the same 26% "
+        "chance, and steps its fin (Muta-Fin) or its body (Muta-Body) one gene up or down by the game's own "
+        "step, leaving the other part as it was; with DS Exclusive Fish that step reaches the DS genes as the "
+        "Unknown Chemical's does. A new species is discovered as usual, once the fish is an adult. "
+        "The Auto-Feeder ($10,000) and the Auto-Healer ($10,000) are bought once and work "
         "on every live fish in every tank (Tanks 1-2, the Sale Tank, the isolation tank and Tanks 4-6, "
         "on screen or not, through time away and the Time Warp too): the Auto-Feeder keeps each fish's "
         "food full at 100, so it never starves, and while it is owned feeding by hand never costs health; the Auto-Healer "

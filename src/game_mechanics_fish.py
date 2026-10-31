@@ -731,6 +731,27 @@ CONSUMABLES = (
                   "price (see Radioactive Growth Hormone)."),
                  ("free_upgrades", "ClonaFish costs $0."),),
     ),
+    Fact(
+        "Muta-Fin and Muta-Body: not in the unpatched game.",
+        patched=(("ds_store", "Muta-Fin and Muta-Body ($2,500 each, 3 doses), on the store's Upgrades page: "
+                  "chemicals for slot #3 like the Radioactive Growth Hormone. Each dose is the Unknown "
+                  "Chemical's for one part only. It reaches the same fish: every live fish in the tank you "
+                  "use it on (health not 0), any age, babies too, not the Golden Seahorse or the store "
+                  f"animals, never the isolation tank or another tank. Each one is changed on {at_most(100, 25)}, "
+                  "the Unknown Chemical's own roll; then Muta-Fin always steps its fin and Muta-Body always "
+                  f"its body (the Unknown Chemical picks the body on {at_most(100, 49)}, else the fin), one "
+                  f"step up on {at_most(100, 49)}, otherwise down, but always down at 20 and always up at 0. "
+                  "The other part never changes. So a fish's fin (or body) moves on about 26% a dose, "
+                  "about twice the Unknown Chemical's 13% for one particular part. The change is "
+                  "immediate, in real time: the fish is redrawn at once and the next fish update comes "
+                  "1 real-time second later, as after the Unknown Chemical. A new species is discovered "
+                  "as with the Unknown Chemical: by the game, once the fish is an adult (age 20, in age "
+                  "steps). The dose is used whether or not any fish changed."),
+                 ("ds_fish", "the step is DS Exclusive Fish's, as for the Unknown Chemical: 20 can step up "
+                  "into 23 and 23 down into 20, and 29 is the end (always down). Without it the DS genes "
+                  "are never reached."),
+                 ("free_upgrades", "Muta-Fin and Muta-Body cost $0."),),
+    ),
     Fact("Common, Unusual and Rare Fish Eggs: see Eggs."),
 )
 

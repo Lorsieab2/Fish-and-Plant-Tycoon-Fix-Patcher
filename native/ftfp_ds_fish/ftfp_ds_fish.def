@@ -3,3 +3,4 @@ EXPORTS
     FtfpStartup = _FtfpStartup@0
     FtfpDsFishInstalled = _FtfpDsFishInstalled@0
     FtfpDsFishEntry = _FtfpDsFishEntry@12
+    FtfpDsFishStepGene = _FtfpDsFishStepGene@4

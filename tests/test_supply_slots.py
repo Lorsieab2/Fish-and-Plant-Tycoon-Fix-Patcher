@@ -63,9 +63,11 @@ IN_TANK = (400, 300)
 # Stock items: (item, shelf picture, cursor) as the store's dispatcher 0x427F30 writes them.
 STOCK_ITEMS = {0: (0xA7, 0xAD), 1: (0xA8, 0xAE), 2: (0xA9, 0xAF), 3: (0x7A, 0x7B), 4: (0xAA, 0xB0),
                5: (0x79, 0x79), 6: (0xAB, 0xAB), 7: (0xAC, 0xAC), 26: (0x79, 0x79)}
-EXOTIC, RGH, REVIVAL, CLONA = 28, 29, 30, 31
-DS_ITEMS = {EXOTIC: (224, 224), RGH: (236, 237), REVIVAL: (239, 240), CLONA: (242, 243)}
-NATIVE = {0: 1, 1: 1, 2: 2, 3: 2, 4: 2, 5: 3, 6: 3, 7: 3, 26: 3, EXOTIC: 3, RGH: 2, REVIVAL: 2, CLONA: 2}
+EXOTIC, RGH, REVIVAL, CLONA, MUTA_FIN, MUTA_BODY = 28, 29, 30, 31, 32, 33
+DS_ITEMS = {EXOTIC: (224, 224), RGH: (236, 237), REVIVAL: (239, 240), CLONA: (242, 243), MUTA_FIN: (247, 248),
+            MUTA_BODY: (250, 251)}
+NATIVE = {0: 1, 1: 1, 2: 2, 3: 2, 4: 2, 5: 3, 6: 3, 7: 3, 26: 3, EXOTIC: 3, RGH: 2, REVIVAL: 2, CLONA: 2,
+          MUTA_FIN: 2, MUTA_BODY: 2}
 
 _BUILT: dict = {}
 
@@ -506,7 +508,7 @@ class UsingFromAnExtraSlot(unittest.TestCase):
         """DS Store Items mapped beside it: its chemical switch (0x420E6F) and egg switch (0x421356)
         stubs installed as its install writes them, and its trash (0x421B52)."""
         for universal in (False, True):
-            for it in (RGH, REVIVAL, CLONA, EXOTIC):
+            for it in (RGH, REVIVAL, CLONA, MUTA_FIN, MUTA_BODY, EXOTIC):
                 for count in (3, 1):
                     with self.subTest(universal=universal, item=it, count=count):
                         self.compare_store(it, count, universal, IN_TANK)
@@ -514,7 +516,7 @@ class UsingFromAnExtraSlot(unittest.TestCase):
     def test_the_trash_takes_patcher_items_and_never_stock_ones(self) -> None:
         trash = ((TRASH[0] + TRASH[2]) // 2, (TRASH[1] + TRASH[3]) // 2)
         for universal in (False, True):
-            for it in (RGH, REVIVAL, CLONA, EXOTIC):
+            for it in (RGH, REVIVAL, CLONA, MUTA_FIN, MUTA_BODY, EXOTIC):
                 with self.subTest(universal=universal, item=it):
                     rig = self.store_rig(universal)
                     rig.put_extra(4, record(it, 3))
@@ -987,7 +989,7 @@ class UpgradesScreenItem(unittest.TestCase):
         cells = [tuple(int(v) for v in m.groups()) for m in
                  re.finditer(r"\{ FIN_\w+, \d+, (\d+), (\d+), (\d+), (\d+),", text)]
         cells += [tuple(int(v) for v in m.groups()) for m in re.finditer(r"\{ 0, \d+, (\d+), (\d+), (\d+), (\d+),", text)]
-        self.assertEqual(len(cells), 13)
+        self.assertEqual(len(cells), 15)
         for i, a in enumerate(cells):
             for b in cells[i + 1:]:
                 self.assertFalse(a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3],

@@ -1,9 +1,9 @@
 """Every patcher consumable's in-game description ends with "Contains N doses." (the owner, 2026-10-31).
 
 The rule covers every chemical or other consumable the patcher adds to a store, in both games:
-Fish Tycoon's Radioactive Growth Hormone, Revival Potion and ClonaFish (DS Store Items), and Plant
-Tycoon's Radioactive Plant Formula, Revival Potion, Revita-Seed and Radioactive Plant Formula Bomb
-(Store Upgrades and Items). N is the number of doses a purchase really gives. The wording is the
+Fish Tycoon's Radioactive Growth Hormone, Revival Potion, ClonaFish, Muta-Fin and Muta-Body (DS
+Store Items), and Plant Tycoon's Radioactive Plant Formula, Revival Potion, Revita-Seed, Radioactive
+Plant Formula Bomb, Muta-Flower and Muta-Foliage (Store Upgrades and Items). N is the number of doses a purchase really gives. The wording is the
 stock games' own: Plant Tycoon's chemicals end "Contains N doses." and a line break, Fish Tycoon's
 end "Contains N doses." and, in German, "Reicht für N Behandlungen." (the stock Growth Hormone's).
 
@@ -32,6 +32,7 @@ except ImportError:          # Unicorn is not installed
 
 FISH_C = ROOT / "native" / "ftfp_ds_store" / "ftfp_ds_store.c"
 PLANT_C = ROOT / "native" / "ftfp_plant_upgrades" / "ftfp_plant_upgrades.c"
+PLANT_MUTA_H = ROOT / "native" / "ftfp_plant_upgrades" / "muta_chemicals.h"     # Muta-Flower, Muta-Foliage
 FISH_DLL = ROOT / "assets" / "fish_tycoon_ds_store" / "DS Store Items.dll"
 PLANT_DLL = ROOT / "assets" / "plant_tycoon_upgrades" / "Store Upgrades and Items.dll"
 
@@ -43,15 +44,19 @@ FISH_ITEMS = {
     "Radioactive Growth Hormone": 3, "Revival Potion": 3, "ClonaFish": 3,
     "Extra Tank": None, "Auto-Feeder": None, "Auto-Healer": None,                 # upgrades
     "Extra Supply Slots": None,
+    "Muta-Fin": 3, "Muta-Body": 3,
 }
 # Every Store Upgrades and Items description, by its C name: its doses if it is a consumable, else None.
 PLANT_ITEMS = {
     "LEGENDARY_DESC": None,               # a seed packet
     "FORMULA_DESC": 3, "REVIVAL_DESC": 3, "REVITA_DESC": 3, "BOMB_DESC": 3,
+    "MUTA_FLOWER_DESC": 3, "MUTA_FOLIAGE_DESC": 3,
 }
-FISH_ITEM_IDS = {"Radioactive Growth Hormone": 29, "Revival Potion": 30, "ClonaFish": 31}
-FISH_CELLS = {29: (630, 125), 30: (725, 125), 31: (86, 200)}
-PLANT_CHEMICALS = {"FORMULA_DESC": 36, "REVIVAL_DESC": 37, "REVITA_DESC": 38, "BOMB_DESC": 39}
+FISH_ITEM_IDS = {"Radioactive Growth Hormone": 29, "Revival Potion": 30, "ClonaFish": 31, "Muta-Fin": 32,
+                 "Muta-Body": 33}
+FISH_CELLS = {29: (630, 125), 30: (725, 125), 31: (86, 200), 32: (450, 200), 33: (542, 200)}
+PLANT_CHEMICALS = {"FORMULA_DESC": 36, "REVIVAL_DESC": 37, "REVITA_DESC": 38, "BOMB_DESC": 39,
+                   "MUTA_FLOWER_DESC": 48, "MUTA_FOLIAGE_DESC": 49}
 
 LITERAL = r'"(?:[^"\\]|\\.)*"'
 LITERALS = rf"(?:{LITERAL}\s*)+"
@@ -92,7 +97,7 @@ def fish_items() -> dict[str, tuple[str, str]]:
 
 
 def plant_descriptions() -> dict[str, str]:
-    source = PLANT_C.read_text(encoding="utf-8")
+    source = PLANT_C.read_text(encoding="utf-8") + PLANT_MUTA_H.read_text(encoding="utf-8")
     return {name: c_string(body)
             for name, body in re.findall(rf"static const char (\w+_DESC)\[\] =\s*({LITERALS});", source)}
 

@@ -57,8 +57,7 @@
 #define STATE_TRAY 0x53F84
 #define STATE_HELD 0x56C
 #define HELD_TRAY 5                     /* 5..8: chemical-tray slot 0..3 */
-#define FIRST_CHEMICAL 27
-#define LAST_CHEMICAL 39                /* 36-39: Store Upgrades and Items' four */
+/* The chemicals: chem_id_valid (chem_slots_file.h), 27-39 and Muta-Flower and Muta-Foliage, 48-49. */
 
 /* The greenhouse screen. */
 #define SC_STATE 0x68
@@ -356,6 +355,8 @@ static int name_id(int id) {
     case 37: return 0x1F5;
     case 38: return 0x1F6;
     case 39: return 0x1F7;
+    case 48: return 0x1FB;                  /* Muta-Flower */
+    case 49: return 0x1FC;                  /* Muta-Foliage */
     default: return STRING_FIRST_NAME + id;
     }
 }
@@ -405,7 +406,7 @@ static int slot_away(char *scene) {
 /* "<name>\n<n> doses left" for slot g; 0 when it holds no bottle. */
 NOINLINE static int tip_text_for(char *scene, int g, char *out, int cap) {
     chem_record *r = logical(AT(scene, SC_STATE, char *), g);
-    if (!r->present || r->id < FIRST_CHEMICAL || r->id > LAST_CHEMICAL) return 0;
+    if (!r->present || !chem_id_valid(r->id)) return 0;
     sprintf_s(out, (size_t)cap, "%s\n%d %s left", game_string(AT(scene, SC_STRINGS, void *), 0, name_id(r->id)),
               r->doses, r->doses == 1 ? "dose" : "doses");
     return 1;
@@ -495,7 +496,7 @@ NOINLINE static void __fastcall tools_draw(void *tools, int edx, int flying_item
 }
 
 static void draw_bottle(char *scene, const chem_record *r, int x, int y) {
-    if (!r->present || r->id < FIRST_CHEMICAL || r->id > LAST_CHEMICAL) return;
+    if (!r->present || !chem_id_valid(r->id)) return;
     draw_sprite(AT(scene, SC_SPRITES, void *), 0, SHEET_CHEMICALS, 2 * r->id - 54, x, y, 1.0f, 100, 1);
 }
 

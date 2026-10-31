@@ -39,7 +39,8 @@ GAMES = {
         "screen": "the Supplies store's Upgrades page (DS Store Items)",
         "items": "the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs "
                  "($2300), the Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000), ClonaFish "
-                 "($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), and the Time Warp clock ($500), "
+                 "($2,500), Muta-Fin ($2,500), Muta-Body ($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), "
+                 "and the Time Warp clock ($500), "
                  "Add Money ($950), the Extra Tank ($10,000 each) and the Extra Supply Slots ($10,000) when "
                  "those settings are on",
         "free_rules": "The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy "
@@ -56,12 +57,13 @@ GAMES = {
         "screen_files": pin_plant_upgrades.companion_files,
         "screen": "the Supplies store's Upgrades view (Add new store upgrades and items)",
         "items": "Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the Revival Potion "
-                 "($10,000), Revita-Seed ($2,500), the Formula Bomb ($30,000), Automatic Sprinklers ($10,000), "
+                 "($10,000), Revita-Seed ($2,500), the Formula Bomb ($30,000), Muta-Flower ($2,500), Muta-Foliage "
+                 "($2,500), Automatic Sprinklers ($10,000), "
                  "the Auto-Healer ($10,000), the Extra Seed Box ($1000 each, the Fourth to Ninth "
                  "Seed Box in order), and the Time Warp clock ($500), Add Money ($950), the Extra Greenhouse "
                  "($10,000 each) and the Extra Nursery ($10,000 each) when those settings are on",
         "free_rules": "Legendary Seeds are still three a day and need room in the seed tray, the formula, the Revival "
-                      "Potion, Revita-Seed and the Formula Bomb need room in the chemical tray, and the seed boxes, "
+                      "Potion, Revita-Seed, the Formula Bomb, Muta-Flower and Muta-Foliage need room in the chemical tray, and the seed boxes, "
                       "extra greenhouses and extra nurseries are still bought in order, once each.",
         "where": "on the Nursery shelf next to the Time Warp clock",
     },

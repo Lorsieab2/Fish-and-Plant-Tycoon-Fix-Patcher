@@ -44,6 +44,7 @@ SHEET = ROOT / "assets" / "plant_tycoon_upgrades" / "Images" / "Chemicals_Grid_u
 STATE_SIZE = 0x64000
 TRAY, HELD, SELECTED = 0x53F84, 0x56C, 0x63E58
 FORMULA, REVIVAL, REVITA, BOMB = 36, 37, 38, 39
+MUTA_FLOWER, MUTA_FOLIAGE = 48, 49                      # Store Upgrades and Items' Muta chemicals
 SHEET_CHEMICALS = 0xB3
 SOUND_BUTTON, SOUND_DROP, TRASH_BIN = 0x0C, 0x0D, 0x23
 DOCS = "C:\\Docs"
@@ -227,7 +228,7 @@ class Game:
         sid = e.arg(0)
         if sid not in self.strings:
             names = {0x1F0: "Radioactive Plant Formula", 0x1F5: "Revival Potion", 0x1F6: "Revita-Seed",
-                     0x1F7: "Radioactive Plant Formula Bomb"}
+                     0x1F7: "Radioactive Plant Formula Bomb", 0x1FB: "Muta-Flower", 0x1FC: "Muta-Foliage"}
             self.strings[sid] = e.text(names.get(sid, name(sid - 0x189)))
         return self.strings[sid]
 
@@ -780,6 +781,22 @@ class SidecarTests(ChemSlotsCase):
             self.assertEqual((g.call("_FtfpChemSlotsOwned"), g.page2()), (0, [None] * 8))
             self.assertEqual(g.files.files.get(SIDECAR.format(4) + ".unreadable-1"), bad)     # set aside, kept
 
+    def test_the_muta_chemicals_load_and_show_their_names(self) -> None:
+        # 48 and 49 are chemicals (their sheet rows 21 and 22); 40-47 are rows of other pictures.
+        page = [(MUTA_FLOWER, 2), (MUTA_FOLIAGE, 3)] + [None] * 6
+        g = self.game(slot=6, files={SIDECAR.format(6): sidecar(1, page)})
+        self.assertEqual(g.page2(), page)
+        self.assertNotIn(SIDECAR.format(6) + ".unreadable-1", g.files.files)
+        bad = sidecar(1, [(44, 1)] + [None] * 7)
+        g = self.game(slot=6, files={SIDECAR.format(6): bad})
+        self.assertEqual(g.files.files.get(SIDECAR.format(6) + ".unreadable-1"), bad)
+        g = self.game(owned=False)
+        g.put(0, MUTA_FLOWER, 1)
+        g.put(1, MUTA_FOLIAGE, 3)
+        g.draw()
+        self.assertEqual(g.visible_tips(), {(20, 173, 47, 253): "Muta-Flower\n1 dose left",
+                                            (65, 173, 92, 253): "Muta-Foliage\n3 doses left"})
+
     def test_a_chemical_on_both_pages_is_stacked_on_load(self) -> None:
         g = self.game(slot=1, files={SIDECAR.format(1): sidecar(1, [(30, 2), None, (31, 1), (30, 1)] + [None] * 4)})
         self.assertEqual(g.page2(), [(30, 3), None, (31, 1)] + [None] * 5)
@@ -1063,7 +1080,7 @@ class TrashTests(ChemSlotsCase):
         return g.emu.call(chem_trash, g.scene, *self.BIN) & 0xFF
 
     def test_the_upgrades_chemicals_go_in_the_trash_from_page_two(self) -> None:
-        for chemical in (FORMULA, REVIVAL, REVITA, BOMB):
+        for chemical in (FORMULA, REVIVAL, REVITA, BOMB, MUTA_FLOWER, MUTA_FOLIAGE):
             with self.subTest(chemical=chemical):
                 g = self.game()
                 for k in range(4):
@@ -1239,7 +1256,7 @@ class ArtAndManifestTests(unittest.TestCase):
     def test_the_sheet_has_the_item_and_the_arrows(self) -> None:
         from PIL import Image
         sheet = Image.open(SHEET).convert("RGBA")
-        self.assertEqual(sheet.size, (140, 21 * 70))
+        self.assertEqual(sheet.size, (140, 23 * 70))                    # rows 21-22: Muta-Flower, Muta-Foliage
         cell = lambda f: sheet.crop(((f % 2) * 70, (f // 2) * 70, (f % 2) * 70 + 70, (f // 2) * 70 + 70))
         box = cell(36).getbbox()
         self.assertTrue(box[0] >= 12 and box[2] <= 58 and box[1] >= 8 and box[3] <= 61, box)     # in its click rectangle

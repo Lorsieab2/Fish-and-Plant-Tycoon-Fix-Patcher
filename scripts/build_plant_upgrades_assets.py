@@ -25,7 +25,8 @@ Writes, under assets/plant_tycoon_upgrades/Images:
   (the 17th and 18th) hold Automatic Sprinklers and the Auto-Healer, upright only
   (scripts/build_auto_upgrades_assets.py), row 18 the Extra Chemical Slots item and
   row 19 its two gold page arrows (scripts/build_chem_slots_assets.py), row 20 the Extra
-  Nursery's golden pot (nursery_icon below). A chemical's row is
+  Nursery's golden pot (nursery_icon below), rows 21 and 22 Muta-Flower and Muta-Foliage
+  (chemicals 48 and 49, scripts/build_muta_assets.py). A chemical's row is
   its id - 27 (the game draws frame 2 x id - 54). The DLL points the chemical
   sheet record at it.
 * upgrades_link.png: the store's "Upgrades" link, two frames side by side
@@ -135,7 +136,7 @@ def formula_bottle(images: Path) -> Image.Image:
     stock = Image.open(images / "Chemicals_Grid.png").convert("RGBA")
     if stock.size != (2 * CHEM_CELL, CHEM_ROWS * CHEM_CELL):
         raise SystemExit(f"Chemicals_Grid.png is {stock.size}, expected the stock 140 x 630")
-    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 12) * CHEM_CELL))
+    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 14) * CHEM_CELL))
     sheet.paste(stock, (0, 0))
     for column in (0, 1):
         box = (column * CHEM_CELL, MUTATION_ROW * CHEM_CELL, (column + 1) * CHEM_CELL, (MUTATION_ROW + 1) * CHEM_CELL)
@@ -178,6 +179,12 @@ def formula_bottle(images: Path) -> Image.Image:
     pot = nursery_icon(images)
     for column in (0, 1):
         sheet.alpha_composite(pot, (column * CHEM_CELL, NURSERY_ROW * CHEM_CELL))
+    # Rows 21 and 22 (frames 42-45): chemicals 48 and 49, Muta-Flower and Muta-Foliage, the stock
+    # Mutation Liquid recoloured, upright then pouring (scripts/build_muta_assets.py).
+    import build_muta_assets
+    for name, cells in build_muta_assets.plant_cells(stock).items():
+        for column, cell in enumerate(cells):
+            sheet.paste(cell, (column * CHEM_CELL, build_muta_assets.MUTA_ROWS[name] * CHEM_CELL))
     return sheet
 
 

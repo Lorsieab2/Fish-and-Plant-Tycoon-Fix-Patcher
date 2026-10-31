@@ -165,6 +165,7 @@ STORE_EGGS = (
 EGG_ADDRESSES = {"Common Fish Eggs": (0x4213D1, 0x421437), "Unusual Fish Eggs": (0x4214A0, 0x42150A),
                  "Rare Fish Eggs": (0x421573, 0x4215DB)}
 UNKNOWN_CHEMICAL_PRICE = 650       # 0x419A7E
+MUTA_PRICE = 2500                  # Muta-Fin, Muta-Body (DS Store Items): the Unknown Chemical for one part
 P_CHEMICAL = chance_at_most(100, 25)  # 26.03%: each live fish in the tank is changed (0x420EE3)
 EXOTIC_EGGS = ("Exotic Fish Eggs", 2300, 7)   # DS Store Items (ftfp_ds_store.c: price 2300, DS_GENES 7)
 # The starter eggs of a new game (0x41FC90): babies 1-7 (7 in a new game, the tanks empty).
@@ -455,6 +456,12 @@ def how_text(kind: str, gene: int, extras: bool, combos, name=None, species=None
         lines.append(f"Unknown Chemical (${UNKNOWN_CHEMICAL_PRICE}): each live fish in the tank changes on "
                      f"{_pct(P_CHEMICAL)} a dose, its body on {_pct(P_BODY)} (else its fin), to the next {noun} "
                      "along either way; it becomes this one from "
+                     + named_list(chem, kind, name, nouns,
+                                  lambda n, p: f"a {n} {noun}" + (" always" if p >= 1 else f" on {_pct(p)}")) + ".")
+        muta = "Muta-Body" if kind == "body" else "Muta-Fin"
+        lines.append(f"{muta} (${MUTA_PRICE}, with DS Store Items): the Unknown Chemical for the {noun} alone, "
+                     f"each live fish's {noun} changing on {_pct(P_CHEMICAL)} a dose, the same step; it becomes this "
+                     "one from "
                      + named_list(chem, kind, name, nouns,
                                   lambda n, p: f"a {n} {noun}" + (" always" if p >= 1 else f" on {_pct(p)}")) + ".")
     label = mutation_label(species)

@@ -118,6 +118,8 @@ class Tooltips(unittest.TestCase):
             for item, count, lines in ((T.RGH, 2, ["Radioactive Growth Hormone", "2 doses left"]),
                                        (T.REVIVAL, 1, ["Revival Potion", "1 dose left"]),
                                        (T.CLONA, 3, ["ClonaFish", "3 doses left"]),
+                                       (T.MUTA_FIN, 3, ["Muta-Fin", "3 doses left"]),
+                                       (T.MUTA_BODY, 1, ["Muta-Body", "1 dose left"]),
                                        (T.EXOTIC, 2, ["Exotic Fish Eggs", "2 batches left" if universal
                                                       else "1 batch left"])):
                 with self.subTest(universal=universal, item=item):

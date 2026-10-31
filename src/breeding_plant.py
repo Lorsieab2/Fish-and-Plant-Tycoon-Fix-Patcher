@@ -154,6 +154,7 @@ LEGENDARY_TITLE = 'static const char LEGENDARY_TITLE[] = "Legendary Seeds\\n";'
 PACKET_PRICES = {"Common": 50, "Endangered": 200, "Extinct": 2000}
 PACKETS_A_DAY = 3
 MUTATION_LIQUID_PRICE = 1000
+MUTA_PRICE = 2500                      # Muta-Flower, Muta-Foliage (Store Upgrades and Items): one gene only
 LEGENDARY_PRICE, LEGENDARY_A_DAY, NEW_FLOWER_COUNT = 5000, 3, 14
 
 
@@ -689,6 +690,11 @@ def _gene_how(g: int, kind: str, extras: bool = False, name=None) -> str:
         lines.append(f"Mutation Liquid (${MUTATION_LIQUID_PRICE}): one dose changes a planted plant's flower or "
                      f"foliage to the next one along either way; it gives this {kind} from "
                      + named_list(sources, kind, name, plural, lambda n, p: f"a {n} {kind} on {_pct(p)}") + ".")
+        muta = "Muta-Flower" if kind == "flower" else "Muta-Foliage"
+        lines.append(f"{muta} (${MUTA_PRICE}, with Add new store upgrades and items): the Mutation Liquid for "
+                     f"the {kind} alone, to the next one along either way; it gives this {kind} from "
+                     + named_list(sources, kind, name, plural, lambda n, p: f"a {n} {kind} on {_pct(min(1.0, 2 * p))}")
+                     + ".")
     return "\n".join(lines)
 
 
