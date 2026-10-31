@@ -27,7 +27,7 @@ scripts/build_plant_upgrades_assets.py writes with plant_rows() from here (the o
 record holds the Upgrades link, so new art lives in that sheet). Only the first 70 x 70 cell of each
 row is drawn (they are never poured):
 
-* row 16, Automatic Sprinklers, on the tool shelf under the Extra Greenhouse (drawn at 409, 111): the
+* row 16, Automatic Sprinklers, on the tool shelf under the Extra Greenhouse (drawn at 397, 111, its art centred on the greenhouse's): the
   visible height of the Fourth Seed Box's drawer beside it (Tools_Grid.png frame 9: 49 px, bottom 65
   of its cell, drawn at 461, 111), standing on that bottom line;
 * row 17, the Auto-Healer, on the chemicals shelf beside the Formula Bomb (drawn at 655, 116): the
@@ -64,7 +64,7 @@ FISH_VISIBLE, FISH_BOTTOM, FISH_CANVAS_H = 57, 62, 65
 
 # Where the DLLs draw them: Fish (x, y, w, h) net cells (ftfp_ds_store.c ITEM), Plant (x, y) cells.
 FISH_CELLS = (("ITEM_AUTO_FEEDER.png", 141, 165, 73, 72), ("ITEM_AUTO_HEALER.png", 234, 165, 71, 72))
-PLANT_PLACES = {2 * SPRINKLERS_ROW: (409, 111), 2 * HEALER_ROW: (655, 116)}
+PLANT_PLACES = {2 * SPRINKLERS_ROW: (397, 111), 2 * HEALER_ROW: (655, 116)}
 
 
 def standing(icon: Image.Image, height: int, bottom: int, centre: float, size: tuple[int, int]) -> Image.Image:

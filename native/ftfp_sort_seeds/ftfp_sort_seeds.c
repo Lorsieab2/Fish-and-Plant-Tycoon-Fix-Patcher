@@ -3,7 +3,8 @@
    WHAT.  One click sorts every seed in the unlocked seed box space and packs
    them from the first slot on, left to right and top to bottom: the First
    Seed Box's drawer, then the Second's and the Third's (when bought), then,
-   with "Extra Seed Boxes.dll", the Fourth, Fifth and Sixth.  Locked drawers
+   with "Extra Seed Boxes.dll", the Fourth, Fifth and Sixth, then the
+   Seventh, Eighth and Ninth.  Locked drawers
    are never written.  The order, lowest first:
      1. the class of the plant the seed grows (the game's own A < B < C < D,
         from its foliage and flower genes: D if either is above 17, else C if
@@ -29,8 +30,9 @@
    whatever is there (the stock functions, or "Extra Seed Boxes.dll"'s
    wrappers, which load first): activate adds the button once, command runs
    the sort for the button's id.  With the extra boxes, their DLL's
-   FtfpSeedBoxesChests export says where each chest is and how many of its
-   rows are unlocked. */
+   FtfpSeedBoxesChestList export says where each of the three chests is and
+   how many of its rows are unlocked (an older Seed Boxes DLL without it:
+   this DLL stays off rather than sort only some of the boxes). */
 #include <windows.h>
 #include <string.h>
 
@@ -38,7 +40,7 @@
 #define BOX_COLUMNS 10
 #define RECORD_BYTES 0x24
 #define BOX_BYTES (BOX_RECORDS * RECORD_BYTES)
-#define CHESTS 2
+#define CHESTS 3                /* boxes 1-3, 4-6, 7-9 */
 #define MAX_SEEDS (CHESTS * BOX_RECORDS)
 #define STATE_BOX 0x52CCC
 #define STATE_HELD 0x56C
@@ -105,7 +107,7 @@ static int key_less(const seed_key *a, const seed_key *b) {
     return 0;
 }
 
-/* Insertion sort: at most 240 seeds, stable, no allocation. */
+/* Insertion sort: at most 360 seeds, stable, no allocation. */
 static void sort_keys(seed_key *keys, int count) {
     int i, j;
     for (i = 1; i < count; ++i) {
@@ -189,7 +191,7 @@ typedef void (__fastcall *add_control_fn)(void *scene, int edx, void *control);
 typedef void (__fastcall *sound_fn)(void *sound, int edx, int id);
 typedef int (__fastcall *scene_command_fn)(void *scene, int edx, int msg, int id);
 typedef void (__fastcall *scene_activate_fn)(void *scene, int edx, int on);
-typedef int (__cdecl *chests_fn)(char *state, unsigned char **chests, int *rows);
+typedef int (__cdecl *chests_fn)(char *state, unsigned char **chests, int *rows, int capacity);
 
 static const new_fn game_new = (new_fn)0x0044E894u;
 static const anim_finish_fn anim_finish = (anim_finish_fn)0x004211D0u;
@@ -226,7 +228,7 @@ static void sort_seeds(char *scene) {
     chests[0] = (unsigned char *)state + STATE_BOX;
     rows[0] = stock_rows(state);
     if (boxes_chests != NULL) {
-        count = boxes_chests(state, chests, rows);
+        count = boxes_chests(state, chests, rows, CHESTS);
         if (count < 1 || count > CHESTS) return;
     }
     for (c = 0; c < count; ++c) {
@@ -383,7 +385,7 @@ int __stdcall FtfpStartup(void) {
     if (installed) return 1;
     __try {
         HMODULE boxes = GetModuleHandleW(L"Extra Seed Boxes.dll");
-        if (boxes != NULL) boxes_chests = (chests_fn)GetProcAddress(boxes, "FtfpSeedBoxesChests");
+        if (boxes != NULL) boxes_chests = (chests_fn)GetProcAddress(boxes, "FtfpSeedBoxesChestList");
         if (boxes != NULL && boxes_chests == NULL) boxes = NULL;     /* an older Seed Boxes DLL: no wrappers to trust */
         if (known_slot(SCENE_COMMAND_VA, SCENE_COMMAND_STOCK, boxes)
             && known_slot(SCENE_ACTIVATE_VA, SCENE_ACTIVATE_STOCK, boxes)) {

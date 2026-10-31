@@ -55,6 +55,8 @@ FILES = [
     "docs/images/revival-potion-plant.png",
     "docs/images/auto-upgrades-fish.png",
     "docs/images/auto-upgrades-plant.png",
+    "docs/images/seed-boxes-7-9-store.png",
+    "docs/images/seed-boxes-7-9-storage.png",
     "docs/images/tank-counts-fish-off.png",
     "docs/images/greenhouse-counts-plant-off.png",
     "docs/images/breeding-guide-fish-discovered-species.png",

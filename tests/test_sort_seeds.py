@@ -67,7 +67,11 @@ class SortSeedsLogicTests(unittest.TestCase):
     def test_every_check_passes(self) -> None:
         lines = HARNESS_OUTPUT.read_text(encoding="ascii").splitlines()
         self.assertEqual(lines[-1], "ALL OK", "\n".join(lines))
-        self.assertGreaterEqual(sum(line.startswith("ok ") for line in lines), 12)
+        self.assertGreaterEqual(sum(line.startswith("ok ") for line in lines), 20)
+        for check in ("three hundred seeds over nine boxes", "boxes 1-3, then 4-6, then 7-9",
+                      "every seed once, none lost or doubled", "locked drawers of boxes 7-9 untouched",
+                      "nine full boxes", "four chests refused"):
+            self.assertIn(f"ok {check}", lines)
         self.assertFalse([line for line in lines if line.startswith("FAIL")])
 
 

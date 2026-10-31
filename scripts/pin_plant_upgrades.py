@@ -39,7 +39,7 @@ FOLDER = ds_fish_loader.PLANT.patcher_files_folder
 SETTING = {
     "id": SETTING_ID,
     "name": "Add new store upgrades and items",
-    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula and its Bomb, the Revival Potion, Revita-Seed, Automatic Sprinklers, the Auto-Healer, and the Fourth, Fifth and Sixth Seed Box. Needs Add unused flowers.",
+    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula and its Bomb, the Revival Potion, Revita-Seed, Automatic Sprinklers, the Auto-Healer, and the Fourth to Ninth Seed Box. Needs Add unused flowers.",
     "description": (
         "Adds an Upgrades link on the bricks at the left of the Supplies store. It opens a second "
         "view of the store with only the new items, each where it would sit in the store: "
@@ -69,20 +69,23 @@ SETTING = {
         "still ends a plant's life; unpurchase: click an owned one and answer Yes, it switches off at "
         "once with no refund, and buying it again costs the full price; ownership is kept in \"Auto "
         "Upgrades <slot>.dat\"), and the Fourth, Fifth "
-        "and Sixth Seed Box with the tool upgrades (\"Even more space for your seeds!\", $1000 each, "
-        "bought in order like the stock boxes). Each new box opens a 40-seed drawer in a second "
-        "chest on the Seed Storage screen; the gold arrows on its title bar switch between boxes "
-        "1-3 and 4-6, and the greenhouse fills boxes 4-6 once 1-3 are full. Click Supplies in the "
+        "and Sixth Seed Box with the tool upgrades, then the Seventh, Eighth and Ninth in their own "
+        "column left of the Extra Greenhouse (\"Even more space for your seeds!\", $1000 each, "
+        "bought in order like the stock boxes: the Seventh after the Sixth). Each new box opens a "
+        "40-seed drawer: the Fourth to Sixth in a second chest on the Seed Storage screen, the Seventh "
+        "to Ninth in a third; the gold arrows on its title bar step through boxes 1-3, 4-6 and 7-9 "
+        "(360 seeds in all), and the greenhouse fills boxes 4-6 once 1-3 are full, then 7-9. Click "
+        "Supplies in the "
         "bottom bar to leave the Upgrades view. Needs Add unused flowers. Each save slot keeps the "
         "new data in separate files beside the save. See docs/plant-tycoon-upgrades-design.md."
     ),
     "warning": (
         "Turning this off leaves bought Legendary seeds drawn as another seed packet, the formula "
         "drawn as an Insta-Grow Vaporbomb that does nothing (the Revival Potion, Revita-Seed and the Formula Bomb as "
-        "the last stock chemical, doing nothing too), boxes 4-6 hidden with their seeds, "
+        "the last stock chemical, doing nothing too), boxes 4-6 and 7-9 hidden with their seeds, "
         "and the extra flowers the formula grew drawn away from their plants. Plant or sell the "
         "seeds, use up the formula, the Revival Potion, Revita-Seed and the Formula Bomb, sell or compost the plants it was used on, and move seeds out "
-        "of boxes 4-6 before switching it off."
+        "of boxes 4-9 before switching it off."
     ),
     "category": "main",
     "default": False,

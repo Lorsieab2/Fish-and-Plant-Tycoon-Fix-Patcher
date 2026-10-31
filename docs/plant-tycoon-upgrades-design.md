@@ -7,7 +7,7 @@ One optional Plant Tycoon setting, **Add new store upgrades and items**
 | Companion DLL | What | Loaded by |
 |---|---|---|
 | `Store Upgrades and Items.dll` | the store's Upgrades view, Legendary Seeds, the formula, the boxes' purchase | `Unused Flowers.dll` |
-| `Extra Seed Boxes.dll` | the Fourth-Sixth Seed Box: the second chest and the greenhouse overflow | `Store Upgrades and Items.dll` |
+| `Extra Seed Boxes.dll` | the Fourth-Ninth Seed Box: the second and third chests and the greenhouse overflow | `Store Upgrades and Items.dll` |
 
 The setting writes no byte of the executable. Each DLL sits in
 `Plant Tycoon Fix Patcher DLLs` beside the one that loads it, and each writes
@@ -79,14 +79,29 @@ with the setting is therefore the same as the pin without it
     upper left): $1000 each, "Even more space for your
     seeds!", stock seed-box art at the stock places with the stock tick once
     owned. Bought in order, through the stock dialog and its messages.
+  - **Seventh, Eighth and Ninth Seed Box** (owner, 2026-10-30): $1000 each as
+    the Sixth, the same description, the Fourth-Sixth's art (Tools_Grid frames
+    4, 9, 14) in their own column at (322, 50 / 111 / 172), drawn at scale 1:
+    the art is visible over x + 6 .. x + 76, so it ends at 398, 16 px before
+    the Extra Greenhouse's art (414) and 5 px before the Automatic Sprinklers' (403), as
+    the Fourth's starts 17 px after the greenhouse's. Click rectangles
+    (332-389, 52 + 70 r .. 113 + 70 r) touch no other item's. Bought after the
+    Sixth, in order (below). Mockup: `docs/images/seed-boxes-7-9-store.png`,
+    composited from the DLL's own draw calls by
+    `scripts/render_seed_boxes_preview.py`.
 - The stock seed box is one 120-seed chest of three 40-seed drawers (First,
-  Second, Third Seed Box). The new boxes are a **second chest** with the same
-  three drawers. Once the Fourth is owned, the stock gold arrows
-  (`leftarrow.png` / `rightarrow.png`) on the Seed Storage title bar switch
-  between "Boxes 1-3" and "Boxes 4-6". Each box opens one drawer.
+  Second, Third Seed Box). The new boxes are a **second chest** (the Fourth to
+  Sixth) and a **third chest** (the Seventh to Ninth) with the same three
+  drawers. Once the Fourth is owned, the stock gold arrows (`leftarrow.png` /
+  `rightarrow.png`) on the Seed Storage title bar step through "Boxes 1-3",
+  "Boxes 4-6" and "Boxes 7-9" (right forwards, left backwards, round again),
+  skipping a chest with no box yet. The title bar had room for no more box
+  controls (the Sort Seeds button at 396, the label at 660), so the third
+  chest is one more page on the same arrows rather than a new tab. Each box
+  opens one drawer. Mockup: `docs/images/seed-boxes-7-9-storage.png`.
 - The greenhouse knows the new boxes: a seed sent to the seed box goes to the
-  first free slot of boxes 1-3, then of boxes 4-6, and "Your seed box is
-  already full!" only comes when all are full.
+  first free slot of boxes 1-3, then of boxes 4-6, then of boxes 7-9, and
+  "Your seed box is already full!" only comes when all are full.
 
 ## Art (`scripts/build_plant_upgrades_assets.py`)
 
@@ -144,6 +159,26 @@ and description ids), so the stock code checks "already have it", "needs the
 previous upgrade" and the cash, and Buy sets the owned byte. The stock
 records are restored when the dialog closes.
 
+The Seventh-Ninth go through the dialog of tool record 9 (index 19): the
+helper 0x430950 takes a tool record's row and column from the index
+(index - 10 = row x 5 + column) and, for row 1 and below, refuses with
+"You need the previous upgrade first!" (string 0x1B1) unless record k - 5 is
+owned (`cmp byte [ecx + 0x64C]`, 0x4319A1). So record 4 describes the box
+before (the Sixth, Seventh or Eighth: its owned byte) and record 9 the box
+being bought (price, owned byte, title 0x1F8-0x1FA, description 0x1F4); Buy
+(0x432D00, button 3) sets record 9's owned byte, which is read back as the
+box's. Right after the ctor the DLL sets the dialog's +0xB8 (its index) to 14,
+19 or 24, so the picture (drawn from +0xB8 at 0x430827: frame index - 10 of
+the tool sheet) is the Fourth, Fifth or Sixth's; +0xB8 is otherwise read only
+by the Buy of category 4 (another store shelf). Tooltips: "Seventh Seed
+Box\nPrice: $ 1000" (owned: the name alone), shown only with a version 2
+Seed Boxes DLL.
+
+`ftfp_box_events.version` is 2: `owned` / `set_owned` take boxes 0-5. The
+Upgrades DLL still accepts version 1 (an older Seed Boxes DLL) and then sells
+and draws only the Fourth-Sixth, so a mixed pair can never take money for a
+box it cannot hold.
+
 Per slot, the three Legendary packets on sale are kept in
 `<save folder>\Plant Tycoon Fix Patcher Data\Plant Upgrades <slot>.dat`; bought
 seeds and doses live in the stock trays, so the save keeps its stock layout.
@@ -153,21 +188,40 @@ seeds and doses live in the stock trays, so the save keeps its stock layout.
 | Site | Address | What |
 |---|---|---|
 | box_level | 0x41DE60 (code) | drawer level of the chest in the game's array: the stock rule, or one drawer per new box owned |
-| send_to_box | 0x4245F0 (code) | the greenhouse's send-to-box search: stock chest first, then the second chest |
+| send_to_box | 0x4245F0 (code) | the greenhouse's send-to-box search: stock chest first, then the second, then the third |
 | scene_mouse | 0x469704 (Seed Storage vtable) | wraps 0x434D70 |
-| scene_command | 0x46970C | wraps 0x433F80; buttons 7/8 (the arrows) switch chests |
-| scene_draw | 0x469718 | wraps 0x4342F0; draws "Boxes 1-3" / "Boxes 4-6" |
+| scene_command | 0x46970C | wraps 0x433F80; buttons 7/8 (the arrows) step to the previous / next chest with a box |
+| scene_draw | 0x469718 | wraps 0x4342F0; draws "Boxes 1-3" / "Boxes 4-6" / "Boxes 7-9" |
 | scene_activate | 0x469724 | wraps 0x433930; makes the arrows once, shows them once the Fourth is owned |
 
 The box array (`state+0x52CCC`, 10 x 12 records of 0x24 bytes) always holds
-the chest on screen; switching swaps the 0x10E0 bytes with the DLL's copy. The
+the chest on screen; the DLL keeps the other chests (`held[3]`, the resident
+one's copy stale): making chest c resident copies the array out to the old
+resident's copy and c's copy in. The
 stock chest is put back before every save (the save event) and whenever the
 Seed Storage screen opens or closes, so saves keep their stock layout and load
-as vanilla without the mod. After the greenhouse fills a seed into the second
+as vanilla without the mod. After the greenhouse fills a seed into a new
 chest, that chest stays in the array until the next save or Seed Storage
 visit, so the flying seed and the pot-seed overwrite (0x4281AF) see the slot
-the search returned. The second chest and the three purchases are kept in
-`Seed Boxes <slot>.dat`.
+the search returned. The drawer level of a resident new chest is its own
+boxes owned, in order (a box counts only when every box before it is owned).
+
+`Seed Boxes <slot>.dat` (magic `PSBX`): version 2 is a 12-byte header
+{magic, 2, 8648} then owned[8] (the Fourth to Ninth, 6-7 zero), boxes 4-6
+(0x10E0 bytes) and boxes 7-9 (0x10E0 bytes). Version 1 ({magic, 1, 4324},
+owned[4] and boxes 4-6) still loads: the Fourth-Sixth and boxes 4-6 as they
+were, boxes 7-9 empty records (0x41D420) and not owned; the file is left as it
+is until the next save writes version 2 (through a `.tmp`, then a replace).
+Any other version, a wrong size, a short file or bytes after the body: set
+aside as `.unreadable` (never deleted), nothing owned. The name is the same, so
+the backups' slot naming (`save_backup.file_slot`) is unchanged.
+
+Sort Seeds asks for the chests through `FtfpSeedBoxesChestList(state,
+chests, rows, capacity)` (3 chests, 4 rows per box owned; 0 when capacity < 3).
+The version 1 export `FtfpSeedBoxesChests` (two chests) is gone, so an older
+Sort Seeds DLL beside this one finds no export and stays off rather than
+sorting only some boxes, and the new Sort Seeds beside an older Seed Boxes DLL
+does the same.
 
 The New Flowers DLL passes its save (now with the game state), load, delete
 and new-game events to the Upgrades DLL, which passes them on to the Seed
@@ -296,9 +350,22 @@ nurseries' off-screen sales are this same code on their arranged pots.
 Not checked live: the hover tooltips of the Upgrades items (the test shim
 cannot show any tooltip, stock ones included).
 
+The Seventh-Ninth Seed Box were checked in emulation, not live (the owner was
+playing): `tests/test_seed_boxes_7_9.py` runs both DLLs' own code and the
+game's own purchase helper, Buy, Seed Storage mouse code, drawer level and
+send-to-box on the vanilla executable (order, price, $0 free, can't afford,
+already owned; storing, taking, drag and drop and locked drawers in boxes
+7-9; the arrows; the greenhouse filling 1-3, 4-6, 7-9; the version 1 sidecar,
+a round trip, a new game and damaged files; Sort Seeds over three chests),
+and, on the Enable All build (every Plant setting), checks every DLL site is
+still the stock code and overlaps no other site, manifest patch or the
+startup loader, and that the Seed Boxes, Upgrades, Sort Seeds, Unused
+Flowers, Extra Greenhouses, Greenhouse Counts and Optimize Prices DLLs install
+and log so.
+
 ## Limits
 
-- An autosave that fires while a Fourth-Sixth box dialog is open would save
+- An autosave that fires while a Fourth-Ninth box dialog is open would save
   the box records as the dialog shows them (the owned bytes of the stock
   drawers could change). The window is the few seconds the dialog is open.
 - Like New Flowers, the sidecars follow the slot number, not the game's backup
@@ -308,7 +375,7 @@ cannot show any tooltip, stock ones included).
 
 `native/ftfp_plant_upgrades/auto_upgrades.h`. Two permanent items, $10,000 each
 ($0 with Free upgrades), drawn from chemical-sheet rows 16 and 17 (frames 32 and
-34, upright only; row 15 is the Extra Greenhouse's): the sprinklers at (409, 111)
+34, upright only; row 15 is the Extra Greenhouse's): the sprinklers at (397, 111), their art (403-460) centred on the Extra Greenhouse's (414-450),
 on the tool shelf under the Extra Greenhouse, the healer at (655, 116) beside the
 Formula Bomb, each with the owned tick. Click: Yes / No to buy; owned, Yes / No to
 unpurchase (no refund). Tooltips: "<name>\nPrice: $ 10000" or "<name>\nOwned,
