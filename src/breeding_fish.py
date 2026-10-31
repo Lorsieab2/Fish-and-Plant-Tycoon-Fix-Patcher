@@ -299,6 +299,20 @@ def shop_best_price(base: int, ornaments: int, seahorse: bool, advertising: int,
     return best_asking_price(base, shop_crowds(ornaments, seahorse, advertising, tank), tank)[0]
 
 
+def shop_max_price(base: int) -> int:
+    """The Max Prices button's price and the guide's "highest selling": the highest asking price a
+    customer still buys at, 0 when none. The sale roll (0x424240) compares the asking price with
+    the species' own base price B only (2B or more never sells, 0x4243DC-0x4243EA); the crowd
+    (ornaments, the Golden Seahorse, Advertising) changes the odds, never this ceiling, so it is
+    2B - 1 for every save. Advertising's research raises B itself (0x420AA3 / 0x420B03), which
+    the button reads at click time."""
+    highest = 0
+    for price in range(1, 2 * base):
+        if sale_threshold(price, base, 0) is not None:
+            highest = price
+    return highest
+
+
 def advertised(base: int, level: int) -> int:
     """B after the Advertising research levels have finished: level 2 adds B / 10, level 3
     then adds B / 7 (0x420AE6, 0x420A82; rounded down, as the game's integer division)."""
@@ -799,7 +813,7 @@ class FishModel:
         else:
             note = (f"B {base}; nobody browsing (K = 1), Advertising level 1; {SELLING_TANK} adults for "
                     f"sale, real time, a {SALE_PAUSE}-second pause after a sale.")
-        result = Prices(best_price, best_income, 2 * base - 1, note)
+        result = Prices(best_price, best_income, shop_max_price(base), note)
         self._prices[cache_key] = result
         return result
 

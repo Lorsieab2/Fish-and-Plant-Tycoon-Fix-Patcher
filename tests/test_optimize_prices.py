@@ -135,6 +135,24 @@ class PriceMathAgreesWithTheModel(unittest.TestCase):
             self.assertEqual(price, BP.shop_best_price(v, gb, s), (v, gb, s))
         self.assertGreater(len(queries), 1000)
 
+    def test_fish_max_prices_agree(self) -> None:
+        """Max Prices: pm_fish_max is shop_max_price for every base a species can have (all below
+        600), and 0-1000."""
+        bases = sorted({b for b, *_ in fish_queries()} | set(range(0, 1001)))
+        got = self.ask([f"f {b}" for b in bases])
+        self.assertEqual(got, [BF.shop_max_price(b) for b in bases])
+        self.assertEqual(got, [max(2 * b - 1, 0) for b in bases])
+        self.assertEqual(len(bases), 1001)
+
+    def test_plant_max_prices_agree(self) -> None:
+        """Max Prices: pm_plant_max is shop_max_price for every species value and 1-1000, with and
+        without the Golden Berries of Wealth."""
+        values = sorted({v for v, *_ in plant_queries()} | set(range(1, 1001)))
+        queries = [(v, gb) for v in values for gb in (False, True)]
+        got = self.ask([f"p {v} {int(gb)}" for v, gb in queries])
+        self.assertEqual(got, [BP.shop_max_price(v, gb) for v, gb in queries])
+        self.assertGreaterEqual(len(queries), 2000)
+
 
 class ModelTests(unittest.TestCase):
     """The shop functions are the Breeding Guide's own "max" columns."""
@@ -152,6 +170,62 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(BP.visitor_score((False,) * 15, False, 0, False), 2 * BP.SALE_SPOTS)
         # the Golden Berries let a higher price sell
         self.assertGreater(BP.shop_best_price(130, True, everything), BP.shop_best_price(130, False, everything))
+
+    def test_fish_max_is_twice_base_less_one(self) -> None:
+        """The ceiling is 2B - 1 whatever the shop: the guide's highest selling, the last price with a
+        sale chance for every crowd, the first price without one 2B."""
+        model = BF.FishModel(extras=False)
+        for key in ((0, 0), (7, 7), (10, 9), (20, 16)):
+            for effects, level in (("none", 1), ("max", 3)):
+                base = BF.advertised(BF.base_price(*key), level)
+                self.assertEqual(BF.shop_max_price(base), 2 * base - 1)
+                self.assertEqual(model.prices(key, effects).highest_selling, BF.shop_max_price(base))
+        for base in (1, 2, 15, 239):
+            top = BF.shop_max_price(base)
+            for crowd in (0, 4, 13, 72):
+                self.assertGreater(BF.sale_chance(top, base, crowd), 0.0)
+                self.assertEqual(BF.sale_chance(top + 1, base, crowd), 0.0)
+            self.assertGreaterEqual(top, BF.shop_best_price(base, 6, True, 3))
+        self.assertEqual(BF.shop_max_price(0), 0)
+
+    def test_plant_max_follows_the_golden_berries(self) -> None:
+        """The price seen stays below 2V: without the Golden Berries the ceiling is 2V - 1; with
+        them, the highest P with P - P/4 below 2V, which is higher; it is the guide's highest
+        selling with no effects, and no score or per-plant effect is in it."""
+        model = BP.PlantModel(extras=False)
+        for v in (1, 7, 44, 95, 130, 250, 2500):
+            self.assertEqual(BP.shop_max_price(v, False), min(2 * v - 1, BP.MAX_TYPED_PRICE))
+            with_berries = BP.shop_max_price(v, True)
+            self.assertLess(with_berries - with_berries // 4, 2 * v)
+            if with_berries < BP.MAX_TYPED_PRICE:
+                after = with_berries + 1
+                self.assertGreaterEqual(after - after // 4, 2 * v)
+            if v > 1:
+                self.assertGreater(with_berries, BP.shop_max_price(v, False))
+            for gb in (False, True):
+                top = BP.shop_max_price(v, gb)
+                c = BP.Condition(golden_berries=gb)
+                self.assertGreater(BP.sale_chance(top, v, 8, c), 0.0)
+                self.assertEqual(BP.sale_chance(top + 1, v, 55, c), 0.0)
+        for key in ((2, 14), (11, 10), (23, 23)):
+            self.assertEqual(model.prices(key, "none").highest_selling, BP.shop_max_price(BP.value(key), False))
+
+    @unittest.skipUnless(FISH_EXE.is_file(), "needs the vanilla Fish Tycoon.exe")
+    def test_the_fish_ceiling_is_the_sale_rolls(self) -> None:
+        """0x4243DC-0x4243EA: mov ecx, [eax + 0x14B64] (B); add ecx, ecx; cmp [eax + 0x14B60] (the
+        asking price), ecx; jge (no sale). Only the entry's own two cells are read."""
+        exe = FISH_EXE.read_bytes()
+        at = 0x4243DC - 0x400000                       # .text is mapped 1:1 in this exe
+        self.assertEqual(exe[at:at + 20], bytes.fromhex("8B88644B0100" "03C9" "3988604B0100" "0F8D9A000000"))
+
+    @unittest.skipUnless(PLANT_EXE.is_file(), "needs the vanilla Plant Tycoon.exe")
+    def test_the_golden_berries_are_the_only_save_wide_step(self) -> None:
+        """0x436E22: cmp byte [state + 0x2183], 0 then the price seen loses a quarter; every other
+        step of 0x436D4B-0x436E3C reads the pot or the plant (0x42DDE0, 0x42DE50, 0x42DEA0,
+        0x42D570, 0x42D650, pot + 0x21AC / + 0x21B0)."""
+        exe = PLANT_EXE.read_bytes()
+        at = 0x436E22 - 0x400000
+        self.assertEqual(exe[at:at + 7], bytes.fromhex("80B88321000000"))
 
     @unittest.skipUnless(PLANT_EXE.is_file(), "needs the vanilla Plant Tycoon.exe")
     def test_ornament_points_are_the_jump_table(self) -> None:
@@ -185,8 +259,10 @@ class SettingTests(unittest.TestCase):
 
     def test_it_ships_the_dll_and_the_button(self) -> None:
         expected = {"fish": ("Fish Tycoon Fix Patcher DLLs/Optimize Prices.dll", "Images/OptimizePricesButton.png",
-                             "Images/OptimizePricesStoreButton.png"),
-                    "plant": ("Plant Tycoon Fix Patcher DLLs/Optimize Prices.dll", "Images/optimize_prices_button.png")}
+                             "Images/OptimizePricesStoreButton.png", "Images/MaxPricesButton.png",
+                             "Images/MaxPricesStoreButton.png"),
+                    "plant": ("Plant Tycoon Fix Patcher DLLs/Optimize Prices.dll", "Images/optimize_prices_button.png",
+                              "Images/max_prices_button.png")}
         for game, manifest in self.manifests.items():
             companion = {s["id"]: s for s in manifest["settings"]}[SETTING]["companion"]
             self.assertTrue(companion["startup_loader"])
@@ -477,12 +553,13 @@ class FishButtonTests(unittest.TestCase):
         _, scene = self.shop(emu, {})
         for on in (1, 0, 1):
             emu.call(emu.read32(SPECIES_VT_ACTIVATE), on, ecx=scene)
-        self.assertEqual(len(buttons), 1)
-        bid, image, x, y, handler, zero = buttons[0]
-        self.assertEqual((bid, emu.cstring(image), x, y, handler, zero),
-                         (7, b"OptimizePricesButton.png", 524, 546, scene, 0))
+        self.assertEqual(len(buttons), 2)
+        self.assertEqual([(b[0], emu.cstring(b[1]), b[2], b[3], b[4], b[5]) for b in buttons],
+                         [(7, b"OptimizePricesButton.png", 524, 546, scene, 0),
+                          (8, b"MaxPricesButton.png", 400, 546, scene, 0)])
+        self.assertEqual(sum(1 for c in emu.calls if c[0] == "sound"), 2)
         self.assertIn(("sound", (1,)), emu.calls)
-        self.assertEqual(sum(1 for c in emu.calls if c[0] == "add"), 1)
+        self.assertEqual(sum(1 for c in emu.calls if c[0] == "add"), 2)
 
     def entries(self) -> tuple[dict, set]:
         rng = random.Random(55)
@@ -529,6 +606,68 @@ class FishButtonTests(unittest.TestCase):
         self.assertEqual(bytes(emu.uc.mem_read(state, 0x20000)), before)
         self.assertEqual(bytes(emu.uc.mem_read(F_STRINGS, 12 * 0xF9)), strings)
         self.assertEqual(len(emu.dialogs), 1)
+
+    def test_max_prices_sets_exactly_twice_base_less_one(self) -> None:
+        """Max Prices (id 8): every discovered species gets 2B - 1, whatever the shop; nothing else
+        changes; its own question, then "N prices set."; No changes nothing."""
+        for shop in (dict(), dict(ornaments=(0,) * 6, seahorse=0, advertising=1),
+                     dict(ornaments=(1,) * 6, seahorse=1, advertising=3)):
+            emu = self.game()
+            self.install(emu)
+            entries, found = self.entries()
+            state, scene = self.shop(emu, entries, **shop)
+            strings = bytes(emu.uc.mem_read(F_STRINGS, 12 * 0xF9))
+            before = bytearray(emu.uc.mem_read(state, 0x20000))
+            self.assertEqual(emu.call(emu.read32(SPECIES_VT_COMMAND), 8, 8, ecx=scene) & 0xFF, 1)
+            expected = bytearray(before)
+            for key in found:
+                at = F_SPECIES + (key[0] * F_STRIDE + key[1]) * F_ENTRY + 0x20
+                expected[at:at + 4] = BF.shop_max_price(entries[key][1]).to_bytes(4, "little")
+                self.assertEqual(BF.shop_max_price(entries[key][1]), 2 * entries[key][1] - 1)
+            self.assertEqual(bytes(emu.uc.mem_read(state, 0x20000)), bytes(expected), shop)
+            self.assertEqual(bytes(emu.uc.mem_read(F_STRINGS, 12 * 0xF9)), strings)
+            (q_id, q_yes_no, q_en, q_de), (m_id, m_yes_no, m_en, m_de) = emu.dialogs
+            self.assertEqual((q_id, q_yes_no, m_yes_no), (0xAC, 1, 0))
+            self.assertEqual(q_en, "Set every discovered species\nto its highest selling price?\n"
+                                   "Fish at this price sell\nmuch more slowly.")
+            self.assertEqual(q_de, "Alle entdeckten Arten auf ihren\nh\xf6chsten Verkaufspreis setzen?\n"
+                                   "Zu diesem Preis verkaufen sich\nFische viel langsamer.")
+            self.assertEqual((m_en, m_de), (f"{len(found)} prices set.", f"{len(found)} Preise gesetzt."))
+        emu = self.game(answer=1)
+        self.install(emu)
+        state, scene = self.shop(emu, self.entries()[0])
+        before = bytes(emu.uc.mem_read(state, 0x20000))
+        emu.call(emu.read32(SPECIES_VT_COMMAND), 8, 8, ecx=scene)
+        self.assertEqual(bytes(emu.uc.mem_read(state, 0x20000)), before)
+        self.assertEqual(len(emu.dialogs), 1)
+
+    def test_max_then_optimize(self) -> None:
+        """Optimize Prices still sets the best per day after Max Prices, and Max after Optimize."""
+        emu = self.game()
+        self.install(emu)
+        entries, found = self.entries()
+        state, scene = self.shop(emu, entries)
+        cell = lambda k: state + F_SPECIES + (k[0] * F_STRIDE + k[1]) * F_ENTRY + 0x20  # noqa: E731
+        for bid, price in ((8, BF.shop_max_price), (7, lambda b: BF.shop_best_price(b, 3, True, 2, 21)),
+                           (8, BF.shop_max_price)):
+            emu.call(emu.read32(SPECIES_VT_COMMAND), 8, bid, ecx=scene)
+            for key in found:
+                self.assertEqual(emu.read32(cell(key)), price(entries[key][1]), (bid, key))
+
+    def test_max_prices_with_ds_species(self) -> None:
+        ds_rows = {}
+        emu = self.game(ds=ds_rows)
+        self.install(emu)
+        state, scene = self.shop(emu, {(2, 2): (9, 15)})
+        rows = emu.alloc(0x100)
+        ds_rows[(26, 4)] = rows
+        emu.uc.mem_write(rows, b"DS\0")
+        emu.write32(rows + 0x20, 77)
+        emu.write32(rows + 0x24, BF.base_price(26, 4))
+        emu.call(emu.read32(SPECIES_VT_COMMAND), 8, 8, ecx=scene)
+        self.assertEqual(emu.read32(state + F_SPECIES + (2 * F_STRIDE + 2) * F_ENTRY + 0x20), 29)
+        self.assertEqual(emu.read32(rows + 0x20), 2 * BF.base_price(26, 4) - 1)
+        self.assertEqual(emu.dialogs[-1][2], "2 prices set.")
 
     def test_bigger_tanks_and_ds_species(self) -> None:
         ds_rows = {}
@@ -672,18 +811,19 @@ class FishSaleButtonTests(unittest.TestCase):
             scene, _ = self.sale(emu, emu.alloc(0x20000))
             for on in (1, 0, 1, 1):
                 emu.call(emu.read32(SALE_VT_ACTIVATE), on, ecx=scene)
-            self.assertEqual(len(emu.buttons), 1, extra)
-            bid, image, x, y, handler, zero = emu.buttons[0]
-            self.assertEqual((bid, emu.cstring(image), x, y, handler, zero),
-                             (7, b"OptimizePricesStoreButton.png", 544, 547, scene, 0))
+            self.assertEqual(len(emu.buttons), 2, extra)
+            self.assertEqual([(b[0], emu.cstring(b[1]), b[2], b[3], b[4], b[5]) for b in emu.buttons],
+                             [(7, b"OptimizePricesStoreButton.png", 544, 547, scene, 0),
+                              (8, b"MaxPricesStoreButton.png", 420, 547, scene, 0)])
             self.assertIn(("sound", (1,)), emu.calls)
-            self.assertEqual(sum(1 for c in emu.calls if c[0] == "add"), 1)
-            # the Species Chart keeps its own button, on its own screen
+            self.assertEqual(sum(1 for c in emu.calls if c[0] == "add"), 2)
+            # the Species Chart keeps its own buttons, on its own screen
             chart = self.shop(emu, {})[1]
             emu.call(emu.read32(SPECIES_VT_ACTIVATE), 1, ecx=chart)
-            self.assertEqual(len(emu.buttons), 2)
-            bid, image, x, y, handler, _ = emu.buttons[1]
-            self.assertEqual((bid, emu.cstring(image), x, y, handler), (7, b"OptimizePricesButton.png", 524, 546, chart))
+            self.assertEqual(len(emu.buttons), 4)
+            self.assertEqual([(b[0], emu.cstring(b[1]), b[2], b[3], b[4]) for b in emu.buttons[2:]],
+                             [(7, b"OptimizePricesButton.png", 524, 546, chart),
+                              (8, b"MaxPricesButton.png", 400, 546, chart)])
 
     def test_done_and_other_messages_reach_the_scene(self) -> None:
         """Done (1) is the stock command's: back to the tank, 1 returned; other messages, 0."""
@@ -699,9 +839,10 @@ class FishSaleButtonTests(unittest.TestCase):
         self.assertEqual(emu.dialogs, [])
 
     def test_the_fish_store_click_is_the_charts(self) -> None:
-        """The same shop and species: a Yes (or No) on the Fish Store's button leaves the game state,
-        the string table and the dialogs exactly as the Species Chart's does."""
-        for answer in (0, 1):
+        """The same shop and species: a Yes (or No) on each Fish Store button (Optimize Prices 7, Max
+        Prices 8) leaves the game state, the string table and the dialogs exactly as the Species
+        Chart's same button does."""
+        for answer, bid in ((0, 7), (1, 7), (0, 8), (1, 8)):
             results = []
             for where in ("chart", "fish store"):
                 emu = self.game(answer=answer)
@@ -710,10 +851,10 @@ class FishSaleButtonTests(unittest.TestCase):
                 state, chart = self.shop(emu, entries)
                 strings = bytes(emu.uc.mem_read(F_STRINGS, 12 * 0xF9))
                 if where == "chart":
-                    handled = emu.call(emu.read32(SPECIES_VT_COMMAND), 8, 7, ecx=chart)
+                    handled = emu.call(emu.read32(SPECIES_VT_COMMAND), 8, bid, ecx=chart)
                 else:
                     scene, _ = self.sale(emu, state)
-                    handled = emu.call(emu.read32(SALE_VT_COMMAND), 8, 7, ecx=scene)
+                    handled = emu.call(emu.read32(SALE_VT_COMMAND), 8, bid, ecx=scene)
                 self.assertEqual(bytes(emu.uc.mem_read(F_STRINGS, 12 * 0xF9)), strings)
                 results.append((handled & 0xFF, bytes(emu.uc.mem_read(state, 0x20000)), emu.dialogs))
             (h1, s1, d1), (h2, s2, d2) = results
@@ -732,6 +873,7 @@ class FishSaleButtonPlaceTests(unittest.TestCase):
     "Your cash"."""
 
     BUTTON_X, BUTTON_Y = 544, 547
+    IMAGE, MACRO, SIZE = SALE_BUTTON, "SALE_BUTTON", (150, 50)
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -742,12 +884,14 @@ class FishSaleButtonPlaceTests(unittest.TestCase):
             from PIL import Image
         except ImportError:
             raise unittest.SkipTest("needs Pillow")
+        if not cls.IMAGE.is_file():
+            raise unittest.SkipTest("needs the button")
         cls.exe = FISH_EXE.read_bytes()
         with zipfile.ZipFile(FISH_EXE.parent / "Assets" / "ft.dat") as archive:
             names = {n.lower(): n for n in archive.namelist()}
             cls.art = {n: Image.open(io.BytesIO(archive.read(names[n]))).convert("RGB")
                        for n in ("sellfishshop_bg_png.png", "selldonebutton.png")}
-        button = Image.open(SALE_BUTTON)
+        button = Image.open(cls.IMAGE)
         cls.button = (cls.BUTTON_X, cls.BUTTON_Y, cls.BUTTON_X + button.width // 3, cls.BUTTON_Y + button.height)
         cls.struct = struct
 
@@ -771,9 +915,9 @@ class FishSaleButtonPlaceTests(unittest.TestCase):
 
     def test_the_button_is_where_the_dll_puts_it(self) -> None:
         source = (ROOT / "native" / "ftfp_fish_prices" / "ftfp_fish_prices.c").read_text(encoding="utf-8")
-        self.assertIn(f"#define SALE_BUTTON_X {self.BUTTON_X}", source)
-        self.assertIn(f"#define SALE_BUTTON_Y {self.BUTTON_Y}", source)
-        self.assertEqual((self.button[2] - self.button[0], self.button[3] - self.button[1]), (150, 50))
+        self.assertIn(f"#define {self.MACRO}_X {self.BUTTON_X} ", source)
+        self.assertIn(f"#define {self.MACRO}_Y {self.BUTTON_Y}\n", source)
+        self.assertEqual((self.button[2] - self.button[0], self.button[3] - self.button[1]), self.SIZE)
         self.assertLessEqual(self.button[3], 600)
 
     def test_not_done(self) -> None:
@@ -805,7 +949,85 @@ class FishSaleButtonPlaceTests(unittest.TestCase):
         self.assertEqual(self.imm(0x004245F3, 1), 0x15E)                 # the sold line's y
 
 
-# Plant Tycoon
+SALE_MAX_BUTTON = SALE_BUTTON.parent / "MaxPricesStoreButton.png"
+
+
+@unittest.skipUnless(FISH_EXE.is_file(), "needs the vanilla game")
+class FishSaleMaxButtonPlaceTests(FishSaleButtonPlaceTests):
+    """The Fish Store's Max Prices button covers nothing either, Optimize Prices included: every
+    test above, for its place, and a gap to Optimize Prices."""
+
+    BUTTON_X, BUTTON_Y = 420, 547
+    IMAGE, MACRO, SIZE = SALE_MAX_BUTTON, "SALE_MAX_BUTTON", (120, 50)
+
+    def test_not_optimize_prices(self) -> None:
+        from PIL import Image
+        width = Image.open(SALE_BUTTON).width // 3
+        self.assertClear((544, 547, 544 + width, 597), "Optimize Prices")
+        self.assertLessEqual(self.button[2] + 4, 544)
+
+
+# Fish Tycoon's Species Chart
+CHART_BUTTON = ROOT / "assets" / "fish_tycoon_optimize_prices" / "Images" / "OptimizePricesButton.png"
+CHART_MAX_BUTTON = CHART_BUTTON.parent / "MaxPricesButton.png"
+
+
+@unittest.skipUnless(FISH_EXE.is_file(), "needs the vanilla Fish Tycoon")
+class FishChartButtonPlaceTests(unittest.TestCase):
+    """The Species Chart's two buttons cover nothing: not Done, not each other, not the chart's
+    shells, name and price box or keypad (all drawn above the bottom bar, whose top is read off
+    species_bg.bmp)."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        import io
+        import zipfile
+        try:
+            from PIL import Image
+        except ImportError:
+            raise unittest.SkipTest("needs Pillow")
+        cls.exe = FISH_EXE.read_bytes()
+        with zipfile.ZipFile(FISH_EXE.parent / "Assets" / "ft.dat") as archive:
+            names = {n.lower(): n for n in archive.namelist()}
+            cls.bg = Image.open(io.BytesIO(archive.read(names["species_bg.bmp"]))).convert("RGB")
+            cls.done = Image.open(io.BytesIO(archive.read(names["speciesdonebutton.png"])))
+        cls.boxes = {}
+        for name, path, x, y in (("Optimize Prices", CHART_BUTTON, 524, 546), ("Max Prices", CHART_MAX_BUTTON, 400, 546)):
+            image = Image.open(path)
+            cls.boxes[name] = (x, y, x + image.width // 3, y + image.height)
+
+    @staticmethod
+    def clear(a, b) -> bool:
+        return a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1]
+
+    def test_the_buttons_are_where_the_dll_puts_them(self) -> None:
+        source = (ROOT / "native" / "ftfp_fish_prices" / "ftfp_fish_prices.c").read_text(encoding="utf-8")
+        for macro, value in (("BUTTON_X", 524), ("BUTTON_Y", 546), ("MAX_BUTTON_X", 400), ("MAX_BUTTON_Y", 546)):
+            self.assertRegex(source, rf"#define {macro} {value}\b")
+        self.assertEqual(self.boxes["Max Prices"][2:], (520, 599))
+        self.assertEqual(self.boxes["Optimize Prices"][2:], (684, 599))
+
+    def test_not_each_other_or_done(self) -> None:
+        """Done from the chart's constructor (0x425A79: mov edx, 0x222; 0x425A7F: mov ecx, 0x2B2)."""
+        y = int.from_bytes(self.exe[0x425A7A - 0x400000:0x425A7E - 0x400000], "little")
+        x = int.from_bytes(self.exe[0x425A80 - 0x400000:0x425A84 - 0x400000], "little")
+        self.assertEqual((x, y), (690, 546))
+        done = (x, y, x + self.done.width // 3, y + self.done.height)
+        a, b = self.boxes["Max Prices"], self.boxes["Optimize Prices"]
+        for name, box in self.boxes.items():
+            self.assertTrue(self.clear(box, done), name)
+        self.assertTrue(self.clear(a, b))
+
+    def test_on_the_bottom_bar(self) -> None:
+        """The bar's top edge (a dark rule across the screen) is above both buttons; the chart's
+        own drawing (shells to y 0x1D6 + their height, the keypad, the name and price box at the top
+        right) ends above it."""
+        top = next(y for y in range(500, 560)
+                   if all(sum(self.bg.getpixel((x, y))) < 200 for x in range(380, 700, 20)))
+        for name, box in self.boxes.items():
+            self.assertGreaterEqual(box[1], top, name)
+            self.assertGreaterEqual(box[0], 0)
+        self.assertLessEqual(top, 546)
 SELL_VT_COMMAND, SELL_VT_ACTIVATE = 0x0046973C, 0x00469754
 SELL_COMMAND, SELL_ACTIVATE = 0x004351C0, 0x004360D0
 P_STRING_ENTRIES = 0x00493CC0
@@ -919,10 +1141,11 @@ class PlantButtonTests(unittest.TestCase):
             emu.call(emu.read32(SELL_VT_ACTIVATE), on, ecx=scene)
         self.assertEqual([c for c in emu.calls if c[0] == "stock activate"],
                          [("stock activate", (1,)), ("stock activate", (0,)), ("stock activate", (1,))])
-        self.assertEqual(len(buttons), 1)
-        bid, image, x, y, parent, zero = buttons[0]
-        self.assertEqual((bid, emu.cstring(image), x, y, parent, zero),
-                         (9, b"optimize_prices_button.png", 620, 561, scene, 0))
+        self.assertEqual(len(buttons), 2)
+        self.assertEqual([(b[0], emu.cstring(b[1]), b[2], b[3], b[4], b[5]) for b in buttons],
+                         [(9, b"optimize_prices_button.png", 620, 561, scene, 0),
+                          (10, b"max_prices_button.png", 449, 561, scene, 0)])
+        self.assertEqual(sum(1 for c in emu.calls if c[0] == "add"), 2)
 
     def species(self) -> dict:
         rng = random.Random(77)
@@ -966,6 +1189,78 @@ class PlantButtonTests(unittest.TestCase):
         self.assertEqual(bytes(emu.uc.mem_read(state, P_STATE_SIZE)), before)
         self.assertEqual(len(emu.dialogs), 1)
 
+    def test_max_prices_with_and_without_the_golden_berries(self) -> None:
+        """Max Prices (id 10): every discovered species gets the highest price a visitor still buys
+        at, 2V - 1 without the Golden Berries of Wealth and higher with them; ornaments, magic plants
+        and bugs change nothing; its own question, then "N prices set."."""
+        ornaments = ((0, 0), (1, 4), (2, 4))
+        for golden in (False, True):
+            for extras in ({}, dict(ornaments=ornaments, magic=(0x2182, 0x2185), bugs=48)):
+                emu = self.game()
+                emu.call(emu.sym("_FtfpStartup@0"))
+                species = self.species()
+                state, scene = self.nursery(emu, species, golden=golden, **extras)
+                before = bytearray(emu.uc.mem_read(state, P_STATE_SIZE))
+                entries = {sid: bytes(emu.uc.mem_read(entry, 0x10)) for sid, entry in emu.entries.items()}
+                self.assertEqual(emu.call(emu.read32(SELL_VT_COMMAND), 8, 10, ecx=scene) & 0xFF, 1)
+                expected = bytearray(before)
+                found = [key for key, (_v, _p, d) in species.items() if d]
+                for key in found:
+                    at = p_price_cell(*key)
+                    top = BP.shop_max_price(BP.value(key), golden)
+                    if not golden:
+                        self.assertEqual(top, 2 * BP.value(key) - 1)
+                    else:
+                        self.assertGreater(top, 2 * BP.value(key) - 1)
+                    expected[at:at + 4] = top.to_bytes(4, "little")
+                self.assertEqual(bytes(emu.uc.mem_read(state, P_STATE_SIZE)), bytes(expected), (golden, extras))
+                self.assertEqual({sid: bytes(emu.uc.mem_read(e, 0x10)) for sid, e in emu.entries.items()}, entries)
+                (q_args, q_text, q_ok, q_cancel), (m_args, m_text, m_ok, _c) = emu.dialogs
+                self.assertEqual(q_args, (0x3E, 1, 1, 0, 0))
+                self.assertEqual((q_text, q_ok, q_cancel),
+                                 ("Set every discovered species\nto its highest selling price?\n"
+                                  "Plants at this price sell\nmuch more slowly.", "Yes", "No"))
+                self.assertEqual((m_args, m_text, m_ok), ((0x3E, 0, 0, 0, 0), f"{len(found)} prices set.", "OK"))
+                self.assertIn(("sound", (0xC,)), emu.calls)
+
+    def test_max_prices_no_changes_nothing(self) -> None:
+        emu = self.game(answer=1)
+        emu.call(emu.sym("_FtfpStartup@0"))
+        state, scene = self.nursery(emu, self.species(), golden=True)
+        before = bytes(emu.uc.mem_read(state, P_STATE_SIZE))
+        emu.call(emu.read32(SELL_VT_COMMAND), 8, 10, ecx=scene)
+        self.assertEqual(bytes(emu.uc.mem_read(state, P_STATE_SIZE)), before)
+        self.assertEqual(len(emu.dialogs), 1)
+
+    def test_max_then_optimize(self) -> None:
+        """Optimize Prices still sets the best per day after Max Prices, and Max after Optimize."""
+        emu = self.game()
+        emu.call(emu.sym("_FtfpStartup@0"))
+        species = self.species()
+        state, scene = self.nursery(emu, species, golden=True)
+        score = BP.visitor_score((False,) * 15, False, 1, False)       # the Golden Berries count as a magic plant
+        found = [key for key, (_v, _p, d) in species.items() if d]
+        for bid, price in ((10, lambda v: BP.shop_max_price(v, True)), (9, lambda v: BP.shop_best_price(v, True, score)),
+                           (10, lambda v: BP.shop_max_price(v, True))):
+            emu.call(emu.read32(SELL_VT_COMMAND), 8, bid, ecx=scene)
+            for key in found:
+                self.assertEqual(emu.read32(state + p_price_cell(*key)), price(BP.value(key)), (bid, key))
+
+    def test_max_prices_unused_flowers(self) -> None:
+        table = {}
+        emu = self.game(flowers=table)
+        emu.call(emu.sym("_FtfpStartup@0"))
+        cells = emu.alloc(0x20)
+        for i in range(2):
+            emu.write32(cells + 4 * i, 123)
+        table[(5, 24)] = (BP.value((5, 24)), cells, 1)
+        table[(9, 30)] = (BP.value((9, 30)), cells + 4, 0)                 # not discovered
+        state, scene = self.nursery(emu, {}, golden=True)
+        emu.call(emu.read32(SELL_VT_COMMAND), 8, 10, ecx=scene)
+        self.assertEqual(emu.read32(cells), BP.shop_max_price(BP.value((5, 24)), True))
+        self.assertEqual(emu.read32(cells + 4), 123)
+        self.assertEqual(emu.dialogs[-1][1], "1 price set.")
+
     def test_unused_flowers_species(self) -> None:
         table = {}
         emu = self.game(flowers=table)
@@ -984,6 +1279,68 @@ class PlantButtonTests(unittest.TestCase):
         self.assertEqual(emu.read32(cells + 8), BP.shop_best_price(BP.value((23, 37)), False, score))
         self.assertEqual(emu.read32(state + p_price_cell(1, 1)), BP.shop_best_price(7, False, score))
         self.assertEqual(emu.dialogs[-1][1], "3 prices set.")
+
+
+PLANT_BUTTONS = {"Optimize Prices": (ROOT / "assets" / "plant_tycoon_optimize_prices" / "Images" / "optimize_prices_button.png",
+                                     620, 561, "BUTTON"),
+                 "Max Prices": (ROOT / "assets" / "plant_tycoon_optimize_prices" / "Images" / "max_prices_button.png",
+                                449, 561, "MAX_BUTTON")}
+
+
+@unittest.skipUnless(PLANT_EXE.is_file(), "needs the vanilla Plant Tycoon")
+class PlantButtonPlaceTests(unittest.TestCase):
+    """The Nursery's two buttons cover nothing: each other, the stock button (4, at 0xE3, 0x21C from
+    the scene's constructor) and its panel, and they sit on the bar's brick strip (read off
+    nurseryUI.png), right of the bar's left frame."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        try:
+            from PIL import Image
+        except ImportError:
+            raise unittest.SkipTest("needs Pillow")
+        cls.exe = PLANT_EXE.read_bytes()
+        cls.ui = Image.open(PLANT_EXE.parent / "Images" / "nurseryUI.png").convert("RGBA")
+        cls.boxes = {}
+        for name, (path, x, y, _macro) in PLANT_BUTTONS.items():
+            image = Image.open(path)
+            cls.boxes[name] = (x, y, x + image.width // 3, y + image.height)
+
+    @staticmethod
+    def clear(a, b) -> bool:
+        return a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1]
+
+    def test_the_buttons_are_where_the_dll_puts_them(self) -> None:
+        source = (ROOT / "native" / "ftfp_plant_prices" / "ftfp_plant_prices.c").read_text(encoding="utf-8")
+        for name, (_path, x, y, macro) in PLANT_BUTTONS.items():
+            self.assertRegex(source, rf"#define {macro}_X {x}\b")
+            self.assertRegex(source, rf"#define {macro}_Y {y}\b")
+        self.assertEqual(self.boxes["Max Prices"], (449, 561, 612, 600))
+        self.assertEqual(self.boxes["Optimize Prices"], (620, 561, 783, 600))
+
+    def test_not_each_other_or_the_stock_button(self) -> None:
+        """0x434FC0: mov ecx, 0x21C (y); 0x434FCC: mov eax, 0xE3 (x): the stock button 4 and its panel
+        end at the bar's left frame, which the buttons are right of."""
+        y = int.from_bytes(self.exe[0x434FC1 - 0x400000:0x434FC5 - 0x400000], "little")
+        x = int.from_bytes(self.exe[0x434FCD - 0x400000:0x434FD1 - 0x400000], "little")
+        self.assertEqual((x, y), (0xE3, 0x21C))
+        self.assertTrue(self.clear(self.boxes["Max Prices"], self.boxes["Optimize Prices"]))
+        for name, box in self.boxes.items():
+            self.assertTrue(self.clear(box, (0, 0, 360, 600)), name)      # the stock button, its panel, the frame
+
+    def test_on_the_brick_strip(self) -> None:
+        """The brick strip runs from the bar's left frame (the first brick column on row 580) to the
+        right edge; the buttons start inside it and at most 4 px above the white rule over it, as
+        Optimize Prices always has."""
+        row = 580 - (600 - self.ui.height)
+        left = next(x for x in range(300, 500) if sum(self.ui.getpixel((x, row))[:3]) < 250)
+        self.assertLess(left, 449)
+        rule = next(y for y in range(540, 600) if sum(self.ui.getpixel((500, y - (600 - self.ui.height)))[:3]) > 450)
+        for name, box in self.boxes.items():
+            self.assertGreater(box[0], left, name)
+            self.assertLessEqual(box[2], 800, name)
+            self.assertGreaterEqual(box[1], rule - 4, name)
+            self.assertLessEqual(box[3], 600, name)
 
 
 if __name__ == "__main__":

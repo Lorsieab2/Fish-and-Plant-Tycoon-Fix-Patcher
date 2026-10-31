@@ -18596,8 +18596,8 @@
     {
       "id": "optimize_prices",
       "name": "Optimize Prices button",
-      "summary": "Adds an Optimize Prices button to the Species Chart and the Fish Store screen: it sets every discovered species to its best price per day for your shop as it is now.",
-      "description": "Adds an \"Optimize Prices\" button on the Species Chart's bottom bar, left of Done, where you set prices, and the same button on the Fish Store screen (opened with Sell Fish), on its bottom bar left of Done, so you can use it any time: the Species Chart only opens with a fish in the isolation tank. Both buttons do the same thing. It asks \"Set every discovered species to its best price per day?\". On Yes, every species you have discovered gets the Breeding Guide's \"best per day\" asking price, the price that earns the most money over time, worked out in the game with the same maths as the guide for your shop as it is now: each species' base price (with the Advertising price rises), the ornaments you own, the Golden Seahorse and your Advertising level, with a full selling tank. Then it says how many prices it set. Species you have not discovered keep their prices and nothing else changes; the new prices are the ones you would type yourself, saved with the game as usual. With DS Exclusive Fish on, the DS species are included. Runs as a companion DLL the game loads at start; the save layout is unchanged.",
+      "summary": "Adds Optimize Prices and Max Prices buttons to the Species Chart and the Fish Store screen: they set every discovered species to its best price per day for your shop as it is now, or to the highest price a customer still buys at.",
+      "description": "Adds an \"Optimize Prices\" button on the Species Chart's bottom bar, left of Done, where you set prices, and the same button on the Fish Store screen (opened with Sell Fish), on its bottom bar left of Done, so you can use it any time: the Species Chart only opens with a fish in the isolation tank. Both buttons do the same thing. It asks \"Set every discovered species to its best price per day?\". On Yes, every species you have discovered gets the Breeding Guide's \"best per day\" asking price, the price that earns the most money over time, worked out in the game with the same maths as the guide for your shop as it is now: each species' base price (with the Advertising price rises), the ornaments you own, the Golden Seahorse and your Advertising level, with a full selling tank. Then it says how many prices it set. Species you have not discovered keep their prices and nothing else changes; the new prices are the ones you would type yourself, saved with the game as usual. Beside it, a \"Max Prices\" button asks \"Set every discovered species to its highest selling price? Fish at this price sell much more slowly.\" On Yes, every species you have discovered gets the highest asking price a customer still buys at (the Breeding Guide's \"highest selling\"): twice the species' base price, less 1. A customer never buys a fish whose price is twice its base price or more, and nothing in the game changes that limit: ornaments, the Golden Seahorse and Advertising bring more customers but not higher prices, and Advertising's research raises the base price itself, which the button reads when you click it. Then it says how many prices it set. With DS Exclusive Fish on, the DS species are included. Runs as a companion DLL the game loads at start; the save layout is unchanged.",
       "category": "main",
       "default": true,
       "companion": {
@@ -18607,8 +18607,20 @@
           {
             "path": "Optimize Prices.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Optimize Prices.dll",
-            "size": 90624,
-            "sha256": "10E7B13A261D6ABD02CB08E060FA4B16F5F2CBAA3D078D68F9226A7521952011"
+            "size": 91648,
+            "sha256": "FD4D66C496F8B9BFCCA6928897CB14CDD773185C0AD2CC4E85D6DC257DD58E75"
+          },
+          {
+            "path": "Images/MaxPricesButton.png",
+            "destination": "Images/MaxPricesButton.png",
+            "size": 17578,
+            "sha256": "A20A48926F74E085479C75B9D373BC935DB178058E8AEBB793CD7067BDEF40F2"
+          },
+          {
+            "path": "Images/MaxPricesStoreButton.png",
+            "destination": "Images/MaxPricesStoreButton.png",
+            "size": 15935,
+            "sha256": "BAA81810BE5707FF19FB5B917D3050475203090349855AA68628330DE464C817"
           },
           {
             "path": "Images/OptimizePricesButton.png",

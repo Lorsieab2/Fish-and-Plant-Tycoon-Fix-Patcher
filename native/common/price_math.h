@@ -1,9 +1,11 @@
-/* The Breeding Guide's "best per day" price, for the Optimize Prices DLLs.
+/* The Breeding Guide's "best per day" price, for the Optimize Prices DLLs,
+   and its "highest selling" price, for their Max Prices buttons.
 
    A line-for-line port of src/breeding_fish.py (sale_threshold, sale_chance,
-   income_per_day, crowd, best_asking_price, shop_best_price) and
-   src/breeding_plant.py (seen_price, sale_k, roll_chance, sale_chance,
-   income_per_day, visitor_limit, price_search, shop_best_price), for the
+   income_per_day, crowd, best_asking_price, shop_best_price, shop_max_price)
+   and src/breeding_plant.py (seen_price, sale_k, roll_chance, sale_chance,
+   income_per_day, visitor_limit, price_search, shop_best_price,
+   shop_max_price), for the
    cases the button uses: every double is computed by the same operations in
    the same order, so the results are the same numbers.
    tests/test_optimize_prices.py compiles native/common/price_math_harness.c
@@ -84,6 +86,19 @@ static int pm_fish_best(int base, int ornaments, int seahorse, int advertising, 
     return best_price;
 }
 
+/* The Max Prices button's price (breeding_fish.shop_max_price): the highest
+   asking price a customer still buys at, 0 when none.  The sale roll
+   (0x424240) compares the asking price with the species' own base price B
+   only (price >= 2B never sells, 0x4243DC-0x4243EA); the crowd changes the
+   odds, never this ceiling, so it is 2B - 1 for every save. */
+static int pm_fish_max(int base) {
+    int price, highest = 0;
+    for (price = 1; price < 2 * base; ++price) {
+        if (pm_fish_threshold(price, base, 0) >= 0) highest = price;
+    }
+    return highest;
+}
+
 /* ----------------------------------------------------------- Plant Tycoon */
 
 #define PM_PLANT_SALE_ROLL 1300          /* Random(1300) <= k * E sells (0x436BE0) */
@@ -148,6 +163,19 @@ static int pm_plant_best(int v, int golden_berries, int score) {
         }
     }
     return best;
+}
+
+/* The Max Prices button's price for value V (breeding_plant.shop_max_price,
+   price_search's "highest"): the highest asking price whose price seen stays
+   below 2V, with the save-wide Golden Berries of Wealth; 0 when none. */
+static int pm_plant_max(int v, int golden_berries) {
+    int p, highest = 0;
+    for (p = 1; p <= PM_PLANT_MAX_PRICE; ++p) {
+        if (pm_plant_seen(p, golden_berries) >= 2 * v) break;
+        if (pm_plant_k(p, v, golden_berries) < 0) continue;
+        highest = p;
+    }
+    return highest;
 }
 
 #endif

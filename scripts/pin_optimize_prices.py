@@ -38,7 +38,14 @@ COMMON = (
     "price that earns the most money over time, worked out in the game with the same maths as the guide for "
     "{shop}. Then it says how many prices it set. Species you have not discovered keep their prices and "
     "nothing else changes; the new prices are the ones you would type yourself, saved with the game as usual. "
-    "{extras} Runs as a companion DLL the game loads at start; the save layout is unchanged."
+    "{max} {extras} Runs as a companion DLL the game loads at start; the save layout is unchanged."
+)
+
+MAX_COMMON = (
+    "Beside it, a \"Max Prices\" button asks \"Set every discovered species to its highest selling price? "
+    "{things} at this price sell much more slowly.\" On Yes, every species you have discovered gets the "
+    "highest asking price a {buyer} still buys at (the Breeding Guide's \"highest selling\"): {rule} Then "
+    "it says how many prices it set."
 )
 
 GAMES = {
@@ -51,13 +58,20 @@ GAMES = {
         "rerecord": ("ds_fish", "DS Exclusive Fish.dll"),
         "patcher": fish_patcher,
         "profile": ds_fish_loader.fish_profile,
-        "summary": "Adds an Optimize Prices button to the Species Chart and the Fish Store screen: it sets every "
-                   "discovered species to its best price per day for your shop as it is now.",
+        "summary": "Adds Optimize Prices and Max Prices buttons to the Species Chart and the Fish Store screen: "
+                   "they set every discovered species to its best price per day for your shop as it is now, or "
+                   "to the highest price a customer still buys at.",
         "first": "Adds an \"Optimize Prices\" button on the Species Chart's bottom bar, left of Done, where you set "
                  "prices, and the same button on the Fish Store screen (opened with Sell Fish), on its bottom "
                  "bar left of Done, so you can use it any time: the Species Chart only opens with a fish in the "
                  "isolation tank. Both buttons do the same thing. It asks \"Set every discovered species to its "
                  "best price per day?\". ",
+        "things": "Fish",
+        "buyer": "customer",
+        "rule": "twice the species' base price, less 1. A customer never buys a fish whose price is twice its base "
+                "price or more, and nothing in the game changes that limit: ornaments, the Golden Seahorse and "
+                "Advertising bring more customers but not higher prices, and Advertising's research raises the "
+                "base price itself, which the button reads when you click it.",
         "shop": "your shop as it is now: each species' base price (with the Advertising price rises), the "
                 "ornaments you own, the Golden Seahorse and your Advertising level, with a full selling tank",
         "extras": "With DS Exclusive Fish on, the DS species are included.",
@@ -71,10 +85,18 @@ GAMES = {
         "rerecord": ("new_flowers", "Unused Flowers.dll"),
         "patcher": plant_patcher,
         "profile": ds_fish_loader.plant_profile,
-        "summary": "Adds an Optimize Prices button to the Nursery: it sets every discovered species to its best "
-                   "price per day for your nursery as it is now.",
+        "summary": "Adds Optimize Prices and Max Prices buttons to the Nursery: they set every discovered species "
+                   "to its best price per day for your nursery as it is now, or to the highest price a visitor "
+                   "still buys at.",
         "first": "Adds an \"Optimize Prices\" button on the Nursery's bottom bar, at the right. It asks \"Set every "
                  "discovered species to its best price per day?\". ",
+        "things": "Plants",
+        "buyer": "visitor",
+        "rule": "visitors buy only while the price they see is below twice the species' value. The Golden Berries "
+                "of Wealth, if you have found them, make visitors see every price a quarter lower, so the limit is "
+                "higher with them; the button reads them when you click it. Plant Food, pruning, dead leaves, "
+                "health, flowers and pests change what visitors see for one plant only, so the button leaves them "
+                "out (it is the limit for a healthy, flowering, unpruned plant without Plant Food or pests).",
         "shop": "your nursery as it is now: each species' value, the Golden Berries of Wealth, and the visitors "
                 "your ornaments, magic plants and bug collection bring with all 15 sale spots filled, for a "
                 "healthy, flowering plant",
@@ -100,7 +122,9 @@ def setting(game: dict) -> dict:
         "id": SETTING_ID,
         "name": "Optimize Prices button",
         "summary": game["summary"],
-        "description": game["first"] + COMMON.format(shop=game["shop"], extras=game["extras"]),
+        "description": game["first"] + COMMON.format(
+            shop=game["shop"], extras=game["extras"],
+            max=MAX_COMMON.format(things=game["things"], rule=game["rule"], buyer=game["buyer"])),
         "category": "main",
         "default": True,
         "companion": {"source": game["source"], "startup_loader": True, "files": files},
