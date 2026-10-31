@@ -257,7 +257,10 @@ class DrawPlanTests(unittest.TestCase):
                 recorded = self.compare(plant, flowers_game, label)
             else:
                 recorded = self.compare(plant, game, label)
-            self.assertGreater(len(recorded), 2)
+            if stage == "seed":          # under age 1 no branch is drawn: the pot and the planted soil
+                self.assertEqual(len(recorded), 2, label)
+            else:
+                self.assertGreater(len(recorded), 2, label)
             count += 1
         self.assertGreater(count, 200)
 
@@ -735,7 +738,7 @@ class ChoicesTests(unittest.TestCase):
         fields = self.options()
         self.assertEqual([o.key for o in fields["foliage"].options], list(range(1, 24)))
         self.assertEqual([o.key for o in fields["flower"].options], list(range(1, 24)))
-        self.assertEqual([o.key for o in fields["stage"].options], ["seedling", "budding", "bloom", "max", "formula", "dead"])
+        self.assertEqual([o.key for o in fields["stage"].options], ["seed", "sprout", "seedling", "growing", "budding", "bloom", "max", "formula", "dead"])
         self.assertEqual([f.key for f in self.renderer.custom_choices(frozenset(), True, None)[0].fields][:2],
                          ["flower", "foliage"])
         dead = self.renderer.plan_custom({"subject": "plant", "foliage": 14, "flower": 13, "stage": "dead"})

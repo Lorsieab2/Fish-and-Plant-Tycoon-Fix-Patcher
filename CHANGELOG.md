@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Picture Studio: more plant stages.** Make your own's Plant Stage now also
+  has Seed (just planted: the game draws the planted soil only), Sprout (age
+  3) and Growing (age 15), each checked against the game's own draw in Unicorn
+  like the other stages.
 - **Picture Studio: "Facing"**. The box under the preview is now "Facing:"
   (Facing left / Facing right / Turning), in "From my save" and in Make your
   own's Fish and Creatures tabs. Plant Tycoon has no facing or frames, so the

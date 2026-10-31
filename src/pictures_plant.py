@@ -698,15 +698,21 @@ def apply_formula(plant: Plant, parts: tuple, foliage: int, rand) -> None:
 
 # The "Make your own" growth stages.
 STAGES = (
+    ("seed", "Seed (just planted)"),
+    ("sprout", "Sprout (age 3)"),
     ("seedling", "Seedling"),
+    ("growing", "Growing (age 15)"),
     ("budding", "Budding"),
     ("bloom", "Normal bloom"),
     ("max", "Max bloom"),
     ("formula", "Max bloom + all effects"),
     ("dead", "Dead"),
 )
-STAGE_AGES = {"seedling": 8.0, "budding": 22.5, "bloom": 28.0, "max": 28.0, "formula": 28.0, "dead": 28.0}
-STAGE_NOTE = ("Seedling: age 8, as the game's starting seedlings. Budding: age 22.5 (buds come at 21, "
+STAGE_AGES = {"seed": 0.5, "sprout": 3.0, "seedling": 8.0, "growing": 15.0, "budding": 22.5, "bloom": 28.0, "max": 28.0, "formula": 28.0, "dead": 28.0}
+STAGE_NOTE = ("Seed: just planted (under age 1 the game draws only the planted soil). Sprout: age 3, "
+              "its first branches still small (a branch grows to full size over 18 days). "
+              "Seedling: age 8, as the game's starting seedlings. Growing: age 15, the age-7 leaf roll "
+              "done, no buds yet. Budding: age 22.5 (buds come at 21, "
               "flowers at 24). Normal bloom: full grown, the game's first flowering. Max bloom: size 110 "
               "and a flower on every free spot (plant food and fertilizer as often as you like). "
               "Max bloom + all effects: the Radioactive Plant Formula: every branch grown, no dead leaves. "

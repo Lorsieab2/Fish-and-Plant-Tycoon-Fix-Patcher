@@ -318,7 +318,7 @@ as the game draws it now (fish: Facing left or right, or Turning, and Frame). As
 game, a fish under 20 is not named: with Show Spoilers off it is "Baby fish"
 or "Teen fish". "Make your own" draws any Fin and Body at any Stage (baby,
 teen at each age, adult) and State (healthy, ick, fungus, dead), or any
-Flower and Foliage at any Stage (seedling, budding, normal bloom, max bloom,
+Flower and Foliage at any Stage (seed, sprout, seedling, growing, budding, normal bloom, max bloom,
 max bloom with every effect, dead) in any shape and pot, and the creatures,
 decorations, bugs and pots; with Show Spoilers off (the Breeding Guide's
 setting) only the parts you have discovered. Pick a PNG size (the game's
