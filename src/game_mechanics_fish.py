@@ -1037,6 +1037,17 @@ SELLING = (
 
 PRICES = (
     Fact(
+        "There are 441 species: 21 bodies x 21 fins (genes 0-20), one entry each in the species "
+        "table (21 rows of 31 entries). The game's own count of species discovered, \"You have "
+        "discovered %d species!\" (0x419240), walks exactly those 21 x 21 entries (0x41924B: 21 "
+        "rows; 0x419253: 7 x 3 entries a row) and counts the ones with a price, so it tops out at "
+        "441; no screen shows a total, and the tip \"Did you know there are over 400 species of "
+        "fish?\" is the only other figure.",
+        patched=(("ds_fish", "784 species: 28 bodies x 28 fins (the DS version's 7 bodies and 7 fins, genes "
+                  "23-29), 343 more. The count of species discovered (0x419240) is replaced by one that "
+                  "also counts the 343 DS entries, so it tops out at 784."),),
+    ),
+    Fact(
         "Each species has a base price B from 4 to 190 (its fin's part plus its body's part, with "
         "13 fixed exceptions such as the Golden Guppy at 190).",
         patched=(("ds_fish", "DS species use the DS game's body and fin values, +10 for a matching "
@@ -1060,6 +1071,25 @@ PRICES = (
                   "second and 5 seconds without a roll after a sale; the lowest such P on a tie. It writes only "
                   "the asking price of discovered species (the DS species too with DS Exclusive Fish) and "
                   "says how many it set."),),
+    ),
+    Fact(
+        "The highest asking price that sells is 2B - 1. The sale roll (0x424240) compares P only with "
+        "the species' own B (P of 2B or more never sells, 0x4243DC-0x4243EA), so nothing else in a save "
+        "moves this limit: ornaments, the Golden Seahorse, Advertising's customers and the magic fish "
+        "found change only the odds (K), and a sick fish has the same limit. Advertising's research "
+        "raises B itself (+ B/10 at level 2, then + B/7 at level 3), and the limit with it. Above 1.5B "
+        f"the roll is the lowest, T = K ({at_most(900, 1)} with none browsing), so fish at the limit sell "
+        "much more slowly than at the best price per day. The one exception is the tutorial's short "
+        "window (see Permanent store items, the Golden Seahorse), where any price under $50 sells as a "
+        "big bargain.",
+        patched=(("optimize_prices", "a \"Max Prices\" button, left of Optimize Prices on the Species Chart's "
+                  "bottom bar (x 400-519, y 546-598) and on the Fish Store screen's bottom bar (x 420-539, "
+                  "y 547-596, between \"Your cash\" and Optimize Prices), asks Yes/No (\"Set every discovered "
+                  "species to its highest selling price? Fish at this price sell much more slowly.\") and then "
+                  "sets every discovered species' asking price to 2B - 1, B read from the species when you "
+                  "click (so with Advertising's rises). Ornaments, the Golden Seahorse and the Advertising "
+                  "level are not read: they never raise the limit. It writes only the asking price of "
+                  "discovered species (the DS species too with DS Exclusive Fish) and says how many it set."),),
     ),
 )
 
@@ -1428,13 +1458,13 @@ HIDDEN = (
         "batch per supply slot), each permanent item and ornament once, and one research at a "
         "time; asking prices change only on the species screen.",
         patched=(("optimize_prices", "the Fish Store screen (the selling shop, opened with Sell Fish) has an "
-                  "Optimize Prices button, left of Done, that also sets asking prices: every discovered "
-                  "species', exactly as the Species Chart's button does. The shop's customers and sales are "
-                  "unchanged."),),
+                  "Optimize Prices button, left of Done, and a Max Prices button left of it, that also set "
+                  "asking prices: every discovered species', exactly as the Species Chart's buttons do. The "
+                  "shop's customers and sales are unchanged."),),
     ),
     Fact("The patcher adds no keys. Its additions are clicks: the store's Upgrades button, the DS "
          "animals and new chemicals (with DS Store Items), the Time Warp clock (with Time Warp), the "
-         "Optimize Prices button (on the Species Chart and the Fish Store screen), and the tank arrows and For sale buttons "
+         "Optimize Prices and Max Prices buttons (on the Species Chart and the Fish Store screen), and the tank arrows and For sale buttons "
          "(with 3 extra tanks)."),
 )
 

@@ -4336,8 +4336,8 @@
     {
       "id": "optimize_prices",
       "name": "Optimize Prices button",
-      "summary": "Adds an Optimize Prices button to the Nursery: it sets every discovered species to its best price per day for your nursery as it is now.",
-      "description": "Adds an \"Optimize Prices\" button on the Nursery's bottom bar, at the right. It asks \"Set every discovered species to its best price per day?\". On Yes, every species you have discovered gets the Breeding Guide's \"best per day\" asking price, the price that earns the most money over time, worked out in the game with the same maths as the guide for your nursery as it is now: each species' value, the Golden Berries of Wealth, and the visitors your ornaments, magic plants and bug collection bring with all 15 sale spots filled, for a healthy, flowering plant. Then it says how many prices it set. Species you have not discovered keep their prices and nothing else changes; the new prices are the ones you would type yourself, saved with the game as usual. With Unused Flowers on, its new species are included. Runs as a companion DLL the game loads at start; the save layout is unchanged.",
+      "summary": "Adds Optimize Prices and Max Prices buttons to the Nursery: they set every discovered species to its best price per day for your nursery as it is now, or to the highest price a visitor still buys at.",
+      "description": "Adds an \"Optimize Prices\" button on the Nursery's bottom bar, at the right. It asks \"Set every discovered species to its best price per day?\". On Yes, every species you have discovered gets the Breeding Guide's \"best per day\" asking price, the price that earns the most money over time, worked out in the game with the same maths as the guide for your nursery as it is now: each species' value, the Golden Berries of Wealth, and the visitors your ornaments, magic plants and bug collection bring with all 15 sale spots filled, for a healthy, flowering plant. Then it says how many prices it set. Species you have not discovered keep their prices and nothing else changes; the new prices are the ones you would type yourself, saved with the game as usual. Beside it, a \"Max Prices\" button asks \"Set every discovered species to its highest selling price? Plants at this price sell much more slowly.\" On Yes, every species you have discovered gets the highest asking price a visitor still buys at (the Breeding Guide's \"highest selling\"): visitors buy only while the price they see is below twice the species' value. The Golden Berries of Wealth, if you have found them, make visitors see every price a quarter lower, so the limit is higher with them; the button reads them when you click it. Plant Food, pruning, dead leaves, health, flowers and pests change what visitors see for one plant only, so the button leaves them out (it is the limit for a healthy, flowering, unpruned plant without Plant Food or pests). Then it says how many prices it set. With Unused Flowers on, its new species are included. Runs as a companion DLL the game loads at start; the save layout is unchanged.",
       "category": "main",
       "default": true,
       "companion": {
@@ -4347,8 +4347,14 @@
           {
             "path": "Optimize Prices.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Optimize Prices.dll",
-            "size": 90112,
-            "sha256": "75AD1C63B4E97FE947EF6CBC70B8EE38BEE6C33F4DF579CBD8686B85C43E6555"
+            "size": 92160,
+            "sha256": "9A24CCFA2079EB3F6F2F717741B52B7CEE9C7CB81AB909589EE5EA40C2531ACA"
+          },
+          {
+            "path": "Images/max_prices_button.png",
+            "destination": "Images/max_prices_button.png",
+            "size": 24662,
+            "sha256": "1CA680538A1FF454349D3797C22B05BAC737D374B1FF765AA671EBAB32FEBEE8"
           },
           {
             "path": "Images/optimize_prices_button.png",

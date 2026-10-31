@@ -26,6 +26,36 @@
   verkauft!"; "Treated plants sell for the highest possible price!"). The
   price maths is native/common/max_sale_price.h, checked against the Python
   for every species.
+- **Max Prices button**, both games, part of the Optimize Prices button
+  setting: a second button, "Max Prices", left of each Optimize Prices
+  button in the same style (Fish Tycoon: the Species Chart's bar at x
+  400-519 and the Fish Store's bar at x 420-539, between "Your cash" and
+  Optimize Prices; Plant Tycoon: the Nursery's brick strip at x 449-611).
+  It asks "Set every discovered species to its highest selling price?
+  Fish/Plants at this price sell much more slowly." and on Yes sets every
+  discovered species to the highest asking price a buyer still accepts, the
+  Breeding Guide's "highest selling", then says "N prices set.". Fish
+  Tycoon: 2 x base price - 1 in every save, because the sale roll
+  (0x424240) compares the asking price only with the species' own base price
+  (0x4243DC-0x4243EA); ornaments, the Golden Seahorse and Advertising change
+  the odds, never the limit (Advertising's research raises the base price
+  itself, read at the click). Plant Tycoon: the price visitors see must stay
+  below 2 x value (0x436BE0); the Golden Berries of Wealth (state + 0x2183,
+  a quarter off the price seen, 0x436E22) are the only save-wide step and
+  raise the limit; Plant Food, pruning, dead leaves, health, flowers and
+  pests are each plant's own and are left out. The maths is the guide's own
+  price search (shop_max_price in src/breeding_*.py, pm_*_max in
+  native/common/price_math.h, checked equal for every species value). The
+  same companion DLL, the same vtable slots: the install is still all or
+  none.
+- Game Mechanics, both games: the number of species. Fish Tycoon 441
+  (21 bodies x 21 fins; the species-discovered count, 0x419240, walks the
+  same 21 x 21 entries), 784 with DS Exclusive Fish (28 x 28, 343 more, its
+  DLL's own count). Plant Tycoon 529 (23 foliages x 23 flowers; the
+  Statistics screen's Species Discovered, 0x44C572-0x44C59F, walks the same
+  23 x 23 flags), 851 with Unused Flowers (23 x 37, 322 more, added at
+  0x44C5A1). Tested against the Breeding Guide models and the executables'
+  own loops.
 - Breeding Guide, both games, Show Spoilers off: the Fins, Bodies, Flowers
   and Foliage tabs and their picture tabs list exactly the parts the save has
   discovered, with "n of N discovered" at the top (the patcher's DS fish and

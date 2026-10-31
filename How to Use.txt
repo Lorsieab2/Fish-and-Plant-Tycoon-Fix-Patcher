@@ -71,7 +71,10 @@ Fish Tycoon options:
 - Optimize Prices button (on by default; an "Optimize Prices" button on the
   Species Chart and the same one on the Fish Store screen, opened with Sell
   Fish, so you can use it any time. Asks Yes/No, then sets every discovered species to its
-  best price per day for your shop as it is now, as in the Breeding Guide.)
+  best price per day for your shop as it is now, as in the Breeding Guide.
+  A "Max Prices" button beside it sets every discovered species to the
+  highest price a customer still buys at, twice its base price less 1;
+  fish at that price sell much more slowly.)
 - DS Exclusive Fish (off by default; adds the DS version's 7 bodies and
   7 fins. Sell or trash every DS fish before turning it off again.)
 - DS Store Items (off by default; needs DS Exclusive Fish. Adds an
@@ -172,7 +175,10 @@ Plant Tycoon options:
   and its parents into your unlocked seed boxes, first box first.)
 - Optimize Prices button (on by default; an "Optimize Prices" button in the
   Nursery. Asks Yes/No, then sets every discovered species to its best price
-  per day for your nursery as it is now, as in the Breeding Guide.)
+  per day for your nursery as it is now, as in the Breeding Guide.
+  A "Max Prices" button beside it sets every discovered species to the
+  highest price a visitor still buys at (higher with the Golden Berries of
+  Wealth); plants at that price sell much more slowly.)
 - Time Warp (off by default; a $500 clock on the store's Upgrades screen:
   type 1-72 hours in a Windows popup and the game plays them as time away)
 - Free upgrades (off by default; turns on the store's Upgrades screen:

@@ -18,10 +18,15 @@
   544-693 x 547-596, between "Your cash" and Done) in the game's own font
   (paddington_tt_18.png and its glyph table in the executable): white with a
   dark rim, gold on hover, pressed 1 px down.
-* docs/images/optimize-prices-fish.png and optimize-prices-plant.png: each
-  button where the DLL puts it (native/ftfp_fish_prices, native/ftfp_plant_prices);
-  docs/images/optimize-prices-fish-store.png: the Fish Store screen with the
-  button and Done, and sample "Fish for sale", "Price" and "Your cash" texts
+* MaxPricesButton.png, MaxPricesStoreButton.png (Fish Tycoon) and
+  max_prices_button.png (Plant Tycoon): the "Max Prices" buttons, made the
+  same way, each lettered on its own bar's art where it sits, left of
+  Optimize Prices (Plant: the same wide purple button, the lettering at
+  Optimize Prices' scale).
+* docs/images/optimize-prices-fish.png and optimize-prices-plant.png: both
+  buttons where the DLL puts them (native/ftfp_fish_prices, native/ftfp_plant_prices);
+  docs/images/optimize-prices-fish-store.png: the Fish Store screen with both
+  buttons and Done, and sample "Fish for sale", "Price" and "Your cash" texts
   where the game writes them.
 """
 
@@ -62,42 +67,52 @@ PLANT_POS = (620, 561)                               # the brick strip of the Nu
 NURSERY_UI_Y = 600 - 116
 PLANT_TEXT_COLOURS = ((255, 255, 255), (255, 224, 96), (214, 178, 60))     # normal, hover, pressed
 
+# The Max Prices buttons, left of each Optimize Prices button (MAX_BUTTON_X / _Y in the DLL sources).
+MAX_TEXT = "Max Prices"
+FISH_MAX_OUT = FISH_OUT.parent / "MaxPricesButton.png"
+STORE_MAX_OUT = FISH_OUT.parent / "MaxPricesStoreButton.png"
+PLANT_MAX_OUT = PLANT_OUT.parent / "max_prices_button.png"
+FISH_MAX_POS, FISH_MAX_SIZE = (400, 546), (120, 53)     # the chart's bar, 4 px left of Optimize Prices
+STORE_MAX_POS, STORE_MAX_SIZE = (420, 547), (120, 50)   # the Fish Store's bar, right of "Your cash"
+PLANT_MAX_POS = (449, 561)                              # the brick strip, 8 px left of Optimize Prices
 
-def fish_button(background: Image.Image) -> Image.Image:
+
+def fish_button(background: Image.Image, text: str = TEXT, pos=FISH_POS, size=FISH_SIZE) -> Image.Image:
     bg = background.convert("RGB")
     bg = bg.crop((0, 0, bg.width, bg.height + 1))            # the stock buttons run one row past the screen
-    x0, y0 = FISH_POS
-    w, h = FISH_SIZE
+    x0, y0 = pos
+    w, h = size
     bar = bg.crop((x0, y0, x0 + w, y0 + h))
     font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 17)
     strip = Image.new("RGB", (w * 3, h))
     for f, (colour, drop) in enumerate((((255, 255, 255), 0), ((255, 222, 110), 0), ((225, 205, 160), 1))):
         frame = bar.copy()
         draw = ImageDraw.Draw(frame)
-        box = draw.textbbox((0, 0), TEXT, font=font)
+        box = draw.textbbox((0, 0), text, font=font)
         x = (w - (box[2] - box[0])) // 2 - box[0]
         y = (h - (box[3] - box[1])) // 2 - box[1] + drop
         for dx in (-2, -1, 0, 1, 2):
             for dy in (-2, -1, 0, 1, 2):
                 if abs(dx) + abs(dy) <= 3:
-                    draw.text((x + dx, y + dy), TEXT, font=font, fill=(12, 34, 44))
-        draw.text((x, y), TEXT, font=font, fill=colour)
+                    draw.text((x + dx, y + dy), text, font=font, fill=(12, 34, 44))
+        draw.text((x, y), text, font=font, fill=colour)
         strip.paste(frame, (f * w, 0))
     return strip
 
 
-def store_button(background: Image.Image, sheet: Image.Image, table: dict) -> Image.Image:
-    """The Fish Store's button: TEXT set glyph by glyph in paddington_tt_18 on the bar, a 3-frame strip."""
+def store_button(background: Image.Image, sheet: Image.Image, table: dict, text: str = TEXT,
+                 pos=STORE_POS, size=STORE_SIZE) -> Image.Image:
+    """The Fish Store's button: `text` set glyph by glyph in paddington_tt_18 on the bar, a 3-frame strip."""
     bg = background.convert("RGBA")
     bg = bg.crop((0, 0, bg.width, bg.height + 1))            # the stock buttons run one row past the screen
-    x0, y0 = STORE_POS
-    w, h = STORE_SIZE
+    x0, y0 = pos
+    w, h = size
     bar = bg.crop((x0, y0, x0 + w, y0 + h))
-    rim = counts.set_text(sheet, table, TEXT, STORE_RIM)
+    rim = counts.set_text(sheet, table, text, STORE_RIM)
     strip = Image.new("RGBA", (w * 3, h))
     for f, (colour, drop) in enumerate((((255, 255, 255), 0), ((255, 222, 110), 0), ((225, 205, 160), 1))):
         frame = bar.copy()
-        word = counts.set_text(sheet, table, TEXT, colour)
+        word = counts.set_text(sheet, table, text, colour)
         x = (w - word.width) // 2
         y = (h - word.height) // 2 + drop
         for dx in (-2, -1, 0, 1, 2):
@@ -110,21 +125,22 @@ def store_button(background: Image.Image, sheet: Image.Image, table: dict) -> Im
 
 
 def store_preview(background: Image.Image, done: Image.Image, button: Image.Image, sheet: Image.Image,
-                  table: dict) -> Image.Image:
-    """The Fish Store screen: the stock Done, the button, and sample texts where the game writes them."""
+                  table: dict, max_button: Image.Image) -> Image.Image:
+    """The Fish Store screen: the stock Done, both buttons, and sample texts where the game writes them."""
     screen = background.convert("RGBA")
     screen = screen.crop((0, 0, 800, 601))
     screen.alpha_composite(done.convert("RGBA").crop((0, 0, done.width // 3, done.height)), STORE_DONE)
     screen.alpha_composite(button.convert("RGBA").crop((0, 0) + STORE_SIZE), STORE_POS)
+    screen.alpha_composite(max_button.convert("RGBA").crop((0, 0) + STORE_MAX_SIZE), STORE_MAX_POS)
     for text, at in STORE_TEXTS:
         counts.draw(screen, sheet, table, text, at)
     return screen.crop((0, 0, 800, 600))
 
 
-def plant_word(folder: Path) -> Image.Image:
+def plant_word(folder: Path, text: str = TEXT) -> Image.Image:
     table = upgrades.glyphs((folder / "Plant Tycoon.exe").read_bytes())
     font = Image.open(folder / "Images" / "PTfontsmall.png").convert("RGBA")
-    rects = [table[ord(ch)] for ch in TEXT]
+    rects = [table[ord(ch)] for ch in text]
     word = Image.new("RGBA", (sum(r[2] - r[0] for r in rects), max(r[3] - r[1] for r in rects)))
     x = 0
     for x0, y0, x1, y1 in rects:
@@ -133,11 +149,19 @@ def plant_word(folder: Path) -> Image.Image:
     return word
 
 
-def plant_button(folder: Path) -> Image.Image:
-    base = Image.open(folder / "Images" / "widePTButton.png").convert("RGBA")
+def plant_scale(folder: Path) -> float:
+    """The lettering's scale on the wide button: Optimize Prices' own, which Max Prices shares."""
+    base = Image.open(folder / "Images" / "widePTButton.png")
     fw, fh = base.width // 3, base.height
     word = plant_word(folder)
-    scale = min(upgrades.LINK_SCALE, (fw - 18) / word.width, (fh - 10) / word.height)
+    return min(upgrades.LINK_SCALE, (fw - 18) / word.width, (fh - 10) / word.height)
+
+
+def plant_button(folder: Path, text: str = TEXT) -> Image.Image:
+    base = Image.open(folder / "Images" / "widePTButton.png").convert("RGBA")
+    fw, fh = base.width // 3, base.height
+    word = plant_word(folder, text)
+    scale = plant_scale(folder)
     word = word.resize((round(word.width * scale), round(word.height * scale)), Image.LANCZOS)
     sheet = base.copy()
     for frame, colour in enumerate(PLANT_TEXT_COLOURS):
@@ -149,20 +173,22 @@ def plant_button(folder: Path) -> Image.Image:
     return sheet
 
 
-def fish_preview(background: Image.Image, done: Image.Image, button: Image.Image) -> Image.Image:
+def fish_preview(background: Image.Image, done: Image.Image, button: Image.Image, max_button: Image.Image) -> Image.Image:
     screen = background.convert("RGBA")
     screen.alpha_composite(done.convert("RGBA").crop((0, 0) + DONE_SIZE), DONE_POS)
     screen.alpha_composite(button.convert("RGBA").crop((0, 0) + FISH_SIZE), FISH_POS)
+    screen.alpha_composite(max_button.convert("RGBA").crop((0, 0) + FISH_MAX_SIZE), FISH_MAX_POS)
     return screen.crop((0, 0, 800, 600))
 
 
-def plant_preview(folder: Path, button: Image.Image) -> Image.Image:
+def plant_preview(folder: Path, button: Image.Image, max_button: Image.Image) -> Image.Image:
     images = folder / "Images"
     screen = Image.open(images / "Nursery_BG.jpg").convert("RGBA")
     screen.alpha_composite(Image.open(images / "nurseryUI.png").convert("RGBA"), (0, NURSERY_UI_Y))
     fw = button.width // 3
     screen.alpha_composite(button.crop((0, 0, fw, button.height)), PLANT_POS)
-    return screen.crop((340, 400, 800, 600))                 # the bar's right half, where the button is
+    screen.alpha_composite(max_button.crop((0, 0, max_button.width // 3, max_button.height)), PLANT_MAX_POS)
+    return screen.crop((340, 400, 800, 600))                 # the bar's right half, where the buttons are
 
 
 def main() -> int:
@@ -182,17 +208,25 @@ def main() -> int:
     font = store["paddington_tt_18.png"].convert("RGBA")
     sbutton = store_button(store["sellfishshop_bg_png.png"], font, glyphs)
     sbutton.save(STORE_OUT, optimize=True)
+    smax = store_button(store["sellfishshop_bg_png.png"], font, glyphs, MAX_TEXT, STORE_MAX_POS, STORE_MAX_SIZE)
+    smax.save(STORE_MAX_OUT, optimize=True)
     store_preview(store["sellfishshop_bg_png.png"], store["selldonebutton.png"], sbutton, font,
-                  glyphs).convert("RGB").save(PREVIEWS / "optimize-prices-fish-store.png", optimize=True)
+                  glyphs, smax).convert("RGB").save(PREVIEWS / "optimize-prices-fish-store.png", optimize=True)
     FISH_OUT.parent.mkdir(parents=True, exist_ok=True)
     PLANT_OUT.parent.mkdir(parents=True, exist_ok=True)
     fbutton = fish_button(background)
     fbutton.save(FISH_OUT, optimize=True)
+    fmax = fish_button(background, MAX_TEXT, FISH_MAX_POS, FISH_MAX_SIZE)
+    fmax.save(FISH_MAX_OUT, optimize=True)
     pbutton = plant_button(plant)
     pbutton.save(PLANT_OUT, optimize=True)
-    fish_preview(background, done, fbutton).convert("RGB").save(PREVIEWS / "optimize-prices-fish.png", optimize=True)
-    plant_preview(plant, pbutton).convert("RGB").save(PREVIEWS / "optimize-prices-plant.png", optimize=True)
-    print(f"{FISH_OUT.name} {fbutton.size}; {PLANT_OUT.name} {pbutton.size}; two previews in docs/images")
+    pmax = plant_button(plant, MAX_TEXT)
+    pmax.save(PLANT_MAX_OUT, optimize=True)
+    fish_preview(background, done, fbutton, fmax).convert("RGB").save(PREVIEWS / "optimize-prices-fish.png",
+                                                                      optimize=True)
+    plant_preview(plant, pbutton, pmax).convert("RGB").save(PREVIEWS / "optimize-prices-plant.png", optimize=True)
+    print(f"{FISH_OUT.name} {fbutton.size}; {FISH_MAX_OUT.name} {fmax.size}; {STORE_MAX_OUT.name} {smax.size}; "
+          f"{PLANT_OUT.name} {pbutton.size}; {PLANT_MAX_OUT.name} {pmax.size}; three previews in docs/images")
     return 0
 
 

@@ -13,6 +13,20 @@
    src/breeding_plant.py.  Then the game's own message box says "N prices
    set."
 
+   MAX PRICES.  Left of it on the same brick strip, a "Max Prices" button
+   asks "Set every discovered species to its highest selling price?  Plants
+   at this price sell much more slowly." and on Yes sets every discovered
+   species to the highest asking price a visitor still buys at (pm_plant_max,
+   the guide's "highest selling"): the price seen must stay below 2V.  The
+   buy roll (0x436BE0) works out the price seen from the asking price
+   (0x436D4B-0x436E3C); its only save-wide step is the Golden Berries of
+   Wealth (state + 0x2183, a quarter off), read at the click.  Pruning, dead
+   foliage, health, flowers, Plant Food and bugs are each plant's own and
+   are not counted (a healthy, flowering, unpruned plant without Plant
+   Food), and visitors change the odds, never the ceiling.  The Flower of
+   Knowledge (0x41DBD0) only resets asking prices.  Then the same "N prices
+   set."
+
    WHAT IT WRITES.  Only the asking price of discovered species: the cell
    the "Set species price" dialog writes (0x4305BA: state + ((foliage + 0x37)
    * 26 + flower) * 4), which the save keeps.  Undiscovered species (state +
@@ -23,8 +37,8 @@
    HOW.  The startup loader loads this DLL after any other companion and
    calls FtfpStartup() before WinMain.  It wraps two slots of the Nursery's
    vtable (theSellScene, 0x469730), command and activate, after checking both
-   still hold the stock functions, or writes neither: activate adds the
-   button once, command runs it for the button's id. */
+   still hold the stock functions, or writes neither: activate adds the two
+   buttons once, command runs them for their ids. */
 #include <windows.h>
 #include <string.h>
 #include "../common/price_math.h"
@@ -59,6 +73,10 @@ static const int OTHER_MAGIC[5] = { 0x2180, 0x2181, 0x2183, 0x2184, 0x2185 };
 #define BUTTON_X 620
 #define BUTTON_Y 561
 #define BUTTON_IMAGE "optimize_prices_button.png"
+#define MAX_BUTTON_ID 10
+#define MAX_BUTTON_X 449                /* 449-611 x 561-599: the brick strip left of Optimize Prices */
+#define MAX_BUTTON_Y 561
+#define MAX_BUTTON_IMAGE "max_prices_button.png"
 #define SOUND_BUTTON 0xC
 
 typedef void *(__cdecl *new_fn)(unsigned int size);
@@ -115,17 +133,18 @@ static new_species_fn new_species(void) {
     return (new_species_fn)GetProcAddress(flowers, "FtfpNewFlowersSpecies");
 }
 
-static int set_price(int *cell, int v, int golden_berries, int score) {
+static int set_price(int *cell, int v, int golden_berries, int score, int max) {
     int best;
     if (cell == NULL || v <= 0) return 0;
-    best = pm_plant_best(v, golden_berries, score);
+    best = max ? pm_plant_max(v, golden_berries) : pm_plant_best(v, golden_berries, score);
     if (best <= 0) return 0;
     *cell = best;
     return 1;
 }
 
-/* Sets every discovered species to its best price; returns how many. */
-static int optimize(char *state) {
+/* Sets every discovered species to its best price per day, or with `max`
+   to its highest selling price; returns how many. */
+static int set_prices(char *state, int max) {
     new_species_fn flowers = new_species();
     int golden_berries = AT(state, GOLDEN_BERRIES, unsigned char) != 0;
     int score = visitor_score(state);
@@ -134,12 +153,12 @@ static int optimize(char *state) {
         for (flower = 1; flower <= GENE_LAST; ++flower) {
             if (DISCOVERED(state, foliage, flower)) {
                 set += set_price(&PRICE_CELL(state, foliage, flower), VALUE_CELL(state, foliage, flower),
-                                 golden_berries, score);
+                                 golden_berries, score, max);
             }
         }
         for (flower = NEW_FIRST; flowers != NULL && flower <= NEW_LAST; ++flower) {
             int v = 0, *cell = NULL;
-            if (flowers(foliage, flower, &v, &cell) == 1) set += set_price(cell, v, golden_berries, score);
+            if (flowers(foliage, flower, &v, &cell) == 1) set += set_price(cell, v, golden_berries, score, max);
         }
     }
     return set;
@@ -170,6 +189,8 @@ static const dialog_done_fn dialog_done = (dialog_done_fn)0x0042AAA0u;
 #define STR_RESTART_QUESTION 0x3E
 
 static const char QUESTION[] = "Set every discovered species\nto its best price per day?";
+static const char MAX_QUESTION[] = "Set every discovered species\nto its highest selling price?\n"
+                                   "Plants at this price sell\nmuch more slowly.";
 
 static char *string_entry(int id) {
     char *entry;
@@ -229,17 +250,19 @@ static void tell_count(void *scene, int set) {
 
 /* ------------------------------------------------------------- the scene */
 
-static void run_button(void *scene) {
+/* A button's click: the question, the prices, the count; `max` picks Max
+   Prices. */
+static void run_button(void *scene, int max) {
     char *state = AT(scene, SCENE_STATE, char *);
-    if (state == NULL || !ask(scene, QUESTION, 1)) return;
-    tell_count(scene, optimize(state));
+    if (state == NULL || !ask(scene, max ? MAX_QUESTION : QUESTION, 1)) return;
+    tell_count(scene, set_prices(state, max));
 }
 
 static int __fastcall scene_command(void *scene, int edx, int msg, int id) {
-    if (msg == 8 && id == BUTTON_ID) {
+    if (msg == 8 && (id == BUTTON_ID || id == MAX_BUTTON_ID)) {
         play_sound(AT(scene, SCENE_SOUND, void *), 0, SOUND_BUTTON);
         __try {
-            run_button(scene);
+            run_button(scene, id == MAX_BUTTON_ID);
         } __except (EXCEPTION_EXECUTE_HANDLER) {
         }
         return 1;
@@ -247,17 +270,27 @@ static int __fastcall scene_command(void *scene, int edx, int msg, int id) {
     return next_command(scene, edx, msg, id);
 }
 
+static int add_button(void *scene, int id, const char *image, int x, int y) {
+    void *b = game_new(0x14);
+    if (b == NULL) return 0;
+    file_button(b, 0, id, image, x, y, scene, 0);
+    add_control(scene, 0, b);
+    return 1;
+}
+
+/* Optimize Prices, then Max Prices, once per Nursery. */
 static void __fastcall scene_activate(void *scene, int edx, int on) {
     next_activate(scene, edx, on);
     if ((on & 0xFF) && button_scene != scene) {
         __try {
-            void *b = game_new(0x14);
-            if (b != NULL) {
-                file_button(b, 0, BUTTON_ID, BUTTON_IMAGE, BUTTON_X, BUTTON_Y, scene, 0);
-                add_control(scene, 0, b);
-                button_scene = scene;
-            }
+            if (add_button(scene, BUTTON_ID, BUTTON_IMAGE, BUTTON_X, BUTTON_Y)) button_scene = scene;
         } __except (EXCEPTION_EXECUTE_HANDLER) {
+        }
+        if (button_scene == scene) {
+            __try {
+                add_button(scene, MAX_BUTTON_ID, MAX_BUTTON_IMAGE, MAX_BUTTON_X, MAX_BUTTON_Y);
+            } __except (EXCEPTION_EXECUTE_HANDLER) {
+            }
         }
     }
 }

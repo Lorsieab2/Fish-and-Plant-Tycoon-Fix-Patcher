@@ -112,7 +112,17 @@ never needs the internet.
   Then it says "N prices set." Undiscovered
   species keep their prices and nothing else changes; the prices are the
   ones you would type yourself, saved with the game as usual. The DS species
-  are included with DS Exclusive Fish. It runs as a companion DLL
+  are included with DS Exclusive Fish. Beside it on both screens, a
+  "Max Prices" button (left of Optimize Prices) asks "Set every discovered
+  species to its highest selling price? Fish at this price sell much more
+  slowly." and on Yes sets every discovered species to the highest asking
+  price a customer still buys at, the guide's "highest selling": twice the
+  species' base price, less 1. The sale roll (0x424240) compares the price
+  only with the species' base price (2 x base or more never sells,
+  0x4243DC), so nothing in a save raises that limit: ornaments, the Golden
+  Seahorse and Advertising bring more customers, not higher prices, and the
+  Advertising research raises the base price itself, which the button reads
+  at the click. Then "N prices set." It runs as a companion DLL
   (`Fish Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the plain
   "Fish Tycoon - Modded" copy. Pictures:
   [docs/images/optimize-prices-fish.png](docs/images/optimize-prices-fish.png),
@@ -435,7 +445,17 @@ never needs the internet.
   Plant Food or pruning. Then it says "N prices set." Undiscovered species
   keep their prices and nothing else changes; the prices are the ones the
   "Set species price" box would write, saved with the game as usual. The 322
-  Unused Flowers species are included when that setting is on. It runs as a
+  Unused Flowers species are included when that setting is on. Left of it on
+  the same bar, a "Max Prices" button asks "Set every discovered species to
+  its highest selling price? Plants at this price sell much more slowly."
+  and on Yes sets every discovered species to the highest asking price a
+  visitor still buys at, the guide's "highest selling": the price visitors
+  see must stay below twice the species' value (the buy roll, 0x436BE0).
+  The only save-wide effect on the price seen is the Golden Berries of
+  Wealth (a quarter off, so a higher limit), read at the click; Plant Food,
+  pruning, dead leaves, health, flowers and pests are each plant's own and
+  are left out (a healthy, flowering, unpruned plant without Plant Food).
+  Then "N prices set." It runs as a
   companion DLL (`Plant Tycoon Fix Patcher DLLs\Optimize Prices.dll`) in the
   plain "Plant Tycoon - Modded" copy. Picture:
   [docs/images/optimize-prices-plant.png](docs/images/optimize-prices-plant.png).

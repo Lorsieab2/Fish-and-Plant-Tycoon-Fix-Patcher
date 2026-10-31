@@ -1,5 +1,5 @@
-/* Optimize Prices -- an "Optimize Prices" button on Fish Tycoon's Species
-   Chart and on its Fish Store screen.
+/* Optimize Prices -- an "Optimize Prices" button and a "Max Prices" button
+   on Fish Tycoon's Species Chart and on its Fish Store screen.
 
    WHAT.  The Species Chart is where the player sets a species' asking price
    (its arrows and keypad).  The button sits on its bottom bar, left of Done.
@@ -16,6 +16,17 @@
    native/common/price_math.h, the port of src/breeding_fish.py.  Then the
    game's own message box says "N prices set."
 
+   MAX PRICES.  Left of it on both bars, a "Max Prices" button asks "Set
+   every discovered species to its highest selling price?  Fish at this
+   price sell much more slowly." and on Yes sets every discovered species to
+   the highest asking price a customer still buys at, 2B - 1 (pm_fish_max,
+   the guide's "highest selling").  The sale roll (0x424240) compares the
+   asking price only with the species' base price B (2B or more never sells,
+   0x4243DC-0x4243EA): ornaments, the Golden Seahorse and the Advertising
+   crowd change the odds, never this ceiling; the Advertising research
+   raises B itself, which is read at the click.  Then the same "N prices
+   set."
+
    WHAT IT WRITES.  Only the asking price of discovered species (entry +
    0x20, the cell the chart's arrows and keypad write, which the save
    keeps).  An undiscovered species (price -1, or no entry) is never
@@ -31,8 +42,8 @@
    writes none.  No other companion writes these slots (Extra Tanks changes
    calls inside the sale scene's code -- its roll, crowd, pictures and "Fish
    for sale" text -- which the stock functions called here still run).
-   Activate adds the button once per screen, command runs it for the
-   button's id.  The button is a stock image button: the game draws it and
+   Activate adds the two buttons once per screen, command runs them for
+   their ids.  The button is a stock image button: the game draws it and
    routes its click to command. */
 #include <windows.h>
 #include <string.h>
@@ -62,6 +73,10 @@
 #define BUTTON_X 524
 #define BUTTON_Y 546
 #define BUTTON_IMAGE "OptimizePricesButton.png"
+#define MAX_BUTTON_ID 8
+#define MAX_BUTTON_X 400                /* 400-519 x 546-598: the bar left of Optimize Prices */
+#define MAX_BUTTON_Y 546
+#define MAX_BUTTON_IMAGE "MaxPricesButton.png"
 #define SOUND_CLICK 1
 
 typedef void *(__cdecl *new_fn)(unsigned int size);
@@ -105,6 +120,10 @@ typedef unsigned char *(__stdcall *ds_entry_fn)(char *state, int body, int fin);
 #define SALE_BUTTON_X 544               /* 544-693 x 547-596: the bar between "Your cash" (to 300) and Done */
 #define SALE_BUTTON_Y 547
 #define SALE_BUTTON_IMAGE "OptimizePricesStoreButton.png"
+#define SALE_MAX_BUTTON_ID 8
+#define SALE_MAX_BUTTON_X 420           /* 420-539 x 547-596: between "Your cash" and Optimize Prices */
+#define SALE_MAX_BUTTON_Y 547
+#define SALE_MAX_BUTTON_IMAGE "MaxPricesStoreButton.png"
 
 /* The string table (0x426FD0 looks ids up here): { id, English, German }. */
 #define STRINGS 0x00457340u
@@ -148,8 +167,9 @@ static ds_entry_fn ds_entries(void) {
 
 static int valid_gene(int g, int ds) { return (g >= 0 && g <= PC_LAST) || (ds && g >= DS_FIRST && g <= DS_LAST); }
 
-/* Sets every discovered species to its best price; returns how many. */
-static int optimize(char *state) {
+/* Sets every discovered species to its best price per day, or with `max`
+   to its highest selling price; returns how many. */
+static int set_prices(char *state, int max) {
     shop s;
     ds_entry_fn ds_entry = ds_entries();
     int body, fin, set = 0;
@@ -163,7 +183,8 @@ static int optimize(char *state) {
             e = body <= PC_LAST ? (unsigned char *)state + SPECIES_BASE + (body * ROW_STRIDE + fin) * ENTRY_SIZE
                                 : ds_entry(state, body, fin);
             if (e == NULL || e[0] == 0 || AT(e, ENTRY_PRICE, int) == -1 || AT(e, ENTRY_BASE, int) <= 0) continue;
-            best = pm_fish_best(AT(e, ENTRY_BASE, int), s.ornaments, s.seahorse, s.advertising, s.tank);
+            best = max ? pm_fish_max(AT(e, ENTRY_BASE, int))
+                       : pm_fish_best(AT(e, ENTRY_BASE, int), s.ornaments, s.seahorse, s.advertising, s.tank);
             if (best <= 0) continue;
             AT(e, ENTRY_PRICE, int) = best;
             ++set;
@@ -176,6 +197,10 @@ static int optimize(char *state) {
 
 static const char QUESTION_EN[] = "Set every discovered species\nto its best price per day?";
 static const char QUESTION_DE[] = "Alle entdeckten Arten auf ihren\nbesten Preis pro Tag setzen?";
+static const char MAX_QUESTION_EN[] = "Set every discovered species\nto its highest selling price?\n"
+                                      "Fish at this price sell\nmuch more slowly.";
+static const char MAX_QUESTION_DE[] = "Alle entdeckten Arten auf ihren\nh\xF6" "chsten Verkaufspreis setzen?\n"
+                                      "Zu diesem Preis verkaufen sich\nFische viel langsamer.";
 
 static char *string_entry(int id) {
     char *entry = (char *)(UINT_PTR)STRINGS;
@@ -246,33 +271,35 @@ static char *sale_state(void *scene) {
     return impl != NULL ? AT(impl, SALE_IMPL_STATE, char *) : NULL;
 }
 
-/* The button's click, the same on both screens: the question, the prices,
-   the count; `scene` is the dialogs' parent. */
-static void run_button(void *scene, char *state) {
+/* A button's click, the same on both screens: the question, the prices,
+   the count; `scene` is the dialogs' parent, `max` picks Max Prices. */
+static void run_button(void *scene, char *state, int max) {
     int set;
-    if (state == NULL || !ask(scene, STR_QUESTION, 1, QUESTION_EN, QUESTION_DE)) return;
-    set = optimize(state);
+    if (state == NULL || !ask(scene, STR_QUESTION, 1, max ? MAX_QUESTION_EN : QUESTION_EN,
+                              max ? MAX_QUESTION_DE : QUESTION_DE))
+        return;
+    set = set_prices(state, max);
     tell_count(scene, set);
 }
 
-static void click(void *scene, char *(*state_of)(void *)) {
+static void click(void *scene, char *(*state_of)(void *), int max) {
     __try {
-        run_button(scene, state_of(scene));
+        run_button(scene, state_of(scene), max);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
 }
 
 static int __fastcall scene_command(void *scene, void *edx, int msg, int id) {
-    if (msg == 8 && id == BUTTON_ID) {
-        click(scene, scene_state);
+    if (msg == 8 && (id == BUTTON_ID || id == MAX_BUTTON_ID)) {
+        click(scene, scene_state, id == MAX_BUTTON_ID);
         return 1;
     }
     return next_command(scene, edx, msg, id);
 }
 
 static int __fastcall sale_command(void *scene, void *edx, int msg, int id) {
-    if (msg == 8 && id == SALE_BUTTON_ID) {
-        click(scene, sale_state);
+    if (msg == 8 && (id == SALE_BUTTON_ID || id == SALE_MAX_BUTTON_ID)) {
+        click(scene, sale_state, id == SALE_MAX_BUTTON_ID);
         return 1;
     }
     return next_sale_command(scene, edx, msg, id);
@@ -289,23 +316,45 @@ static int add_button(void *scene, int id, const char *image, int x, int y) {
     return 1;
 }
 
-/* Adds the button once to `scene` (remembered in *added). */
-static void add_once(void *scene, int on, void **added, int id, const char *image, int x, int y) {
+typedef struct placed {
+    int id;
+    const char *image;
+    int x, y;
+} placed;
+
+/* Optimize Prices, then Max Prices, on each screen. */
+static const placed CHART_BUTTONS[2] = {
+    { BUTTON_ID, BUTTON_IMAGE, BUTTON_X, BUTTON_Y },
+    { MAX_BUTTON_ID, MAX_BUTTON_IMAGE, MAX_BUTTON_X, MAX_BUTTON_Y },
+};
+static const placed SALE_BUTTONS[2] = {
+    { SALE_BUTTON_ID, SALE_BUTTON_IMAGE, SALE_BUTTON_X, SALE_BUTTON_Y },
+    { SALE_MAX_BUTTON_ID, SALE_MAX_BUTTON_IMAGE, SALE_MAX_BUTTON_X, SALE_MAX_BUTTON_Y },
+};
+
+/* Adds the two buttons once to `scene` (remembered in *added, once the
+   first is in). */
+static void add_once(void *scene, int on, void **added, const placed *buttons) {
+    int k;
     if (!(on & 0xFF) || *added == scene) return;
-    __try {
-        if (add_button(scene, id, image, x, y)) *added = scene;
-    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    for (k = 0; k < 2; ++k) {
+        __try {
+            if (add_button(scene, buttons[k].id, buttons[k].image, buttons[k].x, buttons[k].y) && k == 0)
+                *added = scene;
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+        }
+        if (*added != scene) return;
     }
 }
 
 static void __fastcall scene_activate(void *scene, void *edx, int on) {
     next_activate(scene, edx, on);
-    add_once(scene, on, &button_scene, BUTTON_ID, BUTTON_IMAGE, BUTTON_X, BUTTON_Y);
+    add_once(scene, on, &button_scene, CHART_BUTTONS);
 }
 
 static void __fastcall sale_activate(void *scene, void *edx, int on) {
     next_sale_activate(scene, edx, on);
-    add_once(scene, on, &sale_button_scene, SALE_BUTTON_ID, SALE_BUTTON_IMAGE, SALE_BUTTON_X, SALE_BUTTON_Y);
+    add_once(scene, on, &sale_button_scene, SALE_BUTTONS);
 }
 
 /* ---------------------------------------------------------------- install */
