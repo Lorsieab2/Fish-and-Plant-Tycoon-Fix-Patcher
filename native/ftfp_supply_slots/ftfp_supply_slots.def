@@ -8,3 +8,4 @@ EXPORTS
     FtfpSupplySlotsLend = _FtfpSupplySlotsLend@4
     FtfpSupplySlotsReturn = _FtfpSupplySlotsReturn@0
     FtfpSupplySlotsRecord = _FtfpSupplySlotsRecord@4
+    FtfpSupplySlotsShown = _FtfpSupplySlotsShown@4

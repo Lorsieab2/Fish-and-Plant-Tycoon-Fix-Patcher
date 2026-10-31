@@ -111,7 +111,9 @@ Fish Tycoon options:
   extra slot works like slots 2-4: the store fills the first free slot, and
   medicines, chemicals and eggs are used from it on the tank as from slots
   2-4. Drag a supply onto another slot to move it there (the same item
-  stacks with Universal supply slots, another item changes places). Use or
+  stacks with Universal supply slots, another item changes places). "1/3",
+  "2/3" or "3/3" under the arrows shows the page. Hover over any slot for
+  its tooltip: the item's name and the doses, uses or egg batches left. Use or
   move what is on pages 2 and 3 before turning it off again: nothing is
   deleted, it comes back when you turn it on again.)
 - Multiple ornaments (off by default; EXPERIMENTAL - USE AT OWN RISK; buy the six store ornaments again,
