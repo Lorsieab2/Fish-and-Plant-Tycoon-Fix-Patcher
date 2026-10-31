@@ -654,8 +654,9 @@ never needs the internet.
   Extra Chemical Slots item on the store's Upgrades screen (the chemicals
   shelf, under the Formula Bomb) costs $10,000 ($0 with Free upgrades), is
   bought once and gets a tick. Then a small gold arrow (the game's own,
-  shrunk) and "1/2" / "2/2" sit on the Tools box's wooden plaque: click the
-  arrow, or carry a chemical over it, to turn the page. The tools stay on
+  shrunk) sits on each side of the Tools box, with "1/2" / "2/2" under the
+  right one: click either arrow, or carry a chemical over one, to turn the
+  page. The tools stay on
   page 1; a tool already in your hand stays there. Every page-2 slot works
   like a stock one: the store fills a chemical onto its own bottle on either
   page, else the first free slot of page 1, then of page 2, and says the tray
@@ -762,7 +763,8 @@ other. `Documents` is wherever Windows keeps it, which is often
 The **Tools** tab is laid out and works like the Virtual Villagers Fun
 Patcher's: the tools for the game chosen on the One Game tab, then the same
 tools for each game (Back up saves, Restore saves..., Rename players...,
-Game mechanics..., Breeding guide...), and Back Up Saves (Both)... for both at once. Every tool
+Copy player slot..., Game mechanics..., Breeding guide..., Picture
+studio...), and Back Up Saves (Both)... for both at once. Every tool
 has a "?" guide. They work on the modded copies' save folders ("- Modded",
 "- Modded Upgrades" and any other "<Game> - Modded..." folder; see "Where
 your saves go"). Every file operation uses Windows' long-path form, so a deep
@@ -786,6 +788,15 @@ folder never fails with "path too long".
   `(before rename)`. A save file is changed only where
   it holds exactly the old name; anything else is left alone. The layouts are
   in `src/save_tools.py`.
+- **Copy Player Slot.** Copies a player into an empty slot ("NEW PLAYER") of
+  the same save folder under a new name: the slot's save files and the
+  patcher's own files for it (`<Game> Fix Patcher Data\<what> <slot>.dat`
+  and their `.previous` copies: extra tanks and greenhouses, supply slots, DS
+  fish, tank animals, seed boxes, new flowers and the rest), with the new name
+  in the player list and inside the copied save. The original is not changed,
+  a slot in use is never copied over, and anything an earlier player left on
+  the empty slot is replaced or removed. It asks before copying, needs the
+  game closed and backs the save folder up first, as `(before copy)`.
 - **Game Mechanics.** A read-only page, with a tab for each game, on how the
   games really work underneath, read from their code:
   - time away, health, food, sickness, pests, breeding, seeds, the store,

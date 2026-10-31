@@ -4,15 +4,17 @@ Back Up Saves, Restore Saves, Rename Tribe), for one consistent tool across
 the owner's patchers:
 
 * "The game chosen on the One Game tab": Back Up Saves, Restore Saves...,
-  Rename Players..., Game Mechanics..., Breeding Guide... and Picture
-  Studio..., each a link with a "?" guide.
-* "Each game": the same six for Fish Tycoon and Plant Tycoon, one row per
-  game, then Back Up Saves (Both)..., Rename Players..., Game Mechanics...,
-  Breeding Guide... and Picture Studio... buttons.
+  Rename Players..., Copy Player Slot..., Game Mechanics..., Breeding
+  Guide... and Picture Studio..., each a link with a "?" guide.
+* "Each game": the same seven for Fish Tycoon and Plant Tycoon, one row per
+  game, then Back Up Saves (Both)..., Rename Players..., Copy Player
+  Slot..., Game Mechanics..., Breeding Guide... and Picture Studio...
+  buttons.
 * Back Up Saves lists the game's modded save folders (ticked: the patcher's
   own) and backs the ticked ones up, pausing a running game; Restore Saves
   lists every backup of the game, newest first, to restore whole or one slot,
-  or delete; Rename Players picks the game, save folder and player.
+  or delete; Rename Players picks the game, save folder and player; Copy
+  Player Slot copies a player to an empty slot under a new name.
 
 The work itself is in save_backup.py and save_tools.py.
 """
@@ -72,6 +74,20 @@ HELP = {
             "save folder is backed up first, as \"Backup <date> (before rename)\".",
         ],
     ),
+    "copy_player": (
+        "Copy Player Slot",
+        [
+            "Copies a player's saved game into an empty player slot of the same save folder, under a new "
+            "name: the game's save files for that slot and the patcher's own files for it (extra tanks or "
+            "greenhouses, supply slots, DS fish, tank animals, seed boxes, new flowers and the rest), so "
+            "the copy has everything the original has. The original is not changed.",
+            "Only an empty slot (\"NEW PLAYER\") can be copied to; anything left over there from an "
+            "earlier player is replaced or removed, so nothing of it mixes in. The new name follows the "
+            "game's rules: up to 31 plain characters, not \"NEW PLAYER\".",
+            "The game must be closed. The save folder is backed up first, as \"Backup <date> (before "
+            "copy)\", so Restore Saves can undo it.",
+        ],
+    ),
     "game_mechanics": (
         "Game Mechanics",
         [
@@ -118,6 +134,7 @@ class ToolsTab:
             ("Back Up Saves", "back_up_saves", lambda: self.back_up([self.app.game_choice.get()])),
             ("Restore Saves...", "restore_saves", lambda: self.restore(self.app.game_choice.get())),
             ("Rename Players...", "rename_players", lambda: self.rename(self.app.game_choice.get())),
+            ("Copy Player Slot...", "copy_player", lambda: self.copy_player(self.app.game_choice.get())),
             ("Game Mechanics...", "game_mechanics", lambda: self.mechanics(self.app.game_choice.get())),
             ("Breeding Guide...", "breeding_guide", lambda: self.breeding(self.app.game_choice.get())),
             ("Picture Studio...", "picture_studio", lambda: self.studio(self.app.game_choice.get())),
@@ -133,6 +150,7 @@ class ToolsTab:
             ("back_up_saves", "Back up saves", lambda game: self.back_up([game])),
             ("restore_saves", "Restore saves...", self.restore),
             ("rename_players", "Rename players...", self.rename),
+            ("copy_player", "Copy player slot...", self.copy_player),
             ("game_mechanics", "Game mechanics...", self.mechanics),
             ("breeding_guide", "Breeding guide...", self.breeding),
             ("picture_studio", "Picture studio...", self.studio),
@@ -149,6 +167,7 @@ class ToolsTab:
         for index, (text, key, command) in enumerate((
             ("Back Up Saves (Both)...", "back_up_saves", lambda: self.back_up(list(GAMES))),
             ("Rename Players...", "rename_players", lambda: self.rename(None)),
+            ("Copy Player Slot...", "copy_player", lambda: self.copy_player(None)),
             ("Game Mechanics...", "game_mechanics", lambda: self.mechanics(None)),
             ("Breeding Guide...", "breeding_guide", lambda: self.breeding(None)),
             ("Picture Studio...", "picture_studio", lambda: self.studio(None)),
@@ -597,6 +616,163 @@ class ToolsTab:
         rename_button.configure(command=start)
         game_var.trace_add("write", load_folders)
         folder_box.bind("<<ComboboxSelected>>", load_slots)
+        slot_list.bind("<<ListboxSelect>>", check)
+        name_var.trace_add("write", check)
+        frame.columnconfigure(1, weight=1)
+        load_folders()
+        dialog.grab_set()
+        name_entry.focus_set()
+
+    # ------------------------------------------------------------ copy a slot
+
+    def copy_player(self, game_id: str | None) -> None:
+        dialog, frame = self._dialog("Copy Player Slot")
+        ttk.Label(
+            frame,
+            text=("Copies a player's saved game, and the patcher's own files for it, into an empty slot under a "
+                  "new name. The original is not changed. The game must be closed. The save folder is backed "
+                  "up first, into <save folder>\\Backups\\Backup <date and time> (before copy)."),
+            wraplength=560, justify="left",
+        ).grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 10))
+        titles = list(GAMES.values())
+        game_var = tk.StringVar(master=dialog, value=GAMES[game_id] if game_id else titles[0])
+        folder_var = tk.StringVar(master=dialog)
+        target_var = tk.StringVar(master=dialog)
+        name_var = tk.StringVar(master=dialog)
+        counter_var = tk.StringVar(master=dialog)
+        problem_var = tk.StringVar(master=dialog)
+        state: dict = {"folders": [], "slots": [], "empty": []}
+        ttk.Label(frame, text="Game:").grid(row=1, column=0, sticky="w")
+        ttk.Combobox(frame, textvariable=game_var, values=titles, state="readonly", width=48).grid(
+            row=1, column=1, columnspan=2, sticky="we", pady=2)
+        ttk.Label(frame, text="Save folder:").grid(row=2, column=0, sticky="w")
+        folder_box = ttk.Combobox(frame, textvariable=folder_var, state="readonly", width=48)
+        folder_box.grid(row=2, column=1, columnspan=2, sticky="we", pady=2)
+        ttk.Label(frame, text="Copy player:").grid(row=3, column=0, sticky="nw", pady=(4, 0))
+        slot_list = tk.Listbox(frame, height=5, width=60, exportselection=False, font=("Segoe UI", 9))
+        slot_list.grid(row=3, column=1, columnspan=2, sticky="we", pady=(4, 2))
+        ttk.Label(frame, text="To empty slot:").grid(row=4, column=0, sticky="w", pady=(8, 0))
+        target_box = ttk.Combobox(frame, textvariable=target_var, state="readonly", width=20)
+        target_box.grid(row=4, column=1, sticky="w", pady=(8, 0))
+        ttk.Label(frame, text="New name:").grid(row=5, column=0, sticky="w", pady=(8, 0))
+        name_entry = ttk.Entry(frame, textvariable=name_var, width=36)
+        name_entry.grid(row=5, column=1, sticky="w", pady=(8, 0))
+        counter = ttk.Label(frame, textvariable=counter_var)
+        counter.grid(row=5, column=2, sticky="w", padx=(8, 0), pady=(8, 0))
+        ttk.Label(frame, textvariable=problem_var, foreground="#a01010", wraplength=560, justify="left").grid(
+            row=6, column=0, columnspan=3, sticky="w", pady=(4, 0))
+        buttons = ttk.Frame(frame)
+        buttons.grid(row=7, column=0, columnspan=3, sticky="w", pady=(12, 0))
+        copy_button = ttk.Button(buttons, text="Copy")
+        copy_button.pack(side="left")
+        ttk.Button(buttons, text="Close", command=dialog.destroy).pack(side="left", padx=(8, 0))
+
+        def game() -> str:
+            return next(g for g, t in GAMES.items() if t == game_var.get())
+
+        def chosen():
+            picked = slot_list.curselection()
+            return state["slots"][picked[0]] if picked and state["slots"] else None
+
+        def target():
+            index = target_box.current()
+            return state["empty"][index] if 0 <= index < len(state["empty"]) else None
+
+        def check(*_args) -> None:
+            fmt = save_tools.FORMATS[game()]
+            name = name_var.get()
+            counter_var.set(f"{len(name)} / {fmt.max_name} characters")
+            counter.configure(foreground="#a01010" if len(name) > fmt.max_name else "")
+            problem = None
+            if not state["folders"]:
+                problem = "No save folder was found for this game."
+            elif chosen() is None:
+                problem = "Choose a player to copy."
+            elif target() is None:
+                problem = "There is no empty slot in this save folder to copy to."
+            elif name:
+                try:
+                    save_tools.validate_name(game(), name)
+                except save_tools.SaveToolError as exc:
+                    problem = str(exc)
+            problem_var.set(problem or "")
+            copy_button.configure(state="normal" if problem is None and name else "disabled")
+
+        def load_slots(*_args) -> None:
+            slot_list.delete(0, "end")
+            state["slots"], state["empty"] = [], []
+            index = folder_box.current()
+            if 0 <= index < len(state["folders"]):
+                folder = state["folders"][index]
+                try:
+                    names = save_tools.read_slot_names(game(), folder)
+                except (OSError, save_tools.SaveToolError) as exc:
+                    problem_var.set(f"The player list could not be read: {exc}")
+                    names = []
+                for slot, name in enumerate(names, start=1):
+                    if save_tools.slot_is_active(game(), folder, slot, name):
+                        state["slots"].append((slot, name))
+                        slot_list.insert("end", f"Player {slot}: {name}")
+                    elif save_tools.slot_is_empty(game(), folder, slot):
+                        state["empty"].append(slot)
+                if not state["slots"]:
+                    slot_list.insert("end", "No saved players in this folder.")
+                else:
+                    slot_list.selection_set(0)
+            target_box.configure(values=[f"Player {slot} (empty)" for slot in state["empty"]])
+            if state["empty"]:
+                target_box.current(0)
+            else:
+                target_var.set("")
+            check()
+
+        def load_folders(*_args) -> None:
+            state["folders"] = save_backup.find_save_folders(game())
+            folder_box.configure(values=[folder.name for folder in state["folders"]])
+            if state["folders"]:
+                folder_box.current(0)
+            else:
+                folder_var.set("")
+            load_slots()
+
+        def start() -> None:
+            item, slot = chosen(), target()
+            if item is None or slot is None or not state["folders"]:
+                return
+            folder = state["folders"][folder_box.current()]
+            new_name = name_var.get()
+            if not messagebox.askyesno(
+                "Copy Player Slot",
+                f"Copy \"{item[1]}\" (player {item[0]}) to empty player {slot} as \"{new_name}\" in "
+                f"{folder.name}?\n\nThe save folder is backed up first.",
+                parent=dialog,
+            ):
+                return
+            try:
+                report = save_tools.copy_slot(game(), folder, item[0], slot, new_name)
+            except (OSError, save_tools.SaveToolError, save_backup.BackupError) as exc:
+                self.app.status_var.set("Copy Player Slot: nothing was copied.")
+                messagebox.showerror("Copy Player Slot", str(exc), parent=dialog)
+                load_slots()
+                return
+            self.app.status_var.set(f"Copy Player Slot: {report['old_name']} copied to player {slot} "
+                                    f"as {report['new_name']}.")
+            self._log(f"\n=== Player copied ===\n{folder}: player {item[0]} {report['old_name']!r} -> "
+                      f"player {slot} {report['new_name']!r}\n")
+            messagebox.showinfo(
+                "Copy Player Slot",
+                f"\"{report['old_name']}\" (player {item[0]}) is copied to player {slot} as "
+                f"\"{report['new_name']}\" ({folder.name}).\n\n{len(report['copied'])} file(s) copied."
+                f"\n\nBackup: {report['backup']}",
+                parent=dialog,
+            )
+            name_var.set("")
+            load_slots()
+
+        copy_button.configure(command=start)
+        game_var.trace_add("write", load_folders)
+        folder_box.bind("<<ComboboxSelected>>", load_slots)
+        target_box.bind("<<ComboboxSelected>>", check)
         slot_list.bind("<<ListboxSelect>>", check)
         name_var.trace_add("write", check)
         frame.columnconfigure(1, weight=1)

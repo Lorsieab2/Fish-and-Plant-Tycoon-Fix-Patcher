@@ -47,8 +47,17 @@ class TipRig(T.Rig):
         lang = emu.alloc(4)
         emu.write32(lang, 1 if german else 0)
         emu.write32(0x0045B314, lang)
+        # The text goes in the graphics' default font (0x408C30 with font 0: [[impl + 0x54]] + 0x34);
+        # 0x45B26C is the hints' text colour, never written: 0, the default white.
         self.font = emu.alloc(16)
-        emu.write32(0x0045B26C, self.font)
+        graphics = emu.alloc(0x40)
+        emu.write32(emu.read32(self.impl + 0x54), graphics)
+        emu.write32(graphics + 0x34, self.font)
+        emu.write32(0x0045B26C, 0)
+        self.text_args: list[tuple[int, int]] = []
+        emu.hook(0x00408C30, lambda e: self.calls.append(("text", e.cstring(e.arg(0)).decode("latin-1"),
+                                                          e.arg(1), e.arg(2), e.arg(3)))
+                 or self.text_args.append((e.arg(4), e.arg(5))) or 0, 24)
         exports = {"FtfpSupplySlotsShown": self.sym["_FtfpSupplySlotsShown@4"]}
         emu.hook_import("GetModuleHandleW", lambda e: 0x13000000 if slots_loaded and
                         e.wstring(e.arg(0)) == "Extra Supply Slots.dll" else 0, 4)
@@ -57,7 +66,8 @@ class TipRig(T.Rig):
         self.strings = {i: emu.text(NAMES[i][int(german)]) for i in NAMES}
         emu.hook(0x00427060, lambda e: table, 0)
         emu.hook(0x00427050, lambda e: self.strings.get(e.arg(0), emu.text("?")), 4)
-        emu.hook(0x004023D0, lambda e: CHAR_W * len(e.cstring(e.arg(0))), 8)
+        emu.hook(0x004023D0, lambda e: CHAR_W * len(e.cstring(e.arg(0)))
+                 if e.uc.reg_read(T.X.UC_X86_REG_ECX) == self.font else 0, 8)
         # The hint object: its vtable[1] draws its box (0x423280) at a rectangle.
         self.boxes: list[tuple[int, ...]] = []
         hint, vtable = emu.alloc(0x40), emu.alloc(16)
@@ -104,14 +114,19 @@ class Tooltips(unittest.TestCase):
                 self.assertEqual(len(rig.boxes), 1, "the hint's own box")
                 left, top, right, bottom = rig.boxes[0]
                 self.assertEqual((top, right - left, bottom - top), (60, width, 12 + 20 * len(lines)))
-                self.assertGreaterEqual(left, 4)
-                self.assertLessEqual(right, 796)
+                self.assertGreaterEqual(left, 12)
+                self.assertLessEqual(right, 788)
+                self.assertEqual(set(rig.text_args), {(0, 0)}, "the hints' colour, the default font")
 
     def test_the_fish_food_by_name_only(self) -> None:
         rig = TipRig()
         rig.put_stock(0, FOOD)
         self.assertEqual(rig.tip(*T.centre(0)), ["Fish Food"])
         self.assertEqual(rig.boxes[0][3] - rig.boxes[0][1], 12 + 20)
+        left, _, right, _ = rig.boxes[0]
+        self.assertEqual((left, right - left), (12, len("Fish Food") * CHAR_W + 20), "on screen, the text inside")
+        text = [c for c in rig.calls if c[0] == "text"][0]
+        self.assertEqual(text[2:4], (left, right))
 
     def test_the_patcher_supplies(self) -> None:
         for universal in (False, True):
