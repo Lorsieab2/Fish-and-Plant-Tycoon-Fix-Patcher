@@ -241,28 +241,47 @@ PLANT_GREENHOUSES = replace(
 )
 
 
+# With "Extra chemical slots" on, "Extra Chemical Slots.dll" is loaded after every other companion:
+# it chains the greenhouse screen's mouse and activation slots, which Greenhouse Counts (mouse) and
+# Extra Greenhouses (both) only install over the stock functions or the wrappers loaded before them.
+CHEM_SLOTS_SETTING = "extra_chemical_slots"
+PLANT_CHEM_SLOTS = replace(
+    PLANT, dll_name="Extra Chemical Slots.dll",
+    what_it_installs="That checks the five greenhouse calls and two chemical-tray functions it changes and the "
+                     "greenhouse screen's mouse and activation slots it wraps, and writes all of them or none; "
+                     "native/ftfp_chem_slots/ftfp_chem_slots.c describes them.",
+)
+
+
 def plant_profile(enabled: set[str]) -> LoaderProfile:
     """The DLLs Plant Tycoon's loader loads for these settings.
 
-    With the extra greenhouses or nurseries, Extra Greenhouses.dll is loaded last: it starts the counts,
+    With the extra greenhouses or nurseries, Extra Greenhouses.dll is loaded: it starts the counts,
     Unused Flowers or Sort Seeds itself, then wraps 19 screen-table slots, chaining the wrappers other
     companions put there first -- the counts' greenhouse slots and the Optimize Prices button's two
     Nursery slots, so the button's DLL goes before it (it only installs over the stock functions).
     Otherwise the counts go first (they load Unused Flowers, else Sort Seeds, themselves) and the
-    Optimize Prices button last."""
+    Optimize Prices button after them. Extra Chemical Slots, when on, is always last."""
+    profiles = _plant_profiles(enabled)
+    if CHEM_SLOTS_SETTING in enabled:
+        profiles.append(PLANT_CHEM_SLOTS)
+    return chain(profiles)
+
+
+def _plant_profiles(enabled: set[str]) -> list[LoaderProfile]:
     profiles: list[LoaderProfile] = []
     if "extra_greenhouses" in enabled or "extra_nurseries" in enabled:
         if OPTIMIZE_PRICES_SETTING in enabled:
             profiles.append(PLANT_OPTIMIZE)
         profiles.append(PLANT_GREENHOUSES)
-        return chain(profiles)
+        return profiles
     if COUNTS_SETTING in enabled:
         profiles.append(PLANT_COUNTS)
     elif ("new_flowers" in enabled or "sort_seeds" in enabled or OPTIMIZE_PRICES_SETTING not in enabled):
         profiles.append(PLANT if "new_flowers" in enabled else PLANT_SORT)
     if OPTIMIZE_PRICES_SETTING in enabled:
         profiles.append(PLANT_OPTIMIZE)
-    return chain(profiles)
+    return profiles
 
 
 PATH_WCHARS = 0x208

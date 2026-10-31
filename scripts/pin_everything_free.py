@@ -137,7 +137,8 @@ GAMES = {
         "exe": "Plant Tycoon.exe",
         "folder": "Plant Tycoon Fix Patcher DLLs",
         "sites": PLANT_SITES,
-        "dlls": ["ftfp_plant_upgrades", "ftfp_seed_boxes", "ftfp_new_flowers", "ftfp_extra_greenhouses"],
+        "dlls": ["ftfp_plant_upgrades", "ftfp_seed_boxes", "ftfp_new_flowers", "ftfp_extra_greenhouses",
+                 "ftfp_chem_slots"],
         "after": "add_money",
     },
 }

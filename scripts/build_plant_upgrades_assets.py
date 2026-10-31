@@ -23,7 +23,9 @@ Writes, under assets/plant_tycoon_upgrades/Images:
   with the Time Warp clock, a 15th with Add Money's gold coins, a 16th (row 15)
   with the Extra Greenhouse item (greenhouse_icon below), and rows 16 and 17
   (the 17th and 18th) hold Automatic Sprinklers and the Auto-Healer, upright only
-  (scripts/build_auto_upgrades_assets.py). A chemical's row is
+  (scripts/build_auto_upgrades_assets.py), row 18 the Extra Chemical Slots item and
+  row 19 its two gold page arrows (scripts/build_chem_slots_assets.py), row 20 the Extra
+  Nursery's golden pot (nursery_icon below). A chemical's row is
   its id - 27 (the game draws frame 2 x id - 54). The DLL points the chemical
   sheet record at it.
 * upgrades_link.png: the store's "Upgrades" link, two frames side by side
@@ -68,6 +70,9 @@ GREENHOUSE_EAVES = 45                   # source rows above the eaves: only the 
 GREENHOUSE_BOX = (48, 54)             # the most the picture may be (w, h): the tool shelf's items are 35-69 x 43-49
 GREENHOUSE_CENTRE_X = 28                # in the cell: x 432 on screen, the middle of the click rectangle
 GREENHOUSE_BOTTOM = 62                  # in the cell, exclusive: the last row at y 111 on screen
+NURSERY_ROW = 20                        # the Extra Nursery's golden pot (frames 40 and 41)
+NURSERY_HEIGHT = 52                     # the Time Warp clock's visible height beside it (Add Money's: 51)
+NURSERY_BOTTOM = 61                     # in the cell, exclusive: the clock's and coins' bottom line (y 357)
 
 
 def seed_box(frame: int) -> tuple[int, int, int, int]:
@@ -130,7 +135,7 @@ def formula_bottle(images: Path) -> Image.Image:
     stock = Image.open(images / "Chemicals_Grid.png").convert("RGBA")
     if stock.size != (2 * CHEM_CELL, CHEM_ROWS * CHEM_CELL):
         raise SystemExit(f"Chemicals_Grid.png is {stock.size}, expected the stock 140 x 630")
-    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 9) * CHEM_CELL))
+    sheet = Image.new("RGBA", (stock.width, (CHEM_ROWS + 12) * CHEM_CELL))
     sheet.paste(stock, (0, 0))
     for column in (0, 1):
         box = (column * CHEM_CELL, MUTATION_ROW * CHEM_CELL, (column + 1) * CHEM_CELL, (MUTATION_ROW + 1) * CHEM_CELL)
@@ -163,7 +168,35 @@ def formula_bottle(images: Path) -> Image.Image:
     import build_auto_upgrades_assets
     for row, cell in build_auto_upgrades_assets.plant_rows(stock, Image.open(images / "Tools_Grid.png").convert("RGBA")).items():
         sheet.paste(cell, (0, row * CHEM_CELL))
+    # Rows 18 and 19 (frames 36 and 38-39): Extra Chemical Slots' store item and its page arrows
+    # (scripts/build_chem_slots_assets.py).
+    import build_chem_slots_assets
+    for row, cells in build_chem_slots_assets.plant_rows(stock, images).items():
+        for column, cell in enumerate(cells):
+            sheet.paste(cell, (column * CHEM_CELL, row * CHEM_CELL))
+    # Row 20 (frames 40 and 41): the Extra Nursery item, the game's golden pot pre-scaled.
+    pot = nursery_icon(images)
+    for column in (0, 1):
+        sheet.alpha_composite(pot, (column * CHEM_CELL, NURSERY_ROW * CHEM_CELL))
     return sheet
+
+
+def nursery_icon(images: Path) -> Image.Image:
+    """The Extra Nursery's store icon, one 70 x 70 cell: the game's golden pot (goldpot.png, sprite
+    0x2C, 76 x 64), shrunk to the visible height of its Nursery-shelf neighbours (the Time Warp clock,
+    52 px, and Add Money's coins, 51 px: NURSERY_HEIGHT) and standing on their bottom line (61 of the
+    cell), centred in the cell. The DLL draws the cell at (449, 296) at scale 1 (the plant store's draw
+    ignores a scale: the 0.84 it used to pass drew the pot at its full 76 x 64), so the pot spans
+    x 453-514, y 305-356, centred where the full-size pot was (x 484)."""
+    pot = Image.open(images / "goldpot.png").convert("RGBA")
+    if pot.size != (76, 64):
+        raise SystemExit(f"goldpot.png is {pot.size}, expected the stock 76 x 64")
+    pot = pot.crop(pot.getbbox())
+    scale = NURSERY_HEIGHT / pot.height
+    small = pot.resize((round(pot.width * scale), NURSERY_HEIGHT), Image.LANCZOS)
+    cell = Image.new("RGBA", (CHEM_CELL, CHEM_CELL))
+    cell.alpha_composite(small, ((CHEM_CELL - small.width) // 2, NURSERY_BOTTOM - small.height))
+    return cell
 
 
 def greenhouse_icon(images: Path) -> Image.Image:

@@ -620,6 +620,42 @@ never needs the internet.
   switching it off.**
   - Pictures: Nursery 2 [docs/images/extra-nurseries-switch.png](docs/images/extra-nurseries-switch.png)
     beside the stock Nursery 1 [docs/images/extra-nurseries-nursery-1.png](docs/images/extra-nurseries-nursery-1.png).
+- Extra chemical slots (**EXPERIMENTAL - USE AT OWN RISK**; off by default;
+  **needs Add new store upgrades and items, which it turns on**; in the
+  "Modded Upgrades" copy). The greenhouse's Tools box is a 4 x 2 grid: the
+  four tools, and under them the four chemical slots. This adds a second page
+  of 8 chemical slots that fills both rows (12 chemical slots in all). An
+  Extra Chemical Slots item on the store's Upgrades screen (the chemicals
+  shelf, under the Formula Bomb) costs $10,000 ($0 with Free upgrades), is
+  bought once and gets a tick. Then a small gold arrow (the game's own,
+  shrunk) and "1/2" / "2/2" sit on the Tools box's wooden plaque: click the
+  arrow, or carry a chemical over it, to turn the page. The tools stay on
+  page 1; a tool already in your hand stays there. Every page-2 slot works
+  like a stock one: the store fills a chemical onto its own bottle on either
+  page, else the first free slot of page 1, then of page 2, and says the tray
+  is full only when all 12 are; every chemical (the game's and the Upgrades
+  screen's) is used from it with its doses; the Upgrades screen's chemicals
+  go in the trash from it. A chemical in your hand can be put on any other
+  slot of either page (moved, stacked onto the same chemical, or swapped).
+  Every chemical slot of both pages shows a tooltip with the chemical's name
+  and the doses left ("Revival Potion / 2 doses left"), nothing over an
+  empty slot; this replaces the stock tray tooltips while the setting is on,
+  bought or not. The tray is shared by every greenhouse. Page 2 and the
+  purchase are kept per slot in "Plant Tycoon Fix Patcher Data\Extra Chemical
+  Slots <slot>.dat" (the save keeps its stock layout); a new game empties
+  page 2. The store's own tray picture shows page 1. **Turning it off hides
+  page 2 but loses nothing:** while Add new store upgrades and items stays on,
+  loading a save puts page 2's chemicals into the 4 stock slots as far as
+  there is room (onto the same chemical, else a free slot), and the rest and
+  the purchase stay in the slot's file until you turn it on again.
+  Runs as a companion DLL the game loads at start
+  (`Plant Tycoon Fix Patcher DLLs\Extra Chemical Slots.dll`, loaded after the
+  other companions).
+  - Pictures: [docs/images/extra-chemical-slots-page-1.png](docs/images/extra-chemical-slots-page-1.png),
+    [docs/images/extra-chemical-slots-page-2.png](docs/images/extra-chemical-slots-page-2.png),
+    [docs/images/extra-chemical-slots-store.png](docs/images/extra-chemical-slots-store.png).
+  - Design: the "Extra Chemical Slots" section of
+    [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
 
 ## Use
 
