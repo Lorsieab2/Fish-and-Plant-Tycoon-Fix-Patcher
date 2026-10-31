@@ -19,6 +19,37 @@
   tests/test_pictures_plant.py, tests/test_picture_image.py,
   tests/test_picture_studio.py.
 
+- **Breeding Guide, Collectopedia**, both games: a new tab, a checklist of
+  every species (Fish: body x fin; Plant: foliage x flower; the DS Exclusive
+  Fish and Unused Flowers too when that setting is on for the save). A box is
+  ticked exactly where the save's own discovered record (and the setting's
+  data file) says the species was obtained; read only, fresh for each save
+  and player, and the player cannot untick it. A Grid view (a row per body or
+  foliage, a column per fin or flower, each with its picture and
+  "collected/all"; a tooltip names the species) and a sortable List view
+  (name, parts, rarity, collected); "n of N species collected", per rarity in
+  the game's words and per part; All / Collected / Missing and Search; Export
+  to .xlsx / .csv. With Show Spoilers off a species not collected is "?", no
+  name or picture, and an undiscovered part is "?" (the no-leak tests cover
+  the tab, its tooltips and its exports).
+- Breeding Guide, Plant Tycoon's Seed Pictures: a grid, a row per foliage
+  ordered by the game's classes (A Common, B Endangered, C and D Extinct; the
+  game's foliage order within) and a column per seed tier, lowest first (the
+  four frames (foliage - 1) x 4 + k, k by the packet's flower at 0x41DD54:
+  Common, Endangered, Extinct, the rarest Extinct flowers), then the patcher's
+  Legendary Seed with Unused Flowers on. Spoilers off keeps the discovered
+  foliages' rows only.
+- **Extra Seed Box** (Plant Tycoon, Add new store upgrades and items): the
+  six seed box items on the Upgrades view (the Fourth to Ninth) are one item
+  now, bought like the Extra Greenhouse: each click asks Yes / No for the next
+  box in order ("Buy the Fourth Seed Box for $1000?"), $1000 each ($0 with
+  Free upgrades or Everything is Free); the tooltip says which is next
+  ("Extra Seed Box 4 of 6"), a tick and "You already have all six extra seed
+  boxes!" once all are yours. It stands where the stock store shows its seed
+  box, beside the Extra Greenhouse; the tool shelf is otherwise just the
+  greenhouse and the sprinklers. Saves keep their boxes (nothing changes in
+  `Seed Boxes <slot>.dat`), and Seed Storage still pages Boxes 1-3, 4-6 and
+  7-9. Mockup: docs/images/extra-seed-box-store.png.
 - **Extra Nursery item a bit smaller** (Plant Tycoon, 5 extra nurseries). The
   golden pot on the Upgrades view's Nursery shelf was drawn at its full 76 x 64
   (the plant store's draw ignores the 0.84 scale it was given), taller than the

@@ -23,11 +23,11 @@
        greenhouse on screen, the pots the stock Fertilizer Bomb reaches.
      * seeds bred from the new flowers (self-pollinated or crossed) get the
        Legendary seed art too.
-     * the Fourth, Fifth and Sixth Seed Box (upper left, the seed-box column
-       of the tool upgrades), and the Seventh, Eighth and Ninth (their own
-       column left of the Extra Greenhouse and the Automatic Sprinklers),
-       $1000 each, when "Extra Seed Boxes.dll" is beside this DLL; that DLL
-       holds the boxes, this one sells them through the stock dialog;
+     * one "Extra Seed Box" item (upper left, where the stock store shows
+       its seed boxes, beside the Extra Greenhouse) selling the Fourth to
+       Ninth Seed Box in order, $1000 each, when "Extra Seed Boxes.dll" is
+       beside this DLL; that DLL holds the boxes, this one sells them with
+       the Extra Greenhouse's Yes / No;
      * Automatic Sprinklers and the Auto-Healer ($10,000 each, bought once):
        every live potted plant in every greenhouse kept at the best water
        level, and free of pests at full health (auto_upgrades.h);
@@ -99,17 +99,15 @@
 #define RADIOACTIVE 0x52                    /* 'R' */
 #define LINK_SPRITE 0x8B                    /* the one sprite id the game leaves free */
 #define EXTRA_BOXES 6                       /* the Fourth to Ninth Seed Box */
-#define BOX_PRICE 1000                      /* each, as the Sixth */
-#define BOX_TITLE_ID 0x1F1                  /* 0x1F1..0x1F3 the Fourth-Sixth's names, 0x1F4 their description */
-#define BOX_DESC_ID 0x1F4
-#define BOX_TITLE_7_ID 0x1F8                /* 0x1F8..0x1FA the Seventh-Ninth's names */
-/* The Seventh-Ninth Seed Box stand in their own column on the tool shelf, left
-   of the Extra Greenhouse (404, 50) and the Automatic Sprinklers (397, 111):
-   the box art is visible over x + 6 .. x + 76 of its 80 px frame, so at x 322
-   it ends at 398, 16 px before the greenhouse's art (414), as the Fourth's
-   art (468) starts 17 px after it, and 5 px before the sprinklers' (403). */
-#define BOX_X(box) ((box) < 3 ? 233 + 57 * 4 : 322)
-#define BOX_Y(box) (50 + 61 * ((box) % 3))
+#define BOX_PRICE 1000                      /* each */
+/* The one "Extra Seed Box" item: the stock seed box's art (Tools_Grid frame 4,
+   80 x 80, already the shelf's size) drawn at scale 1 where the stock store
+   draws its first seed box, the tool shelf's top row beside the Extra
+   Greenhouse (404, 50): the art is visible over x 468-536, y 64-112, 17 px
+   right of the greenhouse's (to 450). */
+#define BOX_X 461
+#define BOX_Y 50
+#define BOX_FRAME 4
 
 /* Free upgrades ("Free Upgrades.ini" beside this DLL): every item on the
    Upgrades view costs $0.  The stock store keeps its prices.  Everything is
@@ -599,23 +597,15 @@ typedef const ftfp_box_events *(__stdcall *boxes_startup_fn)(void);
 
 static const ftfp_box_events *boxes = NULL;
 
-/* The stock store sells the seed box's drawers as tool upgrades 4, 9 and 14
-   (dialog indices 14, 19, 24).  While a Fourth/Fifth/Sixth box's dialog is
-   open, those three records describe the new boxes instead, so the stock
-   dialog does all of it: the price, "You already have this item!", "You need
-   the previous upgrade first!", can't afford, and the purchase.
-   The Seventh-Ninth go through one record pair: the dialog of tool record 9
-   (index 19), whose "previous upgrade" is record 4 (the stock dialog checks
-   record k - 5 for k >= 5, 0x4319A1).  Record 4 describes the box before
-   (the Sixth, Seventh or Eighth) and record 9 the box being bought, and the
-   dialog's picture (its +0xB8 index, read only by the picture draw 0x430827
-   and the category-4 Buy) is set back to the box's own frame (14, 19 or 24:
-   the Fourth-Sixth's art). */
-#define TOOL_RECORD(state, k) ((state) + 0x6E8 + (k) * 0x20)
-#define DIALOG_INDEX 0xB8
-
 /* The boxes this "Extra Seed Boxes.dll" knows: version 1 the Fourth-Sixth, version 2 all six. */
 static int box_count(void) { return boxes == NULL ? 0 : boxes->version >= 2 ? EXTRA_BOXES : 3; }
+
+/* The boxes bought, in order: a box counts only when every box before it is owned. */
+static int boxes_bought(void) {
+    int n = 0;
+    while (n < box_count() && boxes->owned(n)) ++n;
+    return n;
+}
 
 /* ----------------------------------------------------------------- strings */
 
@@ -639,16 +629,8 @@ static const char BOMB_TITLE[] = "Radioactive Plant Formula Bomb\n";
 static const char BOMB_DESC[] =
     "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nTreated plants sell for the highest\npossible price! Contains 3 doses.\n";
 static const char BOMB_NAME[] = "Radioactive Plant Formula Bomb";
-static const char BOX_TITLE_4[] = "Fourth Seed Box";
-static const char BOX_TITLE_5[] = "Fifth Seed Box";
-static const char BOX_TITLE_6[] = "Sixth Seed Box";
-static const char BOX_TITLE_7[] = "Seventh Seed Box";
-static const char BOX_TITLE_8[] = "Eighth Seed Box";
-static const char BOX_TITLE_9[] = "Ninth Seed Box";
-static const char BOX_DESC[] = "Even more space for your seeds!";
-static const char *const BOX_TITLES[EXTRA_BOXES] = { BOX_TITLE_4, BOX_TITLE_5, BOX_TITLE_6,
-                                                     BOX_TITLE_7, BOX_TITLE_8, BOX_TITLE_9 };
-static int box_title_id(int box) { return box < 3 ? BOX_TITLE_ID + box : BOX_TITLE_7_ID + box - 3; }
+static const char BOX_TITLE[] = "Extra Seed Box";
+static const wchar_t *const BOX_NAMES[EXTRA_BOXES] = { L"Fourth", L"Fifth", L"Sixth", L"Seventh", L"Eighth", L"Ninth" };
 
 static volatile unsigned char building_legendary = 0;     /* a Legendary dialog is being built */
 static volatile unsigned char building_chem = 0;          /* the new chemical (36-38) whose dialog is being built */
@@ -663,8 +645,8 @@ static int hover_x = -1, hover_y = -1;
 #define TIP_REVIVAL (LEGENDARY_COUNT + 1)
 #define TIP_REVITA (LEGENDARY_COUNT + 2)
 #define TIP_BOMB (LEGENDARY_COUNT + 3)
-#define TIP_BOXES (LEGENDARY_COUNT + 4)
-#define TIPS (TIP_BOXES + EXTRA_BOXES)
+#define TIP_BOXES (LEGENDARY_COUNT + 4)        /* the one Extra Seed Box item */
+#define TIPS (TIP_BOXES + 1)
 static char *tips[TIPS];
 static char tip_text[TIPS][64];
 
@@ -688,10 +670,7 @@ static const RECT REVITA_RECT = { REVITA_X + 12, 63, REVITA_X + 57, 115 };
 #define BOMB_Y (55 + 61)
 static const RECT BOMB_RECT = { BOMB_X + 12, BOMB_Y + 8, BOMB_X + 57, BOMB_Y + 60 };
 static const RECT LINK_RECT = { LINK_X - 2, LINK_Y - 2, LINK_X + LINK_W + 2, LINK_Y + LINK_H + 2 };
-static RECT box_rect(int box) {
-    RECT r = { BOX_X(box) + 10, 52 + 70 * (box % 3), BOX_X(box) + 67, 113 + 70 * (box % 3) };
-    return r;
-}
+static const RECT BOX_RECT = { BOX_X + 10, BOX_Y + 2, BOX_X + 67, BOX_Y + 63 };
 
 /* ------------------------------------------------------------ time warp */
 
@@ -809,7 +788,7 @@ static void add_money(char *scene) {
 
 /* "Extra Greenhouses.dll" (the 5 extra greenhouses and 5 extra nurseries
    settings) sells Greenhouses 2-6 and Nurseries 2-6 here: two items, each
-   bought in order like the Fourth-Sixth Seed Box, $10,000 each ($0 with Free
+   bought in order like the Extra Seed Boxes, $10,000 each ($0 with Free
    upgrades), through the same Yes / No as Add Money, with the stock tick once
    all five are owned.  The greenhouse stands on the tool shelf beside the seed
    boxes: a small, opaque greenhouse the size of the shelf's tools (row 15,
@@ -916,9 +895,43 @@ static void load_extras(void) {
 #include "../ftfp_chem_slots/chem_slots_file.h"
 #include "chem_slots_link.h"          /* Extra Chemical Slots (its own DLL and setting) */
 
-static void box_tip_text(int box) {
-    if (boxes != NULL && boxes->owned(box)) sprintf_s(tip_text[TIP_BOXES + box], 64, "%s", BOX_TITLES[box]);
-    else sprintf_s(tip_text[TIP_BOXES + box], 64, "%s\nPrice: $ %i", BOX_TITLES[box], price(BOX_PRICE));
+/* ------------------------------------------------------- the extra seed boxes */
+
+/* One "Extra Seed Box" item sells the Fourth to Ninth Seed Box in order, through the same Yes / No
+   as the Extra Greenhouse and Extra Nursery (the stock purchase dialog sold one box per item, which
+   needs one shelf place per box), with the stock tick once all are owned.  Beside an older Seed
+   Boxes DLL (version 1) it sells the Fourth-Sixth only. */
+static char *box_tip_text(void) {
+    char *text = tip_text[TIP_BOXES];
+    int bought = boxes_bought(), all = box_count();
+    if (bought >= all) sprintf_s(text, 64, "%s\nSold out", BOX_TITLE);
+    else sprintf_s(text, 64, "%s %i of %i\nPrice: $ %i", BOX_TITLE, bought + 1, all, price(BOX_PRICE));
+    return text;
+}
+
+static void buy_box(char *scene) {
+    char *state = SCENE_STATE(scene);
+    wchar_t text[256];
+    int bought, all = box_count(), cost = price(BOX_PRICE);
+    if (state == NULL || all == 0) return;
+    bought = boxes_bought();
+    if (bought >= all) {
+        tw_tell_as(L"Extra Seed Box", all == EXTRA_BOXES ? L"You already have all six extra seed boxes!"
+                                                         : L"You already have all three extra seed boxes!");
+        return;
+    }
+    if (AT(state, S_CASH, unsigned int) < (unsigned int)cost) {
+        tw_tell_as(L"Extra Seed Box", L"You can't afford to buy this yet! An extra seed box costs $1,000.");
+        return;
+    }
+    swprintf_s(text, 256, L"Buy the %s Seed Box for $%d?\n\nEven more space for your seeds! It opens a 40-seed "
+               L"drawer in Seed Storage (Boxes %s).", BOX_NAMES[bought], cost, bought < 3 ? L"4-6" : L"7-9");
+    if (!tw_confirm_as(L"Extra Seed Box", text)) return;
+    if (AT(state, S_CASH, unsigned int) < (unsigned int)cost || boxes_bought() != bought) return;
+    add_cash(state, 0, -cost);
+    boxes->set_owned(bought, 1);
+    play_sound(SCENE_SOUND(scene), 0, SOUND_BUTTON);
+    if (tips[TIP_BOXES] != NULL) tooltip_text(tips[TIP_BOXES], 0, box_tip_text(), TOOLTIP_COLOUR, 0, 0);
 }
 
 static void set_tooltips(char *scene) {
@@ -928,12 +941,9 @@ static void set_tooltips(char *scene) {
         if (tip != NULL) AT(tip, 8, unsigned char) = (unsigned char)!upgrades_view;
     }
     for (i = 0; i < TIPS; ++i) {
-        int shown = i < LEGENDARY_COUNT ? (legendary[i].present & 0xFF) : i < TIP_BOXES ? 1 : i - TIP_BOXES < box_count();
+        int shown = i < LEGENDARY_COUNT ? (legendary[i].present & 0xFF) : i < TIP_BOXES ? 1 : box_count() > 0;
         if (tips[i] == NULL) continue;
-        if (i >= TIP_BOXES) {
-            box_tip_text(i - TIP_BOXES);
-            tooltip_text(tips[i], 0, tip_text[i], TOOLTIP_COLOUR, 0, 0);
-        }
+        if (i == TIP_BOXES && box_count() > 0) tooltip_text(tips[i], 0, box_tip_text(), TOOLTIP_COLOUR, 0, 0);
         AT(tips[i], 8, unsigned char) = (unsigned char)(upgrades_view && shown);
     }
     if (warp_tip != NULL) AT(warp_tip, 8, unsigned char) = (unsigned char)upgrades_view;
@@ -961,7 +971,7 @@ static void make_tooltips(char *scene) {
     if (tips[0] != NULL) return;
     for (i = 0; i < TIPS; ++i) {
         RECT r = i < LEGENDARY_COUNT ? seed_rect(i) : i == TIP_FORMULA ? FORMULA_RECT : i == TIP_REVIVAL ? REVIVAL_RECT
-                 : i == TIP_REVITA ? REVITA_RECT : i == TIP_BOMB ? BOMB_RECT : box_rect(i - TIP_BOXES);
+                 : i == TIP_REVITA ? REVITA_RECT : i == TIP_BOMB ? BOMB_RECT : BOX_RECT;
         char *tip = (char *)game_new(0x10);
         if (tip == NULL) return;
         if (i < LEGENDARY_COUNT) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", LEGENDARY_TITLE, price(LEGENDARY_PRICE));
@@ -969,7 +979,8 @@ static void make_tooltips(char *scene) {
         else if (i == TIP_REVIVAL) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", REVIVAL_TITLE, price(REVIVAL_PRICE));
         else if (i == TIP_REVITA) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", REVITA_TITLE, price(REVITA_PRICE));
         else if (i == TIP_BOMB) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", BOMB_TITLE, price(BOMB_PRICE));
-        else box_tip_text(i - TIP_BOXES);
+        else if (box_count() > 0) box_tip_text();
+        else sprintf_s(tip_text[i], sizeof tip_text[i], "%s", BOX_TITLE);
         tooltip_ctor(tip, 0, 54 + i, &r, scene, tip_text[i], TOOLTIP_FONT, 0, 0);
         add_control(scene, 0, tip);
         tips[i] = tip;
@@ -1026,11 +1037,10 @@ static int __cdecl on_draw(char *scene) {
     draw_sprite(mgr, 0, SHEET_CHEMICALS, 2 * REVITA_ID - 54, REVITA_X, 55, 1.0f, 100, 1);
     draw_shadow(mgr, 0, SHEET_SHADOW, BOMB_X + 0x19, BOMB_Y + 0x1E, 1.0f, 100);
     draw_sprite(mgr, 0, SHEET_CHEMICALS, 2 * BOMB_ID - 54, BOMB_X, BOMB_Y, 1.0f, 100, 1);
-    for (i = 0; i < box_count(); ++i) {      /* the Fourth-Sixth where the stock store draws its seed boxes */
-        int x = BOX_X(i), y = BOX_Y(i);
-        draw_shadow(mgr, 0, SHEET_SHADOW, x + 0x19, y + 0x1E, 1.0f, 100);
-        draw_sprite(mgr, 0, SHEET_TOOLS, (i % 3) * 5 + 4, x, y, 1.0f, 100, 1);
-        if (boxes->owned(i)) draw_shadow(mgr, 0, SHEET_TICK, x + 19, y + 22, 1.0f, 100);
+    if (box_count() > 0) {                   /* where the stock store draws its first seed box */
+        draw_shadow(mgr, 0, SHEET_SHADOW, BOX_X + 0x19, BOX_Y + 0x1E, 1.0f, 100);
+        draw_sprite(mgr, 0, SHEET_TOOLS, BOX_FRAME, BOX_X, BOX_Y, 1.0f, 100, 1);
+        if (boxes_bought() >= box_count()) draw_shadow(mgr, 0, SHEET_TICK, BOX_X + 19, BOX_Y + 22, 1.0f, 100);
     }
     if (warp_on) {
         draw_shadow(mgr, 0, SHEET_SHADOW, WARP_X + 0x19, WARP_Y + 0x1E, 1.0f, 100);
@@ -1052,45 +1062,15 @@ static int __cdecl on_draw(char *scene) {
     return 1;
 }
 
-/* picture >= 0: the dialog draws that dialog index's picture instead of its own. */
-static void open_dialog_as(char *scene, int index, int picture) {
+static void open_dialog(char *scene, int index) {
     __declspec(align(16)) unsigned char dlg[0x400];
     memset(dlg, 0, sizeof dlg);
     upgrade_dialog = 1;
     dialog_ctor(dlg, 0, index);
-    if (picture >= 0) AT(dlg, DIALOG_INDEX, int) = picture;
     dialog_run(dlg, 0, scene, 0);
     dialog_dtor(dlg, 0);
     upgrade_dialog = 0;
     set_tooltips(scene);                                  /* a bought packet's tooltip goes */
-}
-
-static void open_dialog(char *scene, int index) { open_dialog_as(scene, index, -1); }
-
-static void describe_box(char *record, int box) {
-    AT(record, 0x00, int) = price(BOX_PRICE);
-    AT(record, 0x04, unsigned char) = (unsigned char)(boxes->owned(box) != 0);
-    AT(record, 0x0C, int) = BOX_DESC_ID;
-    AT(record, 0x10, int) = box_title_id(box);
-}
-
-static void open_box_dialog(char *scene, int box) {
-    char *state = SCENE_STATE(scene);
-    unsigned char stock[3][0x20];
-    int i;
-    for (i = 0; i < 3; ++i) memcpy(stock[i], TOOL_RECORD(state, 4 + 5 * i), 0x20);
-    if (box < 3) {                                        /* the Fourth-Sixth: records 4, 9, 14 */
-        for (i = 0; i < 3; ++i) describe_box(TOOL_RECORD(state, 4 + 5 * i), i);
-        open_dialog(scene, 14 + 5 * box);
-        for (i = 0; i < 3; ++i) boxes->set_owned(i, AT(TOOL_RECORD(state, 4 + 5 * i), 0x04, unsigned char));
-    } else {                                              /* the Seventh-Ninth: record 9, after record 4 */
-        describe_box(TOOL_RECORD(state, 4), box - 1);
-        describe_box(TOOL_RECORD(state, 9), box);
-        open_dialog_as(scene, 19, 14 + 5 * (box - 3));
-        boxes->set_owned(box, AT(TOOL_RECORD(state, 9), 0x04, unsigned char));
-    }
-    for (i = 0; i < 3; ++i) memcpy(TOOL_RECORD(state, 4 + 5 * i), stock[i], 0x20);
-    set_tooltips(scene);
 }
 
 /* Button-down in the store; 1 = handled here (the stock item loops are skipped). */
@@ -1118,10 +1098,7 @@ static int __cdecl on_click(char *scene, int x, int y) {
     if (inside(&REVIVAL_RECT, x, y)) open_dialog(scene, REVIVAL_ID);
     if (inside(&REVITA_RECT, x, y)) open_dialog(scene, REVITA_ID);
     if (inside(&BOMB_RECT, x, y)) open_dialog(scene, BOMB_ID);
-    for (i = 0; i < box_count(); ++i) {
-        RECT r = box_rect(i);
-        if (inside(&r, x, y)) open_box_dialog(scene, i);
-    }
+    if (box_count() > 0 && inside(&BOX_RECT, x, y)) buy_box(scene);
     if (warp_on && inside(&WARP_RECT, x, y)) time_warp(scene);
     if (money_on && inside(&MONEY_RECT, x, y)) add_money(scene);
     for (i = 0; i < EXTRA_ITEMS; ++i) {
@@ -1651,43 +1628,8 @@ __declspec(naked) static void stub_string(void) {
         ret 4
     bomb_name:
         cmp eax, BOMB_NAME_ID
-        jne box_4
-        mov eax, offset BOMB_NAME
-        ret 4
-    box_4:
-        cmp eax, BOX_TITLE_ID
-        jne box_5
-        mov eax, offset BOX_TITLE_4
-        ret 4
-    box_5:
-        cmp eax, BOX_TITLE_ID + 1
-        jne box_6
-        mov eax, offset BOX_TITLE_5
-        ret 4
-    box_6:
-        cmp eax, BOX_TITLE_ID + 2
-        jne box_7
-        mov eax, offset BOX_TITLE_6
-        ret 4
-    box_7:
-        cmp eax, BOX_TITLE_7_ID
-        jne box_8
-        mov eax, offset BOX_TITLE_7
-        ret 4
-    box_8:
-        cmp eax, BOX_TITLE_7_ID + 1
-        jne box_9
-        mov eax, offset BOX_TITLE_8
-        ret 4
-    box_9:
-        cmp eax, BOX_TITLE_7_ID + 2
-        jne box_desc
-        mov eax, offset BOX_TITLE_9
-        ret 4
-    box_desc:
-        cmp eax, BOX_DESC_ID
         jne legendary_texts
-        mov eax, offset BOX_DESC
+        mov eax, offset BOMB_NAME
         ret 4
     legendary_texts:
         cmp byte ptr [building_legendary], 0

@@ -37,7 +37,7 @@ startup loader (`src/ds_fish_loader.py`, `PLANT_GREENHOUSES`).
 ## Buying the greenhouses (the owner's change)
 
 Greenhouses 2-6 are bought in order on the store's Upgrades screen, like the
-Fourth to Sixth Seed Box, so the setting needs Add new store upgrades and
+Extra Seed Box, so the setting needs Add new store upgrades and
 items (`requires_settings: plant_upgrades`).
 
 - **The item:** "Extra Greenhouse", drawn by `Store Upgrades and Items.dll`.

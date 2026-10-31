@@ -465,16 +465,18 @@ never needs the internet.
     no refund (buying it again costs the full price). Ownership is kept in
     `Auto Upgrades <slot>.dat`. Picture:
     [docs/images/auto-upgrades-plant.png](docs/images/auto-upgrades-plant.png).
-  - The Fourth, Fifth and Sixth Seed Box with the tool upgrades, and the
-    Seventh, Eighth and Ninth in their own column left of the Extra
-    Greenhouse: $1000 each, bought in order like the stock ones (the Seventh
-    after the Sixth). Each opens a 40-seed drawer: boxes 4-6 in a second
+  - One Extra Seed Box item on the tool shelf, beside the Extra Greenhouse:
+    each click buys the next of the Fourth to Ninth Seed Box, in order, $1000
+    each, with a Yes / No like the Extra Greenhouse; its tooltip says which
+    comes next ("Extra Seed Box 4 of 6"), and it gets a tick once all six are
+    yours ("You already have all six extra seed boxes!"). Saves keep the boxes
+    they had. Each opens a 40-seed drawer: boxes 4-6 in a second
     chest, boxes 7-9 in a third. The gold arrows on the Seed Storage title bar
     step through boxes 1-3, 4-6 and 7-9 (each page once it has a box, then
     round again), and the greenhouse fills boxes 4-6 once 1-3 are full, then
     7-9: 360 seeds in all. Kept in `Seed Boxes <slot>.dat` (a file from an
     older version, boxes 4-6 only, still loads). Pictures:
-    [docs/images/seed-boxes-7-9-store.png](docs/images/seed-boxes-7-9-store.png),
+    [docs/images/extra-seed-box-store.png](docs/images/extra-seed-box-store.png),
     [docs/images/seed-boxes-7-9-storage.png](docs/images/seed-boxes-7-9-storage.png).
   - Click Supplies in the bottom bar to go back.
   - Design:
@@ -491,7 +493,7 @@ never needs the internet.
   $0: Legendary Seeds ($5000), the Radioactive Plant Formula ($10,000), the
   Formula Bomb ($30,000), the Revival Potion ($10,000), Revita-Seed ($2,500),
   Automatic Sprinklers ($10,000), the Auto-Healer ($10,000), the
-  Fourth to Ninth Seed Box ($1000 each), and the Time Warp clock ($500),
+  Extra Seed Box ($1000 each), and the Time Warp clock ($500),
   Add Money ($950), the Extra Greenhouse ($10,000 each) and the Extra Nursery
   ($10,000 each) when they are on. The price shows $0 and no money is
   taken; everything else (three Legendary Seeds a day, room in the trays, the
@@ -507,7 +509,7 @@ never needs the internet.
   mod, have fun!" Every price you pay is $0 and the purchase window says
   "Price: $0": seeds, the Extinct and imported seeds, tools, chemicals,
   nursery items, and everything on the Upgrades view (Legendary Seeds, the
-  Formula, the Bomb, the potions, Revita-Seed, the Fourth to Ninth Seed Box,
+  Formula, the Bomb, the potions, Revita-Seed, the Extra Seed Box,
   the Extra Greenhouse and Nursery, the Automatic Sprinklers, the
   Auto-Healer, the Time Warp clock), as Free upgrades does. Add Money then
   costs $0 and still adds $1,000. Only the price changes: three Legendary
@@ -574,7 +576,7 @@ never needs the internet.
   "Modded Upgrades" copy). Every greenhouse screen is named at the top in the
   game's font ("Greenhouse 1" is the stock one). Up to six
   greenhouses of 15 pots, 90 pots in all. An Extra Greenhouse item on the
-  store's Upgrades screen (the tool shelf, beside the Fourth to Sixth Seed Box,
+  store's Upgrades screen (the tool shelf, beside the Extra Seed Box,
   pictured with the game's own greenhouse) sells Greenhouses 2-6 in order,
   $10,000 each ($0 with Free upgrades), and gets a tick once all five are
   yours; a new game starts with none. Once you own one, the game's own gold
@@ -783,7 +785,15 @@ folder never fails with "path too long".
     the Breeding Planner (the shortest breeding chain from the species you
     have to the one you want), each with three effects choices: 0 effects,
     Max effects without the mutation, and Max effects with it (the Wasp
-    Grouper in Fish Tycoon, Mutation Liquid in Plant Tycoon).
+    Grouper in Fish Tycoon, Mutation Liquid in Plant Tycoon);
+  - the **Collectopedia**: a checklist of every species, a row per body
+    (foliage) and a column per fin (flower), each box ticked where the save
+    has ever had that species (its own discovered record; the DS Exclusive
+    Fish and Unused Flowers too when that setting is on for the save). Only
+    the save ticks a box. It counts "n of N species collected" overall, per
+    rarity and per part, filters All / Collected / Missing and by Search, has
+    a sortable List view, and exports as .xlsx or .csv. With spoilers off a
+    species not collected yet is a "?" with no name or picture.
 
   Rarities use the games' own words: Common, Unusual and Rare in Fish Tycoon
   (as its Common and Unusual Fish Eggs), Common, Endangered and Extinct (the
@@ -819,7 +829,11 @@ folder never fails with "path too long".
   selling tank, how many customers browse) are in its "?" guide.
 
   Picture tabs (Fin, Body and Egg Pictures; Flower, Foliage and Seed
-  Pictures) show every part grouped by rarity. The pictures are kept inside
+  Pictures) show every part grouped by rarity; Seed Pictures is a grid, a
+  row per foliage (Common first, then Endangered and Extinct, the game's
+  classes A to D) and a column per seed tier, lowest on the left (the shop
+  draws a packet by its flower: Common, Endangered, Extinct and the rarest
+  Extinct flowers; then Legendary with Unused Flowers). The pictures are kept inside
   the patcher, in a "Breeding Guide Pictures" folder beside it: the first time
   the guide finds any copy of the game (the game folder picked on the Game
   tab, the patcher's "- Modded" and "- Modded Upgrades" copies, or a default
