@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **Supply slot tooltips and page numbers** (Fish Tycoon). DS Store Items:
+  every supply slot, the stock four and the extra ones, shows a tooltip while
+  the mouse is over it, in the game's own hint box (the hint object's own
+  box drawing, 0x423280: its fill and rope edges) just under the top bar, in
+  the hint font: the item's name (the game's own names, German too) and what
+  is left of it as the game will spend it -- "2 doses left", "1 use left" for
+  the stock Unknown Chemical (its count with Unknown Chemical: 3 uses or
+  Universal supply slots), "1 batch left" for eggs (the stack with Universal
+  supply slots); the fish food by name only. None over an empty slot, while
+  a hint is up or while something is held. Drawn where the game draws its
+  hints, after what the hand holds (0x41D127, a new DS Store Items site that
+  no other companion or patch touches). It belongs to DS Store Items, so it
+  shows whenever that setting is on, with or without Extra supply slots,
+  which tells it what each place shows (FtfpSupplySlotsShown). Extra supply
+  slots: "1/3", "2/3" or "3/3" under the slot arrows once the slots are
+  bought, in the game's own font, small and in the bar's yellow.
 - **Extra supply slots** (Fish Tycoon, new setting, off by default,
   EXPERIMENTAL; needs DS Store Items, which it turns on; Enable All turns it
   on). Eleven supply slots instead of four, in three pages beside the tank

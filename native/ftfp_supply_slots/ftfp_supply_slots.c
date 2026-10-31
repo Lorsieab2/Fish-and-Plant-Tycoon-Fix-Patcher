@@ -121,6 +121,7 @@ typedef int (__fastcall *this6_fn)(void *self, void *edx, int a, int b, int c, i
 #define OPERATOR_NEW GAME(new_fn, 0x0042A793u)
 #define IMAGE_NEW GAME(this1_fn, 0x00409540u)          /* (file name) */
 #define GRID_NEW GAME(this3_fn, 0x004096C0u)           /* (file name, columns, rows) */
+#define IMAGE_WIDTH GAME(this0_fn, 0x004095B0u)        /* an image's width (its surface's w, 0x409D00) */
 #define CLOCK_SECONDS GAME(pressed_fn, 0x004020D0u)    /* the hints' clock */
 #define CENTRE_TEXT GAME(this6_fn, 0x00408C30u)        /* (text, left, right, y, font, attr) */
 #define HINT_FONT (*(void **)(UINT_PTR)0x0045B26Cu)
@@ -144,6 +145,12 @@ static const int PICTURE_X[POSITIONS] = { 0x19, 78, 126, 174 };
 #define ARROW_Y_RIGHT 31
 #define ARROW_W 18
 #define ARROW_H 15
+/* The page shown, "1/3" to "3/3" (SupplyPage1.png to SupplyPage3.png: the game's own font, small and
+   in the yellow of the bar's "Magic Breeds Discovered"), centred under the arrows, between the lower
+   arrow (y <= 45) and the bar's edge (y 57), clear of slot 4 and the silhouettes' label (x >= 228).
+   Only once the slots are bought: before that there is one page and the grey arrows say so. */
+#define PAGE_CENTRE_X (ARROW_X + ARROW_W / 2)
+#define PAGE_Y 46
 
 /* ------------------------------------------------------------ the records */
 
@@ -656,7 +663,7 @@ static char __fastcall release_hook(char *impl, void *edx, int x, int y) {
 
 /* ---------------------------------------------------------------- drawing */
 
-static void *arrow_art[2], *unused_art, *item_art;
+static void *arrow_art[2], *unused_art, *item_art, *page_art[PAGES];
 
 static void *grid(const char *name, int cols) {
     int obj = OPERATOR_NEW(0x34);
@@ -672,6 +679,9 @@ static void load_art(void) {
     if (arrow_art[1] != NULL) return;
     arrow_art[0] = grid("SupplyArrowLeft.png", 3);          /* normal, hover, not bought */
     unused_art = image("SupplySlotUnused.png");
+    page_art[0] = image("SupplyPage1.png");
+    page_art[1] = image("SupplyPage2.png");
+    page_art[2] = image("SupplyPage3.png");
     arrow_art[1] = grid("SupplyArrowRight.png", 3);
 }
 
@@ -742,6 +752,10 @@ static void draw_arrows(char *impl) {
         int frame = !owned ? 2 : arrow_at(pt[0], pt[1]) == a ? 1 : 0;
         if (arrow_art[a] == NULL) continue;
         DRAW_CELL(gfx, NULL, (int)(UINT_PTR)arrow_art[a], ARROW_X, (a ? ARROW_Y_RIGHT : ARROW_Y_LEFT) + off, frame);
+    }
+    if (owned && page >= 0 && page < PAGES && page_art[page] != NULL) {
+        DRAW(gfx, NULL, (int)(UINT_PTR)page_art[page], PAGE_CENTRE_X - IMAGE_WIDTH(page_art[page], NULL) / 2,
+             PAGE_Y + off);
     }
 }
 
@@ -1074,6 +1088,27 @@ void __stdcall FtfpSupplySlotsReturn(void) {
         unlend();
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
+}
+
+/* For DS Store Items' supply slot tooltips: the record slot position p (0-3) of the page shown
+   shows, as it is now (a held one's own: the stock slot's while page 1 shows it, the extra slot's
+   live record on pages 2-3); NULL where there is no slot (page 3's fourth place); 1 when no game
+   of this DLL's is open (then the stock slot). */
+const unsigned char *__stdcall FtfpSupplySlotsShown(int p) {
+    static unsigned char now[EXTRA][REC];
+    char *state = *(char *volatile *)(UINT_PTR)STATE_GLOBAL;
+    int e;
+    if (!installed || !ready(state)) return (const unsigned char *)1;
+    if (p < 0 || p >= POSITIONS) return NULL;
+    if (page == 0) {
+        if (lift_e >= 0 && lift_k == p) return lift_stash;
+        if (lend_e >= 0 && lend_k == p) return lend_stash;
+        return stock_rec(state, p);
+    }
+    e = extra_at(page, p);
+    if (e < 0) return NULL;
+    snapshot(now);
+    return now[e];
 }
 
 /* Extra slot e's record as it is now (0x1C bytes, the stock layout), or NULL. */

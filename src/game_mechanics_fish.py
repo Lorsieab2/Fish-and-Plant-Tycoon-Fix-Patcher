@@ -607,6 +607,17 @@ RADIOACTIVE_PRICE = (
 
 CONSUMABLES = (
     Fact(
+        "The stock game shows no dose count and no tooltip on the supply slots: what is left of a "
+        "supply is only in its record (+8, the count; the Unknown Chemical is one use whatever its "
+        "count, 0x4210B7 setting it to 1 before the use, and eggs one batch, the hatch clearing the slot).",
+        patched=(("ds_store", "every supply slot shows a tooltip while the mouse is over it (in the hint's own "
+                  "box, under the top bar): the item's name and the doses, uses or egg batches left as the game "
+                  "will spend them -- the Unknown Chemical's count with Unknown Chemical: 3 uses or Universal "
+                  "supply slots, an egg stack's with Universal supply slots; the fish food by name only, as "
+                  "the game keeps no amount of it; the extra slots too with Extra supply slots."),),
+        label="E",
+    ),
+    Fact(
         "Buying one fills its supply slot: medicines go in slot #2, chemicals in slot #3, eggs in slot "
         "#4 (any of 2-4 with Universal supply slots). A medicine, Fish Vitamins or Growth Hormone "
         "purchase holds 3 doses; the Unknown Chemical 1; eggs are one batch. Each use spends one, on "
@@ -1242,9 +1253,9 @@ SUPPLY_SLOTS = (
         label="E",
     ),
     Fact(
-        "The stock game shows no dose count and no tooltip on the supply slots, and neither do the "
-        "extra ones; the Supplies store shows the stock four only.",
-        label="C",
+        "The page shown is written under the arrows, \"1/3\" to \"3/3\", once the slots are bought. "
+        "The Supplies store shows the stock four only.",
+        label="E",
     ),
 )
 

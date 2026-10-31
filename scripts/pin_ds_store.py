@@ -68,7 +68,10 @@ SETTING = {
         "touches a dead fish. Unpurchase: click an owned one again and answer Yes; it switches off at "
         "once, with no refund (buying it again costs the full price). Ownership is kept beside the save "
         "in \"Auto Upgrades <slot>.dat\"; a new game starts without them. The Golden "
-        "Seahorse keeps its PC effects and gains its DS one. Needs DS Exclusive Fish."
+        "Seahorse keeps its PC effects and gains its DS one. Every supply slot (the stock four, and the "
+        "extra ones with Extra supply slots) shows a tooltip while the mouse is over it, in the game's own "
+        "hint box: the item's name and what is left of it, as the game will spend it (doses, the Unknown "
+        "Chemical's uses, egg batches; the fish food: its name only). Needs DS Exclusive Fish."
     ),
     "warning": (
         "Turning this off hides the store animals and the Golden Seahorse: they wait in "

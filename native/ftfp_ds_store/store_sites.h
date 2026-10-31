@@ -77,6 +77,9 @@ static const unsigned char SITE_OVERFEED_EXPECT[] = { 0x83, 0xBC, 0x1A, 0xDC, 0x
 #define SITE_SALE_VA 0x004244D4u
 #define SITE_SALE_LEN 5
 static const unsigned char SITE_SALE_EXPECT[] = { 0xE8, 0x37, 0xFB, 0xFF, 0xFF };
+#define SITE_SLOT_TOOLTIP_VA 0x0041D127u
+#define SITE_SLOT_TOOLTIP_LEN 5
+static const unsigned char SITE_SLOT_TOOLTIP_EXPECT[] = { 0xE8, 0xA4, 0xAE, 0xFF, 0xFF };
 #define SITE_VT_MOUSE_VA 0x0044C298u
 #define SITE_VT_MOUSE_LEN 4
 static const unsigned char SITE_VT_MOUSE_EXPECT[] = { 0x80, 0x79, 0x42, 0x00 };
