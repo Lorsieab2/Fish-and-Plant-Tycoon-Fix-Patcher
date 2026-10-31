@@ -582,6 +582,26 @@ MAGIC_HOW = (
     ),
 )
 
+# The Radioactive Growth Hormone's price rule (DS Store Items, the owner 2026-10-31: "Always pays the
+# max"; native/ftfp_ds_store/ftfp_ds_store.c, on_fish_sale), shown under the hormone and in Selling.
+RADIOACTIVE_PRICE = (
+    "Treated fish sell for the highest possible price: each fish a dose heals (every fish that was in "
+    "the tank before the births) is marked as treated. When a treated fish is sold, from the Sale Tank, "
+    "or from Tanks 4-6 with 3 extra tanks, you are paid its species' highest selling price, 2B - 1, with "
+    "B the species' base price after both Advertising research levels (B + B/10, then + B/7, each "
+    "rounded down) whatever you have researched, instead of your asking price: the Breeding Guide's "
+    "Highest selling with Max effects. Example: a treated Golden Guppy (B = 190) always sells for "
+    "$475. That one price is what the sale adds to your money and to Money Earned, and what the "
+    "selling scene shows for the sold fish. Which fish sells and when is still decided by your asking "
+    "price, exactly as for any fish: the same Random(900) roll once a real-time second (see Selling "
+    "and customers). The mark is part of the fish's record, so it stays with the fish through moves "
+    "between tanks, the isolation tank, Tanks 4-6, every slot with Bigger tanks, saves and loads, and "
+    "no time passing (real time or age steps) wears it off. A ClonaFish clone of a treated fish is "
+    "treated too (it is an exact copy). Babies are never treated: neither the dose's newborns nor any "
+    "later baby. The mark ends when the fish is sold, dies (a fish the Revival Potion brings back is "
+    "not treated) or is thrown away."
+)
+
 CONSUMABLES = (
     Fact(
         "Buying one fills its supply slot: medicines go in slot #2, chemicals in slot #3, eggs in slot "
@@ -662,7 +682,8 @@ CONSUMABLES = (
                   "one step's health, sickness and food checks run at the next update (as Growth "
                   "Hormone does on Easy and Medium), so the skipped steps never make the fish ill or "
                   "hungry. Dead fish, the other tanks and the store animals (Golden Seahorse included, "
-                  "in their own animal records, never fish slots) get nothing."),
+                  "in their own animal records, never fish slots) get nothing. "
+                  + RADIOACTIVE_PRICE),
                  ("free_upgrades", "the Radioactive Growth Hormone costs $0."),),
     ),
     Fact(
@@ -688,7 +709,9 @@ CONSUMABLES = (
                   "game's own add-fish code into the first free slot. Fish are cloned in slot "
                   "order until the tank is full; the rest get no clone. If not one clone fits, the "
                   "game's \"The tank is full!\" shows. Dead fish, the Golden Seahorse and the store "
-                  "animals are never cloned. The dose is used either way."),
+                  "animals are never cloned. The dose is used either way. A clone of a fish treated with "
+                  "the Radioactive Growth Hormone is treated too: it also sells for its species' highest "
+                  "price (see Radioactive Growth Hormone)."),
                  ("free_upgrades", "ClonaFish costs $0."),),
     ),
     Fact("Common, Unusual and Rare Fish Eggs: see Eggs."),
@@ -992,7 +1015,11 @@ SELLING = (
             "tank.",
         ),
     ),
-    Fact("You are paid your asking price P, whatever it is, even 0."),
+    Fact("You are paid your asking price P, whatever it is, even 0.",
+         patched=(("ds_store", "a fish treated with the Radioactive Growth Hormone is paid its species' "
+                   "highest selling price, 2B - 1 with B after both Advertising levels, instead of P (never "
+                   "less than P), from the Sale Tank and from Tanks 4-6 alike; its chance to sell each "
+                   "real-time second is still P's, as above. " + RADIOACTIVE_PRICE),)),
     Fact(
         "Every quarter real-time second (0.26 s in practice), each customer standing inside first "
         f"leaves on {below(100, 3)}; otherwise it walks over to the tanks on Random(100) < k, with "
@@ -1248,6 +1275,9 @@ EXTRA_TANKS = (
             "selling tank. The crowd counts every selling tank's adults, but never more than one full tank's "
             "(the tank size), so it never passes the stock maximum.",
             "A customer's thought looks at one of the selling tanks, picked by the game's Random.",
+            "A fish treated with the Radioactive Growth Hormone (DS Store Items) sold from Tanks 4-6 is paid "
+            "its species' highest selling price, exactly as from the Sale Tank: the mark moves with the "
+            "tank's block (see Radioactive Growth Hormone).",
             "With every toggle Off the sale is the stock sale, call for call.",
         ),
     ),

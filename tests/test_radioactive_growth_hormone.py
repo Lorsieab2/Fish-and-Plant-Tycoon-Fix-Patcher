@@ -319,6 +319,8 @@ class HormoneTests(unittest.TestCase):
                                  (forty, F_HEALTH, 100), (forty, F_DISEASE, 0),
                                  (old, F_HEALTH, 100), (old, F_DISEASE, 0)):
             struct.pack_into("<i", expected, at + field - emu.state, value)
+        for at in (fry, teen, adult, forty, old):                                   # treated: the highest price
+            struct.pack_into("<I", expected, at + 0x48 - emu.state, 0x58414D52)     # (test_radioactive_max_price)
         struct.pack_into("<i", expected, S_CURED, 11)
         struct.pack_into("<i", expected, SLOT3 + 8, 2)                             # one dose spent
         self.assertEqual(bytes(emu.uc.mem_read(emu.state, 0x1E3C8)), bytes(expected))

@@ -14,8 +14,10 @@
      * Radioactive Growth Hormone ($10,000, 3 doses): a chemical for slot #3,
        used like the stock Growth Hormone, on every live fish in the tank you
        look at, any age (the stock one stops at 40, 0x421125): each pregnant one first gives birth through the stock birth rules,
-       then each (the newborns too) becomes an adult (age 20) if younger,
-       gets full health (100) and is cured of its sickness;
+       then each fish that was there before the births becomes an adult
+       (age 20) if younger, gets full health (100), is cured of its sickness
+       and is marked: sold, it pays its species' highest selling price
+       (on_fish_sale);
      * Revival Potion ($10,000, 3 doses): a chemical for slot #3; each dose
        revives every dead fish in the tank you look at, at full health;
      * ClonaFish ($2,500, 3 doses): a chemical for slot #3; each dose adds an
@@ -57,6 +59,7 @@
 #include "store_sites.h"
 #include "../common/time_warp_popup.h"
 #include "store_data.h"
+#include "../common/max_sale_price.h"
 
 #define STATE_GLOBAL 0x0045ABDCu
 #define FISH_BASE 0x390
@@ -83,6 +86,8 @@
 #define F_BODY 0x4C
 #define F_FIN 0x50
 #define F_SPRITES 0x54
+#define F_RADIOACTIVE 0x48          /* the Radioactive Growth Hormone's mark (see on_fish_sale) */
+#define RADIOACTIVE_MARK 0x58414D52 /* "RMAX" */
 
 #define O_X 0x04
 #define O_Y 0x08
@@ -744,6 +749,9 @@ static int remove_out_rock(char *state, int tank) {
 /* 0x41E809, the trash after its "throw away?" answer: an eel takes a rock with it. */
 static void __cdecl fish_trashed(char *impl, int tank, int slot) {
     char *state = (char *)P(impl, 0x34);
+    if (state != NULL && tank >= 0 && tank <= 3 && slot >= 0 && slot < RECORDS
+        && *I(fish(state, tank, slot), F_RADIOACTIVE) == RADIOACTIVE_MARK)
+        *I(fish(state, tank, slot), F_RADIOACTIVE) = 0;    /* a treated fish thrown away: no mark left */
     if (state == NULL || tank < 0 || tank > 2) return;
     if (is_kind(record_at(state, tank, slot), FIN_EEL)) remove_out_rock(state, tank);
 }
@@ -944,6 +952,21 @@ static void __cdecl exotic_hatch(char *impl, int x, int y) {
    empties the slot at 0. */
 #define RGH_ITEM 29
 #define RGH_DOSES 3
+
+/* The owner, 2026-10-31 ("Always pays the max"): a fish given a dose sells for the highest price
+   the game would ever allow for its species.  The mark is the fish record's +0x48, a dword the
+   game never uses: the stock code touches it in exactly two places, the birth (0x41FA30, a new
+   fish's record starts at 0 there, at 0x41FAA7) and the field copy 0x41E850 (+0x48 copied as
+   is), and no instruction addresses +0x48 of a fish record in the game state (state + 0x390 +
+   tank * 0x51EC + slot * 0x288 + 0x48: no operand, any tank or slot); every other [reg + 0x48]
+   operand is on another object (tests/test_radioactive_max_price.py pins the list).  So the
+   mark goes wherever the record goes, with nothing else to change: AddFish copies the whole
+   0x288 bytes (0x419C99: moves between tanks, the isolation tank, ClonaFish's clones), Extra
+   Tanks swaps whole blocks (Tanks 4-6, and each one lent the Sale Tank's place to sell), and
+   the save is the state (Extra Tanks' sidecar the blocks).  RADIOACTIVE_MARK, never a plain
+   non-zero, so no stray value could ever count.  Cleared when the fish is sold (on_fish_sale),
+   dies (stub_death), is thrown away (fish_trashed) or revived (revival_dose).  F_RADIOACTIVE and
+   RADIOACTIVE_MARK are defined with the other record fields, at the top. */
 #define ADULT_AGE 20                /* adults are 20 and up: 0x4200AC, 0x420498 (sickness), 0x42426F (sales) */
 #define S_CURED 0x34                /* "Fish Cured", which the stock medicine cure adds to (0x420D2B) */
 /* The end of the stock Growth Hormone's fish loop, `cmp ebx, 0x3528` at 0x42118E: 21 records, or 26 with
@@ -1076,7 +1099,74 @@ static void __cdecl rgh_dose(char *impl) {
             *I(f, F_DISEASE) = 0;
             ++*I(state, S_CURED);
         }
+        *I(f, F_RADIOACTIVE) = RADIOACTIVE_MARK;          /* sells for the highest price (on_fish_sale) */
         *I(impl, 0x30) = CLOCK_NOW() + 7;
+    }
+}
+
+/* ------------------------------------------- treated fish: the highest price */
+
+/* A species' entry in the game's table (state + 0x14B40 + (body * 31 + fin) * 40: +0x20 the
+   asking price, +0x24 the base price), or, for a DS body, DS Exclusive Fish's own row
+   (FtfpDsFishEntry), where the sale's price reads (0x424034, 0x42405E, 0x423701) are sent. */
+#define SPECIES_TABLE 0x14B40
+#define SPECIES_ROW 31
+#define SPECIES_ENTRY 40
+#define E_PRICE 0x20
+typedef unsigned char *(__stdcall *ds_entry_fn)(char *state, int body, int fin);
+
+static unsigned char *species_entry(char *state, int body, int fin) {
+    if (body >= 0 && body <= MS_FISH_PC_LAST && fin >= 0 && fin < SPECIES_ROW)
+        return (unsigned char *)state + SPECIES_TABLE + (body * SPECIES_ROW + fin) * SPECIES_ENTRY;
+    if (ms_fish_is_ds(body)) {
+        HMODULE ds = GetModuleHandleW(L"DS Exclusive Fish.dll");
+        ds_entry_fn entry = ds != NULL ? (ds_entry_fn)GetProcAddress(ds, "FtfpDsFishEntry") : NULL;
+        return entry != NULL ? entry(state, body, fin) : NULL;
+    }
+    return NULL;
+}
+
+/* The price a sold fish pays: its asking price, or for a treated fish its species' highest selling
+   price (the Breeding Guide's "Highest selling" with Max effects: 2B - 1, B after Advertising
+   level 3; max_sale_price.h), never less than the asking price. */
+static int __cdecl sale_price(const char *f, int asking) {
+    int best;
+    if (f == NULL || *(const int *)(f + F_RADIOACTIVE) != RADIOACTIVE_MARK) return asking;
+    best = ms_fish_max_price(*(const int *)(f + F_BODY), *(const int *)(f + F_FIN));
+    return best > asking ? best : asking;
+}
+
+/* 0x4244D4, the sale roll's `call 0x424010` (thiscall scene; slot; ret 4), its only call: the sale
+   of Sale Tank slot `slot` (Tanks 4-6 sell there too, each lent the Sale Tank's place by Extra
+   Tanks for its roll).  The roll that chose the fish is over, so its chance and timing are the
+   asking price's, as stock.  For a treated fish the species' asking price is the highest selling
+   price for the length of this one sale, so everything the sale pays and records uses it: the
+   money (state + 0x38C), the money earned (state + 0x20) and the sold fish's price in the selling
+   scene (0x4236D0, scene + 0x28); then the asking price is put back and the mark cleared. */
+#define SCENE_STATE 0x70
+#define SALE_TANK 2
+static const DWORD k_sale = 0x00424010u;
+
+static void __fastcall on_fish_sale(char *scene, void *edx, int slot) {
+    char *state = (char *)P(scene, SCENE_STATE), *f = NULL;
+    unsigned char *entry = NULL;
+    int asking = 0, paid;
+    if (state != NULL && slot >= 0 && slot < RECORDS) {
+        f = fish(state, SALE_TANK, slot);
+        if (*I(f, F_RADIOACTIVE) == RADIOACTIVE_MARK)
+            entry = species_entry(state, *I(f, F_BODY), *I(f, F_FIN));
+    }
+    if (entry != NULL) {
+        asking = *I(entry, E_PRICE);
+        paid = sale_price(f, asking);
+        if (paid == asking) entry = NULL;
+        else *I(entry, E_PRICE) = paid;
+    }
+    __try {
+        GAME(this1_fn, k_sale)(scene, edx, slot);
+    } __finally {
+        if (entry != NULL) *I(entry, E_PRICE) = asking;
+        if (f != NULL && *I(f, F_RADIOACTIVE) == RADIOACTIVE_MARK) *I(f, F_RADIOACTIVE) = 0;
     }
 }
 
@@ -1112,6 +1202,7 @@ static void __cdecl revival_dose(char *impl) {
         char *f = fish(state, tank, s);
         if (*I(f, F_LIVE) == 0 || *I(f, F_HEALTH) > 0 || is_animal(f)) continue;
         *I(f, F_HEALTH) = FULL_METER;
+        if (*I(f, F_RADIOACTIVE) == RADIOACTIVE_MARK) *I(f, F_RADIOACTIVE) = 0;   /* death ended the treatment */
         if (now != 0) *I(f, F_LIVE) = now;
     }
 }
@@ -1300,8 +1391,8 @@ static const store_item ITEM[ITEMS] = {
         "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
     { FIN_RGH, 10000, 595, 90, 79, 72, SPR_ITEM_RGH, 48, 65,
       { "Radioactive Growth Hormone", "Radioaktive Wachstumshormone" },
-      { "Every fish in your tank gets full\nhealth and no sickness, young ones grow\nup at once, and pregnant ones give\nbirth to babies. Contains 3 doses.",
-        "Jeder Fisch in deinem Becken wird\nganz gesund und heil, junge werden\nsofort erwachsen, tr\xE4" "chtige geb\xE4" "ren\nBabys. Reicht f\xFCr 3 Behandlungen." } },
+      { "Every fish in your tank gets full health\nand no sickness, young ones grow up at\nonce, and pregnant ones give birth to\nbabies. Treated fish sell for the highest\npossible price! Contains 3 doses.",
+        "Jeder Fisch in deinem Becken wird ganz\ngesund und heil, junge werden sofort\nerwachsen, tr\xE4" "chtige geb\xE4" "ren Babys.\nBehandelte Fische werden zum H\xF6" "chstpreis\nverkauft! Reicht f\xFCr 3 Behandlungen." } },
     /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped to the panel. */
     { FIN_REVIVAL, 10000, 687, 90, 79, 72, SPR_ITEM_REVIVAL, 48, 65,
       { "Revival Potion", "Wiederbelebungstrank" },
@@ -2206,6 +2297,11 @@ __declspec(naked) static void stub_death(void) {
         test eax, eax
         popad
         jnz alive
+        /* It dies: a Radioactive Growth Hormone mark ends with it (edx = the state). */
+        cmp dword ptr [edi + edx + 0x390 + F_RADIOACTIVE], RADIOACTIVE_MARK
+        jne dead
+        mov dword ptr [edi + edx + 0x390 + F_RADIOACTIVE], 0
+    dead:
         jmp k_dead_join
     alive:
         jmp k_alive_join
@@ -2582,7 +2678,7 @@ __declspec(naked) static void stub_state_save(void) {
 }
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 31
+#define TOTAL_SITES 32
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -2635,6 +2731,7 @@ static int prepare(void) {
     CALL(w++, SUPPLY_DROP, stub_supply_drop);
     JMP(w++, AUTO_STEP, stub_auto_step);
     JMP(w++, OVERFEED, stub_overfeed);
+    CALL(w++, SALE, on_fish_sale);
     return (int)(w - writes) == TOTAL_SITES;
 }
 

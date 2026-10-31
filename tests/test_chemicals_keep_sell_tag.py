@@ -158,7 +158,8 @@ class SellTagTests(unittest.TestCase):
         self.use(emu, FORMULA, 7)
         self.assertEqual(emu.read32(pot + HEALTH), 100)                 # the formula ran
         self.assertEqual(emu.uc.mem_read(pot + 0x9C, 1)[0], 1)          # its one byte: the branch roll done
-        self.assertEqual(self.flags(emu, pot), bytes([1, 0, 0]))
+        # The mark byte holds 'R': treated, it sells for the highest price (test_radioactive_max_price).
+        self.assertEqual(self.flags(emu, pot), bytes([1, 0, ord("R")]))
         self.assertEqual(emu.read32(pot + PRICE), 1234)
 
     def test_the_formula_leaves_a_sold_plant_sold(self) -> None:
@@ -166,7 +167,7 @@ class SellTagTests(unittest.TestCase):
         pot = self.tagged(emu, 2)
         emu.uc.mem_write(pot + FOR_SALE, bytes([0, 1]))                 # bought by a visitor
         self.use(emu, FORMULA, 2)
-        self.assertEqual(self.flags(emu, pot), bytes([0, 1, 0]))
+        self.assertEqual(self.flags(emu, pot), bytes([0, 1, ord("R")]))
 
     def test_revita_seed_and_the_revival_potion_keep_the_tag_on_a_live_plant(self) -> None:
         for chemical, depleted in ((REVITA, True), (REVITA, False), (REVIVAL, False)):

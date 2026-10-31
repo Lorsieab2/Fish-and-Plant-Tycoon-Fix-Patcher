@@ -52,6 +52,7 @@
 #include "../ftfp_ds_fish/install_sites.h"
 #include "upgrade_sites.h"
 #include "../common/time_warp_popup.h"
+#include "../common/max_sale_price.h"
 
 #define FOLIAGES 23
 #define FIRST_NEW_FLOWER 24
@@ -80,6 +81,20 @@
 #define BOMB_PRICE 30000
 #define BOMB_NAME_ID 0x1F7
 #define POT_SEEDS_HELD_BACK 0x7C            /* see on_pollinated */
+/* The pot record's +0x9F, the padding after its three flag bytes that no game code reads or writes
+   (see restore_sale), is this DLL's one byte, with one of two marks that never meet:
+     * SALE_KEPT ('S'): a dead plant that was for sale when it died (the Revival Potion);
+     * RADIOACTIVE ('R'): a live plant given the Radioactive Plant Formula, by a dose or its Bomb
+       (the owner, 2026-10-31, "Always pays the max"): sold, it pays its species' highest selling
+       price (sale_price).
+   'R' is set only on a live plant (apply_formula returns on a dead one) and 'S' only on a dead
+   one (stub_dead_untag), which clears 'R' first: a plant that dies is no longer treated, and a
+   revived one is not treated either.  A sale (stub_sale_cash) and a new plant in the pot
+   (stub_plant_seed, every planting) clear it.  It is in the pot's record, so it goes wherever the
+   plant goes: the save (the state), and Extra Greenhouses' greenhouses and nurseries, which move
+   whole records (the off-screen nurseries sell with their pots arranged into the 15 spots). */
+#define POT_MARK 0x9F
+#define RADIOACTIVE 0x52                    /* 'R' */
 #define LINK_SPRITE 0x8B                    /* the one sprite id the game leaves free */
 #define EXTRA_BOXES 3
 #define BOX_PRICE 1000
@@ -326,6 +341,7 @@ static void __cdecl apply_formula(char *greenhouse, int col, int row, char *plan
     }
     if (AT(pot, 0x10, float) < 28.0f && AT(pot, 0x14, float) < 28.0f) AT(pot, 0x14, float) = 28.0f;
     formula_seeds(pot);
+    AT(pot, POT_MARK, unsigned char) = RADIOACTIVE;     /* sells for the highest price (sale_price) */
 }
 
 /* -------------------------------------------------------- Revival Potion */
@@ -398,7 +414,7 @@ static void price_as_planted(const char *state, char *pot) {
 #define POT_FOLIAGE 0x4C
 #define POT_AGE 0x10
 #define POT_FOR_SALE 0x9D
-#define POT_SALE_KEPT 0x9F
+#define POT_SALE_KEPT POT_MARK
 #define SALE_KEPT 0x53                      /* 'S': the plant was for sale when it died */
 #define MATURE_AGE (*(const float *)0x004677E8u)     /* 24.0: the Sell button's "old enough" */
 #define NURSERY_SPOTS 15
@@ -437,6 +453,7 @@ static void apply_revival(char *greenhouse, int col, int row, char *plant) {
     char *state = AT(greenhouse, 0x68, char *);
     char *pot = pot_at(greenhouse, col, row);
     if (AT(pot, POT_HEALTH, int) > 0) return;
+    if (AT(pot, POT_MARK, unsigned char) == RADIOACTIVE) AT(pot, POT_MARK, unsigned char) = 0;   /* died: not treated */
     AT(pot, POT_HEALTH, int) = 100;
     AT(pot, POT_DIED, int) = 0;
     AT(pot, POT_CLOCK, unsigned int) = game_clock();
@@ -504,6 +521,27 @@ static void apply_bomb(char *greenhouse) {
     }
 }
 
+/* ------------------------------------------- treated plants: the highest price */
+
+/* A visitor's purchase (0x435C70: the on-sale flag off, the sold flag on, one more plant sold,
+   then the species' asking price P read twice: into the money earned, state + 0x34, at
+   0x435CF2, and into the cash through 0x41ED70 at 0x435D12; then the visitor and the "+$" ring,
+   which keeps only the stand's place).  The buy roll that chose the plant (0x436BE0) is over, so
+   its chance and timing are the asking price's, as stock.  A plant with the RADIOACTIVE mark is
+   paid its species' highest selling price instead, at both reads: the Breeding Guide's "Highest
+   selling" with Max effects (the highest asking price a visitor still buys at with every effect at
+   its best; max_sale_price.h), never less than P.  The second read clears the mark.  The extra
+   nurseries' off-screen sales are this same code on their arranged pots. */
+#define POT_FLOWER 0x50
+
+static int __cdecl sale_price(char *pot, int asking, int sold) {
+    int best;
+    if (AT(pot, POT_MARK, unsigned char) != RADIOACTIVE) return asking;
+    best = ms_plant_max_price(AT(pot, 0x4C, int), AT(pot, POT_FLOWER, int));
+    if (sold) AT(pot, POT_MARK, unsigned char) = 0;
+    return best > asking ? best : asking;
+}
+
 /* The chemical-use switch's new chemicals (the dose is already spent, stock order). */
 static void __cdecl apply_chemical(char *greenhouse, int col, int row, char *plant, int id) {
     switch (id) {
@@ -563,7 +601,7 @@ static const char LEGENDARY_DESC[] =
     "These ultra-rare seeds were only recently\nrediscovered on Isola and require the\nbest of care to survive.";
 static const char FORMULA_TITLE[] = "Radioactive Plant Formula\n";
 static const char FORMULA_DESC[] =
-    "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves! Always 5 seeds!\nContains 3 doses.\n";
+    "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves! Always 5 seeds!\nTreated plants sell for the highest\npossible price! Contains 3 doses.\n";
 static const char FORMULA_NAME[] = "Radioactive Plant Formula";
 /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped as the formula's. */
 static const char REVIVAL_TITLE[] = "Revival Potion\n";
@@ -576,7 +614,7 @@ static const char REVITA_DESC[] =
 static const char REVITA_NAME[] = "Revita-Seed";
 static const char BOMB_TITLE[] = "Radioactive Plant Formula Bomb\n";
 static const char BOMB_DESC[] =
-    "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nContains 3 doses.\n";
+    "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nTreated plants sell for the highest\npossible price! Contains 3 doses.\n";
 static const char BOMB_NAME[] = "Radioactive Plant Formula Bomb";
 static const char BOX_TITLE_4[] = "Fourth Seed Box";
 static const char BOX_TITLE_5[] = "Fifth Seed Box";
@@ -1242,6 +1280,9 @@ static const DWORD k_hover_back = SITE_STORE_HOVER_BACK;
 static const DWORD k_joint_free_back = SITE_JOINT_FREE_BACK;
 static const DWORD k_plant_seed_back = SITE_PLANT_SEED_BACK;
 static const DWORD k_dead_untag_back = SITE_DEAD_UNTAG_BACK;
+static const DWORD k_sale_record_back = SITE_SALE_RECORD_BACK;
+static const DWORD k_sale_cash_back = SITE_SALE_CASH_BACK;
+static const DWORD k_add_cash = 0x0041ED70u;
 static const DWORD k_sprite_draw = 0x004208F0u;
 static const float k_one = 1.0f;
 
@@ -1689,12 +1730,55 @@ __declspec(naked) static void stub_plant_seed(void) {
    first marking the pot when the flag was set (restore_sale).  No flags are live here. */
 __declspec(naked) static void stub_dead_untag(void) {
     __asm {
+        cmp byte ptr [eax + POT_MARK], RADIOACTIVE       /* dead: no longer treated */
+        jne untag
+        mov byte ptr [eax + POT_MARK], 0
+    untag:
         cmp byte ptr [eax + POT_FOR_SALE], 0
         je clear
         mov byte ptr [eax + POT_SALE_KEPT], SALE_KEPT
     clear:
         mov byte ptr [eax + POT_FOR_SALE], 0
         jmp k_dead_untag_back
+    }
+}
+
+/* 0x435CF2 in the sale (eax = the state, ecx = the price's index, edi = the pot's offset from the
+   first pot, state + 0x2188): the money earned gets the price sale_price gives. */
+__declspec(naked) static void stub_sale_record(void) {
+    __asm {
+        mov edx, [eax + ecx * 4]
+        pushad
+        push 0
+        push edx
+        lea edx, [eax + edi + 0x2188]
+        push edx
+        call sale_price
+        add esp, 12
+        mov [esp + 20], eax            /* edx in the pushad frame */
+        popad
+        add dword ptr [eax + 0x34], edx
+        jmp k_sale_record_back
+    }
+}
+
+/* 0x435D12 (ecx = the state, eax = the price's index, edi = the pot's offset): the cash gets the
+   same price, and the mark is spent. */
+__declspec(naked) static void stub_sale_cash(void) {
+    __asm {
+        mov edx, [ecx + eax * 4]
+        pushad
+        push 1
+        push edx
+        lea edx, [ecx + edi + 0x2188]
+        push edx
+        call sale_price
+        add esp, 12
+        mov [esp + 20], eax
+        popad
+        push edx
+        call dword ptr [k_add_cash]
+        jmp k_sale_cash_back
     }
 }
 
@@ -1810,7 +1894,7 @@ static const char CHEM_SHEET_FILE[] = "Chemicals_Grid_upgrades.png";
 static const char LINK_FILE[] = "upgrades_link.png";
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 25
+#define CODE_SITES 27
 #define DATA_SITES 6
 #define TOTAL_SITES (CODE_SITES + DATA_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
@@ -1867,6 +1951,8 @@ static int prepare(void) {
     JMP(w++, UNIT_TOP, stub_unit_top);
     JMP(w++, UNITS_DONE, stub_units_done);
     JMP(w++, DEAD_UNTAG, stub_dead_untag);
+    JMP(w++, SALE_RECORD, stub_sale_record);
+    JMP(w++, SALE_CASH, stub_sale_cash);
     site_data(w++, SITE_CHEM_PICTURE_BOUND_VA, SITE_CHEM_PICTURE_BOUND_LEN, SITE_CHEM_PICTURE_BOUND_EXPECT, NULL, 0);
     writes[CODE_SITES].bytes[SITE_CHEM_PICTURE_BOUND_IMM_AT] = bound;
     site_data(w++, SITE_SEED_SHEET_FILE_VA, SITE_SEED_SHEET_FILE_LEN, SITE_SEED_SHEET_FILE_EXPECT, &seed_file, 4);

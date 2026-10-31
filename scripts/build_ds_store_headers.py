@@ -81,6 +81,10 @@ SITES = [
     # The feeding's overfeeding test (a fish whose food passed 100): with the Auto-Feeder owned no
     # fish loses health there, as the seahorse never does.
     ("overfeed", 0x4121F4, ["cmp dword ptr [edx + ebx + 0x3dc], 0x16", "je 0x41220d"]),
+    # The sale roll's call of the sale itself (0x424010: price, money, "fish sold", the sold fish's
+    # picture and price, REMOVE_FISH(2, slot)), its only caller: a fish treated with the Radioactive
+    # Growth Hormone is sold for its species' highest selling price.
+    ("sale", 0x4244D4, ["call 0x424010"]),
 ]
 
 # The Supplies scene's vtable (0x44C294): slot address -> the function it holds.

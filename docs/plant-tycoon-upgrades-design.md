@@ -132,7 +132,8 @@ a New Flowers site).
 | joint_free | 0x42D330 | "is this flower spot free?": every spot answers free while the formula flowers |
 | plant_seed | 0x42FCDD | planting: a new plant's formula mark (+0x7C) starts at 0 |
 | unit_top / units_done | 0x42E134 / 0x42E2DF | Automatic Sprinklers and the Auto-Healer, each age unit and after the loop (below) |
-| dead_untag | 0x42DF91 | the plant update's dead-plant untag: remembers a plant was for sale (+0x9F) for the Revival Potion (below) |
+| dead_untag | 0x42DF91 | the plant update's dead-plant untag: remembers a plant was for sale (+0x9F) for the Revival Potion (below); a dead plant loses the formula's 'R' mark |
+| sale_record / sale_cash | 0x435CF2 / 0x435D12 | a visitor's purchase (0x435C70): a plant treated with the formula pays its species' highest selling price into Money Earned and the cash (below) |
 | chem_picture_bound | 0x4308D3 | immediate 0x24 -> 0x28: the dialog draws chemicals 36-39 |
 | seed/chem sheet records, link record | 0x485F4C, 0x485F5C, 0x4875A4, 0x4875B4, 0x4882D4 | the sprite records above |
 
@@ -246,6 +247,30 @@ the pots are addressed as the stock chemicals address them
 (`state + 0x2188 + (row * 5 + col) * 0x5600`) and the bomb's range is the
 stock bomb's; an extra-greenhouse build that swaps its pots into those 15
 records is reached, one that does not must hook these the same way.
+
+## Treated plants sell for the highest price (owner, 2026-10-31: "Always pays the max")
+
+Every live plant `apply_formula` reaches (a Formula dose or the Bomb) gets
+`'R'` (`0x52`) in its pot's `+0x9F`, the byte proven unused above, which the
+Revival Potion's `'S'` shares: `'S'` is only ever on a dead plant and `'R'`
+only on a live one, because `stub_dead_untag` (every update of a dead plant)
+clears `'R'` before it may set `'S'`, and the Revival Potion clears an `'R'`
+it finds; `restore_sale` tests for `'S'` alone. Planting (`plant_seed`) clears
+the byte. It is in the pot's record, so it goes with the plant through Extra
+Greenhouses' whole-record moves, its nurseries (the plants for sale arranged
+into the 15 spots, the off-screen ones too) and the save.
+
+A visitor's purchase (`0x435C70`) reads the species' asking price twice,
+after New Flowers' index stubs: `0x435CF2` (`mov edx, [eax + ecx*4]; add
+[eax + 0x34], edx`, Money Earned) and `0x435D12` (`mov edx, [ecx + eax*4];
+push edx; call 0x41ED70`, the cash). The two stubs replace that price with
+`sale_price(pot, P, sold)`: for an `'R'` pot the species' highest selling
+price, `native/common/max_sale_price.h` (the Breeding Guide's
+`prices(key, "max").highest_selling`: the highest asking price whose price
+seen with every effect at its best stays below 2V; never less than P; a
+Fabled Lemonbush $1186), and the second clears the mark. The buy roll
+(`0x436BE0`) that chose the plant is over, so its chance is P's. The extra
+nurseries' off-screen sales are this same code on their arranged pots.
 
 ## Live checks (test copy with the sdlpoke test shim)
 
