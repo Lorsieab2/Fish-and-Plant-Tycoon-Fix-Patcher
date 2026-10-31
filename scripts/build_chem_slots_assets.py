@@ -13,7 +13,7 @@ scale 1: the plant game's draw (0x4208F0) ignores its scale argument.
   standing on that line, inside the item's click rectangle (cell x 12..57, y 8..60).
 * Row 19, frames 38 and 39: the greenhouse's page arrows, the game's gold rightarrow.png and
   leftarrow.png (first frame, their 45 x 45 art) shrunk to ARROW_SIZE and set at the cell's top
-  left; Extra Chemical Slots.dll draws the cell at (136, 104), on the Tools box's plaque.
+  left; Extra Chemical Slots.dll draws them at (0, 178) and (199, 178), beside the Tools box.
 """
 
 from __future__ import annotations

@@ -1469,7 +1469,10 @@ static int __cdecl supply_trash(char *impl, int x, int y) {
    the mouse is over it, in the game's own popup style.  The stock game has no tooltips; its one
    on-screen popup is the hint panel (0x417E90): the rope-edged box of the hint object (its
    vtable[1], 0x423280: the fill colour at +0x14 inside a rectangle, CUSTOMPOPUP_FTROPESTYLE_BAR_*
-   along its edges) with centred text in the hint font (0x408C30, the font at 0x45B26C).  The tank
+   along its edges) with centred text (0x408C30: thiscall graphics (text, left, right, y, colour,
+   font); colour 0x45B26C, never written, so 0 = the default white; font 0 = the graphics' default
+   font, its impl + 0x34).  The box is as wide as the text in that default font, kept on screen
+   with room for its rope edge.  The tank
    screen's overlay draws the hint last (0x41D127, after what the hand holds); when no hint is up
    and nothing is held, the slot under the mouse gets a box of the same kind just under the top bar.
    The slot boxes are 0x41E450's (0x45B2A8).  With "Extra supply slots" the slot a position shows
@@ -1487,9 +1490,10 @@ static int __cdecl supply_trash(char *impl, int x, int y) {
 #define TIP_TOP 60                          /* just under the 57-pixel top bar */
 #define FOOD_ITEM 0x17
 #define STARTER_EGGS 26
-#define S_HINT_FONT (*(void **)(UINT_PTR)0x0045B26Cu)
+#define S_HINT_COLOUR (*(int *)(UINT_PTR)0x0045B26Cu)
+#define TIP_MARGIN 12                       /* the rope edge drawn outside the box, and a little more */
 #define MOUSE_POS GAME(mouse_pos_fn, 0x00402060u)
-#define CENTRE_TEXT GAME(this6_fn, 0x00408C30u)       /* (text, left, right, y, font, attr) */
+#define CENTRE_TEXT GAME(this6_fn, 0x00408C30u)       /* (text, left, right, y, colour, font) */
 #define TEXT_WIDTH GAME(text_width_fn, 0x004023D0u)    /* font (text, scale) */
 typedef int (__cdecl *mouse_pos_fn)(int *pt);
 typedef int (__fastcall *text_width_fn)(void *font, void *edx, const char *text, float scale);
@@ -1581,8 +1585,15 @@ static void left_line(char *out, int item, int n, int de) {
     out[at] = '\0';
 }
 
-static int text_width(const char *text) {
-    void *font = S_HINT_FONT;
+/* The font 0x408C30 draws in when given none: the graphics impl's + 0x34. */
+static void *default_font(char *impl) {
+    char *graphics = (char *)P(impl, 0x54);
+    char *g = graphics != NULL ? *(char **)graphics : NULL;
+    return g != NULL ? *(void **)(g + 0x34) : NULL;
+}
+
+static int text_width(char *impl, const char *text) {
+    void *font = default_font(impl);
     return font != NULL && text != NULL ? TEXT_WIDTH(font, NULL, text, 1.0f) : 0;
 }
 
@@ -1605,16 +1616,16 @@ static int __cdecl slot_tooltip(char *impl, int hint_shown) {
     item = *I((void *)r, SR_ITEM);
     if ((name = slot_name(item, de)) == NULL) return 0;
     lines = 1;
-    w = text_width(name);
+    w = text_width(impl, name);
     if (item != FOOD_ITEM) {
         left_line(left, item, uses_left(item, *I((void *)r, SR_COUNT)), de);
-        if (text_width(left) > w) w = text_width(left);
+        if (text_width(impl, left) > w) w = text_width(impl, left);
         lines = 2;
     }
     w += 2 * TIP_PAD_X;
     rect[0] = (TIP_SLOT[p][0] + TIP_SLOT[p][2]) / 2 - w / 2;
-    if (rect[0] < 4) rect[0] = 4;
-    if (rect[0] + w > 796) rect[0] = 796 - w;
+    if (rect[0] < TIP_MARGIN) rect[0] = TIP_MARGIN;
+    if (rect[0] + w > 800 - TIP_MARGIN) rect[0] = 800 - TIP_MARGIN - w;
     rect[1] = TIP_TOP;
     rect[2] = rect[0] + w;
     rect[3] = TIP_TOP + 2 * TIP_PAD_Y + lines * TIP_LINE;
@@ -1624,10 +1635,10 @@ static int __cdecl slot_tooltip(char *impl, int hint_shown) {
         ((this1_fn)vtable[1])(hint, NULL, (int)(UINT_PTR)rect);       /* the hint's own box (0x423280) */
     }
     CENTRE_TEXT(P(impl, 0x54), NULL, (int)(UINT_PTR)name, rect[0], rect[2], TIP_TOP + TIP_PAD_Y,
-                (int)(UINT_PTR)S_HINT_FONT, 0);
+                S_HINT_COLOUR, 0);
     if (lines == 2) {
         CENTRE_TEXT(P(impl, 0x54), NULL, (int)(UINT_PTR)left, rect[0], rect[2], TIP_TOP + TIP_PAD_Y + TIP_LINE,
-                    (int)(UINT_PTR)S_HINT_FONT, 0);
+                    S_HINT_COLOUR, 0);
     }
     return 1;
 }

@@ -235,10 +235,10 @@ Plant Tycoon options:
 - Extra chemical slots (EXPERIMENTAL - USE AT OWN RISK. Off by default;
   turns on the store's Upgrades screen. Buy Extra Chemical Slots there once,
   $10,000 ($0 with Free upgrades): the item on the chemicals shelf under the
-  Formula Bomb. Then a small gold arrow and "1/2" on the plaque of the
-  greenhouse's Tools box turn to page 2: 8 more chemical slots in both rows
-  (12 in all; the tools stay on page 1). Click the arrow, or carry a chemical
-  over it. The store fills page 2 once page 1 is full, every chemical works
+  Formula Bomb. Then a small gold arrow on each side of the greenhouse's
+  Tools box ("1/2" under the right one) turns to page 2: 8 more chemical
+  slots in both rows (12 in all; the tools stay on page 1). Click either
+  arrow, or carry a chemical over one. The store fills page 2 once page 1 is full, every chemical works
   from page 2, and a chemical in your hand can be put on any slot of either
   page (moved, stacked or swapped). Every chemical slot shows its name and
   doses left when you point at it. Turning it off loses nothing: loading a
@@ -275,6 +275,13 @@ Getting a plant into a nursery (5 extra nurseries):
   in the nursery, all your nurseries sell at once (the visitors you see are
   the ones of the nursery on screen). Away from the nursery nothing sells,
   as in the unpatched game.
+
+Tools tab, Copy Player Slot: pick the game, a save folder, the player to
+copy, an empty slot to copy to and a new name, then Copy and Yes. The copy
+gets the player's whole game and the patcher's own files for it (extra
+tanks or greenhouses, supply slots, DS fish and the rest); the original is
+not changed. Close the game first. The save folder is backed up first, as
+"Backup <date> (before copy)", so Restore Saves can undo it.
 
 Tools tab, Breeding Guide: pick the game, a save folder and a player. Tabs
 for each part (Fish: Fins and Bodies; Plant: Flowers and Foliage), the
