@@ -136,6 +136,25 @@ class FishDrawMatchesTheGame(unittest.TestCase):
             self.check(pf.Fish(body, 5, 30, 0), 1, 0, pf.STAGE_ADULT, 50, f"dead {body}")
             self.check(pf.Fish(body, 5, 30, -3), 0, 4, pf.STAGE_ADULT, 50, f"dead {body}, health below 0")
 
+    def test_eggs_are_the_tank_effects_draw(self) -> None:
+        """Eggs dropped in a tank: the game's effects pass (0x410F50) on an effect set up as
+        0x410CE6 sets the eggs (sprite 0x70, alpha 175) draws each frame as plan_eggs does, and
+        frame 16 wraps to the first picture. Age 0 (an unhatched fish) is not drawn at all."""
+        emu = self.emu
+        for frame in range(pf.EGG_FRAMES + 2):
+            emu.emu.uc.mem_write(emu.view, bytes(66 * 0x40))
+            slot = emu.view
+            for at, value in ((0, 0xF), (4, 0x70), (0xC, frame), (0x10, 9), (0x28, 1000), (0x2C, 1000),
+                              (0x34, 7), (0x38, 0x12), (0x3C, 0xAF)):
+                emu.emu.write32(slot + at, value)
+            emu.emu.write8(slot + 0x30, 1)
+            emu.emu.write8(slot + 0x31, 1)
+            emu.blits = []
+            emu.emu.call(0x00410F50, ecx=emu.view)
+            self.assertEqual(self.expected(pf.plan_eggs(frame, 1000, 1000)), self.recorded(emu.blits), frame)
+        self.assertEqual(self.emu.table_entry(pf.SPR_EGGS), pf.sheet(pf.SPR_EGGS))
+        self.assertIsNone(pf.stage_of(pf.Fish(3, 4, 0)))       # 0x415460: age 0 is not drawn
+
     def test_teens_at_every_age_and_babies(self) -> None:
         for body in (0, 3, 9, 13, 20):
             for age in range(6, 20):

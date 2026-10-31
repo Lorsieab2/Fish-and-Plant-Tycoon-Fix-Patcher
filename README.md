@@ -890,7 +890,11 @@ folder never fails with "path too long".
     age, growth and health; "Save all in this greenhouse".
   - Make your own, Fish Tycoon: Fin, Body, Stage (baby, teen at every age
     6-19, adult) and State (healthy, ick, fungus, dead), facing left or right
-    or turning (Facing), at any frame; creatures and decorations on their own tabs.
+    or turning (Facing), at any frame; creatures and decorations on their own tabs,
+    and Eggs: the 16 pictures of eggs dropped into a tank, as the game's tank
+    effect draws them. The game draws nothing for a fish before it hatches
+    (age 0); a hatched fish is a baby (the fry) until age 6. It has no old age
+    and no belly-up pose apart from the dead pictures.
     The DS Exclusive Fish bodies and fins, DS Store Items' animals and the
     eel's rock are always offered, marked "(patcher)": their pictures ship
     with the patcher, so no setting needs to be found for the save.

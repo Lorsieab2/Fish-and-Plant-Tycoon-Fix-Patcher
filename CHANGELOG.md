@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Picture Studio: fish eggs.** Make your own has an Eggs tab: the 16
+  pictures of eggs dropped into a tank, see-through as the game's tank effect
+  draws them (checked against the game's effects pass in Unicorn). The Baby
+  stage is named "Baby, just hatched". The game draws nothing for a fish
+  before it hatches (age 0), and has no old-age look.
 - **Picture Studio: unused plant parts.** A new Make your own tab, "Unused
   parts", draws the 12 parts in Plant Tycoon's own shape tables that no plant
   ever grows (no constructor makes them: checked in Unicorn with every way of

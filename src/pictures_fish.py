@@ -77,7 +77,7 @@ STOCK_SHEETS = {
     19: ("ITEM_snail_h_right.png", 0, 0), 20: ("ITEM_snail_vleft_down.png", 0, 0),
     34: ("FISH_baby_Grid.png", 18, 1), 35: ("FISH_teen_dead_Grid.png", 4, 1),
     36: ("FISH_teen_Grid.png", 18, 21), 37: ("FISH_adult_dead_Grid.png", 7, 3),
-    101: ("seahorse_body_Grid.png", 16, 2),
+    101: ("seahorse_body_Grid.png", 16, 2), 112: ("eggs_Grid.png", 16, 1),
     177: ("shell02.png", 0, 0), 178: ("pagoda1.png", 0, 0), 179: ("diverblue.png", 0, 0),
     180: ("column01.png", 0, 0), 181: ("beigecoral.png", 0, 0), 182: ("junk1.png", 0, 0),
 }
@@ -89,6 +89,17 @@ STORE_SHEETS = {                                      # ftfp_ds_store.c SPRITE_F
     SPR_ROCK_HOME: ("DS_EEL_ROCK.png", 0, 0), SPR_HOME_BACK: ("DS_EEL_HOME_BACK_Grid.png", 4, 8),
     SPR_HOME_FRONT: ("DS_EEL_HOME_FRONT_Grid.png", 4, 8), SPR_PUFF: ("DS_PUFFER_PUFF_Grid.png", 4, 2),
 }
+
+
+# Eggs dropped into a tank: the tank's effect 15 (set up at 0x410CE6: sprite 0x70, eggs_Grid.png,
+# surface alpha 175), drawn by the effects pass 0x410F50 at cell = its frame (16 cells, wrapping).
+# No fish is drawn before it hatches (age 0, 0x415460); a hatched fish is a baby (fry) to age 5.
+SPR_EGGS, EGGS_ALPHA, EGG_FRAMES = 112, 175, 16
+
+
+def plan_eggs(frame: int, x: int = 0, y: int = 0) -> list:
+    """0x410F50 for the eggs effect: its grid cell at (x, y), alpha 175, unscaled."""
+    return [draw_cell(SPR_EGGS, x, y, frame % EGG_FRAMES, alpha=EGGS_ALPHA)]
 
 
 def is_ds(gene: int) -> bool:
@@ -644,7 +655,7 @@ MODE_OF = {key: mode for key, _l, mode in FACINGS}
 
 
 def _stage_options() -> tuple:
-    out = [Option("baby", "Baby (age 1-5)")]
+    out = [Option("baby", "Baby, just hatched (age 1-5)")]
     out += [Option(f"teen{a}", f"Teen, age {a} ({a * 3 + 82}%)") for a in range(6, 20)]
     out.append(Option("adult", "Adult (age 20 and up)"))
     return tuple(out)
@@ -876,7 +887,12 @@ class FishRenderer:
             Field("shadow", "Shadow", (Option(True, "With its shadow in the gravel"), Option(False, "No shadow")), True),
             Field("home_frame", "Eel at home: frame", tuple(Option(k, f"Frame {k + 1}") for k in range(HOME_IDLE + HOME_ACTION)), 0)),
             note="Ornaments rest on a shadow in the gravel, as in the tank; plants and equipment are drawn as the tank shows them.")
-        return [fish, creature, decoration]
+        eggs = Subject("eggs", "Eggs", (
+            Field("egg_frame", "Frame", tuple(Option(k, f"Frame {k + 1}") for k in range(EGG_FRAMES)), 0),),
+            note="Eggs dropped into a tank, as the game's tank effect draws them (16 pictures as they fall "
+                 "and spread, see-through as in the game). The game draws nothing else for an egg: a fish "
+                 "is not drawn before it hatches (age 0), then it is a baby (the Fish tab's Baby stage).")
+        return [fish, creature, decoration, eggs]
 
     def plan_custom(self, spec: dict) -> list[Draw]:
         subject = spec.get("subject")
@@ -922,6 +938,8 @@ class FishRenderer:
             if key.startswith("img"):
                 return [draw_cell(int(key[3:]), 0, 0)]
             raise PictureError("Pick a decoration.")
+        if subject == "eggs":
+            return plan_eggs(int(spec.get("egg_frame", 0) or 0))
         raise PictureError("Pick what to draw.")
 
     def render_custom(self, spec: dict) -> pi.Image:

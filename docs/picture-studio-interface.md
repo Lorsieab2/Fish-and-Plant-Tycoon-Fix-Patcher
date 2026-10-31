@@ -138,6 +138,8 @@ Additions since the first version:
 - The patcher's own parts (DS Exclusive Fish genes 23-29, DS Store Items' animals and rock, the
   Unused Flowers 24-37) are always offered (`Option.patcher`), whatever `extras` holds: their art
   ships in `assets/` (`patcher_art`). The window reads discoveries with the extras on.
+- Fish Tycoon's Eggs tab: the tank effect 15 (0x410CE6, eggs_Grid.png, alpha 175) drawn by the
+  effects pass 0x410F50, 16 frames. Nothing is drawn for an unhatched fish (age 0).
 - Make your own, by the owner's spec: Fish has Fin, Body, Stage (baby, teen at each age 6-19,
   adult), State (healthy, ick, fungus, dead), Facing and Frame; Plant has Flower, Foliage and a
   Stage of seed / sprout / seedling / growing / budding / normal bloom / max bloom / max bloom +
