@@ -201,6 +201,26 @@ class SpoilerTests(unittest.TestCase):
         self.assertEqual(cp.row((13, 6))[:5], ["Wasp Grouper", "Grouper", "Wasp", cp.by_key[(13, 6)].rarity, "No"])
         self.assertIn("not collected yet", cp.tooltip((13, 6)))
 
+    def test_spoilers_on_lists_every_combination_named_in_both_games(self) -> None:
+        """Show Spoilers on: every fin x body / foliage x flower, the DS and Unused ones too,
+        is listed and named, ticked or not; nothing is "?" (the owner's rule)."""
+        make_save(self.folder, 1, {**FISH_FOUND, **DS_IN_SAVE}, ds_columns=True)
+        make_sidecar(self.folder, 1, DS_IN_SIDECAR)
+        make_plant_save(self.folder, 2, PLANT_FOUND)
+        make_new_flowers(self.folder, 2, NEW_FOUND)
+        for game, slot, total in (("fish", 1, 28 * 28), ("plant", 2, 23 * 37)):
+            cp = bc.Collectopedia(view_for(game, self.folder, slot, True))
+            self.assertTrue(cp.model.extras, game)
+            sheet = cp.sheet("all")
+            self.assertEqual(len(sheet.rows), total, game)
+            self.assertEqual(set(sheet.keys), every_key(cp))
+            self.assertEqual({r[0] for r in sheet.rows}, {s.name for s in cp.species})
+            texts = [c for r in sheet.rows for c in r] + [cp.part_label(p) for p in cp.rows + cp.cols]
+            self.assertNotIn("?", texts, game)
+            self.assertTrue(all(cp.named(k) for k in every_key(cp)))
+            self.assertFalse([k for k in every_key(cp) if cp.tooltip(k).startswith("Not collected yet")])
+            self.assertEqual(len(cp.sheet("missing").rows), total - len(ticked(cp)))
+
     def test_filters(self) -> None:
         make_save(self.folder, 1, FISH_FOUND)
         cp = bc.Collectopedia(view_for("fish", self.folder, 1, False))
@@ -354,6 +374,37 @@ class WindowTests(unittest.TestCase):
         c = self.guide.collect
         self.assertEqual(len(c["cells"]), len(c["cp"].species))
         self.assertEqual((c["cp"].row_kind, c["cp"].col_kind), ("foliage", "flower"))
+
+    def test_spoilers_on_shows_every_combination_named_and_pictured(self) -> None:
+        """Both games, Show Spoilers on: every box (N of N) and every part named, each part
+        with its picture, no "?" anywhere in the grid; the side panel pictures any species."""
+        from test_breeding_pictures import make_fish_copy, make_plant_copy
+        guide = self.guide
+        guide.spoilers_var.set(True)
+        self.root.update()
+        for game, make in (("Fish Tycoon", make_fish_copy), ("Plant Tycoon", make_plant_copy)):
+            guide.game_var.set(game)
+            self.root.update()
+            copy = make(Path(self.tmp.name) / game)
+            guide.art_source = lambda copy=copy, g=guide: bg.breeding_pictures.Pictures(
+                g.model.game, bg.breeding_pictures.ArtSource(copy))
+            guide._refresh()
+            self.root.update()
+            c = guide.collect
+            cp = c["cp"]
+            self.assertEqual(len(c["state"]), len(cp.species), game)
+            self.assertNotIn("?", {m for m, _on in c["state"].values()}, game)
+            self.assertFalse([t for t in c["labels"].values() if t.startswith("?")], game)
+            parts = {(p.kind, p.index) for p in cp.rows + cp.cols}
+            self.assertEqual(set(c["thumbs"]), parts)
+            self.assertTrue(all(image is not None for image in c["thumbs"].values()), game)
+            names = {guide.trees["collectopedia"].item(i, "values")[0]
+                     for i in guide.trees["collectopedia"].get_children()}
+            self.assertEqual(names, {s.name for s in cp.species})
+            key = next(k for k in c["cells"] if not cp.ticked(k))          # an uncollected one
+            guide._collect_panel(key)
+            self.assertTrue(c["picture_a"].cget("image") and c["picture_b"].cget("image"), game)
+            self.assertIn(cp.by_key[key].name, c["picked_text"].cget("text"))
 
 
 class SeedGridTests(unittest.TestCase):
