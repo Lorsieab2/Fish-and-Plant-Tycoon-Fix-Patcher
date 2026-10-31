@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.0.18
 
 - **Picture Studio** (Tools tab, new). Shows the fish, creatures and
   decorations in a Fish Tycoon save, tank by tank (Tanks 4-6 too), and
