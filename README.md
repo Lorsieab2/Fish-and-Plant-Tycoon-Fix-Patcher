@@ -842,11 +842,21 @@ folder never fails with "path too long".
     Ornaments' copies, plants and equipment), each at its own age and state.
     As in the game, a fish is named only from age 20: with Show Spoilers off
     younger ones are "Baby fish" / "Teen fish", in the list and in file names.
-    "Save all in this tank" saves every picture in it into a new folder.
-  - Make your own: Fin, Body, Stage (baby, teen at every age 6-19, adult) and
-    State (healthy, ick, fungus, dead), swimming left, right or turning, at
-    any frame; creatures and decorations on their own tabs. With Show Spoilers
-    off (the Breeding Guide's setting) only the parts you have discovered.
+    "Save all in this tank" saves every picture in it into a new folder. In
+    Plant Tycoon: every pot, greenhouse by greenhouse (Greenhouses 2-6 from
+    "Extra Greenhouses <slot>.dat"), and the decorations, each plant at its own
+    age, growth and health; "Save all in this greenhouse".
+  - Make your own, Fish Tycoon: Fin, Body, Stage (baby, teen at every age
+    6-19, adult) and State (healthy, ick, fungus, dead), swimming left, right
+    or turning, at any frame; creatures and decorations on their own tabs.
+  - Make your own, Plant Tycoon: Flower, Foliage (the Unused Flowers too with
+    that setting), Stage (seedling, budding, normal bloom, max bloom, max
+    bloom with every effect, as after the Radioactive Plant Formula, and dead),
+    the plant's starting shape and its pot; decorations, bugs and pots on
+    their own tabs. The game draws no wilting or infested look: a plant is
+    drawn alive or dead (0x42E4A0 checks only health 0).
+  - With Show Spoilers off (the Breeding Guide's setting) Make your own offers
+    only the parts you have discovered.
   - PNG sizes: the game's own size, 2x or 4x (crisp), or any width and height
     (smooth); cut to the drawn pixels with a small clear margin, or none.
 
@@ -855,7 +865,10 @@ folder never fails with "path too long".
   `tests/test_pictures_fish.py`, which runs the game's fish draw (0x4145F0),
   sprite setup (0x415DF0), ornament pass (0x41D600) and blitter (0x4041C0) in
   Unicorn on the vanilla executable and checks every draw against the plan
-  (and the DS Exclusive Fish rules against the companion's own C). The
+  (and the DS Exclusive Fish rules against the companion's own C), and
+  `src/pictures_plant.py`, proven by `tests/test_pictures_plant.py` against
+  Plant Tycoon's own pot, plant, branch and flower draws (0x42F740, 0x42E4A0,
+  0x42E690, 0x42D9C0), its growth and its scaler (0x404610). The
   pictures come from your own copy of the game, kept in a "Picture Studio
   Pictures" folder beside the patcher, as the Breeding Guide's. See
   [docs/picture-studio-interface.md](docs/picture-studio-interface.md).

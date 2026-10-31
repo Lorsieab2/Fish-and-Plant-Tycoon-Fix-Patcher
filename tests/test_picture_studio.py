@@ -202,12 +202,74 @@ class WindowTests(unittest.TestCase):
         self.assertIn("Show Spoilers", help_window.help_text.get("1.0", "end"))
         help_window.destroy()
 
-    def test_plant_tycoon_without_its_renderer_says_so(self) -> None:
-        if ps.load_renderer_module("plant") is not None:
-            self.skipTest("the Plant Tycoon renderer is in this build")
+    def test_plant_tycoon_has_its_renderer(self) -> None:
+        self.assertIsNotNone(ps.load_renderer_module("plant"), "src/pictures_plant.py ships with the Studio")
         self.studio.game_var.set("Plant Tycoon")
         self.root.update()
-        self.assertEqual(self.studio.status_var.get(), ps.COMING)
+        self.assertNotEqual(self.studio.status_var.get(), ps.COMING)
+        self.assertEqual([self.studio.notebook.tab(t, "text") for t in self.studio.notebook.tabs()],
+                         ["From my save", "Make your own"])
+
+
+PLANT_VANILLA = Path.home() / "Downloads" / "Current Modded LDW Games and Dumps" / "Vanilla Games" / "Plant Tycoon"
+
+
+@unittest.skipUnless((PLANT_VANILLA / "Images").is_dir(), "needs the vanilla Plant Tycoon's pictures (read only)")
+class PlantWindowTests(unittest.TestCase):
+    """Both games in one window: Plant Tycoon's subjects and its save list, from a synthetic save
+    (tests/test_pictures_plant.py) and the vanilla game's pictures, read only."""
+
+    def setUp(self) -> None:
+        self.root = tk_root()
+        if self.root is None:
+            self.skipTest("no display for Tk")
+        from test_pictures_plant import SaveReaderTests, synthetic_save
+        self.tmp = tempfile.TemporaryDirectory()
+        self.documents = Path(self.tmp.name) / "docs"
+        folder = self.documents / "LDW" / "Plant Tycoon - Modded"
+        folder.mkdir(parents=True)
+        settings = bytearray(0x22 + 5 * 33)
+        settings[:4] = b"ldwg"
+        for i, name in enumerate(["Gardener", "NEW PLAYER", "NEW PLAYER", "NEW PLAYER", "NEW PLAYER"]):
+            settings[0x22 + i * 33:0x22 + i * 33 + len(name)] = name.encode("ascii")
+        (folder / "Plant Tycoon0.ldw").write_bytes(bytes(settings))
+        grow = SaveReaderTests.plant
+        synthetic_save(folder, 1, {0: grow(None, 14, 13, "bloom"), 7: grow(None, 1, 3, "seedling")})
+        ps._open_window = None
+        self.studio = ps.open_window(self.root, "plant", settings={"show_spoilers": True}, save_settings=lambda: None,
+                                     documents=self.documents, game_parents=[str(PLANT_VANILLA.parent)])
+        self.studio.quiet = True
+        self.root.update()
+
+    def tearDown(self) -> None:
+        if getattr(self, "studio", None) is not None:
+            self.studio.close()
+        if self.root is not None:
+            self.root.destroy()
+            self.tmp.cleanup()
+
+    def test_subjects_save_list_and_pictures(self) -> None:
+        studio = self.studio
+        self.assertNotEqual(studio.status_var.get(), ps.COMING)
+        titles = [s.title for s in studio.subjects]
+        for title in ("Plant", "Decorations", "Bugs", "Pots"):
+            self.assertIn(title, titles)
+        plant = {f.key for f in studio.subjects[titles.index("Plant")].fields}
+        self.assertTrue({"flower", "foliage", "stage"} <= plant)
+        stages = [o.label.casefold() for f in studio.subjects[titles.index("Plant")].fields if f.key == "stage"
+                  for o in f.options]
+        self.assertTrue(any("dead" in s for s in stages))
+        self.assertTrue(studio.items, "the save's plants are listed")
+        tree = studio.save_tree
+        self.assertTrue(any(tree.item(p, "text").startswith("Greenhouse") for p in tree.get_children()))
+        node = next(iter(studio.item_nodes))
+        tree.selection_set(node)
+        self.root.update()
+        self.assertIsNotNone(studio.shown.get("save"))
+        for tab in range(len(studio.subjects)):
+            studio.custom_notebook.select(tab)
+            self.root.update()
+            self.assertIn("custom", studio.shown, studio.subjects[tab].title)
 
 
 class WiringTests(unittest.TestCase):

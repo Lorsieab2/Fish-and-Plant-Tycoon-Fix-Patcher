@@ -7,10 +7,16 @@
   pictures you make from any fin, body, stage and state, drawn exactly as the
   game draws them, and saves them as transparent PNGs at the game's size, 2x,
   4x or a custom size, with or without a small margin; "Save all in this tank"
-  saves a folder of them. The drawing rules are the game's own, ported to
-  Python and checked against the game's draw code run in Unicorn; no Pillow is
-  needed (a small PNG reader and writer, src/picture_image.py). Plant Tycoon's
-  side follows. Tests: tests/test_pictures_fish.py, tests/test_picture_image.py,
+  saves a folder of them. Plant Tycoon too: every pot greenhouse by greenhouse
+  (Greenhouses 2-6 with extra greenhouses) and the decorations, and plants made
+  from any flower and foliage at seedling, budding, normal bloom, max bloom,
+  max bloom with every effect or dead, in any shape and pot, plus decorations,
+  bugs and pots. As in the game, a fish under 20 is not named (with Show
+  Spoilers off it is "Baby fish" / "Teen fish", in the list and file names). The
+  drawing rules are the game's own, ported to Python and checked against the
+  games' draw code run in Unicorn; no Pillow is needed (a small PNG reader and
+  writer, src/picture_image.py). Tests: tests/test_pictures_fish.py,
+  tests/test_pictures_plant.py, tests/test_picture_image.py,
   tests/test_picture_studio.py.
 
 - **Extra Nursery item a bit smaller** (Plant Tycoon, 5 extra nurseries). The
