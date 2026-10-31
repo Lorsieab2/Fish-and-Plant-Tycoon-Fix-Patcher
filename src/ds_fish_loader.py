@@ -138,6 +138,20 @@ FISH_EXTRA_TANKS = replace(
 )
 
 
+# With "Extra supply slots" on, the loader loads that DLL after Extra Tanks (or first, when
+# "3 extra tanks" is off: it then loads Multiple Ornaments, else DS Exclusive Fish, else the
+# window's DLL itself, as Extra Tanks does).
+SUPPLY_SLOTS_SETTING = "extra_supply_slots"
+FISH_SUPPLY_SLOTS = replace(
+    FISH, dll_name="Extra Supply Slots.dll",
+    what_it_installs="That first loads Multiple Ornaments.dll, DS Exclusive Fish.dll or Maximizable Window.dll "
+                     "when they are there and not loaded yet, then checks the ten places it changes in the running "
+                     "game (the tank screen's mouse, release and overlay, the two draws of the supply slots, the "
+                     "store's Buy, the save on quitting, a new game, and the state's Load and Save slots) and "
+                     "writes all of them or none; native/ftfp_supply_slots/ftfp_supply_slots.c describes them.",
+)
+
+
 def chain(profiles: list[LoaderProfile]) -> LoaderProfile:
     """One loader for several DLLs: the first is loaded as a one-DLL loader would load it, then each
     of the others the same way, in order. A single profile is returned as it is (its pins never move)."""
@@ -162,14 +176,18 @@ def fish_profile(enabled: set[str]) -> LoaderProfile:
 
     Extra Tanks goes first: it loads Multiple Ornaments (which loads DS Exclusive Fish, which loads DS
     Store Items and the window) before it installs, so the sites they share chain in that order. Without
-    it, Multiple Ornaments goes first the same way. The counts follow (Tank Counts.dll wraps the tank
+    it, Multiple Ornaments goes first the same way. Extra Supply Slots follows Extra Tanks (it chains the
+    tank screen's mouse, release and overlay after it), or goes first in Multiple Ornaments' place when
+    Extra Tanks is off (it loads Multiple Ornaments itself, as Extra Tanks does). The counts follow (Tank Counts.dll wraps the tank
     screen's overlay slot, after everything Extra Tanks draws) and the Optimize Prices button last; each loads its own
     companions only if they are not loaded yet (every FtfpStartup runs once)."""
     profiles: list[LoaderProfile] = []
     if "extra_tanks" in enabled:
         profiles.append(FISH_EXTRA_TANKS)
-    elif "multiple_ornaments" in enabled:
+    elif "multiple_ornaments" in enabled and SUPPLY_SLOTS_SETTING not in enabled:
         profiles.append(FISH_ORNAMENTS)
+    if SUPPLY_SLOTS_SETTING in enabled:
+        profiles.append(FISH_SUPPLY_SLOTS)
     if COUNTS_SETTING in enabled:
         profiles.append(FISH_COUNTS)
     if not profiles and ("ds_fish" in enabled or "maximizable_window" in enabled

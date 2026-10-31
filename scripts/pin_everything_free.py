@@ -131,7 +131,7 @@ GAMES = {
         "exe": "Fish Tycoon.exe",
         "folder": "Fish Tycoon Fix Patcher DLLs",
         "sites": FISH_SITES,
-        "dlls": ["ftfp_ds_fish", "ftfp_ds_store", "ftfp_ornaments", "ftfp_extra_tanks"],
+        "dlls": ["ftfp_ds_fish", "ftfp_ds_store", "ftfp_ornaments", "ftfp_extra_tanks", "ftfp_supply_slots"],
         "after": "add_money",
     },
     "plant": {

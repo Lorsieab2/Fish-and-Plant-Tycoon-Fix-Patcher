@@ -438,6 +438,7 @@ static const unsigned char REPURCHASE_JUMP[10] = { 0xE9, 0x49, 0x75, 0x01, 0x00,
 #define FIN_TANK (-6)                       /* the Extra Tank item (the "3 extra tanks" setting); -3..-5 are the potions */
 #define FIN_FEEDER (-7)                     /* the Auto-Feeder (auto_upgrades.h) */
 #define FIN_HEALER (-8)                     /* the Auto-Healer */
+#define FIN_SLOTS (-9)                      /* Extra Supply Slots (the "Extra supply slots" setting) */
 static int auto_sold_out(int fin);
 static const char *auto_owned_line(int item);
 
@@ -452,9 +453,44 @@ static int tanks_call(const char *name) {
 }
 #define EXTRA_TANKS 3
 
+/* "Extra Supply Slots.dll" (the "Extra supply slots" setting: seven more supply slots)
+   sells them here, all seven at once: bought (1), not yet (0), or -1 when it is not loaded
+   or no game is open; and the purchase (1, or -1). */
+static int slots_call(const char *name) {
+    HMODULE slots = GetModuleHandleW(L"Extra Supply Slots.dll");
+    tanks_fn fn = slots != NULL ? (tanks_fn)GetProcAddress(slots, name) : NULL;
+    return fn != NULL ? fn() : -1;
+}
+
+/* Its picture for the Upgrades screen (an image of its own, not one of the lent sprites). */
+typedef void *(__stdcall *slots_image_fn)(void);
+static void *slots_image(void) {
+    HMODULE slots = GetModuleHandleW(L"Extra Supply Slots.dll");
+    slots_image_fn fn = slots != NULL ? (slots_image_fn)GetProcAddress(slots, "FtfpSupplySlotsImage") : NULL;
+    return fn != NULL ? fn() : NULL;
+}
+
+/* A supply bought here goes where the stock store would put it -- and with the extra
+   slots bought, the extra slot it should go to is lent to a stock slot 2-4 for the
+   purchase (FtfpSupplySlotsLend: a stack of the same item, else a free slot, over all
+   eleven slots, as ftfp_supply_slots.c lend describes) and put back after. */
+typedef int (__stdcall *slots_lend_fn)(int item);
+typedef void (__stdcall *slots_return_fn)(void);
+static void slots_lend(int item) {
+    HMODULE slots = GetModuleHandleW(L"Extra Supply Slots.dll");
+    slots_lend_fn fn = slots != NULL ? (slots_lend_fn)GetProcAddress(slots, "FtfpSupplySlotsLend") : NULL;
+    if (fn != NULL) fn(item);
+}
+static void slots_return(void) {
+    HMODULE slots = GetModuleHandleW(L"Extra Supply Slots.dll");
+    slots_return_fn fn = slots != NULL ? (slots_return_fn)GetProcAddress(slots, "FtfpSupplySlotsReturn") : NULL;
+    if (fn != NULL) fn();
+}
+
 static int sold_out(char *state, int fin) {
     static int repurchase = -1;
     if (fin == FIN_TANK) return tanks_call("FtfpExtraTanksOwned") >= EXTRA_TANKS;
+    if (fin == FIN_SLOTS) return slots_call("FtfpSupplySlotsOwned") >= 1;
     if (fin == FIN_FEEDER || fin == FIN_HEALER) return auto_sold_out(fin);
     if (fin < 0) return 0;                  /* Time Warp, Add Money, the potions: never sold out */
     if (repurchase < 0) repurchase = ftfp_site_holds(0x004282B2u, REPURCHASE_JUMP, sizeof REPURCHASE_JUMP);
@@ -1347,13 +1383,16 @@ typedef struct store_item {
 
 /* Time Warp and Add Money show only with their settings; with Free upgrades
    every item here costs $0 (the stock store keeps its prices). */
-#define ITEMS 12
+#define ITEMS 13
 #define ITEM_WARP 4
 #define ITEM_MONEY 5
 #define FIN_RGH (-3)                        /* the Radioactive Growth Hormone: not an animal */
 #define FIN_REVIVAL (-4)                    /* the Revival Potion */
 #define FIN_CLONA (-5)                      /* ClonaFish */
 #define ITEM_TANK 9
+#define ITEM_SLOTS 12
+#define SLOTS_ICON_W 76                     /* ITEM_EXTRA_SUPPLY_SLOTS.png (build_supply_slots_assets.py) */
+#define SLOTS_ICON_H 51
 #define SPR_STOCK_TANK2 157                 /* ITEM_TANK2.png: the stock store's Second Tank */
 #define AUTO_ICON_W 73                      /* ITEM_AUTO_FEEDER.png, ITEM_AUTO_HEALER.png (build_auto_upgrades_assets.py) */
 #define AUTO_ICON_H 65
@@ -1362,6 +1401,7 @@ typedef struct store_item {
 static int warp_on = 0, money_on = 0, free_on = 0;
 static int item_shown(int i) {
     if (i == ITEM_TANK) return tanks_call("FtfpExtraTanksOwned") >= 0;
+    if (i == ITEM_SLOTS) return slots_call("FtfpSupplySlotsOwned") >= 0;
     return i == ITEM_WARP ? warp_on : i == ITEM_MONEY ? money_on : 1;
 }
 static const store_item ITEM[ITEMS] = {
@@ -1415,6 +1455,10 @@ static const store_item ITEM[ITEMS] = {
       { "Auto-Healer", "Heilautomat" },
       { "Magically cures all diseases from fish\nand restores them to full health.\nWorks in every tank.",
         "Heilt auf magische Weise alle Krankheiten\ndeiner Fische und macht sie ganz gesund.\nWirkt in jedem Becken." } },
+    { FIN_SLOTS, 10000, 320, 168, 77, 69, 0, SLOTS_ICON_W, SLOTS_ICON_H,       /* its picture: slots_image() */
+      { "Extra Supply Slots", "Zus\xE4tzliche Vorratsf\xE4" "cher" },
+      { "Seven more supply slots for medicine,\nchemicals and eggs, on two more pages.\nThe arrows beside the slots turn the\npage. One purchase opens all seven.",
+        "Sieben weitere Vorratsf\xE4" "cher f\xFCr Medizin,\nChemikalien und Eier, auf zwei weiteren\nSeiten. Die Pfeile neben den F\xE4" "chern\nbl\xE4ttern um. Ein Kauf \xF6" "ffnet alle sieben." } },
 };
 
 static int price_of(const store_item *it) { return free_on ? 0 : it->price; }
@@ -1479,7 +1523,8 @@ static void draw_page(void *scene) {
     pulse = 0x30 + (int)((t < 800u ? t : 1600u - t) * 0x50u / 800u);
     for (i = 0; i < ITEMS; ++i) {
         const store_item *it = &ITEM[i];
-        void *img = (void *)(UINT_PTR)SPRITE_GET(P(impl, 0x14), NULL, it->sprite);
+        void *img = it->fin == FIN_SLOTS ? slots_image()
+                                         : (void *)(UINT_PTR)SPRITE_GET(P(impl, 0x14), NULL, it->sprite);
         int x = it->x + (it->w - it->icon_w) / 2, y = it->y + (it->h - it->icon_h) / 2;
         if (img == NULL || !item_shown(i)) continue;
         if (i == selected) {
@@ -1555,11 +1600,20 @@ static void charge(char *state, int price) {
    setting buys stock eggs and chemicals: confirm, then a stack of the same
    item in slots 2-4 gains `uses` (eggs one hatch, a chemical 3 doses), else
    the first empty slot takes it, else the setting's three "replace?" prompts. */
+static void buy_into_slots(char *impl, char *state, int price, int item, int icon, int cursor, int uses);
+
 static void buy_universal(char *impl, char *state, int price, int item, int icon, int cursor, int uses) {
+    if (!confirm(impl, 0xEC)) return;
+    slots_lend(item);
+    buy_into_slots(impl, state, price, item, icon, cursor, uses);
+    slots_return();
+}
+
+/* buy_universal's search and purchase, once the purchase is confirmed. */
+static void buy_into_slots(char *impl, char *state, int price, int item, int icon, int cursor, int uses) {
     int k, slot = -1, count = uses;
     static const int replace_prompt[4] = { 0, 0xEF, 0xEE, 0xED };
     char *r;
-    if (!confirm(impl, 0xEC)) return;
     for (k = 1; k <= 3 && slot < 0; ++k) {
         r = SLOT_RECORD(state, k);
         if (*I(r, SR_ICON) != 0 && *I(r, SR_ITEM) == item) {
@@ -1587,12 +1641,21 @@ static void buy_universal(char *impl, char *state, int price, int item, int icon
    0x427540): "Replace chemical in slot #3?" (0xEE) if slot #3 holds one, else
    the purchase question (0xEC); then slot #3 holds it with 3 doses, whatever
    was there before is gone, as stock. */
+static void buy_chemical_stock(char *impl, char *state, int price, int item, int icon, int cursor);
+
 static void buy_chemical(char *impl, char *state, int price, int item, int icon, int cursor) {
-    char *r = SLOT_RECORD(state, 2);
     if (exotic_any_slot) {
         buy_universal(impl, state, price, item, icon, cursor, RGH_DOSES);
         return;
     }
+    slots_lend(item);                                /* slot #3, or an extra slot lent to it */
+    buy_chemical_stock(impl, state, price, item, icon, cursor);
+    slots_return();
+}
+
+/* buy_chemical without universal slots: slot #3. */
+static void buy_chemical_stock(char *impl, char *state, int price, int item, int icon, int cursor) {
+    char *r = SLOT_RECORD(state, 2);
     if (!confirm(impl, *I(r, SR_ICON) != 0 ? 0xEE : 0xEC)) return;
     charge(state, price);
     *I(r, SR_ITEM) = item;
@@ -1708,6 +1771,18 @@ static void add_money(char *impl, char *state, int price) {
 
 #include "auto_upgrades.h"            /* the Auto-Feeder and Auto-Healer */
 
+/* Exotic Fish Eggs without universal slots, as the stock store buys eggs: slot #4. */
+static __declspec(noinline) void buy_exotic_stock(char *impl, char *state, int price) {
+    if (!confirm(impl, *I(state, S_EGG_PRESENT) ? 0xED : 0xEC)) return;
+    charge(state, price);
+    *I(state, S_EGG_ITEM) = EXOTIC_ITEM;
+    *I(state, S_EGG_PRESENT) = 1;
+    *I(state, S_EGG_COUNT) = 3;
+    *I(state, S_EGG_ICON) = SPR_TOOL_EGGS;      /* the shelf shows the small picture, as stock eggs do */
+    *I(state, S_EGG_CURSOR) = SPR_TOOL_EGGS;
+    *I(state, S_EGG_X) = 3 * 0x30 + 0x1E;
+}
+
 static void buy(void *scene) {
     char *impl = store_impl(scene);
     char *state = (char *)P(impl, 0x10);
@@ -1749,6 +1824,12 @@ static void buy(void *scene) {
         auto_buy(impl, state, it->fin, price);
         return;
     }
+    if (it->fin == FIN_SLOTS) {                      /* all seven extra supply slots at once */
+        if (!confirm(impl, 0xEC)) return;
+        if (slots_call("FtfpSupplySlotsBuy") < 0) return;
+        charge(state, price);
+        return;
+    }
     if (it->fin == FIN_TANK) {                       /* the next of Tank Three, Four and Five */
         if (!confirm(impl, 0xEC)) return;
         if (tanks_call("FtfpExtraTanksBuy") < 0) return;
@@ -1760,14 +1841,9 @@ static void buy(void *scene) {
         return;
     }
     if (it->fin == 0) {
-        if (!confirm(impl, *I(state, S_EGG_PRESENT) ? 0xED : 0xEC)) return;
-        charge(state, price);
-        *I(state, S_EGG_ITEM) = EXOTIC_ITEM;
-        *I(state, S_EGG_PRESENT) = 1;
-        *I(state, S_EGG_COUNT) = 3;
-        *I(state, S_EGG_ICON) = SPR_TOOL_EGGS;      /* the shelf shows the small picture, as stock eggs do */
-        *I(state, S_EGG_CURSOR) = SPR_TOOL_EGGS;
-        *I(state, S_EGG_X) = 3 * 0x30 + 0x1E;
+        slots_lend(EXOTIC_ITEM);                     /* slot #4, or an extra slot lent to it */
+        buy_exotic_stock(impl, state, price);
+        slots_return();
         return;
     } else {
         int order[3], n = tank_order(state, order), i, fish_tank = -1, rock_tank = -1;
