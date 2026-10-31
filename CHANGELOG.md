@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- **Seventh, Eighth and Ninth Seed Box** (Plant Tycoon, Add new store
+  upgrades and items): $1000 each like the Sixth ($0 with Free upgrades),
+  bought in order after the Sixth through the stock purchase dialog (its
+  "You need the previous upgrade first!", "You already have this item!" and
+  can't-afford answers, the Fourth-Sixth's art, the tick once owned). They
+  stand in their own column on the tool shelf at x 322, left of the Extra
+  Greenhouse and the Automatic Sprinklers, overlapping nothing. Each opens a
+  40-seed drawer in a third chest: the Seed Storage arrows now step through
+  "Boxes 1-3", "Boxes 4-6" and "Boxes 7-9" (each page once it has a box,
+  then round again), with every drawer, click, drag and drop working as in
+  boxes 1-6; the greenhouse fills boxes 7-9 once 1-6 are full; Sort Seeds
+  fills 1-3, then 4-6, then 7-9 (360 seeds at most, the same check that no
+  seed is lost). `Seed Boxes <slot>.dat` is version 2 (the six purchases and
+  both new chests); a version 1 file loads with boxes 7-9 empty and is
+  rewritten as version 2 at the next save; a damaged file is set aside as
+  `.unreadable`, never deleted; a new game starts with none. Game Mechanics:
+  a new "How many seeds you can hold" section (120, 240 or 360 in boxes, the
+  8-slot tray, up to 75 ripe seeds on plants per greenhouse, 450 with
+  Greenhouses 2-6, and the totals), checked against the code. Mockups:
+  docs/images/seed-boxes-7-9-store.png and seed-boxes-7-9-storage.png.
 - Treated fish and plants sell for the highest possible price (both games).
   A fish given a Radioactive Growth Hormone dose (DS Store Items), and a plant
   given the Radioactive Plant Formula or its Bomb (Store Upgrades and Items),

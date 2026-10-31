@@ -2,4 +2,4 @@ LIBRARY "Extra Seed Boxes"
 EXPORTS
     FtfpSeedBoxesStartup = _FtfpSeedBoxesStartup@0
     FtfpSeedBoxesInstalled = _FtfpSeedBoxesInstalled@0
-    FtfpSeedBoxesChests
+    FtfpSeedBoxesChestList

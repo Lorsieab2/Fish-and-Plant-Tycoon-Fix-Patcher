@@ -24,8 +24,10 @@
      * seeds bred from the new flowers (self-pollinated or crossed) get the
        Legendary seed art too.
      * the Fourth, Fifth and Sixth Seed Box (upper left, the seed-box column
-       of the tool upgrades), when "Extra Seed Boxes.dll" is beside this DLL;
-       that DLL holds the boxes, this one sells them through the stock dialog;
+       of the tool upgrades), and the Seventh, Eighth and Ninth (their own
+       column left of the Extra Greenhouse and the Automatic Sprinklers),
+       $1000 each, when "Extra Seed Boxes.dll" is beside this DLL; that DLL
+       holds the boxes, this one sells them through the stock dialog;
      * Automatic Sprinklers and the Auto-Healer ($10,000 each, bought once):
        every live potted plant in every greenhouse kept at the best water
        level, and free of pests at full health (auto_upgrades.h);
@@ -96,10 +98,18 @@
 #define POT_MARK 0x9F
 #define RADIOACTIVE 0x52                    /* 'R' */
 #define LINK_SPRITE 0x8B                    /* the one sprite id the game leaves free */
-#define EXTRA_BOXES 3
-#define BOX_PRICE 1000
-#define BOX_TITLE_ID 0x1F1                  /* 0x1F1..0x1F3 the box names, 0x1F4 their description */
+#define EXTRA_BOXES 6                       /* the Fourth to Ninth Seed Box */
+#define BOX_PRICE 1000                      /* each, as the Sixth */
+#define BOX_TITLE_ID 0x1F1                  /* 0x1F1..0x1F3 the Fourth-Sixth's names, 0x1F4 their description */
 #define BOX_DESC_ID 0x1F4
+#define BOX_TITLE_7_ID 0x1F8                /* 0x1F8..0x1FA the Seventh-Ninth's names */
+/* The Seventh-Ninth Seed Box stand in their own column on the tool shelf, left
+   of the Extra Greenhouse (404, 50) and the Automatic Sprinklers (409, 111):
+   the box art is visible over x + 6 .. x + 76 of its 80 px frame, so at x 322
+   it ends at 398, 16 px before the greenhouse's art (414), as the Fourth's
+   art (468) starts 17 px after it. */
+#define BOX_X(box) ((box) < 3 ? 233 + 57 * 4 : 322)
+#define BOX_Y(box) (50 + 61 * ((box) % 3))
 
 /* Free upgrades ("Free Upgrades.ini" beside this DLL): every item on the
    Upgrades view costs $0.  The stock store keeps its prices. */
@@ -591,8 +601,19 @@ static const ftfp_box_events *boxes = NULL;
    (dialog indices 14, 19, 24).  While a Fourth/Fifth/Sixth box's dialog is
    open, those three records describe the new boxes instead, so the stock
    dialog does all of it: the price, "You already have this item!", "You need
-   the previous upgrade first!", can't afford, and the purchase. */
+   the previous upgrade first!", can't afford, and the purchase.
+   The Seventh-Ninth go through one record pair: the dialog of tool record 9
+   (index 19), whose "previous upgrade" is record 4 (the stock dialog checks
+   record k - 5 for k >= 5, 0x4319A1).  Record 4 describes the box before
+   (the Sixth, Seventh or Eighth) and record 9 the box being bought, and the
+   dialog's picture (its +0xB8 index, read only by the picture draw 0x430827
+   and the category-4 Buy) is set back to the box's own frame (14, 19 or 24:
+   the Fourth-Sixth's art). */
 #define TOOL_RECORD(state, k) ((state) + 0x6E8 + (k) * 0x20)
+#define DIALOG_INDEX 0xB8
+
+/* The boxes this "Extra Seed Boxes.dll" knows: version 1 the Fourth-Sixth, version 2 all six. */
+static int box_count(void) { return boxes == NULL ? 0 : boxes->version >= 2 ? EXTRA_BOXES : 3; }
 
 /* ----------------------------------------------------------------- strings */
 
@@ -619,8 +640,13 @@ static const char BOMB_NAME[] = "Radioactive Plant Formula Bomb";
 static const char BOX_TITLE_4[] = "Fourth Seed Box";
 static const char BOX_TITLE_5[] = "Fifth Seed Box";
 static const char BOX_TITLE_6[] = "Sixth Seed Box";
+static const char BOX_TITLE_7[] = "Seventh Seed Box";
+static const char BOX_TITLE_8[] = "Eighth Seed Box";
+static const char BOX_TITLE_9[] = "Ninth Seed Box";
 static const char BOX_DESC[] = "Even more space for your seeds!";
-static const char *const BOX_TITLES[EXTRA_BOXES] = { BOX_TITLE_4, BOX_TITLE_5, BOX_TITLE_6 };
+static const char *const BOX_TITLES[EXTRA_BOXES] = { BOX_TITLE_4, BOX_TITLE_5, BOX_TITLE_6,
+                                                     BOX_TITLE_7, BOX_TITLE_8, BOX_TITLE_9 };
+static int box_title_id(int box) { return box < 3 ? BOX_TITLE_ID + box : BOX_TITLE_7_ID + box - 3; }
 
 static volatile unsigned char building_legendary = 0;     /* a Legendary dialog is being built */
 static volatile unsigned char building_chem = 0;          /* the new chemical (36-38) whose dialog is being built */
@@ -660,7 +686,10 @@ static const RECT REVITA_RECT = { REVITA_X + 12, 63, REVITA_X + 57, 115 };
 #define BOMB_Y (55 + 61)
 static const RECT BOMB_RECT = { BOMB_X + 12, BOMB_Y + 8, BOMB_X + 57, BOMB_Y + 60 };
 static const RECT LINK_RECT = { LINK_X - 2, LINK_Y - 2, LINK_X + LINK_W + 2, LINK_Y + LINK_H + 2 };
-static RECT box_rect(int box) { RECT r = { 471, 52 + 70 * box, 528, 113 + 70 * box }; return r; }
+static RECT box_rect(int box) {
+    RECT r = { BOX_X(box) + 10, 52 + 70 * (box % 3), BOX_X(box) + 67, 113 + 70 * (box % 3) };
+    return r;
+}
 
 /* ------------------------------------------------------------ time warp */
 
@@ -889,7 +918,7 @@ static void set_tooltips(char *scene) {
         if (tip != NULL) AT(tip, 8, unsigned char) = (unsigned char)!upgrades_view;
     }
     for (i = 0; i < TIPS; ++i) {
-        int shown = i < LEGENDARY_COUNT ? (legendary[i].present & 0xFF) : i < TIP_BOXES ? 1 : boxes != NULL;
+        int shown = i < LEGENDARY_COUNT ? (legendary[i].present & 0xFF) : i < TIP_BOXES ? 1 : i - TIP_BOXES < box_count();
         if (tips[i] == NULL) continue;
         if (i >= TIP_BOXES) {
             box_tip_text(i - TIP_BOXES);
@@ -985,10 +1014,10 @@ static int __cdecl on_draw(char *scene) {
     draw_sprite(mgr, 0, SHEET_CHEMICALS, 2 * REVITA_ID - 54, REVITA_X, 55, 1.0f, 100, 1);
     draw_shadow(mgr, 0, SHEET_SHADOW, BOMB_X + 0x19, BOMB_Y + 0x1E, 1.0f, 100);
     draw_sprite(mgr, 0, SHEET_CHEMICALS, 2 * BOMB_ID - 54, BOMB_X, BOMB_Y, 1.0f, 100, 1);
-    for (i = 0; boxes != NULL && i < EXTRA_BOXES; ++i) {      /* where the stock store draws its seed boxes */
-        int x = 233 + 57 * 4, y = 50 + 61 * i;
+    for (i = 0; i < box_count(); ++i) {      /* the Fourth-Sixth where the stock store draws its seed boxes */
+        int x = BOX_X(i), y = BOX_Y(i);
         draw_shadow(mgr, 0, SHEET_SHADOW, x + 0x19, y + 0x1E, 1.0f, 100);
-        draw_sprite(mgr, 0, SHEET_TOOLS, i * 5 + 4, x, y, 1.0f, 100, 1);
+        draw_sprite(mgr, 0, SHEET_TOOLS, (i % 3) * 5 + 4, x, y, 1.0f, 100, 1);
         if (boxes->owned(i)) draw_shadow(mgr, 0, SHEET_TICK, x + 19, y + 22, 1.0f, 100);
     }
     if (warp_on) {
@@ -1010,35 +1039,44 @@ static int __cdecl on_draw(char *scene) {
     return 1;
 }
 
-static void open_dialog(char *scene, int index) {
+/* picture >= 0: the dialog draws that dialog index's picture instead of its own. */
+static void open_dialog_as(char *scene, int index, int picture) {
     __declspec(align(16)) unsigned char dlg[0x400];
     memset(dlg, 0, sizeof dlg);
     upgrade_dialog = 1;
     dialog_ctor(dlg, 0, index);
+    if (picture >= 0) AT(dlg, DIALOG_INDEX, int) = picture;
     dialog_run(dlg, 0, scene, 0);
     dialog_dtor(dlg, 0);
     upgrade_dialog = 0;
     set_tooltips(scene);                                  /* a bought packet's tooltip goes */
 }
 
+static void open_dialog(char *scene, int index) { open_dialog_as(scene, index, -1); }
+
+static void describe_box(char *record, int box) {
+    AT(record, 0x00, int) = price(BOX_PRICE);
+    AT(record, 0x04, unsigned char) = (unsigned char)(boxes->owned(box) != 0);
+    AT(record, 0x0C, int) = BOX_DESC_ID;
+    AT(record, 0x10, int) = box_title_id(box);
+}
+
 static void open_box_dialog(char *scene, int box) {
     char *state = SCENE_STATE(scene);
-    unsigned char stock[EXTRA_BOXES][0x20];
+    unsigned char stock[3][0x20];
     int i;
-    for (i = 0; i < EXTRA_BOXES; ++i) {
-        char *record = TOOL_RECORD(state, 4 + 5 * i);
-        memcpy(stock[i], record, 0x20);
-        AT(record, 0x00, int) = price(BOX_PRICE);
-        AT(record, 0x04, unsigned char) = (unsigned char)boxes->owned(i);
-        AT(record, 0x0C, int) = BOX_DESC_ID;
-        AT(record, 0x10, int) = BOX_TITLE_ID + i;
+    for (i = 0; i < 3; ++i) memcpy(stock[i], TOOL_RECORD(state, 4 + 5 * i), 0x20);
+    if (box < 3) {                                        /* the Fourth-Sixth: records 4, 9, 14 */
+        for (i = 0; i < 3; ++i) describe_box(TOOL_RECORD(state, 4 + 5 * i), i);
+        open_dialog(scene, 14 + 5 * box);
+        for (i = 0; i < 3; ++i) boxes->set_owned(i, AT(TOOL_RECORD(state, 4 + 5 * i), 0x04, unsigned char));
+    } else {                                              /* the Seventh-Ninth: record 9, after record 4 */
+        describe_box(TOOL_RECORD(state, 4), box - 1);
+        describe_box(TOOL_RECORD(state, 9), box);
+        open_dialog_as(scene, 19, 14 + 5 * (box - 3));
+        boxes->set_owned(box, AT(TOOL_RECORD(state, 9), 0x04, unsigned char));
     }
-    open_dialog(scene, 14 + 5 * box);
-    for (i = 0; i < EXTRA_BOXES; ++i) {
-        char *record = TOOL_RECORD(state, 4 + 5 * i);
-        boxes->set_owned(i, AT(record, 0x04, unsigned char));
-        memcpy(record, stock[i], 0x20);
-    }
+    for (i = 0; i < 3; ++i) memcpy(TOOL_RECORD(state, 4 + 5 * i), stock[i], 0x20);
     set_tooltips(scene);
 }
 
@@ -1067,7 +1105,7 @@ static int __cdecl on_click(char *scene, int x, int y) {
     if (inside(&REVIVAL_RECT, x, y)) open_dialog(scene, REVIVAL_ID);
     if (inside(&REVITA_RECT, x, y)) open_dialog(scene, REVITA_ID);
     if (inside(&BOMB_RECT, x, y)) open_dialog(scene, BOMB_ID);
-    for (i = 0; boxes != NULL && i < EXTRA_BOXES; ++i) {
+    for (i = 0; i < box_count(); ++i) {
         RECT r = box_rect(i);
         if (inside(&r, x, y)) open_box_dialog(scene, i);
     }
@@ -1610,8 +1648,23 @@ __declspec(naked) static void stub_string(void) {
         ret 4
     box_6:
         cmp eax, BOX_TITLE_ID + 2
-        jne box_desc
+        jne box_7
         mov eax, offset BOX_TITLE_6
+        ret 4
+    box_7:
+        cmp eax, BOX_TITLE_7_ID
+        jne box_8
+        mov eax, offset BOX_TITLE_7
+        ret 4
+    box_8:
+        cmp eax, BOX_TITLE_7_ID + 1
+        jne box_9
+        mov eax, offset BOX_TITLE_8
+        ret 4
+    box_9:
+        cmp eax, BOX_TITLE_7_ID + 2
+        jne box_desc
+        mov eax, offset BOX_TITLE_9
         ret 4
     box_desc:
         cmp eax, BOX_DESC_ID
@@ -2035,7 +2088,7 @@ static void load_boxes(void) {
     startup = (boxes_startup_fn)GetProcAddress(module, "FtfpSeedBoxesStartup");
     if (startup == NULL) return;
     found = startup();
-    if (found != NULL && found->version == 1) boxes = found;
+    if (found != NULL && (found->version == 1 || found->version == 2)) boxes = found;   /* 1: the Fourth-Sixth only */
 }
 
 /* Called once by "Unused Flowers.dll" after it installed, before WinMain. */

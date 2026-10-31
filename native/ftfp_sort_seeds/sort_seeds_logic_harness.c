@@ -13,7 +13,7 @@ static void test_empty_record(void *record) {
 #define FTFP_TEST_EMPTY_RECORD(record) test_empty_record(record)
 #include "ftfp_sort_seeds.c"
 
-static unsigned char chest_a[BOX_BYTES], chest_b[BOX_BYTES];
+static unsigned char chest_a[BOX_BYTES], chest_b[BOX_BYTES], chest_c[BOX_BYTES];
 static unsigned char scratch[CHESTS][BOX_BYTES];
 static int failures = 0;
 
@@ -50,7 +50,7 @@ static int count_present(unsigned char *chest) {
 }
 
 int main(void) {
-    unsigned char *chests[CHESTS] = { chest_a, chest_b };
+    unsigned char *chests[CHESTS] = { chest_a, chest_b, chest_c };
     int slots[CHESTS], n, s, ok;
     unsigned char locked_before[RECORD_BYTES];
 
@@ -114,6 +114,58 @@ int main(void) {
     slots[0] = 130;
     memcpy(scratch[0], chest_a, BOX_BYTES);
     check(sort_chests(chests, slots, 1, scratch) == -1, "bad slot count refused");
+    slots[0] = 120; slots[1] = 120; slots[2] = 120;
+    check(sort_chests(chests, slots, 4, scratch) == -1, "four chests refused");
+
+    /* 6. nine boxes: boxes 1-3 fill, then 4-6, then 7-9; seeds start scattered in all three */
+    clear(chest_a); clear(chest_b); clear(chest_c);
+    for (s = 0; s < 100; ++s) put(chest_c, 119 - s, 0, 0, 0, 0, 1 + s % 23, 1 + s % 37, 1000 + s);
+    for (s = 0; s < 90; ++s) put(chest_b, s * 7 % 120, 0, 0, 0, 0, 23 - s % 23, 2, 2000 + s);
+    for (s = 0; s < 110; ++s) put(chest_a, s, 3, 3, 0, 0, 1 + s % 5, 18, 3000 + s);
+    slots[0] = 120; slots[1] = 120; slots[2] = 120;
+    n = sort_chests(chests, slots, 3, scratch);
+    check(n == 300, "three hundred seeds over nine boxes");
+    check(count_present(chest_a) == 120 && count_present(chest_b) == 120 && count_present(chest_c) == 60,
+          "boxes 1-3, then 4-6, then 7-9");
+    ok = 1;
+    for (s = 0; s < 60; ++s) ok &= present(chest_c, s);
+    for (s = 60; s < BOX_RECORDS; ++s) ok &= !present(chest_c, s);
+    check(ok, "boxes 7-9 packed from their first slot");
+    {
+        static int seen[4000];
+        int c2, tags_ok = 1;
+        unsigned char *all[3] = { chest_a, chest_b, chest_c };
+        memset(seen, 0, sizeof seen);
+        for (c2 = 0; c2 < 3; ++c2)
+            for (s = 0; s < BOX_RECORDS; ++s)
+                if (present(all[c2], s)) seen[tag(all[c2], s)]++;
+        for (s = 0; s < 100; ++s) tags_ok &= seen[1000 + s] == 1;
+        for (s = 0; s < 90; ++s) tags_ok &= seen[2000 + s] == 1;
+        for (s = 0; s < 110; ++s) tags_ok &= seen[3000 + s] == 1;
+        check(tags_ok, "every seed once, none lost or doubled");
+    }
+
+    /* 7. boxes 7-9 with one drawer: the sort never writes their locked drawers */
+    clear(chest_a); clear(chest_b); clear(chest_c);
+    put(chest_c, 80, 0, 0, 0, 0, 1, 1, 77);                 /* in the Ninth's drawer, not owned */
+    memcpy(locked_before, slot(chest_c, 80), RECORD_BYTES);
+    for (s = 0; s < 45; ++s) put(chest_b, s, 0, 0, 0, 0, 1 + s % 23, 1, 400 + s);
+    slots[0] = 40; slots[1] = 120; slots[2] = 40;
+    n = sort_chests(chests, slots, 3, scratch);
+    check(n == 45 && count_present(chest_a) == 40 && count_present(chest_b) == 5
+          && memcmp(locked_before, slot(chest_c, 80), RECORD_BYTES) == 0 && count_present(chest_c) == 1,
+          "locked drawers of boxes 7-9 untouched");
+
+    /* 8. full nine boxes */
+    for (s = 0; s < 120; ++s) {
+        put(chest_a, s, 0, 0, 0, 0, 1 + s % 23, 1, s);
+        put(chest_b, s, 0, 0, 0, 0, 1 + s % 19, 2, 200 + s);
+        put(chest_c, s, 0, 0, 0, 0, 1 + s % 17, 3, 400 + s);
+    }
+    slots[0] = 120; slots[1] = 120; slots[2] = 120;
+    n = sort_chests(chests, slots, 3, scratch);
+    check(n == 360 && count_present(chest_a) == 120 && count_present(chest_b) == 120 && count_present(chest_c) == 120,
+          "nine full boxes");
 
     printf("%s\n", failures ? "FAILED" : "ALL OK");
     return failures != 0;
