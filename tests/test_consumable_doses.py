@@ -42,6 +42,7 @@ FISH_ITEMS = {
     "Time Warp": None, "Add $1,000": None,  # used up when bought
     "Radioactive Growth Hormone": 3, "Revival Potion": 3, "ClonaFish": 3,
     "Extra Tank": None, "Auto-Feeder": None, "Auto-Healer": None,                 # upgrades
+    "Extra Supply Slots": None,
 }
 # Every Store Upgrades and Items description, by its C name: its doses if it is a consumable, else None.
 PLANT_ITEMS = {

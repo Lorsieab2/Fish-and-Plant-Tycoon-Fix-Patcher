@@ -40,11 +40,12 @@ GAMES = {
         "items": "the Magic Pufferfish, Blue-Spotted Stingray and Moray Eel ($1250 each), Exotic Fish Eggs "
                  "($2300), the Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000), ClonaFish "
                  "($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), and the Time Warp clock ($500), "
-                 "Add Money ($950) and the Extra Tank ($10,000 each) when "
+                 "Add Money ($950), the Extra Tank ($10,000 each) and the Extra Supply Slots ($10,000) when "
                  "those settings are on",
         "free_rules": "The Puffer Fish, Sting Ray and Moray Eel are still one of each in your tanks (unless Buy "
                       "Multiple Golden Seahorses is on), the eggs and the chemicals still go in a supply slot, the "
-                      "extra tanks are still bought in order (Tank 4, then 5, then 6), and "
+                      "extra tanks are still bought in order (Tank 4, then 5, then 6), the extra supply slots "
+                      "once, and "
                       "the game's own purchase confirmations are still asked.",
         "where": "in the net next to the Time Warp clock",
     },

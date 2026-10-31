@@ -54,6 +54,9 @@ def page() -> GamePage:
                        "these are their real effects."),
             Group("3 extra tanks (patcher)", EXTRA_TANKS,
                   note="Only with the 3 extra tanks setting (off by default)."),
+            Group("Extra supply slots (patcher)", SUPPLY_SLOTS,
+                  note="Only with the Extra supply slots setting (off by default), which also turns on the "
+                       "store's Upgrades screen they are sold on."),
             Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (off by default), which also turns on the store's Upgrades screen it lives on."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Plant Tycoon's topics here", OTHER_GAME),
@@ -609,6 +612,9 @@ CONSUMABLES = (
         "purchase holds 3 doses; the Unknown Chemical 1; eggs are one batch. Each use spends one, on "
         "the tank you are looking at. There is no cooldown: \"one drop every half hour\" is only "
         "advice.",
+        patched=(("extra_supply_slots", "with the seven extra slots bought, 11 supply slots in all: when "
+                  "the item's own slot is full the first free extra slot takes it (with Universal supply "
+                  "slots: a stack of the same item anywhere first, then the first free slot of all 11)."),),
     ),
     Fact(
         "The trash can (bottom right of the tank screen) takes only fish: a fish dropped on it is "
@@ -1192,6 +1198,53 @@ DS_ANIMALS = (
         "too; animals there move with their tank and are kept in its file (see 3 extra tanks). With "
         "Buy Multiple Golden Seahorses off, an animal can be bought only while none of its kind is in "
         "any tank, Tanks 4-6 included.",
+    ),
+)
+
+SUPPLY_SLOTS = (
+    Fact(
+        "Supply slots: 4 in the stock game (slot #1 the fish food, #2 medicine, #3 chemicals, #4 eggs: "
+        "records of 0x1C bytes at 0x2B8 + slot x 0x1C in the game's state). With this setting, 11: "
+        "page 1 the stock 4, page 2 four more, page 3 three more (its fourth frame greyed). The two "
+        "small arrows right of slot #4 turn the page (page 3 then page 1 again), and carrying an item "
+        "over an arrow turns it once each time it comes onto it.",
+        label="E",
+    ),
+    Fact(
+        "How to get them: on the Supplies store's Upgrades screen (DS Store Items), Extra Supply Slots, "
+        "$10,000 ($0 with Free upgrades), one purchase for all seven, then \"You already own this!\". "
+        "Until then the arrows are grey and a click says \"You don't own the extra supply slots yet!\" "
+        "just under the top bar. A new game has not bought them and empties them.",
+        label="E",
+    ),
+    Fact(
+        "An extra slot is a stock slot: picked up, its item takes the place of the stock slot it is used "
+        "from (#2 medicine, #3 chemicals, #4 eggs; the stock slot's own item waits and comes back), so "
+        "the game's own code uses it on the tank with the same doses, hatches, effects and trash as from "
+        "slots 2-4 -- the patcher's Radioactive Growth Hormone, Revival Potion, ClonaFish and Exotic Fish "
+        "Eggs included.",
+        label="E",
+    ),
+    Fact(
+        "Buying: the item goes where the stock store puts it, and when that slot is full (Universal "
+        "supply slots: when no slot 2-4 has the same item or is free), to the extra slot it should go "
+        "to: with Universal supply slots a stack of the same item first, else the first free slot; "
+        "without it the first free extra slot, one purchase each (3 doses, the Unknown Chemical 1, eggs "
+        "one batch). With all 11 full the store asks its own \"Replace ...?\" questions.",
+        label="E",
+    ),
+    Fact(
+        "Moving supplies: drop a held supply on any slot of the page shown. An empty slot takes it; the "
+        "same item stacks (the counts add) with Universal supply slots; another item changes places. "
+        "Without Universal supply slots slots #2-#4 keep their own kind, so a move that would put an "
+        "item in another kind's slot is refused with the stock hint and nothing moves. The fish food "
+        "never leaves slot #1 and nothing can be dropped on it.",
+        label="E",
+    ),
+    Fact(
+        "The stock game shows no dose count and no tooltip on the supply slots, and neither do the "
+        "extra ones; the Supplies store shows the stock four only.",
+        label="C",
     ),
 )
 
