@@ -355,8 +355,9 @@ def _sha256(data: bytes) -> str:
 class PatcherArt:
     """The patcher's own art files, read only."""
 
-    def __init__(self, game: str) -> None:
-        self.files = {name.casefold(): path for name, path in patcher_art(game).items()}
+    def __init__(self, game: str, files: dict | None = None) -> None:
+        files = patcher_art(game) if files is None else files
+        self.files = {name.casefold(): Path(path) for name, path in files.items()}
 
     def read(self, name: str) -> bytes | None:
         path = self.files.get(name.casefold())
@@ -372,9 +373,11 @@ class CacheSource:
     """The guide's own picture cache for one game, checked against its manifest before it is
     used: a missing, changed or unlisted file, or an unreadable manifest, and it is not used."""
 
-    def __init__(self, game: str, root: Path | None = None, *, folder: Path | None = None) -> None:
+    def __init__(self, game: str, root: Path | None = None, *, folder: Path | None = None,
+                 spec: "CacheSpec | None" = None) -> None:
         self.game = game
-        self.folder = Path(folder) if folder is not None else Path(root or CACHE_ROOT) / CACHE_GAME_FOLDERS[game]
+        spec = spec or guide_spec()
+        self.folder = Path(folder) if folder is not None else Path(root or spec.root) / CACHE_GAME_FOLDERS[game]
         self.copy = self.folder
         self.problem = ""
         self._data: dict[str, bytes] = {}
@@ -387,13 +390,13 @@ class CacheSource:
         except (OSError, ValueError) as exc:
             self.problem = f"its manifest could not be read ({exc})"
             return
-        if not isinstance(manifest, dict) or manifest.get("format") != CACHE_FORMAT \
+        if not isinstance(manifest, dict) or manifest.get("format") != spec.format \
                 or manifest.get("version") != CACHE_VERSION or manifest.get("game") != game \
                 or not isinstance(manifest.get("files"), dict):
             self.problem = "its manifest is not this version's"
             return
         files = manifest["files"]
-        missing = [n for n in required_files(game) if n not in files]
+        missing = [n for n in spec.required_for(game) if n not in files]
         if missing:
             self.problem = f"it is partial ({len(missing)} picture file(s) not in it)"
             return
@@ -429,14 +432,16 @@ def _remove_tree(path: Path) -> None:
     shutil.rmtree(path, ignore_errors=True)
 
 
-def build_cache(game: str, copy: Path, root: Path | None = None) -> tuple[bool, str]:
+def build_cache(game: str, copy: Path, root: Path | None = None,
+                spec: "CacheSpec | None" = None) -> tuple[bool, str]:
     """(built, why not): copy every picture sheet from the game copy (read only) and the
     patcher's own art into the cache, all or nothing. The new cache is written in a
     temporary folder beside it, checked, then swapped in; the game copy is never written."""
-    root = Path(root or CACHE_ROOT)
+    spec = spec or guide_spec()
+    root = Path(root or spec.root)
     final = root / CACHE_GAME_FOLDERS[game]
     source = ArtSource(copy)
-    patcher = PatcherArt(game)
+    patcher = PatcherArt(game, spec.patcher)
     fill = {}
     if game == "plant":
         try:
@@ -448,7 +453,7 @@ def build_cache(game: str, copy: Path, root: Path | None = None) -> tuple[bool, 
             return False, source.problem
         files: dict[str, tuple[bytes, str]] = {}
         missing = []
-        for name in required_files(game):
+        for name in spec.required_for(game):
             data, where = patcher.read(name), "the patcher's own art"
             if data is None:
                 data, where = source.read(name), f"the game copy {copy}"
@@ -478,11 +483,11 @@ def build_cache(game: str, copy: Path, root: Path | None = None) -> tuple[bool, 
         for name, (data, where) in files.items():
             (temp / name).write_bytes(data)
             entries[name] = {"size": len(data), "sha256": _sha256(data), "from": where}
-        manifest = {"format": CACHE_FORMAT, "version": CACHE_VERSION, "game": game,
+        manifest = {"format": spec.format, "version": CACHE_VERSION, "game": game,
                     "built": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "built_from": str(copy), "files": entries}
         (temp / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-        check = CacheSource(game, folder=temp)
+        check = CacheSource(game, folder=temp, spec=spec)
         if not check.ok:
             raise OSError(f"the new cache did not read back: {check.problem}")
         if final.exists():
@@ -504,10 +509,11 @@ class Pictures:
     """What a picture tab reads: the patcher's own art first, then the cache (or, when no
     cache could be made, the game copy itself)."""
 
-    def __init__(self, game: str, base=None, problem: str = "", note: str = "") -> None:
+    def __init__(self, game: str, base=None, problem: str = "", note: str = "",
+                 patcher: dict | None = None) -> None:
         self.game = game
         self.base = base
-        self.patcher = PatcherArt(game)
+        self.patcher = PatcherArt(game, patcher)
         self.problem = problem or (getattr(base, "problem", "") if base is not None else no_pictures_message(game))
         self.copy = getattr(base, "copy", None)
         self.note = note
@@ -523,28 +529,48 @@ class Pictures:
             self.base.close()
 
 
-def picture_source(game: str, copies=(), root: Path | None = None) -> Pictures:
+@dataclass(frozen=True)
+class CacheSpec:
+    """Which picture cache: its root folder, manifest format, file list and patcher art (the
+    Breeding Guide's by default; Picture Studio has its own, picture_image.picture_source)."""
+    root: Path
+    format: str
+    required: tuple | None = None          # None: required_files(game)
+    patcher: dict | None = None            # None: patcher_art(game)
+
+    def required_for(self, game: str) -> list[str]:
+        return list(self.required) if self.required is not None else required_files(game)
+
+
+def guide_spec() -> CacheSpec:
+    """The Breeding Guide's cache (CACHE_ROOT is read now, so a test can point it elsewhere)."""
+    return CacheSpec(root=CACHE_ROOT, format=CACHE_FORMAT)
+
+
+def picture_source(game: str, copies=(), root: Path | None = None, spec: CacheSpec | None = None) -> Pictures:
     """The pictures for a game: the cache when it is whole; else built from the first game
     copy that has every sheet; else read straight from a copy; else none, with one line
     saying how to give the guide a copy."""
-    cache = CacheSource(game, root)
+    spec = spec or guide_spec()
+    patcher = spec.patcher
+    cache = CacheSource(game, root, spec=spec)
     if cache.ok:
-        return Pictures(game, cache)
+        return Pictures(game, cache, patcher=patcher)
     copies = [Path(c) for c in dict.fromkeys(str(c) for c in copies if c)]
     reasons = []
     for copy in copies:
-        built, why = build_cache(game, copy, root)
+        built, why = build_cache(game, copy, root, spec)
         if built:
-            cache = CacheSource(game, root)
+            cache = CacheSource(game, root, spec=spec)
             if cache.ok:
-                return Pictures(game, cache)
+                return Pictures(game, cache, patcher=patcher)
             why = f"the new picture cache did not read back ({cache.problem})"
         reasons.append(why)
     if copies:
         direct = ArtSource(copies[0])
         note = reasons[0] if reasons else ""
-        return Pictures(game, direct, note=note)
-    return Pictures(game, None)
+        return Pictures(game, direct, note=note, patcher=patcher)
+    return Pictures(game, None, patcher=patcher)
 
 
 MAX_SIDE = 120

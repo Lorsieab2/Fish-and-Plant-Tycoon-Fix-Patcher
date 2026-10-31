@@ -305,6 +305,24 @@ collected" overall, per rarity and per part; Show All, Collected or Missing;
 the List view sorts; Export saves the list. With spoilers off a species you
 have not collected is a "?".
 
+Tools tab, Picture Studio: pick the game, a save folder and a player.
+"From my save" lists everything the save holds, tank by tank (Tanks 4-6
+too, with 3 extra tanks) or greenhouse by greenhouse (with extra
+greenhouses), then its creatures and decorations; click one to see it drawn
+as the game draws it now (fish can swim left, right or turn). As in the
+game, a fish under 20 is not named: with Show Spoilers off it is "Baby fish"
+or "Teen fish". "Make your own" draws any Fin and Body at any Stage (baby,
+teen at each age, adult) and State (healthy, ick, fungus, dead), or any
+Flower and Foliage at any Stage (seedling, budding, normal bloom, max bloom,
+max bloom with every effect, dead) in any shape and pot, and the creatures,
+decorations, bugs and pots; with Show Spoilers off (the Breeding Guide's
+setting) only the parts you have discovered. Pick a PNG size (the game's
+own, 2x, 4x, or your own width and height) and Small margin, then "Save
+PNG..." or "Save all in this tank/greenhouse...". The pictures have a clear background. Like the guide, it
+copies the pictures it needs from your game into "Picture Studio Pictures"
+beside the patcher ("Find game..." if it has none yet), and never changes a
+save.
+
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.
 

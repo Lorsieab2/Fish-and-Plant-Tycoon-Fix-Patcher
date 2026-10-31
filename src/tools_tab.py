@@ -4,11 +4,11 @@ Back Up Saves, Restore Saves, Rename Tribe), for one consistent tool across
 the owner's patchers:
 
 * "The game chosen on the One Game tab": Back Up Saves, Restore Saves...,
-  Rename Players..., Game Mechanics... and Breeding Guide..., each a link
-  with a "?" guide.
-* "Each game": the same five for Fish Tycoon and Plant Tycoon, one row per
-  game, then Back Up Saves (Both)..., Rename Players..., Game Mechanics...
-  and Breeding Guide... buttons.
+  Rename Players..., Game Mechanics..., Breeding Guide... and Picture
+  Studio..., each a link with a "?" guide.
+* "Each game": the same six for Fish Tycoon and Plant Tycoon, one row per
+  game, then Back Up Saves (Both)..., Rename Players..., Game Mechanics...,
+  Breeding Guide... and Picture Studio... buttons.
 * Back Up Saves lists the game's modded save folders (ticked: the patcher's
   own) and backs the ticked ones up, pausing a running game; Restore Saves
   lists every backup of the game, newest first, to restore whole or one slot,
@@ -25,6 +25,7 @@ from tkinter import filedialog, messagebox, ttk
 import zipfile
 
 import breeding_guide
+import picture_studio
 import save_backup
 import save_tools
 
@@ -84,6 +85,7 @@ HELP = {
         ],
     ),
     "breeding_guide": breeding_guide.HELP,
+    "picture_studio": picture_studio.HELP,
 }
 
 
@@ -118,6 +120,7 @@ class ToolsTab:
             ("Rename Players...", "rename_players", lambda: self.rename(self.app.game_choice.get())),
             ("Game Mechanics...", "game_mechanics", lambda: self.mechanics(self.app.game_choice.get())),
             ("Breeding Guide...", "breeding_guide", lambda: self.breeding(self.app.game_choice.get())),
+            ("Picture Studio...", "picture_studio", lambda: self.studio(self.app.game_choice.get())),
         )):
             self._link(links, text, command).pack(side="left", padx=(0 if index == 0 else 18, 0))
             self._help(links, key).pack(side="left", padx=(3, 0))
@@ -132,6 +135,7 @@ class ToolsTab:
             ("rename_players", "Rename players...", self.rename),
             ("game_mechanics", "Game mechanics...", self.mechanics),
             ("breeding_guide", "Breeding guide...", self.breeding),
+            ("picture_studio", "Picture studio...", self.studio),
         )
         for column, (key, _text, _command) in enumerate(columns, start=1):
             self._help(grid, key).grid(row=0, column=column, padx=(12, 0), pady=(0, 2))
@@ -147,6 +151,7 @@ class ToolsTab:
             ("Rename Players...", "rename_players", lambda: self.rename(None)),
             ("Game Mechanics...", "game_mechanics", lambda: self.mechanics(None)),
             ("Breeding Guide...", "breeding_guide", lambda: self.breeding(None)),
+            ("Picture Studio...", "picture_studio", lambda: self.studio(None)),
         )):
             ttk.Button(buttons, text=text, command=command).pack(side="left", padx=(0 if index == 0 else 8, 0))
             self._help(buttons, key).pack(side="left", padx=(2, 0))
@@ -622,6 +627,25 @@ class ToolsTab:
                 if folder:
                     parents.extend([folder, str(Path(folder).parent)])
         breeding_guide.open_window(
+            app, game_id or app.game_choice.get(), settings=app.breeding_settings,
+            save_settings=app._save_settings, game_parents=[p for p in parents if p],
+        )
+
+    # ---------------------------------------------------------- picture studio
+
+    def studio(self, game_id: str | None) -> None:
+        """Picture Studio, with the Breeding Guide's Show Spoilers setting (one setting for
+        both) and the same folders to find the game copies in. It reads none of the patcher
+        window's own settings ("Enable All" and the rest): what a save has comes from the
+        save's own game copy and files."""
+        app = self.app
+        parents = [app.output_parent.get().strip()]
+        for game in GAMES:
+            for key in ("output", "vanilla"):
+                folder = app.path_vars[game][key].get().strip().strip('"')
+                if folder:
+                    parents.extend([folder, str(Path(folder).parent)])
+        picture_studio.open_window(
             app, game_id or app.game_choice.get(), settings=app.breeding_settings,
             save_settings=app._save_settings, game_parents=[p for p in parents if p],
         )
