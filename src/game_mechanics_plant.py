@@ -1206,6 +1206,8 @@ OTHER_GAME = (
     Fact("3 extra tanks (patcher): not in Plant Tycoon (plants have no tanks). Its counterparts are 5 extra "
          "greenhouses, Greenhouses 2-6 (see Extra greenhouses), and 5 extra nurseries (see Extra nurseries); "
          "the Fourth to Ninth Seed Box add storage (see Tools and shears and How many seeds you can hold)."),
+    Fact("Extra supply slots (patcher): not in Plant Tycoon, whose held items are its tools and chemical "
+         "tray, not supply slots (see Tools and shears and Chemicals)."),
 )
 
 TIME_WARP = (

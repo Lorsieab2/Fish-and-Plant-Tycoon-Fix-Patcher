@@ -268,8 +268,8 @@ never needs the internet.
   Sting Ray and Moray Eel ($1250 each), Exotic Fish Eggs ($2300), the
   Radioactive Growth Hormone ($10,000), the Revival Potion ($10,000),
   ClonaFish ($2,500), the Auto-Feeder ($10,000), the Auto-Healer ($10,000), and
-  the Time Warp clock ($500), Add Money ($950) and the Extra Tank ($10,000 each)
-  when they are on. The price shows $0 and no
+  the Time Warp clock ($500), Add Money ($950), the Extra Tank ($10,000 each)
+  and the Extra Supply Slots ($10,000) when they are on. The price shows $0 and no
   money is taken; everything else (one of each animal, the supply slots,
   Tanks 4-6 bought in order, the game's purchase question) stays. The game's own store items keep their
   prices.
@@ -279,6 +279,46 @@ never needs the internet.
   $1,000 to your money, as often as you like. Money stops at the largest
   value the game holds ($2,147,483,647). Picture:
   [docs/images/add-money-fish.png](docs/images/add-money-fish.png).
+- Extra supply slots (off by default; **EXPERIMENTAL - USE AT OWN RISK**;
+  **needs DS Store Items, which it turns on**). Eleven supply slots instead of
+  four, in three pages at the top left of the tank screen: page 1 is the
+  stock four (the fish food and slots 2-4), page 2 four more and page 3
+  three more (its fourth frame is greyed). Two small arrows right of slot 4
+  (the game's own arrow, as the 3 extra tanks' arrows) turn the page; carry
+  an item over an arrow to turn the page while you hold it. Buy all seven at
+  once on the Supplies store's Upgrades screen: Extra Supply Slots, $10,000
+  ($0 with Free upgrades), then "This is in your inventory." and "You already
+  own this!". Until then the arrows are grey and say "You don't own the extra
+  supply slots yet!" under the top bar. Every extra slot works like slots
+  2-4: the store fills the first free slot over all three pages (with
+  Universal supply slots a stack of the same item first, anywhere); every
+  medicine, chemical and egg -- the stock ones and DS Store Items'
+  Radioactive Growth Hormone, Revival Potion, ClonaFish and Exotic Fish Eggs
+  -- is used from it on the tank by the game's own code, with the same doses
+  and hatches; the trash takes the patcher's supplies as from slots 2-4 and
+  never the stock ones. Drag a supply onto any slot, on any page, to move
+  it: onto an empty slot it moves, onto the same item it stacks (with
+  Universal supply slots), onto another item the two change places. Without
+  Universal supply slots, slots 2-4 keep their kind (medicine, chemicals,
+  eggs) and each extra slot takes any one item, one purchase at a time, as a
+  stock slot does; with all eleven full the store asks the stock "Replace
+  ...?" questions. The fish food stays in slot 1, the Supplies store still
+  shows the stock four, and the stock game never shows a dose count or a
+  tooltip on the slots, so neither do the extra ones. Mockups:
+  [docs/images/extra-supply-slots-page-1.png](docs/images/extra-supply-slots-page-1.png),
+  [page 2](docs/images/extra-supply-slots-page-2.png),
+  [page 3](docs/images/extra-supply-slots-page-3.png),
+  [before buying](docs/images/extra-supply-slots-locked.png) and
+  [the Upgrades screen](docs/images/extra-supply-slots-store.png). It runs as
+  a companion DLL the game loads at start (`Fish Tycoon Fix Patcher
+  DLLs\Extra Supply Slots.dll`), in the "Modded Upgrades" copy; the saves keep
+  their stock layout and each save slot keeps its seven extra slots and the
+  purchase in `Fish Tycoon Fix Patcher Data\Extra Supply Slots <slot>.dat`
+  beside the saves (written whole or not at all; one that cannot be read is
+  set aside as `.unreadable-<n>.dat`, never deleted). A new game empties them.
+  Turning it off: use or move what is on pages 2 and 3 first. Nothing is
+  deleted -- the file stays and everything comes back, with the purchase,
+  when you turn it on again -- but until then the game cannot reach them.
 - Multiple ornaments (off by default; **EXPERIMENTAL - USE AT OWN RISK**). The Shell, Pagoda, Diver, Fancy Coral,
   Sunken Antique Column and Sunken Ship can be bought again once you own
   them, at their normal price, up to 10 extra copies per tank. The copies are
@@ -575,7 +615,7 @@ output folders named `Fish Tycoon - Modded` and `Plant Tycoon - Modded`.
 Their executables are named `Fish Tycoon - Modded.exe` and
 `Plant Tycoon - Modded.exe`. Original folders and executables are not replaced.
 With a setting that adds new content on (DS Exclusive Fish, DS Store Items,
-Multiple ornaments, 3 extra tanks, Add unused flowers, Add new store upgrades and items), the copy is
+Multiple ornaments, 3 extra tanks, Extra supply slots, Add unused flowers, Add new store upgrades and items), the copy is
 `Fish Tycoon - Modded Upgrades` / `Plant Tycoon - Modded Upgrades` (folder and
 EXE) instead, beside the plain copy; the game names its save folder after the
 EXE, so it keeps its own saves.
