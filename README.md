@@ -833,6 +833,30 @@ folder never fails with "path too long".
   Flowers' sheet, Legendary Seeds) comes from `assets/`.
   Pictures: [docs/images/breeding-guide-fish-discovered-species.png](docs/images/breeding-guide-fish-discovered-species.png)
   and the other `docs/images/breeding-guide-*.png`.
+- **Picture Studio.** The fish and plants in your saves, and pictures you make
+  yourself, drawn exactly as the game draws them, saved as transparent PNGs:
+  - From my save: the save folder and player (read only), everything the save
+    holds tank by tank (Tanks 1-3, the isolation tank, Tanks 4-6 from "Extra
+    Tanks <slot>.dat"), then the creatures (the Golden Seahorse, DS Store
+    Items' animals, the Cleaning Snail) and decorations (ornaments, Multiple
+    Ornaments' copies, plants and equipment), each at its own age and state.
+    "Save all in this tank" saves every picture in it into a new folder.
+  - Make your own: Fin, Body, Stage (baby, teen at every age 6-19, adult) and
+    State (healthy, ick, fungus, dead), swimming left, right or turning, at
+    any frame; creatures and decorations on their own tabs. With Show Spoilers
+    off (the Breeding Guide's setting) only the parts you have discovered.
+  - PNG sizes: the game's own size, 2x or 4x (crisp), or any width and height
+    (smooth); cut to the drawn pixels with a small clear margin, or none.
+
+  Every drawing rule is the game's own, ported to Python (no Pillow or
+  Unicorn is needed): `src/pictures_fish.py`, proven by
+  `tests/test_pictures_fish.py`, which runs the game's fish draw (0x4145F0),
+  sprite setup (0x415DF0), ornament pass (0x41D600) and blitter (0x4041C0) in
+  Unicorn on the vanilla executable and checks every draw against the plan
+  (and the DS Exclusive Fish rules against the companion's own C). The
+  pictures come from your own copy of the game, kept in a "Picture Studio
+  Pictures" folder beside the patcher, as the Breeding Guide's. See
+  [docs/picture-studio-interface.md](docs/picture-studio-interface.md).
 
 ## Safety
 

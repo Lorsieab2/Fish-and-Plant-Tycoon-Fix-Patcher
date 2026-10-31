@@ -295,6 +295,20 @@ patcher and shows them from there for every save and player. If a picture
 tab says it has no pictures yet, click "Find game..." and pick your game
 folder. Your game folder and saves are only read.
 
+Tools tab, Picture Studio: pick the game, a save folder and a player.
+"From my save" lists everything the save holds, tank by tank (Tanks 4-6
+too, with 3 extra tanks), then its creatures and decorations; click one to
+see it drawn as the game draws it now (fish can swim left, right or turn).
+"Make your own" draws any Fin and Body at any Stage (baby, teen at each age,
+adult) and State (healthy, ick, fungus, dead), and the creatures and
+decorations; with Show Spoilers off (the Breeding Guide's setting) only the
+parts you have discovered. Pick a PNG size (the game's own, 2x, 4x, or your
+own width and height) and Small margin, then "Save PNG..." or "Save all in
+this tank...". The pictures have a clear background. Like the guide, it
+copies the pictures it needs from your game into "Picture Studio Pictures"
+beside the patcher ("Find game..." if it has none yet), and never changes a
+save.
+
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.
 
