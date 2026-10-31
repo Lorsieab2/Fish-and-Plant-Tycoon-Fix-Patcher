@@ -74,7 +74,7 @@ MUTA_ROWS = {"MUTA_FLOWER": 21, "MUTA_FOLIAGE": 22}      # chemicals 48 and 49
 # Where the DLLs draw them. Fish: the Upgrades page's net cells (x, y, w, h), row 2 after the Extra
 # Supply Slots (ftfp_ds_store.c ITEM). Plant: the chemicals shelf's third row (ftfp_plant_upgrades.c),
 # beside Extra Chemical Slots (598, 177).
-FISH_CELLS = (("ITEM_MUTA_FIN.png", 411, 165, 79, 72), ("ITEM_MUTA_BODY.png", 503, 165, 79, 72))
+FISH_CELLS = (("ITEM_MUTA_FIN.png", 411, 168, 79, 69), ("ITEM_MUTA_BODY.png", 503, 168, 79, 69))
 PLANT_PLACES = {"MUTA_FLOWER": (655, 177), "MUTA_FOLIAGE": (712, 177)}
 
 

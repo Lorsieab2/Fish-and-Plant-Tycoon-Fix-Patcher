@@ -251,7 +251,7 @@ class StoreTests(unittest.TestCase):
         emu.calls.clear()
         emu.call(emu.sym("_on_activate"), emu.scene, 1)
         tips = [c for c in emu.calls if c[0] == "tip"]
-        self.assertEqual(len(tips), 13 + 2)                             # every tip is made (and both auto items')
+        self.assertEqual(len(tips), 13 + 2 + 2)                         # every tip is made (both auto items', both Muta-)
         emu.write32(emu.sym("_upgrades_view"), 1)
         emu.call(emu.sym("_set_tooltips"), emu.scene)
         shown = [emu.uc.mem_read(emu.read32(emu.sym("_tips") + 4 * i) + 8, 1)[0] for i in range(7, 13)]

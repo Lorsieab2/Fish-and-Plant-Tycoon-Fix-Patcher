@@ -989,7 +989,7 @@ class UpgradesScreenItem(unittest.TestCase):
         cells = [tuple(int(v) for v in m.groups()) for m in
                  re.finditer(r"\{ FIN_\w+, \d+, (\d+), (\d+), (\d+), (\d+),", text)]
         cells += [tuple(int(v) for v in m.groups()) for m in re.finditer(r"\{ 0, \d+, (\d+), (\d+), (\d+), (\d+),", text)]
-        self.assertEqual(len(cells), 13)
+        self.assertEqual(len(cells), 15)
         for i, a in enumerate(cells):
             for b in cells[i + 1:]:
                 self.assertFalse(a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3],

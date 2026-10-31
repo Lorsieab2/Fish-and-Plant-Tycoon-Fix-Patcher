@@ -1773,12 +1773,13 @@ static const store_item ITEM[ITEMS] = {
       { "Extra Supply Slots", "Zus\xE4tzliche Vorratsf\xE4" "cher" },
       { "Seven more supply slots for medicine,\nchemicals and eggs, on two more pages.\nThe arrows beside the slots turn the\npage. One purchase opens all seven.",
         "Sieben weitere Vorratsf\xE4" "cher f\xFCr Medizin,\nChemikalien und Eier, auf zwei weiteren\nSeiten. Die Pfeile neben den F\xE4" "chern\nbl\xE4ttern um. Ein Kauf \xF6" "ffnet alle sieben." } },
-    /* The owner's names and descriptions, row 2 after the Extra Supply Slots. */
-    { FIN_MUTA_FIN, 2500, 411, 165, 79, 72, SPR_ITEM_MUTA_FIN, 48, 65,
+    /* The owner's names and descriptions, row 2 after the Extra Supply Slots, in cells its height
+       (from y 168: Time Warp's and Add Money's cells above end at 166). */
+    { FIN_MUTA_FIN, 2500, 411, 168, 79, 69, SPR_ITEM_MUTA_FIN, 48, 65,
       { "Muta-Fin", "Muta-Fin" },
       { "Mutates the fins of fish.\nContains 3 doses.",
         "Ver\xE4ndert die Flossen von Fischen.\nReicht f\xFCr 3 Behandlungen." } },
-    { FIN_MUTA_BODY, 2500, 503, 165, 79, 72, SPR_ITEM_MUTA_BODY, 48, 65,
+    { FIN_MUTA_BODY, 2500, 503, 168, 79, 69, SPR_ITEM_MUTA_BODY, 48, 65,
       { "Muta-Body", "Muta-Body" },
       { "Mutates the bodies of fish.\nContains 3 doses.",
         "Ver\xE4ndert die K\xF6rper von Fischen.\nReicht f\xFCr 3 Behandlungen." } },

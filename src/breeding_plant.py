@@ -692,7 +692,7 @@ def _gene_how(g: int, kind: str, extras: bool = False, name=None) -> str:
                      + named_list(sources, kind, name, plural, lambda n, p: f"a {n} {kind} on {_pct(p)}") + ".")
         muta = "Muta-Flower" if kind == "flower" else "Muta-Foliage"
         lines.append(f"{muta} (${MUTA_PRICE}, with Add new store upgrades and items): the Mutation Liquid for "
-                     f"the {kind} alone, one step either way; it gives this {kind} from "
+                     f"the {kind} alone, to the next one along either way; it gives this {kind} from "
                      + named_list(sources, kind, name, plural, lambda n, p: f"a {n} {kind} on {_pct(min(1.0, 2 * p))}")
                      + ".")
     return "\n".join(lines)
