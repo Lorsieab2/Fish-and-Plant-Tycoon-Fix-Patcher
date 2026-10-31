@@ -102,6 +102,14 @@ static const unsigned char SITE_UNITS_DONE_EXPECT[] = { 0x8B, 0x4E, 0x0C, 0x80, 
 #define SITE_DEAD_UNTAG_LEN 7
 static const unsigned char SITE_DEAD_UNTAG_EXPECT[] = { 0xC6, 0x80, 0x9D, 0x00, 0x00, 0x00, 0x00 };
 #define SITE_DEAD_UNTAG_BACK 0x0042DF98u
+#define SITE_SALE_RECORD_VA 0x00435CF2u
+#define SITE_SALE_RECORD_LEN 6
+static const unsigned char SITE_SALE_RECORD_EXPECT[] = { 0x8B, 0x14, 0x88, 0x01, 0x50, 0x34 };
+#define SITE_SALE_RECORD_BACK 0x00435CF8u
+#define SITE_SALE_CASH_VA 0x00435D12u
+#define SITE_SALE_CASH_LEN 9
+static const unsigned char SITE_SALE_CASH_EXPECT[] = { 0x8B, 0x14, 0x81, 0x52, 0xE8, 0x55, 0x90, 0xFE, 0xFF };
+#define SITE_SALE_CASH_BACK 0x00435D1Bu
 #define SITE_CHEM_PICTURE_BOUND_VA 0x004308D1u
 #define SITE_CHEM_PICTURE_BOUND_LEN 3
 static const unsigned char SITE_CHEM_PICTURE_BOUND_EXPECT[] = { 0x83, 0xF8, 0x24 };

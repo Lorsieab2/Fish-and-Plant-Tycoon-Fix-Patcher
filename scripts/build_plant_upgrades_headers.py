@@ -69,6 +69,13 @@ SITES = [
     # The plant update (0x42DF80) clears a dead plant's on-sale flag (+0x9D) every update: the DLL
     # remembers it was for sale (+0x9F) so the Revival Potion can put it back on sale.
     ("dead_untag", 0x42DF91, ["mov byte ptr [eax + 0x9d], 0"]),
+    # A visitor's purchase (0x435C70, every nursery's: the extra nurseries' off-screen sales run the
+    # same code with their pots arranged in): the two reads of the price it pays, into the money
+    # earned (state + 0x34) and into the cash (0x41ED70). A plant given the Radioactive Plant Formula
+    # (or its Bomb) pays its species' highest selling price instead. Both start right where New
+    # Flowers' index stubs for 0x435CE5 and 0x435D05 come back.
+    ("sale_record", 0x435CF2, ["mov edx, dword ptr [eax + ecx*4]", "add dword ptr [eax + 0x34], edx"]),
+    ("sale_cash", 0x435D12, ["mov edx, dword ptr [ecx + eax*4]", "push edx", "call 0x41ed70"]),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).

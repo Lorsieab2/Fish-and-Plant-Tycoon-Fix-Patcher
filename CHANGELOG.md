@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- Treated fish and plants sell for the highest possible price (both games).
+  A fish given a Radioactive Growth Hormone dose (DS Store Items), and a plant
+  given the Radioactive Plant Formula or its Bomb (Store Upgrades and Items),
+  is marked; when it is sold you are paid its species' highest selling price,
+  the Breeding Guide's "Highest selling" with Max effects (Fish: 2B - 1 with B
+  after both Advertising levels, a Golden Guppy $475; Plant: the highest
+  asking price a visitor still buys at with every effect at its best, a
+  Fabled Lemonbush $1186), into the money, Money Earned and the selling
+  scene's sold-fish price. The sale chance and timing are still the asking
+  price's. Fish: the one sale call (0x4244D4, the Sale Tank and Tanks 4-6 lent
+  its place); the mark is the fish record's +0x48, a dword no game code reads
+  (written only by the birth, as 0, and the record copy 0x41E850), so it
+  follows the fish through moves, Tanks 4-6, saves and ClonaFish clones (a
+  clone of a treated fish is treated); newborns never are; cleared at the
+  sale, death, the trash or a revival. Plant: the sale's two price reads
+  (0x435CF2, 0x435D12), every nursery, the off-screen ones too; the mark is
+  'R' in the pot's +0x9F, the byte the Revival Potion's 'S' uses on dead
+  plants (a plant that dies loses 'R' first), so it follows the pot through
+  Extra Greenhouses and saves; cleared at the sale, death or replanting. The
+  three items' store texts say so ("Treated fish sell for the highest
+  possible price!", German "Behandelte Fische werden zum Höchstpreis
+  verkauft!"; "Treated plants sell for the highest possible price!"). The
+  price maths is native/common/max_sale_price.h, checked against the Python
+  for every species.
 - Breeding Guide, both games, Show Spoilers off: the Fins, Bodies, Flowers
   and Foliage tabs and their picture tabs list exactly the parts the save has
   discovered, with "n of N discovered" at the top (the patcher's DS fish and

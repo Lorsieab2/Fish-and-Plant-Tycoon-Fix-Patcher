@@ -409,10 +409,33 @@ NEW_GAME = (
     ),
 )
 
+# The Radioactive Plant Formula's price rule (Store Upgrades and Items, the owner 2026-10-31: "Always
+# pays the max"; native/ftfp_plant_upgrades/ftfp_plant_upgrades.c, sale_price), shown under the
+# formula, its Bomb and in Selling.
+RADIOACTIVE_PRICE = (
+    "Treated plants sell for the highest possible price: every live plant a Radioactive Plant Formula "
+    "dose reaches, from the bottle or from the Formula Bomb, is marked as treated. When a visitor buys a "
+    "treated plant you are paid its species' highest selling price instead of your asking price: the "
+    "highest asking price a visitor still buys at with every effect at its best (the Golden Berries of "
+    "Wealth, two Plant Food doses, 2 or more cut parts, a healthy flowering plant), that is the highest "
+    "P from 1 to 9999 whose price seen P' stays below 2V; the Breeding Guide's Highest selling with Max "
+    "effects. Example: a treated Fabled Lemonbush (V = 250) always sells for $1186. That one price goes "
+    "into your cash and Money Earned. Whether and when it sells is still decided by your asking price "
+    "and the plant as it is: the same Random(1300) roll every 2 real-time seconds in the nursery (see "
+    "Selling and visitors). The mark is part of the pot's record, so it stays with the plant through "
+    "moves between greenhouses (Extra Greenhouses), going on sale or off sale, every nursery, saves and "
+    "loads, and no time passing (real time or age units) wears it off; with Extra Greenhouses the "
+    "nurseries not on screen pay it too when they sell. It ends when the plant is sold, dies (a plant "
+    "the Revival Potion brings back is not treated) or a new plant is planted in its pot."
+)
+
 SELLING = (
     Fact(
         "A plant can go up for sale when it is alive and mature (24+). When it sells you get the "
         "species' asking price P.",
+        patched=(("plant_upgrades", "a plant treated with the Radioactive Plant Formula (or its Bomb) is "
+                  "paid its species' highest selling price instead (never less than P), in every nursery; "
+                  "its chance to sell is still P's, as below. " + RADIOACTIVE_PRICE),),
     ),
     Fact(
         "A plant stays for sale until you take it off sale (the Sell button, or a visitor buys it). "
@@ -651,7 +674,8 @@ CHEMICALS = (
                   "5 of its seeds (less any already picked) are ripe at once; if not, its next "
                   "pollination gives all 5 (not 5, 4 or 3, and 5 even if infested). A plant planted "
                   "later in that pot does not inherit this. A dead plant stays dead. A plant for sale "
-                  "stays for sale at its price. The Formula Bomb gives every plant it reaches the same."),
+                  "stays for sale at its price. The Formula Bomb gives every plant it reaches the same. "
+                  + RADIOACTIVE_PRICE),
                  ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
     Fact(
@@ -659,7 +683,9 @@ CHEMICALS = (
         patched=(("plant_upgrades", "on the store's Upgrades view, under the formula, $30,000, 3 doses; "
                   "the Fertilizer Bomb's art made rainbow. Used like the Fertilizer Bomb: one bomb gives "
                   "every pot the Fertilizer Bomb reaches (every live plant in the greenhouse on screen) "
-                  "exactly one Radioactive Plant Formula dose, with all of its effects."),
+                  "exactly one Radioactive Plant Formula dose, with all of its effects: each of those "
+                  "plants is treated and sells for its species' highest selling price (see Radioactive "
+                  "Plant Formula and Selling and visitors)."),
                  ("free_upgrades", "it costs $0 (it still needs room in the chemical tray)."),),
     ),
     Fact(
@@ -1277,7 +1303,10 @@ EXTRA_NURSERIES = (
             "Visitors come only to the nursery on screen, and its visitor limit counts its own plants for sale, "
             "never past the stock maximum. A plant sold in another nursery is paid and counted at once, with "
             "the cash register sound, but no visitor carries it off and no price marker shows; it leaves its "
-            "pot when that nursery is shown or you go back to the greenhouse, like any sold plant.",
+            "pot when that nursery is shown or you go back to the greenhouse, like any sold plant. A plant "
+            "treated with the Radioactive Plant Formula (Store Upgrades and Items) is paid its species' "
+            "highest selling price there too, exactly as on screen: the mark moves with the plant's pot "
+            "(see Radioactive Plant Formula).",
             "With no nursery bought the roll is the stock one alone.",
         ),
     ),

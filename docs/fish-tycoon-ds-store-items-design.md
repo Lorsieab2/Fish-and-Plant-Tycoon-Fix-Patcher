@@ -341,6 +341,39 @@ is untouched. Each dose:
    empty then (AddFish takes a record whose `+0x00` is 0), so a reused record
    is never mistaken for an old fish. A later dose grows the babies up.
 
+### Treated fish sell for the highest price (owner, 2026-10-31: "Always pays the max")
+
+- **Which fish.** Every fish a dose heals (the fish reached before the
+  births) gets the mark `RADIOACTIVE_MARK` ("RMAX") in its record's `+0x48`.
+  The dose's newborns and every later baby are never marked.
+- **The byte.** `+0x48` is a dword the game never uses: the birth
+  (`0x41FA30`) starts it at 0 (`0x41FAA7`, the record built at `esp + 0x10`),
+  the field copy `0x41E850` copies it as is, AddFish copies all 0x288 bytes
+  (`0x419C94`), REMOVE_FISH (`0x418E20`) leaves it, and no operand reaches
+  `state + 0x390 + tank * 0x51EC + slot * 0x288 + 0x48` (any tank, slot). The
+  other `[reg + 0x48]` operands are on other objects (the view, the scenes, a
+  customer, the totals, the library, the CRT); `tests/test_radioactive_max_price.py`
+  pins every one. So the mark goes wherever the record goes: moves between
+  tanks and to the isolation tank, Extra Tanks' block swaps (Tanks 4-6, and
+  each one lent the Sale Tank's place to sell), Bigger tanks' slots, the save
+  (the state) and Extra Tanks' sidecar, and ClonaFish's clones (a clone of a
+  treated fish is treated).
+- **The sale.** `0x4244D4`, the sale roll's `call 0x424010`, its only call
+  (site `sale`), calls `on_fish_sale`: for a marked fish the species' asking
+  price (its entry's `+0x20`, or DS Exclusive Fish's row through
+  `FtfpDsFishEntry` for a DS body) is the species' highest selling price for
+  that one call, so the sale's three uses of it agree: the money
+  (`state + 0x38C`), Money Earned (`state + 0x20`) and the sold fish's price in
+  the selling scene (`0x4236D0`, scene `+0x28`). The asking price goes back
+  and the mark is cleared after. The roll that chose the fish is over, so the
+  chance and the 5-second pause are the asking price's.
+- **The price.** `native/common/max_sale_price.h`, a port of the Breeding
+  Guide's `prices(key, "max").highest_selling`: 2B - 1 with B the species'
+  base price (stock table, or the DS formula) after Advertising levels 2 and
+  3; never less than the asking price. A Golden Guppy: $475.
+- **Cleared** at the sale, at death (`stub_death`, the dead path), by the
+  trash (`fish_trashed`) and by the Revival Potion.
+
 ## Revival Potion (item 30)
 
 $10,000, 3 doses, slot #3 like the hormone (shelf sprite 239, cursor 240,

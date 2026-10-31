@@ -194,7 +194,16 @@ never needs the internet.
   the babies stay babies, as born (a later dose grows them up); then of the
   fish that were there before, younger ones become adults (age 20), and every
   one gets full health (100) and is cured of ick or fungus. Other tanks and the store
-  animals are left alone. Picture:
+  animals are left alone. Treated fish sell for the highest possible price:
+  every fish a dose heals is marked, and when it is sold (from the Sale Tank,
+  or Tanks 4-6 with For sale On) you are paid its species' highest selling
+  price, 2B - 1 with B its base price after both Advertising levels (the
+  Breeding Guide's "Highest selling" with Max effects; a Golden Guppy pays
+  $475), instead of your asking price. Which fish sells and when still follow
+  your asking price. The mark stays with the fish through moves between tanks,
+  saves and ClonaFish clones (a clone of a treated fish is treated too), never
+  passes to babies, and ends when the fish is sold, dies or is thrown away.
+  Picture:
   [docs/images/radioactive-growth-hormone-fish.png](docs/images/radioactive-growth-hormone-fish.png).
   The Revival Potion ($10,000, 3 doses; $0 with Free upgrades), the owner's
   amber flask, is a slot-#3 chemical like the hormone: each dose revives every
@@ -334,7 +343,15 @@ never needs the internet.
     full bloom, a flower on every spot of every branch and leaf (hundreds on a
     big plant), no dead or brown leaves, full health, and always 5 seeds:
     an already pollinated plant has all its seeds ripe at once, any other
-    gives all 5 at its next pollination (the Formula Bomb too).
+    gives all 5 at its next pollination (the Formula Bomb too). Treated
+    plants sell for the highest possible price: when a visitor buys a plant
+    given the formula (or its Bomb), in any nursery, you are paid its species'
+    highest selling price, the highest asking price a visitor still buys at
+    with every effect at its best (the Breeding Guide's "Highest selling" with
+    Max effects; a Fabled Lemonbush pays $1186), instead of your asking price.
+    Whether and when it sells still follow your asking price. The mark stays
+    with the plant through moves, nurseries and saves, and ends when it is
+    sold, dies or its pot is replanted.
   - Radioactive Plant Formula Bomb under the formula: $30,000, 3 doses; the
     stock Fertilizer Bomb made rainbow. One bomb gives every live plant in the
     greenhouse on screen exactly one Radioactive Plant Formula dose (the
