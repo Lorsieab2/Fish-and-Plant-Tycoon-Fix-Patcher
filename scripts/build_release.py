@@ -63,7 +63,7 @@ FILES = [
     "docs/images/revival-potion-plant.png",
     "docs/images/auto-upgrades-fish.png",
     "docs/images/auto-upgrades-plant.png",
-    "docs/images/seed-boxes-7-9-store.png",
+    "docs/images/extra-seed-box-store.png",
     "docs/images/seed-boxes-7-9-storage.png",
     "docs/images/extra-chemical-slots-page-1.png",
     "docs/images/extra-chemical-slots-page-2.png",

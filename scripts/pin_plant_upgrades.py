@@ -39,7 +39,7 @@ FOLDER = ds_fish_loader.PLANT.patcher_files_folder
 SETTING = {
     "id": SETTING_ID,
     "name": "Add new store upgrades and items",
-    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula and its Bomb, the Revival Potion, Revita-Seed, Automatic Sprinklers, the Auto-Healer, and the Fourth to Ninth Seed Box. Needs Add unused flowers.",
+    "summary": "Adds an Upgrades view to the Supplies store with Legendary Seeds (the new flowers), the Radioactive Plant Formula and its Bomb, the Revival Potion, Revita-Seed, Automatic Sprinklers, the Auto-Healer, and the Extra Seed Box (the Fourth to Ninth Seed Box, one at a time). Needs Add unused flowers.",
     "description": (
         "Adds an Upgrades link on the bricks at the left of the Supplies store. It opens a second "
         "view of the store with only the new items, each where it would sit in the store: "
@@ -68,10 +68,11 @@ SETTING = {
         "counted under Plants Cured, and keeps health at 100; neither touches a dead plant, and old age "
         "still ends a plant's life; unpurchase: click an owned one and answer Yes, it switches off at "
         "once with no refund, and buying it again costs the full price; ownership is kept in \"Auto "
-        "Upgrades <slot>.dat\"), and the Fourth, Fifth "
-        "and Sixth Seed Box with the tool upgrades, then the Seventh, Eighth and Ninth in their own "
-        "column left of the Extra Greenhouse (\"Even more space for your seeds!\", $1000 each, "
-        "bought in order like the stock boxes: the Seventh after the Sixth). Each new box opens a "
+        "Upgrades <slot>.dat\"), and one Extra Seed Box item on the tool shelf beside the Extra "
+        "Greenhouse that sells the Fourth, Fifth, Sixth, Seventh, Eighth and Ninth Seed Box one click "
+        "at a time, in order, like the Extra Greenhouse (\"Even more space for your seeds!\", $1000 "
+        "each, a Yes / No for each, its tooltip says which comes next, e.g. \"Extra Seed Box 4 of 6\", "
+        "and a tick once all six are yours). Each new box opens a "
         "40-seed drawer: the Fourth to Sixth in a second chest on the Seed Storage screen, the Seventh "
         "to Ninth in a third; the gold arrows on its title bar step through boxes 1-3, 4-6 and 7-9 "
         "(360 seeds in all), and the greenhouse fills boxes 4-6 once 1-3 are full, then 7-9. Click "

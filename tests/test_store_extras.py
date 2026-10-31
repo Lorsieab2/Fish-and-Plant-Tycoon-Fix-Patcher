@@ -565,11 +565,16 @@ class PlantStoreTests(unittest.TestCase):
         self.assertEqual(self.cash(emu), 0)
 
     def test_seed_box_price(self) -> None:
-        for free, expected in ((False, 1000), (True, 0)):
-            emu = self.store(0, free)
-            self.click(emu, 480, 60)                              # the Fourth Seed Box
-            self.assertEqual([c for c in emu.calls if c[0] == "dialog"], [("dialog", 14, expected)])
-            self.assertEqual(emu.read32(emu.state + TOOL_RECORD + 4 * 0x20), 0)   # stock record put back
+        emu = self.store(0, False)
+        self.click(emu, 480, 60)                                  # the Extra Seed Box: the Fourth next
+        self.assertIn(("MessageBoxW", "You can't afford to buy this yet! An extra seed box costs $1,000."),
+                      emu.calls)
+        emu = self.store(0, True)
+        self.click(emu, 480, 60)
+        asked = [c[1] for c in emu.calls if c[0] == "MessageBoxW"]
+        self.assertTrue(asked[-1].startswith("Buy the Fourth Seed Box for $0?"), asked)
+        self.assertFalse([c for c in emu.calls if c[0] == "dialog"])            # no stock dialog any more
+        self.assertEqual(emu.read32(emu.state + TOOL_RECORD + 4 * 0x20), 0)   # the stock records untouched
 
     def test_tooltips_show_the_price(self) -> None:
         for free in (False, True):
@@ -577,7 +582,7 @@ class PlantStoreTests(unittest.TestCase):
             emu.call(emu.sym("_on_activate"), emu.scene, 1)
             tips = [c[1] for c in emu.calls if c[0] == "tip"]
             prices = ("5000", "10000", "1000", "500", "950")
-            for price, title in zip(prices, ("Legendary Seeds", "Radioactive", "Fourth Seed Box", "Time Warp",
+            for price, title in zip(prices, ("Legendary Seeds", "Radioactive", "Extra Seed Box 1 of 3", "Time Warp",
                                              "Add $1,000")):
                 tip = next(t for t in tips if t.startswith(title))
                 self.assertTrue(tip.endswith(f"Price: $ {'0' if free else price}"), tip)

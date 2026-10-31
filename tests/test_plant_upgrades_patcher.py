@@ -109,9 +109,11 @@ class ManifestTests(unittest.TestCase):
     def test_store_texts_are_the_owners(self) -> None:
         data = (UPGRADES / "Store Upgrades and Items.dll").read_bytes()
         for text in (b"Legendary Seeds", b"rediscovered on Isola", b"Radioactive Plant Formula",
-                     b"No more dead leaves!", b"Contains 3 doses.", b"Fourth Seed Box", b"Sixth Seed Box",
-                     b"Even more space for your seeds!"):
+                     b"No more dead leaves!", b"Contains 3 doses.", b"Extra Seed Box"):
             self.assertIn(text, data)
+        for text in ("Fourth", "Ninth", "Seed Box for $%d?", "Even more space for your seeds!",
+                     "You already have all six extra seed boxes!"):
+            self.assertIn(text.encode("utf-16-le"), data)
 
 
 class RequirementTests(unittest.TestCase):

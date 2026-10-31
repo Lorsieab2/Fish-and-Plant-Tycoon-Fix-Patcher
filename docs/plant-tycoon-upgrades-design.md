@@ -75,20 +75,20 @@ with the setting is therefore the same as the pin without it
     - then adds flowers until no spot is left (`0x42ED60(360, 0)`).
     Live: a rose bush went from 5 flowers to 276, a 37-branch plant from 4 to
     276, and every one of the 14 new flowers from a handful to 39-132.
-  - **Fourth, Fifth and Sixth Seed Box** (seed-box column of Tool Upgrades,
-    upper left): $1000 each, "Even more space for your
-    seeds!", stock seed-box art at the stock places with the stock tick once
-    owned. Bought in order, through the stock dialog and its messages.
-  - **Seventh, Eighth and Ninth Seed Box** (owner, 2026-10-30): $1000 each as
-    the Sixth, the same description, the Fourth-Sixth's art (Tools_Grid frames
-    4, 9, 14) in their own column at (322, 50 / 111 / 172), drawn at scale 1:
-    the art is visible over x + 6 .. x + 76, so it ends at 398, 16 px before
-    the Extra Greenhouse's art (414) and 5 px before the Automatic Sprinklers' (403), as
-    the Fourth's starts 17 px after the greenhouse's. Click rectangles
-    (332-389, 52 + 70 r .. 113 + 70 r) touch no other item's. Bought after the
-    Sixth, in order (below). Mockup: `docs/images/seed-boxes-7-9-store.png`,
-    composited from the DLL's own draw calls by
-    `scripts/render_seed_boxes_preview.py`.
+  - **Extra Seed Box** (owner, 2026-10-31: "combine all the extra seed boxes
+    in one and make it a multipurchase like the greenhouse/nursery"): one item
+    selling the Fourth to Ninth Seed Box, one click at a time, in order, $1000
+    each ($0 with Free upgrades or Everything is Free). The stock seed box's
+    art (Tools_Grid frame 4, 80 x 80, the shelf's size already) drawn at scale 1
+    at (461, 50), where the stock store draws its first seed box: its art is
+    visible over x 468-536, y 64-112, 17 px right of the Extra Greenhouse's
+    (414-450, the same shelf line), above nothing (the Automatic Sprinklers are
+    under the greenhouse). Click rectangle 471-528 x 52-113, clear of the
+    greenhouse's (404-461 x 52-113) and the sprinklers' (403-461 x 114-174).
+    Mockup: `docs/images/extra-seed-box-store.png`, composited from the DLL's
+    own draw calls by `scripts/render_seed_boxes_preview.py`. It replaces six
+    shelf items (the Fourth-Sixth in the stock seed-box column, the
+    Seventh-Ninth in a column at x 322).
 - The stock seed box is one 120-seed chest of three 40-seed drawers (First,
   Second, Third Seed Box). The new boxes are a **second chest** (the Fourth to
   Sixth) and a **third chest** (the Seventh to Ninth) with the same three
@@ -137,7 +137,7 @@ a New Flowers site).
 | chem_doses | 0x432E43 | 3 doses per purchase |
 | chem_apply | 0x4266A6 | chemical 36 on a pot runs the formula, then the stock tail (sound, keep or drop the bottle) |
 | tray_name_greenhouse / tray_name_store | 0x4277B4 / 0x4484AA | the tray tooltip names chemical 36 |
-| string_lookup | 0x44CA70 | the mod's texts (string ids 0x1F0-0x1F4, and 0x11D/0x11E, 0x165/0x166 under the flags) |
+| string_lookup | 0x44CA70 | the mod's texts (string ids 0x1F0 and 0x1F5-0x1F7, and 0x11D/0x11E, 0x165/0x166 under the flags) |
 | store_activate | 0x446D40 | builds the mod's tooltips once; every activation starts on the stock view |
 | store_draw | 0x447DA2 | draws the link, or the Upgrades view instead of the stock grids (then 0x447FF8) |
 | store_click | 0x448173 | button-down: the link, the Supplies plate, the Upgrades items (the dialog is run from the DLL: ctor 0x432E90, modal 0x401C90, dtor 0x4307A0) |
@@ -152,32 +152,27 @@ a New Flowers site).
 | chem_picture_bound | 0x4308D3 | immediate 0x24 -> 0x28: the dialog draws chemicals 36-39 |
 | seed/chem sheet records, link record | 0x485F4C, 0x485F5C, 0x4875A4, 0x4875B4, 0x4882D4 | the sprite records above |
 
-The Fourth-Sixth boxes are sold through the stock tool-upgrade dialog: while
-one of their dialogs is open, tool records 4, 9 and 14 (`state+0x6E8+k*0x20`,
-the stock seed-box drawers) describe the new boxes (price, owned byte, title
-and description ids), so the stock code checks "already have it", "needs the
-previous upgrade" and the cash, and Buy sets the owned byte. The stock
-records are restored when the dialog closes.
-
-The Seventh-Ninth go through the dialog of tool record 9 (index 19): the
-helper 0x430950 takes a tool record's row and column from the index
-(index - 10 = row x 5 + column) and, for row 1 and below, refuses with
-"You need the previous upgrade first!" (string 0x1B1) unless record k - 5 is
-owned (`cmp byte [ecx + 0x64C]`, 0x4319A1). So record 4 describes the box
-before (the Sixth, Seventh or Eighth: its owned byte) and record 9 the box
-being bought (price, owned byte, title 0x1F8-0x1FA, description 0x1F4); Buy
-(0x432D00, button 3) sets record 9's owned byte, which is read back as the
-box's. Right after the ctor the DLL sets the dialog's +0xB8 (its index) to 14,
-19 or 24, so the picture (drawn from +0xB8 at 0x430827: frame index - 10 of
-the tool sheet) is the Fourth, Fifth or Sixth's; +0xB8 is otherwise read only
-by the Buy of category 4 (another store shelf). Tooltips: "Seventh Seed
-Box\nPrice: $ 1000" (owned: the name alone), shown only with a version 2
-Seed Boxes DLL.
+The Extra Seed Box is sold through the Extra Greenhouse item's own Yes / No
+(`tw_confirm_as`, a Windows message box), not the stock purchase dialog: the
+stock dialog sells one tool record per item and checks "the previous upgrade"
+by the record one row up, which one item for six boxes cannot lend (it used to
+borrow tool records 4, 9 and 14, one box per shelf place). A click: all bought
+-> "You already have all six extra seed boxes!"; cash below the price -> "You
+can't afford to buy this yet! An extra seed box costs $1,000."; else "Buy the
+Fourth Seed Box for $1000?\n\nEven more space for your seeds! It opens a
+40-seed drawer in Seed Storage (Boxes 4-6)." and, on Yes, the cash
+(0x41ED70) and `set_owned(next)`. The next box is the first not owned, in
+order (`boxes_bought`), so a save with the Fourth to Sixth shows "Extra Seed
+Box 4 of 6". Tooltip: "Extra Seed Box <n> of 6\nPrice: $ 1000", or "Extra Seed
+Box\nSold out", with the stock tick once all are owned. The purchases stay in
+`Seed Boxes <slot>.dat` as before. String ids 0x1F1-0x1F4 and 0x1F8-0x1FA (the
+old per-box dialog texts) are no longer used.
 
 `ftfp_box_events.version` is 2: `owned` / `set_owned` take boxes 0-5. The
 Upgrades DLL still accepts version 1 (an older Seed Boxes DLL) and then sells
-and draws only the Fourth-Sixth, so a mixed pair can never take money for a
-box it cannot hold.
+only the Fourth-Sixth ("Extra Seed Box 3 of 3", "You already have all three
+extra seed boxes!"), so a mixed pair can never take money for a box it cannot
+hold.
 
 Per slot, the three Legendary packets on sale are kept in
 `<save folder>\Plant Tycoon Fix Patcher Data\Plant Upgrades <slot>.dat`; bought
@@ -338,8 +333,9 @@ nurseries' off-screen sales are this same code on their arranged pots.
   room in your Chemical Tray." message; Buy adds chemical 36 with 3 doses.
 - A Legendary seed (foliage 12, Buttercup) planted at age 6, one dose: age 28,
   size 110, health 100, bloom 100, 58 flowers ("Buttercup Bamboo").
-- Fifth Seed Box first: "You need the previous upgrade first!". Fourth then
-  Fifth: $1000 each, ticks shown, stock seed-box records unchanged.
+- (Before the Extra Seed Box item, which is checked in emulation only) Fifth
+  Seed Box first: "You need the previous upgrade first!". Fourth then Fifth:
+  $1000 each, ticks shown, stock seed-box records unchanged.
 - Seed Storage: arrows, "Boxes 4-6" with two drawers open; a seed moved from
   box 1 through the tray into box 5.
 - Boxes 1-3 full: the greenhouse's "Seed moved to seed box." put the seed in
@@ -352,9 +348,10 @@ cannot show any tooltip, stock ones included).
 
 The Seventh-Ninth Seed Box were checked in emulation, not live (the owner was
 playing): `tests/test_seed_boxes_7_9.py` runs both DLLs' own code and the
-game's own purchase helper, Buy, Seed Storage mouse code, drawer level and
-send-to-box on the vanilla executable (order, price, $0 free, can't afford,
-already owned; storing, taking, drag and drop and locked drawers in boxes
+game's own Seed Storage mouse code, drawer level and send-to-box on the
+vanilla executable (the Extra Seed Box item: 4 to 9 in order, the price, $0
+free, can't afford, No, sold out, an existing save with three bought, an
+older Seed Boxes DLL; storing, taking, drag and drop and locked drawers in boxes
 7-9; the arrows; the greenhouse filling 1-3, 4-6, 7-9; the version 1 sidecar,
 a round trip, a new game and damaged files; Sort Seeds over three chests),
 and, on the Enable All build (every Plant setting), checks every DLL site is
@@ -365,9 +362,6 @@ and log so.
 
 ## Limits
 
-- An autosave that fires while a Fourth-Ninth box dialog is open would save
-  the box records as the dialog shows them (the owned bytes of the stock
-  drawers could change). The window is the few seconds the dialog is open.
 - Like New Flowers, the sidecars follow the slot number, not the game's backup
   rotation.
 
