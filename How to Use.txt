@@ -235,10 +235,10 @@ Plant Tycoon options:
 - Extra chemical slots (EXPERIMENTAL - USE AT OWN RISK. Off by default;
   turns on the store's Upgrades screen. Buy Extra Chemical Slots there once,
   $10,000 ($0 with Free upgrades): the item on the chemicals shelf under the
-  Formula Bomb. Then a small gold arrow and "1/2" on the plaque of the
-  greenhouse's Tools box turn to page 2: 8 more chemical slots in both rows
-  (12 in all; the tools stay on page 1). Click the arrow, or carry a chemical
-  over it. The store fills page 2 once page 1 is full, every chemical works
+  Formula Bomb. Then a small gold arrow on each side of the greenhouse's
+  Tools box ("1/2" under the right one) turns to page 2: 8 more chemical
+  slots in both rows (12 in all; the tools stay on page 1). Click either
+  arrow, or carry a chemical over one. The store fills page 2 once page 1 is full, every chemical works
   from page 2, and a chemical in your hand can be put on any slot of either
   page (moved, stacked or swapped). Every chemical slot shows its name and
   doses left when you point at it. Turning it off loses nothing: loading a

@@ -8,10 +8,10 @@
    byte, chemical id, doses), and a held chemical is state + 0x56C = 5 + its
    slot.  Once "Extra Chemical Slots" is bought on the store's Upgrades view
    (Store Upgrades and Items.dll, $10,000, $0 with Free upgrades), a small
-   gold arrow on the Tools box's plaque turns to page 2: eight more chemical
+   gold arrow on either side of the Tools box turns to page 2: eight more chemical
    slots in both rows of the grid (the tools stay on page 1; a tool already
-   in the hand stays there).  Clicking the arrow, or carrying a chemical over
-   it, turns the page back.  12 chemical slots in all.
+   in the hand stays there).  Clicking an arrow, or carrying a chemical over
+   one, turns the page back.  12 chemical slots in all.
 
    HOW.  Every page-2 slot is a stock slot while it is used: picking one up
    (0x4260A9, the press's tray hit) moves its record into a stock record --
@@ -93,14 +93,20 @@ static const int ROW_HIT_BOTTOM[2] = { 184, 253 };
 #define STOCK_HIT_BOTTOM 253
 #define FLIGHT_OFFSET 35                /* 0x4244C0 aims a bottle at its picture's place + 35 */
 
-/* The arrow: on the plaque between the seed tray (y <= 98) and the tools (y >= 136),
-   right of its middle, clear of its gold scrollwork; nothing else on the plaque takes a click. */
-#define ARROW_X 136
-#define ARROW_Y 104
+/* The arrows (the owner, 2026-10-31: beside the boxes, as Extra Greenhouses' are), one on each
+   side of the Tools box, vertically centred on its grid (y 136..253), drawn over the panel's gold
+   frame.  Left: x 0-23, pressed only at x 0-17, left of every tool (0x423AA0: from x 18) and slot
+   (from x 20); the soil's picture starts at x 25.  Right: x 199-222, right of the last tool (to
+   x 198), above Extra Greenhouses' left arrow (x 220-269 from y 236).  Either one turns the page.
+   The page number sits under the right arrow; the plaque keeps its "Tools". */
+#define ARROW_LEFT_X 0
+#define ARROW_LEFT_HIT_W 18
+#define ARROW_RIGHT_X 199
+#define ARROW_Y 178
 #define ARROW_W 24
 #define ARROW_H 24
-#define PAGE_TEXT_X 100                 /* "1/2" / "2/2" left of the arrow, on the plaque */
-#define PAGE_TEXT_Y 107
+#define PAGE_TEXT_X 201                 /* "1/2" / "2/2" under the right arrow */
+#define PAGE_TEXT_Y 204
 #define TEXT_WHITE 0xFFFFFFFFu
 #define TEXT_SHADOW 0xFF000000u
 
@@ -291,7 +297,9 @@ NOINLINE static int slot_at(int x, int y) {
 }
 
 static int in_arrow(int x, int y) {
-    return x >= ARROW_X && x < ARROW_X + ARROW_W && y >= ARROW_Y && y < ARROW_Y + ARROW_H;
+    if (y < ARROW_Y || y >= ARROW_Y + ARROW_H) return 0;
+    return (x >= ARROW_LEFT_X && x < ARROW_LEFT_X + ARROW_LEFT_HIT_W) ||
+           (x >= ARROW_RIGHT_X && x < ARROW_RIGHT_X + ARROW_W);
 }
 
 static int draw_x(int g) { return COL_DRAW_X(g < STOCK_SLOTS ? g : (g - STOCK_SLOTS) % STOCK_SLOTS); }
@@ -500,7 +508,7 @@ static void draw_bottle(char *scene, const chem_record *r, int x, int y) {
     draw_sprite(AT(scene, SC_SPRITES, void *), 0, SHEET_CHEMICALS, 2 * r->id - 54, x, y, 1.0f, 100, 1);
 }
 
-/* "1/2" or "2/2" left of the arrow, in the game's small font (PTfontsmall), white on a black
+/* "1/2" or "2/2" under the right arrow, in the game's small font (PTfontsmall), white on a black
    shadow as the greenhouse counts are written. */
 static void draw_page_number(void) {
     void *graphics = graphics_get();
@@ -533,8 +541,8 @@ NOINLINE static void __cdecl tray_draw(void *tray_obj, char *scene, int skip) {
             draw_bottle(scene, logical(state, STOCK_SLOTS + e), draw_x(STOCK_SLOTS + e), draw_y(STOCK_SLOTS + e));
         }
     }
-    draw_sprite(AT(scene, SC_SPRITES, void *), 0, SHEET_CHEMICALS, page == 0 ? ARROW_RIGHT_FRAME : ARROW_LEFT_FRAME,
-                ARROW_X, ARROW_Y, 1.0f, 100, 1);
+    draw_sprite(AT(scene, SC_SPRITES, void *), 0, SHEET_CHEMICALS, ARROW_LEFT_FRAME, ARROW_LEFT_X, ARROW_Y, 1.0f, 100, 1);
+    draw_sprite(AT(scene, SC_SPRITES, void *), 0, SHEET_CHEMICALS, ARROW_RIGHT_FRAME, ARROW_RIGHT_X, ARROW_Y, 1.0f, 100, 1);
     draw_page_number();
     refresh_tips(scene);
 }

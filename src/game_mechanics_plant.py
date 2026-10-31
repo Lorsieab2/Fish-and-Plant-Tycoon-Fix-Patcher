@@ -671,7 +671,7 @@ CHEMICALS = (
         "(0x4277A3, made the first time you point at that slot). The tray is "
         "shared by every greenhouse and shown in the store too.",
         patched=(("extra_chemical_slots", "once Extra Chemical Slots is bought on the store's Upgrades "
-                  "screen ($10,000), a gold arrow on the Tools box's plaque turns to a second page of 8 "
+                  "screen ($10,000), a gold arrow on either side of the Tools box turns to a second page of 8 "
                   "slots in both rows of the box (the tools stay on page 1): 12 chemical slots in all. "
                   "Buying stacks onto the same chemical on either page, else fills the first free slot "
                   "of page 1, then of page 2; the tray is full only when all 12 are. Every slot's "

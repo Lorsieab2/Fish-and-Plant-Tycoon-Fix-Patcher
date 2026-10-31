@@ -55,8 +55,10 @@ SIDECAR = DOCS + "\\LDW\\Plant Tycoon\\Plant Tycoon Fix Patcher Data\\Extra Chem
 # Page 2: the same columns, row 1 drawn at y 126 (hit 136..184), row 2 at 173 (hit 185..253).
 COL_X = [2 + 45 * c for c in range(4)]
 ROW_Y = (126, 173)
-ARROW = (136, 104, 24, 24)               # x, y, w, h
-PAGE_TEXT = (100, 107)
+ARROW = (199, 178, 24, 24)               # the right arrow: x, y, w, h
+ARROW_LEFT = (0, 178, 24, 24)            # the left arrow, drawn
+ARROW_LEFT_HIT = (0, 178, 18, 24)        # and pressed: left of every tool and slot
+PAGE_TEXT = (201, 204)                   # under the right arrow
 
 
 def page1_point(i: int) -> tuple[int, int]:
@@ -467,13 +469,16 @@ class InstallTests(ChemSlotsCase):
 
 @_needs()
 class PageTests(ChemSlotsCase):
-    ARROW_POINTS = ((ARROW[0], ARROW[1]), (ARROW[0] + ARROW[2] - 1, ARROW[1] + ARROW[3] - 1), (148, 116))
+    ARROW_POINTS = ((ARROW[0], ARROW[1]), (ARROW[0] + ARROW[2] - 1, ARROW[1] + ARROW[3] - 1), (211, 190),
+                    (0, ARROW_LEFT[1]), (ARROW_LEFT_HIT[2] - 1, ARROW_LEFT[1] + ARROW_LEFT[3] - 1), (8, 190))
 
     def test_the_arrow_turns_the_page_and_shows_the_page_number(self) -> None:
         g = self.game()
         drawn = g.draw()
-        self.assertIn((SHEET_CHEMICALS, 38, ARROW[0], ARROW[1]), drawn)          # the right arrow on page 1
-        self.assertEqual([c[1][:3] for c in g.calls if c[0] == "text"], [("1/2", 101, 108), ("1/2", 100, 107)])
+        for frame, at in ((38, ARROW), (39, ARROW_LEFT)):                      # both arrows on page 1
+            self.assertIn((SHEET_CHEMICALS, frame, at[0], at[1]), drawn)
+        self.assertEqual([c[1][:3] for c in g.calls if c[0] == "text"],
+                         [("1/2", PAGE_TEXT[0] + 1, PAGE_TEXT[1] + 1), ("1/2", *PAGE_TEXT)])
         for x, y in self.ARROW_POINTS:
             with self.subTest(at=(x, y)):
                 g.calls.clear()
@@ -484,9 +489,11 @@ class PageTests(ChemSlotsCase):
         g = self.game()
         g.press(*self.ARROW_POINTS[2])
         drawn = g.draw()
-        self.assertIn((SHEET_CHEMICALS, 39, ARROW[0], ARROW[1]), drawn)          # the left arrow on page 2
+        for frame, at in ((38, ARROW), (39, ARROW_LEFT)):                      # and on page 2
+            self.assertIn((SHEET_CHEMICALS, frame, at[0], at[1]), drawn)
         self.assertEqual([c[1][0] for c in g.calls if c[0] == "text"], ["2/2", "2/2"])
-        for x, y in ((ARROW[0] - 1, 116), (ARROW[0] + ARROW[2], 116), (148, ARROW[1] - 1), (148, ARROW[1] + ARROW[3])):
+        for x, y in ((ARROW[0] - 1, 190), (ARROW[0] + ARROW[2], 190), (211, ARROW[1] - 1), (211, ARROW[1] + ARROW[3]),
+                     (ARROW_LEFT_HIT[2], 190), (8, ARROW_LEFT[1] - 1), (8, ARROW_LEFT[1] + ARROW_LEFT[3])):
             g.press(x, y)
             self.assertEqual(g.page(), 1, (x, y))
 
@@ -495,7 +502,7 @@ class PageTests(ChemSlotsCase):
         drawn = g.draw()
         self.assertFalse([d for d in drawn if d[1] in (38, 39)])
         self.assertFalse([c for c in g.calls if c[0] == "text"])
-        g.press(148, 116)
+        g.press(211, 190)
         self.assertEqual(g.page(), 0)
         self.assertTrue(g.tools_drawn())
 
@@ -503,12 +510,12 @@ class PageTests(ChemSlotsCase):
         g = self.game()
         self.assertTrue(g.tools_drawn())
         self.assertNotEqual(g.call("@tool_hit@16", 40, 150, ecx=g.scene) & 0xFFFFFFFF, 0xFFFFFFFF)   # the soil
-        g.press(148, 116)
+        g.press(211, 190)
         self.assertFalse(g.tools_drawn())
         for k in range(4):
             self.assertEqual(g.call("@tool_hit@16", 40 + 45 * k, 150, ecx=g.scene) & 0xFFFFFFFF, 0xFFFFFFFF)
         g.emu.write32(g.state + HELD, 2)                     # a tool in the hand stays there through the pages
-        g.press(148, 116)
+        g.press(211, 190)
         self.assertEqual((g.page(), g.held()), (0, 2))
 
     def test_page_two_draws_its_eight_slots_in_both_rows(self) -> None:
@@ -516,12 +523,12 @@ class PageTests(ChemSlotsCase):
         for e in range(8):
             g.put2(e, 27 + e, 1 + e)
         g.put(0, 36, 3)
-        g.press(148, 116)
+        g.press(211, 190)
         drawn = g.draw()
         for e in range(8):
             self.assertIn((SHEET_CHEMICALS, 2 * (27 + e) - 54, COL_X[e % 4], ROW_Y[e // 4]), drawn)
         self.assertNotIn((SHEET_CHEMICALS, 2 * 36 - 54, COL_X[0], 173), drawn)    # page 1's bottle is not
-        g.press(148, 116)
+        g.press(211, 190)
         drawn = g.draw()
         self.assertIn((SHEET_CHEMICALS, 2 * 36 - 54, COL_X[0], 173), drawn)
         self.assertFalse([d for d in drawn if d[1] == 2 * 27 - 54])
@@ -532,21 +539,21 @@ class PageTests(ChemSlotsCase):
         g.press(*page1_point(1))
         self.assertEqual(g.held(), 6)
         g.mouse(1, 100, 100)
-        g.mouse(1, 145, 110)                                 # onto the arrow
+        g.mouse(1, 210, 185)                                 # onto the arrow
         self.assertEqual(g.page(), 1)
-        g.mouse(1, 150, 115)                                 # still on it: no second turn
+        g.mouse(1, 212, 188)                                 # still on it: no second turn
         self.assertEqual(g.page(), 1)
         g.mouse(1, 120, 100)
-        g.mouse(1, 145, 110)                                 # off and on again: back
+        g.mouse(1, 210, 185)                                 # off and on again: back
         self.assertEqual(g.page(), 0)
         self.assertEqual(g.held(), 6)
         g.emu.write32(g.state + HELD, 0)
         g.mouse(1, 120, 100)
-        g.mouse(1, 145, 110)                                 # an empty hand only turns it by a click
+        g.mouse(1, 210, 185)                                 # an empty hand only turns it by a click
         self.assertEqual(g.page(), 0)
         g.emu.write32(g.state + HELD, 3)
         g.mouse(1, 120, 100)
-        g.mouse(1, 145, 110)                                 # nor does a tool
+        g.mouse(1, 210, 185)                                 # nor does a tool
         self.assertEqual(g.page(), 0)
 
 
@@ -603,7 +610,7 @@ class TrayTests(ChemSlotsCase):
                     page_one = g.tray()
                     e = (chemical - 27) % 8
                     g.put2(e, chemical, 2)
-                    g.press(148, 116)
+                    g.press(211, 190)
                     self.assertEqual(g.press(*page2_point(e)), 1)
                     k = g.held() - 5
                     self.assertIn(k, range(4))
@@ -624,7 +631,7 @@ class TrayTests(ChemSlotsCase):
         g = self.game()
         g.put(0, 27, 1)
         g.put2(5, 33, 4)
-        g.press(148, 116)
+        g.press(211, 190)
         g.press(*page2_point(5))
         k = g.held() - 5
         self.assertEqual(g.tray()[k], (33, 4))
@@ -643,7 +650,7 @@ class TrayTests(ChemSlotsCase):
             for k in range(4):
                 g.put(k, 27 + k, 1)
             g.put2(2, 36, 3)
-            g.press(148, 116)
+            g.press(211, 190)
             g.press(*page2_point(2))
             self.assertNotEqual(g.held(), 0)
             g.activate(on)
@@ -671,13 +678,13 @@ class MoveTests(ChemSlotsCase):
                     if there:
                         put(dst, *there)
                     if src_page2:
-                        g.press(148, 116)
+                        g.press(211, 190)
                         g.press(*page2_point(src - 4))
                     else:
                         g.press(*page1_point(src))
                     self.assertNotEqual(g.held(), 0)
                     if src_page2 != dst_page2:
-                        g.press(148, 116)                             # the arrow, the bottle still in hand
+                        g.press(211, 190)                             # the arrow, the bottle still in hand
                     g.calls.clear()
                     g.press(*(page2_point(dst - 4) if dst_page2 else page1_point(dst)))
                     self.assertEqual((g.held(), g.flying()), (0, -1))
@@ -693,7 +700,7 @@ class MoveTests(ChemSlotsCase):
         g = self.game()
         g.put(3, 29, 4)
         g.press(*page1_point(3))                              # picked up
-        g.press(148, 116)                                     # page 2, still held
+        g.press(211, 190)                                     # page 2, still held
         g.mouse(3, *page2_point(7))                           # released over page 2's last slot
         g.draw()
         self.assertEqual(g.held(), 0)
@@ -716,7 +723,7 @@ class TooltipTests(ChemSlotsCase):
         tips = g.visible_tips()
         self.assertEqual(tips, {(20, 173, 47, 253): "Chemical 30\n2 doses left",
                                 (110, 173, 137, 253): "Revival Potion\n1 dose left"})
-        g.press(148, 116)
+        g.press(211, 190)
         g.draw()
         self.assertEqual(g.visible_tips(), {(20, 136, 47, 184): "Radioactive Plant Formula\n3 doses left",
                                             (65, 185, 92, 253): "Chemical 27\n4 doses left"})
@@ -748,7 +755,7 @@ class SidecarTests(ChemSlotsCase):
         g.put(0, 27, 1)
         g.put2(1, 30, 2)
         g.put2(6, BOMB, 3)
-        g.press(148, 116)
+        g.press(211, 190)
         g.press(*page2_point(6))                              # held while the game saves
         k = g.held() - 5
         g.save(0)                                             # the settings file: no sidecar
@@ -1087,7 +1094,7 @@ class TrashTests(ChemSlotsCase):
                     g.put(k, 27 + k, 2)
                 g.put2(4, chemical, 3)
                 g.put2(5, 33, 1)
-                g.press(148, 116)
+                g.press(211, 190)
                 g.press(*page2_point(4))
                 g.calls.clear()
                 self.assertEqual(self.trash(g), 1)
@@ -1100,7 +1107,7 @@ class TrashTests(ChemSlotsCase):
     def test_the_games_own_chemicals_stay_in_the_hand(self) -> None:
         g = self.game()
         g.put2(2, 30, 3)
-        g.press(148, 116)
+        g.press(211, 190)
         g.press(*page2_point(2))
         held = g.held()
         self.assertEqual(self.trash(g), 0)
@@ -1266,8 +1273,10 @@ class ArtAndManifestTests(unittest.TestCase):
         rebuilt = B.formula_bottle(EXE.parent / "Images")
         self.assertEqual(rebuilt.tobytes(), sheet.tobytes())
 
-    def test_the_arrow_and_page_number_are_clear_of_everything(self) -> None:
+    def test_the_arrows_and_page_number_are_clear_of_everything(self) -> None:
         arrow = (ARROW[0], ARROW[1], ARROW[0] + ARROW[2] - 1, ARROW[1] + ARROW[3] - 1)
+        left = (ARROW_LEFT_HIT[0], ARROW_LEFT_HIT[1], ARROW_LEFT_HIT[0] + ARROW_LEFT_HIT[2] - 1,
+                ARROW_LEFT_HIT[1] + ARROW_LEFT_HIT[3] - 1)
         import render_extra_greenhouses_preview as RG
         size = RG.words(EXE.parent, EXE.read_bytes(), "2/2").size                    # in PTfontsmall, + shadow
         text = (PAGE_TEXT[0], PAGE_TEXT[1], PAGE_TEXT[0] + size[0], PAGE_TEXT[1] + size[1])
@@ -1276,10 +1285,11 @@ class ArtAndManifestTests(unittest.TestCase):
         seeds = [(21 + 43 * c, 30 + 34 * r, 64 + 43 * c, 64 + 34 * r) for c in range(4) for r in range(2)]   # 0x423A10
         side_arrows = [(220, 236, 269, 285)]                                             # Extra Greenhouses
         buttons = [(47, 293, 94, 330), (130, 287, 187, 324)]                              # 0x42614A, 0x42629C
-        for thing in (arrow, text):
+        for thing in (arrow, left, text):
             for other in tools + slots + seeds + side_arrows + buttons:
                 self.assertFalse(overlaps(thing, other), (thing, other))
         self.assertFalse(overlaps(arrow, text))
+        self.assertLess(ARROW_LEFT[0] + ARROW_LEFT[2], 25)                               # left of the soil's picture
 
     def test_the_setting(self) -> None:
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))

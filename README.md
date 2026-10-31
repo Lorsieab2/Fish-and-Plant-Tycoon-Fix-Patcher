@@ -654,8 +654,9 @@ never needs the internet.
   Extra Chemical Slots item on the store's Upgrades screen (the chemicals
   shelf, under the Formula Bomb) costs $10,000 ($0 with Free upgrades), is
   bought once and gets a tick. Then a small gold arrow (the game's own,
-  shrunk) and "1/2" / "2/2" sit on the Tools box's wooden plaque: click the
-  arrow, or carry a chemical over it, to turn the page. The tools stay on
+  shrunk) sits on each side of the Tools box, with "1/2" / "2/2" under the
+  right one: click either arrow, or carry a chemical over one, to turn the
+  page. The tools stay on
   page 1; a tool already in your hand stays there. Every page-2 slot works
   like a stock one: the store fills a chemical onto its own bottle on either
   page, else the first free slot of page 1, then of page 2, and says the tray

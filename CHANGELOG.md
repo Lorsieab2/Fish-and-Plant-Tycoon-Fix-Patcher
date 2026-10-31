@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Extra Chemical Slots: the page arrows sit beside the Tools box**, one on
+  each side (as Extra Greenhouses' arrows sit beside the greenhouse), with
+  "1/2" / "2/2" under the right one, instead of on the box's "Tools" plaque
+  where they covered the word. Either arrow turns the page.
+
 ## v1.0.18
 
 - **Fixed: the patcher would not start** ("No module named 'cheat'") from the
