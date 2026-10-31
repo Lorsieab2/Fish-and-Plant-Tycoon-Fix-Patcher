@@ -14,8 +14,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import breeding_guide  # noqa: E402
 import breeding_pictures  # noqa: E402
+import picture_image  # noqa: E402
 
 _CACHE = Path(tempfile.mkdtemp(prefix="breeding-guide-pictures-"))
 breeding_pictures.CACHE_ROOT = _CACHE
+picture_image.CACHE_ROOT = _CACHE / "Picture Studio Pictures"
 breeding_guide.INSTALL_ENV = {}
 atexit.register(shutil.rmtree, _CACHE, True)
