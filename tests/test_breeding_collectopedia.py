@@ -13,6 +13,7 @@ import csv
 from pathlib import Path
 import sys
 import tempfile
+import tkinter as tk
 import types
 import unittest
 
@@ -405,6 +406,66 @@ class WindowTests(unittest.TestCase):
             guide._collect_panel(key)
             self.assertTrue(c["picture_a"].cget("image") and c["picture_b"].cget("image"), game)
             self.assertIn(cp.by_key[key].name, c["picked_text"].cget("text"))
+
+
+class PictureSizeTests(unittest.TestCase):
+    """No part picture shrinks to a speck: a Plant foliage's header picture is its Common seed
+    packet filling the box, and its parts sheet (a wide strip) is drawn from its full size."""
+
+    def setUp(self) -> None:
+        from test_breeding_guide import tk_root
+        self.root = tk_root()
+        if self.root is None:
+            self.skipTest("no display for Tk")
+
+    def tearDown(self) -> None:
+        self.root.destroy()
+
+    def test_scaling(self) -> None:
+        seed = tk.PhotoImage(master=self.root, width=50, height=50)              # one seed_grid.png cell
+        self.assertEqual(bg.scale_to(seed, 24, 24, nearest=True).width(), 25)    # fills the 24 px box
+        self.assertEqual(bg.scale_to(seed, 24, 24).width(), 17)                  # never over: smaller
+        self.assertEqual(bg.foliage_icon(7)[0].index, 24)                        # (7 - 1) x 4, Common
+        self.assertEqual(bg.foliage_icon(7)[0].file, "seed_grid.png")
+
+    def test_a_wide_sheet_is_drawn_from_its_full_size(self) -> None:
+        from test_breeding_pictures import png
+
+        class Source:
+            def read(self, name):
+                return png(1000, 200)
+        art = (bg.breeding_pictures.Whole("Fern.png"),)
+        image = bg.sheet_photo(tk, self.root, Source(), art, {}, *bg.FOLIAGE_TAB_BOX)
+        self.assertEqual((image.width(), image.height()), (250, 50))              # 1000 / 4: wider than 120
+        capped = bg.breeding_pictures.photo(tk, self.root, Source(), art, {})
+        self.assertLessEqual(capped.width(), 120)                                 # what it was before
+
+    def test_the_windows_foliage_pictures(self) -> None:
+        from test_breeding_guide import make_documents
+        from test_breeding_pictures import make_plant_copy
+        with tempfile.TemporaryDirectory() as tmp:
+            bg._open_window = None
+            guide = bg.open_window(self.root, "plant", settings={"show_spoilers": True},
+                                   documents=make_documents(Path(tmp)))
+            try:
+                copy = make_plant_copy(Path(tmp))                   # seed cells 2 x 2, foliage sheets 4 x 4
+                guide.art_source = lambda: bg.breeding_pictures.ArtSource(copy)
+                guide._refresh()
+                self.root.update()
+                c = guide.collect
+                for part in c["cp"].rows:                           # the foliage rows: the seed packet
+                    image = c["thumbs"][("foliage", part.index)]
+                    self.assertEqual((image.width(), image.height()), (2, 2), part.name)
+                    big = c["bigs"][("foliage", part.index)]        # the panel: the sheet itself
+                    self.assertEqual((big.width(), big.height()), (4, 4), part.name)
+                built = guide.pictures["pictures:foliage"]
+                self.assertEqual(len(built["cells"]), 23)
+                self.assertTrue(all(image is not None for _i, image, _l in built["cells"]))
+                inner = built["canvas"].winfo_children()[0]
+                self.assertLessEqual(max(int(w.grid_info()["column"]) for w in inner.grid_slaves()),
+                                     bg.FOLIAGE_TAB_COLUMNS - 1)
+            finally:
+                guide.close()
 
 
 class SeedGridTests(unittest.TestCase):

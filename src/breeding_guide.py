@@ -640,6 +640,53 @@ class View:
         return sheet
 
 
+# ------------------------------------------------------------------ picture sizes
+
+# A foliage's picture is its whole parts sheet (breeding_pictures.FOLIAGE_ART), a wide strip of
+# leaves: the Foliage Pictures tab draws it up to this box, in fewer columns, so the leaves read.
+FOLIAGE_TAB_BOX = (260, 130)
+FOLIAGE_TAB_COLUMNS = 4
+
+
+def scale_to(image, max_w: int, max_h: int, *, nearest: bool = False):
+    """A Tk image shrunk by a whole factor to fit max_w x max_h; `nearest` takes the factor
+    that comes closest to filling the box instead (at most a pixel or two over it)."""
+    w, h = image.width(), image.height()
+    if nearest:
+        factor = max(1, round(max(w / max_w, h / max_h)))
+    else:
+        factor = max(1, -(-w // max_w), -(-h // max_h))
+    return image.subsample(factor) if factor > 1 else image
+
+
+def foliage_icon(foliage: int) -> tuple:
+    """A small picture that reads for a foliage: its Common seed packet, frame (foliage - 1)
+    x 4 of seed_grid.png (the shop's rule, 0x41DD54), as the Seed Pictures tab draws it. The
+    parts sheet itself is a strip of tiny leaves at that size."""
+    file, cols, rows = breeding_pictures.SEED_SHEET
+    return (breeding_pictures.Cell(file, cols, rows, breeding_pictures.seed_frame(foliage, 0)),)
+
+
+def sheet_photo(tk_mod, master, source, art: tuple, cache: dict, max_w: int, max_h: int):
+    """A picture fitted to max_w x max_h: a whole sheet is scaled from its full size
+    (breeding_pictures.photo caps every picture at 120 pixels first), anything else as photo()
+    draws it. None when a file is missing or unreadable."""
+    import base64
+    if len(art) == 1 and isinstance(art[0], breeding_pictures.Whole):
+        sheet = cache.get(art[0].file)
+        if sheet is None:
+            data = source.read(art[0].file)
+            if data is None:
+                return None
+            try:
+                sheet = tk_mod.PhotoImage(master=master, data=base64.b64encode(data))
+            except tk_mod.TclError:
+                return None
+            cache[art[0].file] = sheet
+        return scale_to(sheet, max_w, max_h)
+    return breeding_pictures.photo(tk_mod, master, source, art, cache)
+
+
 # ------------------------------------------------------------------ the seed picture grid
 
 FOLIAGE_CLASSES = "ABCD"
@@ -901,7 +948,8 @@ HELP = (
         "A box is ticked when your save has ever had that species (the same discovered record as above); "
         "only the save ticks or unticks a box, so the list follows your game and you cannot change it here. "
         "The Grid view has a row for each body (foliage) and a column for each fin (flower), each with its "
-        "picture and \"collected/all\" count: a green tick is collected, a grey \"?\" is not yet. Point at a "
+        "picture and \"collected/all\" count (a foliage row shows its Common seed packet, which reads at "
+        "that size): a green tick is collected, a grey \"?\" is not yet. Point at a "
         "box to see its species; the panel on the right shows its pictures and the progress per part. The "
         "List view is the same as a sortable list (name, parts, rarity, collected). At the top: \"n of N "
         "species collected\" and the count per rarity, in the game's words. Show All, Collected or Missing, "
@@ -1355,15 +1403,24 @@ class BreedingGuide:
                         picture.image = image
                         picture.pack()
                     cells.append((item, image, f"{item.name}, {item.tier}"))
+        # Foliage: each picture is a whole parts sheet, a wide strip, so it is drawn wider, in
+        # fewer columns, for the leaves to read (FOLIAGE_TAB_BOX).
+        foliage = tab_id == "pictures:foliage"
+        per_row = FOLIAGE_TAB_COLUMNS if foliage else self.COLUMNS
         for group in groups:
             ttk.Label(inner, text=group.tier, font=("Segoe UI", 10, "bold")).grid(
-                row=row, column=0, columnspan=self.COLUMNS, sticky="w", pady=(8, 2))
+                row=row, column=0, columnspan=per_row, sticky="w", pady=(8, 2))
             row += 1
             for n, item in enumerate(group.items):
                 cell = ttk.Frame(inner, padding=4)
-                cell.grid(row=row + n // self.COLUMNS, column=n % self.COLUMNS, sticky="n")
+                cell.grid(row=row + n // per_row, column=n % per_row, sticky="n")
                 # With spoilers off an undiscovered part is not in the groups at all (no "?").
-                image = breeding_pictures.photo(tk, self.window, source, item.art, cache) if not source.problem else None
+                if source.problem:
+                    image = None
+                elif foliage:
+                    image = sheet_photo(tk, self.window, source, item.art, cache, *FOLIAGE_TAB_BOX)
+                else:
+                    image = breeding_pictures.photo(tk, self.window, source, item.art, cache)
                 if image is None:
                     missing += 1
                     picture = ttk.Label(cell, text="(no picture)", foreground="#7a7a7a", width=14, anchor="center")
@@ -1374,7 +1431,7 @@ class BreedingGuide:
                 label = item.name + "\n" + item.tier
                 ttk.Label(cell, text=label, justify="center", wraplength=130).pack()
                 cells.append((item, image, label))
-            row += (len(group.items) + self.COLUMNS - 1) // self.COLUMNS
+            row += (len(group.items) + per_row - 1) // per_row
         source.close()
         if missing and not source.problem:
             message.configure(text=f"{missing} picture(s) could not be read from {source.copy}.")
@@ -1389,17 +1446,24 @@ class BreedingGuide:
     COL_HEAD = 150               # the column names' height (written upwards)
     THUMB = 24                   # a part's picture beside its name
     BIG = 64                     # the picked species' part pictures
+    BIG_FOLIAGE = (130, 64)      # a foliage's parts sheet, a wide strip, in the side panel
 
     def _thumb(self, source, kind: str, index: int, cache: dict, side: int):
-        """A part's picture (as the picture tabs draw it), scaled to fit `side` pixels."""
+        """A part's picture, scaled to `side` pixels. As the picture tabs draw it, except a
+        Plant foliage: its parts sheet is a strip of leaves that shrinks to a speck in a header
+        box, so the header shows its Common seed packet (foliage_icon), filling the box; the
+        side panel shows the sheet itself as a wider strip (BIG_FOLIAGE)."""
         if source.problem:
             return None
-        image = breeding_pictures.photo(tk, self.window, source,
-                                        breeding_pictures.part_art(self.model, kind, index), cache)
-        if image is None:
-            return None
-        factor = max(1, -(-max(image.width(), image.height()) // side))
-        return image.subsample(factor) if factor > 1 else image
+        foliage = self.model.game == "plant" and kind == "foliage"
+        if foliage and side <= self.THUMB:
+            image = breeding_pictures.photo(tk, self.window, source, foliage_icon(index), cache)
+            return scale_to(image, side, side, nearest=True) if image is not None else None
+        art = breeding_pictures.part_art(self.model, kind, index)
+        if foliage:
+            return sheet_photo(tk, self.window, source, art, cache, *self.BIG_FOLIAGE)
+        image = breeding_pictures.photo(tk, self.window, source, art, cache)
+        return scale_to(image, side, side) if image is not None else None
 
     def _add_collectopedia(self) -> None:
         """The Collectopedia: every species as a tick box, rows by the first part (bodies,
