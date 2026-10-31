@@ -45,7 +45,7 @@ IMAGES_OUT = ROOT / "docs" / "images"
 UPGRADE_IMAGES = ROOT / "assets" / "plant_tycoon_upgrades" / "Images"
 SPRITE_TABLE, SPRITE_RECORD, SPRITE_COUNT = 0x4855F0, 0x34, 222
 OVERRIDES = {0x2E: (UPGRADE_IMAGES / "seed_grid_legendary.png", 16, 8),     # the DLL's taller sheets
-             0xB3: (UPGRADE_IMAGES / "Chemicals_Grid_upgrades.png", 2, 20)}
+             0xB3: (UPGRADE_IMAGES / "Chemicals_Grid_upgrades.png", 2, 21)}
 SHEET_SHADOW, SHEET_TICK = 0xB0, 0x25
 
 

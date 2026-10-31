@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Extra Nursery item a bit smaller** (Plant Tycoon, 5 extra nurseries). The
+  golden pot on the Upgrades view's Nursery shelf was drawn at its full 76 x 64
+  (the plant store's draw ignores the 0.84 scale it was given), taller than the
+  Time Warp clock and the coins beside it. It is now pre-scaled to the clock's
+  visible height (52 px), standing on the same shelf line, from a new row 20 of
+  the Upgrades chemicals sheet, drawn at scale 1 at (449, 296); its click and
+  tooltip rectangle is its picture's (453-514 x 305-356). Tests:
+  tests/test_nursery_icon.py.
 - **Extra chemical slots** (Plant Tycoon, new setting, off by default,
   EXPERIMENTAL; needs Add new store upgrades and items, which it turns on;
   Enable All turns it on). The greenhouse's Tools box is a 4 x 2 grid (the

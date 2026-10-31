@@ -1239,7 +1239,7 @@ class ArtAndManifestTests(unittest.TestCase):
     def test_the_sheet_has_the_item_and_the_arrows(self) -> None:
         from PIL import Image
         sheet = Image.open(SHEET).convert("RGBA")
-        self.assertEqual(sheet.size, (140, 20 * 70))
+        self.assertEqual(sheet.size, (140, 21 * 70))
         cell = lambda f: sheet.crop(((f % 2) * 70, (f // 2) * 70, (f % 2) * 70 + 70, (f // 2) * 70 + 70))
         box = cell(36).getbbox()
         self.assertTrue(box[0] >= 12 and box[2] <= 58 and box[1] >= 8 and box[3] <= 61, box)     # in its click rectangle
