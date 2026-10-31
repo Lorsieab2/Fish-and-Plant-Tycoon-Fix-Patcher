@@ -840,6 +840,8 @@ folder never fails with "path too long".
     Tanks <slot>.dat"), then the creatures (the Golden Seahorse, DS Store
     Items' animals, the Cleaning Snail) and decorations (ornaments, Multiple
     Ornaments' copies, plants and equipment), each at its own age and state.
+    As in the game, a fish is named only from age 20: with Show Spoilers off
+    younger ones are "Baby fish" / "Teen fish", in the list and in file names.
     "Save all in this tank" saves every picture in it into a new folder.
   - Make your own: Fin, Body, Stage (baby, teen at every age 6-19, adult) and
     State (healthy, ick, fungus, dead), swimming left, right or turning, at

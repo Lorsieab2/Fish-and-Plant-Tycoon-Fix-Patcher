@@ -751,7 +751,8 @@ class FishRenderer:
             self._save_key = key
         return self._save
 
-    def saved_items(self, save_folder, slot: int) -> list[SavedItem]:
+    def saved_items(self, save_folder, slot: int, spoilers: bool = False) -> list[SavedItem]:
+        """Everything in the save; a fish under 20 unnamed unless `spoilers` (see _fish_label)."""
         save = self._read(save_folder, slot)
         items: list[SavedItem] = []
         self._items = {}
@@ -771,7 +772,7 @@ class FishRenderer:
                     add(f"t{t}f{s}", name, tank.name, "creature", f"{name} in {tank.name}, place {s + 1}.",
                         ("fish", fish))
                     continue
-                label, detail = self._fish_label(fish, stage)
+                label, detail = self._fish_label(fish, stage, spoilers)
                 add(f"t{t}f{s}", label, tank.name, "fish", f"{detail} {tank.name}, place {s + 1}.", ("fish", fish))
             for k, rec in tank.animals:
                 fish = _record_fish(rec)
@@ -796,8 +797,9 @@ class FishRenderer:
         return items
 
     @staticmethod
-    def _fish_label(fish: Fish, stage: int) -> tuple[str, str]:
-        name = species_name(fish.body, fish.fin)
+    def _fish_label(fish: Fish, stage: int, spoilers: bool = False) -> tuple[str, str]:
+        """The fish's line. The game names a fish only from age 20 (its info panel, 0x41D9ED);
+        a younger one is "Baby fish" / "Teen fish" unless Show Spoilers is on."""
         words = {STAGE_BABY: "baby", STAGE_TEEN: "teen", STAGE_ADULT: "adult"}[stage]
         state = ""
         if fish.health <= 0:
@@ -806,6 +808,10 @@ class FishRenderer:
             state = ", sick (ick)"
         elif fish.disease:
             state = ", sick (fungus)"
+        if fish.age < 20 and not spoilers:
+            name = f"{words.capitalize()} fish"
+            return f"{name} (age {fish.age}{state})", f"{name}: age {fish.age}, health {fish.health}{state}."
+        name = species_name(fish.body, fish.fin)
         label = f"{name} ({words}, age {fish.age}{state})"
         return label, f"{name}: {words}, age {fish.age}, health {fish.health}{state}."
 

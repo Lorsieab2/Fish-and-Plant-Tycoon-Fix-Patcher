@@ -461,8 +461,8 @@ class SaveReaderTests(unittest.TestCase):
         items = r.saved_items(self.folder, 2)
         labels = [(i.location, i.kind, i.label) for i in items]
         self.assertIn(("Tank 1", "fish", "Crimson Comet (adult, age 25)"), labels)
-        self.assertIn(("Tank 1", "fish", "Snubbed Snout (teen, age 8)"), labels)
-        self.assertIn(("Tank 2", "fish", "Wasp Grouper (baby, age 2)"), labels)
+        self.assertIn(("Tank 1", "fish", "Teen fish (age 8)"), labels)
+        self.assertIn(("Tank 2", "fish", "Baby fish (age 2)"), labels)
         self.assertIn(("Tank 3 (Sale Tank)", "fish", "Silky Shark (adult, age 40, dead)"), labels)
         self.assertIn(("Isolation Tank", "fish", "Snubbed Snooper (adult, age 30, sick (ick))"), labels)
         self.assertIn(("Tank 2", "creature", "Golden Seahorse"), labels)
@@ -477,6 +477,21 @@ class SaveReaderTests(unittest.TestCase):
                          pf.plan_fish(pf.Fish(11, 11, 25, 100, 0), 1, 0, 0, pf.STAGE_ADULT, height=50))
         after = {p: p.read_bytes() for p in self.folder.rglob("*") if p.is_file()}
         self.assertEqual(before, after, "the save is only read")
+
+    def test_young_fish_unnamed_without_spoilers(self) -> None:
+        """The game names a fish only from age 20 (0x41D9ED): babies and teens (dead or sick too)
+        are "Baby fish" / "Teen fish" unless spoilers are on; adults and creatures keep their names."""
+        make_save(self.folder, 1, fish=[(0, 0, 13, 6, 3, 100, 0), (0, 1, 13, 6, 19, 0, 0), (0, 2, 13, 6, 20, 100, 0),
+                                       (0, 3, 13, 6, 12, 50, 2), (0, 4, 22, 22, 21, 100, 0)])
+        r = pf.FishRenderer(None)
+        items = r.saved_items(self.folder, 1)
+        self.assertEqual([i.label for i in items],
+                         ["Baby fish (age 3)", "Teen fish (age 19, dead)", "Wasp Grouper (adult, age 20)",
+                          "Teen fish (age 12, sick (fungus))", "Golden Seahorse"])
+        for item in items[:2] + items[3:4]:
+            self.assertNotIn("Wasp", item.detail)
+        shown = [i.label for i in r.saved_items(self.folder, 1, spoilers=True)]
+        self.assertEqual(shown[:2], ["Wasp Grouper (baby, age 3)", "Wasp Grouper (teen, age 19, dead)"])
 
     def test_extra_tanks_v4_and_v3(self) -> None:
         make_save(self.folder, 1)

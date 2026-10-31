@@ -46,7 +46,9 @@ HELP = (
         "by tank (Fish Tycoon: Tanks 1-3, the isolation tank, and Tanks 4-6 with the patcher's 3 extra tanks) "
         "or greenhouse by greenhouse (Plant Tycoon, with the patcher's extra greenhouses), then the creatures "
         "and decorations. Click one to see it as the game draws it now, at its own age, growth and state. "
-        "Fish can be shown swimming either way, or turning, at any of their frames.",
+        "Fish can be shown swimming either way, or turning, at any of their frames. As in the game, a fish "
+        "is named only once it is grown (age 20): younger ones are \"Baby fish\" or \"Teen fish\", in the list "
+        "and in the saved pictures' names, unless Show Spoilers is on.",
         "Make your own: pick the parts (a body and a fin, or a foliage and a flower), the age or growth "
         "stage and the state, and see the picture the game would draw. The stages follow the game's own "
         "rules. Creatures and decorations are on their own tabs. The patcher's parts and creatures (DS "
@@ -319,6 +321,8 @@ class PictureStudio:
                 self.save_settings()
             except Exception:                      # remembering is a convenience, never an error
                 pass
+        if hasattr(self, "save_tree") and self.save_tree.winfo_exists():
+            self._fill_save_list()                 # young fish are named only with spoilers
         self._fill_custom()
 
     # ---- the renderer
@@ -430,7 +434,7 @@ class PictureStudio:
             self.save_preview["info"].configure(text="Pick a save folder and a player to see what the save holds.")
             return
         try:
-            self.items = self.renderer.saved_items(folder, slot)
+            self.items = self.renderer.saved_items(folder, slot, **self._spoiler_option())
         except Exception as exc:
             self.save_preview["info"].configure(text=f"The save could not be read: {exc}", foreground="#a01010")
             return
@@ -443,6 +447,16 @@ class PictureStudio:
             self.item_nodes[node] = item
         if not self.items:
             self.save_preview["info"].configure(text="Nothing in this save is drawn yet.")
+
+    def _spoiler_option(self) -> dict:
+        """{"spoilers": ...} for a renderer whose saved_items takes it (the game names a young
+        fish only once it is grown; with Show Spoilers off the list does the same)."""
+        import inspect
+        try:
+            parameters = inspect.signature(self.renderer.saved_items).parameters
+        except (TypeError, ValueError):
+            return {}
+        return {"spoilers": bool(self.spoilers_var.get())} if "spoilers" in parameters else {}
 
     def selected_item(self) -> pi.SavedItem | None:
         selection = self.save_tree.selection()
@@ -591,7 +605,7 @@ class PictureStudio:
     def picture_name(self, which: str) -> str:
         if which == "save":
             item = self.selected_item()
-            return pi.safe_file_name(item.label if item else "picture")
+            return pi.safe_file_name(f"{item.label}, {item.location}" if item else "picture")
         spec = self.custom_spec() or {}
         subject = self.current_subject()
         parts = []

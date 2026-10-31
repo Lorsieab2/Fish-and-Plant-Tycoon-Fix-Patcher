@@ -99,8 +99,8 @@ class WindowTests(unittest.TestCase):
         tabs = [self.studio.notebook.tab(t, "text") for t in self.studio.notebook.tabs()]
         self.assertEqual(tabs, ["From my save", "Make your own"])
         items = self.tree_items()
-        self.assertEqual(items["Tank 1"], ["Crimson Comet (adult, age 25)", "Wasp Grouper (teen, age 9)"])
-        self.assertEqual(items["Tank 2"], ["Pink Snout (baby, age 2)"])
+        self.assertEqual(items["Tank 1"], ["Crimson Comet (adult, age 25)", "Teen fish (age 9)"])
+        self.assertEqual(items["Tank 2"], ["Baby fish (age 2)"])
         self.assertEqual(items["Isolation Tank"], ["Silky Shark (adult, age 30, sick (ick))"])
         self.select("Crimson Comet (adult, age 25)")
         image = self.studio.shown["save"]
@@ -129,12 +129,12 @@ class WindowTests(unittest.TestCase):
         self.assertEqual(image.pixel(0, 0)[3], 0, "a clear margin")
 
     def test_save_all_in_a_tank(self) -> None:
-        self.select("Wasp Grouper (teen, age 9)")
+        self.select("Teen fish (age 9)")
         out = Path(self.tmp.name) / "all"
         out.mkdir()
         target = self.studio.save_all(str(out))
         self.assertEqual(sorted(p.name for p in target.iterdir()),
-                         ["Crimson Comet (adult, age 25).png", "Wasp Grouper (teen, age 9).png"])
+                         ["Crimson Comet (adult, age 25).png", "Teen fish (age 9).png"])
         self.assertEqual(target.name, "Tester - Tank 1")
 
     def test_make_your_own_with_and_without_spoilers(self) -> None:
@@ -154,6 +154,32 @@ class WindowTests(unittest.TestCase):
             self.studio.custom_notebook.select(tab)
             self.root.update()
             self.assertIn("custom", self.studio.shown, self.studio.subjects[tab].title)
+
+    def test_young_fish_are_named_only_with_spoilers(self) -> None:
+        """The game names a fish only from age 20 (info panel 0x41D9ED): with Show Spoilers off a
+        baby or teen is "Baby fish" / "Teen fish", in the list and in the PNG's file name; adults
+        keep their species name; spoilers on names them all."""
+        items = self.tree_items()
+        self.assertEqual(items["Tank 1"], ["Crimson Comet (adult, age 25)", "Teen fish (age 9)"])
+        self.assertEqual(items["Tank 2"], ["Baby fish (age 2)"])
+        self.select("Teen fish (age 9)")
+        self.assertEqual(self.studio.picture_name("save"), "Teen fish (age 9), Tank 1")
+        out = Path(self.tmp.name) / "young"
+        out.mkdir()
+        target = self.studio.save_all(str(out))
+        names = " ".join(p.name for p in target.iterdir())
+        self.assertNotIn("Grouper", names)
+        self.assertNotIn("Wasp", names)
+        self.studio.spoilers_var.set(True)
+        self.root.update()
+        items = self.tree_items()
+        self.assertEqual(items["Tank 1"], ["Crimson Comet (adult, age 25)", "Wasp Grouper (teen, age 9)"])
+        self.assertEqual(items["Tank 2"], ["Pink Snout (baby, age 2)"])
+        self.select("Wasp Grouper (teen, age 9)")
+        self.assertEqual(self.studio.picture_name("save"), "Wasp Grouper (teen, age 9), Tank 1")
+        self.studio.spoilers_var.set(False)
+        self.root.update()
+        self.assertEqual(self.tree_items()["Tank 2"], ["Baby fish (age 2)"])
 
     def test_never_writes_the_save(self) -> None:
         self.select("Silky Shark (adult, age 30, sick (ick))")

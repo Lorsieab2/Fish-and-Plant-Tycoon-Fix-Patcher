@@ -122,6 +122,12 @@ class Renderer:
 
 Additions since the first version:
 
+- `saved_items` may take `spoilers: bool` (the window passes it when the renderer accepts it). The
+  owner's rule: a fish's species name shows only when the game would show it (Fish Tycoon names
+  a fish from age 20, its info panel 0x41D9ED), so with spoilers off a younger one is listed, and
+  its PNG named, "Baby fish (age n)" / "Teen fish (age n)". The window's file names are
+  "<label>, <location>".
+
 - `Draw` has `scale` (percent, default 100): Fish Tycoon's scaled draw (0x408190), see
   `picture_image.scaled_cell`. `cell_rect` is the game's cell cut (0x4095F0, clamped).
 - `Image.draw(alpha=A)` follows the game's blitter (0x4041C0): with A below 255 a pixel's alpha
