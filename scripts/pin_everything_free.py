@@ -52,8 +52,6 @@ import re
 import struct
 import sys
 
-import capstone
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -198,6 +196,8 @@ def dll_ranges(projects: list[str]) -> list[tuple[int, int, str]]:
 
 
 def check_sites(data: bytes, game: dict, manifest: dict) -> list[dict]:
+    import capstone                     # only here: CI has no capstone, and the tests import this module
+
     md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
     taken = []
     for p in manifest["patches"]:

@@ -2959,6 +2959,12 @@ static void install_use_gate(void) {
 
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
+/* Free upgrades' file, or Everything is Free's (which implies it). */
+static __declspec(noinline) int free_setting(void) {
+    return ftfp_setting_on((HMODULE)&__ImageBase, L"Free Upgrades.ini")
+           || ftfp_everything_free((HMODULE)&__ImageBase);
+}
+
 /* Called once by DS Exclusive Fish.dll, after its own install, before WinMain. */
 int __stdcall FtfpStoreStartup(const ftfp_store_host *host) {
     if (installed) return 1;
@@ -2966,8 +2972,7 @@ int __stdcall FtfpStoreStartup(const ftfp_store_host *host) {
         host_ok = name_sprites(host);
         warp_on = tw_enabled((HMODULE)&__ImageBase);
         money_on = ftfp_setting_on((HMODULE)&__ImageBase, L"Add Money.ini");
-        free_on = ftfp_setting_on((HMODULE)&__ImageBase, L"Free Upgrades.ini")
-                  || ftfp_everything_free((HMODULE)&__ImageBase);      /* Everything is Free implies it */
+        free_on = free_setting();
         if (host_ok && prepare() && ftfp_install_sites(writes, TOTAL_SITES)) {
             installed = 1;
             install_use_gate();

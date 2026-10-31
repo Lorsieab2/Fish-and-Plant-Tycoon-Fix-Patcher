@@ -1405,6 +1405,17 @@ HIDDEN = (
                   "+$1,000, any number of times. It stops at $2,147,483,647 and never wraps."),),
     ),
     Fact(
+        "Cheats: the unpatched game's own are the hidden keys above. Every store price is in the "
+        "state's item table (+0x74 + item x 20; research at +0x240, +0x254 and +0x268), read by the "
+        "store panel (0x4274AD), the Buy click's money test (0x428118) and the purchases (0x427540, "
+        "0x427600, 0x427B30, and the Golden Seahorse refund at 0x427EA2).",
+        patched=(("everything_free", "Everything is Free (a cheat; Enable All leaves it off): each of those "
+                  "reads gives $0, so every store item and research costs $0, shows $0 and is never refused "
+                  "for money, and the Upgrades page's items (Add Money then $0 for +$1,000) are free as with "
+                  "Free upgrades. One of each, items already owned, room in a slot and the research levels "
+                  "stay. The table the save holds is never changed."),),
+    ),
+    Fact(
         "Hidden click on the tank screen: the strip at the top of the tank, from (212, 4) to (480, "
         "44), opens the Trophy Case. There is no button there.",
     ),

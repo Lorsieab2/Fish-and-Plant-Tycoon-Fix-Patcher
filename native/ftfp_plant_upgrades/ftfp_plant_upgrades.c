@@ -2094,6 +2094,12 @@ static void load_boxes(void) {
 }
 
 /* Called once by "Unused Flowers.dll" after it installed, before WinMain. */
+/* Free upgrades' file, or Everything is Free's (which implies it). */
+static __declspec(noinline) int free_setting(void) {
+    return ftfp_setting_on((HMODULE)&__ImageBase, L"Free Upgrades.ini")
+           || ftfp_everything_free((HMODULE)&__ImageBase);
+}
+
 const ftfp_upgrades_events *__stdcall FtfpUpgradesStartup(void) {
     if (!installed) {
         __try {
@@ -2104,8 +2110,7 @@ const ftfp_upgrades_events *__stdcall FtfpUpgradesStartup(void) {
         if (installed) {
             warp_on = tw_enabled((HMODULE)&__ImageBase);
             money_on = ftfp_setting_on((HMODULE)&__ImageBase, L"Add Money.ini");
-            free_upgrades = (unsigned char)(ftfp_setting_on((HMODULE)&__ImageBase, L"Free Upgrades.ini")
-                                            || ftfp_everything_free((HMODULE)&__ImageBase));   /* implied */
+            free_upgrades = (unsigned char)free_setting();
             __try {
                 prepare_shapes();
             } __except (EXCEPTION_EXECUTE_HANDLER) {

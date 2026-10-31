@@ -833,15 +833,19 @@ static void load_next(void) {
     }
 }
 
+/* Everything is Free's file beside this DLL. */
+static __declspec(noinline) int everything_free_setting(void) {
+    wchar_t path[1024];
+    return beside_this_dll(L"Everything Free.ini", path) && GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES;
+}
+
 /* Called once by the executable's startup stub, before WinMain. */
 int __stdcall FtfpStartup(void) {
     static int started = 0;
     if (started) return installed;
     started = 1;
     __try {
-        wchar_t path[1024];
-        everything_free = beside_this_dll(L"Everything Free.ini", path)
-                          && GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES;
+        everything_free = everything_free_setting();
         installed = prepare() && ftfp_install_sites(writes, ORN_SITE_COUNT);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         installed = 0;

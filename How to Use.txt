@@ -13,6 +13,7 @@ FISH & PLANT TYCOON FIX PATCHER
 4. Choose "One Game" or "Both Games".
 5. Leave the fixes you want checked. "Defaults", "Enable All", and
    "Disable All" set the whole list for that game at once.
+   "Enable All" leaves a CHEAT (Everything is Free) off: tick it yourself.
 6. Use Dry Run to validate without writing files.
 7. Choose where the modified game folders should be saved.
 8. Click Create Modded Copy or Patch Both.
@@ -125,6 +126,9 @@ Fish Tycoon options:
 - Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
   screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
   and adds $1,000 each time)
+- Everything is Free (off by default; a CHEAT, so Enable All leaves it off:
+  tick it yourself): every store item, research and Upgrades item costs $0,
+  and Add Money costs $0 and still adds $1,000. Limits stay.
 
 Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
 - What moves: fish of any age, healthy or sick (a pregnant fish keeps her
@@ -201,6 +205,9 @@ Plant Tycoon options:
 - Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
   screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
   and adds $1,000 each time)
+- Everything is Free (off by default; a CHEAT, so Enable All leaves it off:
+  tick it yourself): every store item, research and Upgrades item costs $0,
+  and Add Money costs $0 and still adds $1,000. Limits stay.
 - 5 extra greenhouses (EXPERIMENTAL - USE AT OWN RISK. Off by default;
   turns on the store's Upgrades screen. Buy Greenhouses 2-6 there, in order,
   $10,000 each ($0 with Free upgrades): the Extra Greenhouse item on the tool

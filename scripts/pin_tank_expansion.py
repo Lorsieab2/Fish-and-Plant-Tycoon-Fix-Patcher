@@ -191,11 +191,12 @@ def patches(vanilla: bytes) -> list[dict]:
 
 
 def byte_settings(manifest: dict) -> list[str]:
-    """Settings that write executable bytes through patch records."""
+    """Settings that write executable bytes through patch records (Everything is Free too, though it
+    also ships a file)."""
     ids = []
     for setting in manifest["settings"]:
         sid = setting["id"]
-        if setting.get("companion") or setting.get("asset_merge"):
+        if setting.get("asset_merge"):
             continue
         if any(sid in p.get("requires", []) for p in manifest["patches"]):
             ids.append(sid)
