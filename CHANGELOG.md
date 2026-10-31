@@ -22,6 +22,17 @@
   Common, Endangered, Extinct, the rarest Extinct flowers), then the patcher's
   Legendary Seed with Unused Flowers on. Spoilers off keeps the discovered
   foliages' rows only.
+- **Extra Seed Box** (Plant Tycoon, Add new store upgrades and items): the
+  six seed box items on the Upgrades view (the Fourth to Ninth) are one item
+  now, bought like the Extra Greenhouse: each click asks Yes / No for the next
+  box in order ("Buy the Fourth Seed Box for $1000?"), $1000 each ($0 with
+  Free upgrades or Everything is Free); the tooltip says which is next
+  ("Extra Seed Box 4 of 6"), a tick and "You already have all six extra seed
+  boxes!" once all are yours. It stands where the stock store shows its seed
+  box, beside the Extra Greenhouse; the tool shelf is otherwise just the
+  greenhouse and the sprinklers. Saves keep their boxes (nothing changes in
+  `Seed Boxes <slot>.dat`), and Seed Storage still pages Boxes 1-3, 4-6 and
+  7-9. Mockup: docs/images/extra-seed-box-store.png.
 - **Extra Nursery item a bit smaller** (Plant Tycoon, 5 extra nurseries). The
   golden pot on the Upgrades view's Nursery shelf was drawn at its full 76 x 64
   (the plant store's draw ignores the 0.84 scale it was given), taller than the

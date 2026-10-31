@@ -1,15 +1,16 @@
-"""Render the Seventh-Ninth Seed Box mockups from the game's own art and the DLLs' own drawing.
+"""Render the extra seed boxes' mockups from the game's own art and the DLLs' own drawing.
 
     python scripts/render_seed_boxes_preview.py "<vanilla Plant Tycoon folder>"
 
 writes, in docs/images:
 
-* seed-boxes-7-9-store.png: the Supplies store's Upgrades view exactly as
+* extra-seed-box-store.png: the Supplies store's Upgrades view exactly as
   "Store Upgrades and Items.dll" draws it. The DLL's own on_draw runs in
   Unicorn on the vanilla executable (tests/store_emulator.py) with every item
   shown (the three Legendary packets, Time Warp, Add Money, the Extra
-  Greenhouse and Nursery, both automatic upgrades, the Fourth to Ninth Seed
-  Box with the Fourth to Seventh owned), and each draw call it makes is
+  Greenhouse and Nursery, both automatic upgrades, Extra Chemical Slots, and
+  the one Extra Seed Box item with the Fourth to Seventh owned, "5 of 6"
+  next), and each draw call it makes is
   composited from the game's sheets (the sprite table at 0x4855F0; the seed
   and chemical sheets are this mod's taller copies, as the DLL points them).
   The plant store's draw (0x4208F0) ignores its scale argument, so every
@@ -181,10 +182,9 @@ def main() -> int:
         raise SystemExit(__doc__)
     folder = Path(sys.argv[1])
     exe = (folder / "Plant Tycoon.exe").read_bytes()
-    for text in ("Boxes 1-3", "Boxes 4-6", "Boxes 7-9", "Seventh Seed Box", "Eighth Seed Box", "Ninth Seed Box",
-                 "Price: $ 1000"):
+    for text in ("Boxes 1-3", "Boxes 4-6", "Boxes 7-9", "Extra Seed Box 4 of 6", "Sold out", "Price: $ 1000"):
         R.words(folder, exe, text)                               # every label has its glyphs
-    save(compose_store(folder, store_draws()), "seed-boxes-7-9-store.png")
+    save(compose_store(folder, store_draws(chem_slots=0)), "extra-seed-box-store.png")
     save(compose_storage(folder), "seed-boxes-7-9-storage.png")
     return 0
 
