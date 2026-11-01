@@ -788,8 +788,27 @@ ORNAMENT_NAMES = ("Stone Turtle", "Sundial", "Weather Vane", "Charming Lantern",
                   "Fence", "Gate", "Cash Register", "Refurbishment")
 BUG_SPRITE = 0x9E                    # small_bugs.png: 12 x 24 cells, 6 per bug (0x41685A: 6 x bug + pose)
 BUG_COUNT, BUG_FRAMES = 48, 6
+LEAF_SPRITE = 0xDB                   # collectionLeafGrid.png: 8 x 6, bug k's leaf on the Collections screen
+# The 48 collectible bugs, by the game's bug number (the name switch 0x418940, jump table 0x418DA4;
+# the Collections screen's leaf k and the save's collected flag state + 0x53F4B + k are the same k).
+BUG_NAMES = (
+    "Blue Butterfly", "Mission Blue Butterfly", "Fern Butterfly", "Black Moth", "Pale Moth", "Lapis Butterfly",
+    "Lemon Moth", "Amber Butterfly", "Plum Butterfly", "Cherry Butterfly", "Jet Moth", "Golden Butterfly",
+    "Green Beetle", "Brown Bug", "Ladybug", "Shiny Blue Beetle", "Hiding Beetle", "Zebra Beetle", "Cockroach",
+    "Mystic Scarab", "Ebony Scarab", "Fire Scarab", "Shiny Flower Beetle", "Golden Beetle",
+    "Blue Dragonfly", "Pink Dragonfly", "Tiger Dragonfly", "Emerald Dragonfly", "Dart Dragonfly",
+    "Fragile Dragonfly", "Ghost Dragonfly", "Glassy Dragonfly", "Fire Dragonfly", "Black Dragonfly",
+    "Earth Dragonfly", "Golden Dragonfly",
+    "Cactus Spider", "Yellow Spider", "Brown Spider", "Spotted Spider", "Pearly Spider", "Limelike Spider",
+    "Bamboo Spider", "Cricket Spider", "Bumpy Spider", "Jade Spider", "Tahitian Spider", "Golden Spider",
+)
+BUG_GROUPS = ("Butterflies and moths", "Beetles", "Dragonflies", "Spiders")     # 12 each, in that order
 SOIL_LOOKS = (("none", "No soil"), ("soil", "Soil"), ("planted", "Soil, planted"))
 SOIL_LEVELS = (0, 1, 2)              # 0x41DDE0: no soil upgrade, the first, the second
+
+
+def bug_label(bug: int) -> str:
+    return f"{bug + 1}. {BUG_NAMES[bug]}"
 
 
 class SceneryPlanner:
@@ -816,6 +835,11 @@ class SceneryPlanner:
     def bug(self, bug: int, frame: int) -> list:
         """Cell 6 x bug + frame of small_bugs.png, unscaled (0x4208F0 with scale 1, alpha 100)."""
         return [self.planner._cell(BUG_SPRITE, bug * BUG_FRAMES + frame, 0, 0)]
+
+    def leaf(self, bug: int) -> list:
+        """Bug k's leaf on the Collections screen: collectionLeafGrid.png cell k, unscaled, alpha
+        100 (0x4184BB, drawn for each collected bug)."""
+        return [self.planner._cell(LEAF_SPRITE, bug, 0, 0)]
 
     def pot(self, style: int, soil: str, level: int, wet: bool) -> list:
         """The pot draw (0x42F740) of a pot with no plant (or a planted mound, soil frame + 1)."""
@@ -907,6 +931,7 @@ def required_files() -> list:
     for calls in D.DECORATIONS.values():
         names += [D.SPRITES[c[0]][0] for c in calls]
     names.append(D.SPRITES[BUG_SPRITE][0])
+    names.append(D.SPRITES[LEAF_SPRITE][0])
     import pictures_plant_items as items
     names += items.stock_files()
     return list(dict.fromkeys(names))
@@ -1076,10 +1101,15 @@ class Renderer:
                     "Each nursery ornament as the nursery draws it once bought (the Refurbishment is the "
                     "whole repainted nursery building)."),
             Subject("bug", "Bugs",
-                    (Field("bug", "Bug", tuple(Option(b, f"Bug {b + 1}") for b in range(BUG_COUNT)), 0),
-                     Field("frame", "Frame", tuple(Option(f, f"Frame {f + 1}") for f in range(BUG_FRAMES)), 0)),
-                    "Every bug the greenhouse can show, in each of its 6 pictures (small_bugs.png), drawn "
-                    "as the game draws a bug."),
+                    (Field("bug", "Bug", tuple(Option(b, bug_label(b)) for b in range(BUG_COUNT)), 0),
+                     Field("frame", "Picture", tuple(Option(f, f"Frame {f + 1}") for f in range(BUG_FRAMES))
+                           + (Option("leaf", "Its leaf on the Collections screen"),), 0)),
+                    "The 48 collectible bugs, numbered in the game's (and the Collections screen's) order: each "
+                    "of its 6 pictures in small_bugs.png (the greenhouse picks one by what the bug is doing), and "
+                    "its leaf on the Collections screen. Drawn at full strength: in the greenhouse the game draws "
+                    "each bug see-through, at a strength it picks at random (70-99%), and on the Collections screen "
+                    "at its own size over its leaf (spiders on a web); those compositions are not offered, as their "
+                    "places and sizes are not ported yet."),
             Subject("pot", "Pots",
                     (Field("style", "Pot", styles, 0),
                      Field("soil", "Soil", tuple(Option(k, label) for k, label in SOIL_LOOKS), "soil"),
@@ -1136,8 +1166,13 @@ class Renderer:
         if subject == "decoration":
             return [((), ORNAMENT_NAMES[k], {"subject": "decoration", "ornament": k}) for k in sorted(D.DECORATIONS)]
         if subject == "bug":
-            return [((f"Bug {b + 1}",), f"Bug {b + 1} - Frame {f + 1}", {"subject": "bug", "bug": b, "frame": f})
-                    for b in range(BUG_COUNT) for f in range(BUG_FRAMES)]
+            out = []
+            for b in range(BUG_COUNT):
+                folder = (BUG_GROUPS[b // 12], bug_label(b))
+                out += [(folder, f"{bug_label(b)} - Frame {f + 1}", {"subject": "bug", "bug": b, "frame": f})
+                        for f in range(BUG_FRAMES)]
+                out.append((folder, f"{bug_label(b)} - Collections leaf", {"subject": "bug", "bug": b, "frame": "leaf"}))
+            return out
         if subject == "unused":
             import breeding_plant as bp
             return [((), f"{bp.FOLIAGE_WORD[f]} - unused part {n + 1}" + (" - dead" if dead else ""),
@@ -1179,6 +1214,11 @@ class Renderer:
                 plant = unused_part_plant(foliage, part, spec.get("state") == "dead")
                 return self.planner.plan(plant, 0, 0, pot=False)
             if subject == "bug":
+                if spec.get("frame") == "leaf":
+                    bug = int(spec.get("bug", 0))
+                    if not 0 <= bug < BUG_COUNT:
+                        raise PictureError("Pick a bug.")
+                    return self.scenery.leaf(bug)
                 bug, frame = int(spec.get("bug", 0)), int(spec.get("frame", 0))
                 if not (0 <= bug < BUG_COUNT and 0 <= frame < BUG_FRAMES):
                     raise PictureError("Pick a bug and a frame.")

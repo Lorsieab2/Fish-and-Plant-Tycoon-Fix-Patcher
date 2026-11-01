@@ -62,7 +62,8 @@ TOOL_COLUMNS = (("soil", ("Common Soil", "Bio-organic Soil", "Soil from Isola"))
                 ("net", ("Crude Butterfly Net", "Large Butterfly Net", "Golden Butterfly Net")),
                 ("box", ("First Seed Box", "Second Seed Box", "Third Seed Box")))
 HAND_WORDS = {"soil": "pouring soil", "water": "watering", "shears": "cutting", "net": "catching"}
-TIER_WORDS = ("Common packet", "Endangered packet", "Extinct packet", "Extinct packet (Arthurium to Tilia flower)")
+# The owner's rarity words (Common, Uncommon, Rare) for the shop's Common, Endangered and Extinct packets.
+TIER_WORDS = ("Common packet", "Uncommon packet", "Rare packet", "Rare packet (Arthurium to Tilia flower)")
 PATCHER_CHEMICALS = ((36, "Radioactive Plant Formula"), (37, "Revival Potion"), (38, "Revita-Seed"),
                      (39, "Radioactive Plant Formula Bomb"), (48, "Muta-Flower"), (49, "Muta-Foliage"))
 PATCHER_UPGRADES = (   # key, name, (file, cols, rows) or sheet id, frame, shelf kind

@@ -466,6 +466,45 @@ class PlantItemsAreTheGames(unittest.TestCase):
         self.assertIn("lea ecx, [eax + eax - 0x35]", mouse, "a bottle pouring: 2 id - 53")
         self.assertIn("lea ecx, [eax + eax - 0x36]", mouse, "a bottle held: 2 id - 54")
 
+    @unittest.skipUnless(capstone, "capstone")
+    def test_the_48_bugs_are_the_games(self) -> None:
+        """The bug names by the game's bug number: the name switch 0x418940 (jump table 0x418DA4),
+        each case copying its name string; the Collections screen draws leaf k for bug k (0x4184BB)."""
+        data = self.EXE.read_bytes()
+        table = disassemble(self.EXE, 0x418940, 0x41894D)
+        self.assertEqual(table[1].op_str, "eax, 0x2f", "48 bugs")
+        names = []
+        for k in range(48):
+            target = struct.unpack_from("<I", self._bytes(0x418DA4 + 4 * k, 4))[0]
+            push = next(i for i in disassemble(self.EXE, target, target + 16) if i.mnemonic == "push")
+            at = int(push.op_str, 0)
+            text = self._bytes(at, 40)
+            names.append(text[:text.index(b"\0")].decode("latin-1"))
+        self.assertEqual(tuple(names), pp.BUG_NAMES)
+        del data
+        leaf = [f"{i.mnemonic} {i.op_str}" for i in disassemble(self.EXE, 0x418490, 0x4184CD)]
+        self.assertIn("push esi", leaf)
+        self.assertIn("push 0xdb", leaf)
+        self.assertEqual(pp.sprite(pp.LEAF_SPRITE), ("collectionLeafGrid.png", 8, 6))
+        art = self.art.image("collectionLeafGrid.png")
+        got = self.renderer.render_custom({"subject": "bug", "bug": 30, "frame": "leaf"}).cropped(0)
+        same(self, got, compose([(cell(art, 8, 6, 30), 0, 0)]), "the Ghost Dragonfly's leaf")
+        bugs = self.renderer.custom_batch("bug")
+        self.assertEqual(len(bugs), 48 * 7)
+        self.assertEqual(bugs[0][0], ("Butterflies and moths", "1. Blue Butterfly"))
+        self.assertEqual(bugs[-1][0], ("Spiders", "48. Golden Spider"))
+
+    def _bytes(self, va: int, n: int) -> bytes:
+        data = self.EXE.read_bytes()
+        pe = struct.unpack_from("<I", data, 0x3C)[0]
+        base = struct.unpack_from("<I", data, pe + 0x34)[0]
+        opt = struct.unpack_from("<H", data, pe + 0x14)[0]
+        for k in range(struct.unpack_from("<H", data, pe + 6)[0]):
+            vsize, rva, raw_size, raw = struct.unpack_from("<4I", data, pe + 0x18 + opt + 0x28 * k + 8)
+            if rva <= va - base < rva + max(vsize, raw_size):
+                return data[raw + va - base - rva:raw + va - base - rva + n]
+        raise AssertionError(hex(va))
+
     def test_the_patchers_shelf_numbers(self) -> None:
         c = (ROOT / "native" / "ftfp_plant_upgrades" / "ftfp_plant_upgrades.c").read_text(encoding="utf-8")
         self.assertIn("SHEET_CHEMICALS, GREENHOUSE_FRAME, 404, 50, 1.0f,\n      408, 80, 403, 72", c)

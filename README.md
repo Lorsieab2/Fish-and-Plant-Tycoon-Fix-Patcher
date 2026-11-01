@@ -947,7 +947,16 @@ folder never fails with "path too long".
     Add Money ...) are marked "(patcher)", and art in Fish Tycoon's files
     that the game never draws (a fish food box, an orange beaker, a dropper
     sheet, two tank plants, two corals) is marked "(unused)" and shown whole.
-    Plant Tycoon has no unused item art.
+    Plant Tycoon has no unused item art. Rarities read Common, Uncommon and
+    Rare (the store's Unusual Fish Eggs are the Uncommon Fish Eggs; the seed
+    shop's Common, Endangered and Extinct packets are Common, Uncommon and
+    Rare).
+  - Make your own, Bugs (Plant Tycoon): the 48 collectible bugs by name,
+    numbered in the game's and the Collections screen's order (1. Blue
+    Butterfly ... 48. Golden Spider), each of its 6 pictures and its leaf on
+    the Collections screen. Drawn at full strength: the greenhouse draws a
+    bug see-through at a random 70-99%, and the Collections screen at its own
+    size over its leaf; those compositions are not offered yet.
   - "Save all on this tab..." (Make your own) saves every picture of the tab
     into a new folder (the Items tab: a folder per category); the Fish and
     Plant tabs have too many pictures for it.
