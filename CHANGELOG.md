@@ -123,6 +123,29 @@
   soil bag its falling soil and the watering can its falling water. Fish
   Tycoon's patcher chemicals show the drop in the tank (the stock chemical's)
   and the Exotic Fish Eggs the eggs' splash.
+- **Translations** (new setting, on by default; Tools tab, Translations...):
+  play both games in another language, or make a translation yourself. Choose
+  the language in the window and it applies from the next game start, with no
+  re-patching; "English (original)" changes nothing. "Make a translation"
+  writes every English line of the game (read from your own copy) and of the
+  patcher's own texts and opens a built-in editor: English and translation
+  side by side, search, untranslated only, progress, placeholders in colour, a
+  preview in the game's own font with a too-long warning, autosave. "Add
+  translation file..." (or drag and drop) checks and adds a file; "Export
+  translation..."; "Share on GitHub..." opens the new translation issue form
+  after a Yes/No and a typed credit name. Email addresses are never saved and
+  are rejected from translation files. The format is the shared LDW format v1
+  (UTF-8, tab-separated, keys with the English's hash, printf placeholders,
+  number choices with CLDR plural rules); any bad line stays English.
+  `Translations.dll` hooks each game's string lookup (chaining onto Store
+  Upgrades and Items' jump in Plant Tycoon), makes Fish Tycoon's Goals lines
+  choose by the real number, and translates the patcher DLLs' texts through
+  their relocations, with length limits wherever a text sits in a fixed
+  buffer. A GitHub Action, on the owner's "accept-translation" label, checks a
+  shared file as data and opens a pull request adding it to
+  `translations/<game>/`; accepted translations ship in the release.
+  Loaded as a loader tail after Unicode Text.dll; adds no executable pins.
+  See docs/translations.md.
 
 ## v1.0.22
 

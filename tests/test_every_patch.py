@@ -186,6 +186,38 @@ class Build:
         self.dll_folder = self.folder / self.profile.patcher_files_folder
         self.dlls = shipped_dlls(game, self.enabled)
         self.active_patches = PATCHERS[game].active_patch_records(manifest(game), self.enabled)
+        if "translations" in self.enabled:
+            choose_test_translation(game, self.folder)
+
+
+_TRANSLATION_PIECE = re.compile(r"%[-+ #0]*(?:\d+|\*)?(?:\.(?:\d+|\*))?[hlLIw0-9]*[a-zA-Z]|\{[^{}]*\}|\\.")
+
+
+def choose_test_translation(game: str, folder: Path) -> None:
+    """A translation of every patcher text and a few game lines (the letters' case swapped, the
+    placeholders kept), chosen for this copy as the Translations window would: Translations.dll
+    then installs, hooks the lookup and points every DLL's texts at their translations."""
+    import translation_format as tfmt
+    import translation_strings as tstr
+    import translations
+    vanilla = (VANILLA_DIRS[game] / combined.GAMES[game].vanilla_exe_name).read_bytes()
+    entries = tstr.entries_for(game, vanilla)
+    f = tfmt.new_file(game, entries, "Test", "en")
+    for row, entry in zip(f.rows, entries):
+        if row.key.startswith("mod/") or row.key.split("/", 1)[1].split("~")[0] in ("1", "2", "7", "8", "69"):
+            parts, at = [], 0
+            for m in _TRANSLATION_PIECE.finditer(row.english):
+                parts.append(row.english[at:m.start()].swapcase())
+                parts.append(m.group(0))
+                at = m.end()
+            parts.append(row.english[at:].swapcase())
+            text = "".join(parts)
+            if not tfmt.check_translation(row.english, text)[0] and not tfmt.too_long(text, entry.max_length or 1000,
+                                                                                       entry.wide):
+                row.translation = text
+    path = folder / "Test translation.txt"
+    path.write_bytes(tfmt.to_bytes(f))
+    assert translations.write_choice(folder, game, path, "Test")
 
 
 def build(game: str, enabled: set[str]) -> Build:
@@ -204,14 +236,14 @@ PROJECTS = {
         "Extra Tanks.dll": "ftfp_extra_tanks", "Extra Supply Slots.dll": "ftfp_supply_slots",
         "Multiple Ornaments.dll": "ftfp_ornaments", "Optimize Prices.dll": "ftfp_fish_prices",
         "Tank Counts.dll": "ftfp_tank_counts", "Maximizable Window.dll": "ftfp_fish_window",
-        "Unicode Text.dll": "ftfp_fish_unicode",
+        "Unicode Text.dll": "ftfp_fish_unicode", "Translations.dll": "ftfp_translations",
     },
     "plant": {
         "Unused Flowers.dll": "ftfp_new_flowers", "Store Upgrades and Items.dll": "ftfp_plant_upgrades",
         "Extra Seed Boxes.dll": "ftfp_seed_boxes", "Sort Seeds.dll": "ftfp_sort_seeds",
         "Optimize Prices.dll": "ftfp_plant_prices", "Greenhouse Counts.dll": "ftfp_greenhouse_counts",
         "Extra Greenhouses.dll": "ftfp_extra_greenhouses", "Extra Chemical Slots.dll": "ftfp_chem_slots",
-        "Unicode Text.dll": "ftfp_plant_unicode",
+        "Unicode Text.dll": "ftfp_plant_unicode", "Translations.dll": "ftfp_translations",
     },
 }
 
@@ -225,7 +257,13 @@ SOURCE_SITES = {
                          ("SALE_VT_COMMAND", 4), ("SALE_VT_ACTIVATE", 4)),
     "ftfp_plant_prices": (("SELL_VT_COMMAND", 4), ("SELL_VT_ACTIVATE", 4)),
     "ftfp_sort_seeds": (("SCENE_COMMAND_VA", 4), ("SCENE_ACTIVATE_VA", 4)),
+    # Translations.dll: the lookup's first 5 bytes and Fish Tycoon's five Goals sprintf calls; one
+    # DLL for both games, so declared_bytes keeps only the running game's (TRANSLATIONS_SITES).
+    "ftfp_translations": (("FISH_LOOKUP", 5), ("FISH_COUNT_CALL_1", 5), ("FISH_COUNT_CALL_2", 5),
+                          ("FISH_COUNT_CALL_3", 5), ("FISH_COUNT_CALL_4", 5), ("FISH_COUNT_CALL_5", 5),
+                          ("PLANT_LOOKUP", 5)),
 }
+TRANSLATIONS_SITES = {"fish": {0x426FD0, 0x4247FF, 0x424820, 0x424841, 0x424883, 0x4248AF}, "plant": {0x44CA70}}
 
 
 def declared_sites(project: str) -> dict[int, tuple[int, str]]:
@@ -1375,6 +1413,9 @@ CHAINS = {
               "the Seed Storage screen's command slot: the extra seed boxes, then the Sort Seeds button"),
         Chain(0x469724, 4, ("Extra Seed Boxes.dll", "Sort Seeds.dll"),
               "the Seed Storage screen's activation slot: the extra seed boxes, then the Sort Seeds button"),
+        Chain(0x44CA70, 5, ("Store Upgrades and Items.dll", "Translations.dll"),
+              "the string lookup's head (0x44CA70): Store Upgrades and Items jumps to its own texts, then "
+              "Translations.dll jumps to itself and calls that jump"),
     ),
 }
 
@@ -1392,6 +1433,7 @@ EVIDENCE = {
         "Tank Counts.dll": (None, None),
         "Maximizable Window.dll": (None, None),
         "Unicode Text.dll": ("Unicode Text: installed", None),
+        "Translations.dll": ("\xef\xbb\xbfTranslations: installed (", "FtfpTranslationsInstalled"),
     },
     "plant": {
         "Unused Flowers.dll": ("New Flowers: installed (all sites)", "FtfpNewFlowersInstalled"),
@@ -1403,6 +1445,7 @@ EVIDENCE = {
         "Extra Greenhouses.dll": ("Extra Greenhouses: installed (all sites)", "FtfpExtraGreenhousesInstalled"),
         "Extra Chemical Slots.dll": ("Extra Chemical Slots: installed (all sites)", "FtfpChemSlotsInstalled"),
         "Unicode Text.dll": ("Unicode Text: installed", None),
+        "Translations.dll": ("\xef\xbb\xbfTranslations: installed (", "FtfpTranslationsInstalled"),
     },
 }
 
@@ -1439,6 +1482,8 @@ def declared_bytes(game: str, dlls: list[str]) -> dict[str, set[int]]:
     for dll in dlls:
         out[dll] = set()
         for va, (length, _name) in declared_sites(PROJECTS[game][dll]).items():
+            if dll == "Translations.dll" and va not in TRANSLATIONS_SITES[game]:
+                continue
             out[dll].update(range(va, va + length))
     return out
 
@@ -1545,6 +1590,11 @@ class EveryPatch:
             self.assertEqual([hex(a) for a in undeclared[:8]], [], f"{dll} wrote outside its declared sites")
         for dll, bytes_ in writes.items():
             outside = {a for a in bytes_ if a not in exe}
+            if dll == "Translations.dll":                 # pointers to texts, in the companions' own images
+                images = [range(m.base, m.base + m.size) for m in w.modules if m.companion and m.name != dll]
+                self.assertEqual([hex(a) for a in sorted(outside) if not any(a in r for r in images)][:8], [],
+                                 "Translations.dll writes only into companion images outside the game")
+                continue
             if outside:                                   # only the window's: SDL.dll's ScreenToClient slot
                 sdl = next(m for m in w.modules if m.name.lower() == "sdl.dll")
                 slot = sdl.slots["ScreenToClient"]

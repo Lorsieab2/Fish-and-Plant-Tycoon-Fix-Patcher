@@ -20,6 +20,7 @@ from typing import Any
 from datetime import datetime, timezone
 
 import ds_fish_loader
+import translations
 
 
 # Shown whenever an executable fails the exact identity check, so the
@@ -697,6 +698,8 @@ def apply_manifest(args: argparse.Namespace) -> int:
         if sha256_file(staged_exe) != patched_hash:
             raise PatchError("Staged executable failed its post-write SHA-256 check.")
         report["companion_files"] = install_companion_files(companions, staging)
+        if "translations" in enabled:          # the language chosen on the Tools tab (src/translations.py)
+            translations.write_choice_into(staging, "fish")
         report["backup_dir"] = str(long_paths.plain(backup_dir))
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".fish_tycoon_bug_fix_output.json", {

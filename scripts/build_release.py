@@ -113,6 +113,11 @@ FILES = [
     "src/text_maker.py",
     "src/text_maker_window.py",
     "src/text_raster.py",
+    "src/translation_format.py",
+    "src/translation_strings.py",
+    "src/translations.py",
+    "src/translations_window.py",
+    "docs/translations.md",
     "src/experimental.py",
     "src/cheat.py",
     "src/tycoon_fix_patcher.py",
@@ -141,6 +146,12 @@ def bundled_asset_files() -> list[str]:
     """Every pinned asset file, as a repo-relative path, for the release ZIP.
     A file two settings share (Time Warp.ini, in both games' manifests) is listed once."""
     return list(dict.fromkeys(relative for relative, _size, _digest in pinned_assets()))
+
+
+def shipped_translations() -> list[str]:
+    """Every accepted community translation (translations/<game>/*.txt): shipped in the ZIP, so it is
+    in every player's language list, credited from its @translator row."""
+    return sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "translations").glob("*/*.txt"))
 
 
 def imported_modules(entry: str = "tycoon_fix_patcher_gui") -> set[str]:
@@ -176,7 +187,7 @@ def main() -> int:
     missing = missing_modules(FILES)
     if missing:
         raise RuntimeError(f"release list is missing modules the patcher imports: {missing}")
-    FILES = FILES + bundled_asset_files()
+    FILES = FILES + bundled_asset_files() + shipped_translations()
     OUTPUTS.mkdir(exist_ok=True)
     target = OUTPUTS / NAME
     temp = OUTPUTS / (NAME + ".tmp")

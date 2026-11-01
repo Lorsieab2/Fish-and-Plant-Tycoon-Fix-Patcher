@@ -38,12 +38,12 @@ DEFAULTS = {
         "fix_vanilla_bugs", "crimson_comet_20_percent_cure", "unknown_chemical_three_uses",
         "universal_supply_slots", "maximizable_window", "tank_greenhouse_counts",
         "ds_fish", "ds_store", "time_warp", "bigger_tanks", "extra_tanks", "extra_supply_slots",
-        "multiple_ornaments", "unicode_ingame_fonts",
+        "multiple_ornaments", "unicode_ingame_fonts", "translations",
     },
     "plant": {
         "fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets",
         "tank_greenhouse_counts", "new_flowers", "plant_upgrades", "sort_seeds", "time_warp",
-        "extra_greenhouses", "extra_nurseries", "extra_chemical_slots", "unicode_ingame_fonts",
+        "extra_greenhouses", "extra_nurseries", "extra_chemical_slots", "unicode_ingame_fonts", "translations",
     },
 }
 EVERY = {game: set(patch_settings(game)) for game in ("fish", "plant")}
