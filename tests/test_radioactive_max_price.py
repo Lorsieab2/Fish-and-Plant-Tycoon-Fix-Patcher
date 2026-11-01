@@ -58,7 +58,7 @@ SECOND_BASE = 0x18000000                 # where the second DLL is mapped
 
 FISH_SENTENCE = "Treated fish sell for the highest possible price!"
 FISH_SENTENCE_DE = "Behandelte Fische werden zum Höchstpreis verkauft!"
-PLANT_SENTENCE = "Treated plants sell for the highest possible price!"
+PLANT_SENTENCE = "Allows treated plants to sell at max price, regardless of their set value."
 
 
 def _toolchain() -> bool:
@@ -811,11 +811,11 @@ class Texts(unittest.TestCase):
             },
             "plant": {
                 "Radioactive Plant Formula: not in the unpatched game.": ("plant_upgrades", (
-                    "Treated plants sell for the highest possible price", "below 2V", "decided by your asking "
+                    PLANT_SENTENCE, "Treated plants sell for the highest possible price", "below 2V", "decided by your asking "
                     "price", "Random(1300)", "2 real-time seconds", "Extra Greenhouses", "saves and loads",
                     "real time or age units", "nurseries not on screen", "dies", "planted in its pot", "$1186")),
                 "Radioactive Plant Formula Bomb: not in the unpatched game.": ("plant_upgrades", (
-                    "treated", "highest selling price")),
+                    PLANT_SENTENCE, "treated", "highest selling price")),
             },
         }
         for game, facts in rules.items():

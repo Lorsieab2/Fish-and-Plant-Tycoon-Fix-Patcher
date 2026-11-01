@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.0.21
+
+- **Plant Tycoon: the treated price beside the set price.** A plant treated
+  with the Radioactive Plant Formula (or its Bomb) shows "Treated: $<max>",
+  the price a sale pays, beside its set price in two places only: the
+  nursery's bottom bar ("Asking Price: $665 Treated: $1186" when you click it,
+  "Plant sold! Price: $665 Treated: $1186" when it sells) and the Set Price of
+  Plant window, under its price, following the price as you type it.
+  Untreated plants and the greenhouses show only the set price, as before.
+  The store describes the formula and its Bomb with "Allows treated plants to
+  sell at max price, regardless of their set value." (also in Game
+  Mechanics). Store Upgrades and Items.dll; tests:
+  tests/test_plant_treated_price.py.
+
 ## v1.0.20
 
 - **Fixed: Copy Player Slot found no empty slot** when the player list still
