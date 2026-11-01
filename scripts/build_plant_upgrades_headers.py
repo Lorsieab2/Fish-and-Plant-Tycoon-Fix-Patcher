@@ -76,6 +76,21 @@ SITES = [
     # Flowers' index stubs for 0x435CE5 and 0x435D05 come back.
     ("sale_record", 0x435CF2, ["mov edx, dword ptr [eax + ecx*4]", "add dword ptr [eax + 0x34], edx"]),
     ("sale_cash", 0x435D12, ["mov edx, dword ptr [ecx + eax*4]", "push edx", "call 0x41ed70"]),
+    # The treated price on the selling screen (the nursery, 0x437C40's bottom bar, y 539). A click on a
+    # plant for sale (0x4366DC, edi = its pot's offset) stores its asking price for "Asking Price: $P"
+    # (esi + 8): the DLL remembers which pot. Right after New Flowers' index stub for 0x4366E9 comes back.
+    ("asking_pick", 0x4366F9, ["mov dword ptr [esi + 8], edx", "call 0x403430"]),
+    # The two "$P" draws of the bottom bar (0x44CCD0): "Asking Price: $P" (0x437CDC) and the
+    # "Plant sold! Price: $P" line for each sold plant (0x437E77): "Treated: $M" is drawn after each.
+    ("asking_draw", 0x437CDC, ["call 0x44ccd0"]),
+    ("sold_draw", 0x437E77, ["call 0x44ccd0"]),
+]
+
+# Code pointers in a vtable (.rdata): (name, va, stock pointer). The Set Price of Plant popup
+# (0x42FFE0, vtable 0x469664): its overlay slot (+0x1C, painted by 0x40B6B0 after its controls) is the
+# shared empty 0x416730 (`ret`); the DLL points it at its own overlay, which draws "Treated: $M".
+VTABLE_SLOTS = [
+    ("price_popup_overlay", 0x469680, 0x416730),
 ]
 
 # One-byte immediates: (name, va of the instruction, instruction, value, new value).
@@ -242,6 +257,13 @@ def main() -> int:
             raise SystemExit("link_record is not a sprite record")
         emit(name, va, stock)
 
+    for name, va, stock in VTABLE_SLOTS:
+        raw = struct.pack("<I", stock)
+        if data[va - BASE: va - BASE + 4] != raw or data[stock - BASE] != 0xC3:
+            raise SystemExit(f"{name} at 0x{va:X}: expected a pointer to the empty 0x{stock:X}")
+        claim(name, va, 4, inner_ok=True)
+        emit(name, va, raw)
+
     # The plant shape tables: 0xF4-byte part definitions ending with id -1. A definition has
     # room for 6 flower spots (+0xAC, 12 bytes each, count at +0xA8). For the Radioactive Plant
     # Formula the DLL fills the all-zero spots past the count (a few definitions keep unused
@@ -272,7 +294,8 @@ def main() -> int:
     lines += ["", "#endif", ""]
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "upgrade_sites.h").write_text("\n".join(lines), encoding="utf-8")
-    print(f"upgrade_sites.h: {len(SITES)} code sites, {len(IMMEDIATES)} immediates, {len(DATA)} data sites")
+    print(f"upgrade_sites.h: {len(SITES)} code sites, {len(IMMEDIATES)} immediates, {len(DATA)} data sites, "
+          f"{len(VTABLE_SLOTS)} vtable slots")
     return 0
 
 

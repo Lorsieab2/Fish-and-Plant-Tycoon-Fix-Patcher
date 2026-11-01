@@ -13,6 +13,9 @@
        again, the largest size, as many flowers as the plant can hold,
        grown to full bloom, and always 5 seeds: all of them ripe at once on
        a pollinated plant, all 5 at its next pollination on any other.
+       Sold, a treated plant pays its species' highest selling price; the
+       nursery and the Set Price of Plant popup show "Treated: $M" beside
+       its set price (nowhere else).
      * Revival Potion (beside it): chemical 37, 3 doses, $10000.  On a dead
        plant: alive again at full health, and for sale again if it was
        when it died.  No chemical takes a plant off sale.
@@ -547,12 +550,188 @@ static void apply_bomb(char *greenhouse) {
    nurseries' off-screen sales are this same code on their arranged pots. */
 #define POT_FLOWER 0x50
 
+static void remember_treated_sale(const char *pot, int paid);
+
 static int __cdecl sale_price(char *pot, int asking, int sold) {
-    int best;
+    int best, paid;
     if (AT(pot, POT_MARK, unsigned char) != RADIOACTIVE) return asking;
     best = ms_plant_max_price(AT(pot, 0x4C, int), AT(pot, POT_FLOWER, int));
-    if (sold) AT(pot, POT_MARK, unsigned char) = 0;
-    return best > asking ? best : asking;
+    paid = best > asking ? best : asking;
+    if (sold) {
+        AT(pot, POT_MARK, unsigned char) = 0;
+        remember_treated_sale(pot, paid);
+    }
+    return paid;
+}
+
+/* ------------------------------------- treated plants: the price shown beside the set price */
+
+/* The owner (2026-10-31): "put the 'treated' price beside the normal 'set' price", and "Only show
+   the treated price in: The nursery; The window that pops up when you set prices; Not anywhere
+   else" -- never in the greenhouses.  The number is sale_price's, the price a sale pays.
+     * the nursery's bottom bar (0x437C40, y 539): a click on a plant for sale shows "Asking Price:
+       $P" (0x4366F9 stores P at nursery + 8, edi = the pot's offset; 0x437CDC draws it), and each
+       sold plant shows "Plant sold! Price: $P" (0x437E77, its pot from the nursery's sold list at
+       +0x10, row and column, index +0x50).  For a treated plant "Treated: $M" follows the "$P",
+       14 px after it in the same font and colour (PTfontsmall, 0x44CCD0's), kept left of x 798.
+       A sold plant's mark is spent by the sale, so the sale remembers what it paid (the last 8,
+       as the sold list): the line shows it while that pot still holds the plant sold;
+     * the Set Price of Plant popup (0x42FFE0, for the greenhouse's selected pot, its row at
+       +0x54 and column at +0x58): "Treated: $M" centred under its "Price: $" line, at the popup's
+       y 130, M for the price being typed (0x40C770 on its field, +0x50, kept to 9999 as its OK). */
+
+typedef int (__fastcall *money_text_fn)(void *strings, int edx, int value, int x, int y);
+typedef int (__fastcall *text_width_fn)(void *font, int edx, const char *text, float scale);
+typedef void (__fastcall *text_fn)(void *graphics, int edx, const char *text, int x, int y, unsigned int colour,
+                                   int font);
+typedef void *(__cdecl *getter_fn)(void);
+typedef int (__fastcall *field_value_fn)(void *field, int edx);
+
+static const money_text_fn money_text = (money_text_fn)0x0044CCD0u;     /* "$P" at (x, y) */
+static const text_width_fn text_width = (text_width_fn)0x00402380u;
+static const text_fn draw_text = (text_fn)0x004092A0u;
+static const getter_fn graphics_get = (getter_fn)0x00407A90u;
+static const getter_fn game_state = (getter_fn)0x0041FCD0u;
+static const field_value_fn field_value = (field_value_fn)0x0040C770u;
+#define MONEY_COLOUR (*(unsigned int *)0x0049054Cu)                      /* 0x44CCD0's colour */
+#define POPUP_TEXT_COLOUR MONEY_COLOUR
+#define TREATED_GAP 14
+#define SCREEN_RIGHT 798
+#define POPUP_TREATED_Y 130                 /* under "Price: $" (y 100, 21 px), above OK */
+#define POPUP_MAX_PRICE 9999                /* the popup's OK keeps at most 9999 (0x430588) */
+#define SOLD_MEMORY 8                       /* the nursery's sold list holds 8 */
+
+typedef struct treated_sale {
+    const char *pot;
+    int foliage, flower, paid;
+} treated_sale;
+static treated_sale treated_sales[SOLD_MEMORY];
+static int treated_sales_next = 0;
+
+static void remember_treated_sale(const char *pot, int paid) {
+    treated_sale *s = &treated_sales[treated_sales_next];
+    s->pot = pot;
+    s->foliage = AT(pot, 0x4C, int);
+    s->flower = AT(pot, POT_FLOWER, int);
+    s->paid = paid;
+    treated_sales_next = (treated_sales_next + 1) % SOLD_MEMORY;
+}
+
+/* What the pot's sold plant was paid when it was treated, else 0. */
+static int treated_sale_paid(const char *pot) {
+    int i;
+    for (i = 0; i < SOLD_MEMORY; ++i) {
+        const treated_sale *s = &treated_sales[(treated_sales_next + SOLD_MEMORY - 1 - i) % SOLD_MEMORY];
+        if (s->pot == pot && s->foliage == AT(pot, 0x4C, int) && s->flower == AT(pot, POT_FLOWER, int)) return s->paid;
+    }
+    return 0;
+}
+
+/* The treated price of a pot's live plant for an asking price, else 0 (not treated). */
+static int treated_price(char *pot, int asking) {
+    if (pot == NULL || !AT(pot, POT_PLANTED, unsigned char) || AT(pot, POT_FOLIAGE, int) == 0
+        || AT(pot, POT_HEALTH, int) <= 0 || AT(pot, POT_MARK, unsigned char) != RADIOACTIVE) return 0;
+    return sale_price(pot, asking, 0);
+}
+
+static void *game_font(void) {
+    void **graphics = (void **)graphics_get();
+    return graphics != NULL && *graphics != NULL ? AT(*graphics, 0x5C, void *) : NULL;
+}
+
+static int width_of(const char *text) {
+    void *font = game_font();
+    return font != NULL ? text_width(font, 0, text, 1.0f) : 0;
+}
+
+/* "Treated: $M", 0-terminated, in out[32]. */
+static void treated_text(char *out, int price) {
+    sprintf_s(out, 32, "Treated: $%d", price);
+}
+
+/* 0x44CCD0's "$P" at (x, y), then "Treated: $M" after it when M > 0. */
+static void money_then_treated(void *strings, int value, int x, int y, int treated) {
+    char money[32], text[32];
+    void *graphics;
+    int at, w;
+    money_text(strings, 0, value, x, y);
+    if (treated <= 0 || (graphics = graphics_get()) == NULL) return;
+    /* 0x44CCD0 moves "$P" left by 12, 16 or 20 px from 10, 100 or 1000 million (unsigned). */
+    if ((unsigned int)value >= 1000000000u) x -= 20;
+    else if ((unsigned int)value >= 100000000u) x -= 16;
+    else if ((unsigned int)value >= 10000000u) x -= 12;
+    sprintf_s(money, sizeof money, "$%d", value);
+    treated_text(text, treated);
+    w = width_of(text);
+    at = x + width_of(money) + TREATED_GAP;
+    if (at + w > SCREEN_RIGHT) at = SCREEN_RIGHT - w;
+    draw_text(graphics, 0, text, at, y, MONEY_COLOUR, 0);
+}
+
+#define NURSERY_STATE(n) AT(n, 0xA3C, char *)
+static int asking_offset = -1;                  /* the clicked plant's pot, as an offset from the first pot */
+static int asking_foliage = 0, asking_flower = 0;
+
+static void __cdecl on_asking_pick(char *nursery, int offset) {
+    char *state = NURSERY_STATE(nursery), *pot;
+    asking_offset = -1;
+    if (state == NULL || offset < 0 || offset >= NURSERY_SPOTS * 0x5600) return;
+    pot = state + 0x2188 + offset;
+    asking_offset = offset;
+    asking_foliage = AT(pot, POT_FOLIAGE, int);
+    asking_flower = AT(pot, POT_FLOWER, int);
+}
+
+static void __cdecl on_asking_draw(void *strings, int value, int x, int y, char *nursery) {
+    int treated = 0;
+    __try {
+        char *state = NURSERY_STATE(nursery);
+        if (state != NULL && asking_offset >= 0) {
+            char *pot = state + 0x2188 + asking_offset;
+            if (AT(pot, POT_FOLIAGE, int) == asking_foliage && AT(pot, POT_FLOWER, int) == asking_flower)
+                treated = treated_price(pot, value);
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        treated = 0;
+    }
+    money_then_treated(strings, value, x, y, treated);
+}
+
+static void __cdecl on_sold_draw(void *strings, int value, int x, int y, char *nursery) {
+    int treated = 0;
+    __try {
+        char *state = NURSERY_STATE(nursery);
+        int i = AT(nursery, 0x50, int);
+        if (state != NULL && i >= 0 && i < SOLD_MEMORY) {
+            int row = AT(nursery, 0x10 + i * 8, int), col = AT(nursery, 0x14 + i * 8, int);
+            if (row >= 0 && row < 3 && col >= 0 && col < 5) treated = treated_sale_paid(state + 0x2188 + (row * 5 + col) * 0x5600);
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        treated = 0;
+    }
+    money_then_treated(strings, value, x, y, treated);
+}
+
+/* The Set Price of Plant popup's overlay (its vtable's +0x1C, stock the empty 0x416730). */
+static void __fastcall price_popup_overlay(char *popup) {
+    __try {
+        char *state = (char *)game_state(), *pot;
+        void *graphics = graphics_get(), *field = AT(popup, 0x50, void *);
+        int row = AT(popup, 0x54, int), col = AT(popup, 0x58, int), asking, treated, w;
+        char text[32];
+        if (state == NULL || graphics == NULL || field == NULL || row < 0 || row >= 3 || col < 0 || col >= 5) return;
+        pot = state + 0x2188 + (row * 5 + col) * 0x5600;
+        asking = field_value(field, 0);
+        if (asking > POPUP_MAX_PRICE) asking = POPUP_MAX_PRICE;
+        if (asking < 0) asking = 0;
+        treated = treated_price(pot, asking);
+        if (treated <= 0) return;
+        treated_text(text, treated);
+        w = width_of(text);
+        draw_text(graphics, 0, text, AT(popup, 0x14, int) + (AT(popup, 0x1C, int) - AT(popup, 0x14, int) - w) / 2,
+                  AT(popup, 0x18, int) + POPUP_TREATED_Y, POPUP_TEXT_COLOUR, 0);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
 }
 
 /* The chemical-use switch's new chemicals (the dose is already spent, stock order). */
@@ -617,7 +796,7 @@ static const char LEGENDARY_DESC[] =
     "These ultra-rare seeds were only recently\nrediscovered on Isola and require the\nbest of care to survive.";
 static const char FORMULA_TITLE[] = "Radioactive Plant Formula\n";
 static const char FORMULA_DESC[] =
-    "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves! Always 5 seeds!\nTreated plants sell for the highest\npossible price! Contains 3 doses.\n";
+    "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves! Always 5 seeds! Allows\ntreated plants to sell at max price, regardless\nof their set value. Contains 3 doses.\n";
 static const char FORMULA_NAME[] = "Radioactive Plant Formula";
 /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped as the formula's. */
 static const char REVIVAL_TITLE[] = "Revival Potion\n";
@@ -630,7 +809,7 @@ static const char REVITA_DESC[] =
 static const char REVITA_NAME[] = "Revita-Seed";
 static const char BOMB_TITLE[] = "Radioactive Plant Formula Bomb\n";
 static const char BOMB_DESC[] =
-    "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nTreated plants sell for the highest\npossible price! Contains 3 doses.\n";
+    "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nAllows treated plants to sell at max\nprice, regardless of their set value.\nContains 3 doses.\n";
 static const char BOMB_NAME[] = "Radioactive Plant Formula Bomb";
 static const char BOX_TITLE[] = "Extra Seed Box";
 static const wchar_t *const BOX_NAMES[EXTRA_BOXES] = { L"Fourth", L"Fifth", L"Sixth", L"Seventh", L"Eighth", L"Ninth" };
@@ -1325,6 +1504,8 @@ static const DWORD k_dead_untag_back = SITE_DEAD_UNTAG_BACK;
 static const DWORD k_sale_record_back = SITE_SALE_RECORD_BACK;
 static const DWORD k_sale_cash_back = SITE_SALE_CASH_BACK;
 static const DWORD k_add_cash = 0x0041ED70u;
+static const DWORD k_asking_pick_back = SITE_ASKING_PICK_BACK;
+static const DWORD k_game_time = 0x00403430u;
 static const DWORD k_sprite_draw = 0x004208F0u;
 static const float k_one = 1.0f;
 
@@ -1892,6 +2073,53 @@ __declspec(naked) static void stub_sale_cash(void) {
     }
 }
 
+/* 0x4366F9 a click on a plant for sale (esi = the nursery, edi = its pot's offset, edx = its asking
+   price): the stock store of the price, the pot remembered, then the stock call of 0x403430
+   (ecx is the state there, as stock). */
+__declspec(naked) static void stub_asking_pick(void) {
+    __asm {
+        mov dword ptr [esi + 8], edx
+        pushad
+        push edi
+        push esi
+        call on_asking_pick
+        add esp, 8
+        popad
+        call dword ptr [k_game_time]
+        jmp k_asking_pick_back
+    }
+}
+
+/* 0x437CDC and 0x437E77, called in place of 0x44CCD0 (ecx = the strings, then value, x, y on the
+   stack; esi = the nursery): ret 0xC as 0x44CCD0. */
+__declspec(naked) static void stub_asking_draw(void) {
+    __asm {
+        mov eax, esp
+        push esi
+        push dword ptr [eax + 12]
+        push dword ptr [eax + 8]
+        push dword ptr [eax + 4]
+        push ecx
+        call on_asking_draw
+        add esp, 20
+        ret 12
+    }
+}
+
+__declspec(naked) static void stub_sold_draw(void) {
+    __asm {
+        mov eax, esp
+        push esi
+        push dword ptr [eax + 12]
+        push dword ptr [eax + 8]
+        push dword ptr [eax + 4]
+        push ecx
+        call on_sold_draw
+        add esp, 20
+        ret 12
+    }
+}
+
 /* 0x447DA2 store draw, before the item grids: esi = store. */
 __declspec(naked) static void stub_draw(void) {
     __asm {
@@ -2004,8 +2232,8 @@ static const char CHEM_SHEET_FILE[] = "Chemicals_Grid_upgrades.png";
 static const char LINK_FILE[] = "upgrades_link.png";
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define CODE_SITES 27
-#define DATA_SITES 6
+#define CODE_SITES 30
+#define DATA_SITES 7
 #define TOTAL_SITES (CODE_SITES + DATA_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
@@ -2032,6 +2260,7 @@ static int prepare(void) {
                                                       20: the Extra Nursery's golden pot,
                                                       21-22: chemicals 48-49 (Muta-Flower, Muta-Foliage) */
     DWORD link[6];
+    DWORD popup_overlay = (DWORD)(UINT_PTR)price_popup_overlay;
     unsigned char bound = SITE_CHEM_PICTURE_BOUND_NEW;
     link[0] = LINK_SPRITE;
     link[1] = (DWORD)(UINT_PTR)LINK_FILE;
@@ -2066,6 +2295,9 @@ static int prepare(void) {
     JMP(w++, DEAD_UNTAG, stub_dead_untag);
     JMP(w++, SALE_RECORD, stub_sale_record);
     JMP(w++, SALE_CASH, stub_sale_cash);
+    JMP(w++, ASKING_PICK, stub_asking_pick);
+    CALL(w++, ASKING_DRAW, stub_asking_draw);
+    CALL(w++, SOLD_DRAW, stub_sold_draw);
     site_data(w++, SITE_CHEM_PICTURE_BOUND_VA, SITE_CHEM_PICTURE_BOUND_LEN, SITE_CHEM_PICTURE_BOUND_EXPECT, NULL, 0);
     writes[CODE_SITES].bytes[SITE_CHEM_PICTURE_BOUND_IMM_AT] = bound;
     site_data(w++, SITE_SEED_SHEET_FILE_VA, SITE_SEED_SHEET_FILE_LEN, SITE_SEED_SHEET_FILE_EXPECT, &seed_file, 4);
@@ -2073,6 +2305,8 @@ static int prepare(void) {
     site_data(w++, SITE_CHEM_SHEET_FILE_VA, SITE_CHEM_SHEET_FILE_LEN, SITE_CHEM_SHEET_FILE_EXPECT, &chem_file, 4);
     site_data(w++, SITE_CHEM_SHEET_ROWS_VA, SITE_CHEM_SHEET_ROWS_LEN, SITE_CHEM_SHEET_ROWS_EXPECT, &chem_rows, 4);
     site_data(w++, SITE_LINK_RECORD_VA, SITE_LINK_RECORD_LEN, SITE_LINK_RECORD_EXPECT, link, sizeof link);
+    site_data(w++, SITE_PRICE_POPUP_OVERLAY_VA, SITE_PRICE_POPUP_OVERLAY_LEN, SITE_PRICE_POPUP_OVERLAY_EXPECT,
+              &popup_overlay, 4);
     (void)k_roll_back_unused;
     return (int)(w - writes) == TOTAL_SITES;
 }

@@ -10933,8 +10933,8 @@
           {
             "path": "Store Upgrades and Items.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Store Upgrades and Items.dll",
-            "size": 165888,
-            "sha256": "3DDAF1D86EEEF72169503F990152DF4795FFB874846B04FEE32DB01456AE408F"
+            "size": 167936,
+            "sha256": "5E872C7C28CE8FB5D59F7C84F25250815F4E4B96DB2C602110750567B09CBC7E"
           },
           {
             "path": "Extra Seed Boxes.dll",

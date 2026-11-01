@@ -80,6 +80,12 @@ static const unsigned char SITE_SALE_EXPECT[] = { 0xE8, 0x37, 0xFB, 0xFF, 0xFF }
 #define SITE_SLOT_TOOLTIP_VA 0x0041D127u
 #define SITE_SLOT_TOOLTIP_LEN 5
 static const unsigned char SITE_SLOT_TOOLTIP_EXPECT[] = { 0xE8, 0xA4, 0xAE, 0xFF, 0xFF };
+#define SITE_CHART_PRICE_VA 0x00425356u
+#define SITE_CHART_PRICE_LEN 5
+static const unsigned char SITE_CHART_PRICE_EXPECT[] = { 0xE8, 0x25, 0x38, 0xFE, 0xFF };
+#define SITE_SOLD_PRICE_VA 0x004239CCu
+#define SITE_SOLD_PRICE_LEN 5
+static const unsigned char SITE_SOLD_PRICE_EXPECT[] = { 0xE8, 0xAF, 0x51, 0xFE, 0xFF };
 #define SITE_VT_MOUSE_VA 0x0044C298u
 #define SITE_VT_MOUSE_LEN 4
 static const unsigned char SITE_VT_MOUSE_EXPECT[] = { 0x80, 0x79, 0x42, 0x00 };

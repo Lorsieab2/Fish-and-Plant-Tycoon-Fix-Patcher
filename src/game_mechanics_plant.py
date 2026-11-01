@@ -427,7 +427,13 @@ RADIOACTIVE_PRICE = (
     "moves between greenhouses (Extra Greenhouses), going on sale or off sale, every nursery, saves and "
     "loads, and no time passing (real time or age units) wears it off; with Extra Greenhouses the "
     "nurseries not on screen pay it too when they sell. It ends when the plant is sold, dies (a plant "
-    "the Revival Potion brings back is not treated) or a new plant is planted in its pot."
+    "the Revival Potion brings back is not treated) or a new plant is planted in its pot. Where the "
+    "treated price shows: beside the set price, as \"Treated: $M\" (M the price a sale pays), in two "
+    "places only: the nursery's bottom bar, after \"Asking Price: $P\" when you click a treated plant "
+    "for sale and after \"Plant sold! Price: $P\" when one is sold (there M is what it was paid); and "
+    "the Set Price of Plant window (the greenhouse's Price button), under its price, for a treated "
+    "plant, following the price as you type it. Nowhere else: the greenhouse panel's \"Price: $P\" and "
+    "the rest of the greenhouses show only the set price."
 )
 
 SELLING = (
@@ -720,7 +726,8 @@ CHEMICALS = (
     Fact("Mutation Liquid ($1000, 3 doses): changes one gene of the plant; see Mutation Liquid."),
     Fact(
         "Radioactive Plant Formula: not in the unpatched game.",
-        patched=(("plant_upgrades", "on the store's Upgrades view, $10,000, 3 doses, one pot per dose. "
+        patched=(("plant_upgrades", "Allows treated plants to sell at max price, regardless of their set value. "
+                  "On the store's Upgrades view, $10,000, 3 doses, one pot per dose. "
                   "On a live plant: health 100, every dead (brown) part alive again, every hidden "
                   "branch of its shape grown, size 110 (the largest), grown to age 28 (full bloom), "
                   "flowers on every flower spot of every live, uncut part (its spots filled up to 6 "
@@ -734,7 +741,8 @@ CHEMICALS = (
     ),
     Fact(
         "Radioactive Plant Formula Bomb: not in the unpatched game.",
-        patched=(("plant_upgrades", "on the store's Upgrades view, under the formula, $30,000, 3 doses; "
+        patched=(("plant_upgrades", "Allows treated plants to sell at max price, regardless of their set value. "
+                  "On the store's Upgrades view, under the formula, $30,000, 3 doses; "
                   "the Fertilizer Bomb's art made rainbow. Used like the Fertilizer Bomb: one bomb gives "
                   "every pot the Fertilizer Bomb reaches (every live plant in the greenhouse on screen) "
                   "exactly one Radioactive Plant Formula dose, with all of its effects: each of those "

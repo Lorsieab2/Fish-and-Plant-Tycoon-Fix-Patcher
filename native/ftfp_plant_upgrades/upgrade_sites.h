@@ -110,6 +110,18 @@ static const unsigned char SITE_SALE_RECORD_EXPECT[] = { 0x8B, 0x14, 0x88, 0x01,
 #define SITE_SALE_CASH_LEN 9
 static const unsigned char SITE_SALE_CASH_EXPECT[] = { 0x8B, 0x14, 0x81, 0x52, 0xE8, 0x55, 0x90, 0xFE, 0xFF };
 #define SITE_SALE_CASH_BACK 0x00435D1Bu
+#define SITE_ASKING_PICK_VA 0x004366F9u
+#define SITE_ASKING_PICK_LEN 8
+static const unsigned char SITE_ASKING_PICK_EXPECT[] = { 0x89, 0x56, 0x08, 0xE8, 0x2F, 0xCD, 0xFC, 0xFF };
+#define SITE_ASKING_PICK_BACK 0x00436701u
+#define SITE_ASKING_DRAW_VA 0x00437CDCu
+#define SITE_ASKING_DRAW_LEN 5
+static const unsigned char SITE_ASKING_DRAW_EXPECT[] = { 0xE8, 0xEF, 0x4F, 0x01, 0x00 };
+#define SITE_ASKING_DRAW_BACK 0x00437CE1u
+#define SITE_SOLD_DRAW_VA 0x00437E77u
+#define SITE_SOLD_DRAW_LEN 5
+static const unsigned char SITE_SOLD_DRAW_EXPECT[] = { 0xE8, 0x54, 0x4E, 0x01, 0x00 };
+#define SITE_SOLD_DRAW_BACK 0x00437E7Cu
 #define SITE_CHEM_PICTURE_BOUND_VA 0x004308D1u
 #define SITE_CHEM_PICTURE_BOUND_LEN 3
 static const unsigned char SITE_CHEM_PICTURE_BOUND_EXPECT[] = { 0x83, 0xF8, 0x24 };
@@ -130,6 +142,9 @@ static const unsigned char SITE_CHEM_SHEET_ROWS_EXPECT[] = { 0x09, 0x00, 0x00, 0
 #define SITE_LINK_RECORD_VA 0x004882D4u
 #define SITE_LINK_RECORD_LEN 24
 static const unsigned char SITE_LINK_RECORD_EXPECT[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+#define SITE_PRICE_POPUP_OVERLAY_VA 0x00469680u
+#define SITE_PRICE_POPUP_OVERLAY_LEN 4
+static const unsigned char SITE_PRICE_POPUP_OVERLAY_EXPECT[] = { 0x30, 0x67, 0x41, 0x00 };
 
 /* The Radioactive Plant Formula's extra flower spots: (spot address, x, y), each on the
    part's own visible pixels in its sheet, spread apart. */

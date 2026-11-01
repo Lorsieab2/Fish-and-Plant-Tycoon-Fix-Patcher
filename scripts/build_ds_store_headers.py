@@ -88,6 +88,11 @@ SITES = [
     # The tank screen's overlay draws the hints last (after what the hand holds): with no hint up,
     # the supply slot under the mouse gets its tooltip there, in the hint's own box and font.
     ("slot_tooltip", 0x41D127, ["call 0x417fd0"]),
+    # The two places the game shows a price the player sets, each the left-aligned text of its
+    # sprintf("$%d") (esi = the screen): the Species Chart's price (the isolation tank's fish) and
+    # the Fish Store's last sold fish's price. A treated fish's treated price goes beside it.
+    ("chart_price", 0x425356, ["call 0x408b80"]),
+    ("sold_price", 0x4239CC, ["call 0x408b80"]),
 ]
 
 # The Supplies scene's vtable (0x44C294): slot address -> the function it holds.

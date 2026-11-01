@@ -1201,10 +1201,18 @@ static int __cdecl sale_price(const char *f, int asking) {
 #define SALE_TANK 2
 static const DWORD k_sale = 0x00424010u;
 
+#define SCENE_SOLD_PRICE 0x28
+
+/* The Fish Store's last sold fish, when it was a treated one: its scene, the asking price the
+   panel shows (scene + 0x28) and the price it was paid (see sold_price_text).  Any other sale
+   forgets it. */
+static char *sold_scene;
+static int sold_asking, sold_paid;
+
 static void __fastcall on_fish_sale(char *scene, void *edx, int slot) {
     char *state = (char *)P(scene, SCENE_STATE), *f = NULL;
     unsigned char *entry = NULL;
-    int asking = 0, paid;
+    int asking = 0, paid = 0, swapped = 0;
     if (state != NULL && slot >= 0 && slot < RECORDS) {
         f = fish(state, SALE_TANK, slot);
         if (*I(f, F_RADIOACTIVE) == RADIOACTIVE_MARK)
@@ -1213,14 +1221,23 @@ static void __fastcall on_fish_sale(char *scene, void *edx, int slot) {
     if (entry != NULL) {
         asking = *I(entry, E_PRICE);
         paid = sale_price(f, asking);
-        if (paid == asking) entry = NULL;
-        else *I(entry, E_PRICE) = paid;
+        swapped = paid != asking;
+        if (swapped) *I(entry, E_PRICE) = paid;
     }
+    sold_scene = NULL;
     __try {
         GAME(this1_fn, k_sale)(scene, edx, slot);
     } __finally {
-        if (entry != NULL) *I(entry, E_PRICE) = asking;
+        if (swapped) *I(entry, E_PRICE) = asking;
         if (f != NULL && *I(f, F_RADIOACTIVE) == RADIOACTIVE_MARK) *I(f, F_RADIOACTIVE) = 0;
+    }
+    if (entry != NULL) {
+        /* The owner, 2026-10-31: the panel shows the price the player set, the treated price
+           beside it (sold_price_text). */
+        *I(scene, SCENE_SOLD_PRICE) = asking;
+        sold_scene = scene;
+        sold_asking = asking;
+        sold_paid = paid;
     }
 }
 
@@ -1660,6 +1677,99 @@ __declspec(naked) static void stub_slot_tooltip(void) {
     }
 }
 
+/* ------------------------------------------- treated fish: the price shown */
+
+/* The owner, 2026-10-31: "put the 'treated' price beside the normal 'set' price", shown only
+   "in the selling screen when fish are sold" and in the window where prices are set, never in a
+   tank.  So a treated fish's asking price is never read as what it sells for.  Fish Tycoon shows
+   a price the player sets in exactly two places, each a `call 0x408B80` (graphics (text, x, y,
+   colour, font), ret 0x14: left-aligned text) drawing the sprintf("$%d") of it:
+     * the Species Chart (0x4252C0, its draw; esi = the chart, + 4 the state), the window the
+       Species button opens to set a price (its arrows and keypad): "Price: $40" at (640, 95),
+       call at 0x425356.  It is the isolation tank's fish's species (tank 3, record 0: the draw
+       reads state + 0xF9A0 / 0xF9A4, that record's body and fin), the fish the price is being set
+       for; when that fish is treated, "Treated: $475" goes on the line under the price, inside
+       the same price box (the chart's font is too large for both on one line: the box ends at
+       775), and follows every change of the price (the draw runs every frame);
+     * the Fish Store (0x423800, its draw; esi = the sale scene), the screen Sell Fish opens where
+       the fish are sold: the last sold fish's "Price: $X" at (304, 480), call at 0x4239CC,
+       scene + 0x28 (written by the sale, 0x4236D0).  For a treated fish it shows the asking price
+       (on_fish_sale puts it back), and "Treated: $475", the price paid, goes at the foot of the
+       sold fish's own box beside it (25-208 x 397-530: its name at the top, its picture in the
+       middle), centred as the name is; the price box (220-428) has no room left after the price.
+   Nothing else: the tanks' info panel shows a fish's name and age, never a price (0x41D980,
+   0x41DA40), and the customers' thoughts compare the price without showing it (0x413560).
+   The treated price is sale_price's, the very number the sale pays.  Untreated fish: the stock
+   text alone, exactly as before.  The extra line is in the game's default font (font 0, the
+   one the sold fish's name uses) and the price's own colour. */
+#define CHART_STATE 0x04
+#define ISOLATION_TANK 3
+#define CHART_TREATED_X 560                 /* under "Price:" (0x4252EA: x 0x230) */
+#define CHART_TREATED_DY 26                 /* the line under the price, inside the box (y 78-140) */
+#define SOLD_BOX_LEFT 25                    /* the sold fish's box; its name is centred at 0x75 */
+#define SOLD_BOX_RIGHT 209
+#define SOLD_TREATED_Y 507                  /* under the picture (0x4239FB: at y 0x1CC), above the edge */
+
+static int append_text(char *out, int at, const char *text);
+static int append_decimal(char *out, int at, int value);
+
+/* "Treated: $475" ("Behandelt: $475"). */
+static void treated_label(char *out, int price) {
+    int at = append_text(out, 0, german() ? "Behandelt: $" : "Treated: $");
+    at = append_decimal(out, at, price < 0 ? 0 : price);
+    out[at] = '\0';
+}
+
+/* The treated price of the isolation tank's fish, or -1 when it is not a treated fish with a
+   species entry. */
+static int __cdecl isolation_treated_price(char *state) {
+    char *f;
+    unsigned char *entry;
+    if (state == NULL) return -1;
+    f = fish(state, ISOLATION_TANK, 0);
+    if (*I(f, F_LIVE) == 0 || *I(f, F_RADIOACTIVE) != RADIOACTIVE_MARK) return -1;
+    entry = species_entry(state, *I(f, F_BODY), *I(f, F_FIN));
+    return entry != NULL ? sale_price(f, *I(entry, E_PRICE)) : -1;
+}
+
+/* 0x425356: the Species Chart's price (edx = the chart, from stub_chart_price). */
+static void __fastcall chart_price_text(char *graphics, char *chart, const char *text, int x, int y,
+                                        int colour, void *font) {
+    char label[48];
+    int price;
+    DRAW_TEXT(graphics, NULL, (int)(UINT_PTR)text, x, y, colour, (int)(UINT_PTR)font);
+    price = chart != NULL ? isolation_treated_price((char *)P(chart, CHART_STATE)) : -1;
+    if (price < 0) return;
+    treated_label(label, price);
+    DRAW_TEXT(graphics, NULL, (int)(UINT_PTR)label, CHART_TREATED_X, y + CHART_TREATED_DY, colour, 0);
+}
+
+/* 0x4239CC: the Fish Store's last sold fish's price (edx = the sale scene, from stub_sold_price). */
+static void __fastcall sold_price_text(char *graphics, char *scene, const char *text, int x, int y,
+                                       int colour, void *font) {
+    char label[48];
+    DRAW_TEXT(graphics, NULL, (int)(UINT_PTR)text, x, y, colour, (int)(UINT_PTR)font);
+    if (scene == NULL || scene != sold_scene || *I(scene, SCENE_SOLD_PRICE) != sold_asking) return;
+    treated_label(label, sold_paid);
+    CENTRE_TEXT(graphics, NULL, (int)(UINT_PTR)label, SOLD_BOX_LEFT, SOLD_BOX_RIGHT, SOLD_TREATED_Y, colour, 0);
+}
+
+/* Both sites: `call 0x408B80` with ecx = the graphics and esi = the screen; the screen goes in
+   edx, so the fastcall function above takes the call's own five arguments and pops them. */
+__declspec(naked) static void stub_chart_price(void) {
+    __asm {
+        mov edx, esi
+        jmp chart_price_text
+    }
+}
+
+__declspec(naked) static void stub_sold_price(void) {
+    __asm {
+        mov edx, esi
+        jmp sold_price_text
+    }
+}
+
 /* ------------------------------------------------------- creature names */
 
 /* The names the info panel shows for a held animal (user, 2026-10-26).  The
@@ -1756,8 +1866,8 @@ static const store_item ITEM[ITEMS] = {
         "Ein Haufen Goldm\xFCnzen! Jeder Kauf\nbringt dir 1.000 $.\nKauf so viele du willst." } },
     { FIN_RGH, 10000, 595, 90, 79, 72, SPR_ITEM_RGH, 48, 65,
       { "Radioactive Growth Hormone", "Radioaktive Wachstumshormone" },
-      { "Every fish in your tank gets full health\nand no sickness, young ones grow up at\nonce, and pregnant ones give birth to\nbabies. Treated fish sell for the highest\npossible price! Contains 3 doses.",
-        "Jeder Fisch in deinem Becken wird ganz\ngesund und heil, junge werden sofort\nerwachsen, tr\xE4" "chtige geb\xE4" "ren Babys.\nBehandelte Fische werden zum H\xF6" "chstpreis\nverkauft! Reicht f\xFCr 3 Behandlungen." } },
+      { "Every fish in your tank gets full health and\nno sickness, young ones grow up at once, and\npregnant ones give birth to babies. Allows\ntreated fish to sell at max price, regardless\nof their set value. Contains 3 doses.",
+        "Jeder Fisch in deinem Becken wird ganz gesund\nund heil, junge werden sofort erwachsen,\ntr\xE4" "chtige geb\xE4ren Babys. Behandelte Fische\nbringen den H\xF6" "chstpreis, egal welcher Preis\neingestellt ist. Reicht f\xFCr 3 Behandlungen." } },
     /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped to the panel. */
     { FIN_REVIVAL, 10000, 687, 90, 79, 72, SPR_ITEM_REVIVAL, 48, 65,
       { "Revival Potion", "Wiederbelebungstrank" },
@@ -3110,7 +3220,7 @@ __declspec(naked) static void stub_state_save(void) {
 }
 
 #define CODE_ADDR(f) ((const void *)(UINT_PTR)(f))
-#define TOTAL_SITES 33
+#define TOTAL_SITES 35
 static ftfp_site_write writes[TOTAL_SITES];
 static int installed = 0;
 static int host_ok = 0;
@@ -3165,6 +3275,8 @@ static int prepare(void) {
     JMP(w++, OVERFEED, stub_overfeed);
     CALL(w++, SALE, on_fish_sale);
     CALL(w++, SLOT_TOOLTIP, stub_slot_tooltip);
+    CALL(w++, CHART_PRICE, stub_chart_price);
+    CALL(w++, SOLD_PRICE, stub_sold_price);
     return (int)(w - writes) == TOTAL_SITES;
 }
 

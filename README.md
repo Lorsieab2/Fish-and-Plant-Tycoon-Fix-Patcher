@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.20**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.21**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -210,7 +210,10 @@ never needs the internet.
   price, 2B - 1 with B its base price after both Advertising levels (the
   Breeding Guide's "Highest selling" with Max effects; a Golden Guppy pays
   $475), instead of your asking price. Which fish sells and when still follow
-  your asking price. The mark stays with the fish through moves between tanks,
+  your asking price. The treated price is shown beside the price you set, for
+  a treated fish only: "Treated: $475" under the sold fish's "Price: $40" in
+  the Fish Store (the selling screen), and under "Price: $40" on the Species
+  Chart (where you set the price); nowhere else, not in any tank. The mark stays with the fish through moves between tanks,
   saves and ClonaFish clones (a clone of a treated fish is treated too), never
   passes to babies, and ends when the fish is sold, dies or is thrown away.
   Picture:
@@ -443,7 +446,13 @@ never needs the internet.
     Max effects; a Fabled Lemonbush pays $1186), instead of your asking price.
     Whether and when it sells still follow your asking price. The mark stays
     with the plant through moves, nurseries and saves, and ends when it is
-    sold, dies or its pot is replanted.
+    sold, dies or its pot is replanted. The treated price is shown beside the
+    set price, as "Treated: $1186", in two places only: the nursery's bottom
+    bar ("Asking Price: $665 Treated: $1186" when you click a treated plant
+    for sale, "Plant sold! Price: $665 Treated: $1186" when one sells) and the
+    Set Price of Plant window under its price. The greenhouses show only the
+    set price. The store describes both items with "Allows treated plants to
+    sell at max price, regardless of their set value."
   - Radioactive Plant Formula Bomb under the formula: $30,000, 3 doses; the
     stock Fertilizer Bomb made rainbow. One bomb gives every live plant in the
     greenhouse on screen exactly one Radioactive Plant Formula dose (the
