@@ -2,7 +2,7 @@
 
 ## DS Exclusive Fish
 
-New in v1.3.0, off by default. Unlike the settings below it does not patch
+New in v1.3.0; on by default since v1.0.22. Unlike the settings below it does not patch
 the executable's existing bytes. The patcher appends one read/execute section
 (`.ftfpst`, src/ds_fish_loader.py) and routes the C runtime's `call WinMain`
 at VA `0x0042D7DE` through it. The stub loads
@@ -57,7 +57,7 @@ physical slot (see below). This retains the original item effects without
 duplicating them.
 
 The Buy Multiple Golden Seahorses setting targets store item index `11`, and is
-on by default. Counting the store item records at VA `0x00457EF0`, which are
+off by default since v1.0.22. Counting the store item records at VA `0x00457EF0`, which are
 0x34 bytes each with the index at `+0x10`, places the Golden Seahorse at index
 11; index 18 is the Diver Ornament.
 

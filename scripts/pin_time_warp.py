@@ -55,7 +55,7 @@ def setting(game: dict) -> dict:
             "away. Refused while time is stopped. Saves keep their layout."
         ),
         "category": "main",
-        "default": False,
+        "default": True,
         "requires_settings": list(game["requires"]),
     }
 

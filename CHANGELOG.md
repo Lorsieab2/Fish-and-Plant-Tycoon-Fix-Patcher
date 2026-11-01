@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.22
+## v1.0.23
 
 - **Text Maker** (Tools tab, both games): type anything in the games' own
   fonts, drawn exactly as the game draws it (checked pixel for pixel against
@@ -12,6 +12,85 @@
   letters a font lacks are made for it ("patcher-made"): accents from the
   font's own pixels, everything else (CJK, Greek, Cyrillic, cuneiform, colour
   emoji...) drawn by Windows in the font's size, baseline and weight.
+
+## v1.0.22
+
+- **Rarity names** (Breeding Guide, its collection list and Picture Studio). Fish Tycoon's
+  middle rarity is now "Uncommon": Common / Uncommon / Rare (the eggs keep their
+  names, "Unusual Fish Eggs"). Plant Tycoon's flower and foliage parts go by tier,
+  from the soil they need to grow: Tier 1 (class A, e.g. Citrus), Tier 2 (class B,
+  e.g. Rosaceae), Tier 3 (class C, e.g. Nox), Tier 4 (class D, e.g. Arthurium) and
+  Tier 5 (the Legendary flowers); a species is as high as its higher part. The seed
+  packets keep their names.
+- **Plant Tycoon: one chemical tooltip at a time** (Extra Chemical Slots). On
+  page 2 of the Tools box two tooltips could be drawn over each other (the
+  slot's "Mutation Liquid Vaporbomb / 12 doses left" over another one, the
+  text garbled). A tooltip of the game's own kind brings itself up whenever
+  the mouse is over its area, and page 1's four slots lie under page 2's
+  second row and the foot of its first, so page 1's tooltips (and the blank
+  ones of empty slots) still came up on page 2. A tooltip that is not shown
+  now has no area at all: only the slot under the mouse on the page shown,
+  holding a chemical, shows its tooltip -- never one from the other page or
+  the game's own tray tooltips, and the tools have none. Tests:
+  tests/test_chem_slots.py (every mouse point of the Tools box on both pages).
+  The store's Upgrades view had the same fault (the stock items' tooltips came
+  up under its items): fixed the same way in Store Upgrades and Items; tests:
+  tests/test_store_tooltips.py.
+- **Fish Tycoon: every supply slot tooltip has its rope edge, and only one
+  shows at a time** (DS Store Items). The Fish Food tooltip (one line, no
+  "doses left") showed a dark box with no rope around it: the game's own box
+  code draws its rope only around a box tall enough for the rope's side bars,
+  and the one-line box was too low, so only the fill was drawn. Tooltip boxes
+  are now never smaller than the rope needs (the game's rope bars, read from
+  the game), so the Fish Food box and every other one -- every slot on every
+  page of Extra supply slots -- has its whole rope, its lines centred in it.
+  Only the slot under the mouse on the page shown has a tooltip: never two at
+  once, never one from another page, and none while a game hint is up.
+  Tests: tests/test_supply_slot_tooltips.py (the stock box code run with the
+  real rope bars; every mouse point on every page).
+- **Patch selection, as in the Virtual Villagers Fun Patcher.** Above the
+  One Game / Both Games tabs, one row of buttons, each with a "?", sets both
+  games at once: **Select All Patches** (every patch but the Everything is
+  Free cheat), **Default Patches** (the recommended set), **Owner's
+  Defaults** (new: every patch in both games except Everything is Free, so
+  Free upgrades, Add Money, Buy Multiple Golden Seahorses and the Optimize
+  Prices button included) and
+  **Deselect All Patches**. They replace the per-game Defaults / Enable All /
+  Disable All buttons. Below them, **Patch Selection Settings...** opens a
+  window listing every patch name once with the games that have it: tick
+  names, then **Tick These** or **Untick These** changes them in every game.
+  Settings that make a price $0 (Free upgrades, Everything is Free) stay off
+  by default, now pinned by a test. Choices are still remembered in
+  `patcher_local_settings.json`.
+- **New default settings** (the owner: anything that costs something in the
+  game, money, tech points or food, and anything that adds new content stays
+  on; cheats and free things are off unless you tick them). On by default
+  now: every fix as before (Fix Vanilla Bugs, Crimson Comet 20% curing fix,
+  Unknown Chemical: 3 uses, Universal supply slots 2-4, No old-age plant
+  deaths, R refreshes the seed shop, Add Missing Assets to LDW Version,
+  Maximizable window, Tank and greenhouse counts), and newly DS Exclusive
+  Fish, DS Store Items, Time Warp, Bigger tanks, 3 extra tanks, Extra supply
+  slots, Multiple ornaments, Add unused flowers, Add new store upgrades and
+  items, Sort Seeds, 5 extra greenhouses, 5 extra nurseries and Extra
+  chemical slots, so the default copies are "- Modded Upgrades". Off by
+  default: Everything is Free, Free upgrades, Add Money, and newly Buy
+  Multiple Golden Seahorses and the Optimize Prices button. Owner's Defaults
+  still turns on everything but Everything is Free. A saved selection is
+  kept as it was; Default Patches applies the new list.
+- **Game Mechanics, Plant Tycoon: the 48 bugs, one by one.** A new "Bugs one by
+  one" section lists every collectible bug by its number in the game's own
+  collection order (1-12 butterflies, 13-24 beetles, 25-36 dragonflies,
+  37-48 spiders), with its family, its rarity (Common, Uncommon or Rare, the
+  game's own) and how it appears: the 32 random-draw bugs with their share
+  of random draws (the game's rolls multiplied), the 16 plant bugs with the foliage or flower by
+  name and gene, the age it needs (7 for foliage, 24 for flowers) and, for
+  the five genes that cannot bring a pot into play themselves, which genes
+  of the pot's other half do. "Bugs" now names every gene and gives the
+  whole reward for catching all 48: the one-time $5000 grant, the
+  permanent +4 visitor score (the top visitor limit of 55 needs it), the
+  nursery display, and what it does not change. Tests:
+  tests/test_game_mechanics_bugs.py (every name, family, rarity, gene link
+  and random pick read back out of the vanilla executable).
 
 ## v1.0.21
 

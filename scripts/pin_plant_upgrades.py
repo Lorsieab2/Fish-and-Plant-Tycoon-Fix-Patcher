@@ -94,7 +94,7 @@ SETTING = {
         "of boxes 4-9 before switching it off."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
     "separate_output": True,
     "requires_settings": ["new_flowers"],
 }

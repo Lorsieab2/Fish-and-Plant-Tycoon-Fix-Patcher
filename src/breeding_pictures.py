@@ -147,8 +147,8 @@ def _order(model) -> list[str]:
     if order:
         return list(order)
     if model.game == "fish":
-        return ["Common", "Unusual", "Rare"]
-    return ["Common", "Endangered", "Extinct", "Legendary"]
+        return ["Common", "Uncommon", "Rare"]
+    return ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"]
 
 
 def _grouped(items: list[Item], order: list[str]) -> list[Group]:

@@ -11,9 +11,24 @@ FISH & PLANT TYCOON FIX PATCHER
    folders sit in. Use "Find Fish Tycoon..." or "Find Plant Tycoon..." for
    one game. You can also fill in the folders yourself.
 4. Choose "One Game" or "Both Games".
-5. Leave the fixes you want checked. "Defaults", "Enable All", and
-   "Disable All" set the whole list for that game at once.
-   "Enable All" leaves a CHEAT (Everything is Free) off: tick it yourself.
+5. Leave the fixes you want checked. The buttons above the tabs set both
+   games at once (each has a "?" that explains it):
+   - "Select All Patches": every patch except the CHEAT Everything is Free,
+     which you tick yourself.
+   - "Default Patches": the recommended set a fresh install starts with:
+     every fix, and everything that costs something in the game or adds
+     new content (the EXPERIMENTAL settings included), so the copies are
+     the "- Modded Upgrades" ones. Cheats and anything free are off until
+     you tick them: Everything is Free, Free upgrades (both make prices
+     $0), Add Money, Buy Multiple Golden Seahorses and Optimize Prices.
+   - "Owner's Defaults": every patch except Everything is Free (Free
+     upgrades, Add Money, Buy Multiple Golden Seahorses and Optimize
+     Prices included).
+   - "Deselect All Patches": nothing ticked.
+   "Patch Selection Settings..." lists every patch by name with the games
+   that have it: tick names, then press "Tick These" or "Untick These" to
+   change them in every game at once. You can still tick or untick any row
+   by hand. Your ticks are remembered in patcher_local_settings.json.
 6. Use Dry Run to validate without writing files.
 7. Choose where the modified game folders should be saved.
 8. Click Create Modded Copy or Patch Both.
@@ -59,8 +74,8 @@ Fish Tycoon options:
 - Crimson Comet 20% curing fix
 - Unknown Chemical: 3 uses
 - Universal supply slots 2-4
-- Buy Multiple Golden Seahorses
-- Bigger tanks: 30 fish (off by default; EXPERIMENTAL - USE AT OWN RISK; Tank 1, Tank 2 and the Sale Tank
+- Buy Multiple Golden Seahorses (off by default)
+- Bigger tanks: 30 fish (on by default; EXPERIMENTAL - USE AT OWN RISK; Tank 1, Tank 2 and the Sale Tank
   (Tank 3) hold 30 fish instead of 21, Tanks 4-6 too with 3 extra tanks,
   each fish selling with the stock odds; the isolation tank still holds one.
   Sell or move fish down to 21 per tank before turning it off.)
@@ -70,16 +85,16 @@ Fish Tycoon options:
   (Low Health = the red health bar, 25 or less), its creatures and the
   isolation tank. A "Counts: On/Off" button at the top right of the water
   hides them; the choice is kept in Tank Counts.ini. Display only.)
-- Optimize Prices button (on by default; an "Optimize Prices" button on the
+- Optimize Prices button (off by default; an "Optimize Prices" button on the
   Species Chart and the same one on the Fish Store screen, opened with Sell
   Fish, so you can use it any time. Asks Yes/No, then sets every discovered species to its
   best price per day for your shop as it is now, as in the Breeding Guide.
   A "Max Prices" button beside it sets every discovered species to the
   highest price a customer still buys at, twice its base price less 1;
   fish at that price sell much more slowly.)
-- DS Exclusive Fish (off by default; adds the DS version's 7 bodies and
+- DS Exclusive Fish (on by default; adds the DS version's 7 bodies and
   7 fins. Sell or trash every DS fish before turning it off again.)
-- DS Store Items (off by default; needs DS Exclusive Fish. Adds an
+- DS Store Items (on by default; needs DS Exclusive Fish. Adds an
   Upgrades button to the Supplies store with the DS Puffer Fish, Sting Ray,
   Moray Eel and Exotic Fish Eggs, the Radioactive Growth Hormone (every fish
   in the tank on screen: pregnant ones give birth, then the fish that were
@@ -101,7 +116,7 @@ Fish Tycoon options:
   the trash can (no question; the food and the game's own supplies never
   can), and the eel and its rock go together, from any tank. Trash the animals and let the eel
   out of its rock before turning it off again.)
-- 3 extra tanks (off by default; EXPERIMENTAL - USE AT OWN RISK; needs DS
+- 3 extra tanks (on by default; EXPERIMENTAL - USE AT OWN RISK; needs DS
   Store Items, which it turns on. Tank 4, Tank 5 and Tank 6, full
   tanks like Tank 1 and Tank 2, bought on the store's Upgrades screen:
   the Extra Tank item, $10,000 each ($0 with Free upgrades), one after the
@@ -109,7 +124,7 @@ Fish Tycoon options:
   like the Sale Tank without its For Sale sign. The two small arrows
   left of the Tank 1 button switch the tank buttons to them and back.
   Empty the three tanks before turning it off again.)
-- Extra supply slots (off by default; EXPERIMENTAL - USE AT OWN RISK; needs
+- Extra supply slots (on by default; EXPERIMENTAL - USE AT OWN RISK; needs
   DS Store Items, which it turns on. Seven more supply slots, eleven in all,
   in three pages: page 1 the stock four, page 2 four more, page 3 three
   more. Buy them once on the store's Upgrades screen: Extra Supply Slots,
@@ -123,10 +138,10 @@ Fish Tycoon options:
   its tooltip: the item's name and the doses, uses or egg batches left. Use or
   move what is on pages 2 and 3 before turning it off again: nothing is
   deleted, it comes back when you turn it on again.)
-- Multiple ornaments (off by default; EXPERIMENTAL - USE AT OWN RISK; buy the six store ornaments again,
+- Multiple ornaments (on by default; EXPERIMENTAL - USE AT OWN RISK; buy the six store ornaments again,
   up to 10 extra copies per tank, for decoration only: the effect still
   counts once. Trash the copies before turning it off again.)
-- Time Warp (off by default; a $500 clock on the store's Upgrades screen:
+- Time Warp (on by default; a $500 clock on the store's Upgrades screen:
   type 1-72 hours in a Windows popup and the game plays them as time away)
 - Free upgrades (off by default; turns on the store's Upgrades screen:
   every item on that screen costs $0. The game's own store items keep
@@ -134,8 +149,8 @@ Fish Tycoon options:
 - Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
   screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
   and adds $1,000 each time)
-- Everything is Free (off by default; a CHEAT, so Enable All leaves it off:
-  tick it yourself): every store item, research and Upgrades item costs $0,
+- Everything is Free (off by default; a CHEAT, so Select All Patches and
+  Owner's Defaults leave it off: tick it yourself): every store item, research and Upgrades item costs $0,
   and Add Money costs $0 and still adds $1,000. Limits stay.
 
 Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
@@ -174,9 +189,9 @@ Plant Tycoon options:
   restock the seed shelves at once, Legendary Seeds too)
 - Add Missing Assets to LDW Version (only adds files the game lacks; never
   replaces a game file)
-- Add unused flowers (off by default; adds the 14 unused flowers in the game's art,
+- Add unused flowers (on by default; adds the 14 unused flowers in the game's art,
   322 new species. Sell or compost them before turning it off again.)
-- Add new store upgrades and items (off by default; needs Add unused
+- Add new store upgrades and items (on by default; needs Add unused
   flowers. An Upgrades link in the Supplies store: Legendary Seeds, the
   Radioactive Plant Formula and its Bomb (one dose for every plant in the
   greenhouse on screen; a treated plant sells at its species' max price,
@@ -201,16 +216,16 @@ Plant Tycoon options:
   2 with buds, 2 seedlings)" along the top of the greenhouse on screen,
   Greenhouses 2-6 too, and "Infested: 2  Unhealthy: 1". A "Counts: On/Off"
   button hides them; the choice is kept in Greenhouse Counts.ini. Display only.)
-- Sort Seeds button (off by default; a "Sort Seeds" button on the Seed
+- Sort Seeds button (on by default; a "Sort Seeds" button on the Seed
   Storage title bar. Asks Yes/No, then sorts every seed by the plant it grows
   and its parents into your unlocked seed boxes, first box first.)
-- Optimize Prices button (on by default; an "Optimize Prices" button in the
+- Optimize Prices button (off by default; an "Optimize Prices" button in the
   Nursery. Asks Yes/No, then sets every discovered species to its best price
   per day for your nursery as it is now, as in the Breeding Guide.
   A "Max Prices" button beside it sets every discovered species to the
   highest price a visitor still buys at (higher with the Golden Berries of
   Wealth); plants at that price sell much more slowly.)
-- Time Warp (off by default; a $500 clock on the store's Upgrades screen:
+- Time Warp (on by default; a $500 clock on the store's Upgrades screen:
   type 1-72 hours in a Windows popup and the game plays them as time away)
 - Free upgrades (off by default; turns on the store's Upgrades screen:
   every item on that screen costs $0. The game's own store items keep
@@ -218,17 +233,17 @@ Plant Tycoon options:
 - Add Money cheat ($1,000) (off by default; turns on the store's Upgrades
   screen: a pile of gold coins there costs $950, or $0 with Free upgrades,
   and adds $1,000 each time)
-- Everything is Free (off by default; a CHEAT, so Enable All leaves it off:
-  tick it yourself): every store item, research and Upgrades item costs $0,
+- Everything is Free (off by default; a CHEAT, so Select All Patches and
+  Owner's Defaults leave it off: tick it yourself): every store item, research and Upgrades item costs $0,
   and Add Money costs $0 and still adds $1,000. Limits stay.
-- 5 extra greenhouses (EXPERIMENTAL - USE AT OWN RISK. Off by default;
+- 5 extra greenhouses (EXPERIMENTAL - USE AT OWN RISK. On by default;
   turns on the store's Upgrades screen. Buy Greenhouses 2-6 there, in order,
   $10,000 each ($0 with Free upgrades): the Extra Greenhouse item on the tool
   shelf. Every greenhouse screen is named at the top ("Greenhouse 1" is the
   stock one), and the gold arrows on both sides page through the ones you
   own. Every greenhouse works like the stock one and keeps growing while you look at
   another. Empty Greenhouses 2-6 before turning it off.)
-- 5 extra nurseries (EXPERIMENTAL - USE AT OWN RISK. Off by default; turns
+- 5 extra nurseries (EXPERIMENTAL - USE AT OWN RISK. On by default; turns
   on the store's Upgrades screen. Without them at most 15 plants can be for
   sale at once, as in the unpatched game. Buy Nurseries 2-6 on the Upgrades
   screen, in order, $10,000 each ($0 with Free upgrades): the Extra Nursery
@@ -237,7 +252,7 @@ Plant Tycoon options:
   named at the top ("Nursery 1" is the stock one), and the gold arrows there
   page through the ones you own. Take plants off sale until 15 or fewer are
   for sale before turning it off.)
-- Extra chemical slots (EXPERIMENTAL - USE AT OWN RISK. Off by default;
+- Extra chemical slots (EXPERIMENTAL - USE AT OWN RISK. On by default;
   turns on the store's Upgrades screen. Buy Extra Chemical Slots there once,
   $10,000 ($0 with Free upgrades): the item on the chemicals shelf under the
   Formula Bomb. Then a small gold arrow on each side of the greenhouse's

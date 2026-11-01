@@ -3,7 +3,7 @@
 For each game, every configuration below is built exactly as the patcher builds it, loaded the
 way the game loads it, and run:
 
-  * Enable All (every setting but the cheats, as the GUI's Enable All sets them), and Enable All
+  * Select All Patches (every setting but the cheats, as the GUI's Select All Patches and Owner's Defaults set them), and that
     with Everything is Free ticked too;
   * the Defaults;
   * every setting that ships a companion DLL, alone with what it requires (requires_settings,
@@ -119,9 +119,9 @@ def configurations(game: str) -> dict[str, set[str]]:
     every = {s["id"] for s in m["settings"]}
     enable_all = {s["id"] for s in m["settings"] if cheat.in_enable_all(s)}
     configs = {
-        "Enable All": enable_all,
-        "Enable All + Everything is Free": enable_all | {"everything_free"},
-        "Defaults": {s["id"] for s in m["settings"] if s.get("default")},
+        "Select All Patches / Owner's Defaults": enable_all,
+        "Select All Patches + Everything is Free": enable_all | {"everything_free"},
+        "Default Patches": {s["id"] for s in m["settings"] if s.get("default")},
     }
     assert "everything_free" in every and "everything_free" not in enable_all
     for setting in dll_settings(m):

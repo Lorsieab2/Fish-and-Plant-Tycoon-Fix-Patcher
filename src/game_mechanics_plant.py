@@ -6,7 +6,8 @@ test with its exact odds (game_mechanics.chance).
 
 from __future__ import annotations
 
-from game_mechanics import Fact, GamePage, Group, at_least, at_most, below, chance, each
+from breeding_plant import part_word
+from game_mechanics import RAND_PERIOD, Fact, GamePage, Group, at_least, at_most, below, chance, each, rand_count
 
 
 def page() -> GamePage:
@@ -52,17 +53,18 @@ def page() -> GamePage:
             Group("Nursery ornaments", ORNAMENTS),
             Group("Magic plants", MAGIC),
             Group("Everything together: a pot with every upgrade and magic plant", TOTALS),
-            Group("Bugs", BUGS),
+            Group("Bugs", BUGS + ALL_BUGS),
+            Group("Bugs one by one", BUG_LIST),
             Group("Goals, messages and statistics", GOALS),
             Group("Sorting seeds", SORTING,
                   note="Only with the Sort Seeds button setting: a \"Sort Seeds\" button on the Seed Storage "
                        "title bar."),
-            Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (off by default), which also turns on the store's Upgrades screen it lives on."),
+            Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (on by default), which also turns on the store's Upgrades screen it lives on."),
             Group("Extra greenhouses (patcher)", EXTRA_GREENHOUSES,
-                  note="Only with the 5 extra greenhouses setting (off by default), which also turns on the "
+                  note="Only with the 5 extra greenhouses setting (on by default), which also turns on the "
                        "store's Upgrades screen the greenhouses are bought on."),
             Group("Extra nurseries (patcher)", EXTRA_NURSERIES,
-                  note="Only with the 5 extra nurseries setting (off by default), which also turns on the "
+                  note="Only with the 5 extra nurseries setting (on by default), which also turns on the "
                        "store's Upgrades screen the nurseries are bought on."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Fish Tycoon's topics here", OTHER_GAME),
@@ -109,7 +111,7 @@ SCOPE = (
     ),
     Fact(
         "Upgrades are game-wide: soil and water upgrades apply to plants potted before them too; "
-        "shears, nets and seed boxes apply when used. The bug collection bonus is permanent.",
+        "shears, nets and seed boxes apply when used. The full bug collection's bonus is permanent (see Bugs).",
     ),
 )
 
@@ -1051,33 +1053,211 @@ TOTALS = (
     ),
 )
 
+# The 48 bugs, in the game's own collection order: number n is bug id n - 1, the order of the name
+# table (0x41894D jumps through 0x418DA4), of the collected flags state + 0x53F4B + id and of the
+# Collections screen's draw loop (0x418490-0x4184CB, sprite frame = id). Id = family x 12 + index:
+# the four spawners add 0 (0x4177C0), 12 (0x417870), 24 (0x417900) and 36 (0x4179B0) to the index.
+# tests/test_game_mechanics_bugs.py reads every table below back out of the vanilla executable.
+BUG_NAMES = (
+    "Blue Butterfly", "Mission Blue Butterfly", "Fern Butterfly", "Black Moth", "Pale Moth",
+    "Lapis Butterfly", "Lemon Moth", "Amber Butterfly", "Plum Butterfly", "Cherry Butterfly", "Jet Moth",
+    "Golden Butterfly",
+    "Green Beetle", "Brown Bug", "Ladybug", "Shiny Blue Beetle", "Hiding Beetle", "Zebra Beetle", "Cockroach",
+    "Mystic Scarab", "Ebony Scarab", "Fire Scarab", "Shiny Flower Beetle", "Golden Beetle",
+    "Blue Dragonfly", "Pink Dragonfly", "Tiger Dragonfly", "Emerald Dragonfly", "Dart Dragonfly",
+    "Fragile Dragonfly", "Ghost Dragonfly", "Glassy Dragonfly", "Fire Dragonfly", "Black Dragonfly",
+    "Earth Dragonfly", "Golden Dragonfly",
+    "Cactus Spider", "Yellow Spider", "Brown Spider", "Spotted Spider", "Pearly Spider", "Limelike Spider",
+    "Bamboo Spider", "Cricket Spider", "Bumpy Spider", "Jade Spider", "Tahitian Spider", "Golden Spider",
+)
+BUG_FAMILIES = ("Butterfly", "Beetle", "Dragonfly", "Spider")   # family = id // 12
+FAMILY_PLURAL = ("butterflies", "beetles", "dragonflies", "spiders")
+# The game's own rarity, by index 0-3, 4-7, 8-11 within the family: the duplicate payout table 0x4167DC
+# ($5 / $20 / $40, messages 0x8C-0x8E) and the Collections screen's hover text for a caught bug
+# (0x419B4A-0x419B9B: string 0x1AE + 0, 1 or 2).
+RARITIES = ("Common", "Uncommon", "Rare")
+DUPLICATE_PAY = (5, 20, 40)
+
+# The random draw (0x4180F0): family = Random(4) (jump table 0x4183E4), r = Random(100): r < 8 Rare and
+# Random(2) picks, r < 25 Uncommon, else Common, Random(3) picks. In-family indices in pick order
+# (0x418124-0x4183DC).
+RANDOM_PICKS = (
+    {"Common": (0, 1, 3), "Uncommon": (4, 5, 6), "Rare": (8, 9)},     # butterflies
+    {"Common": (0, 1, 2), "Uncommon": (4, 5, 6), "Rare": (8, 9)},     # beetles
+    {"Common": (0, 1, 3), "Uncommon": (4, 5, 6), "Rare": (8, 10)},    # dragonflies
+    {"Common": (1, 2, 3), "Uncommon": (4, 5, 7), "Rare": (8, 9)},     # spiders
+)
+# The plant path (0x417F30): a pot qualifies with these genes (0x417FAB-0x41800C) ...
+QUALIFY_FOLIAGE = (7, 8, 12, 14, 15, 17, 18, 22)   # from age 7 (0x4677E0)
+QUALIFY_FLOWER = (6, 9, 11, 12, 18, 19, 20, 23)    # from age 24 (0x4677E8)
+# ... and the gene's bug comes from the foliage spawner 0x417D50 (age 7+, jump tables 0x417E00/0x417E24)
+# or the flower spawner 0x417E40 (age 24+, 0x417EF0/0x417F14): gene -> bug id.
+FOLIAGE_BUGS = {4: 22, 7: 2, 8: 23, 12: 42, 15: 36, 17: 15, 22: 31, 23: 47}
+FLOWER_BUGS = {4: 10, 6: 19, 9: 26, 10: 11, 11: 33, 12: 35, 14: 7, 20: 46}
+
+
+def bug_rarity(bug_id: int) -> str:
+    return RARITIES[bug_id % 12 // 4]
+
+
+def random_bug_odds(bug_id: int) -> tuple[str, int, int, float] | None:
+    """(rarity, pick n, pick value, % of random draws) for a bug the random draw gives, else None.
+    The family (Random(4), exactly 25%), the rarity band of Random(100) and the pick multiplied."""
+    family, index = divmod(bug_id, 12)
+    for rarity, picks in RANDOM_PICKS[family].items():
+        if index in picks:
+            n, value = len(picks), picks.index(index)
+            band = {"Rare": rand_count(100, 8), "Uncommon": rand_count(100, 25) - rand_count(100, 8),
+                    "Common": RAND_PERIOD - rand_count(100, 25)}[rarity]
+            pick = rand_count(n, value + 1) - rand_count(n, value)
+            return rarity, n, value, 25 * band / RAND_PERIOD * pick / RAND_PERIOD
+    return None
+
+
+def _genes(kind: str, genes) -> str:
+    names = [f"{part_word(kind, g)} {g}" for g in genes]
+    return ", ".join(names[:-1]) + " or " + names[-1]
+
+
+def bug_source(bug_id: int) -> str:
+    """How the bug can appear, in the page's words."""
+    odds = random_bug_odds(bug_id)
+    if odds:
+        rarity, n, value, pct = odds
+        return (f"random draw: {FAMILY_PLURAL[bug_id // 12]}, {rarity}, Random({n}) = {value} "
+                f"({each(n, value)}): {pct:.3f}% of random draws")
+    if bug_id in FOLIAGE_BUGS.values():
+        gene = next(g for g, b in FOLIAGE_BUGS.items() if b == bug_id)
+        text = f"only from a plant: foliage {part_word('foliage', gene)} (gene {gene}) from age 7"
+        if gene not in QUALIFY_FOLIAGE:
+            lone = [g for g in QUALIFY_FLOWER if g not in FLOWER_BUGS]
+            text += (f", and only when the pot qualifies by its flower, from age 24: "
+                     f"{_genes('flower', QUALIFY_FLOWER)} (always this bug with {_genes('flower', lone)}; "
+                     "with the others only when the foliage is tried first, 50.05%)")
+        return text
+    gene = next(g for g, b in FLOWER_BUGS.items() if b == bug_id)
+    text = f"only from a plant: flower {part_word('flower', gene)} (gene {gene}) from age 24"
+    if gene not in QUALIFY_FLOWER:
+        lone = [g for g in QUALIFY_FOLIAGE if g not in FOLIAGE_BUGS]
+        text += (f", and only when the pot qualifies by its foliage: {_genes('foliage', QUALIFY_FOLIAGE)} "
+                 f"(always this bug with {_genes('foliage', lone)}; with the others only when the flower "
+                 "is tried first, 49.95%)")
+    return text
+
+
+def bug_line(bug_id: int) -> str:
+    return (f"{bug_id + 1}. {BUG_NAMES[bug_id]} - {BUG_FAMILIES[bug_id // 12]}, {bug_rarity(bug_id)} - "
+            f"{bug_source(bug_id)}.")
+
+
 BUGS = (
     Fact(
-        "Every 3 real-time seconds in the greenhouse, if no bug is out and time is running, a bug "
-        "appears on Random(100) < t, with t = 6 + (20 - bugs collected, at least 0) / 4: "
+        "Every 3 real-time seconds in the greenhouse (its own check, 0x4288E8; never in the nursery, "
+        "Seed Storage, the store or Collections), if no bug is out (0x428979) and time is running "
+        "(no bug while Stop Time is on, 0x417BF4), a bug appears on Random(100) < t (0x417BF0), with "
+        "t = 6 + (20 - bugs collected, at least 0) / 4 (0x417350 counts the collected flags): "
         f"{below(100, 11)} with none collected, down to {below(100, 6)} from 17. The Magic Tree of "
-        "Fragrance adds 1.",
+        f"Fragrance adds 1 to t (0x417C2B): {below(100, 12)} down to {below(100, 7)}.",
     ),
     Fact(
-        f"{at_most(100, 75)}: a random pot is tried. It qualifies with foliage 7, 8, 12, 14, 15, 17, "
-        "18 or 22 from age 7, or flower 6, 9, 11, 12, 18, 19, 20 or 23 from age 24 (health is not "
-        f"checked). Then, foliage first on {below(100, 50)}, otherwise flower first, its bug comes "
-        "from foliage 4, 7, 8, 12, 15, 17, 22, 23 (age 7+) or flower 4, 6, 9, 10, 11, 12, 14, 20 "
-        "(age 24+). Each of those 16 genes has its own bug, and 16 of the 48 bugs come only this "
-        "way; a bug of foliage 4 or 23, or flower 4, 10 or 14, needs the pot's other gene to "
-        "qualify it.",
+        f"Plant path (0x417F30), {at_most(100, 75)}: one random pot of the 15 (Random(15), 6.67% each) "
+        f"is tried. It qualifies with foliage {_genes('foliage', QUALIFY_FOLIAGE)} from age 7, or flower "
+        f"{_genes('flower', QUALIFY_FLOWER)} from age 24 (age units; neither health nor whether the "
+        f"plant is alive is checked). Then, foliage first on {below(100, 50)}, otherwise flower first, "
+        f"the first gene that has a bug gives it: foliage {_genes('foliage', FOLIAGE_BUGS)} (age 7+, "
+        f"0x417D50) or flower {_genes('flower', FLOWER_BUGS)} (age 24+, 0x417E40). Each of those 16 genes "
+        "has its own bug, and those 16 bugs come only this way (see Bugs one by one).",
+        subs=(
+            "Genes that qualify a pot but have no bug: foliage Rare Oak 14 and Glaber 18, flowers "
+            "Arthurium 18, Venus 19 and Tilia 23. A qualifying pot whose two genes have no bug goes on "
+            "to the random draw.",
+            "Genes with a bug that do not qualify a pot: foliage Orchid 4 and Ridgeball 23, flowers Nox 4, "
+            "Fabled 10 and Aureus 14. Their bug comes only when the pot's other gene qualifies it. So the "
+            "Nox Orchid (4, 4) never brings a bug, and the Fabled Lemonbush (11, 10) never the Golden "
+            "Butterfly.",
+            "A pot that does not qualify, or the roll above failing, means the random draw.",
+        ),
+        patched=(("new_flowers", "the Unused Flowers (genes 24-37) neither qualify a pot nor have a bug: "
+                  "both checks list stock genes only (0x417FE3-0x41800C, 0x417E75)."),),
     ),
     Fact(
-        "Otherwise a random family (25% each), then with r = Random(100): a common bug on "
-        f"{at_least(100, 25)}, an uncommon one on 8 <= r < 25 (17.02%), a rare one on "
-        f"{below(100, 8)}.",
+        f"Random draw (0x4180F0): a random family, Random(4) (25% each), then with r = Random(100): a "
+        f"Common bug on {at_least(100, 25)}, an Uncommon one on 8 <= r < 25 (17.02%), a Rare one on "
+        f"{below(100, 8)}; Random(3) (Common, Uncommon) or Random(2) (Rare) picks one of the family's "
+        "3, 3 or 2 bugs of that rarity. 32 of the 48 bugs come this way.",
     ),
     Fact(
-        f"A bug you already have is skipped on {below(100, 40)}, and then nothing appears that time. "
-        "Catching a duplicate pays $5, $20 or $40; all 48 pay $5000 once.",
+        f"A bug you already have is skipped on {below(100, 40)} (0x4177DC and the other three "
+        "spawners), and then nothing appears that time: no other gene, pot or draw is tried.",
+    ),
+    Fact(
+        "Catching a new bug adds it to the collection (0x4174D5). Catching one you already have sells it "
+        "(0x416750, table 0x4167DC): $5 for a Common, $20 for an Uncommon, $40 for a Rare bug, added to "
+        "your cash and to Money Earned.",
     ),
     Fact("Butterflies and dragonflies fly off 23 real-time seconds after appearing; beetles and "
          "spiders walk until they leave."),
+)
+
+BUG_LIST = (
+    Fact(
+        "Number = the game's own collection order (bug id + 1): the order of its name table "
+        "(0x418DA4), of the collected flags (state + 0x53F4B) and of the Collections screen's draw loop "
+        "(0x418490), 12 per family: 1-12 butterflies, 13-24 beetles, 25-36 dragonflies, 37-48 spiders. "
+        "The Collections screen shows the caught bugs' pictures and \"Collected: n out of 48\", with no "
+        "numbers; pointing at a caught bug names its rarity. Rarity is the game's own: the first four of "
+        "each family are Common, the next four Uncommon, the last four Rare (0x4167DC, 0x419B61). Ages "
+        "are in-game age units; bugs come only to the greenhouse while time runs (see Bugs). A random "
+        "draw's share is the family's 25% (Random(4) = 0 butterflies, 1 beetles, 2 dragonflies, 3 "
+        f"spiders) x the rarity's band of Random(100) (Common {at_least(100, 25)}, Uncommon 8 <= r < 25 "
+        f"(17.02%), Rare {below(100, 8)}) x the pick.",
+        subs=tuple(bug_line(i) for i in range(48)),
+    ),
+    Fact(
+        "Per 3-second check, a random-draw bug comes on t% x (the chance the plant path gives nothing) "
+        f"x its share of random draws, and is then skipped on {below(100, 40)} if you already have it. "
+        "With no qualifying pot in the greenhouse every bug is a random draw: the Blue Butterfly, "
+        f"{random_bug_odds(0)[3]:.3f}% of draws, comes on "
+        f"{100 * rand_count(100, 11) / RAND_PERIOD * random_bug_odds(0)[3] / 100:.3f}% of checks with "
+        "none collected.",
+    ),
+    Fact(
+        f"A plant bug comes from one pot on t% x 76.05% ({at_most(100, 75)}) x 6.67% (that pot picked) "
+        "per check, about halved (50.05% foliage first, 49.95% flower first) when the pot is age 24 or "
+        "more and its other gene has a bug too; more pots of the gene give more chances.",
+    ),
+)
+
+ALL_BUGS = (
+    Fact(
+        "Catching all 48, the bonus. The catch that completes the collection (any catch, new or duplicate, after which all 48 flags "
+        "are set, 0x417502-0x417515) gives, once per game: the message \"You found all the bugs ...\" "
+        "(string 0xC8, 0x417523) and a $5000 grant from the Bug Collectors Society of Isola (0x417530 "
+        "adds it to your cash, 0x41753D to Money Earned). The one-time flag (state + 0x53F40) is set by "
+        "a new game (0x422022) and cleared when paid (0x417519).",
+    ),
+    Fact(
+        "The bonus for all 48 is permanent: the collection is never emptied during a game (only a new game clears the 48 flags, "
+        "0x41EF3F), and the game counts it each time it needs it (0x417350), so these hold for the rest "
+        "of the game:",
+        subs=(
+            "Visitors: the full collection adds 4 to the visitor score S (0x43FFEB-0x43FFF5), so the "
+            "nursery's visitor limit 8 + 47 x S / 78 rises by 2 or 3. The top limit of 55 needs it: 15 "
+            "plants for sale (30) + every ornament (30) + all six magic plants (14) + the bugs (4) = 78. "
+            "It is counted when you enter the nursery (0x43612B).",
+            "It does not change the chance a visitor stays (that score has no bug bonus, 0x440060), the "
+            "buy roll, prices or plants.",
+            "The nursery shows part of your collection on display (drawn at 0x43789B-0x4378C8), and a "
+            f"visitor who wanders goes to look at it on {below(100, 80)} (0x445D74-0x445D8B); this "
+            "changes no sale.",
+            "Bugs keep coming at the lowest rate (t = 6, or 7 with the Magic Tree of Fragrance); each is "
+            f"now one you have, skipped on {below(100, 40)}, and pays $5 / $20 / $40 when caught.",
+            "Nothing else: Plant Tycoon has no trophies or score, and the win screen needs only the six "
+            "magic plants.",
+        ),
+        patched=(("optimize_prices", "Max Prices counts the full bug collection's 4 in the visitor score it "
+                  "prices for (native/ftfp_plant_prices, as 0x43FF00 does)."),),
+    ),
 )
 
 HIDDEN = (
@@ -1106,7 +1286,7 @@ HIDDEN = (
         "Cheats: every store purchase goes through the purchase window (0x430950), which holds the "
         "price at window + 0x84: its cash tests, its \"Price: $\" line and the Buy charge "
         "(0x41ED70 with minus the price, 0x432D96-0x432E1D) all read it.",
-        patched=(("everything_free", "Everything is Free (a cheat; Enable All leaves it off): each of those "
+        patched=(("everything_free", "Everything is Free (a cheat; Select All Patches and Owner's Defaults leave it off): each of those "
                   "reads gives $0, so seeds, tools, chemicals and nursery items cost $0, show \"Price: $0\" "
                   "and are never refused for cash, and every Upgrades item (Add Money then $0 for +$1,000) "
                   "is free as with Free upgrades. Three Legendary Seeds a day, room in the trays, owned "

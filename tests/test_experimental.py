@@ -1,6 +1,7 @@
 """The owner's experimental label (src/experimental.py): the settings that change how much the
-game holds carry "experimental": true in the manifests, are off by default, start their texts with
-EXPERIMENTAL - USE AT OWN RISK, show that label beside their name in the GUI, and "Enable All"
+game holds carry "experimental": true in the manifests, are on by default (the owner, 2026-11-01: new
+content stays on), start their texts with
+EXPERIMENTAL - USE AT OWN RISK, show that label beside their name in the GUI, and "Select All Patches"
 still turns them on."""
 
 from __future__ import annotations
@@ -31,13 +32,13 @@ class ExperimentalSettings(unittest.TestCase):
             flagged = {s["id"] for s in manifest(game)["settings"] if experimental.is_experimental(s)}
             self.assertEqual(flagged, ids, game)
 
-    def test_off_by_default_and_labelled(self) -> None:
+    def test_on_by_default_and_labelled(self) -> None:
         for game in EXPECTED:
             for s in manifest(game)["settings"]:
                 if not experimental.is_experimental(s):
                     self.assertNotIn(experimental.LABEL, s.get("summary", "") + s.get("description", ""), s["id"])
                     continue
-                self.assertIs(s["default"], False, s["id"])
+                self.assertIs(s["default"], True, s["id"])
                 self.assertTrue(s["summary"].startswith(experimental.PREFIX), s["id"])
                 self.assertTrue(s["description"].startswith(experimental.PREFIX), s["id"])
 
@@ -47,8 +48,9 @@ class ExperimentalSettings(unittest.TestCase):
         once = experimental.mark(setting)
         self.assertEqual(list(once), ["id", "name", "summary", "description", "default", "experimental", "category"])
         self.assertEqual(once["summary"], "EXPERIMENTAL - USE AT OWN RISK. Does x.")
-        self.assertIs(once["default"], False)
+        self.assertIs(once["default"], True)          # mark keeps the default it is given
         self.assertEqual(experimental.mark(once), once)
+        self.assertIs(experimental.mark({"id": "y"})["default"], False)
 
     def test_pin_scripts_define_the_flag(self) -> None:
         """The pin scripts rewrite these settings from their own definitions, so the flag is there too."""
@@ -65,7 +67,7 @@ class ExperimentalSettings(unittest.TestCase):
         self.assertEqual({s["id"] for s in defined}, EXPECTED["fish"] | EXPECTED["plant"])
         for s in defined:
             self.assertTrue(experimental.is_experimental(s), s["id"])
-            self.assertIs(s["default"], False, s["id"])
+            self.assertIs(s["default"], True, s["id"])
         by_id = {s["id"]: s for game in EXPECTED for s in manifest(game)["settings"]}
         for s in defined:
             for key in ("summary", "description", "experimental", "default"):
@@ -73,7 +75,7 @@ class ExperimentalSettings(unittest.TestCase):
 
 
 class GuiLabel(unittest.TestCase):
-    """The GUI shows the label beside the name and leaves "Enable All" turning everything on."""
+    """The GUI shows the label beside the name and leaves "Select All Patches" turning everything on."""
 
     def test_label_next_to_the_name_and_enable_all(self) -> None:
         try:
@@ -113,13 +115,15 @@ class GuiLabel(unittest.TestCase):
                     row = texts[str(setting.get("name", sid))]
                     self.assertEqual(experimental.LABEL in row, sid in ids, (game, sid, row))
                 for sid in ids:
-                    self.assertFalse(app.patch_vars[game][sid].get(), (game, sid))
-                app._set_all_patches(game, True)
-                for sid in ids:
-                    self.assertTrue(app.patch_vars[game][sid].get(), (game, sid))
-                app._reset_patches_to_defaults(game)
+                    self.assertTrue(app.patch_vars[game][sid].get(), (game, sid))     # on by default
+                app._set_selection(game, gui.preset_selection("deselect_all", game))
                 for sid in ids:
                     self.assertFalse(app.patch_vars[game][sid].get(), (game, sid))
+                for preset in ("select_all", "owners_defaults", "default_patches"):
+                    app._set_selection(game, gui.preset_selection("deselect_all", game))
+                    app._set_selection(game, gui.preset_selection(preset, game))
+                    for sid in ids:
+                        self.assertTrue(app.patch_vars[game][sid].get(), (game, preset, sid))
         finally:
             root.destroy()
 

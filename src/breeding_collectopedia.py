@@ -24,8 +24,8 @@ TITLE = "Collectopedia"
 LOCKED = "?"
 FILTERS = (("all", "All"), ("collected", "Collected"), ("missing", "Missing"))
 MODES = (("grid", "Grid"), ("list", "List"))
-# The games' rarity words, lowest first (Fish: the egg tiers; Plant: the seed packets).
-TIER_ORDER = ("Common", "Unusual", "Rare", "Endangered", "Extinct", "Legendary")
+# The rarity words, lowest first (Fish: Common / Uncommon / Rare; Plant: the soil tiers 1-5).
+TIER_ORDER = ("Common", "Uncommon", "Rare", "Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5")
 
 
 def _plural(kind: str) -> str:

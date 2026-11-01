@@ -58,7 +58,7 @@ SETTING = {
         "are not changed either way."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
     "separate_output": True,
 }
 SETTING = experimental.mark(SETTING)       # src/experimental.py: the owner's label

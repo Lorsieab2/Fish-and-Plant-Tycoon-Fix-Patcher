@@ -1,6 +1,6 @@
 # Fish Tycoon: 3 extra tanks
 
-Status: built ("Extra Tanks.dll", the "3 extra tanks" setting, off by default,
+Status: built ("Extra Tanks.dll", the "3 extra tanks" setting, on by default since v1.0.22,
 in the "Fish Tycoon - Modded Upgrades" copy). Checked in emulation against the
 vanilla executable (`tests/test_extra_tanks.py`); not yet run in the game.
 
