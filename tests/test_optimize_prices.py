@@ -7,7 +7,7 @@
   the two vtable slots go in together or not at all; a click answered Yes sets exactly
   the discovered species to the model's price and changes no other byte; No changes
   nothing.
-* The setting: on by default in both games, in the plain "- Modded" copy, shipping the
+* The setting: off by default in both games (the owner, 2026-11-01), in the plain "- Modded" copy, shipping the
   DLL and its button, loaded by the startup loader after any other companion; the
   pinned executables are what the patcher builds.
 """
@@ -245,17 +245,17 @@ class SettingTests(unittest.TestCase):
         self.manifests = {game: json.loads(path.read_text(encoding="utf-8"))
                           for game, path in (("fish", FISH_MANIFEST), ("plant", PLANT_MANIFEST))}
 
-    def test_on_by_default_in_the_plain_copy(self) -> None:
+    def test_off_by_default_in_the_plain_copy(self) -> None:
         for game, manifest in self.manifests.items():
             setting = {s["id"]: s for s in manifest["settings"]}[SETTING]
             self.assertEqual(setting["name"], "Optimize Prices button", game)
-            self.assertTrue(setting["default"], game)
+            self.assertFalse(setting["default"], game)
             self.assertEqual(setting["category"], "main", game)
             self.assertFalse(setting.get("separate_output", False), game)
             self.assertFalse(setting.get("requires_settings"), game)
             engine = fish_patcher if game == "fish" else plant_patcher
             defaults = engine.enabled_settings(manifest, Namespace(enable=None, disable=None, disable_all=False))
-            self.assertIn(SETTING, defaults, game)
+            self.assertNotIn(SETTING, defaults, game)
 
     def test_it_ships_the_dll_and_the_button(self) -> None:
         expected = {"fish": ("Fish Tycoon Fix Patcher DLLs/Optimize Prices.dll", "Images/OptimizePricesButton.png",

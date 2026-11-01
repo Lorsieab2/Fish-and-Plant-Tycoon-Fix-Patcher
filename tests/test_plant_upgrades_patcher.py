@@ -40,12 +40,12 @@ class ManifestTests(unittest.TestCase):
         self.manifest = combined.load_manifest("plant")
         self.settings = combined.patch_settings("plant")
 
-    def test_setting_is_off_by_default_needs_the_flowers_and_warns(self) -> None:
+    def test_setting_is_on_by_default_needs_the_flowers_and_warns(self) -> None:
         upgrades = self.settings["plant_upgrades"]
         self.assertEqual(upgrades["name"], "Add new store upgrades and items")
         self.assertEqual(self.settings["new_flowers"]["name"], "Add unused flowers")
         self.assertNotIn("seed_boxes", self.settings)
-        self.assertFalse(upgrades["default"])
+        self.assertTrue(upgrades["default"])  # on by default (the owner, 2026-11-01: new content stays on)
         self.assertEqual(upgrades["requires_settings"], ["new_flowers"])
         for text in ("Legendary Seeds", "Radioactive Plant Formula", "$10,000", "$5000", "Fourth", "Fifth",
                      "Sixth", "Even more space for your seeds!", "greenhouse"):

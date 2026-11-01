@@ -28,6 +28,35 @@
   once, never one from another page, and none while a game hint is up.
   Tests: tests/test_supply_slot_tooltips.py (the stock box code run with the
   real rope bars; every mouse point on every page).
+- **Patch selection, as in the Virtual Villagers Fun Patcher.** Above the
+  One Game / Both Games tabs, one row of buttons, each with a "?", sets both
+  games at once: **Select All Patches** (every patch but the Everything is
+  Free cheat), **Default Patches** (the recommended set), **Owner's
+  Defaults** (new: every patch in both games except Everything is Free, so
+  Free upgrades, Add Money, Buy Multiple Golden Seahorses and the Optimize
+  Prices button included) and
+  **Deselect All Patches**. They replace the per-game Defaults / Enable All /
+  Disable All buttons. Below them, **Patch Selection Settings...** opens a
+  window listing every patch name once with the games that have it: tick
+  names, then **Tick These** or **Untick These** changes them in every game.
+  Settings that make a price $0 (Free upgrades, Everything is Free) stay off
+  by default, now pinned by a test. Choices are still remembered in
+  `patcher_local_settings.json`.
+- **New default settings** (the owner: anything that costs something in the
+  game, money, tech points or food, and anything that adds new content stays
+  on; cheats and free things are off unless you tick them). On by default
+  now: every fix as before (Fix Vanilla Bugs, Crimson Comet 20% curing fix,
+  Unknown Chemical: 3 uses, Universal supply slots 2-4, No old-age plant
+  deaths, R refreshes the seed shop, Add Missing Assets to LDW Version,
+  Maximizable window, Tank and greenhouse counts), and newly DS Exclusive
+  Fish, DS Store Items, Time Warp, Bigger tanks, 3 extra tanks, Extra supply
+  slots, Multiple ornaments, Add unused flowers, Add new store upgrades and
+  items, Sort Seeds, 5 extra greenhouses, 5 extra nurseries and Extra
+  chemical slots, so the default copies are "- Modded Upgrades". Off by
+  default: Everything is Free, Free upgrades, Add Money, and newly Buy
+  Multiple Golden Seahorses and the Optimize Prices button. Owner's Defaults
+  still turns on everything but Everything is Free. A saved selection is
+  kept as it was; Default Patches applies the new list.
 
 ## v1.0.21
 

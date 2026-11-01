@@ -2,9 +2,10 @@
 holds (more tanks, bigger tanks, more ornaments, more greenhouses and
 nurseries): a setting definition with ``"experimental": true``.
 
-Such a setting is off by default ("Defaults" leaves it off), "Enable All"
-still turns it on, the patcher shows EXPERIMENTAL - USE AT OWN RISK beside its
-name, and its summary and description start with that label. The pin scripts
+Such a setting keeps the default its pin script gives it (the owner,
+2026-11-01: new content stays on by default), "Select All Patches" and
+"Owner's Defaults" turn it on, the patcher shows EXPERIMENTAL - USE AT OWN
+RISK beside its name, and its summary and description start with that label. The pin scripts
 build their setting definitions through ``mark`` so the manifests carry the
 flag and the label; the GUI reads the flag through ``is_experimental``.
 """
@@ -31,8 +32,9 @@ def labelled(text: str) -> str:
 
 
 def mark(setting: dict[str, Any]) -> dict[str, Any]:
-    """A setting definition made experimental: the flag, off by default, and its summary and
-    description starting with the label. The flag sits right after "default"."""
+    """A setting definition made experimental: the flag, and its summary and description
+    starting with the label. The default is kept (off when there is none). The flag sits right
+    after "default"."""
     marked: dict[str, Any] = {}
     for key, value in setting.items():
         if key in ("summary", "description") and isinstance(value, str):
@@ -41,7 +43,7 @@ def mark(setting: dict[str, Any]) -> dict[str, Any]:
             continue
         marked[key] = value
         if key == "default":
-            marked[key] = False
+            marked[key] = bool(value)
             marked[FLAG] = True
     if FLAG not in marked:
         marked["default"] = False

@@ -58,6 +58,127 @@ RELEASES_URL = (
     "https://github.com/Lorsieab2/Fish-and-Plant-Tycoon-Fix-Patcher/"
 )
 
+# --- Patch selection: the four preset buttons and Patch Selection Settings ---
+# Laid out and worded as in the Virtual Villagers Fun Patcher (all the owner's
+# patchers match). Each preset REPLACES the ticks in both games; a setting
+# that needs another one brings it along (requires_settings).
+PRESET_BUTTONS = (
+    ("Select All Patches", "select_all"),
+    ("Default Patches", "default_patches"),
+    ("Owner's Defaults", "owners_defaults"),
+    ("Deselect All Patches", "deselect_all"),
+)
+PRESET_TITLES = {key: text for text, key in PRESET_BUTTONS}
+# The owner (2026-11-01): "a new Owner's Default's setting will turn every
+# patch ON, except for the "everything is free" cheat." By exact id, as VV's
+# Owner's Defaults lists the patches it leaves off. Free upgrades and Add
+# Money are therefore ticked by it.
+OWNERS_DEFAULTS_OFF = frozenset({"everything_free"})
+# The owner (2026-11-01): "anything that sets prices to 0 is DEFAULT OFF".
+# Every setting that makes a price $0; tests pin them off by default and out
+# of Default Patches.
+PRICE_ZERO_SETTINGS = frozenset({"free_upgrades", "everything_free"})
+PATCH_SELECTION_TITLE = "Patch Selection Settings"
+PATCH_SELECTION_HEADING = "Tick or untick patches in every game at once"
+PATCH_SELECTION_TEXT = (
+    "Choose patches below, then press Tick These or Untick These. Each patch is "
+    "changed in every game that has it (the games are listed beside its name). "
+    "A patch that needs another one turns it on too, just as when you tick it yourself."
+)
+# The "?" guides for the patch selection buttons (VV: data/how_to_use.json).
+PATCH_HELP = {
+    "select_all": (
+        "Select All Patches",
+        [
+            "Ticks every patch in both games.",
+            "Except Everything is Free (a CHEAT), which you tick yourself.",
+            "It replaces the current ticks; any row can still be changed by hand afterwards.",
+        ],
+    ),
+    "default_patches": (
+        "Default Patches",
+        [
+            "Ticks each game's recommended set, the one a fresh install starts with: every fix, "
+            "and the new fish, flowers, store items, Time Warp and the EXPERIMENTAL settings, so "
+            "the copies are the \"- Modded Upgrades\" ones.",
+            "Cheats and anything free stay off until you tick them: every setting that makes prices "
+            "$0 (Free upgrades and Everything is Free), Add Money, Buy Multiple Golden Seahorses "
+            "and the Optimize Prices button.",
+            "It replaces the current ticks; any row can still be changed by hand afterwards.",
+        ],
+    ),
+    "owners_defaults": (
+        "Owner's Defaults",
+        [
+            "Ticks the patcher owner's own choice: every patch in both games except Everything is Free.",
+            "On top of Default Patches that includes Free upgrades (every item on the Upgrades "
+            "screen costs $0), Add Money, Buy Multiple Golden Seahorses and the Optimize Prices "
+            "button.",
+            "It replaces the current ticks; any row can still be changed by hand afterwards.",
+        ],
+    ),
+    "deselect_all": (
+        "Deselect All Patches",
+        ["Unticks every patch in both games, so you can tick just the ones you want."],
+    ),
+    "patch_selection_settings": (
+        "Patch Selection Settings",
+        [
+            "Opens a list of every patch by name, with the games that have it.",
+            "Tick the patches you want, then press Tick These to turn them on in every game that "
+            "has them, or Untick These to turn them off.",
+            "A patch that needs another patch turns that one on too, just as when you tick it yourself.",
+        ],
+    ),
+}
+
+
+def with_requirements(game_id: str, ids) -> set[str]:
+    """The settings plus every setting they need, as ticking them by hand does."""
+    settings = patch_settings(game_id)
+    chosen = {setting_id for setting_id in ids if setting_id in settings}
+    pending = list(chosen)
+    while pending:
+        for needed in settings[pending.pop()].get("requires_settings", []):
+            if needed in settings and needed not in chosen:
+                chosen.add(needed)
+                pending.append(needed)
+    return chosen
+
+
+def preset_selection(preset: str, game_id: str) -> set[str]:
+    """The exact settings a preset button ticks in one game."""
+    settings = patch_settings(game_id)
+    if preset == "select_all":
+        ids = {sid for sid, s in settings.items() if cheat.in_enable_all(s)}
+    elif preset == "default_patches":
+        ids = {sid for sid, s in settings.items() if s.get("default", False)}
+    elif preset == "owners_defaults":
+        ids = {sid for sid in settings if sid not in OWNERS_DEFAULTS_OFF}
+    elif preset == "deselect_all":
+        ids = set()
+    else:
+        raise ValueError(f"unknown preset: {preset}")
+    return with_requirements(game_id, ids)
+
+
+def patches_by_name() -> list[tuple[str, list[tuple[str, str]]]]:
+    """One entry per patch name: (name, [(game_id, setting_id), ...]), in the
+    order the patches first appear (Fish Tycoon's list, then Plant Tycoon's)."""
+    grouped: dict[str, list[tuple[str, str]]] = {}
+    for game_id in GAMES:
+        for setting_id, setting in patch_settings(game_id).items():
+            name = str(setting.get("name", setting_id))
+            grouped.setdefault(name, []).append((game_id, setting_id))
+    return list(grouped.items())
+
+
+def games_label(entries: list[tuple[str, str]]) -> str:
+    games = {game_id for game_id, _sid in entries}
+    if len(games) == len(GAMES):
+        return "both games"
+    return ", ".join(GAMES[game_id].title for game_id in GAMES if game_id in games)
+
 
 class App(tk.Tk):
     def __init__(self) -> None:
@@ -223,6 +344,7 @@ class App(tk.Tk):
         )
         update.pack(anchor="w", pady=(3, 10))
         update.bind("<Button-1>", lambda _event: webbrowser.open(RELEASES_URL))
+        self._build_patch_selection(outer)
 
         notebook = ttk.Notebook(outer)
         notebook.pack(fill="both", expand=True)
@@ -321,23 +443,144 @@ class App(tk.Tk):
             )
         )
 
-    def _set_all_patches(self, game_id: str, enabled: bool) -> None:
-        # "Enable All" leaves a cheat (src/cheat.py) as it is: it is turned on
-        # only by ticking it. "Disable All" turns everything off.
-        settings = patch_settings(game_id)
-        for setting_id, variable in self.patch_vars[game_id].items():
-            if enabled and not cheat.in_enable_all(settings.get(setting_id, {})):
-                continue
-            variable.set(enabled)
-        self._save_settings()
-        word = "enabled" if enabled else "disabled"
-        self.status_var.set(f"{GAMES[game_id].title}: all patches {word}.")
+    # --- Patch selection (both games) -------------------------------------
 
-    def _reset_patches_to_defaults(self, game_id: str) -> None:
-        for setting_id, setting in patch_settings(game_id).items():
-            self.patch_vars[game_id][setting_id].set(bool(setting.get("default", False)))
+    def _build_patch_selection(self, outer: tk.Widget) -> None:
+        """The VV patcher's row: Select All Patches, Default Patches, Owner's
+        Defaults, Deselect All Patches (each with a "?"), and below it Patch
+        Selection Settings... on its own row."""
+        box = ttk.LabelFrame(outer, text="Patch selection (both games)", padding=8)
+        box.pack(fill="x", pady=(0, 10))
+        self.patch_selection_box = box
+        actions = ttk.Frame(box)
+        actions.pack(anchor="w")
+        for index, (text, key) in enumerate(PRESET_BUTTONS):
+            button = ttk.Button(actions, text=text, command=lambda k=key: self._apply_preset(k))
+            button.pack(side="left", padx=(0 if index == 0 else 8, 0))
+            self.busy_controls.append(button)
+            self._patch_help_button(actions, key).pack(side="left", padx=(2, 0))
+        settings_row = ttk.Frame(box)
+        settings_row.pack(anchor="w", pady=(6, 0))
+        button = ttk.Button(
+            settings_row,
+            text="Patch Selection Settings...",
+            command=self._open_patch_selection_settings,
+        )
+        button.pack(side="left")
+        self.busy_controls.append(button)
+        self._patch_help_button(settings_row, "patch_selection_settings").pack(
+            side="left", padx=(2, 0)
+        )
+
+    def _patch_help_button(self, parent: tk.Widget, key: str) -> ttk.Button:
+        PATCH_HELP[key]  # a key with no guide fails while the window is built
+        return ttk.Button(parent, text="?", width=2, command=lambda: self._show_patch_help(key))
+
+    def _show_patch_help(self, key: str) -> tk.Toplevel:
+        """The small "How to use" window for one button, as the Tools tab's."""
+        windows = self.__dict__.setdefault("patch_help_windows", {})
+        window = windows.get(key)
+        if window is not None and window.winfo_exists():
+            window.deiconify()
+            window.lift()
+            return window
+        title, lines = PATCH_HELP[key]
+        window = tk.Toplevel(self)
+        window.title(f"How to use: {title}")
+        window.transient(self)
+        window.resizable(False, False)
+        frame = ttk.Frame(window, padding=16)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text=title, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 8))
+        for line in lines:
+            ttk.Label(frame, text=line, wraplength=480, justify="left").pack(anchor="w", pady=(0, 6))
+        ttk.Button(frame, text="Close", command=window.destroy).pack(anchor="e", pady=(6, 0))
+        window.bind("<Escape>", lambda _e: window.destroy())
+        windows[key] = window
+        return window
+
+    def _set_selection(self, game_id: str, chosen: set[str]) -> None:
+        """Replace one game's ticks with exactly ``chosen`` (requirements included)."""
+        variables = self.patch_vars[game_id]
+        # Unticks first: unticking a setting unticks what needs it, and a
+        # later tick of a dependent ticks its base again.
+        for setting_id, variable in variables.items():
+            if setting_id not in chosen and variable.get():
+                variable.set(False)
+        for setting_id, variable in variables.items():
+            if setting_id in chosen and not variable.get():
+                variable.set(True)
+
+    def _apply_preset(self, preset: str) -> None:
+        """One of the four preset buttons: replaces the ticks in both games."""
+        for game_id in GAMES:
+            self._set_selection(game_id, preset_selection(preset, game_id))
         self._save_settings()
-        self.status_var.set(f"{GAMES[game_id].title}: patches reset to the defaults.")
+        self.status_var.set(f"{PRESET_TITLES[preset]}: set in both games.")
+
+    def _set_named_patches(self, names, tick: bool) -> int:
+        """Tick or untick every game's patch with one of these names; return
+        how many of those patches now have that state."""
+        wanted = set(names)
+        entries = [entry for name, group in patches_by_name() if name in wanted for entry in group]
+        for game_id, setting_id in entries:
+            self.patch_vars[game_id][setting_id].set(tick)
+        self._save_settings()
+        return sum(1 for game_id, setting_id in entries if self.patch_vars[game_id][setting_id].get() == tick)
+
+    def _open_patch_selection_settings(self) -> tk.Toplevel:
+        """The owner: "an option to individually toggle patches across games
+        on/off". One row per patch name; Tick These / Untick These apply the
+        chosen names to every game that has a patch of that name (VV's
+        Patch Selection Settings window)."""
+        existing = getattr(self, "_patch_selection_dialog", None)
+        if existing is not None and existing.winfo_exists():
+            existing.deiconify()
+            existing.lift()
+            existing.focus_set()
+            return existing
+        dialog = tk.Toplevel(self)
+        dialog.title(PATCH_SELECTION_TITLE)
+        dialog.transient(self)
+        self._patch_selection_dialog = dialog
+        frame = ttk.Frame(dialog, padding=16)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text=PATCH_SELECTION_HEADING, font=("Segoe UI", 10, "bold")).pack(anchor="w")
+        ttk.Label(frame, text=PATCH_SELECTION_TEXT, wraplength=560, justify="left").pack(
+            anchor="w", pady=(4, 10)
+        )
+        choices: list[tuple[str, tk.BooleanVar]] = []
+        for name, entries in patches_by_name():
+            var = tk.BooleanVar(master=dialog, value=False)
+            ttk.Checkbutton(frame, text=f"{name}   ({games_label(entries)})", variable=var).pack(
+                anchor="w", padx=(6, 0)
+            )
+            choices.append((name, var))
+        self._patch_selection_choices = choices
+        buttons = ttk.Frame(frame)
+        buttons.pack(fill="x", pady=(14, 0))
+
+        def apply(tick: bool) -> None:
+            names = [name for name, var in choices if var.get()]
+            if not names:
+                messagebox.showinfo(
+                    PATCH_SELECTION_TITLE, "Tick at least one patch in the list first.", parent=dialog
+                )
+                return
+            count = self._set_named_patches(names, tick)
+            self.status_var.set(
+                f"{'Ticked' if tick else 'Unticked'} {count} patch"
+                f"{'' if count == 1 else 'es'} across the games: {', '.join(names)}."
+            )
+
+        self._patch_selection_apply = apply
+        ttk.Button(buttons, text="Tick These", command=lambda: apply(True)).pack(side="left")
+        ttk.Button(buttons, text="Untick These", command=lambda: apply(False)).pack(
+            side="left", padx=(8, 0)
+        )
+        ttk.Button(buttons, text="Close", command=dialog.destroy).pack(side="right")
+        dialog.bind("<Escape>", lambda _event: dialog.destroy())
+        return dialog
 
     def _build_one_tab(self, tab: ttk.Frame) -> None:
         select = ttk.LabelFrame(tab, text="Game", padding=10)
@@ -473,18 +716,8 @@ class App(tk.Tk):
 
         patches = ttk.LabelFrame(parent, text=f"{spec.title} patches", padding=8)
         patches.pack(fill="x", pady=(8, 0))
-        presets = ttk.Frame(patches)
-        presets.grid(row=0, column=0, sticky="w", pady=(0, 6))
-        for text, command in (
-            ("Defaults", lambda: self._reset_patches_to_defaults(game_id)),
-            ("Enable All", lambda: self._set_all_patches(game_id, True)),
-            ("Disable All", lambda: self._set_all_patches(game_id, False)),
-        ):
-            button = ttk.Button(presets, text=text, command=command)
-            button.pack(side="left", padx=(0, 6))
-            self.busy_controls.append(button)
         body = ttk.Frame(patches)
-        body.grid(row=1, column=0, sticky="ew")
+        body.grid(row=0, column=0, sticky="ew")
         patches.columnconfigure(0, weight=1)
         for setting_id, setting in patch_settings(game_id).items():
             entry = ttk.Frame(body)

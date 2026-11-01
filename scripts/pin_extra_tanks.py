@@ -66,7 +66,7 @@ SETTING = {
         "again), but until then they are out of the game."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
     "separate_output": True,
     "requires_settings": ["ds_store"],
 }

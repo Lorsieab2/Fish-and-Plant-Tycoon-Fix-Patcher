@@ -57,12 +57,12 @@ def page() -> GamePage:
             Group("Sorting seeds", SORTING,
                   note="Only with the Sort Seeds button setting: a \"Sort Seeds\" button on the Seed Storage "
                        "title bar."),
-            Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (off by default), which also turns on the store's Upgrades screen it lives on."),
+            Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (on by default), which also turns on the store's Upgrades screen it lives on."),
             Group("Extra greenhouses (patcher)", EXTRA_GREENHOUSES,
-                  note="Only with the 5 extra greenhouses setting (off by default), which also turns on the "
+                  note="Only with the 5 extra greenhouses setting (on by default), which also turns on the "
                        "store's Upgrades screen the greenhouses are bought on."),
             Group("Extra nurseries (patcher)", EXTRA_NURSERIES,
-                  note="Only with the 5 extra nurseries setting (off by default), which also turns on the "
+                  note="Only with the 5 extra nurseries setting (on by default), which also turns on the "
                        "store's Upgrades screen the nurseries are bought on."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Fish Tycoon's topics here", OTHER_GAME),
@@ -1106,7 +1106,7 @@ HIDDEN = (
         "Cheats: every store purchase goes through the purchase window (0x430950), which holds the "
         "price at window + 0x84: its cash tests, its \"Price: $\" line and the Buy charge "
         "(0x41ED70 with minus the price, 0x432D96-0x432E1D) all read it.",
-        patched=(("everything_free", "Everything is Free (a cheat; Enable All leaves it off): each of those "
+        patched=(("everything_free", "Everything is Free (a cheat; Select All Patches and Owner's Defaults leave it off): each of those "
                   "reads gives $0, so seeds, tools, chemicals and nursery items cost $0, show \"Price: $0\" "
                   "and are never refused for cash, and every Upgrades item (Add Money then $0 for +$1,000) "
                   "is free as with Free upgrades. Three Legendary Seeds a day, room in the trays, owned "

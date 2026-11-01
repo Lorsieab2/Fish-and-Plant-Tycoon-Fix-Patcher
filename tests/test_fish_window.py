@@ -116,7 +116,9 @@ class ManifestTests(unittest.TestCase):
         self.assertFalse(self.setting.get("requires_settings"))
         defaults = fish_patcher.enabled_settings(self.manifest, Namespace(enable=None, disable=None, disable_all=False))
         self.assertIn(SETTING, defaults)
-        folder, exe = fish_patcher.output_names(self.manifest, defaults, Path("Fish Tycoon - Modded"),
+        # On its own it builds the plain copy (the defaults, with new content on since v1.0.22,
+        # build "- Modded Upgrades").
+        folder, exe = fish_patcher.output_names(self.manifest, {"fix_vanilla_bugs", SETTING}, Path("Fish Tycoon - Modded"),
                                                 "Fish Tycoon - Modded.exe")
         self.assertEqual((folder.name, exe), ("Fish Tycoon - Modded", "Fish Tycoon - Modded.exe"))
         self.assertNotIn(SETTING, combined.patch_settings("plant"))

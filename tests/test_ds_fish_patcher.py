@@ -118,8 +118,8 @@ class ManifestTests(unittest.TestCase):
         self.manifest = combined.load_manifest("fish")
         self.setting = next(s for s in self.manifest["settings"] if s["id"] == SETTING)
 
-    def test_setting_is_off_by_default_and_warns(self) -> None:
-        self.assertFalse(self.setting["default"])
+    def test_setting_is_on_by_default_and_warns(self) -> None:
+        self.assertTrue(self.setting["default"])  # on by default (the owner, 2026-11-01: new content stays on)
         self.assertIn("Sell or trash every DS fish", self.setting["warning"])
 
     def test_every_combination_with_ds_fish_is_pinned(self) -> None:
