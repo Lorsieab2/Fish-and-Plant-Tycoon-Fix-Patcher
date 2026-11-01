@@ -126,8 +126,8 @@ def fill(x, y, w, h, rgba) -> Piece:
 PLANT_SHADE = (0, 0, 0, 64)
 
 
-def shade(rgba=PLANT_SHADE, w: int = 800, h: int = 600) -> Piece:
-    return Piece("", 0, 0, fill=(*rgba, w, h), shade=True)
+def shade(rgba=PLANT_SHADE, w: int = 800, h: int = 600, x: int = 0, y: int = 0) -> Piece:
+    return Piece("", x, y, fill=(*rgba, w, h), shade=True)
 
 
 def say(x: int, y: int, *parts, font: int = 0, colour: int = 0, align: str = "left", x2: int = 0) -> Piece:
@@ -391,6 +391,27 @@ def fish_message(c, text: int, cancel: bool = False) -> list:
     return out
 
 
+# The supply slots' tooltips (the patcher's DS Store Items, native/ftfp_ds_store slot_tooltip, run in
+# Unicorn by tests/test_picture_screen_draws.py): the hint's own rope box (0x423280) just under the
+# top bar (y 60), as wide as the longer line in the default font + 20 (at least 44) and 12 + 20 a
+# line high (at least 54, so the rope fits), centred under the slot and kept 12 from the screen's
+# edges; the lines centred between its sides (0x408C30) from (h - 20 x lines) / 2, white (the
+# hints' colour [0x45B26C], never written).
+FISH_TIP_SLOTS = ((14, 9, 49, 48), (63, 9, 98, 48), (113, 9, 148, 48), (164, 9, 199, 48))
+
+
+def fish_tooltip(c, slot: int, lines: tuple) -> list:
+    data = [c.text_bytes(Text((part,))) for part in lines]
+    w = max(44, max(c.text_size(0, d)[0] for d in data) + 20)
+    h = max(54, 12 + 20 * len(lines))
+    sx0, _sy0, sx1, _sy1 = FISH_TIP_SLOTS[slot]
+    left = min(max(12, cdiv(sx0 + sx1, 2) - cdiv(w, 2)), 800 - 12 - w)
+    out = rope_box(left, 60, left + w, 60 + h)
+    y = 60 + cdiv(h - 20 * len(lines), 2)
+    out += [say(left, y + 20 * k, part, align="between", x2=left + w) for k, part in enumerate(lines)]
+    return out
+
+
 def _fish_pictures() -> list:
     import pictures_fish_items as fi
     out = []
@@ -447,6 +468,13 @@ def _fish_pictures() -> list:
                        "not drawn)", tank1 + tuple(fish_info()), canvas=(800, 600)))
     out.append(Picture("screen:tank1stopped", screens, "Tank 1, time stopped", tank1 + (FISH_TIME_STOPPED,),
                        canvas=(800, 600)))
+    for slot, lines, what in ((0, (sample("Fish Food"),), "Fish Food (by name only)"),
+                              (1, (ident(0xAE), sample("2 doses left")), "Ick Treatment, 2 doses left"),
+                              (2, (ident(0xB6), sample("1 use left")), "Unknown Chemical, 1 use left"),
+                              (3, (ident(0xB8), sample("1 batch left")), "Common Fish Eggs, 1 batch left")):
+        out.append(Picture(f"tooltip:slot{slot}", "Tooltips (patcher)", f"Tank 1, supply slot {slot + 1}'s tooltip: {what}",
+                           (), canvas=(800, 600), patcher=True,
+                           make=lambda c, k=slot, t=lines, b=tank1: b + tuple(fish_tooltip(c, k, t))))
     menu = [Piece("options_bg.png", 0, 0)] + [_button(f, x, y) for f, x, y in FISH_MENU_BUTTONS] + [Piece(*FISH_TITLE)]
     out.append(Picture("screen:menu", screens, "Main menu", tuple(menu), canvas=(800, 600)))
     out.append(Picture("screen:options", screens, "Options (over the main menu)", (),
@@ -611,6 +639,25 @@ def plant_question(c, text: int, cancel: bool, green: bool, on_screen: bool = Fa
     if cancel:
         out += label("widePTButton.png", x + cdiv(3 * bw, 2), y0 + h - bh - 0x14, ("id", 0x13))
     return out
+
+
+# The tooltip control (0x409870, drawn by 0x409B70; the greenhouse's chemical tray makes one per
+# slot, 0x4277A3: "%s\n%s: %d", the chemical's name, "Remaining uses" and its doses): once the
+# mouse has rested 500 ms, the text's box (2 larger all round) at the mouse + (34, 30), kept on the
+# screen (0x4096E0), the text black at its corner; behind it black at alpha 0x66, 8 larger all round
+# than that box, and white at alpha 0x99, 6 larger (0x407AF0 -> 0x403870).
+PLANT_TIP_OFFSET, PLANT_TIP_COLOURS = (34, 30), ((0, 0, 0, 0x66), (255, 255, 255, 0x99))
+PLANT_CHEM_SLOT = (0x14, 0xAD, 0x2F, 0xFD)         # chemical slot k: + 45 k across
+
+
+def plant_tooltip(c, part, mouse: tuple) -> list:
+    data = c.text_bytes(Text((part,)))
+    w, h = c.text_size(0, data)
+    x, y = mouse[0] + PLANT_TIP_OFFSET[0] - 2, mouse[1] + PLANT_TIP_OFFSET[1] - 2
+    x, y = min(max(8, x), 800 - (w + 12)), min(max(8, y), 600 - (h + 12))     # the whole box on the screen
+    outer, inner = PLANT_TIP_COLOURS
+    return [shade(outer, w + 20, h + 20, x - 8, y - 8), shade(inner, w + 16, h + 16, x - 6, y - 6),
+            say(x, y, part, colour=PLANT_BLACK)]
 
 
 # The Options dialog (0x42AF10, opened by the main menu's button 3; its draw 0x42B710): the
@@ -918,6 +965,13 @@ def _plant_pictures() -> list:
                             *label("widePTButton.png", 310, 550, ident(0x1B2)),
                             *label("widePTButton.png", 560, 550, at(0x469850))), canvas=(800, 600)))
     built = {p.key: p for p in out}
+    for k, (chem, doses) in enumerate(((0x1A4, 3), (0x1A6, 1), (0x1AB, 5))):
+        x0, y0, x1, y1 = PLANT_CHEM_SLOT
+        mouse = (cdiv(x0 + x1, 2) + 45 * k, cdiv(y0 + y1, 2))
+        out.append(Picture(f"tooltip:chem{k}", "Tooltips", f"Greenhouse, chemical tray slot {k + 1}'s tooltip "
+                           f"(the mouse resting on it; the bottle is not drawn)", (), canvas=(800, 600),
+                           make=lambda c, t=chem, n=doses, m=mouse, b=built["screen:greenhouse"].pieces: tuple(b) + tuple(
+                               plant_tooltip(c, fmt(0x46924C, ident(t), ident(0x1AD), n), m))))
     # question boxes where the game asks them (0x42A605 from the menu, 0x4247CC and 0x428202 in the
     # greenhouse), over the darkened screen
     for text, cancel, green, where, name in ((0x3E, True, True, "screen:menu", "the main menu: Start Over"),

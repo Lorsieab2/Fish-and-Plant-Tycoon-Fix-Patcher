@@ -303,6 +303,41 @@ class PlantDraws(unittest.TestCase):
         for text, green, cancel in ((0x10A, False, True), (0x77, False, False), (0x3E, True, True)):
             self.assertEqual(S.by_key("plant")[f"question:{text:x}"].name.startswith("Green"), green)
 
+    def test_tooltip(self) -> None:
+        """The tooltip control (0x409870) a chemical slot makes, drawn by 0x409B70 once the mouse
+        has rested: its two see-through rectangles (0x407AF0) and its text, where the game puts
+        them for the mouse at the slot's middle (and at the screen's corner, kept on it)."""
+        for chem, doses, mouse in ((0x1A4, 3, (0x21, 0xD5)), (0x1AB, 5, (0x21 + 90, 0xD5)), (0x1A6, 1, (790, 590))):
+            d = self.emulator()
+            fills, ticks = [], [0]
+            d.emu.hook(0x407AF0, lambda e: fills.append((*struct.unpack("<4i", e.uc.mem_read(e.arg(0), 16)), e.arg(1)))
+                       or 0, 8)
+            d.emu.hook(0x402060, lambda e: ticks[0], 0)
+
+            def point(e, m=mouse):
+                e.write32(e.arg(0), m[0])
+                e.write32(e.arg(0) + 4, m[1])
+                return e.arg(0)
+            d.emu.hook(0x407D20, point, 4)
+            text = S.fmt(0x46924C, S.ident(chem), S.ident(0x1AD), doses)
+            data = self.composer.text_bytes(S.Text((text,)))
+            rect = d.emu.alloc(16)
+            d.emu.uc.mem_write(rect, struct.pack("<4i", *S.PLANT_CHEM_SLOT))
+            tip = d._zeroed(0x20)
+            d.run(0x409870, 0x170, rect, 0, d.emu.text(data.decode("cp1252")), 0, 0, 0, this=tip)
+            body = d.emu.read32(tip + 0xC)
+            d.emu.write8(body + 0x39, 1)
+            d.emu.write8(body + 0x3A, 1)
+            d.emu.write32(body + 0x3C, 500)             # shown from 500 ms on
+            d.run(0x409B70, this=body)                  # resting: follows the mouse
+            ticks[0] = 10 ** 6
+            d.run(0x409B70, this=body)                  # shown
+            pieces = S.plant_tooltip(self.composer, text, mouse)
+            want = [(q.x, q.y, q.x + q.fill[4], q.y + q.fill[5], q.fill[3] << 24 | q.fill[2] << 16 | q.fill[1] << 8 | q.fill[0])
+                    for q in pieces if q.shade]
+            self.assertEqual(fills, want, hex(chem))
+            self.assertEqual(recorded(d.draws), composed(self.composer, pieces[2:]), hex(chem))
+
     def test_main_menu_buttons_run_what_their_labels_say(self) -> None:
         """quit_button.png is labelled "Options" and opens the Options dialog; options_button.png
         is labelled "Quit" and quits (0x42A430, the menu's button handler)."""
@@ -327,6 +362,41 @@ class PlantDraws(unittest.TestCase):
             d.run(0x42A430, 8, buttons[sprite][0], this=menu)
             self.assertEqual(happened, [("options dialog", b"Done")] if sprite == "quit_button.png" else [("quit",)],
                              sprite)
+
+
+def tip_rig_ready() -> bool:
+    try:
+        import test_supply_slot_tooltips as tips
+    except ImportError:
+        return False
+    return READY and tips.ready()
+
+
+@unittest.skipUnless(tip_rig_ready(), "Unicorn, MSVC, the vanilla Fish Tycoon.exe and the DS Store Items DLL")
+class FishTooltips(unittest.TestCase):
+    """The patcher's supply slot tooltips (native/ftfp_ds_store slot_tooltip) run in Unicorn with
+    the game's default font's real widths: the box and the lines where the pictures put them."""
+
+    def test_supply_slot_tooltips(self) -> None:
+        import pictures_game_art as ga
+        import test_supply_slot_tooltips as tips
+        import test_supply_slots as T
+        composer = S.Composer(ga.GameArt("fish", FISH))
+        for k, rec, lines in ((0, tips.FOOD, (S.sample("Fish Food"),)),
+                              (1, T.record(0, 2, 1), (S.ident(0xAE), S.sample("2 doses left"))),
+                              (2, T.record(4, 3, 2), (S.ident(0xB6), S.sample("1 use left"))),
+                              (3, T.record(5, 3, 3), (S.ident(0xB8), S.sample("1 batch left")))):
+            rig = tips.TipRig()
+            rig.emu.hook(0x004023D0, lambda e: composer.text_size(0, e.cstring(e.arg(0)))[0], 8)
+            rig.put_stock(k, rec)
+            said = rig.tip(*T.centre(k))
+            pieces = S.fish_tooltip(composer, k, lines)
+            self.assertEqual(said, [composer.text_bytes(S.Text((part,))).decode("cp1252") for part in lines])
+            fill = pieces[0]
+            self.assertEqual(rig.boxes, [(fill.x + 1, fill.y + 1, fill.x + fill.fill[4] - 1, fill.y + fill.fill[5] - 1)])
+            texts = [c for c in rig.calls if c[0] == "text"]
+            for call, piece in zip(texts, [q for q in pieces if q.text is not None]):
+                self.assertEqual(call[2:5], (piece.x, piece.text.x2, piece.y))
 
 
 if __name__ == "__main__":
