@@ -69,6 +69,7 @@
 #define GAME_BOX_CHAR_RESUME 0x0040CACFu
 #define GAME_SUBCLASS_WINDOW 0
 #define GAME_BOX_DRAW_TARGET 0x004092A0u  /* the box's left draw (thiscall wrapper) */
+#define GAME_CARET_TICK_TARGET 0x00402060u  /* the time the caret blink reads */
 #define GAME_WIDTH_RESUME 0x00402387u
 
 #define CODE_ADDR(fn) ((const void *)(UINT_PTR)(fn))
@@ -145,7 +146,7 @@ static int picture_present(const char *name) {
     return GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES;
 }
 
-#define TOTAL_SITES (2 + NAME_SITES)
+#define TOTAL_SITES (3 + NAME_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
 
 static int install_all(void) {
@@ -156,7 +157,9 @@ static int install_all(void) {
         /* Copy and Paste in Text Boxes alone: the box draw, to know the box with typing focus */
         ftfp_site_branch(writes, SITE_BOX_DRAW_VA, SITE_BOX_DRAW_LEN, SITE_BOX_DRAW_EXPECT, 0xE8,
                          CODE_ADDR(stub_box_draw));
-        return ftfp_install_sites(writes, 1);
+        ftfp_site_branch(writes + 1, SITE_CARET_TICK_VA, SITE_CARET_TICK_LEN, SITE_CARET_TICK_EXPECT, 0xE8,
+                         CODE_ADDR(stub_caret_tick));
+        return ftfp_install_sites(writes, 2);
     }
     if (!system_font && !picture_present(name_ptfontsmall)) {
         pictures_missing = 1;
@@ -173,6 +176,8 @@ static int install_all(void) {
         ++w;
     }
     w = name_site_writes(w);
+    ftfp_site_branch(w++, SITE_CARET_TICK_VA, SITE_CARET_TICK_LEN, SITE_CARET_TICK_EXPECT, 0xE8,
+                     CODE_ADDR(stub_caret_tick));
     return ftfp_install_sites(writes, (int)(w - writes));
 }
 

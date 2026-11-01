@@ -60,4 +60,10 @@ static const unsigned char SITE_WIDTH_EXPECT[SITE_WIDTH_LEN] = {0x83, 0xEC, 0x10
 #define SITE_BOX_CHAR_LEN 6
 static const unsigned char SITE_BOX_CHAR_EXPECT[SITE_BOX_CHAR_LEN] = {0x80, 0x79, 0x2F, 0x00, 0x53, 0x56};
 
+/* 0x40C280: the focused box's caret blink reads the time: call 0x402060 (made a call to stub_caret_tick, which notes the box with typing focus, empty or not;
+   Copy and Paste in Text Boxes) */
+#define SITE_CARET_TICK_VA 0x0040C280u
+#define SITE_CARET_TICK_LEN 5
+static const unsigned char SITE_CARET_TICK_EXPECT[SITE_CARET_TICK_LEN] = {0xE8, 0xDB, 0x5D, 0xFF, 0xFF};
+
 #endif

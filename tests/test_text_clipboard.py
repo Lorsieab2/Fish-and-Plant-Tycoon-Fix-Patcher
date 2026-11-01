@@ -31,6 +31,7 @@ except ImportError:          # no Unicorn
 HANDLER = {"fish": (0x40BFC0, T.FISH_EVENTS_GET, T.FISH_EVENTS_POST, 0x402030),
            "plant": (0x40CA90, T.PLANT_EVENTS_GET, T.PLANT_EVENTS_POST, 0x402020)}
 BOX_DRAW_SITE = {"fish": 0x40B829, "plant": 0x40C239}
+CARET_SITE = {"fish": (0x40B870, 0x402090), "plant": (0x40C280, 0x402060)}   # call <the time> in the box's draw
 INI = "Unicode Text.ini"
 WM_KEYDOWN, WM_CHAR = 0x100, 0x102
 VK_CONTROL, VK_SHIFT, VK_MENU, VK_INSERT = 0x11, 0x10, 0x12, 0x2D
@@ -220,6 +221,27 @@ class ClipboardCase:
             else:
                 self.assertEqual(here, bytes(stock.uc.mem_read(va, n)), hex(va))
         self.assertEqual(T.code_bytes(c.emu, T.site_ranges(self.game)), T.code_bytes(stock, T.site_ranges(self.game)))
+
+    def test_an_empty_focused_box_is_found_from_its_caret(self) -> None:
+        """An empty box draws no text, so the box is noted where its caret blink reads the time
+        (the game's call there becomes the DLL's, in both modes)."""
+        for mode in ("ingame", "none"):
+            with self.subTest(mode=mode):
+                c = Clip(self.game, mode=mode)
+                va, target = CARET_SITE[self.game]
+                here = bytes(c.emu.uc.mem_read(va, 5))
+                self.assertEqual(here[0], 0xE8)
+                self.assertEqual(va + 5 + struct.unpack_from("<i", here, 1)[0], c.symbols["_stub_caret_tick"])
+                c.emu.hook(target, lambda e: 1234, 0)
+                box, _ = c.box(b"", limit=0x20)
+                self.assertEqual(c.emu.call(c.symbols["_stub_caret_tick"], esi=box), 1234)
+                self.assertEqual(c.emu.read32(c.symbols["_clip_focus"]), box)
+                c.clipboard = "typed in"
+                c.keys = {VK_CONTROL}
+                c.posted.clear()
+                c.emu.write32(c.symbols["_win"] + 0x0C, c.emu.thunk())
+                self.assertEqual(c.emu.call(c.symbols["_text_window@16"], 0x1234, WM_KEYDOWN, ord("V"), 0), 0)
+                self.assertEqual(c.posted, [ord(ch) for ch in "typed in"])
 
     def test_huge_and_empty_clipboards(self) -> None:
         c = Clip(self.game)

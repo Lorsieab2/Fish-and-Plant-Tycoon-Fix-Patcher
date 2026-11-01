@@ -12,7 +12,8 @@
    The keys are taken in the game window's procedure (unicode_typing.h subclasses it in both
    games once a box is drawn) and never reach the game, so they type nothing; without a focused
    box they go on to the game as before. The focused box is the one the game last drew with its
-   focus (+0x25) and its window's focus (+0x1C -> +8) set (clip_seen, from the box's draw).
+   focus (+0x25) and its window's focus (+0x1C -> +8) set (clip_seen: from the box's caret blink,
+   which the game's draw of a focused box always reaches, empty or not, and from its text draw).
 
    A paste behaves as if its letters were typed one by one: each is posted as the game's own
    "character" event (5, 0, letter), so the box's own code takes it (box_char with Unicode, the
@@ -48,6 +49,20 @@ __declspec(noinline) static void clip_seen(char *box) {
     if (window == NULL || !window[8]) return;
     clip_focus.box = box;
     clip_focus.tick = GetTickCount();
+}
+
+/* The focused box's caret blink reads the time (the game's call there, from the box's draw with
+   esi = the box, empty or not): note the box, then the game's own call. */
+__declspec(naked) static void stub_caret_tick(void) {
+    __asm {
+        push ecx
+        push esi
+        call clip_seen
+        add esp, 4
+        pop ecx
+        mov eax, GAME_CARET_TICK_TARGET
+        jmp eax
+    }
 }
 
 /* The box with typing focus now, or NULL. */
