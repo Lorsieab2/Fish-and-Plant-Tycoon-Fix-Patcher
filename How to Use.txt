@@ -379,7 +379,9 @@ sprite cell, by category ("(unused)": a file the game never names; files
 the game names but lacks are listed, not drawn). "Screens, bars and
 buttons" has the games' pictures made of several pieces: whole screens,
 meters and bars empty and filled, every button in each state, rope and
-dialog boxes (without their words). The Bugs tab also shows each bug as the
+dialog boxes, with the games' words in their own fonts and colours (cash,
+names and prices are sample values) and message boxes sized for real
+messages. The Bugs tab also shows each bug as the
 greenhouse and the Collections screen draw it. With Show Spoilers off
 (the Breeding Guide's setting) only the parts you have discovered (items are
 always all offered). Pick a PNG size (the game's

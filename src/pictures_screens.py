@@ -3,9 +3,10 @@ pieces: whole screens as assembled, meters and bars empty and filled and joined 
 buttons in each state, rope boxes and dialog boxes, for the tab of that name in "Make your own".
 
 Every number is the game's own (tests/test_picture_screens.py reads them back out of the
-executables, and runs Fish Tycoon's meter in Unicorn). Text is not drawn: the words on the
-screens and buttons are the game's font text, which the Studio does not draw, so a screen or a
-button shows its art only (the tab's note says so).
+executables, and runs Fish Tycoon's meter in Unicorn). The words are drawn as the games draw
+them (Text pieces: the game's own text read from the player's copy, its fonts through text_maker,
+its colours and its placing; tests/test_picture_screen_words.py runs the games' text code and the
+screens' constructors in Unicorn). What is read without running is named in the tab's note.
 
 Fish Tycoon (Fish Tycoon.exe):
 * Images: a PNG keeps its alpha (0x409AB0: SDL_DisplayFormatAlpha); a BMP is opaque (the game
@@ -1103,17 +1104,31 @@ def blend(canvas: Image, src: Image, x: int, y: int, alpha: int) -> None:
 
 NOTE = {
     "fish": ("The game's pictures made of several pieces, put together exactly as Fish Tycoon draws them: whole "
-             "screens (the background, the screen's pieces and its buttons in their normal look), the Health and "
-             "Fed meters and the research bar empty, filled at several levels and joined to their frames, every "
-             "button in each state (normal, mouse over, pressed; a disabled button is not drawn at all in Fish "
-             "Tycoon, so it has no picture), and the rope boxes of the hints and tooltips. Not drawn: the words "
-             "(font text), fish, customers and bubbles."),
+             "screens (the background, the screen's pieces and its buttons in their normal look) with their "
+             "words, the Options popup, message boxes, the Health and Fed meters and the research bar empty, "
+             "filled at several levels and joined to their frames, every button in each state (normal, mouse "
+             "over, pressed; a disabled button is not drawn at all in Fish Tycoon, so it has no picture), and the "
+             "rope boxes of the hints and tooltips. The words are the game's own text from your copy of the game "
+             "in its own fonts and colours; a player's cash ($1000), counts, prices, ages and names are sample "
+             "values. Checked by running the game's code: the text widths and heights, the text draw and its "
+             "left / centred / right / between placing, the Options popup's headers and radio buttons. Read "
+             "from the code without running it: where each screen puts its words, the message box's and the "
+             "Options popup's sizes and their OK / Cancel places, a radio button's label beside it. Not drawn: "
+             "tooltip text, fish, customers and bubbles."),
     "plant": ("The game's pictures made of several pieces, put together exactly as Plant Tycoon draws them: whole "
-              "screens (the background, the screen's pieces and its buttons in their normal look), the health and "
-              "water meters at several levels (alone and in their slots on the greenhouse panel), the loading bar, "
-              "the dialog boxes at their sizes, and every button in each state (normal, mouse over, pressed, "
-              "disabled). Not drawn: the words (font text), plants, visitors and the lightbeam. The orange and "
-              "green dialog pictures are the same picture in this version of the game."),
+              "screens (the background, the screen's pieces and its buttons in their normal look) with their "
+              "words and button labels, message and question boxes sized for real messages, the health and water "
+              "meters at several levels (alone and in their slots on the greenhouse panel), the loading bar, the "
+              "dialog boxes at their sizes, and every button in each state (normal, mouse over, pressed, "
+              "disabled). The words are the game's own text from your copy of the game in its own font and "
+              "colours; cash, ages, times and the player's name are sample values. Checked by running the game's "
+              "code: every screen's buttons and labels (the Sell All button, the snapshot scene's three buttons), "
+              "the text widths and heights, the text draw and its placing. Read from the code without running "
+              "it: the greenhouse panel's words, the main menu's version, copyright and player name, the message "
+              "and question boxes' sizes and places (and which question box is orange or green), the check box "
+              "picture's two frames (which one is ticked is not traced). Not drawn: a disabled button's label, the "
+              "message box's pointing arrow, the Options dialog's words, plants, visitors and the lightbeam. The "
+              "orange and green dialog pictures are the same picture in this version of the game."),
 }
 
 

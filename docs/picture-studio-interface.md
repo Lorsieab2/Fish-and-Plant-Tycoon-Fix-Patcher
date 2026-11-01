@@ -194,7 +194,15 @@ Rules for both renderers:
   files the sprite table names but the folder lacks are `Sheet.missing` and named in the note.
 - Screens, bars and buttons (`src/pictures_screens.py`, subject "screens", Fields `category`,
   `picture`): `Picture`s of `Piece`s (file, cell, source part, place, alpha, scale, Plant's
-  disabled dim, or a filled rectangle), drawn by `Composer` from the GameArt's images.
+  disabled dim, a filled rectangle, or a `Text`: the game's words as parts -- ("id", n) a string-table
+  line, ("at", address) a C string of the executable, ("fmt", address, args) printf of one, ("sample",
+  text) -- with the font number, the 0xAABBGGRR colour and the placing "left" / "centre" / "right" /
+  "between" / "button"), drawn by `Composer` from the GameArt's images; text through
+  `text_maker.load_fonts` on the game copy, measured as the games' width / height functions, drawn as
+  the games' draw loop (SDL's blend on opaque screen). A `Picture.make(composer)` builds the pieces at
+  render time for layouts the games work out from picture and text sizes (Fish Tycoon's Options popup
+  and message boxes, Plant Tycoon's message and question boxes). tests/screen_emulator.py runs a
+  screen's constructor in Unicorn and records its buttons and labels.
 - Bugs: the Picture also offers `pictures_screens.bug_views` (greenhouse "g<size>_<frame>",
   "dead<frame>", "drop<t>", Collections "jar" / "web"), refined per bug (`refine_choices`).
 - Items: Plant items add "fx<type>_<frame>" (the effect manager's sheets, `CHEM_EFFECTS`).

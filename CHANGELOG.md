@@ -1,5 +1,31 @@
 # Changelog
 
+## v1.0.24
+
+- **Picture Studio, Screens, bars and buttons: the words.** Each screen now has
+  its words, drawn as the games draw them: the game's own text (read from your
+  copy of the game), in its own bitmap fonts (the Text Maker's), its colours
+  (0xAABBGGRR) and its placing (left, centred, right, centred between two
+  points, centred in a button). Fish Tycoon: the cash line, the isolation
+  tank's fish (name, status, age), TIME STOPPED, the Supplies store's cash and
+  a picked item (title, description, price, or research level and progress
+  bar), the Sell Fish screen's cash, fish for sale and price, the Species
+  chart's price and family tree, the Trophy case's empty slots (#1/7 ...
+  #7/7 and their question marks), the Options popup (new: its headers, radio
+  buttons and labels, OK and Cancel, Fullscreen too) and rope message boxes
+  sized for real messages. Plant Tycoon: every button label (tabs, Price,
+  Sell, Sell All, the menu, Help, Story, Collections, the snapshot scene's
+  Main / Take Snapshot / Change Scene), the greenhouse's CASH and cash, "No
+  plant selected" and a picked pot's words, the menu's version, copyright and
+  player name, and message and question boxes sized for real messages as the
+  game sizes them (from the text's width). Sample values: cash $1000, names,
+  prices, ages. New placements: Plant Tycoon's Sell All button (115, 407), the
+  snapshot scene's three buttons, CheckboxStrip.png as 2 x 1 frames. Tests:
+  tests/test_picture_screen_words.py runs the games' text width, height, draw
+  and placing code and the screens' constructors in Unicorn
+  (tests/screen_emulator.py); the tab's note names what is read without
+  running.
+
 ## v1.0.23
 
 - **Fixed: the "Counts: On" / "Counts: Off" button was light blue, not yellow**
