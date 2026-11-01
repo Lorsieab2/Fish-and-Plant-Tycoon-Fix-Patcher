@@ -534,6 +534,7 @@ class Option:
     key: object
     label: str
     patcher: bool = False
+    unused: bool = False           # art the game has but never draws (shown "(unused)")
 
 
 @dataclass(frozen=True)

@@ -46,6 +46,83 @@
   letters a font lacks are made for it ("patcher-made"): accents from the
   font's own pixels, everything else (CJK, Greek, Cyrillic, cuneiform, colour
   emoji...) drawn by Windows in the font's size, baseline and weight.
+- **Picture Studio: every item of both games, and the Moray Eel three ways.**
+  Make your own has a new Items tab (Category, Item, Picture) with every item,
+  owned or not, drawn exactly as the game draws it. Fish Tycoon, 50 items:
+  medicines and chemicals, fish food (flakes, pellets, live food by Fish Food
+  research level), fish eggs, equipment, tank plants and creatures,
+  ornaments, the Second Tank and research, each in the supply store (at rest
+  on its shadow, pointed at at 120%, picked at every percent the store pulses
+  it to), in its supply slot, on the mouse, and in the tank (food falling, a
+  chemical's drop, eggs, the equipment and ornaments). Plant Tycoon, 175
+  items: every seed packet, chemical, tool upgrade, nursery ornament and pot,
+  on its store shelf (on its shadow, with the tick once owned), in the seed or
+  chemical tray, in the Tools box, on the mouse (pouring, watering, cutting,
+  catching), and each pot with each soil. The patcher's items (DS Store
+  Items, Extra Supply Slots, Store Upgrades and Items, Time Warp, Add Money
+  ...) are marked "(patcher)"; seven pictures in Fish Tycoon's files that the
+  game never draws are marked "(unused)" and shown whole (Plant Tycoon has
+  none). The Creatures tab now has the Moray Eel out of its home (swimming),
+  in its home (all 32 frames, idle and the snap) and its home alone. A new
+  "Save all on this tab..." saves every picture of a Make your own tab (the
+  Items tab in a folder per category). The numbers are the games' own, checked
+  against the executables (store records, sprite table, supply icons and
+  cursors, tank effects and the store's scaled draws run in Unicorn, Plant
+  Tycoon's shelves, Tools box and mouse pictures, item names) and pinned
+  pixel for pixel against the game's art: tests/test_picture_items.py.
+  Plant Tycoon's Bugs tab now names the 48 collectible bugs, numbered in the
+  game's (and the Collections screen's) order (1. Blue Butterfly (Common) ...
+  48. Golden Spider (Rare)), with each one's leaf on the Collections screen besides its
+  6 pictures, and "Save all on this tab" saves them in a folder per bug group.
+  Each bug's name carries the game's rarity (1-4 of a family Common, 5-8
+  Uncommon, 9-12 Rare: the duplicate payout table 0x4167DC). Items keep the
+  games' own names: Unusual Fish Eggs, and the Common, Endangered, Extinct
+  and Legendary Seeds packets.
+  A new All game art tab (both games) has every picture file of the game,
+  one picture per sprite cell, cut exactly as the game cuts it (3,528 in Fish
+  Tycoon, 2,138 in Plant Tycoon, by category), with the files the game's
+  executable never names marked "(unused)" and the patcher's own art marked
+  "(patcher)"; "Save all on this tab" saves them all.
+- **Picture Studio: the backgrounds.** All game art now reads the games' BMP,
+  JPEG and GIF pictures too (Fish Tycoon's 16 BMPs, Plant Tycoon's 21 JPEGs
+  and 3 GIFs). The JPEGs come out exactly as the game's own libjpeg-9 decodes
+  them, pixel for pixel (tests/test_picture_formats.py runs the game's DLL).
+  Five files Plant Tycoon's sprite table names are not in its folder
+  (SPLASH2_BG.jpg, SPLASH3_BG.bmp, MenuButtonMain.png, wheel-barrow.png,
+  collection_jar_leaves.png): the tab names them and draws nothing for them.
+  "(unused)" is stricter: a file counts as used only when the game names it
+  (its whole name, or its stem as a word of its own), so logo1.gif,
+  bushDetailE.png and Test Plant Parts.jpg are now marked unused; Fish
+  Tycoon's species screen pieces stay unused (the game builds no file name
+  from a pattern).
+- **Picture Studio: Screens, bars and buttons** (new Make your own tab, both
+  games). The pictures the games make of several pieces, put together as the
+  games' own draw code does: whole screens (Fish Tycoon's three tanks, main
+  menu, supplies with every item, sell, species, trophy case, help pages,
+  intro, credits, splash, game won; Plant Tycoon's main menu, loading,
+  greenhouse, seed box, store, nursery, Collections, help pages, story,
+  snapshot scenes, credits, game won); Fish Tycoon's Health and Fed meters
+  and research bar empty and filled at several levels, alone and joined to
+  their frames (green, yellow, red as the game picks them); Plant Tycoon's
+  health and water meters and the loading bar at several levels; every
+  button in each state (normal, mouse over, pressed, and in Plant Tycoon
+  disabled; Fish Tycoon draws no disabled button); the rope boxes of Fish
+  Tycoon's hints and tooltips and Plant Tycoon's dialog boxes and message
+  boxes. The words on screens and buttons (the games' font text) are not
+  drawn, and the tab says so. Tests: tests/test_picture_screens.py.
+- **Picture Studio: the bugs as the game draws them.** The Bugs tab adds each
+  bug in the greenhouse at the size the game gives it (a random 70-99% when
+  it comes: samples at 70, 85 and 99%), on its shadow when it walks, the
+  Hiding Beetle playing dead (half see-through), a spider fading as it
+  drops, and each bug in its jar on the Collections screen over its leaf
+  (the spider of the day on its web). The game draws a bug see-through only
+  in those two cases; the 70-99% is its size.
+- **Picture Studio: what items do.** Plant Tycoon's chemicals show their
+  sprays and sparkles on a pot, frame by frame (Muta-Flower and Muta-Foliage
+  have the Mutation Liquid's; the patcher's other chemicals start none), the
+  soil bag its falling soil and the watering can its falling water. Fish
+  Tycoon's patcher chemicals show the drop in the tank (the stock chemical's)
+  and the Exotic Fish Eggs the eggs' splash.
 
 ## v1.0.22
 

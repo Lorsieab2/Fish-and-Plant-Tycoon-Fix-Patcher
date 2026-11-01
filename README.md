@@ -1000,7 +1000,68 @@ folder never fails with "path too long".
     and no belly-up pose apart from the dead pictures.
     The DS Exclusive Fish bodies and fins, DS Store Items' animals and the
     eel's rock are always offered, marked "(patcher)": their pictures ship
-    with the patcher, so no setting needs to be found for the save.
+    with the patcher, so no setting needs to be found for the save. The
+    Moray Eel has three pictures on the Creatures tab: out of its home
+    (swimming, every facing and frame), in its home (the rock with the eel's
+    back and front layers, every one of its 32 frames: 13 idle, 19 of the
+    snap) and its home alone (the rock, the eel out).
+  - Make your own, Items (both games): every item of the game, owned or
+    not, by Category, Item and Picture, each as the game draws it. Fish
+    Tycoon (50 items): medicines and chemicals, fish food (by Fish Food
+    research level), fish eggs, equipment, plants and creatures, ornaments,
+    the Second Tank and research: in the supply store at rest on its shadow,
+    pointed at (120%) and picked (every percent the store pulses it to), in
+    its supply slot, on the mouse (the droppers, the food), and in the tank
+    (the food falling, a chemical's drop, the eggs, the equipment and
+    ornaments). Plant Tycoon (175 items): every seed packet, chemical, tool
+    upgrade (soil, water, shears, net, seed boxes), nursery ornament and pot:
+    on its store shelf (on its shadow, with the tick once owned), in the seed
+    or chemical tray, in the Tools box, on the mouse (pouring, watering,
+    cutting, catching) and each pot with each soil. The patcher's items (DS
+    Store Items', Extra Supply Slots', Store Upgrades and Items', Time Warp,
+    Add Money ...) are marked "(patcher)", and art in Fish Tycoon's files
+    that the game never draws (a fish food box, an orange beaker, a dropper
+    sheet, two tank plants, two corals) is marked "(unused)" and shown whole.
+    Plant Tycoon has no unused item art. Items keep the games' own names
+    (Unusual Fish Eggs; the Common, Endangered, Extinct and Legendary Seeds
+    packets).
+  - Make your own, Bugs (Plant Tycoon): the 48 collectible bugs by name and
+    the game's rarity, numbered in the game's and the Collections screen's
+    order (1. Blue Butterfly (Common) ... 48. Golden Spider (Rare); in each
+    family 1-4 Common, 5-8 Uncommon, 9-12 Rare), each of its 6 pictures and its leaf on
+    the Collections screen, and the bug as the game draws it: in the
+    greenhouse at the size the game picks at random when it comes (70-99%;
+    samples at 70, 85 and 99%), on its shadow when it walks, the Hiding
+    Beetle playing dead (half see-through), a spider fading as it drops; on
+    the Collections screen in its jar over its leaf, the spider of the day on
+    its web. (The 70-99% is the bug's size: the game draws a bug see-through
+    only when it plays dead or drops.)
+  - Make your own, All game art (both games): every picture file of the
+    game, one picture per sprite cell (the game's own grid from its sprite
+    records), cut exactly as the game cuts it, at full size and strength, by
+    category: Fish Tycoon 3,528 pictures, Plant Tycoon 2,138, the BMP, JPEG
+    and GIF backgrounds included (the JPEGs exactly as the game's libjpeg-9
+    decodes them). Files the game's executable never names are marked
+    "(unused)" (shown whole), the patcher's own art "(patcher)"; the five
+    files Plant Tycoon's sprite table names but its folder lacks are named in
+    the tab's note and not drawn. It reads the game copy the Studio found
+    (read only).
+  - Make your own, Screens, bars and buttons (both games): the pictures the
+    games make of several pieces, put together as their draw code does:
+    whole screens (backgrounds, the screen's pieces and its buttons), Fish
+    Tycoon's Health and Fed meters and research bar and Plant Tycoon's
+    health and water meters and loading bar, empty and filled at several
+    levels, alone and in their frames; every button normal, mouse over,
+    pressed (and disabled in Plant Tycoon; Fish Tycoon does not draw a
+    disabled button); Fish Tycoon's rope boxes; Plant Tycoon's dialog and
+    message boxes. The words (the games' font text) are not drawn.
+  - Make your own, Items: Plant Tycoon's chemicals and tools also show what
+    they do to a pot (each chemical's sprays and sparkles, the falling soil
+    and water, frame by frame); Fish Tycoon's patcher chemicals their drop in
+    the tank.
+  - "Save all on this tab..." (Make your own) saves every picture of the tab
+    into a new folder (the Items tab: a folder per category); the Fish and
+    Plant tabs have too many pictures for it.
   - Make your own, Plant Tycoon: Flower (the 14 Unused Flowers always too,
     marked "(patcher)"), Foliage, Stage (seed, sprout, seedling, growing, budding, normal bloom, max bloom, max
     bloom with every effect, as after the Radioactive Plant Formula) and State
@@ -1024,7 +1085,13 @@ folder never fails with "path too long".
   (and the DS Exclusive Fish rules against the companion's own C), and
   `src/pictures_plant.py`, proven by `tests/test_pictures_plant.py` against
   Plant Tycoon's own pot, plant, branch and flower draws (0x42F740, 0x42E4A0,
-  0x42E690, 0x42D9C0), its growth and its scaler (0x404610). The
+  0x42E690, 0x42D9C0), its growth and its scaler (0x404610). The items are
+  `src/pictures_fish_items.py` and `src/pictures_plant_items.py`, proven by
+  `tests/test_picture_items.py`: the store records, sprite table, supply
+  icons and cursors, tank effects (0x410AE0, in Unicorn), the store's scaled
+  draws (0x408030, 0x4271F0, in Unicorn), Plant Tycoon's shelves (0x447D40),
+  Tools box (0x44DD70) and mouse pictures, both games' item names, and pinned
+  pictures compared pixel for pixel with the game's own art. The
   pictures come from your own copy of the game, kept in a "Picture Studio
   Pictures" folder beside the patcher, as the Breeding Guide's. See
   [docs/picture-studio-interface.md](docs/picture-studio-interface.md).

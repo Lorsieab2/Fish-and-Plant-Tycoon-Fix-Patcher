@@ -363,10 +363,30 @@ Plant Tycoon's "Unused parts" (parts in
 the game's plant tables no plant ever grows). The patcher's own parts (DS Exclusive Fish,
 DS Store Items' animals, the Unused Flowers) are always offered, marked
 "(patcher)", and a save's DS fish and Unused Flowers plants are always
-drawn. With Show Spoilers off (the Breeding Guide's setting) only the parts
-you have discovered. Pick a PNG size (the game's
+drawn. The Moray Eel is on the Creatures tab three ways: out of its home
+(swimming), in its home (every frame), and its home alone. The Items tab
+has every item of the game, owned or not: pick a Category, an Item and a
+Picture (in the store, pointed at or picked; in its supply slot, tray or
+Tools box; on the mouse; in the tank; owned with the tick; a pot with each
+soil). The patcher's items are marked "(patcher)", and art in the game's
+files that the game never draws is marked "(unused)". Items keep the
+games' own names (Unusual Fish Eggs; Common, Endangered, Extinct and
+Legendary Seeds). Plant Tycoon's Bugs tab names the 48 collectible bugs in
+the Collections screen's order with the game's rarity (Common, Uncommon or
+Rare), with each one's leaf. "All game
+art" has every picture file of the game (backgrounds too), one picture per
+sprite cell, by category ("(unused)": a file the game never names; files
+the game names but lacks are listed, not drawn). "Screens, bars and
+buttons" has the games' pictures made of several pieces: whole screens,
+meters and bars empty and filled, every button in each state, rope and
+dialog boxes (without their words). The Bugs tab also shows each bug as the
+greenhouse and the Collections screen draw it. With Show Spoilers off
+(the Breeding Guide's setting) only the parts you have discovered (items are
+always all offered). Pick a PNG size (the game's
 own, 2x, 4x, or your own width and height) and Small margin, then "Save
-PNG..." or "Save all in this tank/greenhouse...". The pictures have a clear background. Like the guide, it
+PNG...", "Save all in this tank/greenhouse..." or, in Make your own, "Save
+all on this tab..." (every picture of the tab; the Items tab in a folder per
+category). The pictures have a clear background. Like the guide, it
 copies the pictures it needs from your game into "Picture Studio Pictures"
 beside the patcher ("Find game..." if it has none yet), and never changes a
 save.
