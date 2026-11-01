@@ -913,7 +913,8 @@ class FishRenderer:
                  "and spread, see-through as in the game). The game draws nothing else for an egg: a fish "
                  "is not drawn before it hatches (age 0), then it is a baby (the Fish tab's Baby stage).")
         import pictures_game_art as ga
-        return [fish, creature, decoration, eggs, self._items_subject(), ga.subject(self.game_art())]
+        return [fish, creature, decoration, eggs, self._items_subject(), ga.subject(self.game_art()),
+                __import__("pictures_screens").subject(self.game_art())]
 
 
     # ---- All game art (pictures_game_art): read straight from the game copy the window found
@@ -958,6 +959,9 @@ class FishRenderer:
             import pictures_game_art as ga
             fields = ga.fields(self.game_art(), spec)
             return {"sheet": fields["sheet"], "frame": fields["frame"]}
+        if subject == "screens":
+            import pictures_screens as ps
+            return {"picture": ps.fields(self.game_art(), spec)["picture"]}
         if subject != "items":
             return {}
         fields = self._item_fields(spec)
@@ -989,6 +993,9 @@ class FishRenderer:
         if subject == "art":
             import pictures_game_art as ga
             return ga.batch(self.game_art())
+        if subject == "screens":
+            import pictures_screens as ps
+            return ps.batch(self.game_art())
         if subject == "items":
             import pictures_fish_items as fi
             for item in fi.ITEMS:
@@ -1084,4 +1091,7 @@ class FishRenderer:
         if spec.get("subject") == "art":
             import pictures_game_art as ga
             return ga.render(self.game_art(), spec)
+        if spec.get("subject") == "screens":
+            import pictures_screens as ps
+            return ps.render(self.game_art(), spec)
         return self.render_plan(self.plan_custom(spec))

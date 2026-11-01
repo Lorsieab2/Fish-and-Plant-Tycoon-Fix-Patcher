@@ -1112,6 +1112,7 @@ class Renderer:
                     "planted soil has the mound a plant grows from."),
             self._items_subject(),
             __import__("pictures_game_art").subject(self.game_art()),
+            __import__("pictures_screens").subject(self.game_art()),
         ]
 
 
@@ -1156,6 +1157,9 @@ class Renderer:
             import pictures_game_art as ga
             fields = ga.fields(self.game_art(), spec)
             return {"sheet": fields["sheet"], "frame": fields["frame"]}
+        if subject == "screens":
+            import pictures_screens as ps
+            return {"picture": ps.fields(self.game_art(), spec)["picture"]}
         if subject != "items":
             return {}
         fields = self._item_fields(spec)
@@ -1167,6 +1171,9 @@ class Renderer:
         if subject == "art":
             import pictures_game_art as ga
             return ga.batch(self.game_art())
+        if subject == "screens":
+            import pictures_screens as ps
+            return ps.batch(self.game_art())
         if subject == "items":
             import pictures_plant_items as pit
             out = []
@@ -1258,4 +1265,7 @@ class Renderer:
         if spec.get("subject") == "art":
             import pictures_game_art as ga
             return ga.render(self.game_art(), spec)
+        if spec.get("subject") == "screens":
+            import pictures_screens as ps
+            return ps.render(self.game_art(), spec)
         return composite(self.sheets, self.plan_custom(spec))
