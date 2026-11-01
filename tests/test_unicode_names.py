@@ -146,7 +146,7 @@ class NamesCase:
         g = Game(self.game)
         wrapper, box = g.box(b"Ann")
         g.run_call(GAMES[self.game]["limit_call"], wrapper, 1, 0x20)
-        self.assertEqual(g.emu.read32(box + 0x28), NAME_LETTERS)   # one byte a letter while Latin-1
+        self.assertEqual(g.emu.read32(box + 0x28), 4 * NAME_LETTERS)   # UTF-8: up to 4 bytes a letter
         self.assertEqual(g.text(box), b"Ann")
         wrapper, box = g.box(b"")
         a = GAMES[self.game]
@@ -169,12 +169,12 @@ class NamesCase:
         g.type_name(long_name, slot=1)
         _wrapper, box = g.box()
         g.set_text(box, g.row(1))
-        self.assertEqual(g.text(box), long_name.encode("latin-1"))
+        self.assertEqual(g.text(box), long_name.encode("utf-8"))
         # the short form as text (not the row itself) too
         copy = g.emu.text(short_form(long_name).decode("latin-1"))
         _wrapper, box = g.box()
         g.set_text(box, copy)
-        self.assertEqual(g.text(box), long_name.encode("latin-1"))
+        self.assertEqual(g.text(box), long_name.encode("utf-8"))
         # a short name is its own full name: nothing changes
         g.set_row(2, b"Bob")
         _wrapper, box = g.box()
@@ -189,7 +189,7 @@ class NamesCase:
         g.set_row(3, short)
         _wrapper, box = g.box()
         g.set_text(box, g.row(3))
-        self.assertEqual(g.text(box), long_name.encode("latin-1"))
+        self.assertEqual(g.text(box), long_name.encode("utf-8"))
         # the stock game renamed the player: the file is not used
         g.set_row(3, b"Someone Else")
         _wrapper, box = g.box()
@@ -280,6 +280,18 @@ class DrawNamesCase:
             self.assertEqual(self.screen(text, own=False), self.screen(text, own=True))
             self.assertEqual(self.hooked_width(text), self.game_width(text))
 
+    def test_a_name_within_the_games_text_is_the_full_name(self) -> None:
+        """The main menu's "Player: <name>": the short form in it is the full name, the whole text
+        fitted to the wider of itself and itself with the game's name placeholder for the name."""
+        name = "Bartholomew Montgomery Fitzgerald the Third of the Northern Reaches"
+        self.g.type_name(name, slot=1)
+        short = short_form(name)
+        text = b"Player: " + short
+        budget = max(self.game_width(text), self.game_width(b"Player: " + b"_" * 26))
+        shown = self.expected_fit(b"Player: " + name.encode("latin-1"), budget, tail=False)
+        self.assertEqual(self.screen(text, own=False), self.screen(shown, own=True))
+        self.assertEqual(self.hooked_width(text), self.game_width(shown))
+
     def test_boxes_fit_their_text(self) -> None:
         emu = self.fde.emu
         long_name = "Wilhelmina Charlotte Ångström-Lindqvist of Malmö and Stockholm".encode("latin-1")
@@ -290,9 +302,10 @@ class DrawNamesCase:
                     for off, value in ((8, 100), (0xC, 50), (0x10, 340), (0x14, 80), (0x44, 6)):
                         emu.write32(box + off, value)
                     emu.write8(box + 0x25, focused)
+                    emu.write8(box + 0x24, 1)                              # a fixed box: the game cut it
                     text_at = emu.read32(box + 0x30)
                     width = emu.call(self.symbols["_box_width"], self.font, box, 0, text_at, f32(1.0))
-                    room = 340 - 100 - 12 - 2
+                    room = 340 - 100 - 6
                     shown = self.expected_fit(name, room, tail=bool(focused))
                     self.assertEqual(width, self.game_width(shown))
                     self.assertLessEqual(width, room)

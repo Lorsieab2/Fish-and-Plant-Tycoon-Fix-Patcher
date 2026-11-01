@@ -25,8 +25,9 @@ GAMES = {
         "manifest": ROOT / "data" / "fish_manifest.json",
         "source": "assets/fish_tycoon_unicode",
         "folder": "Fish Tycoon Fix Patcher DLLs",
-        "typing": "Typing in the game (a player's name, any text box), any letter of your keyboard from "
-                  "the Latin-1 set (U+00A0-U+00FF) goes in, AltGr letters too; the game took only plain ASCII.",
+        "typing": "Typing in the game (a player's name, any text box), any letter of any script goes in "
+                  "(AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. "
+                  "Names can be up to 300 letters.",
         "fonts": "All three of the game's fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every Latin-1 "
                  "letter and symbol they lack, and paddington's empty boxes for % * + < = > [ \\ ] ^ { | } ~ "
                  "become real letters: accented letters are made from each font's own letters and accents, "
@@ -39,8 +40,9 @@ GAMES = {
         "manifest": ROOT / "data" / "plant_manifest.json",
         "source": "assets/plant_tycoon_unicode",
         "folder": "Plant Tycoon Fix Patcher DLLs",
-        "typing": "Typing in the game (a player's name, any text box), any letter of your keyboard from the Latin-1 "
-                  "set (U+00A0-U+00FF) goes in; the game dropped everything but plain ASCII.",
+        "typing": "Typing in the game (a player's name, any text box), any letter of any script goes in "
+                  "(an input method's text too); the game dropped everything but plain ASCII. Names can be up "
+                  "to 300 letters.",
         "fonts": "The game's font already has most of Latin-1; the no-break space and the inverted "
                  "exclamation mark (¡) are made for it in its style, in a copy of its picture in the Images "
                  "folder (the game's own picture is not changed).",
@@ -54,11 +56,15 @@ def setting(game: dict) -> dict:
     return {
         "id": SETTING_ID,
         "name": "Render Unicode with In-Game Fonts",
-        "summary": "Type and show accented letters and symbols (é ñ ü ß Æ Ø ¿ £ © ...) in names, drawn in the "
-                   "game's own fonts; letters a font lacks are made for it in its style.",
+        "summary": "Type and show names in any script (é ñ ß, Ç ğ İ, 山田, emoji ...) up to 300 letters, drawn in "
+                   "the game's own fonts; letters a font lacks are made for it in its style or drawn from "
+                   "Windows' fonts.",
         "description": (
-            f"{game['typing']} {game['fonts']} Names are kept in the save exactly as the game keeps them, one "
-            "byte a letter, so the save's layout is unchanged and the patcher's tools (Rename Players, Copy "
+            f"{game['typing']} {game['fonts']} Any other letter (Turkish, Japanese, Chinese, Korean, "
+            "cuneiform, emoji ...) is drawn from Windows' fonts at the font's size and in the text's colour "
+            "(emoji in one colour). The save keeps each name's first 31 letters as the game keeps names (one "
+            "byte a letter, '?' for a letter Latin-1 has not), so its layout is unchanged, and the full name "
+            "beside it (Fix Patcher Data\\Names <slot>.dat); the patcher's tools (Rename Players, Copy "
             "Player Slot, the Breeding Guide and Picture Studio) read and write such names too. "
             f"{game['older']}"
         ),

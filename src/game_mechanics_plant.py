@@ -1463,13 +1463,16 @@ TEXT_ENTRY = (
         "What you can type: plain ASCII only. The game takes typed text (SDL's text input, UTF-8) "
         "only when it is one byte long, so any accented letter is dropped, though its text box "
         "would store any byte 0x20-0xFF.",
-        patched=(("unicode_ingame_fonts", "every Latin-1 letter too (U+00A0-U+00FF: é ñ ü ß Æ ¿ £ ...), "
-                  "stored as its Latin-1 byte."),),
+        patched=(("unicode_ingame_fonts", "any letter of any script (é ñ ß, Ç ğ İ, 山田, 한국어, emoji, "
+                  "cuneiform ...), an input method's text included, stored as UTF-8; Backspace takes off a "
+                  "whole letter."),),
     ),
     Fact(
         "What the font draws: PT Font Small has ASCII and Latin-1 from ¢ (U+00A2) on; it lacks the "
         "no-break space, ¡ and the Windows-1252 letters at 0x80-0x9F, drawn as its first letter.",
-        patched=(("unicode_ingame_fonts", "those too, made in the font's own style."),),
+        patched=(("unicode_ingame_fonts", "those too, made in the font's own style; any other letter is "
+                  "drawn from Windows' fonts (Segoe UI and the fonts for other scripts, emoji in one colour) at "
+                  "the font's size and in the text's colour."),),
     ),
 )
 

@@ -404,7 +404,12 @@ never needs the internet.
   it, and the full name is kept in `Fish Tycoon Fix Patcher Data\Names
   <slot>.dat`; the game shows the full name wherever it shows the player's,
   with an ellipsis where it does not fit, and a text box shows a long text
-  fitted to its width instead of cutting letters off.
+  fitted to its width instead of cutting letters off. Names (and any text the
+  game draws, such as a translation) can be in any script: a letter the
+  game's fonts have is drawn in them, any other (Turkish, Japanese, Chinese,
+  Korean, cuneiform, emoji ...) from Windows' fonts at the font's size and
+  colour (emoji in one colour); typing takes them too, the emoji panel and
+  input methods included.
 
 ### Plant Tycoon
 
@@ -728,7 +733,8 @@ never needs the internet.
   (`Plant Tycoon Fix Patcher DLLs\Unicode Text.dll`, loaded after every other
   one); Rename Players and Copy Player Slot accept such names for its save
   folders, as in Fish Tycoon, and names can be up to 300 letters, the full
-  name kept in `Plant Tycoon Fix Patcher Data\Names <slot>.dat`.
+  name kept in `Plant Tycoon Fix Patcher Data\Names <slot>.dat`, in any
+  script, typed (an input method's text too) and drawn as in Fish Tycoon.
 
 ## Use
 

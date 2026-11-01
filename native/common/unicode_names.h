@@ -182,6 +182,38 @@ static const char *full_for_short(const char *text) {
     return NULL;
 }
 
+/* The first player's short form within `text` (a name the game put into its own text, such as
+   the main menu's "Player: <name>"), at least 4 letters and not the full name itself: its full
+   name, *at and *len where it is; NULL when there is none. */
+static const char *short_within(const char *text, int *at, int *len) {
+    int i, n = 0;
+    const name_entry *lists[2];
+    int counts[2], k;
+    if (text == NULL) return NULL;
+    lists[0] = slot_names;
+    counts[0] = SLOTS;
+    lists[1] = typed_names;
+    counts[1] = typed_count;
+    for (k = 0; k < 2; ++k) {
+        for (i = 0; i < counts[k]; ++i) {
+            const name_entry *e = &lists[k][i];
+            const char *hit;
+            int m;
+            if (!e->used || s_eq(e->shortf, e->full) || (m = s_len(e->shortf)) < 4) continue;
+            if (k == 0 && !field_is(slot_field(i + 1), e->shortf)) continue;
+            for (hit = text; *hit; ++hit) {
+                for (n = 0; n < m && hit[n] == e->shortf[n]; ++n) {}
+                if (n == m) {
+                    *at = (int)(hit - text);
+                    *len = m;
+                    return e->full;
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
 /* A slot's row now holds a name typed in this session: its full name goes beside the save. */
 static void names_sync(void) {
     int slot, i;

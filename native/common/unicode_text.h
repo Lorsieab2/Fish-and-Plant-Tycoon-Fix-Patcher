@@ -87,20 +87,37 @@ static const char *fit(void *font, const char *text, int budget, int tail, char 
     return out;
 }
 
-/* A player's short form as its full name, fitted to the width the game left for a name. */
+/* A player's short form in `text` (all of it, or within it) as the full name, fitted to the width
+   the game left for it: the wider of the text as it is and the text with the game's own name
+   placeholder (26 underscores) for the name. */
 static const char *name_shown(void *font, const char *text, char *out, int cap) {
     static char full[NAME_BOX_BYTES + 1];
-    const char *found = full_for_short(text);
-    int budget, place;
-    if (found == NULL || font == NULL) return text;
+    static char whole[NAME_BOX_BYTES * 2 + 64];
+    static char placed[NAME_BOX_BYTES + 64];
+    const char *found;
+    int at = 0, len = 0, budget, place, rest;
+    if (font == NULL || text == NULL) return text;
+    found = full_for_short(text);
+    if (found != NULL) len = s_len(text);
+    else found = short_within(text, &at, &len);
+    if (found == NULL) return text;
+    rest = s_len(text + at + len);
+    if (at + rest + (int)sizeof PLACEHOLDER >= (int)sizeof placed) return text;
     to_box_text(found, full, sizeof full);
+    memcpy(whole, text, (size_t)at);
+    s_copy(whole + at, full, (int)sizeof whole - at);
+    s_copy(whole + s_len(whole), text + at + len, (int)sizeof whole - s_len(whole));
+    memcpy(placed, text, (size_t)at);
+    s_copy(placed + at, PLACEHOLDER, (int)sizeof placed - at);
+    s_copy(placed + s_len(placed), text + at + len, (int)sizeof placed - s_len(placed));
     budget = measure(font, text, 1.0f);
-    place = measure(font, PLACEHOLDER, 1.0f);
+    place = measure(font, placed, 1.0f);
     if (place > budget) budget = place;
-    return fit(font, full, budget, 0, out, cap);
+    return fit(font, whole, budget, 0, out, cap);
 }
 
 static unsigned int draws_since_sync;
+static void window_check(void);
 
 static void __cdecl draw_hook(void *graphics, unsigned int ret, const char *text, int x, int y,
                               unsigned int colour, void *font) {
@@ -111,6 +128,7 @@ static void __cdecl draw_hook(void *graphics, unsigned int ret, const char *text
         draws_since_sync = 0;
         names_sync();
     }
+    window_check();
     if (text != NULL) text = name_shown(used, text, shown, sizeof shown);
     draw_text(graphics, text, x, y, colour, font);
 }
@@ -138,12 +156,25 @@ static int __cdecl box_width(void *font, const char *box, unsigned int ret, cons
     box_fit.box = box;
     box_fit.text = text;
     box_fit.fitted = 0;
+    if (text != NULL) {
+        const char *named = name_shown(font, text, box_fit.shown, sizeof box_fit.shown);
+        if (named != text) {
+            if (named != box_fit.shown) s_copy(box_fit.shown, named, sizeof box_fit.shown);
+            box_fit.fitted = 1;
+            text = box_fit.shown;
+        }
+    }
     w = text_width(font, text, scale);
     margin = *(const int *)(box + 0x44);
     if (margin < 0) margin = 0;
-    room = *(const int *)(box + 0x10) - *(const int *)(box + 8) - 2 * margin - 2;
-    if (text == NULL || room <= 0 || w <= room) return w;
-    fit(font, text, room, *(const char *)(box + 0x25) != 0, box_fit.shown, sizeof box_fit.shown);
+    room = *(const int *)(box + 0x10) - *(const int *)(box + 8) - margin;
+    /* the game cut only a fixed box (+0x24) */
+    if (text == NULL || box[0x24] == 0 || room <= 0 || w <= room) return w;
+    {
+        static char cut[NAME_BOX_BYTES + 8];
+        const char *shown = fit(font, text, room, *(const char *)(box + 0x25) != 0, cut, sizeof cut);
+        s_copy(box_fit.shown, shown, sizeof box_fit.shown);
+    }
     box_fit.fitted = 1;
     return text_width(font, box_fit.shown, scale);
 }
@@ -152,7 +183,10 @@ static int __cdecl box_width(void *font, const char *box, unsigned int ret, cons
 static void __cdecl box_draw(void *wrapper, const char *box, unsigned int ret, const char *text, int x, int y,
                              unsigned int colour, void *font) {
     (void)ret;
-    if (box_fit.fitted && box_fit.box == box && box_fit.text == text) text = box_fit.shown;
+    if (box_fit.fitted && box_fit.box == box && box_fit.text == text) {
+        draw_text(*(void **)wrapper, box_fit.shown, x, y, colour, font);
+        return;
+    }
     draw_hook(*(void **)wrapper, 0, text, x, y, colour, font);
 }
 

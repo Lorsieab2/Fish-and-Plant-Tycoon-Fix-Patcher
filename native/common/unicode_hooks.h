@@ -146,9 +146,11 @@ __declspec(naked) static void stub_width(void) {
     }
 }
 
-#define NAME_SITES 8
+#define NAME_SITES 9
 
-/* The eight writes for names and text, after `w`. */
+static void stub_box_char(void);
+
+/* The nine writes for names, text and typing, after `w`. */
 static ftfp_site_write *name_site_writes(ftfp_site_write *w) {
     ftfp_site_branch(w++, SITE_SET_TEXT_VA, SITE_SET_TEXT_LEN, SITE_SET_TEXT_EXPECT, 0xE9, CODE_ADDR(stub_set_text));
     ftfp_site_branch(w++, SITE_GET_TEXT_VA, SITE_GET_TEXT_LEN, SITE_GET_TEXT_EXPECT, 0xE9, CODE_ADDR(stub_get_text));
@@ -163,6 +165,7 @@ static ftfp_site_write *name_site_writes(ftfp_site_write *w) {
     ftfp_site_branch(w++, SITE_BOX_DRAW_VA, SITE_BOX_DRAW_LEN, SITE_BOX_DRAW_EXPECT, 0xE8, CODE_ADDR(stub_box_draw));
     ftfp_site_branch(w++, SITE_DRAW_VA, SITE_DRAW_LEN, SITE_DRAW_EXPECT, 0xE9, CODE_ADDR(stub_draw));
     ftfp_site_branch(w++, SITE_WIDTH_VA, SITE_WIDTH_LEN, SITE_WIDTH_EXPECT, 0xE9, CODE_ADDR(stub_width));
+    ftfp_site_branch(w++, SITE_BOX_CHAR_VA, SITE_BOX_CHAR_LEN, SITE_BOX_CHAR_EXPECT, 0xE9, CODE_ADDR(stub_box_char));
     return w;
 }
 

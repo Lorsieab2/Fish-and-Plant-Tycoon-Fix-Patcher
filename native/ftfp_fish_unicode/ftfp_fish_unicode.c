@@ -1,4 +1,8 @@
-/* Unicode Text (Fish Tycoon) -- "Render Unicode with In-Game Fonts", stage 1: Latin-1.
+/* Unicode Text (Fish Tycoon) -- "Render Unicode with In-Game Fonts", any letter of any script.
+
+   This file: the key path and the fonts as stage 1 made them (Latin-1, below), now posting any
+   letter. Names, the text draw, run-time glyphs and the text box: ../common/unicode_names.h,
+   unicode_text.h, unicode_glyphs.h, unicode_typing.h.
 
    TYPING.  Fish Tycoon is an SDL 1.2 game with SDL's Unicode translation on. Its event
    loop (0x403DE0) takes a key's character from keysym.unicode only when it is below 0x80
@@ -56,6 +60,18 @@
 #define GAME_SET_LIMIT_TARGET 0x0040B8B0u
 #define GAME_DRAW_FRAME 0x34
 #define GAME_DRAW_RESUME 0x004087E7u
+#define GAME_DEFAULT_COLOUR 0x0045427Cu  /* the colour of text drawn with colour 0 */
+#define GAME_CLIP 0x38                     /* the graphics' clip rectangle: left, top, right, bottom */
+#define GAME_SDL2 0
+#define GAME_SDL_CREATE 0x0042A5DCu        /* SDL_CreateRGBSurface, SDL_FreeSurface, SDL_UpperBlit */
+#define GAME_SDL_FREE 0x0042A5E2u
+#define GAME_SDL_BLIT 0x0042A600u
+#define GAME_EVENTS_GET 0x004021E0u
+#define GAME_EVENTS_POST 0x00402010u       /* post(type, code, letter) */
+#define GAME_EVENTS_POST2 0x00402030u      /* post(type, param) */
+#define GAME_BOX_DONE 0x0040BA30u
+#define GAME_BOX_CHAR_RESUME 0x0040BFFFu
+#define GAME_SUBCLASS_WINDOW 1
 #define GAME_WIDTH_RESUME 0x004023D7u
 
 #define CODE_ADDR(fn) ((const void *)(UINT_PTR)(fn))
@@ -65,6 +81,7 @@
 #include "../common/unicode_text.h"
 #include "../common/unicode_hooks.h"
 #include "../common/unicode_draw.h"
+#include "../common/unicode_typing.h"
 
 
 #define INPUT_PRINTABLE 0x00403EDC      /* the game's own path for 0x20-0x7E */
@@ -90,15 +107,22 @@ static HMODULE self_module;
 static int installed;
 static int pictures_missing;
 
-/* keysym.unicode is the word at [esp+0x20]; edx is the key's code. */
+/* keysym.sym is the dword at [esp+0x18], keysym.unicode the word at [esp+0x20]; edx is the key's code. */
 __declspec(naked) static void stub_input(void) {
     __asm {
+        cmp dword ptr [esp + 0x18], 0x100   /* a special key (arrows, F keys...): the game's way */
+        jae stock
         movzx eax, word ptr [esp + 0x20]
         cmp eax, 0xA0
         jb stock
-        cmp eax, 0xFF
-        ja stock
-        push eax                         /* the character, 0xA0-0xFF */
+        cmp eax, 0xD800                  /* a surrogate: SDL 1.2 gives only half a letter */
+        jb post
+        cmp eax, 0xDFFF
+        jbe stock
+        cmp eax, 0xFFFE
+        jae stock
+    post:
+        push eax                         /* the letter, U+00A0 and up */
         push eax                         /* its code */
         push 5                           /* a character */
         mov eax, EVENTS_GET
@@ -188,7 +212,7 @@ static void write_install_log(void) {
     if (!own_folder(path, 1024) || wcslen(path) + 20 >= 1024) return;
     wcscat_s(path, 1024, L"Unicode Text.log");
     if (installed) {
-        text = "Unicode Text: installed (typing Latin-1, the three fonts, long names)\r\n";
+        text = "Unicode Text: installed (typing and drawing any letter, the three fonts, long names)\r\n";
     } else if (pictures_missing) {
         text = "Unicode Text: not installed (a font picture is missing from Images)\r\n";
     } else {
@@ -216,6 +240,7 @@ int __stdcall FtfpStartup(void) {
     }
     write_install_log();
     if (installed) {
+        utf8_drawing = 1;
         unicode_write_marker(L"Fish Tycoon Fix Patcher Data");
         names_start(L"Fish Tycoon Fix Patcher Data");
     }
@@ -225,9 +250,8 @@ int __stdcall FtfpStartup(void) {
 /* The Translations setting's question (its contract, feat/translations): "Translations.dll"
    writes its text in Windows-1252 unless a DLL loaded before it exports this and it returns
    nonzero, when it writes UTF-8. Nonzero only once this DLL is installed AND draws UTF-8 text
-   (utf8_drawing, a later stage); while it draws the game's bytes (Latin-1, and the
-   Windows-1252 letters 0x80-0x9F its fonts now have) it answers 0, so translated text comes
-   as Windows-1252 bytes and is drawn with those letters. The loader always loads this DLL
+   (utf8_drawing, set once installed): it does, so it answers 1 and translated text comes as
+   UTF-8, drawn letter by letter (../common/unicode_glyphs.h). The loader always loads this DLL
    before any other loader tail (src/ds_fish_loader.py, with_tails). */
 int __stdcall FtfpUnicodeTextActive(void) {
     return installed && utf8_drawing;
@@ -238,6 +262,9 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     if (reason == DLL_PROCESS_ATTACH) {
         self_module = instance;
         DisableThreadLibraryCalls(instance);
+    } else if (reason == DLL_PROCESS_DETACH && installed) {
+        /* the game quits: a name typed since the last draw still goes beside the save */
+        names_sync();
     }
     return TRUE;
 }

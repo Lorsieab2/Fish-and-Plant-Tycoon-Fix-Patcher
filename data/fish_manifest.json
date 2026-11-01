@@ -70551,8 +70551,8 @@
     {
       "id": "unicode_ingame_fonts",
       "name": "Render Unicode with In-Game Fonts",
-      "summary": "Type and show accented letters and symbols (é ñ ü ß Æ Ø ¿ £ © ...) in names, drawn in the game's own fonts; letters a font lacks are made for it in its style.",
-      "description": "Typing in the game (a player's name, any text box), any letter of your keyboard from the Latin-1 set (U+00A0-U+00FF) goes in, AltGr letters too; the game took only plain ASCII. All three of the game's fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every Latin-1 letter and symbol they lack, and paddington's empty boxes for % * + < = > [ \\ ] ^ { | } ~ become real letters: accented letters are made from each font's own letters and accents, the rest drawn in the font's size, baseline and weight. They are added to copies of the fonts' pictures in the game's Images folder; the game's own pictures are not changed. Names are kept in the save exactly as the game keeps them, one byte a letter, so the save's layout is unchanged and the patcher's tools (Rename Players, Copy Player Slot, the Breeding Guide and Picture Studio) read and write such names too. A copy of the game without this setting shows each such letter as a blank (its fonts have no letter for it) but loads and plays the save as always.",
+      "summary": "Type and show names in any script (é ñ ß, Ç ğ İ, 山田, emoji ...) up to 300 letters, drawn in the game's own fonts; letters a font lacks are made for it in its style or drawn from Windows' fonts.",
+      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. Names can be up to 300 letters. All three of the game's fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every Latin-1 letter and symbol they lack, and paddington's empty boxes for % * + < = > [ \\ ] ^ { | } ~ become real letters: accented letters are made from each font's own letters and accents, the rest drawn in the font's size, baseline and weight. They are added to copies of the fonts' pictures in the game's Images folder; the game's own pictures are not changed. Any other letter (Turkish, Japanese, Chinese, Korean, cuneiform, emoji ...) is drawn from Windows' fonts at the font's size and in the text's colour (emoji in one colour). The save keeps each name's first 31 letters as the game keeps names (one byte a letter, '?' for a letter Latin-1 has not), so its layout is unchanged, and the full name beside it (Fix Patcher Data\\Names <slot>.dat); the patcher's tools (Rename Players, Copy Player Slot, the Breeding Guide and Picture Studio) read and write such names too. A copy of the game without this setting shows each such letter as a blank (its fonts have no letter for it) but loads and plays the save as always.",
       "category": "main",
       "default": true,
       "separate_output": true,
@@ -70563,8 +70563,8 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 109568,
-            "sha256": "10BB7869473554AAAC375C929A0CA2BA96BD84FCA4D738B9BF9C38B6281C98CA"
+            "size": 118272,
+            "sha256": "884282C5DB84F661E25A99E574816C598B380A77636DBBA858BC75C41F632EE6"
           },
           {
             "path": "Images/FONT_TRIPLEX_SANSLIGHTLIN_BOLD_16PT_unicode.png",

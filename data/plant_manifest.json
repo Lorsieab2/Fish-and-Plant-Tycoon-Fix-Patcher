@@ -11200,8 +11200,8 @@
     {
       "id": "unicode_ingame_fonts",
       "name": "Render Unicode with In-Game Fonts",
-      "summary": "Type and show accented letters and symbols (é ñ ü ß Æ Ø ¿ £ © ...) in names, drawn in the game's own fonts; letters a font lacks are made for it in its style.",
-      "description": "Typing in the game (a player's name, any text box), any letter of your keyboard from the Latin-1 set (U+00A0-U+00FF) goes in; the game dropped everything but plain ASCII. The game's font already has most of Latin-1; the no-break space and the inverted exclamation mark (¡) are made for it in its style, in a copy of its picture in the Images folder (the game's own picture is not changed). Names are kept in the save exactly as the game keeps them, one byte a letter, so the save's layout is unchanged and the patcher's tools (Rename Players, Copy Player Slot, the Breeding Guide and Picture Studio) read and write such names too. A copy of the game without this setting shows these letters as well (its font has them), except ¡, and loads and plays the save as always.",
+      "summary": "Type and show names in any script (é ñ ß, Ç ğ İ, 山田, emoji ...) up to 300 letters, drawn in the game's own fonts; letters a font lacks are made for it in its style or drawn from Windows' fonts.",
+      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (an input method's text too); the game dropped everything but plain ASCII. Names can be up to 300 letters. The game's font already has most of Latin-1; the no-break space and the inverted exclamation mark (¡) are made for it in its style, in a copy of its picture in the Images folder (the game's own picture is not changed). Any other letter (Turkish, Japanese, Chinese, Korean, cuneiform, emoji ...) is drawn from Windows' fonts at the font's size and in the text's colour (emoji in one colour). The save keeps each name's first 31 letters as the game keeps names (one byte a letter, '?' for a letter Latin-1 has not), so its layout is unchanged, and the full name beside it (Fix Patcher Data\\Names <slot>.dat); the patcher's tools (Rename Players, Copy Player Slot, the Breeding Guide and Picture Studio) read and write such names too. A copy of the game without this setting shows these letters as well (its font has them), except ¡, and loads and plays the save as always.",
       "category": "main",
       "default": true,
       "separate_output": true,
@@ -11212,8 +11212,8 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 100352,
-            "sha256": "2DF60EE1ADAE83BFA5E719A4E73A052D62846F9D4BE52B105524829F0859D821"
+            "size": 108032,
+            "sha256": "DEFA5FBEF9D8FB718E5962A6F9056C4AE9E17D16EE7E1F185B5F04B443AEB546"
           },
           {
             "path": "Images/PTfontsmall_unicode.png",

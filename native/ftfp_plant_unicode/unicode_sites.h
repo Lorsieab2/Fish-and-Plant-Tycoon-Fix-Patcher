@@ -55,4 +55,9 @@ static const unsigned char SITE_DRAW_EXPECT[SITE_DRAW_LEN] = {0x83, 0xEC, 0x44, 
 #define SITE_WIDTH_LEN 7
 static const unsigned char SITE_WIDTH_EXPECT[SITE_WIDTH_LEN] = {0x83, 0xEC, 0x10, 0x55, 0x8B, 0x69, 0x04};
 
+/* 0x40CAC9: the text box's character path: cmp byte [ecx+0x2f], 0; push ebx; push esi */
+#define SITE_BOX_CHAR_VA 0x0040CAC9u
+#define SITE_BOX_CHAR_LEN 6
+static const unsigned char SITE_BOX_CHAR_EXPECT[SITE_BOX_CHAR_LEN] = {0x80, 0x79, 0x2F, 0x00, 0x53, 0x56};
+
 #endif

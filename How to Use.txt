@@ -155,7 +155,8 @@ Fish Tycoon options:
 - Render Unicode with In-Game Fonts (on by default; Owner's Defaults leaves
   it off): type accented letters (é ñ ü ß Æ ¿ £ ...) in names, drawn in the
   game's own fonts; letters a font lacks are made for it in its style.
-  Names can be up to 300 letters; the full name is kept beside the save
+  Names can be up to 300 letters, in any script (letters the game's fonts
+  lack come from Windows' fonts); the full name is kept beside the save
   and shown fitted where the game has less room.
 
 Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
@@ -272,7 +273,7 @@ Plant Tycoon options:
 - Render Unicode with In-Game Fonts (on by default; Owner's Defaults leaves
   it off): type accented letters (é ñ ü ß Æ ¿ £ ...) in names; the game's font
   gets the few it lacks, made in its style. Names can be up to 300 letters,
-  the full name kept beside the save.
+  in any script, the full name kept beside the save.
 
 Moving things between greenhouses (5 extra greenhouses):
 - A plant: drag it onto the left or right arrow, as you would drag it to

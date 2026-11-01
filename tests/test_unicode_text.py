@@ -85,7 +85,9 @@ _TEMPS: list[tempfile.TemporaryDirectory] = []
 
 
 def built(game: str) -> tuple[Path, dict]:
-    if game not in _BUILT:
+    # another test module using this one (tests/test_unicode_names.py) may run after this module's
+    # tearDownModule removed the build: build it again then
+    if game not in _BUILT or not _BUILT[game][0].is_file():
         temp = tempfile.TemporaryDirectory()
         _TEMPS.append(temp)
         _BUILT[game] = E.build_with_map(PROJECTS[game], ASSETS[game] / "Unicode Text.dll", Path(temp.name))
@@ -229,7 +231,7 @@ class InstallCase(unittest.TestCase):
         self.assertIn("installed", files["text"])
         self.assertTrue(files["log"].endswith(DLL_FOLDER[self.game] + "Unicode Text.log"))
         # the save folder's marker for the patcher's tools, its folders made as needed
-        self.assertIn("Render Unicode with In-Game Fonts", files["written"][marker_path(self.game)])
+        self.assertIn("names in any script (UTF-8)", files["written"][marker_path(self.game)])
         self.assertEqual(files["folders"][-1], marker_path(self.game).rsplit("\\", 1)[0])
         after = code_bytes(emu, site_ranges(self.game))
         self.assertNotEqual(stock, after)
@@ -387,15 +389,20 @@ class FishTypingTests(unittest.TestCase):
             self.assertNotIn(code, [post[2] & 0xFF for post in stock.key(code, code)])
 
     def test_every_other_key_is_posted_as_the_stock_game_posts_it(self) -> None:
+        """A key's letter past U+00FF (any script) is posted as that letter (keysym.unicode is UCS-2;
+        half a surrogate pair and U+FFFE/U+FFFF are not letters); a special key (sym 0x100 and up:
+        arrows, keypad, F keys) and every ASCII key go the stock game's way."""
         patched, stock = FishKeys(patched=True), FishKeys(patched=False)
         cases = []
-        for unicode in list(range(0x00, 0x80)) + [0x100, 0x142, 0x20AC, 0x3042]:
+        for unicode in list(range(0x00, 0x80)) + [0x100, 0x142, 0x20AC, 0x3042, 0xAC00, 0xD83D, 0xDE00, 0xFFFE]:
             for sym in {unicode if unicode < 0x100 else 0, 0x61, 0x111, 0x100 + 5, 0x13A}:
                 for mod in (0, KMOD_SHIFT, KMOD_CTRL_ALT, KMOD_CAPS, 0x0400):
                     cases.append((sym, unicode, mod))
         for sym, unicode, mod in cases:
             with self.subTest(sym=hex(sym), unicode=hex(unicode), mod=hex(mod)):
-                self.assertEqual(patched.key(sym, unicode, mod), stock.key(sym, unicode, mod))
+                letter = unicode >= 0xA0 and sym < 0x100 and not 0xD800 <= unicode <= 0xDFFF and unicode < 0xFFFE
+                expected = [(5, unicode, unicode)] if letter else stock.key(sym, unicode, mod)
+                self.assertEqual(patched.key(sym, unicode, mod), expected)
 
     def test_the_text_box_stores_the_typed_name(self) -> None:
         keys = FishKeys(patched=True)
@@ -406,7 +413,7 @@ class FishTypingTests(unittest.TestCase):
                 posted += [post[2] for post in keys.key(byte, byte, KMOD_SHIFT if chr(byte).isupper() else 0)]
             with self.subTest(name=name):
                 stored = text_box(keys.emu, 0x0040BFC0, FISH_EVENTS_GET, 0x00402030, posted)
-                self.assertEqual(stored, raw)
+                self.assertEqual(stored, name.encode("utf-8"))          # the box keeps UTF-8 now
         # the stock path's sign-extended byte (what 0x403F3A would post) is refused by the box
         self.assertEqual(text_box(keys.emu, 0x0040BFC0, FISH_EVENTS_GET, 0x00402030, [0xFFFFFFE9]), b"")
 
@@ -422,13 +429,19 @@ class PlantTypingTests(unittest.TestCase):
                 self.assertEqual(stock.text(chr(code).encode("utf-8")), [])
 
     def test_everything_else_is_as_the_stock_game_has_it(self) -> None:
+        """One byte goes the stock game's way; longer text (an accented letter, any script, an
+        emoji, an input method's whole text) is posted letter by letter, whatever of it is UTF-8."""
         patched, stock = PlantText(patched=True), PlantText(patched=False)
         samples = [bytes([b]) for b in range(1, 0x80)] + [
             "\u0080".encode(), "\u009f".encode(), "ł".encode(), "€".encode(), "あ".encode(), "😀".encode(),
-            b"ab", b"\xc3", b"\xc3\x28", b"\xc2\xc2", b"\xe2\x82"]
+            "日本語".encode(), "𒀀".encode(), b"ab", b"\xc3", b"\xc3\x28", b"\xc2\xc2", b"\xe2\x82"]
         for raw in samples:
             with self.subTest(raw=raw):
-                self.assertEqual(patched.text(raw), stock.text(raw))
+                if len(raw) == 1:
+                    expected = stock.text(raw)
+                else:
+                    expected = [(5, 0, ord(c)) for c in raw.decode("utf-8", "ignore") if ord(c) >= 0x20]
+                self.assertEqual(patched.text(raw), expected)
 
     def test_the_text_box_stores_the_typed_name(self) -> None:
         text = PlantText(patched=True)
@@ -437,7 +450,7 @@ class PlantTypingTests(unittest.TestCase):
             for ch in name:
                 posted += [post[2] for post in text.text(ch.encode("utf-8"))]
             with self.subTest(name=name):
-                self.assertEqual(text_box(text.emu, 0x0040CA90, PLANT_EVENTS_GET, 0x00402020, posted), name.encode("latin-1"))
+                self.assertEqual(text_box(text.emu, 0x0040CA90, PLANT_EVENTS_GET, 0x00402020, posted), name.encode("utf-8"))
 
 
 # ------------------------------------------------------------------ drawing
@@ -609,10 +622,10 @@ class TranslationsContractTests(unittest.TestCase):
         active = symbols["_FtfpUnicodeTextActive@0"]
         self.assertEqual(emu.call(active), 0)                       # not installed yet
         self.assertEqual(startup(emu, symbols), 1)
-        # This stage draws the game's bytes (Windows-1252 letters included), not UTF-8: it answers 0
+        # Installed, it draws UTF-8: nonzero, so Translations.dll writes UTF-8
+        self.assertNotEqual(emu.call(active), 0)
+        emu.write32(symbols["_utf8_drawing"], 0)                    # while it drew the game's bytes: 0
         self.assertEqual(emu.call(active), 0)
-        emu.write32(symbols["_utf8_drawing"], 1)                    # once it draws UTF-8
-        self.assertEqual(emu.call(active), 1)
 
     @needs("fish")
     def test_fish(self) -> None:

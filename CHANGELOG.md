@@ -26,6 +26,26 @@
   and draw pixel for pixel, a save with such a name loaded by the stock and
   the patched game), tests/test_patch_presets.py (settings that exclude each
   other), tests/test_save_tools.py.
+- **Any script** (Render Unicode with In-Game Fonts, stage 3). Text is UTF-8
+  now, in both games: names, and any text the game draws (Translations.dll
+  writes UTF-8, as Unicode Text.dll's FtfpUnicodeTextActive now answers 1). A
+  byte that does not start a whole UTF-8 letter reads as its Latin-1 letter, so
+  every old save and text reads as before. Each letter is drawn from the first
+  source that has it: the game's own font (with the patcher-made letters; a run
+  of them is drawn and measured by the game's own code, pixel for pixel), then
+  Windows' fonts at run time (GDI and Uniscribe: Segoe UI, Yu Gothic, Meiryo,
+  Microsoft YaHei, Malgun Gothic, Nirmala UI and the other script fonts,
+  Segoe UI Historic for cuneiform, Segoe UI Emoji, Segoe UI Symbol), sized to
+  the game font's line, tinted to the text's colour and kept; a letter no font
+  has is '?'. Typing takes any letter: Fish Tycoon every keysym.unicode letter
+  of a normal key (SDL 1.2's UCS-2), and through the game's window the emoji
+  panel's letters (VK_PACKET) and an input method's finished text
+  (ImmGetCompositionStringW), surrogate pairs as one letter; Plant Tycoon every
+  letter of SDL 2's text input. The text box keeps UTF-8: a letter goes in
+  whole or not at all, Backspace takes off a whole letter, a name box stops at
+  300 letters. Emoji are drawn in one colour (GDI has no colour fonts). Tests:
+  tests/test_unicode_glyphs.py, tests/test_unicode_text.py,
+  tests/test_unicode_names.py.
 - **Long names** (Render Unicode with In-Game Fonts, stage 2). Every name box
   in both games (the five player rows of the player list and the new player's
   box) takes up to 300 letters, the one limit of the DLL and of Rename Players

@@ -1620,8 +1620,9 @@ TEXT_ENTRY = (
         "(keysym.unicode) only when it is below 0x80, keeps only 0x20-0x7E, and drops every key "
         "pressed with Ctrl or Alt, so AltGr letters never arrive either. Its text box itself would "
         "store any byte 0x20-0xFF.",
-        patched=(("unicode_ingame_fonts", "every Latin-1 letter too (U+00A0-U+00FF: é ñ ü ß Æ ¿ £ ...), "
-                  "AltGr letters included, stored as its Latin-1 byte."),),
+        patched=(("unicode_ingame_fonts", "any letter of any script (é ñ ß, Ç ğ İ, 山田, 한국어, emoji, "
+                  "cuneiform ...), AltGr letters, the emoji panel and input methods included, stored as UTF-8; "
+                  "Backspace takes off a whole letter."),),
     ),
     Fact(
         "What the fonts draw: Paddington 18 and 30 and Triplex Sans Bold 16 have ASCII and only "
@@ -1629,7 +1630,8 @@ TEXT_ENTRY = (
         "^ { | } ~). A letter a font lacks is drawn as its first letter, a space.",
         patched=(("unicode_ingame_fonts", "every Latin-1 letter and the Windows-1252 letters € ' ' \" \" "
                   "– — … ™ Œ Š Ž Ÿ ..., made in each font's own style, and real letters for Paddington's "
-                  "boxes."),),
+                  "boxes; any other letter is drawn from Windows' fonts (Segoe UI and the fonts for "
+                  "other scripts, emoji in one colour) at the font's size and in the text's colour."),),
     ),
 )
 

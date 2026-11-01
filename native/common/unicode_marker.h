@@ -44,7 +44,7 @@ static int unicode_data_folder(const wchar_t *data_folder, wchar_t *out, DWORD c
 }
 
 static void unicode_write_marker(const wchar_t *data_folder) {
-    static const char text[] = "Render Unicode with In-Game Fonts: this copy types and draws Latin-1 names.\r\n";
+    static const char text[] = "Unicode Text: this copy types and draws names in any script (UTF-8).\r\n";
     wchar_t path[1024];
     DWORD written;
     HANDLE file;
