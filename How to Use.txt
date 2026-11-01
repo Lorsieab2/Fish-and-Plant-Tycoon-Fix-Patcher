@@ -350,6 +350,17 @@ copies the pictures it needs from your game into "Picture Studio Pictures"
 beside the patcher ("Find game..." if it has none yet), and never changes a
 save.
 
+Tools tab, Text Maker: pick the game and one of its fonts, type in the box
+(Enter starts a new line), and the preview shows it exactly as the game
+draws it. Pick the colour, Shadow or Outline, the size and the background,
+then "Export PNG..." (tick "Transparent background" for a clear one). The
+Insert character list has accented letters by language; "Any Unicode"
+takes a code like U+00E9 or 1F41F, a character name, or the characters
+themselves (Japanese, Chinese, Korean, Greek, Cyrillic, cuneiform, emoji).
+Letters the font lacks are made for it, in its style, and listed as
+"patcher-made". It reads the fonts from your copy of the game ("Game
+Copy..." to choose one) and never changes a game file.
+
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.
 

@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.21**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.22**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -953,6 +953,37 @@ folder never fails with "path too long".
   pictures come from your own copy of the game, kept in a "Picture Studio
   Pictures" folder beside the patcher, as the Breeding Guide's. See
   [docs/picture-studio-interface.md](docs/picture-studio-interface.md).
+
+- **Text Maker.** Type anything and see it in the games' own fonts, drawn
+  exactly as the game draws it, then Export PNG (transparent background if
+  you like). Fish Tycoon: Paddington 18 (its main text), Paddington 30
+  (titles) and Triplex Sans Bold 16 (labels); Plant Tycoon: PT Font Small,
+  plus PT Font Big and LDW Arial Bold (in its folder, never used by the
+  game). Colour (the games' own or any), shadow or outline, size 1x-8x,
+  background, multi-line.
+  - Exact: the letter pictures, widths, line height and colours come from the
+    game's own data and rules (each font's table in the executable, re-laid
+    and indexed as the game's loader does; the colour ANDed into each pixel;
+    SDL's blend). `tests/test_text_maker.py` runs each game's own font loader
+    and text draw (Fish 0x402510 / 0x4087E0, Plant 0x4024E0 / 0x408E20) in
+    Unicorn on the real font pictures and checks the Text Maker's picture
+    against the game's screen pixel for pixel, for all four fonts and five
+    colours. The game's colour argument is 0xAABBGGRR (its low byte is red).
+  - Accents and any Unicode: an accent picker (French, German, Spanish and
+    Portuguese, Italian, Nordic, Turkish, Polish, Czech and Slovak,
+    Hungarian and Romanian, Baltic, Vietnamese, symbols) and an "Any
+    Unicode" box (U+00E9, 1F41F, a character name, or the characters).
+  - Letters a font lacks are made for it and listed as "patcher-made":
+    accented letters from the font's own letter and accent pixels (its own
+    accented letters' accents, its spacing accents, an acute mirrored from
+    its grave; a capital made slightly shorter when the line has no room),
+    everything else drawn by Windows (DirectWrite: Segoe UI, Segoe UI
+    Historic, Symbol and Emoji, Yu Gothic, Microsoft YaHei, Malgun Gothic,
+    Nirmala UI, Ebrima, Noto...) at the game font's capital height, on its
+    baseline, in the nearest weight and with its own alpha steps; colour
+    emoji keep their colours, and joined emoji and skin tones stay whole.
+    Untick "Make missing letters" to see what the game itself draws.
+  - It reads the fonts from your copy of the game and changes nothing.
 
 ## Safety
 

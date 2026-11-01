@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.0.22
+
+- **Text Maker** (Tools tab, both games): type anything in the games' own
+  fonts, drawn exactly as the game draws it (checked pixel for pixel against
+  the game's own font loader and draw run in Unicorn), with colour, shadow or
+  outline, size and background, and Export PNG with a transparent background.
+  Every font each game has: Fish Tycoon's Paddington 18 and 30 and Triplex
+  Sans Bold 16, Plant Tycoon's PT Font Small (and PT Font Big and LDW Arial
+  Bold, in its folder but unused). An accent picker and an "Any Unicode" box;
+  letters a font lacks are made for it ("patcher-made"): accents from the
+  font's own pixels, everything else (CJK, Greek, Cyrillic, cuneiform, colour
+  emoji...) drawn by Windows in the font's size, baseline and weight.
+
 ## v1.0.21
 
 - **Fish Tycoon: the treated price is shown beside the price you set** (DS

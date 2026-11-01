@@ -9,7 +9,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUTS = ROOT / "outputs"
-VERSION = "v1.0.21"
+VERSION = "v1.0.22"
 NAME = f"Fish-and-Plant-Tycoon-Fix-Patcher-{VERSION}.zip"
 FILES = [
     "LICENSE",
@@ -104,6 +104,9 @@ FILES = [
     "src/game_mechanics_plant.py",
     "src/game_mechanics_window.py",
     "docs/game-mechanics-window.md",
+    "src/text_maker.py",
+    "src/text_maker_window.py",
+    "src/text_raster.py",
     "src/experimental.py",
     "src/cheat.py",
     "src/tycoon_fix_patcher.py",
