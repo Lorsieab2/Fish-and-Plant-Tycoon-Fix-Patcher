@@ -9,13 +9,24 @@ What is exact, and what is not (the tab's note says the same):
   by height // rows, column and row clamped), a plain image is whole; each drawn at scale 1 and
   full strength, as the game's own cell and image draws do when they are not scaled or faded.
 * A picture file the game has but its executable never names (no sprite record, button,
-  background or font loads it) is "(unused)"; it has no grid, so it is shown whole.
+  background or font loads it) is "(unused)"; it has no grid, so it is shown whole. "Names" is
+  strict: the whole file name, or its stem as a whole string of its own (a font class such as
+  "ptfontsmall", or a stem the game numbers itself: Plant Tycoon builds male_Bodies00 from
+  "male_bodies" with "%s%d%d%s" at 0x40A12F). A stem that is only part of another file's name
+  does not count (logo1.gif is not logo1.png; bushDetailE.png is not bushDetailE2.png). Fish
+  Tycoon builds no picture name from a format string (its only ones, "%s%s" / "%s%s%s" at
+  0x410692 / 0x410724, join the folder and a name, and "%s%d" at 0x4439C0 is text), so its eight
+  species_*.png pieces, never named, are unused (the species screen is species_bg.bmp alone).
 * The patcher's own picture files (assets/) are "(patcher)", with the grid the patcher's DLL gives
   them (pictures_fish.sheet), else whole.
-* Not here: the compositions the game builds from several pictures (screens, bars and meters
-  filled and joined, buttons in their states, the counters, rope borders and tooltips put
-  together); each piece is here, as a cell. Files the Studio cannot read (BMP, JPG and GIF
-  backgrounds) are listed in the tab's note by name and not drawn.
+* BMP, JPEG and GIF pictures are read by picture_formats (the JPEGs exactly as the game's
+  libjpeg-9 decodes them); a GIF has one picture per frame (each of the games' has one).
+* A file the game's sprite table names but its folder lacks (Plant Tycoon: SPLASH2_BG.jpg,
+  SPLASH3_BG.bmp, MenuButtonMain.png, wheel-barrow.png, collection_jar_leaves.png) is named in the
+  tab's note and never drawn: there is no art to draw. Plant Tycoon's stylesheet.css is not a
+  picture.
+* The compositions the game builds from several pictures are on the "Screens, bars and buttons"
+  tab (pictures_screens).
 
 The art is read straight from the game copy the Studio found (read only), not from its cache.
 """
@@ -44,6 +55,7 @@ class Sheet:
     patcher: bool = False
     unused: bool = False
     readable: bool = True
+    missing: bool = False                 # named by the game, not in its folder
 
     @property
     def frames(self) -> int:
@@ -88,6 +100,22 @@ PLANT_RULES = (
                                  "stylesheet", "30day", "ptwin", "addl")),
 )
 OTHER = "Other pictures"
+
+
+def named(exe: bytes, key: str) -> bool:
+    """Whether the executable (lower case) names the file: the whole name, or its stem (or the
+    stem less trailing digits) as a whole string of its own, never as part of another name."""
+    import re
+    if key.encode("latin-1", "replace") + b"\x00" in exe:      # the whole name, as the end of a string
+        return True
+    stem = key.rsplit(".", 1)[0]
+    for word in {stem, stem.rstrip("0123456789")}:
+        if len(word) <= 3:
+            continue
+        pattern = rb"(?:^|[\x00/\\])" + re.escape(word.encode("latin-1", "replace")) + rb"\x00"
+        if re.search(pattern, exe):
+            return True
+    return False
 
 
 def category(game: str, name: str) -> str:
@@ -192,19 +220,17 @@ class GameArt:
         exe = self._exe_text()
         listed = set()
         out = []
+        import picture_formats as F
         for name, cols, rows in table:
             listed.add(name.casefold())
-            readable = name.casefold().endswith(".png") and (not names or name.casefold() in names)
-            out.append(Sheet(name, cols, rows, category(self.game, name), readable=readable))
+            present = not names or name.casefold() in names
+            readable = name.casefold().endswith(F.READABLE) and present
+            out.append(Sheet(name, cols, rows, category(self.game, name), readable=readable,
+                             missing=bool(names) and not present))
         for key, name in sorted(names.items()):
             if key not in listed:
-                stem = key.rsplit(".", 1)[0]
-                # named by file, by stem (the fonts are classes named after their file), or by a
-                # stem the game numbers itself (male_Bodies00 from "male_bodies" ...)
-                used = bool(exe) and any(w.encode("latin-1", "replace") in exe
-                                         for w in {key, stem, stem.rstrip("0123456789")} if len(w) > 3)
-                out.append(Sheet(name, 0, 0, category(self.game, name), unused=bool(exe) and not used,
-                                 readable=key.endswith(".png")))
+                out.append(Sheet(name, 0, 0, category(self.game, name), unused=bool(exe) and not named(exe, key),
+                                 readable=key.endswith(F.READABLE)))
         grids = patcher_grids(self.game)
         for name in patcher_files(self.game):
             cols, rows = grids.get(name.casefold(), (0, 0))
@@ -215,7 +241,10 @@ class GameArt:
         return [s for s in self.sheets if s.readable]
 
     def not_drawn(self) -> list:
-        return [s.name for s in self.sheets if not s.readable]
+        return [s.name for s in self.sheets if not s.readable and not s.missing]
+
+    def missing(self) -> list:
+        return [s.name for s in self.sheets if s.missing]
 
     def image(self, sheet: Sheet):
         key = sheet.key.casefold()
@@ -226,7 +255,8 @@ class GameArt:
                 data = self.source.read(sheet.name) if self.source is not None else None
             if data is None:
                 raise PictureError(f"{sheet.name} is not in the game copy found; click \"Find game...\".")
-            self._images[key] = self.pi.decode_png(data)
+            import picture_formats as F
+            self._images[key] = F.decode(sheet.name, data)
         return self._images[key]
 
     def render(self, key: str, frame: int):
@@ -244,12 +274,10 @@ class GameArt:
 
 # ------------------------------------------------------------------ the "All game art" tab
 
-NOTE = ("Every picture file of the game, one picture per sprite cell, cut as the game cuts it and drawn at full "
-        "size and strength. (unused): a file the game's executable never names (no sprite record, button, "
-        "background or font loads it), shown whole. "
-        "(patcher): the patcher's own art. Not here yet: the game's compositions of several pieces (screens, "
-        "bars and meters filled and joined, buttons in their states, counters, rope borders, tooltips), and "
-        "files not drawn (the Studio reads PNG only; a few the game names are not in its folder): ")
+NOTE = ("Every picture file of the game (PNG, BMP, JPEG and GIF), one picture per sprite cell, cut as the game "
+        "cuts it and drawn at full size and strength. (unused): a file the game's executable never names (no "
+        "sprite record, button, background or font loads it), shown whole. (patcher): the patcher's own art. "
+        "The game's compositions of several pieces are on the Screens, bars and buttons tab. ")
 
 
 def fields(art: GameArt, spec: dict) -> dict:
@@ -275,8 +303,14 @@ def fields(art: GameArt, spec: dict) -> dict:
 def subject(art: GameArt):
     from picture_image import Field, Subject
     f = fields(art, {})
-    missing = art.not_drawn()
-    note = NOTE + (", ".join(missing) if missing else "none") + "."
+    note = NOTE
+    missing = art.missing()
+    if missing:
+        note += ("Named by the game's sprite table but not in its folder, so not drawn (there is no art): "
+                 + ", ".join(missing) + ". ")
+    other = art.not_drawn()
+    if other:
+        note += "Not a picture: " + ", ".join(other) + "."
     if art.problem:
         note = art.problem + " " + note
     return Subject("art", "All game art", (

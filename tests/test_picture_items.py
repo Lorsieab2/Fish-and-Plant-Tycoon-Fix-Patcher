@@ -347,6 +347,40 @@ class AllGameArtTests(unittest.TestCase):
         same(self, plant.render(heads.key, 40), _whole_cell(sheet, heads.cols, heads.rows, 40), "a visitor's head")
         self.assertIn("Chemicals_Grid_upgrades.png", {s.name for s in plant.sheets if s.patcher})
 
+    def test_backgrounds_missing_files_and_unused_verdicts(self) -> None:
+        import pictures_game_art as ga
+        fish, plant = ga.GameArt("fish", FISH), ga.GameArt("plant", PLANT)
+        fish_bmp = [s for s in fish.drawable() if s.name.casefold().endswith(".bmp")]
+        self.assertEqual(len(fish_bmp), 16, "Fish Tycoon's 16 BMPs are drawn")
+        plant_bg = [s for s in plant.drawable() if s.name.casefold().endswith((".jpg", ".gif", ".bmp"))]
+        self.assertEqual(len(plant_bg), 24, "Plant Tycoon's 21 JPEGs and 3 GIFs are drawn")
+        self.assertEqual((fish.render("credits_bg.bmp", 0).width, plant.render("Menu_BG.jpg", 0).height), (800, 600))
+        # named by the sprite table, not in the folder: listed, never drawn or faked
+        self.assertEqual(plant.missing(), ["SPLASH2_BG.jpg", "SPLASH3_BG.bmp", "MenuButtonMain.png",
+                                           "wheel-barrow.png", "collection_jar_leaves.png"])
+        self.assertEqual(plant.not_drawn(), ["stylesheet.css"])
+        self.assertEqual(fish.missing(), [])
+        note = ga.subject(plant).note
+        for name in plant.missing():
+            self.assertIn(name, note)
+        # "unused" is strict: never a stem that is only part of another file's name
+        fish_unused = {s.name for s in fish.sheets if s.unused}
+        self.assertTrue({f"species_{n}.png" for n in ("connectbar1", "connectbar2", "grandparentframes", "keypad",
+                                                      "parentframes", "pricebar", "seabed", "specimenframe")}
+                        <= fish_unused)
+        self.assertEqual(len(fish_unused), 22)
+        plant_unused = {s.name for s in plant.sheets if s.unused}
+        self.assertTrue({"logo1.gif", "bushDetailE.png", "Test Plant Parts.jpg"} <= plant_unused)
+        for used in ("PTfontsmall.png", "male_Bodies00.png", "female_bodies10.png", "LoadColor.png",
+                     "sliderhandle.png", "logo1.png"):
+            self.assertNotIn(used, plant_unused)
+        self.assertNotIn("bubble_lg.png", fish_unused)
+        exe = (FISH / "Fish Tycoon.exe").read_bytes()
+        formats = set(re.findall(rb"[\x20-\x7e]*%[sd][\x20-\x7e]*\x00", exe))
+        self.assertFalse([f for f in formats if re.search(rb"species_%|\.png|\.bmp|%s_|_%", f.lower())],
+                         "Fish Tycoon builds no picture name from a format string")
+        self.assertTrue({b"%s%s\x00", b"%s%s%s\x00", b"%s%d\x00"} <= formats, "only joins and text")
+
 
 def _whole_cell(sheet: pi.Image, cols: int, rows: int, k: int) -> pi.Image:
     """The cell exactly as cut (not cropped), on a clear canvas."""

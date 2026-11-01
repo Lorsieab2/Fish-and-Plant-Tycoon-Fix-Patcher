@@ -92,6 +92,7 @@ FILES = [
     "src/breeding_plant.py",
     "src/breeding_pictures.py",
     "src/picture_image.py",
+    "src/picture_formats.py",
     "src/picture_studio.py",
     "src/pictures_fish.py",
     "src/pictures_fish_ds.py",
