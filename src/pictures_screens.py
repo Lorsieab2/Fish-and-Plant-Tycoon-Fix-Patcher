@@ -103,6 +103,8 @@ class Piece:
     fill: tuple | None = None
     text: Text | None = None
     shade: bool = False   # a fill laid over what is drawn: Plant Tycoon's see-through rectangle
+    image: object = field(default=None, compare=False)   # drawn already (a pot and its plant, by
+    #                                    pictures_plant's planner and the game's scaler)
 
 
 @dataclass(frozen=True)
@@ -767,14 +769,40 @@ def plant_replay(frame: int = 0) -> Piece:
 
 def plant_pot_words() -> list:
     """A picked pot's words (0x428250 / 0x4286E6 and the helpers 0x44CD80 / 0x44CB30, 0x4232F0):
-    its name centred at (118, 254), "NA" seeds at (62, 302), "Age:" and the age, its state at
+    its name centred at (118, 254), "NA" seeds and pollen at (62, 302) and (146, 302), "Age:" and the age, its state at
     (20, 466) and how long to the next stage at (50, 500), all black."""
     black = 0xFF000000
     return [say(0x76, 0xFE, ("id", 0x18E), colour=black, align="centre"),
-            say(0x3E, 0x12E, ("id", 0x5F), colour=black),
+            say(0x3E, 0x12E, ("id", 0x5F), colour=black), say(0x92, 0x12E, ("id", 0x5F), colour=black),
             say(0x8C, 0x1D2, ("id", 0x40), colour=black), say(0xB7, 0x1D2, ("fmt", 0x4653BC, (3,)), colour=black),
             say(0x14, 0x1D2, ("id", 0x5E), colour=black),
             say(0x32, 0x1F4, ("fmt", 0x4691BC, (("id", 0x18A), 12)), colour=black)]
+
+
+# Sample plants in the greenhouse's pots: (pot k = row x 5 + column, foliage, flower, stage), grown by
+# pictures_plant.grow_custom (the game's rules) and drawn by its planner (the plant draw 0x42E4A0,
+# the pot draw 0x42F740, checked in Unicorn by tests/test_pictures_plant.py) at the pot's place
+# (0x42FDE0: (323 + 93 c, 117 + 144 r)), in place of the empty pot.
+GREENHOUSE_SAMPLES = ((0, 1, 3, "sprout"), (1, 4, 7, "seedling"), (3, 9, 12, "growing"), (6, 6, 2, "budding"),
+                      (7, 12, 17, "bloom"), (9, 17, 21, "max"), (11, 22, 9, "bloom"), (13, 3, 14, "growing"))
+
+
+def greenhouse_pots(c, samples=GREENHOUSE_SAMPLES) -> dict:
+    """pot k -> a Piece: the pot with its plant (and wet soil), drawn on a screen-sized layer."""
+    import pictures_plant as pp
+    planner = pp.Planner(lambda key: c.cell_size(*key))
+    out = {}
+    for k, foliage, flower, stage in samples:
+        plant = pp.grow_custom(foliage, flower, 0, stage)
+        plant.water = 600
+        x, y = pp.GREENHOUSE_PLACES[k]
+        layer = pp.composite(c, planner.plan(plant, x, y), origin=(0, 0), size=(800, 600))
+        out[k] = Piece("", 0, 0, image=layer)
+    return out
+
+
+STORY2_START = (say(0x15E, 0x1EA, ident(0x98), colour=0xFF000000, align="centre"),
+                say(0x15E, 0x212, ident(0x99), colour=0xFF000000, align="centre"))
 
 
 PLANT_BUTTONS = (
@@ -845,6 +873,49 @@ POTS = tuple(Piece("pot.png", x, y, cols=1, rows=7) for y in (102, 246, 390) for
 
 # The Store's headings (text widgets, centred, white; 0x446630).
 STORE_WORDS = ((0x194, 0x21C, 7), (0x195, 0x1D2, 0x25), (0x196, 0x2AB, 0x25), (0x180, 0x1D2, 0x111), (0x197, 0x2AB, 0x111))
+
+
+# The Seed box's trays (0x434480): slot k (state + 0x52CE4 + 0x24 k: a byte, set when it holds a
+# seed, and at +4 its seed_grid.png frame) at (242 + 53 c, 46 + 152 b + 34 r): box b = k / 40 (the
+# first, then the two extra seed boxes), row r = k % 40 / 10, column c = k % 10. With no seed picked
+# the information box shows unknown.png for the seeds and pollen at (5, 320) and (112, 320) and the
+# picked packet's frame (none: 0) at (83, 494) (0x434185).
+SEEDBOX_INFO = (Piece("unknown.png", 5, 320), Piece("unknown.png", 112, 320),
+                Piece("seed_grid.png", 83, 494, cols=16, rows=6))
+SEEDBOX_SAMPLE = tuple((k, (k * 7) % 92) for k in (*range(0, 23), *range(40, 52), *range(80, 86)))
+
+
+def seedbox_seeds(slots) -> list:
+    return [Piece("seed_grid.png", 242 + 53 * (k % 10), 46 + 152 * (k // 40) + 34 * (k % 40 // 10), cols=16, rows=6,
+                  cell=frame) for k, frame in slots]
+
+
+# The Store's shelves (0x447D40; pictures_plant_items names the places): each item on
+# peep_shadow1.png. Tools_Grid.png frame 5 r + c at (233 + 57 c, 50 + 61 r), its shadow at (x + 25,
+# y + 30); Chemicals_Grid.png frame 2 k (k = 3 r + c) at (598 + 57 c, 55 + 66 r), shadow (x + 25,
+# y + 30); Ornaments_Grid.png frame 5 r + c at (253 + 57 c, 297 + 64 r), shadow (x + 5, y + 10); the
+# seeds in stock, seed_grid.png frame f at (602 + 57 c, 315 + 66 r), shadow (x + 5, y + 5). The
+# Store's tool tray has all four tools (soil, water, shears, net) at (19 + 45 k, 136).
+STORE_TOOL_TRAY = (Piece("soilbag_grid.png", 19, 136, cols=2, rows=3), Piece("waterbucket_grid.png", 64, 136, cols=2, rows=3),
+                   Piece("scissors.png", 109, 136, cols=2, rows=3), Piece("net.png", 153, 136, cols=2, rows=3))
+STORE_SAMPLE_SEEDS = (0, 9, 18, 27, 36, 45, 54, 63, 72)      # seed_grid frames: (foliage - 1) x 4 + rarity
+
+
+def store_shelves(seeds=()) -> list:
+    out = []
+    shelves = (("Tools_Grid.png", 5, 3, 15, lambda k: (233 + 57 * (k % 5), 50 + 61 * (k // 5)), lambda k: k, (25, 30)),
+               ("Chemicals_Grid.png", 2, 9, 9, lambda k: (598 + 57 * (k % 3), 55 + 66 * (k // 3)), lambda k: 2 * k,
+                (25, 30)),
+               ("Ornaments_Grid.png", 5, 3, 15, lambda k: (253 + 57 * (k % 5), 297 + 64 * (k // 5)), lambda k: k,
+                (5, 10)))
+    for file, cols, rows, n, place, frame, (dx, dy) in shelves:
+        for k in range(n):
+            x, y = place(k)
+            out += [Piece("peep_shadow1.png", x + dx, y + dy), Piece(file, x, y, cols=cols, rows=rows, cell=frame(k))]
+    for k, f in enumerate(seeds):
+        x, y = 602 + 57 * (k % 3), 315 + 66 * (k // 3)
+        out += [Piece("peep_shadow1.png", x + 5, y + 5), Piece("seed_grid.png", x, y, cols=16, rows=6, cell=f)]
+    return out
 
 
 def _cash() -> list:
@@ -959,25 +1030,42 @@ def _plant_pictures() -> list:
                            (Piece("main_bg.png", 0, 0), plant_replay(frame)), crop=(380, 0, 640, 30)))
     out.append(Picture("screen:greenhouse:pot", screens, "Greenhouse, a pot picked (its words; the plant is not drawn)",
                        tuple(green) + tuple(plant_pot_words()), canvas=(800, 600)))
+
+    def planted(c, base=tuple(green)):
+        pots = greenhouse_pots(c)
+        return tuple(pots.get(POTS.index(p), p) if p in POTS else p for p in base) + (
+            say(0x76, 0xFE, ident(0x18D), colour=PLANT_BLACK, align="centre"),)
+    out.append(Picture("screen:greenhouse:plants", screens, "Greenhouse with sample plants in its pots (several kinds "
+                       "at several ages: sprout, seedling, growing, budding, in bloom, max bloom; wet soil)", (),
+                       canvas=(800, 600), make=planted))
     for n in (0, 1, 2):
         own, rest = _split_tabs(1, SEEDBOX_TABS)
         seeds = [Piece("SeedBox_BG.jpg", 0, 0)] + own + [say(0x21C, 7, ident(0x198), colour=0xFFFFFFFF, align="centre"),
                                                          *_tray("seeds", "tools"), *rest, *_trash(), *TOOL_TRAY]
-        seeds += [Piece("addlSeedBox.png", 239, y) for y in (201, 354)[:n]]
+        seeds += [Piece("addlSeedBox.png", 239, y) for y in (201, 354)[:n]] + list(SEEDBOX_INFO)
         out.append(Picture(f"screen:seedbox{n}", screens, f"Seed box (empty; {n} extra seed box{'es' if n != 1 else ''})",
                            tuple(seeds), canvas=(800, 600)))
-    store = [Piece("Store_BG.jpg", 0, 0), *_tabs(2, STORE_TABS), *_cash()]
-    store += [say(x, y, ident(t), colour=0xFFFFFFFF, align="centre") for t, x, y in STORE_WORDS] + _tray("seeds", "tools")
-    out.append(Picture("screen:store", screens, "Store (its words; the shelves are on the Items tab)", tuple(store),
-                       canvas=(800, 600)))
+    out.append(Picture("screen:seedbox:seeds", screens, "Seed box with sample seeds in its trays (two extra seed "
+                       "boxes)", tuple(seeds) + tuple(seedbox_seeds(SEEDBOX_SAMPLE)), canvas=(800, 600)))
+    own, rest = _split_tabs(2, STORE_TABS)
+    words = [*_cash(), *(say(x, y, ident(t), colour=0xFFFFFFFF, align="centre") for t, x, y in STORE_WORDS),
+             *_tray("seeds", "tools")]
+    store = [Piece("Store_BG.jpg", 0, 0), *own, *store_shelves(), *STORE_TOOL_TRAY, *rest, *words]
+    out.append(Picture("screen:store", screens, "Store (every tool, chemical and ornament on its shelves; no seeds "
+                       "in stock)", tuple(store), canvas=(800, 600)))
+    seeded = [Piece("Store_BG.jpg", 0, 0), *own, *store_shelves(STORE_SAMPLE_SEEDS), *STORE_TOOL_TRAY, *rest, *words]
+    out.append(Picture("screen:store:seeds", screens, "Store with nine sample seed packets on the seed shelf",
+                       tuple(seeded), canvas=(800, 600)))
     out.append(Picture("screen:nursery", screens, "Nursery (no ornaments)",
                        (Piece("Nursery_BG.jpg", 0, 0), Piece("nurseryUI.png", 0, 484),
                         *label("purplePTButton.png", 227, 540, ident(0x191), PLANT_LILAC)), canvas=(800, 600)))
     own, rest = _split_tabs(3, COLLECTIONS_TABS)
     tabs = own + rest
     out.append(Picture("screen:collections0", screens, "Collections (no bug caught)",
-                       (Piece("collections_bg.jpg", 0, 0), *own, Piece("collection_jars.png", 0, 0),
-                        *label("widePTButton.png", 59, 514, at(0x467B4C)), *rest), canvas=(800, 600)))
+                       tuple(collections_screen(())), canvas=(800, 600)))
+    out.append(Picture("screen:collections:some", screens, "Collections, a few bugs caught (" +
+                       ", ".join(str(k + 1) for k in COLLECTIONS_SAMPLE) + "), the rest not",
+                       tuple(collections_screen(COLLECTIONS_SAMPLE)), canvas=(800, 600)))
     out.append(Picture("screen:collections48", screens, "Collections (all 48 bugs caught, in their jars)",
                        tuple(collections_screen(range(48))), canvas=(800, 600)))
     for k in range(1, 7):     # 0x420F00: no back arrow on the first page, no next arrow on the last
@@ -991,6 +1079,12 @@ def _plant_pictures() -> list:
     out.append(Picture("screen:story2", screens, "Story, page 2",
                        (Piece("story2_bg.jpg", 0, 0), *label("widePTButton02.png", 228, 560, ident(0x10)),
                         *label("widePTButton02.png", 428, 560, ident(0x11))), canvas=(800, 600)))
+    # Story page 2 as it opens (0x421880): its lines are text widgets (0x40CBE0, centred at x 350,
+    # black) that the page's update moves up and shows one after another; the first two are shown at
+    # once, Yes and No only after the last line (the run in tests/test_picture_screen_draws.py).
+    out.append(Picture("screen:story2:start", screens, "Story, page 2 as it opens (its first two lines; the rest "
+                       "scroll in after them, then Yes and No)",
+                       (Piece("story2_bg.jpg", 0, 0), *STORY2_START), canvas=(800, 600)))
     for k in (1, 2, 3):
         out.append(Picture(f"screen:arrangement{k}", screens, f"Snapshot scene {k} (no plants), with its message",
                            (Piece(f"arrangementBG0{k}.jpg", 0, 0), Piece("PhotoMsg.png", 120, 10, scale=60),
@@ -1045,6 +1139,7 @@ JARS = ((0, 6), (53, 6), (106, 6), (0, 101), (53, 101), (106, 101), (109, 217), 
         (559, 172), (614, 172), (691, 173), (743, 173), (426, 344), (480, 344), (534, 344), (591, 344),
         (682, 330), (634, 417), (734, 399))
 JAR_REST, WEB_SPIDER, JAR_BOX = (9, 43), (2, 10), (53, 78)
+COLLECTIONS_SAMPLE = (0, 5, 13, 30, 40, 47)
 
 
 def collection_bug(bug: int, on_web: bool = False) -> list:
@@ -1064,6 +1159,8 @@ def collections_screen(caught, web: int | None = None, tabs: bool = True) -> lis
         out += collection_bug(k, on_web=k == web)
     out.append(Piece("collection_jars.png", 0, 0))
     if tabs:
+        # 0x4185A6: "Collected: %i out of 48" at (20, 570) in [0x482464] (white)
+        out.append(say(0x14, 0x23A, fmt(0x467818, len(list(caught))), colour=0xFFFFFFFF))
         out += list(label("widePTButton.png", 59, 514, ("at", 0x467B4C))) + _split_tabs(3, COLLECTIONS_TABS)[1]
     return out
 
@@ -1189,6 +1286,8 @@ class Composer:
     def piece(self, p: Piece) -> tuple:
         """(picture, x, y) of a piece as the game draws it."""
         import picture_image as pi
+        if p.image is not None:
+            return p.image, p.x, p.y
         if p.fill is not None:
             r, g, b, a, w, h = p.fill
             out = Image(w, h)
@@ -1442,13 +1541,16 @@ NOTE = {
              "rope boxes of the hints and tooltips. The words are the game's own text from your copy of the game "
              "in its own fonts and colours; a player's cash ($1000), counts, prices, ages and names are sample "
              "values. The supply slots' tooltips (the patcher's DS Store Items) are drawn in the hint's rope box "
-             "over tank 1, their words in the game's own font. Checked by running the game's code: the text "
-             "widths and heights, the text draw and its left / centred / right / between placing, the Options "
-             "popup's headers and radio buttons, and the patcher's tooltip code with the font's real widths. "
-             "Still read from the code without running it (Fish Tycoon's widgets and screen draws are not run "
-             "yet): where each screen puts its words, the message box's and the Options popup's sizes and "
-             "their OK / Cancel places, a radio button's label beside it. Not drawn: the supply slots' items "
-             "under their tooltips, fish, customers and bubbles."),
+             "over tank 1, their words in the game's own font, the slot's item picture under them; a new "
+             "game's tank 1 with its starting supplies. Checked by running the game's code: the screens (tank, "
+             "main menu, trophy case, Help, intro, Supplies store, Sell Fish), the message boxes and the "
+             "Options popup are built and drawn by the game itself on a new game's state and every draw "
+             "compared (pictures, words, places, fonts, colours, the rope box's fill); the text widths, heights, "
+             "draw and placing; the patcher's tooltip code with the font's real widths. The Options popup's "
+             "Fullscreen On and Off are centred as a pair as the game centres them (Off is there on any desktop "
+             "bigger than 800 x 600); which radio button is on is the player's setting (samples here). Not "
+             "drawn: fish, customers, bubbles and the starting plant (they move); the Supplies store's picked "
+             "item bobs and is shown on its shelf."),
     "plant": ("The game's pictures made of several pieces, put together exactly as Plant Tycoon draws them: whole "
               "screens (the background, the screen's pieces and its buttons in their normal look) with their "
               "words and button labels, message and question boxes sized for real messages, the health and water "
@@ -1464,10 +1566,16 @@ NOTE = {
               "places, colours, Cancel, the arrows and where the tutorial points them), the darkening, the "
               "tooltips, the disabled label, the main menu's buttons (quit_button.png opens Options, "
               "options_button.png quits), the hidden \"Replay Tutorial Instruction\" button, the text widths, "
-              "heights, draw and placing. Still read from the code without running it: a picked pot's words. "
+              "heights, draw and placing, the Store with its shelves, the Seed box with seeds in its trays, "
+              "the Collections screen with bugs caught (the spider of the day on its web), a picked pot's words, "
+              "Story page 2 as it opens. The sample plants in the greenhouse are grown and drawn by the plant "
+              "pictures of Make your own (their draw checked in Unicorn by their own tests) at the pots' "
+              "places. Still read from the code without running it: the snapshot scenes (PhotoMsg.png at 60%) "
+              "and the Store's seed shelf places (sample packets). "
               "Unused by the game: the disabled look (nothing disables a button in this version). Not drawn: "
-              "plants, seeds in the trays, the Store's shelves (on the Items tab), visitors and the lightbeam; "
-              "the arrows bob, shown at their first frame. The orange and green dialog pictures are the same "
+              "visitors and the lightbeam (they move); Story page 2's later lines scroll in one after another "
+              "and are shown as the page opens; the arrows bob, shown at their first frame. The orange and "
+              "green dialog pictures are the same "
               "picture in this version of the game."),
 }
 

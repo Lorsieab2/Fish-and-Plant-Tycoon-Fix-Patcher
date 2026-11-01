@@ -270,12 +270,77 @@ class PlantDraws(unittest.TestCase):
         """Screens whose pictures leave out what depends on a game (the seed tray's seeds, the
         Store's shelves): every word the game draws is in the picture, and every piece of the
         picture is drawn by the game."""
-        for ctor, key in ((0x4332C0, "screen:seedbox0"), (0x446630, "screen:store")):
+        for ctor, key in ():
             got = self.screen(ctor)
             want = composed(self.composer, S.by_key("plant")[key].pieces)
             self.assertEqual(sorted(x for x in got if x[0] == "text"), sorted(x for x in want if x[0] == "text"), key)
             for x in want:
                 self.assertIn(x, got, key)
+
+    def test_collections(self) -> None:
+        """Collections (0x418E70, drawn by 0x418460) with bug data: a few bugs caught (state +0x53F4B
+        + bug), the rest not; the day (0x403430) 0, so the spider of the day is the 37th bug (index 36):
+        each caught bug's leaf, the bug resting in its jar, the jars over them, "Collected: n out of
+        48", the tabs; with the 37th bug caught, it sits on its web."""
+        for caught in (S.COLLECTIONS_SAMPLE, (), (36, 37, 2)):
+            d = self.emulator()
+            d.emu.hook(0x403430, lambda e: 0, 0)
+            for k in caught:
+                d.emu.write8(d.game_state + 0x53F4B + k, 1)
+            screen = d._zeroed(0x1000)
+            d.run(0x418E70, this=screen)
+            d.show(screen)
+            want = composed(self.composer, S.collections_screen(caught, web=36 if 36 in caught else None))
+            self.assertEqual(sorted(recorded(d.draws)), sorted(want), caught)
+
+    def test_seed_box(self) -> None:
+        """The Seed box (0x4332C0) empty, exactly; then with seeds in its trays (state + 0x52CE4 + 0x24 k,
+        the frame at +4): each seed where seedbox_seeds puts it."""
+        got = self.screen(0x4332C0)
+        self.assertEqual(sorted(got), sorted(composed(self.composer, S.by_key("plant")["screen:seedbox0"].pieces)))
+        d = self.emulator()
+        d.emu.write32(d.game_state + 0x63E58, 99)
+        for k, frame in S.SEEDBOX_SAMPLE:
+            d.emu.write8(d.game_state + 0x52CE4 + 0x24 * k, 1)
+            d.emu.write32(d.game_state + 0x52CE8 + 0x24 * k, frame)
+        screen = d._zeroed(0x800)
+        d.run(0x4332C0, this=screen)
+        d.show(screen)
+        drawn = [x for x in recorded(d.draws) if x[1] == "seed_grid.png" and x[3:] != (83, 494)]
+        self.assertEqual(sorted(drawn), sorted(composed(self.composer, S.seedbox_seeds(S.SEEDBOX_SAMPLE))))
+
+    def test_picked_pot_words(self) -> None:
+        """Pot 1 picked (state + 0x63E58 = 0) holding a plant (its record at state + 0x2188: foliage 4,
+        flower 7, age 3.0, health 90): the greenhouse's draw writes its seeds and pollen ("NA"), "Age:"
+        and the age, and its state where plant_pot_words puts them (the name and the state's word
+        come from the picking code and the plant's condition; the picture's are samples)."""
+        d = self.emulator()
+        state = d.game_state
+        d.emu.write32(state + 0x217C, 1000)
+        d.emu.write32(state + 0x63E58, 0)
+        d.emu.uc.mem_write(state + 0x2188 + 0x10, struct.pack("<f", 3.0))
+        for offset, value in ((0x4C, 4), (0x50, 7), (0x80, 100), (0x24, 90)):
+            d.emu.write32(state + 0x2188 + offset, value)
+        screen = d._zeroed(0x800)
+        d.run(0x424BB0, this=screen)
+        d.show(screen)
+        got = recorded(d.draws)
+        want = composed(self.composer, S.plant_pot_words())
+        for x in want[1:4]:
+            self.assertIn(x, got)
+        self.assertIn(("text", b"3", 183, 466, S.PLANT_BLACK), got)
+        self.assertEqual({(x[2], x[3]) for x in got if x[0] == "text" and x[2] == 20 and x[3] == 466}, {(20, 466)})
+
+    def test_story_page_two_as_it_opens(self) -> None:
+        got = self.screen(0x421880)
+        self.assertEqual(sorted(got), sorted(composed(self.composer, S.by_key("plant")["screen:story2:start"].pieces)))
+
+    def test_store_shelves(self) -> None:
+        """The Store (0x446630, drawn by 0x447D40) with nothing bought: every tool, chemical and
+        ornament on its shelves on their shadows, the four tools in its tray, its words, exactly."""
+        got = self.screen(0x446630)
+        want = composed(self.composer, S.by_key("plant")["screen:store"].pieces)
+        self.assertEqual(sorted(got), sorted(want))
 
     def test_greenhouse_replay_button(self) -> None:
         """The greenhouse's text button 8 "Replay Tutorial Instruction" in each state."""

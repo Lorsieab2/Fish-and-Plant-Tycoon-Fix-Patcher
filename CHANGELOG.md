@@ -48,6 +48,28 @@
   tank 1, checked against the patcher's own code. The tab's note names what
   is still read without running (Fish Tycoon's screen words and box sizes, a
   picked pot's words).
+- **Picture Studio, Screens, bars and buttons: Fish Tycoon drawn by its own
+  code, and plants, seeds, shelves and bugs on their screens.** Fish
+  Tycoon's screens, message boxes and Options popup are now built and drawn
+  by the game's own code in Unicorn on a new game's state and every draw
+  compared (tests/draw_emulator.py FishScreens): tank 1, the main menu, the
+  trophy case, Help, the intro, the Supplies store, Sell Fish, the rope
+  message boxes (sizes, OK and Cancel) and the Options popup (headers, radio
+  buttons, their labels). Fixed where the pictures differed: Options'
+  Fullscreen On and Off are centred as a pair as the game centres them; the
+  main menu gains the game's version label; Sell Fish gains the selling
+  area's door. New: a new game's tank 1 with its starting supplies in the
+  slots, and the supply slots' tooltips with the slot's item under them.
+  Plant Tycoon, new: the greenhouse with sample plants in its pots (several
+  kinds at several ages, grown and drawn by the plant compositing of Make
+  your own, at the pots' places); the Store with every tool, chemical and
+  ornament on its shelves and its four tools in the tray (exactly as the
+  game draws it), and with sample seed packets on the seed shelf; the Seed
+  box with sample seeds in its trays (the trays' places checked in Unicorn)
+  and its information box's unknown seeds and pollen; the Collections screen
+  with a few bugs caught (bug data given to the game's own constructor and
+  draw: leaves, bugs in their jars, the spider of the day on its web, and
+  "Collected: n out of 48", now on every Collections picture).
 
 ## v1.0.23
 

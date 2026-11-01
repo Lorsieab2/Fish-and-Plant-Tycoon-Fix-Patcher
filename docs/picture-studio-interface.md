@@ -204,11 +204,15 @@ Rules for both renderers:
   and message boxes, Plant Tycoon's message and question boxes, Options dialog, tooltips and the
   dialogs over their screens). A `Piece.shade` fill is laid over what is drawn (Plant's see-through
   rectangle 0x403870: a dialog's darkened screen, a tooltip's box); a Plant colour less than opaque
-  draws its letters with the alpha blit. tests/screen_emulator.py runs a screen's constructor in
-  Unicorn and records its buttons and labels; tests/draw_emulator.py (`DrawEmulator`) runs a Plant
-  screen, dialog, box or tooltip with the game's own widgets and image objects and records every
-  draw call (picture, cell, place; text, place, colour), which tests/test_picture_screen_draws.py
-  compares with the pieces.
+  draws its letters with the alpha blit. A `Piece.image` is a layer drawn already: the greenhouse's
+  sample plants (`greenhouse_pots`: `pictures_plant.grow_custom`, its `Planner` and `composite`, at
+  the pot's place). tests/screen_emulator.py runs a screen's constructor in Unicorn and records its
+  buttons and labels; tests/draw_emulator.py runs a screen, popup, dialog, box or tooltip with the
+  game's own widgets and image objects and records every draw call (picture, cell or source
+  rectangle, place; text, place, colour, font; Fish's fills): `DrawEmulator` for Plant Tycoon (game
+  state given per test: picked pot, bug data, seeds), `FishScreens` for Fish Tycoon (a new game's
+  state made by the game, 0x41AC20 + 0x41AA70; `empty_tank` clears the starting plant and supplies).
+  tests/test_picture_screen_draws.py compares the records with the pieces (`PlantDraws`, `FishDraws`).
 - Bugs: the Picture also offers `pictures_screens.bug_views` (greenhouse "g<size>_<frame>",
   "dead<frame>", "drop<t>", Collections "jar" / "web"), refined per bug (`refine_choices`).
 - Items: Plant items add "fx<type>_<frame>" (the effect manager's sheets, `CHEM_EFFECTS`).
