@@ -796,7 +796,7 @@ static const char LEGENDARY_DESC[] =
     "These ultra-rare seeds were only recently\nrediscovered on Isola and require the\nbest of care to survive.";
 static const char FORMULA_TITLE[] = "Radioactive Plant Formula\n";
 static const char FORMULA_DESC[] =
-    "Causes maximum flower and plant growth and\nrestores full health to plants. No more dead\nleaves! Always 5 seeds! Allows treated\nplants to sell at max price, regardless of\ntheir set value. Contains 3 doses.\n";
+    "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves! Always 5 seeds! Allows\ntreated plants to sell at max price, regardless\nof their set value. Contains 3 doses.\n";
 static const char FORMULA_NAME[] = "Radioactive Plant Formula";
 /* The owner's names and descriptions (docs/revival-potion-spec.md), wrapped as the formula's. */
 static const char REVIVAL_TITLE[] = "Revival Potion\n";

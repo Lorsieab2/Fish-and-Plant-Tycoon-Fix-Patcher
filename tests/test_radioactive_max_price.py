@@ -778,7 +778,10 @@ class Texts(unittest.TestCase):
 
     def test_the_descriptions_fit_the_panels(self) -> None:
         """At most 5 lines (the stock store's longest is 4, Plant's 5 with "Contains"), each no longer than
-        the stock texts' longest (Fish 46 characters, Plant 44)."""
+        the stock texts' longest (Fish 46 characters), Plant 47: the formula's text with the owner's
+        sentence ("Allows treated plants to sell at max price, regardless of their set value.") and
+        "No more dead leaves!" kept on one line needs 47 at 5 lines; checked in the game, its dialog's
+        47-character line ends well inside the red panel."""
         for text in _fish_items()["Radioactive Growth Hormone"]:
             lines = text.split("\n")
             self.assertLessEqual(len(lines), 5, text)
@@ -786,7 +789,7 @@ class Texts(unittest.TestCase):
         for name in ("FORMULA_DESC", "BOMB_DESC"):
             lines = _plant_descriptions()[name].rstrip("\n").split("\n")
             self.assertLessEqual(len(lines), 5, name)
-            self.assertLessEqual(max(map(len, lines)), 44, name)
+            self.assertLessEqual(max(map(len, lines)), 47, name)
 
     def test_the_patcher_descriptions(self) -> None:
         for game, setting, words in (("fish", "ds_store", "Treated fish sell for the highest possible price"),
