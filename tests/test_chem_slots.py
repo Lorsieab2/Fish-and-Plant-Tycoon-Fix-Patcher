@@ -186,6 +186,8 @@ class Game:
         emu.hook(0x00421190, self._fly, 0x20)                     # the put-back's flight
         emu.hook(0x004033B0, lambda e: 0, 0)
         emu.hook(0x0041B190, emu.record("hint", args=2), 8)
+        emu.hook(0x00402050, lambda e: 0, 0)                      # the tooltips' "a button is down": none
+        emu.hook(0x00402060, lambda e: 0, 0)                      # and their clock (the hover's delay)
         self.installed = emu.call(test.symbols["_FtfpStartup@0"])
         state = self.state = emu.alloc(STATE_SIZE)
         for k in range(4):
@@ -193,6 +195,7 @@ class Game:
         emu.write32(state + HELD, 0)
         emu.write32(state + SELECTED, 0x63)
         scene = self.scene = emu.alloc(0x200)
+        emu.write32(scene + 4, emu.alloc(0x20))                    # its rect (0x40B380): at 0, 0
         emu.write32(scene + 0x68, state)
         self.sprites = emu.alloc(0x40)
         emu.write32(scene + 0x6C, self.sprites)
@@ -235,9 +238,18 @@ class Game:
         return self.strings[sid]
 
     def _tip_new(self, e) -> int:
+        """0x409870 as the game makes a tooltip: the shell (+8 1, +0xC its body) and the body
+        (0x4094A0: +4 id, +0x10 rect, +0x30 parent, +0x39 1, +0x3A not hovered).  The body's own
+        mouse move (0x409D70) is the game's, run by move(); hovered() is its draw's test (0x409B70)."""
         tip = e.uc.reg_read(X.UC_X86_REG_ECX)
         rect = struct.unpack("<4i", e.uc.mem_read(e.arg(1), 16))
-        self.tips[tip] = {"id": e.arg(0), "rect": rect, "text": e.cstring(e.arg(3)).decode()}
+        body = e.alloc(0x6C)
+        e.write32(body + 4, e.arg(0))
+        e.uc.mem_write(body + 0x10, struct.pack("<4i", *rect))
+        e.write32(body + 0x30, e.arg(2))
+        e.write8(body + 0x39, 1)
+        e.write32(tip + 0xC, body)
+        self.tips[tip] = {"id": e.arg(0), "rect": rect, "text": e.cstring(e.arg(3)).decode(), "body": body}
         e.write8(tip + 8, 1)
         return tip
 
@@ -327,7 +339,26 @@ class Game:
         return self.emu.call(self.sym["_stub_tray_spot"], x, y, esi=self.scene)
 
     def visible_tips(self) -> dict[tuple, str]:
-        return {t["rect"]: t["text"] for p, t in self.tips.items() if self.emu.uc.mem_read(p + 8, 1)[0]}
+        """The tooltips the mouse can bring up: those whose body keeps its rect.  A hidden one's rect
+        is empty (no point is in it) and it is not hovered; the shell's +8 is read by nothing."""
+        out = {}
+        for t in self.tips.values():
+            r = struct.unpack("<4i", self.emu.uc.mem_read(t["body"] + 0x10, 16))
+            if r[0] <= r[2] and r[1] <= r[3]:
+                assert r == t["rect"], (r, t["rect"])
+                out[r] = t["text"]
+            else:
+                assert not self.emu.uc.mem_read(t["body"] + 0x3A, 1)[0], t
+        return out
+
+    def move(self, x: int, y: int) -> None:
+        """The mouse moves to (x, y): the input hands it to every tooltip body (0x409D70, the game's)."""
+        for t in self.tips.values():
+            self.emu.call(0x00409D70, 1, x, y, ecx=t["body"])
+
+    def hovered(self) -> list[str]:
+        """The tooltips the screen's draw draws now (0x409B70: a hovered body, +0x3A)."""
+        return [t["text"] for t in self.tips.values() if self.emu.uc.mem_read(t["body"] + 0x3A, 1)[0]]
 
 
 class ChemSlotsCase(unittest.TestCase):
@@ -746,6 +777,104 @@ class TooltipTests(ChemSlotsCase):
                                             (65, 173, 92, 253): "Revita-Seed\n2 doses left",
                                             (110, 173, 137, 253): "Chemical 31\n3 doses left"})
         self.assertEqual(len(g.tips), 12)
+
+
+def slot_under(page: int, x: int, y: int) -> int | None:
+    """The slot (0-3 page 1, 4-11 page 2) under (x, y) on the page shown, as its tooltip's rect."""
+    for c in range(4):
+        if not 20 + 45 * c <= x <= 47 + 45 * c:
+            continue
+        if page == 0:
+            return c if 173 <= y <= 253 else None
+        for r, (top, bottom) in enumerate(((136, 184), (185, 253))):
+            if top <= y <= bottom:
+                return 4 + 4 * r + c
+    return None
+
+
+def stock_tray_tips(g: Game) -> None:
+    """The stock tray's four tooltips (0x427836) as if the game had made them, at scene + 0x110."""
+    for k in range(4):
+        tip, rect = g.emu.alloc(0x10), g.emu.alloc(16)
+        g.emu.uc.mem_write(rect, struct.pack("<4i", 20 + 45 * k, 173, 47 + 45 * k, 253))
+        g.emu.call(0x00409870, 0x200 + k, rect, g.scene, g.emu.text(f"Stock tray tip {k}"), 0, 0, 0, ecx=tip)
+        g.emu.write32(g.scene + 0x110 + 4 * k, tip)
+
+
+@_needs()
+class OneTooltipTests(ChemSlotsCase):
+    """The owner (2026-11-01): two tooltips drawn over each other on page 2 ("Mutation Liquid
+    Vaporbomb\\n12 doses left" over another).  A tooltip's body takes every mouse move itself and is
+    drawn whenever the mouse is over its rect (0x409D70, 0x409B70); nothing reads the shell's +8.
+    Page 1's tooltips (y 173-253) lie under page 2's second row and the foot of its first, so they
+    were hovered on page 2 too.  Now a hidden tooltip has no rect: only the slot under the mouse on
+    the page shown, holding a bottle, has its tooltip, never one from the other page or the stock's."""
+
+    XS = sorted(set(range(0, 232, 9)) | {19, 20, 47, 48, 64, 65, 92, 93, 109, 110, 137, 138, 154, 155, 182, 183})
+    YS = sorted(set(range(120, 262, 8)) | {135, 136, 172, 173, 184, 185, 253, 254})
+
+    def sweep(self, g: Game, texts: dict[int, str]) -> None:
+        for page in (0, 1):
+            if g.page() != page:
+                g.press(*([a + 8 for a in ARROW[:2]]))
+            for x in self.XS:
+                for y in self.YS:
+                    g.move(x, y)
+                    g.draw()
+                    want = slot_under(page, x, y)
+                    with self.subTest(page=page + 1, x=x, y=y):
+                        self.assertEqual(g.hovered(), [texts[want]] if want in texts else [])
+
+    def test_at_most_one_tooltip_for_any_mouse_point_on_either_page(self) -> None:
+        g = self.game()
+        stock_tray_tips(g)
+        texts = {}
+        for s, chemical in enumerate(list(range(27, 36)) + [37, 48, 49]):
+            (g.put if s < 4 else lambda k, c, d: g.put2(k - 4, c, d))(s, chemical, s + 2)
+            label = {37: "Revival Potion", 48: "Muta-Flower", 49: "Muta-Foliage"}.get(chemical, name(chemical))
+            texts[s] = f"{label}\n{s + 2} doses left"
+        self.sweep(g, texts)
+
+    def test_empty_slots_show_none_and_a_bottle_in_the_hand_loses_its_tooltip(self) -> None:
+        g = self.game()
+        stock_tray_tips(g)
+        g.put(0, 30, 2)
+        g.put2(4, 31, 3)                                       # page 2 under page 1's slot 0
+        g.put2(1, 32, 1)
+        self.sweep(g, {0: "Chemical 30\n2 doses left", 8: "Chemical 31\n3 doses left",
+                       5: "Chemical 32\n1 dose left"})
+        g.move(*page2_point(4))
+        g.draw()
+        self.assertEqual(g.hovered(), ["Chemical 31\n3 doses left"])
+        g.press(*page2_point(4))                               # picked up: gone without another move
+        g.draw()
+        self.assertEqual(g.hovered(), [])
+        g.mouse(1, ARROW[0] + 8, ARROW[1] + 8)                 # carried over the arrow: page 1
+        self.assertEqual(g.page(), 0)
+        g.move(*page1_point(0))
+        g.draw()
+        self.assertEqual(g.hovered(), ["Chemical 30\n2 doses left"])
+
+    def test_the_greenhouse_has_no_other_tooltip(self) -> None:
+        """Every tooltip the game makes (0x409870): in the greenhouse's code (0x423000-0x42A000) only
+        the tray's (0x427836); the tools have none."""
+        data = EXE.read_bytes()
+        pe = struct.unpack_from("<I", data, 0x3C)[0]
+        count, opt_size = struct.unpack_from("<H", data, pe + 6)[0], struct.unpack_from("<H", data, pe + 20)[0]
+        base = struct.unpack_from("<I", data, pe + 24 + 28)[0]
+        sites = []
+        for i in range(count):
+            sec = pe + 24 + opt_size + 40 * i
+            vsize, rva, rsize, raw = struct.unpack_from("<4I", data, sec + 8)
+            if not struct.unpack_from("<I", data, sec + 36)[0] & 0x20000000:
+                continue
+            for off in range(raw, raw + min(rsize, vsize) - 5):
+                if data[off] == 0xE8:
+                    va = base + rva + off - raw
+                    if (va + 5 + struct.unpack_from("<i", data, off + 1)[0]) & 0xFFFFFFFF == 0x00409870:
+                        sites.append(va)
+        self.assertIn(0x00427836, sites)
+        self.assertEqual([s for s in sites if 0x423000 <= s < 0x42A000], [0x00427836])
 
 
 @_needs()
@@ -1296,7 +1425,7 @@ class ArtAndManifestTests(unittest.TestCase):
         ids = [s["id"] for s in manifest["settings"]]
         setting = next(s for s in manifest["settings"] if s["id"] == "extra_chemical_slots")
         self.assertEqual((setting["name"], setting["default"], setting["experimental"], setting["requires_settings"]),
-                         ("Extra chemical slots", False, True, ["plant_upgrades"]))
+                         ("Extra chemical slots", True, True, ["plant_upgrades"]))
         self.assertTrue(setting["summary"].startswith("EXPERIMENTAL - USE AT OWN RISK."))
         self.assertEqual(ids, ["fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets",
                                "tank_greenhouse_counts", "new_flowers", "plant_upgrades", "sort_seeds", "optimize_prices",

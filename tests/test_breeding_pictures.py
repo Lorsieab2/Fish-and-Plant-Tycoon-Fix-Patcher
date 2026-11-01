@@ -76,10 +76,10 @@ def make_plant_copy(root: Path) -> Path:
 
 class GroupTests(unittest.TestCase):
     def test_parts_are_grouped_by_rarity_in_the_games_words(self) -> None:
-        for model, kind, order in ((bf.load(None, True), "fin", ["Common", "Unusual", "Rare"]),
-                                   (bf.load(None, False), "body", ["Common", "Unusual", "Rare"]),
-                                   (bp.load(None, True), "flower", ["Common", "Endangered", "Extinct", "Legendary"]),
-                                   (bp.load(None, False), "foliage", ["Common", "Endangered", "Extinct"])):
+        for model, kind, order in ((bf.load(None, True), "fin", ["Common", "Uncommon", "Rare"]),
+                                   (bf.load(None, False), "body", ["Common", "Uncommon", "Rare"]),
+                                   (bp.load(None, True), "flower", ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"]),
+                                   (bp.load(None, False), "foliage", ["Tier 1", "Tier 2", "Tier 3", "Tier 4"])):
             groups = bpx.part_items(bg.View(model, set(), spoilers=True), kind)
             self.assertEqual([g.tier for g in groups], order)
             names = []

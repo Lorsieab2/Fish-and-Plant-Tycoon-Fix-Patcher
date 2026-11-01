@@ -70,10 +70,10 @@ def record(x: int, y: int, sprite: int = 178, w: int = 52, h: int = 37, falling:
 # ---------------------------------------------------------------- manifest and patcher
 
 class ManifestTests(unittest.TestCase):
-    def test_setting_is_off_by_default_in_the_upgrades_copy(self) -> None:
+    def test_setting_is_on_by_default_in_the_upgrades_copy(self) -> None:
         setting = fish_patcher.manifest_settings(manifest())[SETTING]
         self.assertEqual(setting["name"], "Multiple ornaments")
-        self.assertFalse(setting["default"])
+        self.assertTrue(setting["default"])  # on by default (the owner, 2026-11-01: new content stays on)
         self.assertTrue(setting["separate_output"], "new content goes in the Modded Upgrades copy")
         self.assertIn("trash", setting["warning"])
         self.assertTrue(setting["companion"]["startup_loader"])
@@ -122,7 +122,9 @@ class PinTests(unittest.TestCase):
         """Every combination without the setting builds exactly what it built before (its pin from
         main is unchanged), and turning the setting on changes only the startup loader."""
         pins = manifest()["patched_sha256_by_settings"]
-        defaults = {k for k, v in fish_patcher.manifest_settings(manifest()).items() if v.get("default")}
+        # The defaults that stay in the plain copy (new content is on by default since v1.0.22).
+        defaults = {k for k, v in fish_patcher.manifest_settings(manifest()).items()
+                    if v.get("default") and not v.get("separate_output") and not v.get("requires_settings")}
         for enabled in (defaults, defaults | {"ds_fish", "ds_store"}, {"fix_vanilla_bugs"}):
             off = self.build(enabled)
             self.assertEqual(hashlib.sha256(off).hexdigest().upper(), pins[fish_patcher.settings_key(enabled)])

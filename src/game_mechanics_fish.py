@@ -53,11 +53,11 @@ def page() -> GamePage:
                   note="Only with the DS Store Items setting. The store calls them \"magically enhancing\"; "
                        "these are their real effects."),
             Group("3 extra tanks (patcher)", EXTRA_TANKS,
-                  note="Only with the 3 extra tanks setting (off by default)."),
+                  note="Only with the 3 extra tanks setting (on by default)."),
             Group("Extra supply slots (patcher)", SUPPLY_SLOTS,
-                  note="Only with the Extra supply slots setting (off by default), which also turns on the "
+                  note="Only with the Extra supply slots setting (on by default), which also turns on the "
                        "store's Upgrades screen they are sold on."),
-            Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (off by default), which also turns on the store's Upgrades screen it lives on."),
+            Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (on by default), which also turns on the store's Upgrades screen it lives on."),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Plant Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
@@ -491,7 +491,7 @@ MAGIC_HOW = (
         subs=(
             "Breeding: a baby's gene is the parents' genes averaged and rounded down, so gene t "
             "needs parents adding up to 2t or 2t + 1. Gene 20 needs both parents at 20. Two Common "
-            "or two Unusual eggs' fish give only even genes; a Common with an Unusual gives odd "
+            "or two Uncommon eggs' fish give only even genes; a Common with an Uncommon gives odd "
             "ones.",
             "Rare-gene fish (any odd gene) lose 19 health an age step at Fish Environment level "
             "1 and cannot grow up from an egg there: research Environment, or skip ages with "
@@ -522,7 +522,7 @@ MAGIC_HOW = (
             "Unusual Fish Eggs: 3.999% per egg; Rare Fish Eggs: 1.000% per egg. Never from Common "
             "eggs.",
             "Breeding: Spined Stickfish (12, 12) x Greenfin Beta (16, 16), both Common; or Flagged "
-            "Goldbulb (10, 18) x Golden Bananafish (18, 10), both Unusual.",
+            "Goldbulb (10, 18) x Golden Bananafish (18, 10), both Uncommon.",
             "Unknown Chemical from (13, 14), (15, 14), (14, 13) or (14, 15).",
             "Effect: starving fish in its tank never lose health. Its message says you won't need "
             "to feed as often; food still drops at the normal rate.",
@@ -531,7 +531,7 @@ MAGIC_HOW = (
     Fact(
         "Curing, Crimson Comet (11, 11), rare genes, B = 70.",
         subs=(
-            "Never from eggs. Breeding a Common with an Unusual: Orange Fruitfish (8, 8) x Speckled "
+            "Never from eggs. Breeding a Common with an Uncommon: Orange Fruitfish (8, 8) x Speckled "
             "Leaffish (14, 14), Spined Stickfish (12, 12) x Golden Goldbulb (10, 10), or Pink "
             "Fatfish (4, 4) x Flagged Bananafish (18, 18).",
             "Unknown Chemical from (10, 11), (12, 11), (11, 10) or (11, 12).",
@@ -575,7 +575,7 @@ MAGIC_HOW = (
     Fact(
         "The Golden Guppy, Canary Fire-Arrow (7, 7), rare genes, B = 190, the highest base price.",
         subs=(
-            "Never from eggs. Breeding a Common with an Unusual: Pink Fatfish (4, 4) x Golden "
+            "Never from eggs. Breeding a Common with an Uncommon: Pink Fatfish (4, 4) x Golden "
             "Goldbulb (10, 10), Orange Fruitfish (8, 8) x Wasp Goldshark (6, 6), or Silky "
             "Stickfish (12, 0) x Speckled Arrowfish (2, 14).",
             "Unknown Chemical from (6, 7), (8, 7), (7, 6) or (7, 8).",
@@ -1448,7 +1448,7 @@ HIDDEN = (
         "state's item table (+0x74 + item x 20; research at +0x240, +0x254 and +0x268), read by the "
         "store panel (0x4274AD), the Buy click's money test (0x428118) and the purchases (0x427540, "
         "0x427600, 0x427B30, and the Golden Seahorse refund at 0x427EA2).",
-        patched=(("everything_free", "Everything is Free (a cheat; Enable All leaves it off): each of those "
+        patched=(("everything_free", "Everything is Free (a cheat; Select All Patches and Owner's Defaults leave it off): each of those "
                   "reads gives $0, so every store item and research costs $0, shows $0 and is never refused "
                   "for money, and the Upgrades page's items (Add Money then $0 for +$1,000) are free as with "
                   "Free upgrades. One of each, items already owned, room in a slot and the research levels "

@@ -10888,7 +10888,7 @@
       "description": "Adds the 14 flower heads that ship in the game's art but no plant uses, as new flowers: Nightingale, Rosetta, Lilac, Veronica, Violetta, Stella, Silvermist, Anagallis, Buttercup, Cerulean, Phalaena, Mirabilis, Indigoberry and Prunus (names by Virtual_Lady and Lorsieab2), 322 new species with the 23 foliages. All are the rarest class. Mutation Liquid can now step a Tilia flower one place further, into the new ones, with the same odds, and breeding with one of them follows the DS fish rule (an odd sum rounds up or down at random). Runs as a companion DLL the game loads at start; each save slot keeps the new species' prices and discoveries in a separate file beside the save. See docs/plant-tycoon-new-flowers-design.md.",
       "warning": "Turning this off after new flowers are in a save leaves those plants with flowers the game cannot draw or price. Sell or compost them before switching it off.",
       "category": "main",
-      "default": false,
+      "default": true,
       "separate_output": true,
       "companion": {
         "source": "assets/plant_tycoon_flowers",
@@ -10922,7 +10922,7 @@
       "description": "Adds an Upgrades link on the bricks at the left of the Supplies store. It opens a second view of the store with only the new items, each where it would sit in the store: Legendary Seeds on the seed shelves (three a day, $5000 each, any foliage with one of the unused flowers; the stock seed packets keep their stock flowers), the Radioactive Plant Formula with the chemicals ($10,000, 3 doses, far beyond spamming Fertilizer Bombs and Plant Food: every branch grows, the largest size, full bloom, a flower on every spot of every branch and leaf, no dead or brown leaves, full health, and always 5 seeds: all 5 when it is pollinated later, or, if it is already pollinated, all its seeds ripe at once; and treated plants sell for the highest possible price: when a visitor buys a plant given the formula or its Bomb, in any nursery, you are paid its species' highest selling price, the highest asking price a visitor still buys at with every effect at its best (the Breeding Guide's Highest selling with Max effects), instead of your asking price, while whether and when it sells still follow your asking price; the mark stays with the plant through moves, nurseries and saves, and ends when it is sold, dies or its pot is replanted), the Revival Potion beside it ($10,000, 3 doses: a dead plant it is dropped on comes back to life at full health, and for sale again if it was for sale when it died), Revita-Seed beside that ($2,500, 3 doses: a plant that has given all its seeds can be pollinated again, as a fresh plant can), the Radioactive Plant Formula Bomb under the formula ($30,000, 3 doses: one Radioactive Plant Formula dose for every live plant in the greenhouse on screen, the pots the Fertilizer Bomb reaches, each then treated and selling for the highest price too), Muta-Flower and Muta-Foliage on the shelf below ($2,500 each, 3 doses: the stock Mutation Liquid for one part only, on the plant it is dropped on: Muta-Flower steps the flower, Muta-Foliage the foliage, one up or one down, 50% each, by the game's own step and bounces, and the other part never changes; the new species is discovered at once, as with the Mutation Liquid, and the unused flowers come only with Add unused flowers), Automatic Sprinklers ($10,000) on the tool shelf under the Extra Greenhouse and the Auto-Healer ($10,000) beside the Formula Bomb (each bought once; they work on every live potted plant in every greenhouse, on screen or not, through time away and the Time Warp too: the sprinklers keep the water at 800, never too dry and below the 900 at which pests come three times as often; the Auto-Healer clears pests, each counted under Plants Cured, and keeps health at 100; neither touches a dead plant, and old age still ends a plant's life; unpurchase: click an owned one and answer Yes, it switches off at once with no refund, and buying it again costs the full price; ownership is kept in \"Auto Upgrades <slot>.dat\"), and one Extra Seed Box item on the tool shelf beside the Extra Greenhouse that sells the Fourth, Fifth, Sixth, Seventh, Eighth and Ninth Seed Box one click at a time, in order, like the Extra Greenhouse (\"Even more space for your seeds!\", $1000 each, a Yes / No for each, its tooltip says which comes next, e.g. \"Extra Seed Box 4 of 6\", and a tick once all six are yours). Each new box opens a 40-seed drawer: the Fourth to Sixth in a second chest on the Seed Storage screen, the Seventh to Ninth in a third; the gold arrows on its title bar step through boxes 1-3, 4-6 and 7-9 (360 seeds in all), and the greenhouse fills boxes 4-6 once 1-3 are full, then 7-9. Click Supplies in the bottom bar to leave the Upgrades view. Needs Add unused flowers. Each save slot keeps the new data in separate files beside the save. See docs/plant-tycoon-upgrades-design.md.",
       "warning": "Turning this off leaves bought Legendary seeds drawn as another seed packet, the formula drawn as an Insta-Grow Vaporbomb that does nothing (the Revival Potion, Revita-Seed, the Formula Bomb, Muta-Flower and Muta-Foliage as the last stock chemical, doing nothing too), boxes 4-6 and 7-9 hidden with their seeds, and the extra flowers the formula grew drawn away from their plants. Plant or sell the seeds, use up the formula, the Revival Potion, Revita-Seed, the Formula Bomb, Muta-Flower and Muta-Foliage, sell or compost the plants it was used on, and move seeds out of boxes 4-9 before switching it off.",
       "category": "main",
-      "default": false,
+      "default": true,
       "separate_output": true,
       "requires_settings": [
         "new_flowers"
@@ -10933,8 +10933,8 @@
           {
             "path": "Store Upgrades and Items.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Store Upgrades and Items.dll",
-            "size": 167936,
-            "sha256": "5E872C7C28CE8FB5D59F7C84F25250815F4E4B96DB2C602110750567B09CBC7E"
+            "size": 168448,
+            "sha256": "45A4AC58552D370B746FF2DAE78D101CCCC4C2ECC14C814635617297CE9C0B15"
           },
           {
             "path": "Extra Seed Boxes.dll",
@@ -10969,7 +10969,7 @@
       "summary": "Adds a Sort Seeds button to the Seed Storage screen: sorts every seed by the plant it grows, then its parents, into the unlocked seed boxes in order.",
       "description": "Adds a \"Sort Seeds\" button on the Seed Storage screen's title bar. One click sorts every seed in your unlocked seed box space and packs them from the first slot, left to right and top to bottom: the First Seed Box's drawer fills first, then the Second's and the Third's if you bought them, then the Fourth, Fifth and Sixth, then the Seventh, Eighth and Ninth with Add new store upgrades and items. Locked drawers stay empty. Order, lowest first: the class of the plant the seed grows (the game's own A, B, C, D rarity), then its foliage, then its flower, then the parents (the seed's own plant, then the pollen donor; unknown \"?\" parents first). Seeds that tie keep their order. The sort checks that exactly the same seeds come out as went in before it writes anything, never touches the seed tray, and does nothing while you hold a seed. Runs as a companion DLL the game loads at start; saves are unchanged.",
       "category": "main",
-      "default": false,
+      "default": true,
       "companion": {
         "source": "assets/plant_tycoon_sort_seeds",
         "startup_loader": true,
@@ -10995,7 +10995,7 @@
       "summary": "Adds Optimize Prices and Max Prices buttons to the Nursery: they set every discovered species to its best price per day for your nursery as it is now, or to the highest price a visitor still buys at.",
       "description": "Adds an \"Optimize Prices\" button on the Nursery's bottom bar, at the right. It asks \"Set every discovered species to its best price per day?\". On Yes, every species you have discovered gets the Breeding Guide's \"best per day\" asking price, the price that earns the most money over time, worked out in the game with the same maths as the guide for your nursery as it is now: each species' value, the Golden Berries of Wealth, and the visitors your ornaments, magic plants and bug collection bring with all 15 sale spots filled, for a healthy, flowering plant. Then it says how many prices it set. Species you have not discovered keep their prices and nothing else changes; the new prices are the ones you would type yourself, saved with the game as usual. Beside it, a \"Max Prices\" button asks \"Set every discovered species to its highest selling price? Plants at this price sell much more slowly.\" On Yes, every species you have discovered gets the highest asking price a visitor still buys at (the Breeding Guide's \"highest selling\"): visitors buy only while the price they see is below twice the species' value. The Golden Berries of Wealth, if you have found them, make visitors see every price a quarter lower, so the limit is higher with them; the button reads them when you click it. Plant Food, pruning, dead leaves, health, flowers and pests change what visitors see for one plant only, so the button leaves them out (it is the limit for a healthy, flowering, unpruned plant without Plant Food or pests). Then it says how many prices it set. With Unused Flowers on, its new species are included. Runs as a companion DLL the game loads at start; the save layout is unchanged.",
       "category": "main",
-      "default": true,
+      "default": false,
       "companion": {
         "source": "assets/plant_tycoon_optimize_prices",
         "startup_loader": true,
@@ -11027,7 +11027,7 @@
       "summary": "Adds a Time Warp item to the store's Upgrades screen: $500 to skip 1-72 hours, as if you had been away.",
       "description": "Adds a Time Warp item (a clock) to the Supplies store's Upgrades view (Add new store upgrades and items), which this setting turns on. Clicking it asks, in a small Windows popup, how many hours should pass (1 to 72), then asks Yes/No and charges a flat $500. Then every plant ages with every check (water, health, pests, seeds ripening, old age), and the seed shop restocks if it is due, exactly as if you had been away that many real-life hours, with no catch-up cap. Plants or fish can starve, dry out or die along the way, as they would while you were away. Refused while time is stopped. Saves keep their layout.",
       "category": "main",
-      "default": false,
+      "default": true,
       "requires_settings": [
         "plant_upgrades"
       ],
@@ -11114,7 +11114,7 @@
       "description": "EXPERIMENTAL - USE AT OWN RISK. An Extra Greenhouse item on the store's Upgrades screen (tool shelf, beside the Extra Seed Box) sells Greenhouses 2-6 in order, $10,000 each ($0 with Free upgrades), with a tick once all five are yours. Once you own one, gold arrows (the game's own, as on the Seed Storage screen) on both sides of the greenhouse screen page through Greenhouse 1, the stock one, and the ones you own, and the screen says \"Greenhouse 2 of 3\". Each greenhouse is the stock greenhouse screen, and the game's own code runs on its 15 pots: plants grow, age, need water and care, flower, take pollen, give seeds, get pests and die exactly as in Greenhouse 1, also while you look at another greenhouse or another screen, while you are away (caught up when you come back) and through the Time Warp. Every chemical, tool, upgrade and magic plant works in every greenhouse. Drag a plant onto an arrow to move it to the same pot place in the greenhouse that arrow leads to (or its first empty pot if that place is taken); pollen and seeds you take from a plant are carried along, and tools, chemicals and tray seeds stay in your hand. Plants tagged for sale in any greenhouse go to the nursery; without 5 extra nurseries the game's limit holds: at most 15 plants are for sale at once, counting every greenhouse. Greenhouses 2-6 are kept beside each save in \"Plant Tycoon Fix Patcher Data\\Extra Greenhouses <slot>.dat\"; the save itself keeps the stock layout. Runs as a companion DLL the game loads at start.",
       "warning": "Greenhouses 2-6 only exist while this setting is on. Before switching it off, empty them: move every plant to Greenhouse 1, or sell or compost it. Their plants stay in the slot's Extra Greenhouses file and come back if you switch the setting on again.",
       "category": "main",
-      "default": false,
+      "default": true,
       "experimental": true,
       "separate_output": true,
       "requires_settings": [
@@ -11146,7 +11146,7 @@
       "description": "EXPERIMENTAL - USE AT OWN RISK. An Extra Nursery item on the store's Upgrades screen (the Nursery shelf, beside Add Money) sells Nurseries 2-6 in order, $10,000 each ($0 with Free upgrades), with a tick once all five are yours. Without any, the game's own limit holds: at most 15 plants are for sale at once. Each one bought adds 15 more (30, 45, ... 90). Each nursery is the stock nursery screen with its own 15 spots, its own visitors, prices and sales, run by the game's own code; gold arrows (the game's own, as on the Seed Storage screen) on the nursery screen page through Nursery 1, the stock one, and the ones you own, and the screen says \"Nursery 2 of 3\". Plants are tagged for sale in the greenhouse as in the stock game and fill the nurseries in order: Nursery 1 first (a Greenhouse 1 plant at its own pot's spot, as in the stock game), then Nursery 2, and so on. While you are in the nursery, all of them sell at once through the game's own buy roll; away from it nothing sells, as in the stock game. Kept beside each save with the extra greenhouses in \"Plant Tycoon Fix Patcher Data\\Extra Greenhouses <slot>.dat\". Runs as a companion DLL the game loads at start.",
       "warning": "Before switching it off, take plants off sale until 15 or fewer are for sale; the nurseries you bought stay in the slot's Extra Greenhouses file and come back if you switch the setting on again.",
       "category": "main",
-      "default": false,
+      "default": true,
       "experimental": true,
       "separate_output": true,
       "requires_settings": [
@@ -11178,7 +11178,7 @@
       "description": "EXPERIMENTAL - USE AT OWN RISK. An Extra Chemical Slots item on the store's Upgrades screen (the chemicals shelf, under the Radioactive Plant Formula Bomb) costs $10,000 ($0 with Free upgrades) and is bought once, with a tick afterwards. Once it is yours, a small gold arrow on the plaque of the greenhouse's Tools box turns to page 2: 8 more chemical slots in both rows of the box (the tools stay on page 1; a tool already in your hand stays there). Click the arrow, or carry a chemical over it, to turn the page. Every slot works like the game's own: the store fills a chemical onto its own bottle on either page, else the first free slot of page 1, then of page 2, and says the tray is full only when all 12 are; every chemical (the game's and the Upgrades screen's) is used from page 2 with its doses; the tooltips show its name and doses; the Upgrades screen's chemicals go in the trash from page 2 too. A chemical you hold can be put on any other slot of either page: into an empty slot, onto the same chemical (the doses add up) or swapping places. The tray is shared by every greenhouse. Page 2 and the purchase are kept beside each save in \"Plant Tycoon Fix Patcher Data\\Extra Chemical Slots <slot>.dat\"; the save itself keeps the stock layout. Runs as a companion DLL the game loads at start.",
       "warning": "Turning it off hides page 2. Its chemicals are not lost: while Add new store upgrades and items stays on, loading the save puts them in the 4 stock slots (onto the same chemical, else a free slot) as far as there is room, and the rest stay in the slot's Extra Chemical Slots file, with the purchase, and come back on page 2 when you switch the setting on again.",
       "category": "main",
-      "default": false,
+      "default": true,
       "experimental": true,
       "separate_output": true,
       "requires_settings": [
@@ -11192,7 +11192,7 @@
             "path": "Extra Chemical Slots.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Extra Chemical Slots.dll",
             "size": 124416,
-            "sha256": "A5C925D79B57A42631EA87676A5C1963C078E6B5BDDBB869EDDD554362030C6F"
+            "sha256": "121E0804A784167188C6655B15AFBF0204EEF710ECDF572A635AE1E396EAD797"
           }
         ]
       }

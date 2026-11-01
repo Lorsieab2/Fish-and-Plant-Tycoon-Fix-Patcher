@@ -147,7 +147,7 @@ MUTATION_FISH = (13, 6)
 # exactly the tier 2 genes 2, 6 ... 18 (Random(5) x 4 + 2, 0x4214C7), and the odd genes,
 # which no egg lays, are the "Extremely rare hybrids" (0x4469D8). Pinned by
 # tests/test_breeding_fish.py (test_tier_words_are_the_exes).
-TIER_NAMES = {1: "Common", 2: "Unusual", 3: "Rare"}
+TIER_NAMES = {1: "Common", 2: "Uncommon", 3: "Rare"}   # the owner's words (the eggs stay "Unusual Fish Eggs")
 TIER_STRINGS = {1: (0x4457C8, "Common Fish Eggs"), 2: (0x4456F4, "Unusual Fish Eggs"),
                 3: (0x4469D8, "Extremely rare hybrids are extremely fragile.")}
 NAME_FIELD = 31                    # the species entry's name is 0x20 bytes with its 0
@@ -337,7 +337,7 @@ def exe_gene(index: int) -> int:
 
 
 def gene_tier(gene: int) -> int:
-    """1 Common, 2 Unusual, 3 Rare (TIER_NAMES): the game's lists (0x41DF99), the DS genes by the same
+    """1 Common, 2 Uncommon, 3 Rare (TIER_NAMES): the game's lists (0x41DF99), the DS genes by the same
     rule on their DS index (DLL gene_tier)."""
     d = ds_index(gene)
     if d % 2:

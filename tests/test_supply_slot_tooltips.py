@@ -8,6 +8,10 @@ rebuilt from their sources (tests/test_supply_slots.py's rig).
   items on pages 2-3, nothing over an empty slot, page 3's unused place, while a hint is up or
   while something is held; German names and counts; the hint's own box, clamped to the screen;
   the maximized window.
+* The rope edge (v1.0.22): with the hint's real rope bars and the stock box code 0x423280 run as it
+  is, every tooltip -- the one-line Fish Food too, every slot of every page -- gets its whole rope.
+* One tooltip at a time (v1.0.22): at any mouse point on any page, at most one box, only the hovered
+  slot's of the page shown, nothing from another page, nothing while the stock hint is up.
 """
 
 from __future__ import annotations
@@ -31,6 +35,13 @@ NAMES = {0xAE: ("Ick Treatment", "Weissp\xfcnktchen-Medikament"), 0xB0: ("Fungal
          0xBA: ("Unusual Fish Eggs", "Ungew\xf6hnliche Fischeier"), 0xBC: ("Rare Fish Eggs", "Seltene Fischeier")}
 FOOD = struct.pack("<7i", 0x17, 1, 0, 0x78, 0x6E, 0x19, 0xF)
 CHAR_W = 9                                           # the stubbed hint font: 9 pixels a character
+# 0x423280 draws its rope (bars 64 x 10 and 10 x 64, just outside the box) only around a box whose
+# rope is at least 64 pixels each way (a box 44 wide), and its side bars (the left one down from the
+# box's top, the right one up from its bottom) stay inside the rope's outline only for a box at least
+# 64 - 10 = 54 tall.
+ROPE_LONG, ROPE_SHORT = 64, 10
+ROPE_MIN_W = ROPE_LONG - 2 * ROPE_SHORT
+ROPE_MIN = ROPE_LONG - ROPE_SHORT
 
 
 class TipRig(T.Rig):
@@ -113,7 +124,7 @@ class Tooltips(unittest.TestCase):
                 width = max(len(s) for s in lines) * CHAR_W + 20
                 self.assertEqual(len(rig.boxes), 1, "the hint's own box")
                 left, top, right, bottom = rig.boxes[0]
-                self.assertEqual((top, right - left, bottom - top), (60, width, 12 + 20 * len(lines)))
+                self.assertEqual((top, right - left, bottom - top), (60, width, max(ROPE_MIN, 12 + 20 * len(lines))))
                 self.assertGreaterEqual(left, 12)
                 self.assertLessEqual(right, 788)
                 self.assertEqual(set(rig.text_args), {(0, 0)}, "the hints' colour, the default font")
@@ -122,11 +133,11 @@ class Tooltips(unittest.TestCase):
         rig = TipRig()
         rig.put_stock(0, FOOD)
         self.assertEqual(rig.tip(*T.centre(0)), ["Fish Food"])
-        self.assertEqual(rig.boxes[0][3] - rig.boxes[0][1], 12 + 20)
+        self.assertEqual(rig.boxes[0][3] - rig.boxes[0][1], ROPE_MIN, "tall enough for the hint's rope")
         left, _, right, _ = rig.boxes[0]
         self.assertEqual((left, right - left), (12, len("Fish Food") * CHAR_W + 20), "on screen, the text inside")
         text = [c for c in rig.calls if c[0] == "text"][0]
-        self.assertEqual(text[2:4], (left, right))
+        self.assertEqual(text[2:5], (left, right, 60 + (ROPE_MIN - 20) // 2), "the one line in the middle")
 
     def test_the_patcher_supplies(self) -> None:
         for universal in (False, True):
@@ -213,6 +224,204 @@ class Tooltips(unittest.TestCase):
             point = (W.to_picture(x + gx * w // 800 + 1, x, w, 800), W.to_picture(y + gy * h // 600 + 1, y, h, 600))
             rig = TipRig()
             self.assertEqual(rig.tip(*point), ["Growth Hormone", "3 doses left"], (cw, ch))
+
+
+class RopeRig(TipRig):
+    """TipRig with the game's own hint box: the hint object as 0x4231E0 builds it (its four rope bars,
+    CUSTOMPOPUP_FTROPESTYLE_BAR_top/bottom/left/right, as images of their real sizes, and its fill
+    colour) and its vtable[1] the stock 0x423280, run as it is. Only the drawing is Python: the
+    fill (0x407940) and every picture drawn (0x408A40)."""
+
+    BARS = {4: ("top", ROPE_LONG, ROPE_SHORT), 8: ("bottom", ROPE_LONG, ROPE_SHORT),
+            0xC: ("left", ROPE_SHORT, ROPE_LONG), 0x10: ("right", ROPE_SHORT, ROPE_LONG)}
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        emu = self.emu
+        hint, vtable = emu.alloc(0x40), emu.alloc(16)
+        emu.write32(vtable + 4, 0x00423280)
+        emu.write32(hint, vtable)
+        self.bar_of: dict[int, str] = {}
+        for offset, (name, w, h) in self.BARS.items():
+            image, holder, surface = emu.alloc(8), emu.alloc(4), emu.alloc(0x10)
+            emu.write32(surface + 8, w)
+            emu.write32(surface + 0xC, h)
+            emu.write32(holder, surface)
+            emu.write32(image + 4, holder)
+            emu.write32(hint + offset, image)
+            self.bar_of[image] = name
+        emu.write32(hint + 0x14, 0xFF404C50)
+        emu.write32(emu.read32(self.impl + 0x44), hint)
+        self.fills: list[tuple[int, ...]] = []
+        emu.hook(0x00407900, lambda e: self.gfx, 0)
+        self.gfx = emu.alloc(0x40)
+        emu.hook(0x00407940, lambda e: self.fills.append(struct.unpack("<4i", e.uc.mem_read(e.arg(0), 16))) or 0, 8)
+
+    def tip(self, x: int, y: int, hint_shown: int = 0) -> list[str]:
+        self.fills.clear()
+        return super().tip(x, y, hint_shown)
+
+    def bars(self) -> dict[str, list[tuple[int, int]]]:
+        out: dict[str, list[tuple[int, int]]] = {}
+        for c in self.calls:
+            if c[0] == "draw" and c[1] in self.bar_of:
+                out.setdefault(self.bar_of[c[1]], []).append((c[2], c[3]))
+        return out
+
+    def box(self) -> tuple[int, int, int, int]:
+        """The box the tooltip asked for: the fill is it, one pixel larger each way (0x423307)."""
+        left, top, right, bottom = self.fills[0]
+        return left + 1, top + 1, right - 1, bottom - 1
+
+
+@unittest.skipUnless(ready(), "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and both DLLs")
+class RopeEdge(unittest.TestCase):
+    """The owner, v1.0.21: "the fish food is missing the rope border". The stock box drew only its fill
+    around the one-line Fish Food box (32 pixels tall: its rope would be 52 < 64). Every tooltip now
+    gets the whole rope, drawn by the game's own 0x423280."""
+
+    def assert_roped(self, rig: RopeRig, what: str) -> None:
+        """One box; its rope drawn by the stock code on all four sides, every pixel of the 10-pixel
+        band around the box covered and no bar sticking out of it; the text inside."""
+        self.assertEqual(len(rig.fills), 1, f"{what}: one box")
+        left, top, right, bottom = rig.box()
+        bars = rig.bars()
+        self.assertEqual(set(bars), {"top", "bottom", "left", "right"}, f"{what}: the rope on every side")
+        e = ROPE_SHORT
+        ol, ot, orr, ob = left - e, top - e, right + e, bottom + e
+        band = [bytearray(orr - ol) for _ in range(ob - ot)]
+        for name, pieces in bars.items():
+            w, h = (ROPE_LONG, e) if name in ("top", "bottom") else (e, ROPE_LONG)
+            for x, y in pieces:
+                self.assertTrue(ol <= x and x + w <= orr and ot <= y and y + h <= ob,
+                                f"{what}: the {name} bar at {(x, y)} inside the rope's outline {(ol, ot, orr, ob)}")
+                for row in range(y, y + h):
+                    band[row - ot][x - ol:x - ol + w] = b"\1" * w
+        holes = [(ol + c, ot + r) for r in range(ob - ot) for c in range(orr - ol)
+                 if not band[r][c] and not (left <= ol + c < right and top <= ot + r < bottom)]
+        self.assertEqual(holes[:5], [], f"{what}: the whole rope around the box")
+        self.assertGreaterEqual(left - e, 0, f"{what}: the rope on screen")
+        self.assertLessEqual(right + e, 800, f"{what}: the rope on screen")
+        texts = [c for c in rig.calls if c[0] == "text"]
+        for text in texts:
+            self.assertEqual(text[2:4], (left, right), f"{what}: the text centred in the box")
+            self.assertGreaterEqual(text[4], top, what)
+            self.assertLessEqual(text[4] + 20, bottom, f"{what}: the text inside the box")
+
+    def test_the_fish_food(self) -> None:
+        for german in (False, True):
+            rig = RopeRig(german=german)
+            rig.put_stock(0, FOOD)
+            self.assertEqual(rig.tip(*T.centre(0)), ["Fischfutter" if german else "Fish Food"])
+            self.assert_roped(rig, "the fish food")
+            left, top, right, bottom = rig.box()
+            self.assertEqual(bottom - top, ROPE_MIN)
+
+    def test_every_slot_on_every_page(self) -> None:
+        rig = RopeRig(universal=True)
+        rig.put_stock(0, FOOD)
+        for e, it in enumerate((T.RGH, T.REVIVAL, T.CLONA, T.MUTA_FIN, T.MUTA_BODY, T.EXOTIC, 7)):
+            rig.put_extra(e, T.record(it, 2))
+        seen = 0
+        for page in (0, 1, 2):
+            rig.to_page(page)
+            for p in range(4):
+                lines = rig.tip(*T.centre(p))
+                if not lines:
+                    self.assertEqual((page, p), (2, 3), "only page 3's unused place has no tooltip")
+                    continue
+                self.assert_roped(rig, f"page {page + 1}, slot {p + 1}: {lines[0]}")
+                seen += 1
+        self.assertEqual(seen, 11)
+
+    def test_a_narrow_name_still_has_its_rope(self) -> None:
+        """A one-word name narrower than the rope's top bar: the box is as wide as the bar needs."""
+        rig = RopeRig()
+        rig.put_stock(0, FOOD)
+        rig.emu.hook(0x004023D0, lambda e: 3, 8)                       # a tiny font
+        rig.tip(*T.centre(0))
+        self.assert_roped(rig, "a narrow box")
+        left, top, right, bottom = rig.box()
+        self.assertEqual((right - left, bottom - top), (ROPE_MIN_W, ROPE_MIN))
+
+    def test_two_lines(self) -> None:
+        rig = RopeRig()
+        rig.put_stock(1, T.record(0, 2, 1))
+        rig.tip(*T.centre(1))
+        self.assert_roped(rig, "Ick Treatment")
+        left, top, right, bottom = rig.box()
+        self.assertEqual((top, bottom), (60, 60 + ROPE_MIN))
+        self.assertEqual([c[4] for c in rig.calls if c[0] == "text"], [67, 87], "the two lines in the middle")
+
+    def test_the_stock_box_left_only_the_fill_around_one_line(self) -> None:
+        """The cause: the one-line box v1.0.19-21 drew (32 tall) got no rope from 0x423280 at all."""
+        rig = RopeRig()
+        rect = rig.emu.alloc(16)
+        rig.emu.uc.mem_write(rect, struct.pack("<4i", 12, 60, 113, 92))
+        rig.calls.clear()
+        rig.emu.call(0x00423280, rect, ecx=rig.emu.read32(rig.emu.read32(rig.impl + 0x44)))
+        self.assertEqual((len(rig.fills), rig.bars()), (1, {}))
+
+
+@unittest.skipUnless(ready(), "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and both DLLs")
+class OneTooltipAtATime(unittest.TestCase):
+    """The owner, v1.0.21: "make sure the tooltips don't overlap each other from other pages". Over the
+    whole top bar and the tank under it, on every page: at most one box at any mouse point, and only
+    the hovered slot's of the page shown -- never a slot of another page, never the stock hint's too."""
+
+    PAGES = {0: ("Fish Food", "Ick Treatment", "Growth Hormone", "Rare Fish Eggs"),
+             1: ("Radioactive Growth Hormone", "Revival Potion", "ClonaFish", "Muta-Fin"),
+             2: ("Muta-Body", "Exotic Fish Eggs", "Fungal Treatment", None)}
+
+    def rig(self) -> RopeRig:
+        rig = RopeRig(universal=True)
+        rig.put_stock(0, FOOD)
+        rig.put_stock(1, T.record(0, 2, 1))
+        rig.put_stock(2, T.record(3, 2, 2))
+        rig.put_stock(3, T.record(7, 2, 3))
+        for e, it in enumerate((T.RGH, T.REVIVAL, T.CLONA, T.MUTA_FIN, T.MUTA_BODY, T.EXOTIC, 1)):
+            rig.put_extra(e, T.record(it, 2))
+        return rig
+
+    def test_at_most_one_and_only_the_page_shown(self) -> None:
+        rig = self.rig()
+        for page, names in self.PAGES.items():
+            rig.to_page(page)
+            others = {n for pg, ns in self.PAGES.items() if pg != page for n in ns if n}
+            for x in range(0, 260, 5):
+                for y in range(0, 130, 6):
+                    lines = rig.tip(x, y)
+                    p = next((i for i, b in enumerate(T.BOXES) if b[0] <= x <= b[2] and b[1] <= y <= b[3]), None)
+                    with self.subTest(page=page, x=x, y=y):
+                        self.assertLessEqual(len(rig.fills), 1, "never two boxes")
+                        self.assertEqual(sum(1 for c in rig.calls if c[0] == "hint"), 0, "no stock hint with it")
+                        expect = names[p] if p is not None else None
+                        if expect is None:
+                            self.assertEqual((lines, rig.fills), ([], []), "nothing off a slot of this page")
+                            continue
+                        self.assertEqual(lines[0], expect, "the hovered slot of the page shown")
+                        self.assertNotIn(lines[0], others, "nothing from another page")
+                        left, _, right, _ = rig.box()
+                        centre = (T.BOXES[p][0] + T.BOXES[p][2]) // 2
+                        self.assertTrue(left <= centre <= right or left == 12, "under its own slot")
+
+    def test_the_stock_hint_hides_it(self) -> None:
+        """While the stock hint is up (0x417FD0 drew it) there is no tooltip at all, on any page."""
+        rig = self.rig()
+        for page in (0, 1, 2):
+            rig.to_page(page)
+            for p in range(4):
+                self.assertEqual(rig.tip(*T.centre(p), hint_shown=1), [])
+                self.assertEqual(rig.fills, [])
+
+    def test_turning_the_page_under_the_mouse(self) -> None:
+        """The mouse stays on a slot while the page turns: each frame shows that page's slot only."""
+        rig = self.rig()
+        for _ in range(2):
+            for page in (0, 1, 2):
+                rig.to_page(page)
+                self.assertEqual(rig.tip(*T.centre(1))[0], self.PAGES[page][1])
+                self.assertEqual(len(rig.fills), 1)
 
 
 @unittest.skipUnless(T.ready(), "needs Unicorn, MSVC, the vanilla Fish Tycoon.exe and the built DLL")

@@ -89,7 +89,7 @@ SETTING = {
         "with it) before switching it off if you mind."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
     "separate_output": True,
     "requires_settings": ["ds_fish"],
 }

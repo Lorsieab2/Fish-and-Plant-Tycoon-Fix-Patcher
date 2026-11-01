@@ -3,7 +3,7 @@
 Layers:
   * the manifests: the setting (a cheat, off by default, the owner's sentence, only an .ini beside the
     DLLs), its in-place patches, a checksum record and a pin for every combination;
-  * the GUI: "Enable All" and "Defaults" leave it off, ticking it by hand turns it on, CHEAT is shown
+  * the GUI: "Select All Patches", "Owner's Defaults" and "Default Patches" leave it off, ticking it by hand turns it on, CHEAT is shown
     beside its name;
   * the executables: every patched site is the stock instruction, overlaps no other setting's patch or
     companion DLL site, and every companion's hooks still find their stock bytes with all settings on;
@@ -165,18 +165,17 @@ class GuiTests(unittest.TestCase):
                     self.assertEqual(cheat.LABEL in rows[str(s.get("name", sid))], sid == SETTING, (game, sid))
                 var = app.patch_vars[game][SETTING]
                 self.assertFalse(var.get())
-                app._set_all_patches(game, True)
-                self.assertFalse(var.get(), "Enable All leaves the cheat off")
-                others = [v.get() for sid, v in app.patch_vars[game].items() if sid != SETTING]
-                self.assertTrue(all(others), "Enable All still turns every other setting on")
-                app._reset_patches_to_defaults(game)
-                self.assertFalse(var.get(), "Defaults leave it off")
+                for preset in ("select_all", "owners_defaults"):
+                    app._set_selection(game, gui.preset_selection(preset, game))
+                    self.assertFalse(var.get(), f"{preset} leaves the cheat off")
+                    others = [v.get() for sid, v in app.patch_vars[game].items() if sid != SETTING]
+                    self.assertTrue(all(others), f"{preset} still turns every other setting on")
+                app._set_selection(game, gui.preset_selection("default_patches", game))
+                self.assertFalse(var.get(), "Default Patches leave it off")
                 var.set(True)                                   # ticked by hand
                 self.assertTrue(var.get())
-                app._set_all_patches(game, True)
-                self.assertTrue(var.get(), "Enable All does not untick it either")
-                app._set_all_patches(game, False)
-                self.assertFalse(var.get(), "Disable All turns it off")
+                app._set_selection(game, gui.preset_selection("deselect_all", game))
+                self.assertFalse(var.get(), "Deselect All Patches turns it off")
         finally:
             root.destroy()
 

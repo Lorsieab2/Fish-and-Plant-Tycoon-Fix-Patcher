@@ -136,7 +136,7 @@ __declspec(noinline) static void muta_set_tips(int shown) {
         if (muta_tip[i] == NULL) continue;
         muta_tip_set(i);
         tooltip_text(muta_tip[i], 0, muta_tip_text[i], TOOLTIP_COLOUR, 0, 0);
-        AT(muta_tip[i], 8, unsigned char) = (unsigned char)shown;
+        tip_place(muta_tip[i], &MUTA_ITEM[i].rect, shown);
     }
 }
 

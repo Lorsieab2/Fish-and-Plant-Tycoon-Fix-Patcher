@@ -1951,7 +1951,7 @@ class Manifest(unittest.TestCase):
         self.assertEqual(s["name"], "3 extra tanks")
         self.assertTrue(s["summary"].startswith("EXPERIMENTAL - USE AT OWN RISK."))
         self.assertTrue(s["description"].startswith("EXPERIMENTAL - USE AT OWN RISK."))
-        self.assertFalse(s["default"])
+        self.assertTrue(s["default"])  # on by default (the owner, 2026-11-01: new content stays on)
         self.assertTrue(s["separate_output"], "new content goes in the Modded Upgrades copy")
         self.assertIn("empty", s["warning"].lower())
         self.assertTrue(s["companion"]["startup_loader"])

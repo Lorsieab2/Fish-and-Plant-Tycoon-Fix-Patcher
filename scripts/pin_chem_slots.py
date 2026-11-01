@@ -68,7 +68,7 @@ SETTING = experimental.mark({
         "come back on page 2 when you switch the setting on again."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
     "separate_output": True,
     "requires_settings": ["plant_upgrades"],
 })

@@ -126,7 +126,7 @@ def setting(game: dict) -> dict:
             shop=game["shop"], extras=game["extras"],
             max=MAX_COMMON.format(things=game["things"], rule=game["rule"], buyer=game["buyer"])),
         "category": "main",
-        "default": True,
+        "default": False,
         "companion": {"source": game["source"], "startup_loader": True, "files": files},
     }
 

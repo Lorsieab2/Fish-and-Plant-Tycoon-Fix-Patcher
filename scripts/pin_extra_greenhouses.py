@@ -69,7 +69,7 @@ GREENHOUSES = {
         "and come back if you switch the setting on again."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
     "separate_output": True,
     "requires_settings": ["plant_upgrades"],
     "ini": "Extra Greenhouses.ini",
@@ -101,7 +101,7 @@ NURSERIES = {
         "bought stay in the slot's Extra Greenhouses file and come back if you switch the setting on again."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
     "separate_output": True,
     "requires_settings": ["plant_upgrades"],
     "ini": "Extra Nurseries.ini",
