@@ -73,6 +73,7 @@
 #define GAME_BOX_DONE 0x0040BA30u
 #define GAME_BOX_CHAR_RESUME 0x0040BFFFu
 #define GAME_SUBCLASS_WINDOW 1
+#define GAME_BOX_DRAW_TARGET 0x00408B80u  /* the box's left draw (thiscall wrapper) */
 #define GAME_WIDTH_RESUME 0x004023D7u
 
 #define CODE_ADDR(fn) ((const void *)(UINT_PTR)(fn))
@@ -174,6 +175,12 @@ static ftfp_site_write writes[TOTAL_SITES];
 static int install_all(void) {
     ftfp_site_write *w = writes;
     int i;
+    if (!unicode_on) {
+        /* Copy and Paste in Text Boxes alone: the box draw, to know the box with typing focus */
+        ftfp_site_branch(writes, SITE_BOX_DRAW_VA, SITE_BOX_DRAW_LEN, SITE_BOX_DRAW_EXPECT, 0xE8,
+                         CODE_ADDR(stub_box_draw));
+        return ftfp_install_sites(writes, 1);
+    }
     for (i = 0; i < 3 && !system_font; ++i) {
         if (!picture_present(FONT_SITES[i].name)) {
             pictures_missing = 1;
@@ -213,7 +220,9 @@ static void write_install_log(void) {
     int len = 0;
     if (!own_folder(path, 1024) || wcslen(path) + 20 >= 1024) return;
     wcscat_s(path, 1024, L"Unicode Text.log");
-    if (installed) {
+    if (installed && !unicode_on) {
+        text = "Unicode Text: installed for Copy and Paste in Text Boxes only (the game's own letters)\r\n";
+    } else if (installed) {
         text = system_font ? "Unicode Text: installed as Use Unicode Font (typing and drawing any letter in "
                              "the chosen font, long names)\r\n"
                            : "Unicode Text: installed (typing and drawing any letter, the three fonts, long names)\r\n";
@@ -247,7 +256,7 @@ int __stdcall FtfpStartup(void) {
         installed = 0;
     }
     write_install_log();
-    if (installed) {
+    if (installed && unicode_on) {
         utf8_drawing = 1;
         unicode_write_marker(L"Fish Tycoon Fix Patcher Data");
         names_start(L"Fish Tycoon Fix Patcher Data");

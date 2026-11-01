@@ -6,6 +6,8 @@
        Mode=ingame        Render Unicode with In-Game Fonts (also with no file at all)
        Mode=system        Use Unicode Font (overrides in-game fonts)
        Font=<name>        the font chosen in the patcher (UTF-8), first in the chain
+       Mode=none          neither: only Copy and Paste in Text Boxes (the box draw's site alone)
+       Paste=1            Copy and Paste in Text Boxes (text_clipboard.h) is on
 
    With Mode=system every letter of the game's text is drawn with that font and the chain
    after it (unicode_glyphs.h, system_font), at the game fonts' line heights and in the
@@ -51,7 +53,9 @@ static void read_unicode_config(const wchar_t *folder) {
     data[got] = '\0';
     if (ini_value(data, "Mode", value, sizeof value)) {
         system_font = (value[0] | 0x20) == 's';
+        unicode_on = (value[0] | 0x20) != 'n';
     }
+    if (ini_value(data, "Paste", value, sizeof value)) clip_enabled = value[0] == '1';
     if (ini_value(data, "Font", value, sizeof value) && value[0]) {
         const unsigned char *p = (const unsigned char *)value;
         int n = 0;

@@ -380,6 +380,19 @@ never needs the internet.
   [docs/images/multiple-ornaments-tank.png](docs/images/multiple-ornaments-tank.png).
   Trash the extra copies before turning it off again (with it off they are
   not shown; they come back if you turn it on).
+- Copy and Paste in Text Boxes (on by default; in the "Modded Upgrades" copy;
+  in every preset). While one of the game's text boxes has the typing cursor
+  (a player's name, the new player's box, the registration boxes), Ctrl+V or Shift+Insert
+  pastes the Windows clipboard's text at the cursor, Ctrl+C or Ctrl+Insert
+  copies the box's whole text (a player's full name) and Ctrl+X cuts it. A
+  paste goes in as if typed letter by letter: line breaks and tabs become
+  spaces, other control characters are left out, the box keeps its own limit
+  (300 letters for a name) and letters (digits only in a price box), and a
+  letter with its accents or a joined emoji goes in whole or not at all. Any
+  script with Render Unicode with In-Game Fonts or Use Unicode Font; without
+  them plain ASCII only, as the stock box takes. It runs as `Unicode Text.dll`
+  (alone, `Unicode Text.ini` says Mode=none and it changes only the text
+  box's draw, to know which box has the cursor).
 - Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
   Upgrades" copy; Owner's Defaults leaves it off and keeps Render Unicode with
   In-Game Fonts, and the two cannot both be on). All of the game's text is
@@ -390,7 +403,7 @@ never needs the internet.
   ships the same `Unicode Text.dll`; the patcher writes the chosen font into
   `Unicode Text.ini` beside it.
 - Render Unicode with In-Game Fonts (on by default; in the "Modded Upgrades"
-  copy; Owner's Defaults leaves it off). Typing in the game (a player's name,
+  copy; on in Owner's Defaults too). Typing in the game (a player's name,
   any text box) takes every Latin-1 letter your keyboard makes (U+00A0-U+00FF:
   é ñ ü ß Æ Ø ¿ £ © ..., AltGr letters too); the stock game took only plain
   ASCII. All three fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every
@@ -733,6 +746,19 @@ never needs the internet.
     [docs/images/extra-chemical-slots-store.png](docs/images/extra-chemical-slots-store.png).
   - Design: the "Extra Chemical Slots" section of
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
+- Copy and Paste in Text Boxes (on by default; in the "Modded Upgrades" copy;
+  in every preset). While one of the game's text boxes has the typing cursor
+  (a player's name, the new player's box, the price box), Ctrl+V or Shift+Insert
+  pastes the Windows clipboard's text at the cursor, Ctrl+C or Ctrl+Insert
+  copies the box's whole text (a player's full name) and Ctrl+X cuts it. A
+  paste goes in as if typed letter by letter: line breaks and tabs become
+  spaces, other control characters are left out, the box keeps its own limit
+  (300 letters for a name) and letters (digits only in a price box), and a
+  letter with its accents or a joined emoji goes in whole or not at all. Any
+  script with Render Unicode with In-Game Fonts or Use Unicode Font; without
+  them plain ASCII only, as the stock box takes. It runs as `Unicode Text.dll`
+  (alone, `Unicode Text.ini` says Mode=none and it changes only the text
+  box's draw, to know which box has the cursor).
 - Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
   Upgrades" copy; Owner's Defaults leaves it off and keeps Render Unicode with
   In-Game Fonts, and the two cannot both be on). All of the game's text is
@@ -743,7 +769,7 @@ never needs the internet.
   ships the same `Unicode Text.dll`; the patcher writes the chosen font into
   `Unicode Text.ini` beside it.
 - Render Unicode with In-Game Fonts (on by default; in the "Modded Upgrades"
-  copy; Owner's Defaults leaves it off). Typing in the game takes every Latin-1
+  copy; on in Owner's Defaults too). Typing in the game takes every Latin-1
   letter your keyboard makes (U+00A0-U+00FF); the stock game dropped all but
   plain ASCII. The game's font already has most of Latin-1: the no-break space,
   ¡ and the Windows-1252 letters € ' ' " " – — … ™ Œ Š Ž Ÿ ... are made for it

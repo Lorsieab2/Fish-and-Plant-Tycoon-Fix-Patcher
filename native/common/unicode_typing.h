@@ -22,7 +22,12 @@
    game's window (once the game draws): a VK_PACKET key-down is translated and kept from SDL
    and its WM_CHAR read as UTF-16; an input method's finished text (WM_IME_COMPOSITION,
    GCS_RESULTSTR) is read with ImmGetCompositionStringW, and a WM_IME_CHAR sent to the
-   window is taken too; each letter is posted, a surrogate pair as its one letter. */
+   window is taken too; each letter is posted, a surrogate pair as its one letter.
+
+   Both games' windows are subclassed (Plant Tycoon's only for what follows): a WM_CHAR that is
+   half of a surrogate pair (a letter past U+FFFF sent as two WM_CHARs) is joined and posted as
+   its one letter, which the game box dropped; and the clipboard keys of "Copy and Paste in
+   Text Boxes" (text_clipboard.h) are taken while a text box has typing focus. */
 #ifndef FTFP_UNICODE_TYPING_H
 #define FTFP_UNICODE_TYPING_H
 
@@ -100,9 +105,8 @@ __declspec(naked) static void stub_box_char(void) {
     }
 }
 
-/* ---- Fish Tycoon's window (GAME_SUBCLASS_WINDOW) */
+/* ---- the game's window (the input method's parts: Fish Tycoon, GAME_SUBCLASS_WINDOW) */
 
-#if GAME_SUBCLASS_WINDOW
 #include <imm.h>
 typedef LONG_PTR (WINAPI *set_long_fn)(HWND, int, LONG_PTR);
 typedef LRESULT (WINAPI *call_proc_fn)(WNDPROC, HWND, UINT, WPARAM, LPARAM);
@@ -131,6 +135,8 @@ static struct {
     unsigned int draws;
 } win;
 
+#include "text_clipboard.h"
+
 static void unit_in(WCHAR unit) {
     if (unit >= 0xD800 && unit <= 0xDBFF) {
         win.high = unit;
@@ -146,6 +152,12 @@ static void unit_in(WCHAR unit) {
 }
 
 static LRESULT CALLBACK text_window(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+    if (message == WM_KEYDOWN && clip_key((unsigned int)wparam)) return 0;
+    if (message == WM_CHAR && utf8_drawing && wparam >= 0xD800 && wparam <= 0xDFFF) {
+        unit_in((WCHAR)wparam);              /* half of a letter past U+FFFF: joined here */
+        return 0;
+    }
+#if GAME_SUBCLASS_WINDOW
     if (message == WM_KEYDOWN && (wparam == VK_PACKET || wparam == VK_PROCESSKEY)) {
         MSG msg;
         memset(&msg, 0, sizeof msg);
@@ -174,6 +186,7 @@ static LRESULT CALLBACK text_window(HWND window, UINT message, WPARAM wparam, LP
         unit_in((WCHAR)wparam);
         return 0;
     }
+#endif
     return win.call_proc(win.old, window, message, wparam, lparam);
 }
 
@@ -204,7 +217,7 @@ static void window_check(void) {
             win.done = 1;
             return;
         }
-        {
+        if (GAME_SUBCLASS_WINDOW) {
             HMODULE imm = LoadLibraryW(L"imm32.dll");
             if (imm != NULL) {
                 win.imm_get = (imm_get_fn)(UINT_PTR)GetProcAddress(imm, "ImmGetContext");
@@ -220,8 +233,5 @@ static void window_check(void) {
     win.old = (WNDPROC)win.set_long(found, GWL_WNDPROC, (LONG_PTR)text_window);
     win.done = 1;
 }
-#else
-static void window_check(void) {}
-#endif
 
 #endif

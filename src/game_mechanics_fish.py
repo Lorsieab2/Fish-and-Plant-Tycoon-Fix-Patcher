@@ -1604,6 +1604,18 @@ OTHER_GAME = (
 
 TEXT_ENTRY = (
     Fact(
+        "Copy and paste: none. The game's text boxes take only typed keys; Ctrl+V, Ctrl+C and the like do "
+        "nothing.",
+        patched=(("copy_paste_text_boxes", "while a text box has the typing cursor (a player's name, the new player's box, the registration boxes), Ctrl+V or "
+                  "Shift+Insert pastes the Windows clipboard's text at the cursor as if typed letter by letter "
+                  "(line breaks and tabs become spaces, other control characters are left out, the box keeps "
+                  "its limit, 300 letters for a name, and its own letters, digits only in a price box; a "
+                  "letter with its accents or a joined emoji goes in whole or not at all), Ctrl+C or "
+                  "Ctrl+Insert copies the box's whole text (a player's full name) and Ctrl+X cuts it. Any "
+                  "script with Render Unicode with In-Game Fonts or Use Unicode Font; without them only plain "
+                  "ASCII (0x20-0x7E), what the stock game takes from the keyboard."),)
+    ),
+    Fact(
         "A name (the player's, any text box) is at most 31 letters, one byte each, kept in the save "
         "as the game typed it. A text box whose text is wider than the box loses its last letters until it "
         "fits.",

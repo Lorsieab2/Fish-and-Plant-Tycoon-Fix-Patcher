@@ -203,6 +203,24 @@ class NamesCase:
         self.assertEqual(g.files["raw"][path], short_form(other) + b"\0" + other.encode("utf-8") + b"\0")
         self.assertNotIn(path + ".tmp", g.files["raw"])
 
+    def test_viewing_a_long_name_never_shortens_it(self) -> None:
+        """A box set up with the game's 32-byte limit (no name site's setLimit) shown a 300-letter
+        name: setText keeps it whole (the game's setText grows the limit to the text), and the
+        getText that follows writes the same full name back, in the row and in Names <slot>.dat."""
+        name = ("Å山\U0001F41F" * 100)[:300]
+        g = Game(self.game)
+        g.type_name(name, slot=4)
+        path = names_path(self.game, 4)
+        before = g.files["raw"][path]
+        wrapper, box = g.box(b"", limit=0x20)
+        g.set_text(box, g.row(4))
+        self.assertEqual(g.text(box), name.encode("utf-8"))
+        dst = g.row(4)
+        g.run_call(GAMES[self.game]["text_call"], wrapper, dst, 0x20)
+        self.assertEqual(bytes(g.emu.uc.mem_read(dst, 0x20)), short_form(name).ljust(32, b"\0"))
+        self.assertEqual(g.files["raw"][path], before)
+        self.assertEqual(g.files["raw"][path], short_form(name) + b"\0" + name.encode("utf-8") + b"\0")
+
     def test_set_text_of_a_row_gives_the_full_name(self) -> None:
         g = Game(self.game)
         long_name = "Wilhelmina Charlotte Ångström-Lindqvist of Malmö"

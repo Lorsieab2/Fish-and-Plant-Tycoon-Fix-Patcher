@@ -70552,7 +70552,7 @@
       "id": "unicode_ingame_fonts",
       "name": "Render Unicode with In-Game Fonts",
       "summary": "Type and show names in any script (é ñ ß, Ç ğ İ, 山田, emoji ...) up to 300 letters, drawn in the game's own fonts; letters a font lacks are made for it in its style or drawn from Windows' fonts.",
-      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. Names can be up to 300 letters. All three of the game's fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every Latin-1 letter and symbol they lack, and paddington's empty boxes for % * + < = > [ \\ ] ^ { | } ~ become real letters: accented letters are made from each font's own letters and accents, the rest drawn in the font's size, baseline and weight. They are added to copies of the fonts' pictures in the game's Images folder; the game's own pictures are not changed. Any other letter (Turkish, Japanese, Chinese, Korean, cuneiform, emoji ...) is drawn from Windows' fonts at the font's size and in the text's colour (emoji in one colour). The save keeps each name's first 31 letters as the game keeps names (one byte a letter, '?' for a letter Latin-1 has not), so its layout is unchanged, and the full name beside it (Fix Patcher Data\\Names <slot>.dat); the patcher's tools (Rename Players, Copy Player Slot, the Breeding Guide and Picture Studio) read and write such names too. A copy of the game without this setting shows each such letter as a blank (its fonts have no letter for it) but loads and plays the save as always.",
+      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. Names can be up to 300 letters. All three of the game's fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every Latin-1 letter and symbol they lack, and paddington's empty boxes for % * + < = > [ \\ ] ^ { | } ~ become real letters: accented letters are made from each font's own letters and accents, the rest drawn in the font's size, baseline and weight. They are added to copies of the fonts' pictures in the game's Images folder; the game's own pictures are not changed. Any other letter (Turkish, Japanese, Chinese, Korean, cuneiform, emoji ...) is drawn from Windows' fonts at the font's size and in the text's colour (colour emoji in their own colours). The save keeps each name's first 31 letters as the game keeps names (one byte a letter, '?' for a letter Latin-1 has not), so its layout is unchanged, and the full name beside it (Fix Patcher Data\\Names <slot>.dat); the patcher's tools (Rename Players, Copy Player Slot, the Breeding Guide and Picture Studio) read and write such names too. A copy of the game without this setting shows each such letter as a blank (its fonts have no letter for it) but loads and plays the save as always.",
       "category": "main",
       "default": true,
       "separate_output": true,
@@ -70566,8 +70566,8 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 121856,
-            "sha256": "0A791E295C61C1440E247F45D8AD99F92360719EE770A5974D756CD96F3376DD"
+            "size": 125440,
+            "sha256": "2525497CD6CB30D0F87FC257A6057369B0D697915257E91F419A5B2FFDB809EB"
           },
           {
             "path": "Images/FONT_TRIPLEX_SANSLIGHTLIN_BOLD_16PT_unicode.png",
@@ -70615,7 +70615,7 @@
       "id": "unicode_system_font",
       "name": "Use Unicode Font (overrides in-game fonts)",
       "summary": "Draws all of the game's text with one Windows font you choose (Segoe UI unless you pick another), any script, at the game's sizes and colours, instead of the game's own fonts.",
-      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. Names can be up to 300 letters. Every letter the game draws (names, menus, prices, a translation) is drawn with the font chosen beside this setting in the patcher (Segoe UI unless you pick another), then, for a letter it lacks, the fonts for other scripts (Yu Gothic, Meiryo, Microsoft YaHei, Malgun Gothic, Segoe UI Historic, Segoe UI Emoji ...), at the game fonts' line heights and in the game's colours (emoji in one colour). The game's own fonts and pictures are not changed. Names are kept as with Render Unicode with In-Game Fonts (the first 31 letters in the save, the full name beside it), and the two settings cannot both be on. Runs as the same Unicode Text.dll, set by the \"Unicode Text.ini\" the patcher writes beside it.",
+      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. Names can be up to 300 letters. Every letter the game draws (names, menus, prices, a translation) is drawn with the font chosen beside this setting in the patcher (Segoe UI unless you pick another), then, for a letter it lacks, the fonts for other scripts (Yu Gothic, Meiryo, Microsoft YaHei, Malgun Gothic, Segoe UI Historic, Segoe UI Emoji ...), at the game fonts' line heights and in the game's colours (colour emoji in their own colours). The game's own fonts and pictures are not changed. Names are kept as with Render Unicode with In-Game Fonts (the first 31 letters in the save, the full name beside it), and the two settings cannot both be on. Runs as the same Unicode Text.dll, set by the \"Unicode Text.ini\" the patcher writes beside it.",
       "category": "main",
       "default": false,
       "separate_output": true,
@@ -70629,8 +70629,29 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 121856,
-            "sha256": "0A791E295C61C1440E247F45D8AD99F92360719EE770A5974D756CD96F3376DD"
+            "size": 125440,
+            "sha256": "2525497CD6CB30D0F87FC257A6057369B0D697915257E91F419A5B2FFDB809EB"
+          }
+        ]
+      }
+    },
+    {
+      "id": "copy_paste_text_boxes",
+      "name": "Copy and Paste in Text Boxes",
+      "summary": "Ctrl+V (or Shift+Insert) pastes into the game's text boxes, Ctrl+C (or Ctrl+Insert) copies a box's whole text and Ctrl+X cuts it.",
+      "description": "While one of the game's text boxes has the typing cursor (a player's name, the new player's box, the registration boxes), Ctrl+V or Shift+Insert pastes the Windows clipboard's text at the cursor, Ctrl+C or Ctrl+Insert copies the box's whole text (a player's full name) and Ctrl+X copies it and empties the box. A paste goes in as if typed letter by letter: line breaks and tabs become spaces, other control characters are left out, the box keeps its own limit (300 letters for a name) and its own letters (digits only in a price box), and a letter is never cut in half. With Render Unicode with In-Game Fonts or Use Unicode Font any script goes in; without them only what the game's own box takes from the keyboard (plain ASCII letters, digits and symbols). Runs as Unicode Text.dll (alone it changes only the text box's draw, to know which box has the cursor); the keys do nothing else in the game.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/fish_tycoon_unicode",
+        "loader_tail": "Unicode Text.dll",
+        "files": [
+          {
+            "path": "Unicode Text.dll",
+            "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
+            "size": 125440,
+            "sha256": "2525497CD6CB30D0F87FC257A6057369B0D697915257E91F419A5B2FFDB809EB"
           }
         ]
       }

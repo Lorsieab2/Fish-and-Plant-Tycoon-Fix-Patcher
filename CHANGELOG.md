@@ -2,6 +2,31 @@
 
 ## v1.0.24
 
+- **Copy and Paste in Text Boxes** (new setting, both games; on by default and
+  in Select All, Default Patches and Owner's Defaults, "Modded Upgrades"
+  copy). While a game text box has typing focus (the box the game last drew
+  with its focus), Ctrl+V / Shift+Insert paste the clipboard's text
+  (CF_UNICODETEXT) at the caret (the boxes' caret is at the end), Ctrl+C /
+  Ctrl+Insert copy the box's whole text (a player's full name, never the
+  31-letter short form) and Ctrl+X cuts; the keys are taken in the game
+  window's procedure and never reach the game. A paste is posted as the
+  game's own character events, so the box takes it as if typed: CR, LF (CR LF
+  as one) and Tab become spaces, other control characters and lone
+  surrogates are left out, the box keeps its byte limit (a name 300 letters,
+  1,200 bytes) and its letters (the price box digits only), and a letter with
+  its combining marks, variation selectors, skin tone or zero-width-joined
+  emoji goes in whole or not at all. With either Unicode setting any script;
+  without them printable ASCII only, which is what both stock games' boxes get
+  from the keyboard (Fish Tycoon's event loop posts only 0x20-0x7E, Plant
+  Tycoon's only one-byte SDL text). The clipboard is opened with the game's
+  window and always closed; a busy clipboard does nothing; at most 2,408
+  UTF-16 units are read. It runs as Unicode Text.dll, a loader tail (no
+  executable pins): `Unicode Text.ini` gets Paste=1, and Mode=none when
+  neither Unicode setting is on, when the DLL changes only the box draw's
+  site. Also: a letter past U+FFFF sent to the window as two WM_CHARs is
+  joined and posted as its one letter (both games). Tests:
+  tests/test_text_clipboard.py, tests/test_unicode_names.py (viewing a long
+  name never shortens it).
 - **Colour emoji in the games** (Render Unicode with In-Game Fonts and Use
   Unicode Font, both games). A letter from a colour font (Segoe UI Emoji's
   emoji; any font with a COLR, CBDT, sbix or SVG table) is drawn by Direct2D

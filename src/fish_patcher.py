@@ -460,6 +460,8 @@ def companion_plan(
 UNICODE_DLL = "Unicode Text.dll"
 UNICODE_INI = "Unicode Text.ini"
 UNICODE_SYSTEM_SETTING = "unicode_system_font"
+UNICODE_INGAME_SETTING = "unicode_ingame_fonts"
+COPY_PASTE_SETTING = "copy_paste_text_boxes"
 DEFAULT_UNICODE_FONT = "Segoe UI"
 
 
@@ -472,8 +474,9 @@ def clean_font_name(font: str | None) -> str:
 def unicode_ini(manifest: dict[str, Any], enabled: set[str], font: str | None = None) -> tuple[str, bytes] | None:
     """(destination, text) of the "Unicode Text.ini" written beside "Unicode Text.dll" when one of
     its settings is on (native/common/unicode_config.h): "Mode=ingame" for Render Unicode with
-    In-Game Fonts, "Mode=system" and the chosen font for Use Unicode Font. Always written with the
-    DLL, so a copy patched again with the other setting does not keep the old mode."""
+    In-Game Fonts, "Mode=system" and the chosen font for Use Unicode Font, "Mode=none" when only
+    Copy and Paste in Text Boxes ships it; "Paste=1" with Copy and Paste in Text Boxes. Always
+    written with the DLL, so a copy patched again with other settings does not keep the old mode."""
     settings = manifest_settings(manifest)
     for setting_id in sorted(enabled):
         companion = settings.get(setting_id, {}).get("companion")
@@ -483,9 +486,18 @@ def unicode_ini(manifest: dict[str, Any], enabled: set[str], font: str | None = 
         if dll is None:
             continue
         folder = Path(str(dll["destination"])).parent.as_posix()
-        mode = "system" if UNICODE_SYSTEM_SETTING in enabled else "ingame"
-        text = (f"; Written by the patcher for {settings[setting_id].get('name', setting_id)}.\r\n"
-                f"[Unicode Text]\r\nMode={mode}\r\nFont={clean_font_name(font)}\r\n")
+        if UNICODE_SYSTEM_SETTING in enabled:
+            mode = "system"
+        elif UNICODE_INGAME_SETTING in enabled:
+            mode = "ingame"
+        else:
+            mode = "none"
+        names = [str(settings[s].get("name", s)) for s in sorted(enabled)
+                 if isinstance(settings.get(s, {}).get("companion"), dict)
+                 and settings[s]["companion"].get("loader_tail") == UNICODE_DLL]
+        paste = 1 if COPY_PASTE_SETTING in enabled else 0
+        text = (f"; Written by the patcher for {', '.join(names)}.\r\n"
+                f"[Unicode Text]\r\nMode={mode}\r\nFont={clean_font_name(font)}\r\nPaste={paste}\r\n")
         return f"{folder}/{UNICODE_INI}", text.encode("utf-8")
     return None
 

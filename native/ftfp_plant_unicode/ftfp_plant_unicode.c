@@ -68,6 +68,7 @@
 #define GAME_BOX_DONE 0x0040C4D0u
 #define GAME_BOX_CHAR_RESUME 0x0040CACFu
 #define GAME_SUBCLASS_WINDOW 0
+#define GAME_BOX_DRAW_TARGET 0x004092A0u  /* the box's left draw (thiscall wrapper) */
 #define GAME_WIDTH_RESUME 0x00402387u
 
 #define CODE_ADDR(fn) ((const void *)(UINT_PTR)(fn))
@@ -151,6 +152,12 @@ static int install_all(void) {
     unsigned int table = (unsigned int)(UINT_PTR)table_ptfontsmall;
     unsigned int name = (unsigned int)(UINT_PTR)name_ptfontsmall;
     ftfp_site_write *w = writes;
+    if (!unicode_on) {
+        /* Copy and Paste in Text Boxes alone: the box draw, to know the box with typing focus */
+        ftfp_site_branch(writes, SITE_BOX_DRAW_VA, SITE_BOX_DRAW_LEN, SITE_BOX_DRAW_EXPECT, 0xE8,
+                         CODE_ADDR(stub_box_draw));
+        return ftfp_install_sites(writes, 1);
+    }
     if (!system_font && !picture_present(name_ptfontsmall)) {
         pictures_missing = 1;
         return 0;
@@ -184,7 +191,9 @@ static void write_install_log(void) {
     HANDLE file;
     if (!own_folder(path, 1024) || wcslen(path) + 20 >= 1024) return;
     wcscat_s(path, 1024, L"Unicode Text.log");
-    if (installed) {
+    if (installed && !unicode_on) {
+        text = "Unicode Text: installed for Copy and Paste in Text Boxes only (the game's own letters)\r\n";
+    } else if (installed) {
         text = system_font ? "Unicode Text: installed as Use Unicode Font (typing and drawing any letter in "
                              "the chosen font, long names)\r\n"
                            : "Unicode Text: installed (typing and drawing any letter, the font, long names)\r\n";
@@ -214,7 +223,7 @@ int __stdcall FtfpStartup(void) {
         installed = 0;
     }
     write_install_log();
-    if (installed) {
+    if (installed && unicode_on) {
         utf8_drawing = 1;
         unicode_write_marker(L"Plant Tycoon Fix Patcher Data");
         names_start(L"Plant Tycoon Fix Patcher Data");

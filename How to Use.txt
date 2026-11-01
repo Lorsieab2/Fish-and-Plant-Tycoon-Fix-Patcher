@@ -152,6 +152,10 @@ Fish Tycoon options:
 - Everything is Free (off by default; a CHEAT, so Select All Patches and
   Owner's Defaults leave it off: tick it yourself): every store item, research and Upgrades item costs $0,
   and Add Money costs $0 and still adds $1,000. Limits stay.
+- Copy and Paste in Text Boxes (on by default): in any text box of the
+  game, Ctrl+V or Shift+Insert pastes, Ctrl+C or Ctrl+Insert copies the
+  whole text (a player's full name) and Ctrl+X cuts. A paste is typed in
+  letter by letter: line breaks become spaces, the box keeps its limit.
 - Use Unicode Font (overrides in-game fonts) (off by default, Owner's
   Defaults too; it replaces Render Unicode with In-Game Fonts): all
   game text in one Windows font you pick beside the setting (Segoe UI
@@ -274,6 +278,10 @@ Plant Tycoon options:
   doses left when you point at it. Turning it off loses nothing: loading a
   save puts page 2's chemicals into free stock slots where they fit, and the
   rest wait in the slot's Extra Chemical Slots file for when you turn it on.)
+- Copy and Paste in Text Boxes (on by default): in any text box of the
+  game, Ctrl+V or Shift+Insert pastes, Ctrl+C or Ctrl+Insert copies the
+  whole text (a player's full name) and Ctrl+X cuts. A paste is typed in
+  letter by letter: line breaks become spaces, the box keeps its limit.
 - Use Unicode Font (overrides in-game fonts) (off by default, Owner's
   Defaults too; it replaces Render Unicode with In-Game Fonts): all
   game text in one Windows font you pick beside the setting (Segoe UI

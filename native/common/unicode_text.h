@@ -118,6 +118,10 @@ static const char *name_shown(void *font, const char *text, char *out, int cap) 
 
 static unsigned int draws_since_sync;
 static void window_check(void);
+static void clip_seen(char *box);
+static int unicode_on = 1;                     /* 0: Copy and Paste alone (Mode=none) */
+typedef void (__fastcall *box_left_draw_fn)(void *wrapper, void *edx, const char *text, int x, int y,
+                                            unsigned int colour, void *font);
 
 static void __cdecl draw_hook(void *graphics, unsigned int ret, const char *text, int x, int y,
                               unsigned int colour, void *font) {
@@ -183,6 +187,12 @@ static int __cdecl box_width(void *font, const char *box, unsigned int ret, cons
 static void __cdecl box_draw(void *wrapper, const char *box, unsigned int ret, const char *text, int x, int y,
                              unsigned int colour, void *font) {
     (void)ret;
+    clip_seen((char *)box);                     /* Copy and Paste: the box with typing focus */
+    window_check();
+    if (!unicode_on) {                          /* Copy and Paste alone: the game's own draw */
+        ((box_left_draw_fn)(UINT_PTR)GAME_BOX_DRAW_TARGET)(wrapper, NULL, text, x, y, colour, font);
+        return;
+    }
     if (box_fit.fitted && box_fit.box == box && box_fit.text == text) {
         draw_text(*(void **)wrapper, box_fit.shown, x, y, colour, font);
         return;
