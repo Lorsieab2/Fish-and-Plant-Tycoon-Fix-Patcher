@@ -64,6 +64,20 @@
   Multiple Golden Seahorses and the Optimize Prices button. Owner's Defaults
   still turns on everything but Everything is Free. A saved selection is
   kept as it was; Default Patches applies the new list.
+- **Game Mechanics, Plant Tycoon: the 48 bugs, one by one.** A new "Bugs one by
+  one" section lists every collectible bug by its number in the game's own
+  collection order (1-12 butterflies, 13-24 beetles, 25-36 dragonflies,
+  37-48 spiders), with its family, its rarity (Common, Uncommon or Rare, the
+  game's own) and how it appears: the 32 random-draw bugs with their share
+  of random draws (the game's rolls multiplied), the 16 plant bugs with the foliage or flower by
+  name and gene, the age it needs (7 for foliage, 24 for flowers) and, for
+  the five genes that cannot bring a pot into play themselves, which genes
+  of the pot's other half do. "Bugs" now names every gene and gives the
+  whole reward for catching all 48: the one-time $5000 grant, the
+  permanent +4 visitor score (the top visitor limit of 55 needs it), the
+  nursery display, and what it does not change. Tests:
+  tests/test_game_mechanics_bugs.py (every name, family, rarity, gene link
+  and random pick read back out of the vanilla executable).
 
 ## v1.0.21
 

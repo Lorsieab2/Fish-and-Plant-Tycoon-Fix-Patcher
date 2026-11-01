@@ -857,7 +857,9 @@ folder never fails with "path too long".
 - **Game Mechanics.** A read-only page, with a tab for each game, on how the
   games really work underneath, read from their code:
   - time away, health, food, sickness, pests, breeding, seeds, the store,
-    research, selling, magic fish and plants, and bugs;
+    research, selling, magic fish and plants, and bugs (Plant Tycoon's 48
+    collectible bugs one by one: family, rarity and how each appears, and
+    the bonus for catching all 48);
   - an index of every random roll and timer.
 
   Every chance is the game's own test with its exact odds (`Random(100) < 50`
