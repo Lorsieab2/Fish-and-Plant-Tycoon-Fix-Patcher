@@ -77,6 +77,16 @@
 #define SOUND_DROP 0x0D                 /* a seed or bottle laid back in the tray (0x425A35) */
 #define STRING_FIRST_NAME 0x189         /* + chemical id */
 #define TIP_ID 0x170                    /* the tooltip controls' ids (no other greenhouse control's) */
+/* A tooltip control (0x409870) is a 0x10-byte shell around its 0x6C-byte body (+0xC).  The body
+   takes every mouse move itself (0x409D70, registered with the input when the screen activates):
+   over its rect (+0x10 left, +0x14 top, +0x18 right, +0x1C bottom, inclusive) it is "hovered"
+   (+0x3A, 0x409760), anywhere else not; the screen's draw (0x40B540 -> 0x409E10 -> 0x409B70)
+   draws every hovered body that has text.  Nothing reads the shell's +8, so a tooltip is hidden by
+   emptying its rect (no point is ever in it) and clearing its hover. */
+#define TIP_BODY 0x0C
+#define BODY_RECT 0x10
+#define BODY_HOVER 0x3A
+#define TIP_NOWHERE 0x7FFF              /* the empty rect: left/top 0x7FFF, right/bottom -0x7FFF */
 #define TIP_FONT (*(int *)0x0048C6A0u)
 #define TIP_COLOUR (*(int *)0x00493C60u)
 
@@ -381,6 +391,21 @@ static RECT slot_rect(int g) {
     return tip_rect(g - STOCK_SLOTS);
 }
 
+/* Shows the tooltip over rect r (the mouse's next move over it hovers it), or hides it: no rect,
+   no hover, so it is never drawn -- whatever page, slot or hand. */
+NOINLINE static void tip_place(char *tip, const RECT *r, int shown) {
+    char *body;
+    if (tip == NULL) return;
+    AT(tip, 8, unsigned char) = (unsigned char)shown;
+    body = AT(tip, TIP_BODY, char *);
+    if (body == NULL) return;
+    AT(body, BODY_RECT + 0, int) = shown ? r->left : TIP_NOWHERE;
+    AT(body, BODY_RECT + 4, int) = shown ? r->top : TIP_NOWHERE;
+    AT(body, BODY_RECT + 8, int) = shown ? r->right : -TIP_NOWHERE;
+    AT(body, BODY_RECT + 12, int) = shown ? r->bottom : -TIP_NOWHERE;
+    if (!shown) AT(body, BODY_HOVER, unsigned char) = 0;
+}
+
 static void make_tips(char *scene) {
     int g;
     if (tips_scene == scene) return;
@@ -395,7 +420,7 @@ static void make_tips(char *scene) {
         tip_text[g][1] = '\0';
         tooltip_ctor(tip, 0, TIP_ID + g, &r, scene, tip_text[g], TIP_FONT, 0, 0);
         add_control(scene, 0, tip);
-        AT(tip, 8, unsigned char) = 0;
+        tip_place(tip, &r, 0);
         tips[g] = tip;
     }
 }
@@ -420,14 +445,16 @@ NOINLINE static int tip_text_for(char *scene, int g, char *out, int cap) {
     return 1;
 }
 
-/* Every frame: each tooltip shown only on its page over a bottle, its text kept up to date. */
+/* Every frame (the tray's draw comes before the screen draws its tooltips), on a page turn and on
+   a hover: each tooltip shown only on its page over a bottle, its text kept up to date, every
+   other one hidden -- page 1's and page 2's rects overlap (page 1's slots, y 173-253, are where
+   page 2's second row is and the foot of its first), so at most the one slot under the mouse on
+   the page shown can be hovered.  The stock tray's own tooltips (0x427836), should one exist, are
+   hidden the same way; the greenhouse has no other tooltip (the tools have none). */
 NOINLINE static void refresh_tips(char *scene) {
     char *state = AT(scene, SC_STATE, char *);
     int g, k, away, shown_page = pages() ? page : 0;
-    for (k = 0; k < STOCK_SLOTS; ++k) {
-        char *stock_tip = AT(scene, SC_STOCK_TIPS + 4 * k, char *);
-        if (stock_tip != NULL) AT(stock_tip, 8, unsigned char) = 0;
-    }
+    for (k = 0; k < STOCK_SLOTS; ++k) tip_place(AT(scene, SC_STOCK_TIPS + 4 * k, char *), NULL, 0);
     make_tips(scene);
     if (tips_scene != scene) return;
     away = slot_away(scene);
@@ -441,7 +468,10 @@ NOINLINE static void refresh_tips(char *scene) {
             tooltip_text(tips[g], 0, tip_text[g], TIP_COLOUR, 0, 0);
         }
         tip_key[g] = key;
-        AT(tips[g], 8, unsigned char) = (unsigned char)shown;
+        {
+            RECT rect = slot_rect(g);
+            tip_place(tips[g], &rect, shown);
+        }
     }
 }
 

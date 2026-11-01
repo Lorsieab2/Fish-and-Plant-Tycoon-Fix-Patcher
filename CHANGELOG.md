@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.0.22
+
+- **Plant Tycoon: one chemical tooltip at a time** (Extra Chemical Slots). On
+  page 2 of the Tools box two tooltips could be drawn over each other (the
+  slot's "Mutation Liquid Vaporbomb / 12 doses left" over another one, the
+  text garbled). A tooltip of the game's own kind brings itself up whenever
+  the mouse is over its area, and page 1's four slots lie under page 2's
+  second row and the foot of its first, so page 1's tooltips (and the blank
+  ones of empty slots) still came up on page 2. A tooltip that is not shown
+  now has no area at all: only the slot under the mouse on the page shown,
+  holding a chemical, shows its tooltip -- never one from the other page or
+  the game's own tray tooltips, and the tools have none. Tests:
+  tests/test_chem_slots.py (every mouse point of the Tools box on both pages).
+
 ## v1.0.21
 
 - **Fish Tycoon: the treated price is shown beside the price you set** (DS
