@@ -270,7 +270,9 @@ def enabled_settings(manifest: dict[str, Any], args: argparse.Namespace) -> set[
 
 
 def check_setting_requirements(manifest: dict[str, Any], enabled: set[str]) -> None:
-    """A setting that builds on another (`requires_settings`) needs it on too."""
+    """A setting that builds on another (`requires_settings`) needs it on too, and two settings
+    that exclude each other (`conflicts_settings`, e.g. the two Unicode text settings) are never on
+    together."""
     settings = manifest_settings(manifest)
     for key in sorted(enabled):
         needed = settings[key].get("requires_settings", [])
@@ -280,6 +282,95 @@ def check_setting_requirements(manifest: dict[str, Any], enabled: set[str]) -> N
         if missing:
             names = ", ".join(str(settings.get(item, {}).get("name", item)) for item in missing)
             raise PatchError(f"{settings[key].get('name', key)} needs {names}; turn that on too.")
+        clashes = settings[key].get("conflicts_settings", [])
+        if not isinstance(clashes, list) or not all(isinstance(item, str) for item in clashes):
+            raise PatchError(f"{key}: conflicts_settings must be a string list.")
+        both = [item for item in clashes if item in enabled]
+        if both:
+            names = ", ".join(str(settings.get(item, {}).get("name", item)) for item in both)
+            raise PatchError(f"{settings[key].get('name', key)} and {names} cannot both be on; choose one.")
+
+
+def conflicting_settings(manifest: dict[str, Any]) -> dict[str, set[str]]:
+    """Each setting's `conflicts_settings`, both ways round."""
+    result: dict[str, set[str]] = {}
+    for key, setting in manifest_settings(manifest).items():
+        for other in setting.get("conflicts_settings", []) or []:
+            result.setdefault(key, set()).add(other)
+            result.setdefault(other, set()).add(key)
+    return result
+
+
+def loader_tail_dlls(manifest: dict[str, Any], enabled: set[str]) -> dict[str, str]:
+    """{setting: DLL} for the enabled settings whose companion is a loader tail
+    (src/ds_fish_loader.py, with_tails): left out of the pin key, added to the loader last."""
+    settings = manifest_settings(manifest)
+    result: dict[str, str] = {}
+    for key in sorted(enabled):
+        companion = settings.get(key, {}).get("companion")
+        if isinstance(companion, dict) and companion.get("loader_tail"):
+            if companion.get("startup_loader"):
+                raise PatchError(f"{key}: a loader tail cannot also be a startup loader.")
+            result[key] = str(companion["loader_tail"])
+    return result
+
+
+def pin_settings(manifest: dict[str, Any], enabled: set[str]) -> set[str]:
+    """The settings whose combination the manifest pins: every enabled one but the loader tails."""
+    return set(enabled) - set(loader_tail_dlls(manifest, enabled))
+
+
+def loader_profile(manifest: dict[str, Any], enabled: set[str], game: str):
+    """The startup loader these settings get (src/ds_fish_loader.py), or None when none."""
+    profile_for = ds_fish_loader.plant_profile if game == "plant" else ds_fish_loader.fish_profile
+    tails = loader_tail_dlls(manifest, enabled)
+    core = set(enabled) - set(tails)
+    base = profile_for(core) if needs_startup_loader(manifest, core) else None
+    return ds_fish_loader.with_tails(game, base, list(tails.values())) if tails else base
+
+
+def build_executable(
+    manifest: dict[str, Any], original: bytes, enabled: set[str], game: str,
+    patch_records, apply_bytes, expected_hash_for, key_for,
+) -> tuple[bytes, list[dict[str, Any]], list[dict[str, str]], str]:
+    """The patched executable for these settings, checked against the manifest's pins.
+
+    The settings that are loader tails are left out first: the executable for the others is
+    built exactly as before (patch records, then the startup loader the companions need) and
+    must match their pin. Only then is the loader rebuilt over the same patched bytes with the
+    tail DLLs added after the others. Returns (executable, patch summary, loader summary,
+    the pinned SHA-256 of the executable without the tails)."""
+    profile_for = ds_fish_loader.plant_profile if game == "plant" else ds_fish_loader.fish_profile
+    tails = loader_tail_dlls(manifest, enabled)
+    core = enabled - set(tails)
+    patches = patch_records(manifest, core)
+    if [p.get("id") for p in patch_records(manifest, enabled)] != [p.get("id") for p in patches]:
+        raise PatchError("A loader-tail setting must not change any patch record.")
+    pre_loader, patch_summary = apply_bytes(original, patches)
+    patched, loader_summary = pre_loader, []
+    core_loader = needs_startup_loader(manifest, core)
+    if core_loader:
+        try:
+            patched, loader_summary = ds_fish_loader.append_startup_loader(pre_loader, profile_for(core))
+        except ds_fish_loader.LoaderError as exc:
+            raise PatchError(f"Startup loader: {exc}.") from exc
+    expected_hash = expected_hash_for(manifest, core)
+    patched_hash = sha256_bytes(patched)
+    changed = bool(patches) or bool(loader_summary)
+    if changed and not expected_hash:
+        raise PatchError(f"Manifest has no expected output hash for enabled settings: {key_for(core)}")
+    if changed and patched_hash != expected_hash:
+        raise PatchError(
+            f"Patched output hash mismatch: {patched_hash}; expected {expected_hash}."
+        )
+    if tails:
+        try:
+            profile = ds_fish_loader.with_tails(
+                game, profile_for(core) if core_loader else None, list(tails.values()))
+            patched, loader_summary = ds_fish_loader.append_startup_loader(pre_loader, profile)
+        except ds_fish_loader.LoaderError as exc:
+            raise PatchError(f"Startup loader: {exc}.") from exc
+    return patched, patch_summary, loader_summary, expected_hash
 
 
 def active_patch_records(manifest: dict[str, Any], enabled: set[str]) -> list[dict[str, Any]]:
@@ -527,29 +618,15 @@ def apply_manifest(args: argparse.Namespace) -> int:
     enabled = enabled_settings(manifest, args)
     output_dir, output_exe_name = output_names(manifest, enabled, output_dir, "Fish Tycoon - Modded.exe")
     check_setting_requirements(manifest, enabled)
-    patches = active_patch_records(manifest, enabled)
     original = vanilla_exe.read_bytes()
-    patched, patch_summary = apply_patch_bytes(original, patches)
-    loader_summary: list[dict[str, str]] = []
-    if needs_startup_loader(manifest, enabled):
-        # The companions' loader goes on last, over the patched bytes: one
-        # new read/execute section and the C runtime's call of WinMain routed
-        # through it (src/ds_fish_loader.py). It loads DS Fish's DLL when that
-        # is on (which loads the Maximizable window's), else the window's.
-        try:
-            patched, loader_summary = ds_fish_loader.append_startup_loader(
-                patched, ds_fish_loader.fish_profile(enabled))
-        except ds_fish_loader.LoaderError as exc:
-            raise PatchError(f"Startup loader: {exc}.") from exc
-    expected_hash = expected_patched_hash(manifest, enabled)
+    # The companions' loader goes on last, over the patched bytes: one new read/execute
+    # section and the C runtime's call of WinMain routed through it (src/ds_fish_loader.py).
+    # It loads DS Fish's DLL when that is on (which loads the Maximizable window's), else the
+    # window's; a loader-tail DLL (Unicode Text) after them all.
+    patched, patch_summary, loader_summary, _pin = build_executable(
+        manifest, original, enabled, "fish", active_patch_records, apply_patch_bytes,
+        expected_patched_hash, settings_key)
     patched_hash = sha256_bytes(patched)
-    changed = bool(patches) or bool(loader_summary)
-    if changed and not expected_hash:
-        raise PatchError(f"Manifest has no expected output hash for enabled settings: {settings_key(enabled)}")
-    if changed and patched_hash != expected_hash:
-        raise PatchError(
-            f"Patched output hash mismatch: {patched_hash}; expected {expected_hash}."
-        )
     companions = companion_plan(manifest, manifest_path, enabled)
     # Checked before anything is written, and in a dry run too, so a Both
     # Games run cannot write one game's folder and then refuse the other's.

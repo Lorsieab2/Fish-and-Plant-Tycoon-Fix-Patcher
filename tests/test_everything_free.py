@@ -66,7 +66,8 @@ def build(game: str, enabled: set[str], m: dict) -> bytes:
 
 
 def everything_but_cheats(m: dict) -> set[str]:
-    return {s["id"] for s in m["settings"] if not cheat.is_cheat(s)}
+    """Every setting but the cheats, and but the loader tails (Unicode Text), which have no pins of their own."""
+    return fish_patcher.pin_settings(m, {s["id"] for s in m["settings"] if not cheat.is_cheat(s)})
 
 
 # ------------------------------------------------------------------ manifests
@@ -168,7 +169,9 @@ class GuiTests(unittest.TestCase):
                 for preset in ("select_all", "owners_defaults"):
                     app._set_selection(game, gui.preset_selection(preset, game))
                     self.assertFalse(var.get(), f"{preset} leaves the cheat off")
-                    others = [v.get() for sid, v in app.patch_vars[game].items() if sid != SETTING]
+                    # (Owner's Defaults leaves Render Unicode with In-Game Fonts off by the owner's choice)
+                    left_off = {SETTING} | (gui.OWNERS_DEFAULTS_OFF if preset == "owners_defaults" else set())
+                    others = [v.get() for sid, v in app.patch_vars[game].items() if sid not in left_off]
                     self.assertTrue(all(others), f"{preset} still turns every other setting on")
                 app._set_selection(game, gui.preset_selection("default_patches", game))
                 self.assertFalse(var.get(), "Default Patches leave it off")

@@ -26,9 +26,9 @@
    knows, so person choices always take "o" (docs/translations.md).
 
    TEXT.  The game draws bytes in its fonts: the translation is written in Windows-1252
-   (Latin-1 and the usual quotes and dashes; any other letter as '?').  When a DLL that draws
-   Unicode is loaded first and exports FtfpUnicodeTextActive() returning nonzero, the
-   translation is passed on as UTF-8 instead.  Windows popups (the Time Warp's) get UTF-16.
+   (Latin-1 and the usual quotes and dashes; any other letter as '?').  When "Unicode Text.dll"
+   (loaded first) exports FtfpUnicodeTextActive() returning nonzero, the translation is passed
+   on as UTF-8 instead.  Windows popups (the Time Warp's) get UTF-16.
 
    PLANT TYCOON'S LOOKUP.  "Store Upgrades and Items.dll" already jumps from 0x44CA70 to its own
    texts and back; this DLL is loaded after it (the startup loader loads it last) and chains:
@@ -65,7 +65,13 @@ static int starts(tt_span line, const char *word) {
 #define FISH_SPRINTF 0x0042B20Bu
 static const unsigned char FISH_LOOKUP_STOCK[5] = { 0x56, 0x8B, 0x74, 0x24, 0x08 };
 static const unsigned char FISH_LOOKUP_TAIL[6] = { 0x81, 0xFE, 0xF8, 0x00, 0x00, 0x00 };
-static const unsigned int FISH_COUNT_CALLS[5] = { 0x004247FFu, 0x00424820u, 0x00424841u, 0x00424883u, 0x004248AFu };
+#define FISH_COUNT_CALL_1 0x004247FFu
+#define FISH_COUNT_CALL_2 0x00424820u
+#define FISH_COUNT_CALL_3 0x00424841u
+#define FISH_COUNT_CALL_4 0x00424883u
+#define FISH_COUNT_CALL_5 0x004248AFu
+static const unsigned int FISH_COUNT_CALLS[5] = { FISH_COUNT_CALL_1, FISH_COUNT_CALL_2, FISH_COUNT_CALL_3, FISH_COUNT_CALL_4,
+                                                  FISH_COUNT_CALL_5 };
 
 /* Plant Tycoon: the lookup 0x44CA70 (thiscall, ret 4): mov eax, [esp + 4]; test eax, eax */
 #define PLANT_LOOKUP 0x0044CA70u
@@ -181,11 +187,15 @@ static void write_log(void) {
 static unsigned char *read_file(const wchar_t *path, int *size) {
     HANDLE file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
                               FILE_ATTRIBUTE_NORMAL, NULL);
-    DWORD high = 0, low, got = 0;
+    LARGE_INTEGER length;
+    DWORD low, got = 0;
     unsigned char *data;
     if (file == INVALID_HANDLE_VALUE) return NULL;
-    low = GetFileSize(file, &high);
-    if (low == INVALID_FILE_SIZE || high != 0 || low > MAX_FILE) { CloseHandle(file); return NULL; }
+    if (!GetFileSizeEx(file, &length) || length.HighPart != 0 || length.LowPart > MAX_FILE) {
+        CloseHandle(file);
+        return NULL;
+    }
+    low = length.LowPart;
     data = (unsigned char *)tr_alloc(low + 4);
     if (data == NULL || (low > 0 && (!ReadFile(file, data, low, &got, NULL) || got != low))) {
         CloseHandle(file);
@@ -833,20 +843,14 @@ static void patch_dlls(void) {
     }
 }
 
-/* A DLL loaded before this one that draws Unicode: then the translation stays UTF-8. */
-typedef BOOL (WINAPI *enum_modules_fn)(HANDLE process, HMODULE *modules, DWORD bytes, DWORD *needed);
+/* "Unicode Text.dll" (Render Unicode with In-Game Fonts), loaded before this one: when it draws
+   UTF-8 (FtfpUnicodeTextActive() nonzero), the translation is passed on as UTF-8. */
 typedef int (__stdcall *active_fn)(void);
 
 static int unicode_text_active(void) {
-    HMODULE kernel = GetModuleHandleW(L"kernel32.dll"), modules[256];
-    enum_modules_fn enumerate = kernel != NULL ? (enum_modules_fn)GetProcAddress(kernel, "K32EnumProcessModules") : NULL;
-    DWORD needed = 0, k;
-    if (enumerate == NULL || !enumerate(GetCurrentProcess(), modules, sizeof modules, &needed)) return 0;
-    for (k = 0; k < needed / sizeof(HMODULE) && k < 256; ++k) {
-        active_fn active = (active_fn)GetProcAddress(modules[k], "FtfpUnicodeTextActive");
-        if (active != NULL && active()) return 1;
-    }
-    return 0;
+    HMODULE unicode = GetModuleHandleW(L"Unicode Text.dll");
+    active_fn active = unicode != NULL ? (active_fn)GetProcAddress(unicode, "FtfpUnicodeTextActive") : NULL;
+    return active != NULL && active() != 0;
 }
 
 /* ----------------------------------------------------------------- installing */

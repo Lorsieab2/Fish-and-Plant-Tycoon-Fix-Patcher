@@ -70,7 +70,7 @@ class Runtime:
     """One game with Translations.dll, before FtfpStartup."""
 
     def __init__(self, game: str, files: dict[str, bytes], dlls: dict[str, tuple[bytes, int]] | None = None,
-                 chain_plant: bool = False) -> None:
+                 chain_plant: bool = False, unicode_active: int | None = None) -> None:
         dll, symbols = built()
         self.game = game
         self.emu = se.Emulator(EXES[game], dll, symbols)
@@ -86,7 +86,7 @@ class Runtime:
         e = self.emu
         e.hook_import("GetModuleFileNameW", self._module_file_name, 12)
         e.hook_import("CreateFileW", self._create_file, 28)
-        e.hook_import("GetFileSize", self._file_size, 8)
+        e.hook_import("GetFileSizeEx", self._file_size, 8)
         e.hook_import("ReadFile", self._read_file, 20)
         e.hook_import("WriteFile", self._write_file, 20)
         e.hook_import("CloseHandle", lambda emu: 1, 4)
@@ -96,7 +96,12 @@ class Runtime:
         e.hook_import("FlushInstructionCache", lambda emu: 1, 12)
         e.hook_import("GetCurrentProcess", lambda emu: 0xFFFFFFFF, 0)
         e.hook_import("GetModuleHandleW", self._module_handle, 4)
-        e.hook_import("GetProcAddress", lambda emu: 0, 8)
+        e.hook_import("GetProcAddress", self._proc_address, 8)
+        self.unicode_active = unicode_active
+        if unicode_active is not None:                      # "Unicode Text.dll" loaded before this DLL
+            self.modules["unicode text.dll"] = 0x0C000000
+            self.active_thunk = e.thunk()
+            e.hook(self.active_thunk, lambda emu: self.unicode_active, 0)
         e.hook_import("DisableThreadLibraryCalls", lambda emu: 1, 4)
         self.chained_text = 0
         if chain_plant:
@@ -126,9 +131,8 @@ class Runtime:
 
     def _file_size(self, emu) -> int:
         path, _ = self.handles[emu.arg(0)]
-        if emu.arg(1):
-            emu.write32(emu.arg(1), 0)
-        return len(self.files[path])
+        emu.uc.mem_write(emu.arg(1), struct.pack("<Q", len(self.files[path])))
+        return 1
 
     def _read_file(self, emu) -> int:
         handle, buffer, count, got = emu.arg(0), emu.arg(1), emu.arg(2), emu.arg(3)
@@ -158,6 +162,12 @@ class Runtime:
         if emu.arg(3):
             emu.write32(emu.arg(3), 0x20)
         return 1
+
+    def _proc_address(self, emu) -> int:
+        name = emu.cstring(emu.arg(1)) if emu.arg(1) >= 0x10000 else b""
+        if self.unicode_active is not None and emu.arg(0) == 0x0C000000 and name == b"FtfpUnicodeTextActive":
+            return self.active_thunk
+        return 0
 
     def _module_handle(self, emu) -> int:
         name = emu.wstring(emu.arg(0)).lower() if emu.arg(0) else ""

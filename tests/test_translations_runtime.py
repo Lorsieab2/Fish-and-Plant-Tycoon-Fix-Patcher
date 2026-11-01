@@ -226,6 +226,17 @@ class Files(unittest.TestCase):
         self.assertEqual(rt.start(), 1)
         self.assertEqual(rt.lookup(1), "Âge : ".encode("cp1252"))
 
+    def test_utf8_when_unicode_text_draws_it(self) -> None:
+        """The contract with "Unicode Text.dll": FtfpUnicodeTextActive() nonzero -> UTF-8, else 1252."""
+        data = make("fish", [(1, "Age: ", "Âge : \u65e5\u672c")])
+        for active, want, mode in ((1, "Âge : \u65e5\u672c".encode("utf-8"), "UTF-8 text"),
+                                   (0, "Âge : ??".encode("cp1252"), "Windows-1252 text"),
+                                   (None, "Âge : ??".encode("cp1252"), "Windows-1252 text")):
+            rt = te.Runtime("fish", {INI["fish"]: te.ini(PATH), PATH: data}, unicode_active=active)
+            self.assertEqual(rt.start(), 1)
+            self.assertEqual(rt.lookup(1), want, active)
+            self.assertIn(mode, rt.log)
+
     def test_never_an_email_or_path_in_the_log(self) -> None:
         rt = runtime("fish", make("fish", [(1, "Age: ", "Âge : "), (4, "Sick", "Malade %d")]))
         rt.start()

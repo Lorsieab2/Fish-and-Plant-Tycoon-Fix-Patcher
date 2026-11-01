@@ -329,7 +329,8 @@ class SettingTests(unittest.TestCase):
         for game, exe, engine, profile in cases:
             manifest = self.manifests[game]
             vanilla = exe.read_bytes()
-            defaults = engine.enabled_settings(manifest, Namespace(enable=None, disable=None, disable_all=False))
+            defaults = fish_patcher.pin_settings(manifest, engine.enabled_settings(
+                manifest, Namespace(enable=None, disable=None, disable_all=False)))   # without the loader tail
             extra = {"fish": ("ds_fish", "bigger_tanks"), "plant": ("new_flowers", "sort_seeds")}[game]
             for enabled in ({SETTING}, defaults, defaults | {extra[0]}, defaults | set(extra)):
                 patched, _ = engine.apply_patch_bytes(vanilla, engine.active_patch_records(manifest, enabled))

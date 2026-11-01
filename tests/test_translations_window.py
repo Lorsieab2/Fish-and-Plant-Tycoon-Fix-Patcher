@@ -267,19 +267,22 @@ class Window(unittest.TestCase):
 
 
 class Setting(unittest.TestCase):
-    def test_loaded_last_by_the_startup_loader(self) -> None:
-        import ds_fish_loader as dl
-        self.assertIs(dl.fish_profile({"translations"}), dl.FISH_TRANSLATIONS)
-        self.assertIs(dl.plant_profile({"translations"}), dl.PLANT_TRANSLATIONS)
-        for enabled in ({"ds_fish"}, {"extra_tanks", "ds_fish", "tank_greenhouse_counts", "optimize_prices"},
-                        {"maximizable_window"}):
-            names = dl.fish_profile(enabled | {"translations"}).dll_names
-            self.assertEqual(names[-1], "Translations.dll")
-            self.assertEqual(names[:-1], dl.fish_profile(enabled).dll_names)
-        for enabled in ({"new_flowers", "plant_upgrades"}, {"extra_greenhouses", "new_flowers", "extra_chemical_slots"}):
-            names = dl.plant_profile(enabled | {"translations"}).dll_names
-            self.assertEqual(names[-1], "Translations.dll")
-            self.assertEqual(names[:-1], dl.plant_profile(enabled).dll_names)
+    def test_loaded_last_as_a_loader_tail(self) -> None:
+        import json
+        import fish_patcher
+        for game, cases in (("fish", ({"ds_fish"}, {"extra_tanks", "ds_fish", "tank_greenhouse_counts",
+                                                     "optimize_prices"}, set())),
+                            ("plant", ({"new_flowers", "plant_upgrades"},
+                                       {"extra_greenhouses", "new_flowers", "extra_chemical_slots"}, set()))):
+            manifest = json.loads((ROOT / "data" / f"{game}_manifest.json").read_text(encoding="utf-8"))
+            for enabled in cases:
+                names = fish_patcher.loader_profile(manifest, enabled | {"translations"}, game).dll_names
+                self.assertEqual(names[-1], "Translations.dll")
+                both = fish_patcher.loader_profile(manifest, enabled | {"translations", "unicode_ingame_fonts"}
+                                                   if any(s["id"] == "unicode_ingame_fonts" for s in manifest["settings"])
+                                                   else enabled | {"translations"}, game).dll_names
+                self.assertEqual(both[-1], "Translations.dll")              # after Unicode Text.dll
+                self.assertEqual(fish_patcher.pin_settings(manifest, enabled | {"translations"}), enabled)
 
     def test_manifest_setting(self) -> None:
         import json
@@ -291,16 +294,11 @@ class Setting(unittest.TestCase):
             self.assertTrue(setting["default"])
             self.assertTrue(setting["separate_output"])
             companion = setting["companion"]
-            self.assertTrue(companion["startup_loader"])
+            self.assertNotIn("startup_loader", companion)
             self.assertEqual(companion["loader_tail"], "Translations.dll")
             self.assertEqual(companion["files"], [{"path": "Translations.dll", "destination": f"{folder}/Translations.dll",
                                                    "size": len(dll), "sha256": hashlib.sha256(dll).hexdigest().upper()}])
-            pins = manifest["patched_sha256_by_settings"]
-            self.assertIn("translations", pins)
-            without = [k for k in pins if "translations" not in k.split(",")]
-            for key in without[:: max(1, len(without) // 50)]:
-                self.assertIn(",".join(sorted(set(key.split(",")) | {"translations"})), pins)
-
+            self.assertFalse(any("translations" in k.split(",") for k in manifest["patched_sha256_by_settings"]))
     def test_a_new_patch_gets_the_chosen_language(self) -> None:
         tmp = Path(tempfile.mkdtemp())
         copy = tmp / "copy"

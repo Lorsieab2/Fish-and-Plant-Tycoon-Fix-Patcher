@@ -72,8 +72,10 @@ PRESET_TITLES = {key: text for text, key in PRESET_BUTTONS}
 # The owner (2026-11-01): "a new Owner's Default's setting will turn every
 # patch ON, except for the "everything is free" cheat." By exact id, as VV's
 # Owner's Defaults lists the patches it leaves off. Free upgrades and Add
-# Money are therefore ticked by it.
-OWNERS_DEFAULTS_OFF = frozenset({"everything_free"})
+# Money are therefore ticked by it. The owner (2026-11-01): Owner's Defaults has
+# "Render Unicode with In-Game Fonts" OFF (the owner's copies draw text with the
+# Unicode font instead).
+OWNERS_DEFAULTS_OFF = frozenset({"everything_free", "unicode_ingame_fonts"})
 # The owner (2026-11-01): "anything that sets prices to 0 is DEFAULT OFF".
 # Every setting that makes a price $0; tests pin them off by default and out
 # of Default Patches.
@@ -83,7 +85,8 @@ PATCH_SELECTION_HEADING = "Tick or untick patches in every game at once"
 PATCH_SELECTION_TEXT = (
     "Choose patches below, then press Tick These or Untick These. Each patch is "
     "changed in every game that has it (the games are listed beside its name). "
-    "A patch that needs another one turns it on too, just as when you tick it yourself."
+    "A patch that needs another one turns it on too, just as when you tick it yourself, "
+    "and of two patches that cannot be on together only one stays ticked."
 )
 # The "?" guides for the patch selection buttons (VV: data/how_to_use.json).
 PATCH_HELP = {
@@ -92,6 +95,8 @@ PATCH_HELP = {
         [
             "Ticks every patch in both games.",
             "Except Everything is Free (a CHEAT), which you tick yourself.",
+            "Of two patches that cannot both be on (the two Unicode text settings), it ticks the "
+            "default one, Render Unicode with In-Game Fonts.",
             "It replaces the current ticks; any row can still be changed by hand afterwards.",
         ],
     ),
@@ -110,7 +115,8 @@ PATCH_HELP = {
     "owners_defaults": (
         "Owner's Defaults",
         [
-            "Ticks the patcher owner's own choice: every patch in both games except Everything is Free.",
+            "Ticks the patcher owner's own choice: every patch in both games except Everything is Free "
+            "and Render Unicode with In-Game Fonts.",
             "On top of Default Patches that includes Free upgrades (every item on the Upgrades "
             "screen costs $0), Add Money, Buy Multiple Golden Seahorses and the Optimize Prices "
             "button.",
@@ -146,6 +152,37 @@ def with_requirements(game_id: str, ids) -> set[str]:
     return chosen
 
 
+def conflicts(game_id: str) -> dict[str, set[str]]:
+    """Each setting's `conflicts_settings` (both ways round): settings that are never on together,
+    such as the two Unicode text settings. Ticking one unticks the other."""
+    settings = patch_settings(game_id)
+    found: dict[str, set[str]] = {}
+    for setting_id, setting in settings.items():
+        for other in setting.get("conflicts_settings", []) or []:
+            if other in settings:
+                found.setdefault(setting_id, set()).add(other)
+                found.setdefault(other, set()).add(setting_id)
+    return found
+
+
+def preferred_order(game_id: str, ids) -> list[str]:
+    """`ids` in the order to tick them so that, of two that exclude each other, the default one
+    (the one a fresh install has on) is ticked last and so stays on."""
+    settings = patch_settings(game_id)
+    return sorted(ids, key=lambda sid: (bool(settings.get(sid, {}).get("default", False)), sid))
+
+
+def resolve_conflicts(game_id: str, ids) -> set[str]:
+    """`ids` with at most one of each set of settings that exclude each other: the default one
+    is kept (Select All Patches ticks "Render Unicode with In-Game Fonts", not "Use Unicode Font")."""
+    chosen: set[str] = set()
+    clash = conflicts(game_id)
+    for sid in reversed(preferred_order(game_id, ids)):
+        if not clash.get(sid, set()) & chosen:
+            chosen.add(sid)
+    return chosen
+
+
 def preset_selection(preset: str, game_id: str) -> set[str]:
     """The exact settings a preset button ticks in one game."""
     settings = patch_settings(game_id)
@@ -159,7 +196,7 @@ def preset_selection(preset: str, game_id: str) -> set[str]:
         ids = set()
     else:
         raise ValueError(f"unknown preset: {preset}")
-    return with_requirements(game_id, ids)
+    return with_requirements(game_id, resolve_conflicts(game_id, ids))
 
 
 def patches_by_name() -> list[tuple[str, list[tuple[str, str]]]]:
@@ -235,6 +272,12 @@ class App(tk.Tk):
                     dependent, base = variables[setting_id], variables[needed]
                     dependent.trace_add("write", lambda *_a, d=dependent, b=base: d.get() and not b.get() and b.set(True))
                     base.trace_add("write", lambda *_a, d=dependent, b=base: not b.get() and d.get() and d.set(False))
+            # Two settings that exclude each other: ticking one unticks the other.
+            for setting_id, others in conflicts(game_id).items():
+                for other in others:
+                    if setting_id in variables and other in variables:
+                        mine, theirs = variables[setting_id], variables[other]
+                        mine.trace_add("write", lambda *_a, m=mine, t=theirs: m.get() and t.get() and t.set(False))
 
     def _load_brand_images(self) -> None:
         self.fish_picture = tk.PhotoImage(master=self, file=str(FISH_PICTURE_PATH))
@@ -523,6 +566,10 @@ class App(tk.Tk):
         how many of those patches now have that state."""
         wanted = set(names)
         entries = [entry for name, group in patches_by_name() if name in wanted for entry in group]
+        if tick:
+            # Of two chosen patches that exclude each other, the default one is ticked last and stays on.
+            order = {game_id: preferred_order(game_id, [sid for g, sid in entries if g == game_id]) for game_id in GAMES}
+            entries = [(game_id, sid) for game_id in GAMES for sid in order[game_id]]
         for game_id, setting_id in entries:
             self.patch_vars[game_id][setting_id].set(tick)
         self._save_settings()

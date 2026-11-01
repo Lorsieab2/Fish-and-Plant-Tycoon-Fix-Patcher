@@ -171,37 +171,7 @@ def with_optimize_prices(base: LoaderProfile | None, alone: LoaderProfile) -> Lo
     return alone if base is None else chain([base, alone])
 
 
-# "Translations" (src/translation_format.py): its DLL is always loaded last, after every other
-# companion has installed, so its lookup hook chains onto theirs (Plant Tycoon's Store Upgrades and
-# Items jumps from the string lookup first) and every patcher DLL it translates is loaded.
-TRANSLATIONS_SETTING = "translations"
-TRANSLATIONS_DLL = "Translations.dll"
-_TRANSLATIONS_INSTALLS = ("That reads the translation the patcher's Translations window chose, then checks the "
-                          "game's string lookup ({lookup}) holds its stock code or another companion's jump, "
-                          "{more}and writes all of it or nothing; native/ftfp_translations/ftfp_translations.c "
-                          "describes it.")
-FISH_LOADER_SETTINGS = frozenset({"maximizable_window", "tank_greenhouse_counts", "optimize_prices", "ds_fish",
-                                  "extra_tanks", "extra_supply_slots", "multiple_ornaments"})
-PLANT_LOADER_SETTINGS = frozenset({"tank_greenhouse_counts", "new_flowers", "sort_seeds", "optimize_prices",
-                                   "extra_greenhouses", "extra_nurseries", "extra_chemical_slots"})
-FISH_TRANSLATIONS = replace(
-    FISH, dll_name=TRANSLATIONS_DLL,
-    what_it_installs=_TRANSLATIONS_INSTALLS.format(lookup="0x426FD0",
-                                                   more="and the five sprintf calls of the counted lines, "),
-)
-
-
 def fish_profile(enabled: set[str]) -> LoaderProfile:
-    """Fish Tycoon's loader: the companions' DLLs (_fish_profile), then Translations.dll last."""
-    if TRANSLATIONS_SETTING not in enabled:
-        return _fish_profile(enabled)
-    rest = set(enabled) - {TRANSLATIONS_SETTING}
-    if not rest & FISH_LOADER_SETTINGS:
-        return FISH_TRANSLATIONS
-    return chain([_fish_profile(rest), FISH_TRANSLATIONS])
-
-
-def _fish_profile(enabled: set[str]) -> LoaderProfile:
     """The DLLs Fish Tycoon's loader loads for these settings.
 
     Extra Tanks goes first: it loads Multiple Ornaments (which loads DS Exclusive Fish, which loads DS
@@ -283,23 +253,7 @@ PLANT_CHEM_SLOTS = replace(
 )
 
 
-PLANT_TRANSLATIONS = replace(
-    PLANT, dll_name=TRANSLATIONS_DLL,
-    what_it_installs=_TRANSLATIONS_INSTALLS.format(lookup="0x44CA70", more=""),
-)
-
-
 def plant_profile(enabled: set[str]) -> LoaderProfile:
-    """Plant Tycoon's loader: the companions' DLLs (_plant_profile), then Translations.dll last."""
-    if TRANSLATIONS_SETTING not in enabled:
-        return _plant_profile(enabled)
-    rest = set(enabled) - {TRANSLATIONS_SETTING}
-    if not rest & PLANT_LOADER_SETTINGS:
-        return PLANT_TRANSLATIONS
-    return chain([_plant_profile(rest), PLANT_TRANSLATIONS])
-
-
-def _plant_profile(enabled: set[str]) -> LoaderProfile:
     """The DLLs Plant Tycoon's loader loads for these settings.
 
     With the extra greenhouses or nurseries, Extra Greenhouses.dll is loaded: it starts the counts,
@@ -328,6 +282,60 @@ def _plant_profiles(enabled: set[str]) -> list[LoaderProfile]:
     if OPTIMIZE_PRICES_SETTING in enabled:
         profiles.append(PLANT_OPTIMIZE)
     return profiles
+
+
+# ---- loader tails: a DLL loaded after all the others, its setting left out of the pins.
+#
+# A setting whose companion says "loader_tail": "<dll>" (Render Unicode with In-Game Fonts:
+# "Unicode Text.dll") changes the executable only by adding that DLL to the end of the loader's
+# list. Its executable is checked in two steps (src/fish_patcher.py, build_executable): the
+# executable WITHOUT it must match the manifest's pin for the other settings, exactly as before;
+# then the same patched bytes get the loader with the tail DLL added (or a one-DLL loader for it
+# alone when no other companion needs one). A tail DLL that is missing or refuses goes on to
+# WinMain like every other, so the game always starts.
+
+UNICODE_DLL = "Unicode Text.dll"
+# "Translations" (src/translations.py): a tail too, so it starts after every companion has
+# installed (its lookup hook chains onto Plant Tycoon's Store Upgrades and Items' jump, and every
+# patcher DLL it translates is loaded) and after Unicode Text.dll.
+TRANSLATIONS_SETTING = "translations"
+TRANSLATIONS_DLL = "Translations.dll"
+TAIL_INSTALLS = {
+    UNICODE_DLL: ("That checks the places it changes in the running game (where a typed character is "
+                  "turned into a key event, and where the game sets up its fonts) and writes all of them "
+                  "or none; {source} describes them."),
+    TRANSLATIONS_DLL: ("That reads the translation the patcher's Translations window chose, checks that the "
+                       "game's string lookup (and in Fish Tycoon the Goals page's five sprintf calls) hold "
+                       "their stock code or another companion's jump, and writes all of it or nothing; "
+                       "native/ftfp_translations/ftfp_translations.c describes it."),
+}
+TAIL_SOURCES = {"fish": "native/ftfp_fish_unicode/ftfp_fish_unicode.c",
+                "plant": "native/ftfp_plant_unicode/ftfp_plant_unicode.c"}
+GAME_PROFILES = {"fish": FISH, "plant": PLANT}
+
+
+def tail_profile(game: str, dll_name: str) -> LoaderProfile:
+    """A tail DLL loaded the way every companion is (its full path beside the executable)."""
+    text = TAIL_INSTALLS.get(dll_name, "That checks every place it changes and writes all of them or none.")
+    return replace(GAME_PROFILES[game], dll_name=dll_name, then_dlls=(),
+                   what_it_installs=text.format(source=TAIL_SOURCES.get(game, "its source")))
+
+
+def with_tails(game: str, base: LoaderProfile | None, dll_names) -> LoaderProfile:
+    """The loader for these settings: the one the other settings make (None: none), then each tail
+    DLL in order, each once."""
+    tails: list[LoaderProfile] = []
+    # Unicode Text first: Translations.dll asks it (FtfpUnicodeTextActive) whether to write UTF-8,
+    # so it must be loaded before any other tail.
+    dll_names = sorted(dll_names, key=lambda name: name != UNICODE_DLL)
+    for name in dll_names:
+        if all(p.dll_name != name for p in tails) and (base is None or name not in base.dll_names):
+            tails.append(tail_profile(game, name))
+    if not tails:
+        if base is None:
+            raise LoaderError("no DLL to load")
+        return base
+    return chain(([base] if base is not None else []) + tails)
 
 
 PATH_WCHARS = 0x208

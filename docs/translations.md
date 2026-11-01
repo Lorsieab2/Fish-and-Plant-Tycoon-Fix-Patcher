@@ -166,7 +166,7 @@ translations ship in the next release and appear in every player's language list
 - `src/translation_strings.py`: every line a translation can replace, with its limit; the game lines are
   read from the player's own executable (the patcher never ships the games' text).
 - `native/ftfp_translations` builds `Translations.dll` (`scripts/build_ftfp_translations.ps1`, after
-  `scripts/build_translations_headers.py`). The startup loader loads it last (`src/ds_fish_loader.py`).
+  `scripts/build_translations_headers.py`). It is a loader tail (`"loader_tail"`, `src/ds_fish_loader.py` `with_tails`): the startup loader loads it after every other companion and after "Unicode Text.dll", and the setting adds no executable pins.
   It replaces the head of the string lookup (Fish Tycoon 0x426FD0, Plant Tycoon 0x44CA70) with a jump to
   itself after checking it holds the stock code or another companion's jump (Plant Tycoon's Store Upgrades
   and Items already jumps from there; Translations.dll calls that jump), patches Fish Tycoon's five Goals

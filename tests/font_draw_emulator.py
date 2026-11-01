@@ -75,10 +75,13 @@ class BlitRecord:
 
 
 class FontDrawEmulator:
-    def __init__(self, game: str, screen_w: int = 900, screen_h: int = 200) -> None:
+    def __init__(self, game: str, screen_w: int = 900, screen_h: int = 200,
+                 dll: Path | None = None, symbols: dict | None = None) -> None:
+        """`dll`: a companion mapped beside the game (tests/store_emulator.py), its imports
+        left for the caller to hook."""
         self.game = game
         a = self.a = GAMES[game]
-        emu = self.emu = Emulator(a.exe, None, {})
+        emu = self.emu = Emulator(a.exe, dll, symbols or {})
         emu.uc.mem_map(0, 0x1000)                     # fs:[0], the SEH chain, reads address 0
         self.images: dict[int, int] = {}              # image object -> surface
         self.pictures: dict[str, Image] = {}
@@ -192,6 +195,16 @@ class FontDrawEmulator:
         self.pictures[key.lower()] = Image.from_png(font_picture(self.game, key))
         wrapper = self.emu.alloc(0x10)
         self.emu.call(self.a.font_init, self.emu.text(key), table, 0, ecx=wrapper)
+        return wrapper
+
+    def load_font_at(self, name: int, table: int, picture: bytes) -> int:
+        """The font set-up as the game calls it, with the name and table it pushes (a
+        companion's own, once it has pointed the pushes at them) and the picture that name
+        finds."""
+        key = self.emu.cstring(name).decode("latin-1")
+        self.pictures[key.lower()] = Image.from_png(picture)
+        wrapper = self.emu.alloc(0x10)
+        self.emu.call(self.a.font_init, name, table, 0, ecx=wrapper)
         return wrapper
 
     def fill(self, rgb: tuple) -> None:

@@ -511,26 +511,16 @@ def apply_manifest(args: argparse.Namespace) -> int:
         fish_patcher.check_setting_requirements(manifest, enabled)
     except fish_patcher.PatchError as exc:
         raise PatchError(str(exc)) from exc
-    patches = active_patch_records(manifest, enabled)
     original = vanilla_exe.read_bytes()
-    patched, patch_summary = apply_patch_bytes(original, patches)
-    loader_summary: list[dict[str, str]] = []
-    if fish_patcher.needs_startup_loader(manifest, enabled):
-        # The companion loader goes on last, over the patched bytes
-        # (src/ds_fish_loader.py: Unused Flowers, or Sort Seeds on its own).
-        try:
-            patched, loader_summary = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.plant_profile(enabled))
-        except ds_fish_loader.LoaderError as exc:
-            raise PatchError(f"Cannot add the startup loader: {exc}") from exc
-    changed = bool(patches or loader_summary)
-    expected_hash = expected_patched_hash(manifest, enabled)
+    # The companion loader goes on last, over the patched bytes (src/ds_fish_loader.py: Unused
+    # Flowers, or Sort Seeds on its own); a loader-tail DLL (Unicode Text) after them all.
+    try:
+        patched, patch_summary, loader_summary, _pin = fish_patcher.build_executable(
+            manifest, original, enabled, "plant", active_patch_records, apply_patch_bytes,
+            expected_patched_hash, lambda core: settings_key(core, manifest))
+    except fish_patcher.PatchError as exc:
+        raise PatchError(str(exc)) from exc
     patched_hash = sha256_bytes(patched)
-    if changed and not expected_hash:
-        raise PatchError(f"Manifest has no expected output hash for enabled settings: {settings_key(enabled, manifest)}")
-    if changed and patched_hash != expected_hash:
-        raise PatchError(
-            f"Patched output hash mismatch: {patched_hash}; expected {expected_hash}."
-        )
     assets = asset_merge_plan(manifest, manifest_path, enabled)
     companions = companion_plan(manifest, manifest_path, enabled)
     # Checked before anything is written, and in a dry run too, so a Both

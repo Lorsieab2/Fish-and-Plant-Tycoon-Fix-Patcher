@@ -38,19 +38,19 @@ DEFAULTS = {
         "fix_vanilla_bugs", "crimson_comet_20_percent_cure", "unknown_chemical_three_uses",
         "universal_supply_slots", "maximizable_window", "tank_greenhouse_counts",
         "ds_fish", "ds_store", "time_warp", "bigger_tanks", "extra_tanks", "extra_supply_slots",
-        "multiple_ornaments",
+        "multiple_ornaments", "unicode_ingame_fonts", "translations",
     },
     "plant": {
         "fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets",
         "tank_greenhouse_counts", "new_flowers", "plant_upgrades", "sort_seeds", "time_warp",
-        "extra_greenhouses", "extra_nurseries", "extra_chemical_slots",
+        "extra_greenhouses", "extra_nurseries", "extra_chemical_slots", "unicode_ingame_fonts", "translations",
     },
 }
 EVERY = {game: set(patch_settings(game)) for game in ("fish", "plant")}
 EXPECTED = {
     "select_all": {game: EVERY[game] - {"everything_free"} for game in EVERY},
     "default_patches": DEFAULTS,
-    "owners_defaults": {game: EVERY[game] - {"everything_free"} for game in EVERY},
+    "owners_defaults": {game: EVERY[game] - {"everything_free", "unicode_ingame_fonts"} for game in EVERY},
     "deselect_all": {game: set() for game in EVERY},
 }
 
@@ -94,7 +94,7 @@ class PresetSetTests(unittest.TestCase):
             chosen = gui.preset_selection("owners_defaults", game)
             self.assertNotIn("everything_free", chosen)
             self.assertTrue({"free_upgrades", "add_money", "time_warp"} <= chosen, game)
-        self.assertEqual(gui.OWNERS_DEFAULTS_OFF, {"everything_free"})
+        self.assertEqual(gui.OWNERS_DEFAULTS_OFF, {"everything_free", "unicode_ingame_fonts"})
 
     def test_presets_keep_requirements(self) -> None:
         for preset in EXPECTED:
@@ -202,7 +202,8 @@ class HelpTextTests(unittest.TestCase):
             gui.PATCH_SELECTION_TEXT,
             "Choose patches below, then press Tick These or Untick These. Each patch is changed in "
             "every game that has it (the games are listed beside its name). A patch that needs "
-            "another one turns it on too, just as when you tick it yourself.",
+            "another one turns it on too, just as when you tick it yourself, and of two patches that "
+            "cannot be on together only one stays ticked.",
         )
 
     def test_patches_by_name_groups_both_games(self) -> None:
@@ -329,6 +330,103 @@ class PatchSelectionGuiTests(unittest.TestCase):
             "fish": EXPECTED["owners_defaults"]["fish"] - {"bigger_tanks"},
             "plant": EXPECTED["owners_defaults"]["plant"],
         })
+
+
+
+# Two settings that exclude each other (the owner, 2026-11-01: the two Unicode text settings,
+# "Render Unicode with In-Game Fonts" (default on) and "Use Unicode Font" (default off), are
+# MUTUALLY EXCLUSIVE in the GUI, the presets and Patch Selection Settings). Shown here on a
+# made-up pair beside the real settings, so the mechanism is pinned whatever the manifests hold.
+def _with_pair(real):
+    def settings(game_id: str) -> dict:
+        out = {sid: dict(s) for sid, s in real(game_id).items()}
+        out["pair_default"] = {"id": "pair_default", "name": "Pair default", "default": True,
+                               "conflicts_settings": ["pair_other"]}
+        out["pair_other"] = {"id": "pair_other", "name": "Pair other", "default": False}
+        return out
+    return settings
+
+
+class ConflictTests(unittest.TestCase):
+    def setUp(self) -> None:
+        patcher = mock.patch.object(gui, "patch_settings", _with_pair(gui.patch_settings))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_conflicts_go_both_ways(self) -> None:
+        clash = gui.conflicts("fish")
+        self.assertEqual(clash["pair_default"], {"pair_other"})
+        self.assertEqual(clash["pair_other"], {"pair_default"})
+
+    def test_presets_never_tick_both_and_keep_the_default_one(self) -> None:
+        for preset in EXPECTED:
+            for game in EVERY:
+                chosen = gui.preset_selection(preset, game)
+                self.assertFalse({"pair_default", "pair_other"} <= chosen, (preset, game))
+        for game in EVERY:
+            self.assertIn("pair_default", gui.preset_selection("select_all", game))
+            self.assertNotIn("pair_other", gui.preset_selection("select_all", game))
+            self.assertIn("pair_default", gui.preset_selection("default_patches", game))
+        self.assertEqual(gui.resolve_conflicts("fish", {"pair_default", "pair_other", "ds_fish"}),
+                         {"pair_default", "ds_fish"})
+        self.assertEqual(gui.resolve_conflicts("fish", {"pair_other"}), {"pair_other"})
+
+    def test_the_patcher_refuses_both(self) -> None:
+        import fish_patcher
+        manifest = {"settings": list(_with_pair(gui.patch_settings)("fish").values())}
+        with self.assertRaisesRegex(fish_patcher.PatchError, "cannot both be on"):
+            fish_patcher.check_setting_requirements(manifest, {"pair_default", "pair_other"})
+        fish_patcher.check_setting_requirements(manifest, {"pair_other"})
+        self.assertEqual(fish_patcher.conflicting_settings(manifest),
+                         {"pair_default": {"pair_other"}, "pair_other": {"pair_default"}})
+
+    def test_the_real_unicode_pair(self) -> None:
+        """Every conflict in the manifests names a real setting of that game, both ways round."""
+        for game in EVERY:
+            settings = patch_settings(game)
+            for sid, setting in settings.items():
+                for other in setting.get("conflicts_settings", []):
+                    self.assertIn(other, settings, (game, sid))
+                    self.assertNotIn(other, setting.get("requires_settings", []), (game, sid))
+
+
+class ConflictGuiTests(unittest.TestCase):
+    def setUp(self) -> None:
+        _tk_or_skip(self)
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        for patcher in (mock.patch.object(gui, "SETTINGS_PATH", Path(self.tmp.name) / "settings.json"),
+                        mock.patch.object(gui, "patch_settings", _with_pair(gui.patch_settings))):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_ticking_one_unticks_the_other(self) -> None:
+        import tkinter
+        for attempt in range(3):
+            try:
+                app = gui.App()
+                break
+            except tkinter.TclError:
+                if attempt == 2:
+                    raise
+                time.sleep(0.5)
+        app.withdraw()
+        self.addCleanup(app.destroy)
+        fish = app.patch_vars["fish"]
+        self.assertTrue(fish["pair_default"].get())
+        fish["pair_other"].set(True)
+        self.assertEqual((fish["pair_default"].get(), fish["pair_other"].get()), (False, True))
+        fish["pair_default"].set(True)
+        self.assertEqual((fish["pair_default"].get(), fish["pair_other"].get()), (True, False))
+        for preset in ("select_all", "owners_defaults", "default_patches"):
+            app._apply_preset(preset)
+            self.assertFalse(fish["pair_default"].get() and fish["pair_other"].get(), preset)
+        # Patch Selection Settings: ticking both names leaves the default one on
+        app._set_named_patches(["Pair other", "Pair default"], True)
+        self.assertEqual((fish["pair_default"].get(), fish["pair_other"].get()), (True, False))
+        app._set_named_patches(["Pair default"], False)
+        app._set_named_patches(["Pair other"], True)
+        self.assertEqual((fish["pair_default"].get(), fish["pair_other"].get()), (False, True))
 
 
 if __name__ == "__main__":
