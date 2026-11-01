@@ -152,6 +152,9 @@ Fish Tycoon options:
 - Everything is Free (off by default; a CHEAT, so Select All Patches and
   Owner's Defaults leave it off: tick it yourself): every store item, research and Upgrades item costs $0,
   and Add Money costs $0 and still adds $1,000. Limits stay.
+- Render Unicode with In-Game Fonts (on by default; Owner's Defaults leaves
+  it off): type accented letters (é ñ ü ß Æ ¿ £ ...) in names, drawn in the
+  game's own fonts; letters a font lacks are made for it in its style.
 
 Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
 - What moves: fish of any age, healthy or sick (a pregnant fish keeps her
@@ -264,6 +267,9 @@ Plant Tycoon options:
   doses left when you point at it. Turning it off loses nothing: loading a
   save puts page 2's chemicals into free stock slots where they fit, and the
   rest wait in the slot's Extra Chemical Slots file for when you turn it on.)
+- Render Unicode with In-Game Fonts (on by default; Owner's Defaults leaves
+  it off): type accented letters (é ñ ü ß Æ ¿ £ ...) in names; the game's font
+  gets the few it lacks, made in its style.
 
 Moving things between greenhouses (5 extra greenhouses):
 - A plant: drag it onto the left or right arrow, as you would drag it to
@@ -357,13 +363,60 @@ Plant Tycoon's "Unused parts" (parts in
 the game's plant tables no plant ever grows). The patcher's own parts (DS Exclusive Fish,
 DS Store Items' animals, the Unused Flowers) are always offered, marked
 "(patcher)", and a save's DS fish and Unused Flowers plants are always
-drawn. With Show Spoilers off (the Breeding Guide's setting) only the parts
-you have discovered. Pick a PNG size (the game's
+drawn. The Moray Eel is on the Creatures tab three ways: out of its home
+(swimming), in its home (every frame), and its home alone. The Items tab
+has every item of the game, owned or not: pick a Category, an Item and a
+Picture (in the store, pointed at or picked; in its supply slot, tray or
+Tools box; on the mouse; in the tank; owned with the tick; a pot with each
+soil). The patcher's items are marked "(patcher)", and art in the game's
+files that the game never draws is marked "(unused)". Items keep the
+games' own names (Unusual Fish Eggs; Common, Endangered, Extinct and
+Legendary Seeds). Plant Tycoon's Bugs tab names the 48 collectible bugs in
+the Collections screen's order with the game's rarity (Common, Uncommon or
+Rare), with each one's leaf. "All game
+art" has every picture file of the game (backgrounds too), one picture per
+sprite cell, by category ("(unused)": a file the game never names; files
+the game names but lacks are listed, not drawn). "Screens, bars and
+buttons" has the games' pictures made of several pieces: whole screens,
+meters and bars empty and filled, every button in each state, rope and
+dialog boxes (without their words). The Bugs tab also shows each bug as the
+greenhouse and the Collections screen draw it. With Show Spoilers off
+(the Breeding Guide's setting) only the parts you have discovered (items are
+always all offered). Pick a PNG size (the game's
 own, 2x, 4x, or your own width and height) and Small margin, then "Save
-PNG..." or "Save all in this tank/greenhouse...". The pictures have a clear background. Like the guide, it
+PNG...", "Save all in this tank/greenhouse..." or, in Make your own, "Save
+all on this tab..." (every picture of the tab; the Items tab in a folder per
+category). The pictures have a clear background. Like the guide, it
 copies the pictures it needs from your game into "Picture Studio Pictures"
 beside the patcher ("Find game..." if it has none yet), and never changes a
 save.
+
+Tools tab, Text Maker: pick the game and one of its fonts, type in the box
+(Enter starts a new line), and the preview shows it exactly as the game
+draws it. Pick the colour, Shadow or Outline, the size and the background,
+then "Export PNG..." (tick "Transparent background" for a clear one). The
+Insert character list has accented letters by language; "Any Unicode"
+takes a code like U+00E9 or 1F41F, a character name, or the characters
+themselves (Japanese, Chinese, Korean, Greek, Cyrillic, cuneiform, emoji).
+Letters the font lacks are made for it, in its style, and listed as
+"patcher-made". It reads the fonts from your copy of the game ("Game
+Copy..." to choose one) and never changes a game file.
+
+Tools tab, Translations: play the game in another language. Patch with the
+"Translations" setting on (it is on by default), then choose the game and
+the language under "Language in the game". It applies from the next game
+start; you do not need to patch again. "English (original)" changes
+nothing. To make your own: pick a language, press "Make a translation...",
+and type your translations in the editor (the English is on the left; it
+saves by itself and shows how much is done). Keep placeholders such as %d
+and %s; the editor says when one is missing. "Add translation file..." (or
+drag the file onto the window) adds one someone sent you; "Export
+translation..." saves a copy. Any line that is missing or wrong stays in
+English. If you want to share your translation, consider going to the
+Patcher's GitHub page and adding it! How: press Share on GitHub..., drag
+the file in, press Submit. You need a free GitHub account
+(https://github.com/signup). Email addresses are never saved and are
+rejected from translation files. docs\translations.md has everything else.
 
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.

@@ -125,6 +125,35 @@ class SaveToolTests(unittest.TestCase):
         self.assertFalse((folder / "Backups").exists())
         self.assertEqual(save_tools.read_slot_names("fish", folder)[0], "Ana")
 
+    def test_latin1_names_only_where_the_copy_has_the_unicode_setting(self) -> None:
+        """Render Unicode with In-Game Fonts: its DLL leaves "<Game> Fix Patcher Data\\Unicode Text.ini"
+        in the save folder; there, and only there, names may use Latin-1 (one byte a letter, as
+        the game keeps them), and they are read back and copied as such."""
+        for game_id in save_tools.FORMATS:
+            fmt = save_tools.FORMATS[game_id]
+            folder = make_folder(self.root, game_id, ["Ana", "Bo", "Cy", "Di", "Ed"], f"{game_id} u")
+            self.assertFalse(save_tools.unicode_names(game_id, folder))
+            with self.assertRaisesRegex(save_tools.SaveToolError, "Render Unicode with In-Game Fonts"):
+                save_tools.rename_slot(game_id, folder, 1, "Renée", NoGame())
+            data = folder / f"{fmt.title} Fix Patcher Data"
+            data.mkdir()
+            (data / "Unicode Text.ini").write_text("on")
+            self.assertTrue(save_tools.unicode_names(game_id, folder))
+            report = save_tools.rename_slot(game_id, folder, 1, "Renée Ørsted", NoGame())
+            self.assertEqual(report["new_name"], "Renée Ørsted")
+            self.assertEqual(save_tools.read_slot_names(game_id, folder)[0], "Renée Ørsted")
+            slot = (folder / f"{fmt.title}1.ldw").read_bytes()
+            self.assertTrue(slot[fmt.slot_name_offset:].startswith("Renée Ørsted".encode("latin-1") + b"\0"))
+            self.assertEqual(save_tools.players(game_id, folder)[0], (1, "Renée Ørsted"))
+            copied = save_tools.copy_slot(game_id, folder, 1, 2, "Zoë", NoGame(), overwrite=True)
+            self.assertEqual(copied["new_name"], "Zoë")
+            self.assertEqual(save_tools.read_slot_names(game_id, folder)[1], "Zoë")
+            self.assertEqual(save_tools.player_name(game_id, folder, 1, "NEW PLAYER"), "Renée Ørsted")
+            # still only what the game takes: no letters past U+00FF, no C1 controls
+            for bad in ("Łukasz", "€uro", "a\x85b", "x" * 32):
+                with self.assertRaises(save_tools.SaveToolError, msg=bad):
+                    save_tools.validate_name(game_id, bad, unicode=True)
+
     def test_only_slots_with_a_saved_game_can_be_renamed(self) -> None:
         fmt = save_tools.FORMATS["plant"]
         folder = make_folder(self.root, "plant", ["Ana", "NEW PLAYER", "", "Di", "Ed"])

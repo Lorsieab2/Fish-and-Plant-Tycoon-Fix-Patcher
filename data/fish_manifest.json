@@ -69788,7 +69788,7 @@
             "path": "Tank Counts.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Tank Counts.dll",
             "size": 94720,
-            "sha256": "1EBDD5AF75A1974559A662918698A1830EE786EB7242CE85C5FB0482266F184D"
+            "sha256": "ECF3F7465CDA5AFA375D3DD50194783A1E36A135E891E9403E8BE49F4D54F6D8"
           }
         ]
       }
@@ -70544,6 +70544,66 @@
             "destination": "Fish Tycoon Fix Patcher DLLs/Multiple Ornaments.dll",
             "size": 95744,
             "sha256": "3E383360AE97C01ECBEBF61578D50739FE3A7F9360FF99470C41916986EEC4FA"
+          }
+        ]
+      }
+    },
+    {
+      "id": "unicode_ingame_fonts",
+      "name": "Render Unicode with In-Game Fonts",
+      "summary": "Type and show accented letters and symbols (é ñ ü ß Æ Ø ¿ £ © ...) in names, drawn in the game's own fonts; letters a font lacks are made for it in its style.",
+      "description": "Typing in the game (a player's name, any text box), any letter of your keyboard from the Latin-1 set (U+00A0-U+00FF) goes in, AltGr letters too; the game took only plain ASCII. All three of the game's fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every Latin-1 letter and symbol they lack, and paddington's empty boxes for % * + < = > [ \\ ] ^ { | } ~ become real letters: accented letters are made from each font's own letters and accents, the rest drawn in the font's size, baseline and weight. They are added to copies of the fonts' pictures in the game's Images folder; the game's own pictures are not changed. Names are kept in the save exactly as the game keeps them, one byte a letter, so the save's layout is unchanged and the patcher's tools (Rename Players, Copy Player Slot, the Breeding Guide and Picture Studio) read and write such names too. A copy of the game without this setting shows each such letter as a blank (its fonts have no letter for it) but loads and plays the save as always.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/fish_tycoon_unicode",
+        "loader_tail": "Unicode Text.dll",
+        "files": [
+          {
+            "path": "Unicode Text.dll",
+            "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
+            "size": 104448,
+            "sha256": "F2AA72DE682861AC0AFBA20250C3436479466BF8269E4EF40E2E6292F0B1570F"
+          },
+          {
+            "path": "Images/FONT_TRIPLEX_SANSLIGHTLIN_BOLD_16PT_unicode.png",
+            "destination": "Images/FONT_TRIPLEX_SANSLIGHTLIN_BOLD_16PT_unicode.png",
+            "size": 14032,
+            "sha256": "BF017B440C026BA92D40AD4CB199056EA25EB6175AB84E9A95BB9F0174CD0306"
+          },
+          {
+            "path": "Images/paddington_tt_18_unicode.png",
+            "destination": "Images/paddington_tt_18_unicode.png",
+            "size": 13310,
+            "sha256": "F162EC3E0503263951629299FD619377D86E629D4279D62C4A95C6E43E444E5F"
+          },
+          {
+            "path": "Images/paddington_tt_30_unicode.png",
+            "destination": "Images/paddington_tt_30_unicode.png",
+            "size": 23206,
+            "sha256": "02DD0B46A603C5CFE26523B3BC70A9B8CD228856F3E892EE5FA2084FE6010DA9"
+          }
+        ]
+      }
+    },
+    {
+      "id": "translations",
+      "name": "Translations",
+      "summary": "Plays the game in the language you choose on the Tools tab (Translations...): installed translations and your own. English until you choose one.",
+      "description": "Lets Fish Tycoon show a translation: every text of the game's own string table and the patcher's own texts (store items, counts, popups). Choose the language on the Tools tab, Translations...: it applies from the next game start, with no patching again. \"English (original)\" leaves the game exactly as it is. A line the translation lacks, or one it got wrong, stays in English; the game never stops for a translation. Make your own there too (a built-in editor), add one you were sent, or share yours on the patcher's GitHub page. Text is shown in the game's fonts as Latin-1 (accents of French, German, Spanish...) unless a Unicode setting draws more. Runs as a companion DLL the game loads at start, after the others; saves are unchanged.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/translations",
+        "loader_tail": "Translations.dll",
+        "files": [
+          {
+            "path": "Translations.dll",
+            "destination": "Fish Tycoon Fix Patcher DLLs/Translations.dll",
+            "size": 122880,
+            "sha256": "2D9CFC2591B480EB0C68EB82BDFD351CAB3A09E0F398F48F391A6F1E2F58571B"
           }
         ]
       }

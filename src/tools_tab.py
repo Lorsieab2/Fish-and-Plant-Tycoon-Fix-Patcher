@@ -30,6 +30,8 @@ import breeding_guide
 import picture_studio
 import save_backup
 import save_tools
+import text_maker_window
+import translations_window
 
 GAMES = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
 LINK = {"foreground": "#0057c2", "cursor": "hand2", "font": ("Segoe UI", 9, "underline")}
@@ -106,6 +108,8 @@ HELP = {
     ),
     "breeding_guide": breeding_guide.HELP,
     "picture_studio": picture_studio.HELP,
+    "text_maker": text_maker_window.HELP,
+    "translations": translations_window.HELP,
 }
 
 
@@ -142,6 +146,8 @@ class ToolsTab:
             ("Game Mechanics...", "game_mechanics", lambda: self.mechanics(self.app.game_choice.get())),
             ("Breeding Guide...", "breeding_guide", lambda: self.breeding(self.app.game_choice.get())),
             ("Picture Studio...", "picture_studio", lambda: self.studio(self.app.game_choice.get())),
+            ("Text Maker...", "text_maker", lambda: self.text_maker(self.app.game_choice.get())),
+            ("Translations...", "translations", lambda: self.translations(self.app.game_choice.get())),
         )):
             self._link(links, text, command).pack(side="left", padx=(0 if index == 0 else 18, 0))
             self._help(links, key).pack(side="left", padx=(3, 0))
@@ -158,6 +164,8 @@ class ToolsTab:
             ("game_mechanics", "Game mechanics...", self.mechanics),
             ("breeding_guide", "Breeding guide...", self.breeding),
             ("picture_studio", "Picture studio...", self.studio),
+            ("text_maker", "Text maker...", self.text_maker),
+            ("translations", "Translations...", self.translations),
         )
         for column, (key, _text, _command) in enumerate(columns, start=1):
             self._help(grid, key).grid(row=0, column=column, padx=(12, 0), pady=(0, 2))
@@ -175,6 +183,8 @@ class ToolsTab:
             ("Game Mechanics...", "game_mechanics", lambda: self.mechanics(None)),
             ("Breeding Guide...", "breeding_guide", lambda: self.breeding(None)),
             ("Picture Studio...", "picture_studio", lambda: self.studio(None)),
+            ("Text Maker...", "text_maker", lambda: self.text_maker(None)),
+            ("Translations...", "translations", lambda: self.translations(None)),
         )):
             ttk.Button(buttons, text=text, command=command).pack(side="left", padx=(0 if index == 0 else 8, 0))
             self._help(buttons, key).pack(side="left", padx=(2, 0))
@@ -547,8 +557,9 @@ class ToolsTab:
             elif item is None:
                 problem = "Choose a player."
             elif name:
+                folder = state["folders"][folder_box.current()]
                 try:
-                    save_tools.validate_name(game(), name)
+                    save_tools.validate_name(game(), name, save_tools.unicode_names(game(), folder))
                 except save_tools.SaveToolError as exc:
                     problem = str(exc)
                 if problem is None and name == item[1]:
@@ -710,8 +721,9 @@ class ToolsTab:
             elif target() is None:
                 problem = "There is no other slot in this save folder to copy to."
             elif name:
+                folder = state["folders"][folder_box.current()]
                 try:
-                    save_tools.validate_name(game(), name)
+                    save_tools.validate_name(game(), name, save_tools.unicode_names(game(), folder))
                 except save_tools.SaveToolError as exc:
                     problem = str(exc)
             problem_var.set(problem or "")
@@ -849,3 +861,22 @@ class ToolsTab:
             app, game_id or app.game_choice.get(), settings=app.breeding_settings,
             save_settings=app._save_settings, game_parents=[p for p in parents if p],
         )
+
+    # -------------------------------------------------------------- text maker
+
+    def text_maker(self, game_id: str | None) -> None:
+        """The Text Maker, reading the fonts from the game copies the patcher knows of (the
+        game folder picked on the Game tab and its "- Modded" output copy)."""
+        app = self.app
+        folders = {game: [app.path_vars[game][key].get() for key in ("vanilla", "output")] for game in GAMES}
+        text_maker_window.open_window(app, game_id or app.game_choice.get(), folders)
+
+    # ------------------------------------------------------------ translations
+
+    def translations(self, game_id: str | None) -> None:
+        """The Translations window (src/translations_window.py), told every folder a copy of each game
+        may be in: the game folders on the Game tabs, their output copies and the output folder."""
+        app = self.app
+        folders = {game: [app.path_vars[game][key].get() for key in ("vanilla", "output")] + [app.output_parent.get()]
+                   for game in GAMES}
+        translations_window.open_window(app, game_id or app.game_choice.get(), folders)

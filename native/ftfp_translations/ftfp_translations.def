@@ -1,0 +1,4 @@
+LIBRARY "Translations"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpTranslationsInstalled = _FtfpTranslationsInstalled@0

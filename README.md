@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.22**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.23**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -380,6 +380,25 @@ never needs the internet.
   [docs/images/multiple-ornaments-tank.png](docs/images/multiple-ornaments-tank.png).
   Trash the extra copies before turning it off again (with it off they are
   not shown; they come back if you turn it on).
+- Render Unicode with In-Game Fonts (on by default; in the "Modded Upgrades"
+  copy; Owner's Defaults leaves it off). Typing in the game (a player's name,
+  any text box) takes every Latin-1 letter your keyboard makes (U+00A0-U+00FF:
+  é ñ ü ß Æ Ø ¿ £ © ..., AltGr letters too); the stock game took only plain
+  ASCII. All three fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every
+  Latin-1 letter they lack, and the Windows-1252 letters € ' ' " " – — … ™ Œ
+  Š Ž Ÿ ..., and Paddington's empty boxes for % * + < = > [ \ ] ^ { | } ~
+  become real letters: accented letters are made from each font's own letter
+  and accent, the rest drawn in the font's size, baseline and weight (the
+  Text Maker's "patcher-made" letters). They are added below copies of the
+  fonts' pictures (`Images\paddington_tt_18_unicode.png` ...); `ft.dat` is not
+  changed. A name stays one byte a letter in the save, whose layout is
+  unchanged; a copy without the setting loads it as always and shows such a
+  letter as a blank. Runs as a companion DLL
+  (`Fish Tycoon Fix Patcher DLLs\Unicode Text.dll`, loaded after every other
+  one), which checks the four places it changes and writes all or none.
+  Rename Players and Copy Player Slot accept these names for a save folder
+  whose copy has the setting (it leaves `Fish Tycoon Fix Patcher Data\Unicode
+  Text.ini` there when it starts).
 
 ### Plant Tycoon
 
@@ -693,6 +712,16 @@ never needs the internet.
     [docs/images/extra-chemical-slots-store.png](docs/images/extra-chemical-slots-store.png).
   - Design: the "Extra Chemical Slots" section of
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
+- Render Unicode with In-Game Fonts (on by default; in the "Modded Upgrades"
+  copy; Owner's Defaults leaves it off). Typing in the game takes every Latin-1
+  letter your keyboard makes (U+00A0-U+00FF); the stock game dropped all but
+  plain ASCII. The game's font already has most of Latin-1: the no-break space,
+  ¡ and the Windows-1252 letters € ' ' " " – — … ™ Œ Š Ž Ÿ ... are made for it
+  in its style, in a copy of its picture (`Images\PTfontsmall_unicode.png`).
+  Names stay one byte a letter in the save. Runs as a companion DLL
+  (`Plant Tycoon Fix Patcher DLLs\Unicode Text.dll`, loaded after every other
+  one); Rename Players and Copy Player Slot accept such names for its save
+  folders, as in Fish Tycoon.
 
 ## Use
 
@@ -971,7 +1000,68 @@ folder never fails with "path too long".
     and no belly-up pose apart from the dead pictures.
     The DS Exclusive Fish bodies and fins, DS Store Items' animals and the
     eel's rock are always offered, marked "(patcher)": their pictures ship
-    with the patcher, so no setting needs to be found for the save.
+    with the patcher, so no setting needs to be found for the save. The
+    Moray Eel has three pictures on the Creatures tab: out of its home
+    (swimming, every facing and frame), in its home (the rock with the eel's
+    back and front layers, every one of its 32 frames: 13 idle, 19 of the
+    snap) and its home alone (the rock, the eel out).
+  - Make your own, Items (both games): every item of the game, owned or
+    not, by Category, Item and Picture, each as the game draws it. Fish
+    Tycoon (50 items): medicines and chemicals, fish food (by Fish Food
+    research level), fish eggs, equipment, plants and creatures, ornaments,
+    the Second Tank and research: in the supply store at rest on its shadow,
+    pointed at (120%) and picked (every percent the store pulses it to), in
+    its supply slot, on the mouse (the droppers, the food), and in the tank
+    (the food falling, a chemical's drop, the eggs, the equipment and
+    ornaments). Plant Tycoon (175 items): every seed packet, chemical, tool
+    upgrade (soil, water, shears, net, seed boxes), nursery ornament and pot:
+    on its store shelf (on its shadow, with the tick once owned), in the seed
+    or chemical tray, in the Tools box, on the mouse (pouring, watering,
+    cutting, catching) and each pot with each soil. The patcher's items (DS
+    Store Items', Extra Supply Slots', Store Upgrades and Items', Time Warp,
+    Add Money ...) are marked "(patcher)", and art in Fish Tycoon's files
+    that the game never draws (a fish food box, an orange beaker, a dropper
+    sheet, two tank plants, two corals) is marked "(unused)" and shown whole.
+    Plant Tycoon has no unused item art. Items keep the games' own names
+    (Unusual Fish Eggs; the Common, Endangered, Extinct and Legendary Seeds
+    packets).
+  - Make your own, Bugs (Plant Tycoon): the 48 collectible bugs by name and
+    the game's rarity, numbered in the game's and the Collections screen's
+    order (1. Blue Butterfly (Common) ... 48. Golden Spider (Rare); in each
+    family 1-4 Common, 5-8 Uncommon, 9-12 Rare), each of its 6 pictures and its leaf on
+    the Collections screen, and the bug as the game draws it: in the
+    greenhouse at the size the game picks at random when it comes (70-99%;
+    samples at 70, 85 and 99%), on its shadow when it walks, the Hiding
+    Beetle playing dead (half see-through), a spider fading as it drops; on
+    the Collections screen in its jar over its leaf, the spider of the day on
+    its web. (The 70-99% is the bug's size: the game draws a bug see-through
+    only when it plays dead or drops.)
+  - Make your own, All game art (both games): every picture file of the
+    game, one picture per sprite cell (the game's own grid from its sprite
+    records), cut exactly as the game cuts it, at full size and strength, by
+    category: Fish Tycoon 3,528 pictures, Plant Tycoon 2,138, the BMP, JPEG
+    and GIF backgrounds included (the JPEGs exactly as the game's libjpeg-9
+    decodes them). Files the game's executable never names are marked
+    "(unused)" (shown whole), the patcher's own art "(patcher)"; the five
+    files Plant Tycoon's sprite table names but its folder lacks are named in
+    the tab's note and not drawn. It reads the game copy the Studio found
+    (read only).
+  - Make your own, Screens, bars and buttons (both games): the pictures the
+    games make of several pieces, put together as their draw code does:
+    whole screens (backgrounds, the screen's pieces and its buttons), Fish
+    Tycoon's Health and Fed meters and research bar and Plant Tycoon's
+    health and water meters and loading bar, empty and filled at several
+    levels, alone and in their frames; every button normal, mouse over,
+    pressed (and disabled in Plant Tycoon; Fish Tycoon does not draw a
+    disabled button); Fish Tycoon's rope boxes; Plant Tycoon's dialog and
+    message boxes. The words (the games' font text) are not drawn.
+  - Make your own, Items: Plant Tycoon's chemicals and tools also show what
+    they do to a pot (each chemical's sprays and sparkles, the falling soil
+    and water, frame by frame); Fish Tycoon's patcher chemicals their drop in
+    the tank.
+  - "Save all on this tab..." (Make your own) saves every picture of the tab
+    into a new folder (the Items tab: a folder per category); the Fish and
+    Plant tabs have too many pictures for it.
   - Make your own, Plant Tycoon: Flower (the 14 Unused Flowers always too,
     marked "(patcher)"), Foliage, Stage (seed, sprout, seedling, growing, budding, normal bloom, max bloom, max
     bloom with every effect, as after the Radioactive Plant Formula) and State
@@ -995,10 +1085,73 @@ folder never fails with "path too long".
   (and the DS Exclusive Fish rules against the companion's own C), and
   `src/pictures_plant.py`, proven by `tests/test_pictures_plant.py` against
   Plant Tycoon's own pot, plant, branch and flower draws (0x42F740, 0x42E4A0,
-  0x42E690, 0x42D9C0), its growth and its scaler (0x404610). The
+  0x42E690, 0x42D9C0), its growth and its scaler (0x404610). The items are
+  `src/pictures_fish_items.py` and `src/pictures_plant_items.py`, proven by
+  `tests/test_picture_items.py`: the store records, sprite table, supply
+  icons and cursors, tank effects (0x410AE0, in Unicorn), the store's scaled
+  draws (0x408030, 0x4271F0, in Unicorn), Plant Tycoon's shelves (0x447D40),
+  Tools box (0x44DD70) and mouse pictures, both games' item names, and pinned
+  pictures compared pixel for pixel with the game's own art. The
   pictures come from your own copy of the game, kept in a "Picture Studio
   Pictures" folder beside the patcher, as the Breeding Guide's. See
   [docs/picture-studio-interface.md](docs/picture-studio-interface.md).
+
+- **Text Maker.** Type anything and see it in the games' own fonts, drawn
+  exactly as the game draws it, then Export PNG (transparent background if
+  you like). Fish Tycoon: Paddington 18 (its main text), Paddington 30
+  (titles) and Triplex Sans Bold 16 (labels); Plant Tycoon: PT Font Small,
+  plus PT Font Big and LDW Arial Bold (in its folder, never used by the
+  game). Colour (the games' own or any), shadow or outline, size 1x-8x,
+  background, multi-line.
+  - Exact: the letter pictures, widths, line height and colours come from the
+    game's own data and rules (each font's table in the executable, re-laid
+    and indexed as the game's loader does; the colour ANDed into each pixel;
+    SDL's blend). `tests/test_text_maker.py` runs each game's own font loader
+    and text draw (Fish 0x402510 / 0x4087E0, Plant 0x4024E0 / 0x408E20) in
+    Unicorn on the real font pictures and checks the Text Maker's picture
+    against the game's screen pixel for pixel, for all four fonts and five
+    colours. The game's colour argument is 0xAABBGGRR (its low byte is red).
+  - Accents and any Unicode: an accent picker (French, German, Spanish and
+    Portuguese, Italian, Nordic, Turkish, Polish, Czech and Slovak,
+    Hungarian and Romanian, Baltic, Vietnamese, symbols) and an "Any
+    Unicode" box (U+00E9, 1F41F, a character name, or the characters).
+  - Letters a font lacks are made for it and listed as "patcher-made":
+    accented letters from the font's own letter and accent pixels (its own
+    accented letters' accents, its spacing accents, an acute mirrored from
+    its grave; a capital made slightly shorter when the line has no room),
+    everything else drawn by Windows (DirectWrite: Segoe UI, Segoe UI
+    Historic, Symbol and Emoji, Yu Gothic, Microsoft YaHei, Malgun Gothic,
+    Nirmala UI, Ebrima, Noto...) at the game font's capital height, on its
+    baseline, in the nearest weight and with its own alpha steps; colour
+    emoji keep their colours, and joined emoji and skin tones stay whole.
+    Untick "Make missing letters" to see what the game itself draws.
+  - It reads the fonts from your copy of the game and changes nothing.
+
+- **Translations.** Play both games in another language, or make a
+  translation yourself. Patch with the **Translations** setting on (default),
+  then Tools tab, Translations...: choose the language (it applies from the
+  next game start, no re-patching; "English (original)" changes nothing).
+  "Make a translation" writes every English line of the game and of the
+  patcher's own texts into a file and opens a built-in editor (search,
+  untranslated only, progress, placeholders in colour, a preview in the
+  game's own font with a too-long warning, autosave). "Add translation
+  file..." (or drag a file onto the window) checks and adds one you were
+  sent; "Export translation..." saves a copy. Choices by number ("%d
+  {%1: one=poisson | other=poissons}") use the language's CLDR plural rules.
+  A missing or broken line stays English, and the game never stops for a
+  translation. If you want to share your translation, consider going to the
+  Patcher's GitHub page and adding it! How: press Share on GitHub..., drag
+  the file in, press Submit (a free GitHub account is needed). Email
+  addresses are never saved and are rejected from translation files. The
+  format is the one all of the owner's patchers share; see
+  [docs/translations.md](docs/translations.md).
+  - How: `Translations.dll`, loaded last, hooks the game's own string lookup
+    (Fish 0x426FD0, Plant 0x44CA70, chaining onto Store Upgrades and Items'
+    jump), lets Fish Tycoon's Goals lines choose by their real number at
+    their five sprintf calls, and points the patcher DLLs' texts at their
+    translations through their relocations. Lines the games copy into fixed
+    buffers have a length limit, so a translation can never overflow one.
+    `tests/test_translations_runtime.py` runs it in Unicorn against both games.
 
 ## Safety
 

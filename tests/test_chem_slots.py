@@ -1431,7 +1431,7 @@ class ArtAndManifestTests(unittest.TestCase):
                                "tank_greenhouse_counts", "new_flowers", "plant_upgrades", "sort_seeds", "optimize_prices",
                                "time_warp", "free_upgrades", "add_money", "everything_free", "extra_greenhouses",
                                "extra_nurseries",
-                               "extra_chemical_slots"])
+                               "extra_chemical_slots", "unicode_ingame_fonts", "translations"])
         files = setting["companion"]["files"]
         data = DLL.read_bytes()
         import hashlib
@@ -1447,13 +1447,16 @@ class ArtAndManifestTests(unittest.TestCase):
         for key in without:
             self.assertIn(",".join(sorted(set(key.split(",")) | {"extra_chemical_slots"})), pins, key)
         self.assertFalse([k for k in pins if "extra_chemical_slots" in k.split(",") and "plant_upgrades" not in k.split(",")])
-        everything = ",".join(sorted(s["id"] for s in manifest["settings"] if s["id"] != "add_missing_ldw_assets"))
+        import fish_patcher
+        everything = ",".join(sorted(fish_patcher.pin_settings(manifest, {
+            s["id"] for s in manifest["settings"] if s["id"] != "add_missing_ldw_assets"})))
         self.assertIn(everything, pins)
 
     def test_the_enable_all_executable_is_its_pin(self) -> None:
+        import fish_patcher
         import plant_patcher
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-        enabled = {s["id"] for s in manifest["settings"]}
+        enabled = fish_patcher.pin_settings(manifest, {s["id"] for s in manifest["settings"]})
         patched, _ = plant_patcher.apply_patch_bytes(EXE.read_bytes(), plant_patcher.active_patch_records(manifest, enabled))
         patched, _ = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.plant_profile(enabled))
         import hashlib

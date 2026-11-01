@@ -58,6 +58,7 @@ def page() -> GamePage:
                   note="Only with the Extra supply slots setting (on by default), which also turns on the "
                        "store's Upgrades screen they are sold on."),
             Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (on by default), which also turns on the store's Upgrades screen it lives on."),
+            Group("Names and letters", TEXT_ENTRY),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Plant Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
@@ -1573,6 +1574,7 @@ HIDDEN = (
 
 OTHER_GAME = (
     Fact('Where things count: see Which tank counts.'),
+    Fact('Names and letters: the same here, see Names and letters.'),
     Fact('Water: not in Fish Tycoon. Fish have food instead (see Food).'),
     Fact('Health and soil: see Health. Soil is not in Fish Tycoon; Fish Environment research plays its part (see Research).'),
     Fact('Pests: see Sickness (ick and fungus).'),
@@ -1599,6 +1601,30 @@ OTHER_GAME = (
          "with 3 extra tanks also from any of Tanks 4-6 with For sale On (see Selling and customers and "
          "3 extra tanks)."),
 )
+
+TEXT_ENTRY = (
+    Fact(
+        "A name (the player's, any text box) is at most 31 letters, one byte each, kept in the save "
+        "as the game typed it.",
+    ),
+    Fact(
+        "What you can type: plain ASCII only, 0x20-0x7E. The game reads the key's character "
+        "(keysym.unicode) only when it is below 0x80, keeps only 0x20-0x7E, and drops every key "
+        "pressed with Ctrl or Alt, so AltGr letters never arrive either. Its text box itself would "
+        "store any byte 0x20-0xFF.",
+        patched=(("unicode_ingame_fonts", "every Latin-1 letter too (U+00A0-U+00FF: é ñ ü ß Æ ¿ £ ...), "
+                  "AltGr letters included, stored as its Latin-1 byte."),),
+    ),
+    Fact(
+        "What the fonts draw: Paddington 18 and 30 and Triplex Sans Bold 16 have ASCII and only "
+        "Ä Ö Ü ä ö ü of the accented letters (Paddington draws an empty box for % * + < = > [ \\ ] "
+        "^ { | } ~). A letter a font lacks is drawn as its first letter, a space.",
+        patched=(("unicode_ingame_fonts", "every Latin-1 letter and the Windows-1252 letters € ' ' \" \" "
+                  "– — … ™ Œ Š Ž Ÿ ..., made in each font's own style, and real letters for Paddington's "
+                  "boxes."),),
+    ),
+)
+
 
 TIME_WARP = (
     Fact(
