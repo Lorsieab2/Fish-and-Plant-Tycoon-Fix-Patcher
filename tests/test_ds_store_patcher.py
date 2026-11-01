@@ -36,8 +36,8 @@ class ManifestTests(unittest.TestCase):
         self.manifest = combined.load_manifest("fish")
         self.setting = combined.patch_settings("fish")[SETTING]
 
-    def test_setting_is_off_by_default_needs_ds_fish_and_warns(self) -> None:
-        self.assertFalse(self.setting["default"])
+    def test_setting_is_on_by_default_needs_ds_fish_and_warns(self) -> None:
+        self.assertTrue(self.setting["default"])  # on by default (the owner, 2026-11-01: new content stays on)
         self.assertEqual(self.setting["requires_settings"], ["ds_fish"])
         self.assertIn("Tank Animals <slot>.dat", self.setting["warning"])
         self.assertIn("rock", self.setting["warning"])

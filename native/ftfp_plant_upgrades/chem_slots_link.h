@@ -152,7 +152,7 @@ static void chem_set_tip(int shown) {
     if (chem_tip == NULL) return;
     chem_tip_set();
     tooltip_text(chem_tip, 0, chem_tip_text, TOOLTIP_COLOUR, 0, 0);
-    AT(chem_tip, 8, unsigned char) = (unsigned char)(shown && chem_on());
+    tip_place(chem_tip, &CHEM_SLOTS_RECT, shown && chem_on());
 }
 
 static void chem_draw(void *mgr) {

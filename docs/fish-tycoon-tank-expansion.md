@@ -1,6 +1,6 @@
 # Fish Tycoon: Bigger tanks (30 fish)
 
-The setting **Bigger tanks: 30 fish** (`bigger_tanks`, off by default) raises Tank One, Tank Two and the
+The setting **Bigger tanks: 30 fish** (`bigger_tanks`, on by default since v1.0.22) raises Tank One, Tank Two and the
 selling tank from 21 fish to 30. The isolation tank still holds one fish. It is 29 patch records in
 `data/fish_manifest.json` (`tank30_*`, each requiring the setting) plus one .text size record, written by
 `scripts/pin_tank_expansion.py`, which also rebuilds the PE checksum record and the pinned hash of every

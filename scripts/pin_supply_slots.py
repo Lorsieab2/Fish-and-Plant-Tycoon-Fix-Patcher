@@ -73,7 +73,7 @@ SETTING = {
         "game."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
     "separate_output": True,
     "requires_settings": ["ds_store"],
 }

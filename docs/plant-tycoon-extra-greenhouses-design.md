@@ -1,7 +1,7 @@
 # Plant Tycoon: 5 extra greenhouses
 
 One optional Plant Tycoon setting, **5 extra greenhouses** (`extra_greenhouses`,
-off by default, in the "Modded Upgrades" copy). It ships one companion DLL,
+on by default since v1.0.22, in the "Modded Upgrades" copy). It ships one companion DLL,
 `Extra Greenhouses.dll`, which the startup loader loads first when the setting
 is on; the DLL starts the first of `Greenhouse Counts.dll` (its own setting,
 which starts the next two itself), `Unused Flowers.dll` (which starts the
@@ -202,8 +202,8 @@ the extra pots' clocks move by the same rule before the update.
 
 ## 5 extra nurseries (a second setting)
 
-"5 extra nurseries" (`extra_nurseries`, EXPERIMENTAL - USE AT OWN RISK, off
-by default, needs `plant_upgrades`) ships the same DLL with "Extra
+"5 extra nurseries" (`extra_nurseries`, EXPERIMENTAL - USE AT OWN RISK, on
+by default since v1.0.22, needs `plant_upgrades`) ships the same DLL with "Extra
 Nurseries.ini"; "5 extra greenhouses" ships it with "Extra Greenhouses.ini".
 Each .ini turns its half of the DLL on, so either setting works alone. With
 either one on, the startup loader loads the DLL.

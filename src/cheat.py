@@ -1,8 +1,9 @@
 """The owner's "cheat" label for settings that are plainly cheats (Everything is
 Free): a setting definition with ``"cheat": true``.
 
-Such a setting is off by default ("Defaults" leaves it off), "Enable All"
-leaves it off too (it is turned on only by ticking it by hand), and the
+Such a setting is off by default ("Default Patches" leaves it off), "Select
+All Patches" and "Owner's Defaults" leave it off too (it is turned on only by
+ticking it by hand, or with Patch Selection Settings), and the
 patcher shows CHEAT beside its name, styled as the EXPERIMENTAL label
 (src/experimental.py). The pin scripts build their setting definitions through
 ``mark`` so the manifests carry the flag; the GUI reads it through
@@ -22,7 +23,7 @@ def is_cheat(setting: Mapping[str, Any]) -> bool:
 
 
 def in_enable_all(setting: Mapping[str, Any]) -> bool:
-    """Whether "Enable All" turns this setting on: every setting but a cheat."""
+    """Whether "Select All Patches" turns this setting on: every setting but a cheat."""
     return not is_cheat(setting)
 
 

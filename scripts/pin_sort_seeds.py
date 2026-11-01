@@ -54,7 +54,7 @@ SETTING = {
         "Runs as a companion DLL the game loads at start; saves are unchanged."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
 }
 
 

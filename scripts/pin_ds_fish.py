@@ -53,7 +53,7 @@ SETTING = {
         "cannot draw or name. Sell or trash every DS fish before switching it off."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
     "separate_output": True,
 }
 
