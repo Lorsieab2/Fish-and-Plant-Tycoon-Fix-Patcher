@@ -18,6 +18,7 @@ from pathlib import Path
 import re
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -225,7 +226,15 @@ class PatchSelectionGuiTests(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def _app(self):
-        app = gui.App()
+        import tkinter
+        for attempt in range(3):
+            try:
+                app = gui.App()
+                break
+            except tkinter.TclError:                  # Tk's startup can fail once while many workers start Tk
+                if attempt == 2:
+                    raise
+                time.sleep(0.5)
         app.withdraw()
         def close() -> None:
             try:
