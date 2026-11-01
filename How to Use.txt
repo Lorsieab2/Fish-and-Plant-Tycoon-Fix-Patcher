@@ -277,11 +277,16 @@ Getting a plant into a nursery (5 extra nurseries):
   as in the unpatched game.
 
 Tools tab, Copy Player Slot: pick the game, a save folder, the player to
-copy, an empty slot to copy to and a new name, then Copy and Yes. The copy
+copy, the slot to copy to and a new name, then Copy and Yes. The copy
 gets the player's whole game and the patcher's own files for it (extra
 tanks or greenhouses, supply slots, DS fish and the rest); the original is
 not changed. Close the game first. The save folder is backed up first, as
-"Backup <date> (before copy)", so Restore Saves can undo it.
+"Backup <date> (before copy)", so Restore Saves can undo it. A slot with no
+save file of its own (<Game>1.ldw to <Game>5.ldw) counts as empty, even if
+the player list still shows a name there. A slot in use can be copied over
+too: the question names the player who will be replaced (No is the
+default), and their files are kept in Backups\Replaced by copy <date> -
+Player <n> - <name>.
 
 Tools tab, Breeding Guide: pick the game, a save folder and a player. Tabs
 for each part (Fish: Fins and Bodies; Plant: Flowers and Foliage), the
