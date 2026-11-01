@@ -26,6 +26,23 @@
   and draw pixel for pixel, a save with such a name loaded by the stock and
   the patched game), tests/test_patch_presets.py (settings that exclude each
   other), tests/test_save_tools.py.
+- **Long names** (Render Unicode with In-Game Fonts, stage 2). Every name box
+  in both games (the five player rows of the player list and the new player's
+  box) takes up to 300 letters, the one limit of the DLL and of Rename Players
+  and Copy Player Slot: the game's text box holds at most 1200 bytes (its
+  setLimit clamps at 0x4B0) and a letter is up to 4 bytes in UTF-8. The game's
+  own 32-byte fields keep a short form (each letter's Latin-1 byte, "?" for any
+  other, cut after 31 letters), so the stock game still loads the save; the full
+  name goes into `<Game> Fix Patcher Data\Names <slot>.dat` beside the save,
+  used only while the player list still holds its short form. Rename Players
+  writes it and Copy Player Slot copies it under the new name. Wherever the game
+  draws a player's short form it draws the full name, through one hook on the
+  game's text draw and one on its measure (Fish 0x4087E0 / 0x4023D0, Plant
+  0x408E20 / 0x402380), fitted with an ellipsis to the width the game left for
+  a name (the wider of the short form and its own 26-underscore placeholder);
+  a text box no longer cuts letters off its own text while it is too wide
+  (0x40B7E9 / 0x40C1F9) but shows it fitted: the end while you type, the start
+  otherwise. Tests: tests/test_unicode_names.py, tests/test_save_tools.py.
 - **Patches that exclude each other.** A setting can name others it cannot be
   on with (`conflicts_settings`): ticking one unticks the other, the presets
   and Patch Selection Settings never tick both (Select All keeps the default

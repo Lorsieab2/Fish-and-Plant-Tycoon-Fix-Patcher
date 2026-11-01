@@ -97,11 +97,13 @@ def tearDownModule() -> None:
         temp.cleanup()
 
 
-def hook_windows(emu, game: str, present: set[str] | None = None) -> dict:
+def hook_windows(emu, game: str, present: set[str] | None = None, existing: dict | None = None) -> dict:
     """The DLL's Windows calls: its module and the game's paths, the Images pictures that are
-    there (all of them unless `present` says which), page protection, Documents, and the files it
-    writes ({path: text}; "log" and "text" are its log's)."""
-    files: dict = {"log": None, "written": {}, "folders": []}
+    there (all of them unless `present` says which), page protection, Documents, the files it reads
+    (`existing`: {path: bytes}) and the files it writes ({path: text}, "raw": {path: bytes}; "log" and
+    "text" are its log's)."""
+    files: dict = {"log": None, "written": {}, "raw": {}, "folders": [], "existing": dict(existing or {}),
+                   "reading": {}}
     handles: dict = {}
     special = emu.thunk()
 
@@ -129,18 +131,33 @@ def hook_windows(emu, game: str, present: set[str] | None = None) -> dict:
 
     def create(e) -> int:
         path = e.wstring(e.arg(0))
+        if e.arg(1) & 0x80000000 and e.arg(4) == 3:                # GENERIC_READ, OPEN_EXISTING
+            if path not in files["existing"]:
+                return 0xFFFFFFFF
+            files["reading"][0x44 + 4 * len(handles)] = bytearray(files["existing"][path])
         if path.endswith(".log"):
             files["log"] = path
         handle = 0x44 + 4 * len(handles)
         handles[handle] = path
+        if not e.arg(1) & 0x80000000:                              # CREATE_ALWAYS: written anew
+            files["raw"].pop(path, None)
         return handle
 
+    def read(e) -> int:
+        data = files["reading"].get(e.arg(0), bytearray())
+        n = min(len(data), e.arg(2))
+        e.uc.mem_write(e.arg(1), bytes(data[:n]))
+        del data[:n]
+        e.write32(e.arg(3), n)
+        return 1
+
     def write(e) -> int:
-        text = bytes(e.uc.mem_read(e.arg(1), e.arg(2))).decode("ascii")
+        raw = bytes(e.uc.mem_read(e.arg(1), e.arg(2)))
         path = handles[e.arg(0)]
-        files["written"][path] = text
+        files["raw"][path] = files["raw"].get(path, b"") + raw
+        files["written"][path] = files["raw"][path].decode("latin-1")
         if path.endswith(".log"):
-            files["text"] = text
+            files["text"] = files["written"][path]
         e.write32(e.arg(3), e.arg(2))
         return 1
 
@@ -155,6 +172,7 @@ def hook_windows(emu, game: str, present: set[str] | None = None) -> dict:
     emu.hook_import("GetCurrentProcess", lambda e: 0xFFFFFFFF, 0)
     emu.hook_import("CreateFileW", create, 28)
     emu.hook_import("WriteFile", write, 20)
+    emu.hook_import("ReadFile", read, 20)
     emu.hook_import("CloseHandle", lambda e: 1, 4)
     emu.hook_import("LoadLibraryW", lambda e: 0x7000_0000, 4)
     emu.hook_import("GetProcAddress", lambda e: special if e.cstring(e.arg(1)) == b"SHGetSpecialFolderPathW" else 0, 8)

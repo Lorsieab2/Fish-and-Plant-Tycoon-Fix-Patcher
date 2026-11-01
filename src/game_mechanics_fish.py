@@ -1605,7 +1605,15 @@ OTHER_GAME = (
 TEXT_ENTRY = (
     Fact(
         "A name (the player's, any text box) is at most 31 letters, one byte each, kept in the save "
-        "as the game typed it.",
+        "as the game typed it. A text box whose text is wider than the box loses its last letters until it "
+        "fits.",
+        patched=(("unicode_ingame_fonts", "every name box (the player list's rows, the new player's) takes "
+                  "up to 300 letters, the box's own 1200 bytes at up to 4 bytes a letter. The save's own "
+                  "field keeps the first 31 letters ('?' for any letter Latin-1 has not), so the stock game "
+                  "still loads it, and the full name is kept beside the save (Fix Patcher Data\\Names "
+                  "<slot>.dat). The game shows the full name wherever it shows the player's, ending in an "
+                  "ellipsis where it is wider than the game's space for a name, and a text box shows its "
+                  "text fitted instead of cutting it."),),
     ),
     Fact(
         "What you can type: plain ASCII only, 0x20-0x7E. The game reads the key's character "

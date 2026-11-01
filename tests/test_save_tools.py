@@ -150,9 +150,60 @@ class SaveToolTests(unittest.TestCase):
             self.assertEqual(save_tools.read_slot_names(game_id, folder)[1], "Zoë")
             self.assertEqual(save_tools.player_name(game_id, folder, 1, "NEW PLAYER"), "Renée Ørsted")
             # still only what the game takes: no letters past U+00FF, no C1 controls
-            for bad in ("Łukasz", "€uro", "a\x85b", "x" * 32):
+            for bad in ("Łukasz", "€uro", "a\x85b", "x" * 301):
                 with self.assertRaises(save_tools.SaveToolError, msg=bad):
                     save_tools.validate_name(game_id, bad, unicode=True)
+
+    def test_long_names_keep_a_short_form_and_the_full_name_beside_the_save(self) -> None:
+        """With Unicode Text.dll a name has up to 300 letters (the one limit of every name box,
+        native/common/unicode_names.h): the game's fields get the short form (31 letters, Latin-1,
+        "?" for others) and "<Game> Fix Patcher Data\\Names <slot>.dat" the full name, which the
+        tools read back and Copy Player Slot copies under the new name."""
+        long_name = "Bartholomew Montgomery Fitzgerald the Third of Ørsted"
+        for game_id in save_tools.FORMATS:
+            fmt = save_tools.FORMATS[game_id]
+            folder = make_folder(self.root, game_id, ["Ana", "Bo", "Cy", "Di", "Ed"], f"{game_id} long")
+            self.assertEqual(save_tools.name_limit(game_id, folder), 31)
+            with self.assertRaises(save_tools.SaveToolError):
+                save_tools.rename_slot(game_id, folder, 1, long_name, NoGame())
+            data = folder / f"{fmt.title} Fix Patcher Data"
+            data.mkdir()
+            (data / "Unicode Text.ini").write_text("Render Unicode with In-Game Fonts: this copy types and draws "
+                                                   "Latin-1 names.")
+            self.assertEqual(save_tools.unicode_level(game_id, folder), save_tools.LATIN1)
+            self.assertEqual(save_tools.name_limit(game_id, folder), 300)
+            report = save_tools.rename_slot(game_id, folder, 1, long_name, NoGame())
+            self.assertEqual((report["old_name"], report["new_name"]), ("Ana", long_name))
+            short = long_name.encode("latin-1")[:31]
+            self.assertEqual(save_tools.read_slot_names(game_id, folder)[0].encode("latin-1"), short)
+            slot = (folder / f"{fmt.title}1.ldw").read_bytes()
+            self.assertEqual(slot[fmt.slot_name_offset: fmt.slot_name_offset + 32], short.ljust(32, b"\0"))
+            self.assertEqual((data / "Names 1.dat").read_bytes(), short + b"\0" + long_name.encode("utf-8") + b"\0")
+            self.assertEqual(save_tools.players(game_id, folder)[0], (1, long_name))
+            # Copy Player Slot: the copy's own full name
+            copied = save_tools.copy_slot(game_id, folder, 1, 3, "Second " + long_name, NoGame(), overwrite=True)
+            self.assertEqual(copied["old_name"], long_name)
+            second = "Second " + long_name
+            self.assertEqual((data / "Names 3.dat").read_bytes(),
+                             second.encode("latin-1")[:31] + b"\0" + second.encode("utf-8") + b"\0")
+            self.assertEqual((data / "Names 1.dat").read_bytes()[:31], short)
+            self.assertEqual(dict(save_tools.players(game_id, folder))[3], second)
+            # renamed by a copy of the game without the DLL: its file no longer matches and is not used
+            settings = bytearray((folder / f"{fmt.title}0.ldw").read_bytes())
+            settings[fmt.names_offset: fmt.names_offset + 5] = b"Zed\0\0"
+            (folder / f"{fmt.title}0.ldw").write_bytes(bytes(settings))
+            self.assertEqual(dict(save_tools.players(game_id, folder))[1], "Zed")
+            # once the copy draws UTF-8: any script, its short form with "?"
+            (data / "Unicode Text.ini").write_text("Render Unicode with In-Game Fonts: this copy types and draws "
+                                                   "names in any script (UTF-8).")
+            self.assertEqual(save_tools.unicode_level(game_id, folder), save_tools.ANY_SCRIPT)
+            save_tools.rename_slot(game_id, folder, 2, "山田 太郎 🐟 Ölçer", NoGame())
+            self.assertEqual(save_tools.read_slot_names(game_id, folder)[1], "?? ?? ? Ölçer")
+            self.assertEqual(dict(save_tools.players(game_id, folder))[2], "山田 太郎 🐟 Ölçer")
+            self.assertEqual(save_tools.short_form("x" * 300), b"x" * 31)
+            for bad in ("tab\there", "a\x85b", "x" * 301, "a\ud800b"):
+                with self.assertRaises(save_tools.SaveToolError, msg=bad):
+                    save_tools.validate_name(game_id, bad, save_tools.ANY_SCRIPT)
 
     def test_only_slots_with_a_saved_game_can_be_renamed(self) -> None:
         fmt = save_tools.FORMATS["plant"]

@@ -41,7 +41,31 @@
 #include "unicode_fonts.h"
 #include "unicode_sites.h"
 
+/* ---- names and text: ../common/unicode_names.h, ../common/unicode_text.h */
+#define GAME_STATE_GLOBAL 0x0045ABDCu      /* the game state (0x41B070 makes it) */
+#define GAME_SLOT_NAMES 0x1E3D8            /* the player list: 5 rows of 42 bytes */
+#define GAME_SLOT_STRIDE 0x2A
+/* setLimit(1, 0x20) of the player list's five rows and the new player's box (each call + 5) */
+#define GAME_NAME_LIMIT_RETURNS 0x00417129u, 0x004171AEu, 0x00417233u, 0x004172B8u, 0x0041733Du, \
+    0x004175D7u, 0x00417C63u
+/* getText(name, 0x20) into a player's name: the rows, the new player's name (each call + 5) */
+#define GAME_NAME_TEXT_RETURNS 0x004176F2u, 0x00417838u, 0x00417883u, 0x004178CEu, 0x0041791Cu, \
+    0x00417969u, 0x00417D77u
+#define GAME_DEFAULT_FONT 0x34             /* the graphics' default font */
+#define GAME_SET_TEXT_RESUME 0x0040B976u
+#define GAME_SET_LIMIT_TARGET 0x0040B8B0u
+#define GAME_DRAW_FRAME 0x34
+#define GAME_DRAW_RESUME 0x004087E7u
+#define GAME_WIDTH_RESUME 0x004023D7u
+
 #define CODE_ADDR(fn) ((const void *)(UINT_PTR)(fn))
+
+#include "../common/unicode_utf8.h"
+#include "../common/unicode_names.h"
+#include "../common/unicode_text.h"
+#include "../common/unicode_hooks.h"
+#include "../common/unicode_draw.h"
+
 
 #define INPUT_PRINTABLE 0x00403EDC      /* the game's own path for 0x20-0x7E */
 #define INPUT_OTHER 0x00403F4F          /* the game's own path for every other key */
@@ -118,7 +142,7 @@ static int picture_present(const char *name) {
     return GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES;
 }
 
-#define TOTAL_SITES 4
+#define TOTAL_SITES (4 + NAME_SITES)
 static ftfp_site_write writes[TOTAL_SITES];
 
 static int install_all(void) {
@@ -142,6 +166,7 @@ static int install_all(void) {
         memcpy(w->bytes + 6, &name, 4);
         ++w;
     }
+    w = name_site_writes(w);
     return ftfp_install_sites(writes, TOTAL_SITES);
 }
 
@@ -163,7 +188,7 @@ static void write_install_log(void) {
     if (!own_folder(path, 1024) || wcslen(path) + 20 >= 1024) return;
     wcscat_s(path, 1024, L"Unicode Text.log");
     if (installed) {
-        text = "Unicode Text: installed (typing Latin-1, the three fonts)\r\n";
+        text = "Unicode Text: installed (typing Latin-1, the three fonts, long names)\r\n";
     } else if (pictures_missing) {
         text = "Unicode Text: not installed (a font picture is missing from Images)\r\n";
     } else {
@@ -190,7 +215,10 @@ int __stdcall FtfpStartup(void) {
         installed = 0;
     }
     write_install_log();
-    if (installed) unicode_write_marker(L"Fish Tycoon Fix Patcher Data");
+    if (installed) {
+        unicode_write_marker(L"Fish Tycoon Fix Patcher Data");
+        names_start(L"Fish Tycoon Fix Patcher Data");
+    }
     return installed;
 }
 
@@ -201,8 +229,6 @@ int __stdcall FtfpStartup(void) {
    Windows-1252 letters 0x80-0x9F its fonts now have) it answers 0, so translated text comes
    as Windows-1252 bytes and is drawn with those letters. The loader always loads this DLL
    before any other loader tail (src/ds_fish_loader.py, with_tails). */
-static int utf8_drawing;
-
 int __stdcall FtfpUnicodeTextActive(void) {
     return installed && utf8_drawing;
 }
