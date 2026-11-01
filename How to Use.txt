@@ -368,8 +368,13 @@ games' own names (Unusual Fish Eggs; Common, Endangered, Extinct and
 Legendary Seeds). Plant Tycoon's Bugs tab names the 48 collectible bugs in
 the Collections screen's order with the game's rarity (Common, Uncommon or
 Rare), with each one's leaf. "All game
-art" has every picture file of the game, one picture per sprite cell, by
-category ("(unused)": a file the game never names). With Show Spoilers off
+art" has every picture file of the game (backgrounds too), one picture per
+sprite cell, by category ("(unused)": a file the game never names; files
+the game names but lacks are listed, not drawn). "Screens, bars and
+buttons" has the games' pictures made of several pieces: whole screens,
+meters and bars empty and filled, every button in each state, rope and
+dialog boxes (without their words). The Bugs tab also shows each bug as the
+greenhouse and the Collections screen draw it. With Show Spoilers off
 (the Breeding Guide's setting) only the parts you have discovered (items are
 always all offered). Pick a PNG size (the game's
 own, 2x, 4x, or your own width and height) and Small margin, then "Save

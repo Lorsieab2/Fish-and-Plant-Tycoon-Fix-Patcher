@@ -1000,19 +1000,36 @@ folder never fails with "path too long".
     the game's rarity, numbered in the game's and the Collections screen's
     order (1. Blue Butterfly (Common) ... 48. Golden Spider (Rare); in each
     family 1-4 Common, 5-8 Uncommon, 9-12 Rare), each of its 6 pictures and its leaf on
-    the Collections screen. Drawn at full strength: the greenhouse draws a
-    bug see-through at a random 70-99%, and the Collections screen at its own
-    size over its leaf; those compositions are not offered yet.
+    the Collections screen, and the bug as the game draws it: in the
+    greenhouse at the size the game picks at random when it comes (70-99%;
+    samples at 70, 85 and 99%), on its shadow when it walks, the Hiding
+    Beetle playing dead (half see-through), a spider fading as it drops; on
+    the Collections screen in its jar over its leaf, the spider of the day on
+    its web. (The 70-99% is the bug's size: the game draws a bug see-through
+    only when it plays dead or drops.)
   - Make your own, All game art (both games): every picture file of the
     game, one picture per sprite cell (the game's own grid from its sprite
     records), cut exactly as the game cuts it, at full size and strength, by
-    category: Fish Tycoon 3,512 pictures, Plant Tycoon 2,114. Files the
-    game's executable never names are marked "(unused)" (shown whole), the
-    patcher's own art "(patcher)". Not in it yet: the compositions the game
-    builds from several pieces (screens, bars and meters filled and joined,
-    buttons in their states, counters, rope borders, tooltips) and the BMP,
-    JPG and GIF backgrounds (named in the tab's note). It reads the game copy
-    the Studio found (read only).
+    category: Fish Tycoon 3,528 pictures, Plant Tycoon 2,138, the BMP, JPEG
+    and GIF backgrounds included (the JPEGs exactly as the game's libjpeg-9
+    decodes them). Files the game's executable never names are marked
+    "(unused)" (shown whole), the patcher's own art "(patcher)"; the five
+    files Plant Tycoon's sprite table names but its folder lacks are named in
+    the tab's note and not drawn. It reads the game copy the Studio found
+    (read only).
+  - Make your own, Screens, bars and buttons (both games): the pictures the
+    games make of several pieces, put together as their draw code does:
+    whole screens (backgrounds, the screen's pieces and its buttons), Fish
+    Tycoon's Health and Fed meters and research bar and Plant Tycoon's
+    health and water meters and loading bar, empty and filled at several
+    levels, alone and in their frames; every button normal, mouse over,
+    pressed (and disabled in Plant Tycoon; Fish Tycoon does not draw a
+    disabled button); Fish Tycoon's rope boxes; Plant Tycoon's dialog and
+    message boxes. The words (the games' font text) are not drawn.
+  - Make your own, Items: Plant Tycoon's chemicals and tools also show what
+    they do to a pot (each chemical's sprays and sparkles, the falling soil
+    and water, frame by frame); Fish Tycoon's patcher chemicals their drop in
+    the tank.
   - "Save all on this tab..." (Make your own) saves every picture of the tab
     into a new folder (the Items tab: a folder per category); the Fish and
     Plant tabs have too many pictures for it.

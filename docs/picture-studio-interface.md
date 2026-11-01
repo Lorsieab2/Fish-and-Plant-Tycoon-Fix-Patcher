@@ -190,3 +190,11 @@ Rules for both renderers:
   other picture file in the copy ("(unused)" when the executable never names it, by file, stem or
   numbered stem) and the patcher's assets ("(patcher)"), one picture per cell
   (`picture_image.cell_rect`), read straight from the copy: the window sets `renderer.art_copy`.
+  BMP, JPEG and GIF files are read by `src/picture_formats.py` (JPEG as libjpeg-9 decodes it);
+  files the sprite table names but the folder lacks are `Sheet.missing` and named in the note.
+- Screens, bars and buttons (`src/pictures_screens.py`, subject "screens", Fields `category`,
+  `picture`): `Picture`s of `Piece`s (file, cell, source part, place, alpha, scale, Plant's
+  disabled dim, or a filled rectangle), drawn by `Composer` from the GameArt's images.
+- Bugs: the Picture also offers `pictures_screens.bug_views` (greenhouse "g<size>_<frame>",
+  "dead<frame>", "drop<t>", Collections "jar" / "web"), refined per bug (`refine_choices`).
+- Items: Plant items add "fx<type>_<frame>" (the effect manager's sheets, `CHEM_EFFECTS`).
