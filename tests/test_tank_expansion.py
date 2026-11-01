@@ -67,8 +67,8 @@ class ManifestTests(unittest.TestCase):
         self.setting = combined.patch_settings("fish")[SETTING]
         self.mine = [p for p in self.manifest["patches"] if p["id"].startswith("tank30_")]
 
-    def test_setting_is_off_by_default_and_says_what_it_does(self) -> None:
-        self.assertFalse(self.setting["default"])
+    def test_setting_is_on_by_default_and_says_what_it_does(self) -> None:
+        self.assertTrue(self.setting["default"])  # on by default (the owner, 2026-11-01: new content stays on)
         self.assertEqual(self.setting["name"], "Bigger tanks: 30 fish")
         self.assertIn("30 fish", self.setting["summary"])
         self.assertIn("Sale Tank too", self.setting["summary"])

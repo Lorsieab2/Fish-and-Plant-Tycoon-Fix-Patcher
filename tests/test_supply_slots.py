@@ -1365,7 +1365,7 @@ class Manifest(unittest.TestCase):
         self.assertEqual(s["name"], "Extra supply slots")
         self.assertTrue(s["summary"].startswith("EXPERIMENTAL - USE AT OWN RISK."))
         self.assertTrue(s["description"].startswith("EXPERIMENTAL - USE AT OWN RISK."))
-        self.assertFalse(s["default"])
+        self.assertTrue(s["default"])  # on by default (the owner, 2026-11-01: new content stays on)
         self.assertTrue(s["experimental"])
         self.assertTrue(s["separate_output"])
         self.assertEqual(s["requires_settings"], ["ds_store"])

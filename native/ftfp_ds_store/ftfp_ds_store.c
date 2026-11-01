@@ -1489,11 +1489,20 @@ static int __cdecl supply_trash(char *impl, int x, int y) {
    along its edges) with centred text (0x408C30: thiscall graphics (text, left, right, y, colour,
    font); colour 0x45B26C, never written, so 0 = the default white; font 0 = the graphics' default
    font, its impl + 0x34).  The box is as wide as the text in that default font, kept on screen
-   with room for its rope edge.  The tank
-   screen's overlay draws the hint last (0x41D127, after what the hand holds); when no hint is up
+   with room for its rope edge.
+   The rope: 0x423280 draws its four bars (the hint's +4 top, +8 bottom, +0xC left, +0x10 right:
+   64 x 10 and 10 x 64) just outside the rectangle, and draws none at all -- only the fill --
+   unless the rectangle with its rope is at least as tall as the side bar and as wide as the top
+   bar (0x423347: 64 pixels; the stock hint panel, 330 x 80, always is), and its side bars stay
+   inside the rope's outline only when the rectangle is at least 54 tall (rope_minimum).  So a
+   box is never smaller than that: 44 x 54, the lines centred in it (the fish food's one too).
+   The tank screen's overlay draws the hint last (0x41D127, after what the hand holds); when no hint is up
    and nothing is held, the slot under the mouse gets a box of the same kind just under the top bar.
    The slot boxes are 0x41E450's (0x45B2A8).  With "Extra supply slots" the slot a position shows
-   comes from that DLL (FtfpSupplySlotsShown: its page of extra slots, or the stock one).
+   comes from that DLL (FtfpSupplySlotsShown: its page of extra slots, or the stock one).  One box
+   a frame at most (the owner, v1.0.21: none overlapping, none from other pages): the one position
+   under the mouse (the four boxes never overlap), of the page shown only, and none while the
+   stock hint is up.
      * the name: the stock items' own store names (string 0xAE + 2 x item, English or German as the
        game is set), the starter eggs as Common Fish Eggs, this store's supplies their names here,
        the fish food "Fish Food" / "Fischfutter" (the game keeps no amount of it: the name alone);
@@ -1512,6 +1521,10 @@ static int __cdecl supply_trash(char *impl, int x, int y) {
 #define MOUSE_POS GAME(mouse_pos_fn, 0x00402060u)
 #define CENTRE_TEXT GAME(this6_fn, 0x00408C30u)       /* (text, left, right, y, colour, font) */
 #define TEXT_WIDTH GAME(text_width_fn, 0x004023D0u)    /* font (text, scale) */
+#define IMAGE_W GAME(this0_fn, 0x004095B0u)            /* an image's width (its surface's w) */
+#define IMAGE_H GAME(this0_fn, 0x004095C0u)            /* an image's height (its surface's h) */
+#define ROPE_BAR 64                         /* the bars' long side (when the hint has no art loaded) */
+#define ROPE_EDGE 10                        /* their short side */
 typedef int (__cdecl *mouse_pos_fn)(int *pt);
 typedef int (__fastcall *text_width_fn)(void *font, void *edx, const char *text, float scale);
 typedef const unsigned char *(__stdcall *slots_shown_fn)(int position);
@@ -1614,13 +1627,32 @@ static int text_width(char *impl, const char *text) {
     return font != NULL && text != NULL ? TEXT_WIDTH(font, NULL, text, 1.0f) : 0;
 }
 
+/* The smallest rectangle 0x423280 puts its whole rope around, inside the rope's own outline: as
+   wide as the top bar less the two side bars (0x423351: the bars only at all from there; the top
+   and bottom bars run from corner to corner), and as tall as a side bar less the top bar -- the
+   left bar runs down from the rectangle's top (0x4233FD) and the right bar up from its bottom
+   (0x42344A), so a lower rectangle would push them out past the bottom and top bars. */
+static int bar_size(void *hint, int offset, int height) {
+    void *bar = hint != NULL ? P(hint, offset) : NULL;
+    if (bar == NULL) {                      /* the top bar is wide and low, the side bar narrow and tall */
+        int long_side = offset == 4 ? !height : height;
+        return long_side ? ROPE_BAR : ROPE_EDGE;
+    }
+    return height ? IMAGE_H(bar, NULL) : IMAGE_W(bar, NULL);
+}
+
+static void rope_minimum(void *hint, int *min_w, int *min_h) {
+    *min_w = bar_size(hint, 4, 0) - 2 * bar_size(hint, 0xC, 0);
+    *min_h = bar_size(hint, 0xC, 1) - bar_size(hint, 4, 1);
+}
+
 /* The tooltip of the slot under the mouse, if any; 1 = drawn. */
 static int __cdecl slot_tooltip(char *impl, int hint_shown) {
     char *state = (char *)P(impl, 0x34);
     const unsigned char *r;
     const char *name;
     char left[64];
-    int pt[2], p, de = german(), w, lines, rect[4], item;
+    int pt[2], p, de = german(), w, h, min_w, min_h, y, lines, rect[4], item;
     void *hint, **vtable;
     if ((hint_shown & 0xFF) != 0 || state == NULL || *(unsigned char *)impl != 0) return 0;
     if (*I(impl, 0x1C) != NO_SUPPLY || *I(impl, 0x28) != NO_SUPPLY || *I(state, 0x1E4E8) != -1) return 0;
@@ -1639,23 +1671,26 @@ static int __cdecl slot_tooltip(char *impl, int hint_shown) {
         if (text_width(impl, left) > w) w = text_width(impl, left);
         lines = 2;
     }
+    hint = P(P(impl, S_HINTS), 0);
+    rope_minimum(hint, &min_w, &min_h);
     w += 2 * TIP_PAD_X;
+    if (w < min_w) w = min_w;
+    h = 2 * TIP_PAD_Y + lines * TIP_LINE;
+    if (h < min_h) h = min_h;                                           /* room for the rope */
     rect[0] = (TIP_SLOT[p][0] + TIP_SLOT[p][2]) / 2 - w / 2;
     if (rect[0] < TIP_MARGIN) rect[0] = TIP_MARGIN;
     if (rect[0] + w > 800 - TIP_MARGIN) rect[0] = 800 - TIP_MARGIN - w;
     rect[1] = TIP_TOP;
     rect[2] = rect[0] + w;
-    rect[3] = TIP_TOP + 2 * TIP_PAD_Y + lines * TIP_LINE;
-    hint = P(P(impl, S_HINTS), 0);
+    rect[3] = TIP_TOP + h;
     if (hint != NULL) {
         vtable = *(void ***)hint;
         ((this1_fn)vtable[1])(hint, NULL, (int)(UINT_PTR)rect);       /* the hint's own box (0x423280) */
     }
-    CENTRE_TEXT(P(impl, 0x54), NULL, (int)(UINT_PTR)name, rect[0], rect[2], TIP_TOP + TIP_PAD_Y,
-                S_HINT_COLOUR, 0);
+    y = TIP_TOP + (h - lines * TIP_LINE) / 2;                           /* the lines in the middle */
+    CENTRE_TEXT(P(impl, 0x54), NULL, (int)(UINT_PTR)name, rect[0], rect[2], y, S_HINT_COLOUR, 0);
     if (lines == 2) {
-        CENTRE_TEXT(P(impl, 0x54), NULL, (int)(UINT_PTR)left, rect[0], rect[2], TIP_TOP + TIP_PAD_Y + TIP_LINE,
-                    S_HINT_COLOUR, 0);
+        CENTRE_TEXT(P(impl, 0x54), NULL, (int)(UINT_PTR)left, rect[0], rect[2], y + TIP_LINE, S_HINT_COLOUR, 0);
     }
     return 1;
 }

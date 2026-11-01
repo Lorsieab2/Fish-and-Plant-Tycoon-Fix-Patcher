@@ -278,8 +278,8 @@ class FinderAndRefusalTests(unittest.TestCase):
             "_find_one",
             "_find_both",
             "_apply_detected",
-            "_set_all_patches",
-            "_reset_patches_to_defaults",
+            "_apply_preset",
+            "_open_patch_selection_settings",
             "_set_busy",
         ):
             self.assertTrue(callable(getattr(gui.App, name)), name)
@@ -288,9 +288,10 @@ class FinderAndRefusalTests(unittest.TestCase):
         )
         self.assertIn('text="Find Both in Parent Folder..."', source)
         self.assertNotIn("scan_for_games", source)
-        self.assertIn('("Enable All", ', source)
-        self.assertIn('("Disable All", ', source)
-        self.assertIn('("Defaults", ', source)
+        for text in ("Select All Patches", "Default Patches", "Owner's Defaults",
+                     "Deselect All Patches"):
+            self.assertIn(f'("{text}", ', source)
+        self.assertIn('text="Patch Selection Settings..."', source)
         # The page is taller than the window, so the body must stay scrollable.
         self.assertIn("self.content_canvas", source)
         self.assertIn('self.bind_all("<MouseWheel>", self._scroll_content)', source)

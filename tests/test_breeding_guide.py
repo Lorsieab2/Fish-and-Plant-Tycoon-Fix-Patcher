@@ -124,19 +124,19 @@ class SheetTests(unittest.TestCase):
             self.assertTrue(view.planner_sheet(have, want, "max_mutation").rows)
 
     def test_rarity_words(self) -> None:
-        """Fish: Common / Unusual / Rare (never "Half-rare"); Plant: the seed packet words."""
+        """Fish: Common / Uncommon / Rare (never "Half-rare"); Plant: Tier 1 to Tier 5 (the soil tiers)."""
         import breeding_plant
         sheet = bg.View(bf.load(None, True), set(), spoilers=True).species_sheet()
-        self.assertEqual({r[sheet.columns.index("Rarity")] for r in sheet.rows}, {"Common", "Unusual", "Rare"})
+        self.assertEqual({r[sheet.columns.index("Rarity")] for r in sheet.rows}, {"Common", "Uncommon", "Rare"})
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "all.csv"
             bg.export_csv(out, sheet)
             text = out.read_text(encoding="utf-8-sig")
-            self.assertIn("Unusual", text)
+            self.assertIn("Uncommon", text)
             self.assertNotIn("Half", text)
         sheet = bg.View(breeding_plant.load(None, extras=True), set(), spoilers=True).species_sheet()
         self.assertEqual({r[sheet.columns.index("Rarity")] for r in sheet.rows},
-                         {"Common", "Endangered", "Extinct", "Legendary"})
+                         {"Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"})
         self.assertNotIn("Half", " ".join(bg.HELP[1]))
 
     def test_how_names_the_exact_parent_pairs(self) -> None:
