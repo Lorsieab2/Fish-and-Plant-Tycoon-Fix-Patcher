@@ -171,7 +171,37 @@ def with_optimize_prices(base: LoaderProfile | None, alone: LoaderProfile) -> Lo
     return alone if base is None else chain([base, alone])
 
 
+# "Translations" (src/translation_format.py): its DLL is always loaded last, after every other
+# companion has installed, so its lookup hook chains onto theirs (Plant Tycoon's Store Upgrades and
+# Items jumps from the string lookup first) and every patcher DLL it translates is loaded.
+TRANSLATIONS_SETTING = "translations"
+TRANSLATIONS_DLL = "Translations.dll"
+_TRANSLATIONS_INSTALLS = ("That reads the translation the patcher's Translations window chose, then checks the "
+                          "game's string lookup ({lookup}) holds its stock code or another companion's jump, "
+                          "{more}and writes all of it or nothing; native/ftfp_translations/ftfp_translations.c "
+                          "describes it.")
+FISH_LOADER_SETTINGS = frozenset({"maximizable_window", "tank_greenhouse_counts", "optimize_prices", "ds_fish",
+                                  "extra_tanks", "extra_supply_slots", "multiple_ornaments"})
+PLANT_LOADER_SETTINGS = frozenset({"tank_greenhouse_counts", "new_flowers", "sort_seeds", "optimize_prices",
+                                   "extra_greenhouses", "extra_nurseries", "extra_chemical_slots"})
+FISH_TRANSLATIONS = replace(
+    FISH, dll_name=TRANSLATIONS_DLL,
+    what_it_installs=_TRANSLATIONS_INSTALLS.format(lookup="0x426FD0",
+                                                   more="and the five sprintf calls of the counted lines, "),
+)
+
+
 def fish_profile(enabled: set[str]) -> LoaderProfile:
+    """Fish Tycoon's loader: the companions' DLLs (_fish_profile), then Translations.dll last."""
+    if TRANSLATIONS_SETTING not in enabled:
+        return _fish_profile(enabled)
+    rest = set(enabled) - {TRANSLATIONS_SETTING}
+    if not rest & FISH_LOADER_SETTINGS:
+        return FISH_TRANSLATIONS
+    return chain([_fish_profile(rest), FISH_TRANSLATIONS])
+
+
+def _fish_profile(enabled: set[str]) -> LoaderProfile:
     """The DLLs Fish Tycoon's loader loads for these settings.
 
     Extra Tanks goes first: it loads Multiple Ornaments (which loads DS Exclusive Fish, which loads DS
@@ -253,7 +283,23 @@ PLANT_CHEM_SLOTS = replace(
 )
 
 
+PLANT_TRANSLATIONS = replace(
+    PLANT, dll_name=TRANSLATIONS_DLL,
+    what_it_installs=_TRANSLATIONS_INSTALLS.format(lookup="0x44CA70", more=""),
+)
+
+
 def plant_profile(enabled: set[str]) -> LoaderProfile:
+    """Plant Tycoon's loader: the companions' DLLs (_plant_profile), then Translations.dll last."""
+    if TRANSLATIONS_SETTING not in enabled:
+        return _plant_profile(enabled)
+    rest = set(enabled) - {TRANSLATIONS_SETTING}
+    if not rest & PLANT_LOADER_SETTINGS:
+        return PLANT_TRANSLATIONS
+    return chain([_plant_profile(rest), PLANT_TRANSLATIONS])
+
+
+def _plant_profile(enabled: set[str]) -> LoaderProfile:
     """The DLLs Plant Tycoon's loader loads for these settings.
 
     With the extra greenhouses or nurseries, Extra Greenhouses.dll is loaded: it starts the counts,

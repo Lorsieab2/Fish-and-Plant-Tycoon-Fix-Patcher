@@ -31,6 +31,7 @@ import picture_studio
 import save_backup
 import save_tools
 import text_maker_window
+import translations_window
 
 GAMES = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
 LINK = {"foreground": "#0057c2", "cursor": "hand2", "font": ("Segoe UI", 9, "underline")}
@@ -108,6 +109,7 @@ HELP = {
     "breeding_guide": breeding_guide.HELP,
     "picture_studio": picture_studio.HELP,
     "text_maker": text_maker_window.HELP,
+    "translations": translations_window.HELP,
 }
 
 
@@ -145,6 +147,7 @@ class ToolsTab:
             ("Breeding Guide...", "breeding_guide", lambda: self.breeding(self.app.game_choice.get())),
             ("Picture Studio...", "picture_studio", lambda: self.studio(self.app.game_choice.get())),
             ("Text Maker...", "text_maker", lambda: self.text_maker(self.app.game_choice.get())),
+            ("Translations...", "translations", lambda: self.translations(self.app.game_choice.get())),
         )):
             self._link(links, text, command).pack(side="left", padx=(0 if index == 0 else 18, 0))
             self._help(links, key).pack(side="left", padx=(3, 0))
@@ -162,6 +165,7 @@ class ToolsTab:
             ("breeding_guide", "Breeding guide...", self.breeding),
             ("picture_studio", "Picture studio...", self.studio),
             ("text_maker", "Text maker...", self.text_maker),
+            ("translations", "Translations...", self.translations),
         )
         for column, (key, _text, _command) in enumerate(columns, start=1):
             self._help(grid, key).grid(row=0, column=column, padx=(12, 0), pady=(0, 2))
@@ -180,6 +184,7 @@ class ToolsTab:
             ("Breeding Guide...", "breeding_guide", lambda: self.breeding(None)),
             ("Picture Studio...", "picture_studio", lambda: self.studio(None)),
             ("Text Maker...", "text_maker", lambda: self.text_maker(None)),
+            ("Translations...", "translations", lambda: self.translations(None)),
         )):
             ttk.Button(buttons, text=text, command=command).pack(side="left", padx=(0 if index == 0 else 8, 0))
             self._help(buttons, key).pack(side="left", padx=(2, 0))
@@ -863,3 +868,13 @@ class ToolsTab:
         app = self.app
         folders = {game: [app.path_vars[game][key].get() for key in ("vanilla", "output")] for game in GAMES}
         text_maker_window.open_window(app, game_id or app.game_choice.get(), folders)
+
+    # ------------------------------------------------------------ translations
+
+    def translations(self, game_id: str | None) -> None:
+        """The Translations window (src/translations_window.py), told every folder a copy of each game
+        may be in: the game folders on the Game tabs, their output copies and the output folder."""
+        app = self.app
+        folders = {game: [app.path_vars[game][key].get() for key in ("vanilla", "output")] + [app.output_parent.get()]
+                   for game in GAMES}
+        translations_window.open_window(app, game_id or app.game_choice.get(), folders)

@@ -20,6 +20,7 @@ from typing import Any
 from datetime import datetime, timezone
 
 import ds_fish_loader
+import translations
 import fish_patcher
 
 
@@ -611,6 +612,8 @@ def apply_manifest(args: argparse.Namespace) -> int:
             raise PatchError("Staged executable failed its post-write SHA-256 check.")
         report["assets"] = merge_assets(assets, game_fs, staging)
         report["companion_files"] = fish_patcher.install_companion_files(companions, staging)
+        if "translations" in enabled:          # the language chosen on the Tools tab (src/translations.py)
+            translations.write_choice_into(staging, "plant")
         report["backup_dir"] = str(long_paths.plain(backup_dir))
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".plant_tycoon_fix_output.json", {

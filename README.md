@@ -1031,6 +1031,32 @@ folder never fails with "path too long".
     Untick "Make missing letters" to see what the game itself draws.
   - It reads the fonts from your copy of the game and changes nothing.
 
+- **Translations.** Play both games in another language, or make a
+  translation yourself. Patch with the **Translations** setting on (default),
+  then Tools tab, Translations...: choose the language (it applies from the
+  next game start, no re-patching; "English (original)" changes nothing).
+  "Make a translation" writes every English line of the game and of the
+  patcher's own texts into a file and opens a built-in editor (search,
+  untranslated only, progress, placeholders in colour, a preview in the
+  game's own font with a too-long warning, autosave). "Add translation
+  file..." (or drag a file onto the window) checks and adds one you were
+  sent; "Export translation..." saves a copy. Choices by number ("%d
+  {%1: one=poisson | other=poissons}") use the language's CLDR plural rules.
+  A missing or broken line stays English, and the game never stops for a
+  translation. If you want to share your translation, consider going to the
+  Patcher's GitHub page and adding it! How: press Share on GitHub..., drag
+  the file in, press Submit (a free GitHub account is needed). Email
+  addresses are never saved and are rejected from translation files. The
+  format is the one all of the owner's patchers share; see
+  [docs/translations.md](docs/translations.md).
+  - How: `Translations.dll`, loaded last, hooks the game's own string lookup
+    (Fish 0x426FD0, Plant 0x44CA70, chaining onto Store Upgrades and Items'
+    jump), lets Fish Tycoon's Goals lines choose by their real number at
+    their five sprintf calls, and points the patcher DLLs' texts at their
+    translations through their relocations. Lines the games copy into fixed
+    buffers have a length limit, so a translation can never overflow one.
+    `tests/test_translations_runtime.py` runs it in Unicorn against both games.
+
 ## Safety
 
 Each engine remains bound to the exact supported stock executable identity,
