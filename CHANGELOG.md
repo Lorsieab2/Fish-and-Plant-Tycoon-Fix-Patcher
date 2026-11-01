@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.0.22
+
+- **Picture Studio: every item of both games, and the Moray Eel three ways.**
+  Make your own has a new Items tab (Category, Item, Picture) with every item,
+  owned or not, drawn exactly as the game draws it. Fish Tycoon, 50 items:
+  medicines and chemicals, fish food (flakes, pellets, live food by Fish Food
+  research level), fish eggs, equipment, tank plants and creatures,
+  ornaments, the Second Tank and research, each in the supply store (at rest
+  on its shadow, pointed at at 120%, picked at every percent the store pulses
+  it to), in its supply slot, on the mouse, and in the tank (food falling, a
+  chemical's drop, eggs, the equipment and ornaments). Plant Tycoon, 175
+  items: every seed packet, chemical, tool upgrade, nursery ornament and pot,
+  on its store shelf (on its shadow, with the tick once owned), in the seed or
+  chemical tray, in the Tools box, on the mouse (pouring, watering, cutting,
+  catching), and each pot with each soil. The patcher's items (DS Store
+  Items, Extra Supply Slots, Store Upgrades and Items, Time Warp, Add Money
+  ...) are marked "(patcher)"; seven pictures in Fish Tycoon's files that the
+  game never draws are marked "(unused)" and shown whole (Plant Tycoon has
+  none). The Creatures tab now has the Moray Eel out of its home (swimming),
+  in its home (all 32 frames, idle and the snap) and its home alone. A new
+  "Save all on this tab..." saves every picture of a Make your own tab (the
+  Items tab in a folder per category). The numbers are the games' own, checked
+  against the executables (store records, sprite table, supply icons and
+  cursors, tank effects and the store's scaled draws run in Unicorn, Plant
+  Tycoon's shelves, Tools box and mouse pictures, item names) and pinned
+  pixel for pixel against the game's art: tests/test_picture_items.py.
+
 ## v1.0.21
 
 - **Fish Tycoon: the treated price is shown beside the price you set** (DS

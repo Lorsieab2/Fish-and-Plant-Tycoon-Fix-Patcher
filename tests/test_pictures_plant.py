@@ -814,7 +814,7 @@ class ChoicesTests(unittest.TestCase):
 
     def test_decorations_bugs_and_pots(self) -> None:
         subjects = {s.key: s for s in self.renderer.custom_choices(frozenset(), True, None)}
-        self.assertEqual(list(subjects), ["plant", "unused", "decoration", "bug", "pot"])
+        self.assertEqual(list(subjects), ["plant", "unused", "decoration", "bug", "pot", "items"])
         parts = [o.key for o in subjects["unused"].fields[0].options]
         self.assertEqual(len(parts), 12)
         for key in parts:

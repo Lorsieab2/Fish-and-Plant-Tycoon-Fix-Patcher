@@ -405,6 +405,23 @@ def plan_ornament(sprite: int, *, x: int = 0, y: int = 0, h: int | None = None, 
     return out
 
 
+# The Creatures tab: the Golden Seahorse, DS Store Items' animals (the Moray Eel out of its home,
+# in its home, and its home alone), then the snail's six pictures.
+CREATURE_OPTIONS = (
+    Option("seahorse", "Golden Seahorse"),
+    Option("puffer", "Magic Pufferfish", True), Option("puffer_puffed", "Magic Pufferfish, puffed up", True),
+    Option("ray", "Blue-Spotted Stingray", True),
+    Option("eel", "Moray Eel, out of its home (swimming)", True),
+    Option("eel_home", "Moray Eel in its home", True),
+    Option("eel_rock", "Moray Eel's home (its rock, the eel out)", True),
+) + tuple(Option(f"snail{index}", f"Cleaning Snail, {words}") for index, words in SNAIL_VIEWS)
+# draw_home's frames (ftfp_ds_store.c home_frame): 13 idle frames in the cave mouth, played forward then
+# back, and the 19-frame snap (it ducks, peeks, lunges, snaps out in front of the rock and bites).
+HOME_FRAME_OPTIONS = tuple(Option(k, f"Frame {k + 1} (idle in the cave mouth)") for k in range(HOME_IDLE)) + \
+    tuple(Option(HOME_IDLE + k, f"Frame {HOME_IDLE + k + 1} (the snap, {k + 1} of {HOME_ACTION})")
+          for k in range(HOME_ACTION))
+
+
 # ------------------------------------------------------------------ names
 
 def _names():
@@ -662,9 +679,11 @@ def _stage_options() -> tuple:
 
 
 def required_files() -> list[str]:
+    import pictures_fish_items as items
     names = []
     for index in list(STOCK_SHEETS) + list(range(38, 101)):
         names.append(sheet(index)[0])
+    names += items.stock_files()
     return list(dict.fromkeys(names))
 
 
@@ -672,6 +691,8 @@ def patcher_files() -> list[str]:
     """The patcher's own art the pictures may use (DS Exclusive Fish, DS Store Items)."""
     names = [sheet(i)[0] for i in range(DS_SPRITE_BASE, DS_SPRITE_DEAD + 1)]
     names += [f for f, _c, _r in STORE_SHEETS.values()]
+    import pictures_fish_items as items
+    names += items.patcher_files()
     return list(dict.fromkeys(names))
 
 
@@ -679,7 +700,7 @@ def patcher_art() -> dict[str, Path]:
     assets = PATCHER_ROOT / "assets"
     out = {}
     for name in patcher_files():
-        for folder in ("fish_tycoon_ds", "fish_tycoon_ds_store"):
+        for folder in ("fish_tycoon_ds", "fish_tycoon_ds_store", "fish_tycoon_supply_slots"):
             path = assets / folder / "Images" / name
             if path.is_file():
                 out[name] = path
@@ -872,27 +893,112 @@ class FishRenderer:
             note="Ages follow the game: under 6 a baby, under 20 a teen (it grows from 100% at age 6 to 139% "
                  "at 19), then an adult. Sick spots show on adults facing left or right, as in the game."
                  + ("" if spoilers else " Show Spoilers is off: only the bodies and fins you have discovered."))
-        creatures = [Option("seahorse", "Golden Seahorse"),     # then DS Store Items' animals
-                     Option("puffer", "Magic Pufferfish", True), Option("puffer_puffed", "Magic Pufferfish, puffed up", True),
-                     Option("ray", "Blue-Spotted Stingray", True), Option("eel", "Moray Eel", True)]
-        creatures += [Option(f"snail{index}", f"Cleaning Snail, {words}") for index, words in SNAIL_VIEWS]
         creature = Subject("creature", "Creatures", (
-            Field("creature", "Creature", tuple(creatures), "seahorse"), facing, frame),
-            note="The snail has one picture for each way it crawls; Facing and Frame are for the swimmers.")
+            Field("creature", "Creature", CREATURE_OPTIONS, "seahorse"), facing, frame,
+            Field("home_frame", "Eel at home: frame", HOME_FRAME_OPTIONS, 0)),
+            note="Facing and Frame are for the swimmers (the Moray Eel out of its home too); the snail has one "
+                 "picture for each way it crawls. The Moray Eel in its home is its rock with the eel's back and "
+                 "front layers, as DS Store Items draws it (Eel at home: frame); its home alone is the rock "
+                 "with no eel, as the tank shows it while the eel is out.")
         decorations = [Option(f"orn{sprite}", name) for sprite, name in ORNAMENTS]
-        decorations += [Option("rock", ROCK_NAME, True), Option("rock_home", ROCK_NAME + ", the eel at home", True)]
         decorations += [Option(f"img{sprite}", name) for _off, name, sprite in EQUIPMENT]
         decoration = Subject("decoration", "Decorations", (
             Field("decoration", "Decoration", tuple(decorations), decorations[0].key),
-            Field("shadow", "Shadow", (Option(True, "With its shadow in the gravel"), Option(False, "No shadow")), True),
-            Field("home_frame", "Eel at home: frame", tuple(Option(k, f"Frame {k + 1}") for k in range(HOME_IDLE + HOME_ACTION)), 0)),
-            note="Ornaments rest on a shadow in the gravel, as in the tank; plants and equipment are drawn as the tank shows them.")
+            Field("shadow", "Shadow", (Option(True, "With its shadow in the gravel"), Option(False, "No shadow")), True)),
+            note="Ornaments rest on a shadow in the gravel, as in the tank; plants and equipment are drawn as the "
+                 "tank shows them. The Moray Eel's rock is on the Creatures tab.")
         eggs = Subject("eggs", "Eggs", (
             Field("egg_frame", "Frame", tuple(Option(k, f"Frame {k + 1}") for k in range(EGG_FRAMES)), 0),),
             note="Eggs dropped into a tank, as the game's tank effect draws them (16 pictures as they fall "
                  "and spread, see-through as in the game). The game draws nothing else for an egg: a fish "
                  "is not drawn before it hatches (age 0), then it is a baby (the Fish tab's Baby stage).")
-        return [fish, creature, decoration, eggs]
+        return [fish, creature, decoration, eggs, self._items_subject()]
+
+    # ---- items (pictures_fish_items)
+    def _items_subject(self) -> Subject:
+        fields = self._item_fields({})
+        return Subject("items", "Items", (
+            Field("category", "Category", fields["category"], fields["category"][0].key),
+            Field("item", "Item", fields["item"], fields["item"][0].key),
+            Field("view", "Picture", fields["view"], fields["view"][0].key)),
+            note="Every item of the game, owned or not, as the game draws it: in the supply store (at rest on its "
+                 "shadow, pointed at, and picked, when the store makes it pulse), in its supply slot, on the mouse "
+                 "and in the tank. (patcher): an item a patcher setting adds; (unused): art in the game's files "
+                 "that the game never draws, shown whole.")
+
+    @staticmethod
+    def _item_fields(spec: dict) -> dict:
+        import pictures_fish_items as fi
+        categories = tuple(Option(c, c) for c in fi.CATEGORIES)
+        category = spec.get("category") if spec.get("category") in fi.CATEGORIES else fi.CATEGORIES[0]
+        in_category = [i for i in fi.ITEMS if i.category == category]
+        items = tuple(Option(i.key, i.name, i.patcher, i.unused) for i in in_category)
+        chosen = fi.BY_KEY.get(spec.get("item"))
+        if chosen is None or chosen.category != category:
+            chosen = in_category[0]
+        views = tuple(Option(k, label) for k, label in fi.views(chosen))
+        return {"category": categories, "item": items, "view": views}
+
+    def refine_choices(self, subject: str, spec: dict) -> dict:
+        """The options that follow the others' picks (Items: the category's items, the item's pictures)."""
+        if subject != "items":
+            return {}
+        fields = self._item_fields(spec)
+        return {"item": fields["item"], "view": fields["view"]}
+
+    def custom_name(self, spec: dict) -> str | None:
+        """A picture's file name from only the choices that change it (a creature's), else None
+        (the window joins every choice)."""
+        if spec.get("subject") != "creature":
+            return None
+        option = next((o for o in CREATURE_OPTIONS if o.key == spec.get("creature")), None)
+        if option is None:
+            return None
+        name = option.label + (" (patcher)" if option.patcher else "")
+        key = str(option.key)
+        if key.startswith("snail") or key == "eel_rock":
+            return name
+        if key == "eel_home":
+            frame = next((o.label for o in HOME_FRAME_OPTIONS if o.key == spec.get("home_frame")), "")
+            return f"{name} - {frame}"
+        facing = next((label for k, label, _m in FACINGS if k == spec.get("facing")), "Facing left")
+        return f"{name} - {facing} - Frame {int(spec.get('frame') or 0) + 1}"
+
+    def custom_batch(self, subject: str):
+        """Every picture of a "Make your own" tab, for its "Save all on this tab...": a list of
+        (sub-folder names, file name, spec), or None for the Fish tab (every body, fin, stage, state,
+        facing and frame would be over a hundred thousand pictures)."""
+        out = []
+        if subject == "items":
+            import pictures_fish_items as fi
+            for item in fi.ITEMS:
+                mark = " (patcher)" if item.patcher else " (unused)" if item.unused else ""
+                for key, label in fi.views(item):
+                    out.append(((item.category,), f"{item.name}{mark} - {label}",
+                                {"subject": "items", "category": item.category, "item": item.key, "view": key}))
+            return out
+        if subject == "creature":
+            for option in CREATURE_OPTIONS:
+                key, name = option.key, option.label + (" (patcher)" if option.patcher else "")
+                if str(key).startswith("snail") or key == "eel_rock":
+                    out.append(((), name, {"subject": "creature", "creature": key}))
+                elif key == "eel_home":
+                    out += [((name,), f"{name} - {o.label}", {"subject": "creature", "creature": key, "home_frame": o.key})
+                            for o in HOME_FRAME_OPTIONS]
+                else:
+                    out += [((name,), f"{name} - {label} - Frame {k + 1}",
+                             {"subject": "creature", "creature": key, "facing": facing, "frame": k})
+                            for facing, label, _m in FACINGS for k in range(6)]
+            return out
+        if subject == "decoration":
+            for sprite, name in ORNAMENTS:
+                out += [((), name, {"subject": "decoration", "decoration": f"orn{sprite}", "shadow": True}),
+                        ((), f"{name} - no shadow", {"subject": "decoration", "decoration": f"orn{sprite}", "shadow": False})]
+            out += [((), name, {"subject": "decoration", "decoration": f"img{sprite}"}) for _o, name, sprite in EQUIPMENT]
+            return out
+        if subject == "eggs":
+            return [((), f"Eggs - Frame {k + 1}", {"subject": "eggs", "egg_frame": k}) for k in range(EGG_FRAMES)]
+        return None
 
     def plan_custom(self, spec: dict) -> list[Draw]:
         subject = spec.get("subject")
@@ -919,6 +1025,12 @@ class FishRenderer:
             key = spec.get("creature", "seahorse")
             if str(key).startswith("snail"):
                 return [draw_cell(int(str(key)[5:]), 0, 0)]
+            if key in ("eel_home", "eel_rock"):
+                home = int(spec.get("home_frame", 0) or 0)
+                if not 0 <= home < HOME_IDLE + HOME_ACTION:
+                    raise PictureError("The eel's home has no such frame.")
+                return plan_ornament(SPR_ROCK_HOME if key == "eel_home" else SPR_ROCK, h=ROCK_H - ROCK_SINK,
+                                     home_frame=home)
             fin = {"seahorse": 22, "puffer": FIN_PUFFER, "puffer_puffed": FIN_PUFFER, "ray": FIN_RAY,
                    "eel": FIN_EEL}.get(key)
             if fin is None:
@@ -938,6 +1050,12 @@ class FishRenderer:
             if key.startswith("img"):
                 return [draw_cell(int(key[3:]), 0, 0)]
             raise PictureError("Pick a decoration.")
+        if subject == "items":
+            import pictures_fish_items as fi
+            item = fi.BY_KEY.get(spec.get("item"))
+            if item is None:
+                raise PictureError("Pick an item.")
+            return fi.plan(item, spec.get("view", "store"), self.image_height)
         if subject == "eggs":
             return plan_eggs(int(spec.get("egg_frame", 0) or 0))
         raise PictureError("Pick what to draw.")

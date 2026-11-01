@@ -440,6 +440,11 @@ def fake_game_copy(folder: Path) -> Path:
     names = {}
     for index in list(pf.STOCK_SHEETS) + list(range(38, 101)):
         names[pf.sheet(index)[0]] = pf.sheet(index)[1:]
+    import pictures_fish_items as fi                   # the Items tab's pictures
+    grids = {file: (cols, rows) for file, cols, rows in fi.SPRITE_FILES.values()}
+    grids.update({file: (cols, rows) for _s, file, cols, rows, _f, _a in fi.EFFECTS.values()})
+    for name in fi.stock_files():
+        names.setdefault(name, grids.get(name, (1, 1)))
     for n, (name, (cols, rows)) in enumerate(names.items()):
         cols, rows = max(1, cols), max(1, rows)
         image = pi.Image(cols * 12, rows * 10)
@@ -625,9 +630,8 @@ class ChoicesTests(unittest.TestCase):
             self.assertEqual([o.key for o in everything["fin"].options], list(range(21)) + list(range(23, 30)))
             self.assertTrue(all(o.patcher == (o.key >= 23) for o in everything["body"].options))
             creatures = [o.key for o in r.custom_choices(extras, True, None)[1].fields[0].options]
-            self.assertTrue({"puffer", "puffer_puffed", "ray", "eel"} <= set(creatures))
-            decorations = [o.key for o in r.custom_choices(extras, True, None)[2].fields[0].options]
-            self.assertTrue({"rock", "rock_home"} <= set(decorations))
+            self.assertTrue({"puffer", "puffer_puffed", "ray", "eel", "eel_home", "eel_rock"} <= set(creatures),
+                            "the Moray Eel out of its home, in it, and its home alone are creatures")
         none = {f.key: f for f in r.custom_choices(frozenset(), False, None)[0].fields}
         self.assertEqual(len(none["body"].options), 28, "no save: nothing to hide by")
         self.assertTrue(set(pf.patcher_files()) <= set(pf.patcher_art()), "their art ships with the patcher")

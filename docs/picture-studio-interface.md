@@ -158,3 +158,28 @@ Rules for both renderers:
   `renderer.plan_saved(...)` return the list of `Draw(file, cols, rows, cell, x, y, flip,
   alpha, tint)` calls it composites (`picture_image.Draw`).
 - Saves are read only; synthetic saves in the tests, never the owner's.
+
+## Items, the Moray Eel, and "Save all on this tab" (v1.0.22)
+
+- `Option.unused` (default False): art the game has but never draws; the window lists it with
+  "  (unused)", as it lists `Option.patcher` with "  (patcher)".
+- A renderer may have `refine_choices(subject_key, spec) -> {field key: tuple[Option]}`: after
+  every pick the window replaces those fields' options (keeping a pick still offered). The Items
+  tab uses it: Category -> its Items -> the item's Pictures.
+- A renderer may have `custom_batch(subject_key) -> list[(folder names, file name, spec)] | None`:
+  "Save all on this tab..." renders and saves each (a picture the game draws as nothing is left
+  out and counted); None (the Fish and Plant tabs) disables the button.
+- Items: `src/pictures_fish_items.py` and `src/pictures_plant_items.py` hold the catalogue (a
+  category, the pictures each item has, and their draws), with the game's addresses in their
+  docstrings; `tests/test_picture_items.py` checks the numbers against the executables and pins
+  pictures against the game's art. Fish Tycoon: the store (records 0x457EF0, drawn by
+  0x427239..0x427518: ITEM_SHADOW then the picture; 120% pointed at and the 0x4271F0 pulse picked,
+  both through 0x408030), the supply slots (icon and cursor from 0x427540's callers and the food
+  rule 0x420A02), the tank effects (0x413B00 types 2, 3, 4, 14, 24: 0x410AE0, drawn by 0x410F50),
+  DS Store Items' Upgrades page (draw_page). Plant Tycoon: the store shelves (0x447D40, the
+  peep_shadow1.png shadow and CHECKMARK.png tick), the Tools box (0x44DD70), the mouse
+  (0x429267..), the chemical tray (0x416650), the patcher's Upgrades view (on_draw).
+- The Moray Eel (Creatures tab): "eel" swims (companion_sheet), "eel_home" is draw_home's
+  composition (the rock's centred shadow, DS_EEL_HOME_BACK_Grid frame, DS_EEL_ROCK.png,
+  DS_EEL_HOME_FRONT_Grid frame; Field `home_frame`, 0-31: 13 idle, 19 of the snap), "eel_rock" the
+  rock alone on its shadow. They left the Decorations tab.
