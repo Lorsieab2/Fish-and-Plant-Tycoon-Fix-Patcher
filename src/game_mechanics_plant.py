@@ -60,6 +60,7 @@ def page() -> GamePage:
                   note="Only with the Sort Seeds button setting: a \"Sort Seeds\" button on the Seed Storage "
                        "title bar."),
             Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (on by default), which also turns on the store's Upgrades screen it lives on."),
+            Group("Names and letters", TEXT_ENTRY),
             Group("Extra greenhouses (patcher)", EXTRA_GREENHOUSES,
                   note="Only with the 5 extra greenhouses setting (on by default), which also turns on the "
                        "store's Upgrades screen the greenhouses are bought on."),
@@ -1421,6 +1422,7 @@ HIDDEN = (
 OTHER_GAME = (
     Fact('Which tank counts: see Where things count (plants have no tanks; position never matters).'),
     Fact('Health: see Health and soil.'),
+    Fact('Names and letters: the same here, see Names and letters.'),
     Fact('Sickness: see Pests. Plants have no other disease.'),
     Fact('Food: not in Plant Tycoon. Plants need water instead (see Water).'),
     Fact('Breeding and babies: see Pollination and seeds.'),
@@ -1443,6 +1445,26 @@ OTHER_GAME = (
     Fact("Extra supply slots (patcher): not in Plant Tycoon, whose held items are its tools and chemical "
          "tray, not supply slots (see Tools and shears and Chemicals)."),
 )
+
+TEXT_ENTRY = (
+    Fact(
+        "A name (the player's, any text box) is at most 31 letters, one byte each, kept in the save "
+        "as the game typed it.",
+    ),
+    Fact(
+        "What you can type: plain ASCII only. The game takes typed text (SDL's text input, UTF-8) "
+        "only when it is one byte long, so any accented letter is dropped, though its text box "
+        "would store any byte 0x20-0xFF.",
+        patched=(("unicode_ingame_fonts", "every Latin-1 letter too (U+00A0-U+00FF: é ñ ü ß Æ ¿ £ ...), "
+                  "stored as its Latin-1 byte."),),
+    ),
+    Fact(
+        "What the font draws: PT Font Small has ASCII and Latin-1 from ¢ (U+00A2) on; it lacks the "
+        "no-break space, ¡ and the Windows-1252 letters at 0x80-0x9F, drawn as its first letter.",
+        patched=(("unicode_ingame_fonts", "those too, made in the font's own style."),),
+    ),
+)
+
 
 TIME_WARP = (
     Fact(

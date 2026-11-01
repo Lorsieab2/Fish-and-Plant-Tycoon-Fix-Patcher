@@ -152,6 +152,9 @@ Fish Tycoon options:
 - Everything is Free (off by default; a CHEAT, so Select All Patches and
   Owner's Defaults leave it off: tick it yourself): every store item, research and Upgrades item costs $0,
   and Add Money costs $0 and still adds $1,000. Limits stay.
+- Render Unicode with In-Game Fonts (on by default; Owner's Defaults leaves
+  it off): type accented letters (é ñ ü ß Æ ¿ £ ...) in names, drawn in the
+  game's own fonts; letters a font lacks are made for it in its style.
 
 Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
 - What moves: fish of any age, healthy or sick (a pregnant fish keeps her
@@ -264,6 +267,9 @@ Plant Tycoon options:
   doses left when you point at it. Turning it off loses nothing: loading a
   save puts page 2's chemicals into free stock slots where they fit, and the
   rest wait in the slot's Extra Chemical Slots file for when you turn it on.)
+- Render Unicode with In-Game Fonts (on by default; Owner's Defaults leaves
+  it off): type accented letters (é ñ ü ß Æ ¿ £ ...) in names; the game's font
+  gets the few it lacks, made in its style.
 
 Moving things between greenhouses (5 extra greenhouses):
 - A plant: drag it onto the left or right arrow, as you would drag it to
@@ -364,6 +370,17 @@ PNG..." or "Save all in this tank/greenhouse...". The pictures have a clear back
 copies the pictures it needs from your game into "Picture Studio Pictures"
 beside the patcher ("Find game..." if it has none yet), and never changes a
 save.
+
+Tools tab, Text Maker: pick the game and one of its fonts, type in the box
+(Enter starts a new line), and the preview shows it exactly as the game
+draws it. Pick the colour, Shadow or Outline, the size and the background,
+then "Export PNG..." (tick "Transparent background" for a clear one). The
+Insert character list has accented letters by language; "Any Unicode"
+takes a code like U+00E9 or 1F41F, a character name, or the characters
+themselves (Japanese, Chinese, Korean, Greek, Cyrillic, cuneiform, emoji).
+Letters the font lacks are made for it, in its style, and listed as
+"patcher-made". It reads the fonts from your copy of the game ("Game
+Copy..." to choose one) and never changes a game file.
 
 Credits: Plant Tycoon's new flower names (Add unused flowers) are by
 Virtual_Lady and Lorsieab2.

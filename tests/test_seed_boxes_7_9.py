@@ -624,8 +624,9 @@ class EveryPatchTests(unittest.TestCase):
         import ds_fish_loader
         import plant_patcher
         import tycoon_fix_patcher as combined
+        import fish_patcher
         cls.manifest = combined.load_manifest("plant")
-        cls.enabled = {s["id"] for s in cls.manifest["settings"]}
+        cls.enabled = fish_patcher.pin_settings(cls.manifest, {s["id"] for s in cls.manifest["settings"]})
         vanilla = PLANT_EXE.read_bytes()
         records = plant_patcher.active_patch_records(cls.manifest, cls.enabled)
         patched, _ = plant_patcher.apply_patch_bytes(vanilla, records)

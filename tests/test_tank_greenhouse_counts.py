@@ -128,7 +128,8 @@ class ManifestTests(unittest.TestCase):
             manifest = combined.load_manifest(game)
             vanilla = exe.read_bytes()
             pins = manifest["patched_sha256_by_settings"]
-            defaults = patcher.enabled_settings(manifest, DEFAULTS)
+            # the loader-tail setting (Unicode Text) has no pins of its own: fish_patcher.build_executable
+            defaults = fish_patcher.pin_settings(manifest, patcher.enabled_settings(manifest, DEFAULTS))
             for extra in extras:
                 for enabled in (defaults | extra, {SETTING} | extra):
                     patched, _ = patcher.apply_patch_bytes(vanilla, patcher.active_patch_records(manifest, enabled))

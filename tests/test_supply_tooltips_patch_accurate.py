@@ -130,8 +130,9 @@ class PatchAccurate(unittest.TestCase):
         self.check(CASES["Everything is Free"])
 
     def test_enable_all(self) -> None:
+        import fish_patcher
         manifest = json.loads(T.MANIFEST.read_text(encoding="utf-8"))
-        self.check({s["id"] for s in manifest["settings"]})
+        self.check(fish_patcher.pin_settings(manifest, {s["id"] for s in manifest["settings"]}))
 
     def test_the_counts_the_settings_give(self) -> None:
         """Spot values, so a regression reads plainly: the Unknown Chemical bought three times as one

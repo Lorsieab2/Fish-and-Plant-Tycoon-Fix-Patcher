@@ -8,6 +8,44 @@
   (255, 208, 64) was written the wrong way round and showed as (64, 208, 255).
   It is now the game's yellow, as its captions. Tests:
   tests/test_tank_greenhouse_counts.py.
+- **Render Unicode with In-Game Fonts** (new setting, both games; on by default,
+  "Modded Upgrades" copy; Owner's Defaults leaves it off). Stage 1: Latin-1.
+  Typing in the game takes every Latin-1 letter (U+00A0-U+00FF, AltGr too):
+  Fish Tycoon's key path kept only ASCII (keysym.unicode < 0x80, then 0x20-0x7E
+  at 0x403ED4) and Plant Tycoon's SDL_TEXTINPUT took only one-byte text
+  (0x40439B); both now hand the game's own text box the Latin-1 byte, which
+  it already stores. Every font the games load gets the Latin-1 and
+  Windows-1252 letters it lacks, patcher-made in its style (Fish Tycoon's
+  three fonts about 120 each, Paddington's empty boxes for % * + < = > [ \ ]
+  ^ { | } ~ included; Plant Tycoon's PT Font Small its 29 missing), on copies
+  of the fonts' pictures in Images; the game's own art is not changed. Runs as
+  "Unicode Text.dll", which checks its four (Fish) or two (Plant) sites and
+  writes all or none; it is loaded last, after every other companion, and its
+  setting adds no pins: the executable without it must match the other
+  settings' pin, then the loader gets the DLL added. Names stay one byte a
+  letter, so saves keep their layout and load in the stock game (which shows
+  a missing letter as a blank). Rename Players and Copy Player Slot accept
+  Latin-1 names for a save folder whose copy has the setting. The DLL exports
+  FtfpUnicodeTextActive for the Translations setting. Tests:
+  tests/test_unicode_text.py (the DLL's own code in Unicorn: every key and
+  every Latin-1 letter typed, all-or-none install, the game's own font loader
+  and draw pixel for pixel, a save with such a name loaded by the stock and
+  the patched game), tests/test_patch_presets.py (settings that exclude each
+  other), tests/test_save_tools.py.
+- **Patches that exclude each other.** A setting can name others it cannot be
+  on with (`conflicts_settings`): ticking one unticks the other, the presets
+  and Patch Selection Settings never tick both (Select All keeps the default
+  one) and the patcher refuses both.
+- **Text Maker** (Tools tab, both games): type anything in the games' own
+  fonts, drawn exactly as the game draws it (checked pixel for pixel against
+  the game's own font loader and draw run in Unicorn), with colour, shadow or
+  outline, size and background, and Export PNG with a transparent background.
+  Every font each game has: Fish Tycoon's Paddington 18 and 30 and Triplex
+  Sans Bold 16, Plant Tycoon's PT Font Small (and PT Font Big and LDW Arial
+  Bold, in its folder but unused). An accent picker and an "Any Unicode" box;
+  letters a font lacks are made for it ("patcher-made"): accents from the
+  font's own pixels, everything else (CJK, Greek, Cyrillic, cuneiform, colour
+  emoji...) drawn by Windows in the font's size, baseline and weight.
 
 ## v1.0.22
 
