@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.21**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.22**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -265,8 +265,9 @@ never needs the internet.
   [docs/images/auto-upgrades-fish.png](docs/images/auto-upgrades-fish.png).
   The Golden Seahorse keeps its PC effects and gains its DS one. Every supply
   slot (the stock four, and the extra ones with Extra supply slots) shows a
-  tooltip while the mouse is over it, in the game's own hint box just under
-  the top bar: the item's name and what is left of it as the game will spend
+  tooltip while the mouse is over it, in the game's own rope-edged hint box
+  just under the top bar (only the hovered slot of the page shown, one at a
+  time): the item's name and what is left of it as the game will spend
   it -- doses for medicines and chemicals, uses for the Unknown Chemical (one
   in the stock game, three with Unknown Chemical: 3 uses or Universal supply
   slots), batches for eggs (one, or the stack with Universal supply slots) --

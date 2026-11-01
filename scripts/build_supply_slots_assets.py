@@ -24,7 +24,7 @@ each page, as ftfp_supply_slots.c draws it, at twice the size),
 docs/images/extra-supply-slots-locked.png (before they are bought) and
 docs/images/supply-slot-tooltip-<hormone|food|eggs>.png: DS Store Items' tooltip for a slot under the
 mouse, its box drawn as the game's hint box (0x423280: the fill colour 0x50 0x4C 0x40 inside, the
-CUSTOMPOPUP_FTROPESTYLE_BAR_* ropes along the edges) and the text in the game's bitmap font. The
+CUSTOMPOPUP_FTROPESTYLE_BAR_* ropes just outside the edges, placed as that code places them) and the text in the game's bitmap font. The
 game draws the text in its hint font, which is not a file in ft.dat, so the letters are an
 approximation of it; the box, its place and its size rules are the DLL's.
 """
@@ -59,7 +59,7 @@ LABEL_YELLOW = (250, 206, 22)             # the bar's "Magic Breeds Discovered"
 ROPES = ("custompopup_ftropestyle_bar_top.png", "custompopup_ftropestyle_bar_bottom.png",
          "custompopup_ftropestyle_bar_left.png", "custompopup_ftropestyle_bar_right.png")
 HINT_FILL = (0x50, 0x4C, 0x40, 0xFF)      # the hint box's fill (0x423217)
-TIP = {"line": 20, "pad_x": 10, "pad_y": 6, "top": 60}   # ftfp_ds_store.c TIP_*
+TIP = {"line": 20, "pad_x": 10, "pad_y": 6, "top": 60, "margin": 12}   # ftfp_ds_store.c TIP_*
 TOOLS = ("tool_foodcan_flakes.png", "tool_fishvitamins.png", "tool_growthhormone.png", "tool_fisheggs_common.png",
          "tool_icktreatment.png", "tool_unknownchemical.png", "tool_fisheggs_rare.png", "tool_fungaltreatment.png",
          "tool_fisheggs_unusual.png")
@@ -165,35 +165,58 @@ def preview(game: Path, images: dict[str, Image.Image], page: int, owned: bool =
 
 
 def hint_box(art: dict[str, Image.Image], screen: Image.Image, rect: tuple[int, int, int, int]) -> None:
-    """The hint's box as 0x423280 draws it: the fill inside the rectangle, the ropes tiled along
-    its edges, centred on them."""
+    """The hint's box as 0x423280 draws it: the fill one pixel larger than the rectangle, then --
+    only when the rectangle with its rope is at least as wide as the top bar and as tall as a side
+    bar -- the four bars just outside it: the top one right to left and the bottom one left to right
+    from corner to corner, the left one down from the rectangle's top, the right one up from its
+    bottom, each step overlapping the last (the bar less a 2.5 x thickness)."""
     left, top, right, bottom = rect
-    fill = Image.new("RGBA", (right - left - 2, bottom - top - 2), HINT_FILL)
-    screen.alpha_composite(fill, (left + 1, top + 1))
+    fill = Image.new("RGBA", (right - left + 2, bottom - top + 2), HINT_FILL)
+    screen.alpha_composite(fill, (left - 1, top - 1))
     top_r, bottom_r, left_r, right_r = (art[r] for r in ROPES)
-    for x in range(left, right, top_r.width - 8):            # overlapped: the rope ends only at the corners
-        piece = top_r.crop((0, 0, min(top_r.width, right - x), top_r.height))
-        screen.alpha_composite(piece, (x, top - top_r.height // 2))
-        piece = bottom_r.crop((0, 0, min(bottom_r.width, right - x), bottom_r.height))
-        screen.alpha_composite(piece, (x, bottom - bottom_r.height // 2))
-    for y in range(top, bottom, left_r.height - 8):
-        piece = left_r.crop((0, 0, left_r.width, min(left_r.height, bottom - y)))
-        screen.alpha_composite(piece, (left - left_r.width // 2, y))
-        piece = right_r.crop((0, 0, right_r.width, min(right_r.height, bottom - y)))
-        screen.alpha_composite(piece, (right - right_r.width // 2, y))
+    tw, th, lw, lh = top_r.width, top_r.height, left_r.width, left_r.height
+    ol, ot, orr, ob = left - lw, top - th, right + lw, bottom + th
+    if ob - ot < lh or orr - ol < tw:
+        return
+    step_x, step_y = lw // 2 + 2 * lw, th // 2 + 2 * th
+    x = orr - tw
+    screen.alpha_composite(top_r, (x, ot))
+    while x > ol:
+        x = max(ol, x + step_x - tw)
+        screen.alpha_composite(top_r, (x, ot))
+    x = ol
+    screen.alpha_composite(bottom_r, (x, bottom))
+    while x < orr - tw:
+        x = min(orr - tw, x + tw - step_x)
+        screen.alpha_composite(bottom_r, (x, bottom))
+    y = top
+    screen.alpha_composite(left_r, (ol, y))
+    while y < ob - lh:
+        y = min(ob - lh, y + lh - step_y)
+        screen.alpha_composite(left_r, (ol, y))
+    y = bottom - lh
+    screen.alpha_composite(right_r, (right, y))
+    while y > ot:
+        y = max(ot, y + step_y - lh)
+        screen.alpha_composite(right_r, (right, y))
 
 
 def draw_tooltip(art, screen: Image.Image, position: int, lines: tuple[str, ...]) -> None:
-    """ftfp_ds_store.c slot_tooltip: the box centred under the slot, clamped to the screen."""
+    """ftfp_ds_store.c slot_tooltip: the box centred under the slot, never smaller than its whole
+    rope needs (rope_minimum: 44 x 54), clamped to the screen with room for the rope, the lines in
+    its middle."""
     glyphs = tanks.font_glyphs(art["font_triplex_sanslightlin_bold_16pt.png"])
     texts = [small_label(glyphs, line, (255, 255, 255), 14) for line in lines]
-    width = max(t.width for t in texts) + 2 * TIP["pad_x"]
+    top_r, left_r = art[ROPES[0]], art[ROPES[2]]
+    width = max(max(t.width for t in texts) + 2 * TIP["pad_x"], top_r.width - 2 * left_r.width)
+    height = max(2 * TIP["pad_y"] + len(lines) * TIP["line"], left_r.height - top_r.height)
     left_box, _top, right_box, _bottom = BOXES[position]
-    left = max(4, min(796 - width, (left_box + right_box) // 2 - width // 2))
-    rect = (left, TIP["top"], left + width, TIP["top"] + 2 * TIP["pad_y"] + len(lines) * TIP["line"])
+    left = max(TIP["margin"], min(800 - TIP["margin"] - width, (left_box + right_box) // 2 - width // 2))
+    rect = (left, TIP["top"], left + width, TIP["top"] + height)
     hint_box(art, screen, rect)
+    y = TIP["top"] + (height - len(lines) * TIP["line"]) // 2
     for i, text in enumerate(texts):
-        screen.alpha_composite(text, (left + (width - text.width) // 2, TIP["top"] + TIP["pad_y"] + 3 + i * TIP["line"]))
+        screen.alpha_composite(text, (left + (width - text.width) // 2, y + 3 + i * TIP["line"]))
 
 
 def main() -> int:

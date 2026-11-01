@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.0.22
+
+- **Fish Tycoon: every supply slot tooltip has its rope edge, and only one
+  shows at a time** (DS Store Items). The Fish Food tooltip (one line, no
+  "doses left") showed a dark box with no rope around it: the game's own box
+  code draws its rope only around a box tall enough for the rope's side bars,
+  and the one-line box was too low, so only the fill was drawn. Tooltip boxes
+  are now never smaller than the rope needs (the game's rope bars, read from
+  the game), so the Fish Food box and every other one -- every slot on every
+  page of Extra supply slots -- has its whole rope, its lines centred in it.
+  Only the slot under the mouse on the page shown has a tooltip: never two at
+  once, never one from another page, and none while a game hint is up.
+  Tests: tests/test_supply_slot_tooltips.py (the stock box code run with the
+  real rope bars; every mouse point on every page).
+
 ## v1.0.21
 
 - **Fish Tycoon: the treated price is shown beside the price you set** (DS
