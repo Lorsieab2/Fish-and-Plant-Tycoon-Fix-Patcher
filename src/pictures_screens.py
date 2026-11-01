@@ -337,6 +337,20 @@ FISH_TROPHY_SLOTS = ((0x44C364, 0xF7, 0xB5, 0xF5, 0x6A), (0x44C35C, 0x20C, 0xB5,
                      (0x44C334, 0x17D, 0x151, 0x180, 0x106))
 
 
+# The supply slots (0x41BEB0, from the tank's draw): slot k's item picture (a plain sprite, state +0x2C4
+# + 0x1C k) at (its x, 15); a bought item's x is 0x30 k + 0x1E (0x4275CB), a new game's (0x419982,
+# 0x420A15) its own. (sprite file, x)
+FISH_NEW_GAME_SUPPLIES = (("TOOL_FOODCAN_FLAKES.png", 0x19), ("TOOL_GROWTHHORMONE.png", 0x7E),
+                          ("TOOL_FISHEGGS_COMMON.png", 0xA6))
+FISH_TIP_ITEMS = (("TOOL_FOODCAN_FLAKES.png", 0x19), ("TOOL_ICKTREATMENT.png", 0x4E),
+                  ("TOOL_UNKNOWNCHEMICAL.png", 0x7E), ("TOOL_FISHEGGS_COMMON.png", 0xAE))
+FISH_VERSION = say(10, 572, at(0x4438BC), colour=FISH_ORANGE)       # the main menu's label (0x41C773)
+
+
+def supply(file: str, x: int) -> Piece:
+    return Piece(file, x, 15)
+
+
 def trophy_empty() -> list:
     out = []
     for text, tx, ty, ix, iy in FISH_TROPHY_SLOTS:
@@ -370,7 +384,15 @@ def fish_options(c) -> list:
         out.append(say(left + x, top + yy, ident(text), align=align))
     rw, rh = c.cell_size("OptionsRadioButton.png", 2, 1)
     line = c.font(0).line_height
+    # Fullscreen's On and Off (made at x 0x10 and 0x92) are then centred as a pair (0x422DDE): a
+    # radio's width is w + w/2 + its label's (0x40A090); On at (270 - (On + w) - Off) / 2, Off
+    # On + w further. Off is there only on a desktop bigger than 800 x 600 (0x407AF0; otherwise
+    # the game deletes it), as on any computer today.
+    width = lambda t: rw + cdiv(rw, 2) + c.text_size(0, c.text_bytes(Text((ident(t),))))[0]  # noqa: E731
+    on_x = cdiv(w - (width(0x19) + rw) - width(0x1A), 2)
+    moved = {0x19: on_x, 0x1A: on_x + width(0x19) + rw}
     for text, x, yy, on in FISH_OPTIONS_RADIOS:
+        x = moved.get(text, x)
         out.append(Piece("OptionsRadioButton.png", left + x, top + yy, cols=2, rows=1, cell=1 if on else 0))
         out.append(say(left + x + rw + 4, top + yy + cdiv(rh - line, 2), ident(text)))
     return out
@@ -472,14 +494,20 @@ def _fish_pictures() -> list:
                        "not drawn)", tank1 + tuple(fish_info()), canvas=(800, 600)))
     out.append(Picture("screen:tank1stopped", screens, "Tank 1, time stopped", tank1 + (FISH_TIME_STOPPED,),
                        canvas=(800, 600)))
+    started = tank1[:5] + tuple(supply(*item) for item in FISH_NEW_GAME_SUPPLIES) + tank1[5:]
+    out.append(Picture("screen:tank1new", screens, "Tank 1 in a new game: its supplies in the slots (Fish Food, "
+                       "Growth Hormone, Common Fish Eggs; the starting plant sways and is not drawn)", started,
+                       canvas=(800, 600)))
     for slot, lines, what in ((0, (sample("Fish Food"),), "Fish Food (by name only)"),
                               (1, (ident(0xAE), sample("2 doses left")), "Ick Treatment, 2 doses left"),
                               (2, (ident(0xB6), sample("1 use left")), "Unknown Chemical, 1 use left"),
                               (3, (ident(0xB8), sample("1 batch left")), "Common Fish Eggs, 1 batch left")):
         out.append(Picture(f"tooltip:slot{slot}", "Tooltips (patcher)", f"Tank 1, supply slot {slot + 1}'s tooltip: {what}",
                            (), canvas=(800, 600), patcher=True,
-                           make=lambda c, k=slot, t=lines, b=tank1: b + tuple(fish_tooltip(c, k, t))))
-    menu = [Piece("options_bg.png", 0, 0)] + [_button(f, x, y) for f, x, y in FISH_MENU_BUTTONS] + [Piece(*FISH_TITLE)]
+                           make=lambda c, k=slot, t=lines, b=tank1: b[:5] + (supply(*FISH_TIP_ITEMS[k]),) + b[5:]
+                           + tuple(fish_tooltip(c, k, t))))
+    menu = [Piece("options_bg.png", 0, 0), FISH_VERSION] + [_button(f, x, y) for f, x, y in FISH_MENU_BUTTONS]
+    menu.append(Piece(*FISH_TITLE))
     out.append(Picture("screen:menu", screens, "Main menu", tuple(menu), canvas=(800, 600)))
     out.append(Picture("screen:options", screens, "Options (over the main menu)", (),
                        canvas=(800, 600), make=lambda c, m=tuple(menu): m + tuple(fish_options(c))))
@@ -500,7 +528,8 @@ def _fish_pictures() -> list:
                        tuple(shop) + tuple(supplies_item(0xB4, price=25)), canvas=(800, 600)))
     out.append(Picture("screen:supplies:research", screens, "Supplies store, Fish Food Research being researched (51%)",
                        tuple(shop) + tuple(supplies_item(0xDC, level=1, progress=51)), canvas=(800, 600)))
-    sell = (Piece("sellfishshop_bg_png.png", 0, 0), _button("selldonebutton.png", 701, 547)) + tuple(sell_words())
+    sell = (Piece("sellfishshop_bg_png.png", 0, 0), Piece("sellingarea_door.png", 595, 214),        # 0x423800
+            _button("selldonebutton.png", 701, 547)) + tuple(sell_words())
     out.append(Picture("screen:sell", screens, "Sell fish (3 for sale)", sell, canvas=(800, 600)))
     out.append(Picture("screen:sell:picked", screens, "Sell fish, a fish picked (a sample name and price)",
                        sell + tuple(sell_words(picked=True)[3:]), canvas=(800, 600)))

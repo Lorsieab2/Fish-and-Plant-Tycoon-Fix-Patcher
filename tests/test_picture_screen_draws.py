@@ -364,6 +364,115 @@ class PlantDraws(unittest.TestCase):
                              sprite)
 
 
+def fish_composed(composer, pieces) -> list:
+    """The draws a Fish Tycoon picture's pieces stand for, as FishScreens records them: a picture
+    (its file, the source rectangle on the sheet, its place), words (bytes, place, colour, font),
+    a filled rectangle (left, top, right, bottom and the colour as the game passes it)."""
+    import picture_image as pi
+    out = []
+    for p in pieces:
+        if p.text is not None:
+            data, x, y, _w, _h = composer.text_place(p)
+            if data:
+                out.append(("text", data, x, y, white(p.text.colour), p.text.font))
+        elif p.fill is not None:
+            r, g, b, a, w, h = p.fill
+            out.append(("fill", (p.x, p.y, p.x + w, p.y + h), a << 24 | b << 16 | g << 8 | r))
+        else:
+            image = composer.image(p.file)
+            left, top, right, bottom = pi.cell_rect(image.width, image.height, p.cols, p.rows, p.cell)
+            if p.src is not None:
+                left, top, right, bottom = left + p.src[0], top + p.src[1], left + p.src[2], top + p.src[3]
+            # the blitter's clip to the screen (0x4076B0)
+            x, y = max(p.x, 0), max(p.y, 0)
+            left, top = left + x - p.x, top + y - p.y
+            right, bottom = min(right, left + 800 - x), min(bottom, top + 600 - y)
+            out.append(("pic", p.file.casefold(), (left, top, right, bottom), x, y))
+    return out
+
+
+@unittest.skipUnless(READY, "the vanilla games, Unicorn, capstone and keystone")
+class FishDraws(unittest.TestCase):
+    """Fish Tycoon's screens, popups and message boxes built and drawn by the game in Unicorn
+    (tests/draw_emulator.py FishScreens, a new game's state), every draw call compared with the
+    pictures' pieces."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        import pictures_game_art as ga
+        cls.composer = S.Composer(ga.GameArt("fish", FISH))
+
+    def rig(self, empty: bool = True, cash: int = 1000):
+        f = de.FishScreens(de.picture_sizes("fish"), self.composer.text_size)
+        if empty:
+            f.empty_tank()
+        f.emu.write32(f.state + de.FISH_CASH, cash)
+        return f
+
+    def drawn(self, ctor: int, *args: int, tank: bool = False, rig=None, size: int = 0x400) -> list:
+        f = rig or self.rig()
+        screen = f.make(ctor, *args, size=size)
+        if tank:
+            impl = f.emu.read32(screen + 8)
+            for offset, value in de.FISH_TANK_AT_REST:
+                f.emu.write32(impl + offset, value)
+        f.show(screen)
+        return list(f.draws)
+
+    def want(self, key: str) -> list:
+        return fish_composed(self.composer, self.composer.pieces(S.by_key("fish")[key]))
+
+    def test_screens_as_the_game_draws_them(self) -> None:
+        for ctor, key, tank in ((0x41EB00, "screen:tank1", True), (0x41C380, "screen:menu", False),
+                                (0x428340, "screen:trophy", False), (0x41B810, "screen:help1", False),
+                                (0x41BFD0, "screen:intro1", False)):
+            self.assertEqual(sorted(self.drawn(ctor, tank=tank)), sorted(self.want(key)), key)
+
+    def test_supplies_store(self) -> None:
+        """The store as the game opens it: its first item (Ick Treatment) picked, its title and
+        description where supplies_item puts them; the picked item bobs (drawn lifted, without its
+        shadow, at a place that moves) and its price line is the trial's "Please register!" here,
+        both left out."""
+        got = [d for d in self.drawn(0x427830) if d[1] not in ("item_ick.png", b"Please register!")]
+        want = [d for d in self.want("screen:supplies") if d[1] != "item_ick.png"
+                and (d[1], d[3], d[4]) != ("item_shadow.png", 64, 85)]
+        want += fish_composed(self.composer, S.supplies_item(0xAE)[:2])
+        self.assertEqual(sorted(got), sorted(want))
+
+    def test_sell_screen(self) -> None:
+        """Sell Fish: the count of fish for sale is right-aligned at x 409 (a new game: 0; the
+        picture: a sample 3); the customer walking in (people_grid.png, a random one) is left out."""
+        got = [d for d in self.drawn(0x4244F0) if not (d[0] == "pic" and d[1] == "people_grid.png")]
+        count = lambda d: d[0] == "text" and d[1].isdigit()  # noqa: E731
+        want = self.want("screen:sell")
+        self.assertEqual(sorted(d for d in got if not count(d)), sorted(d for d in want if not count(d)))
+        for d in [d for d in got if count(d)] + [d for d in want if count(d)]:
+            self.assertEqual(d[2] + self.composer.text_size(1, d[1])[0], 0x199)
+
+    def test_tank_with_a_new_games_supplies(self) -> None:
+        """A new game: its starting supplies in the slots (Fish Food, Growth Hormone, Common Fish
+        Eggs) where the game draws them (0x41BEB0), its starting plant left out (it sways)."""
+        got = [d for d in self.drawn(0x41EB00, tank=True, rig=self.rig(empty=False))
+               if not (d[0] == "pic" and d[1].startswith("plantanim"))]
+        self.assertEqual(sorted(got), sorted(self.want("screen:tank1new")))
+
+    def test_message_boxes(self) -> None:
+        for text, cancel in ((0x1C, False), (0x35, False), (0xEC, True), (0xF2, True)):
+            got = self.drawn(0x4221A0, text, int(cancel), size=0x200)
+            want = fish_composed(self.composer, S.fish_message(self.composer, text, cancel))
+            self.assertEqual(sorted(got), sorted(want), hex(text))
+
+    def test_options_popup(self) -> None:
+        """Its rope box, headers, radio buttons and labels, OK and Cancel; which radio is on is the
+        player's settings (compared apart: on is the second frame)."""
+        got = self.drawn(0x422530)
+        want = fish_composed(self.composer, S.fish_options(self.composer))
+        off = lambda ds: sorted((d[0], d[1], (0, 0, 26, 26), *d[3:]) if d[1] == "optionsradiobutton.png" else d  # noqa: E731
+                                for d in ds)
+        self.assertEqual(off(got), off(want))
+        self.assertEqual({d[2] for d in got if d[1] == "optionsradiobutton.png"}, {(0, 0, 26, 26), (26, 0, 52, 26)})
+
+
 def tip_rig_ready() -> bool:
     try:
         import test_supply_slot_tooltips as tips

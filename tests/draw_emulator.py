@@ -292,3 +292,141 @@ class DrawEmulator(se.ScreenEmulator):
 
     def vcall(self, obj: int, slot: int, *args: int) -> int:
         return self.emu.call(self.emu.read32(self.emu.read32(obj) + 4 * slot), *args, ecx=obj)
+
+
+# ------------------------------------------------------------------ Fish Tycoon
+#
+# Fish Tycoon's screens, popups and widgets run the same way, with the game's own sprite table
+# (0x4552F0, its getters 0x41BAE0 / 0x41BBB0 / 0x41BD00 run), its picture and strip objects, its
+# buttons, radio buttons and text widgets, its draws down to the blitters, and a game state made by
+# the game itself (0x41AC20, the state's constructor, then 0x41AA70, the new game). Replaced:
+# * a picture file's loading (0x409AB0): its surface answers the file's real width and height;
+# * the two blitters at the bottom (0x404150, 0x4041C0) and the rectangle fill (0x407940) are
+#   recorded, not run; the text draw (0x4087E0) is recorded;
+# * the text width and height (0x4023D0 / 0x4024A0) answer pictures_screens.Composer.text_size;
+# * the static CRT's sprintf (0x42B20B) is Python's; the sound manager's getter answers no sound.
+# The graphics (0x45AFE8): an 800 x 600 screen on a 1920 x 1080 desktop, the clip (0, 0, 800, 600), the default font 0;
+# the fonts (0x45B270): the game's three, numbered 0, 1, 2.
+
+FISH_STATE, FISH_GRAPHICS, FISH_FONTS = 0x45ABDC, 0x45AFE8, 0x45B270
+FISH_CASH, FISH_HELD, FISH_SUPPLY, FISH_SUPPLY_STRIDE = 0x38C, 0x1E4E8, 0x2B8, 0x1C
+FISH_TANK, FISH_TANK_STRIDE, FISH_ORNAMENTS, FISH_ORNAMENT_STRIDE = 0x390, 0x51EC, 0x5068 - 0xC, 0x28
+# What the tank's start (0x421940) sets on the tank screen's own object: its sliding parts at rest
+# (+4, +8, +0xC = 0; the bottom bar's top +0x10 = 485; +0x14 = 496, +0x18 = 639), nothing in the
+# hand (+0x1C, +0x28 = 99).
+FISH_TANK_AT_REST = ((4, 0), (8, 0), (0xC, 0), (0x10, 0x1E5), (0x14, 0x1F0), (0x18, 0x27F), (0x1C, 0x63), (0x28, 0x63))
+
+
+class FishScreens(se.ScreenEmulator):
+    def __init__(self, size, measure) -> None:
+        """`size(name)`: (width, height) of a picture file of the game copy; `measure(font,
+        bytes)`: the text's (width, height)."""
+        super().__init__("fish", widgets=True)
+        emu = self.emu
+        self.size, self.measure = size, measure
+        self.files: dict[int, str] = {}
+        self.draws: list[tuple] = []
+        emu.hook(0x409AB0, self._load, 4)
+        emu.hook(0x4251A0, lambda e: 0, 4)
+        emu.hook(0x42B20B, lambda e: DrawEmulator._sprintf(self, e), 0)
+        emu.hook(0x404150, self._blit, 0x1C)
+        emu.hook(0x4041C0, self._blit, 0x28)
+        emu.hook(0x407940, self._fill, 8)
+        emu.hook(0x4087E0, self._text, 0x14)
+        emu.hook(0x4023D0, lambda e: self._measure(e)[0], 8)
+        emu.hook(0x4024A0, lambda e: self._measure(e)[1], 4)
+        holder, impl = self._zeroed(0x10), self._zeroed(0x200)
+        emu.write32(holder, impl)
+        emu.write32(FISH_GRAPHICS, holder)
+        self.graphics, self.impl = holder, impl
+        emu.write32(impl + 8, 800)
+        emu.write32(impl + 0xC, 600)
+        emu.write32(impl + 0x10, 1920)               # the desktop, bigger: a window is possible
+        emu.write32(impl + 0x14, 1080)
+        emu.write32(impl + 0x30, self._zeroed(0x40))
+        for k, v in enumerate((0, 0, 800, 600)):
+            emu.write32(impl + 0x38 + 4 * k, v)
+        self.fonts: dict[int, int] = {}
+        fonts = self._zeroed(0x10)
+        for n in range(3):
+            font = self._zeroed(0x40)
+            self.fonts[font] = n
+            emu.write32(fonts + 4 * n, font)
+        emu.write32(impl + 0x34, emu.read32(fonts))
+        emu.write32(emu.read32(FISH_FONTS), fonts)
+        self.state = self._zeroed(0x1E600)
+        emu.write32(FISH_STATE, self.state)
+        emu.call(0x41AC20, ecx=self.state)
+        emu.call(0x41AA70, ecx=self.state)
+        emu.write32(self.state + FISH_HELD, 0xFFFFFFFF)
+
+    def _this(self) -> int:
+        return self.emu.uc.reg_read(X.UC_X86_REG_ECX)
+
+    def _load(self, emu) -> int:
+        this = self._this()
+        name = emu.cstring(emu.arg(0)).decode("latin-1")
+        w, h = self.size(name)
+        surface = self._zeroed(0x40)
+        emu.write32(surface + 8, w)
+        emu.write32(surface + 0xC, h)
+        self.files[surface] = name
+        emu.write32(this, surface)
+        emu.write8(this + 4, 1)
+        return this
+
+    def _blit(self, emu) -> int:
+        a = [s32(emu.arg(k)) for k in range(7)]
+        if a[5] > a[3] and a[6] > a[4]:
+            self.draws.append(("pic", self.files.get(emu.arg(0), "?").casefold(), tuple(a[3:7]), a[1], a[2]))
+        return 0
+
+    def _fill(self, emu) -> int:
+        rect = struct.unpack("<4i", emu.uc.mem_read(emu.arg(0), 16))
+        self.draws.append(("fill", rect, emu.arg(1)))
+        return 0
+
+    def _font(self, obj: int) -> int:
+        return self.fonts.get(obj or self.emu.read32(self.impl + 0x34), 0)
+
+    def _measure(self, emu) -> tuple:
+        return self.measure(self._font(self._this()), emu.cstring(emu.arg(0)) if emu.arg(0) else b"")
+
+    def _text(self, emu) -> int:
+        text = emu.cstring(emu.arg(0))
+        if text:
+            colour = emu.arg(3)
+            self.draws.append(("text", text, s32(emu.arg(1)), s32(emu.arg(2)),
+                               0xFFFFFFFF if colour >> 24 == 0 else colour, self._font(emu.arg(4))))
+        return 0
+
+    # ---- the game's state
+    def empty_tank(self, tank: int = 0) -> None:
+        """No ornaments in the tank (the new game's plant gone) and no supplies in the slots."""
+        at = self.state + FISH_TANK + tank * FISH_TANK_STRIDE + FISH_ORNAMENTS
+        for k in range(5):
+            self.emu.write8(at + k * FISH_ORNAMENT_STRIDE, 0)
+        for k in range(4):
+            self.emu.uc.mem_write(self.state + FISH_SUPPLY + k * FISH_SUPPLY_STRIDE, bytes(FISH_SUPPLY_STRIDE))
+
+    # ---- screens and popups
+    def children(self, screen: int) -> list:
+        out, node = [], self.emu.read32(self.emu.read32(screen + 4) + 0x18)
+        while node:
+            out.append(self.emu.read32(node))
+            node = self.emu.read32(node + 4)
+        return out
+
+    def make(self, ctor: int, *args: int, size: int = 0x400) -> int:
+        screen = self._zeroed(size)
+        self.emu.call(ctor, *args, ecx=screen)
+        return screen
+
+    def show(self, screen: int) -> None:
+        """Shown (its node's byte, each widget's show(1): the vtable's sixth entry), then painted
+        as each frame paints a screen (0x40AC90: its draw, its widgets, its overlay)."""
+        self.emu.write8(self.emu.read32(screen + 4), 1)
+        for widget in self.children(screen):
+            self.emu.call(self.emu.read32(self.emu.read32(widget) + 20), 1, ecx=widget)
+        self.draws.clear()
+        self.emu.call(0x40AC90, ecx=screen)
