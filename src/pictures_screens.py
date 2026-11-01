@@ -98,6 +98,7 @@ class Piece:
     dim: bool = False
     fill: tuple | None = None
     text: Text | None = None
+    shade: bool = False   # a fill laid over what is drawn: Plant Tycoon's see-through rectangle
 
 
 @dataclass(frozen=True)
@@ -116,6 +117,17 @@ class Picture:
 
 def fill(x, y, w, h, rgba) -> Piece:
     return Piece("", x, y, fill=(*rgba, w, h))
+
+
+# A modal dialog's backdrop (0x401C90 with its second argument 0, every Plant Tycoon dialog and
+# message box): the screen under it drawn, then 0x401E57 lays black at alpha 0.25 over all of
+# it (0x407B80 -> 0x403870: A = trunc(0.25 x 255 + 0.5) = 64, each channel (c x (255 - A)) >> 8
+# + (colour x A) >> 8), then the dialog.
+PLANT_SHADE = (0, 0, 0, 64)
+
+
+def shade(rgba=PLANT_SHADE, w: int = 800, h: int = 600) -> Piece:
+    return Piece("", 0, 0, fill=(*rgba, w, h), shade=True)
 
 
 def say(x: int, y: int, *parts, font: int = 0, colour: int = 0, align: str = "left", x2: int = 0) -> Piece:
@@ -533,18 +545,50 @@ def _tile_size(width: int, height: int) -> tuple:
     return max(2, -(-width // TILE)) * TILE, max(2, -(-height // TILE)) * TILE
 
 
-def plant_message(c, text: int) -> list:
+# The tutorial's message boxes (0x41F230, run in Unicorn by the tests): the message and where its
+# pointing arrow points, (direction, x, y): 1 up (arrowglow.png), 2 down (arrowglowdown.png), 3 left
+# (arrowleftglow.png), 4 right (arrowrightglow.png, never used); every other message has none.
+PLANT_TUTORIAL = {0xA4: (3, 620, 105), 0xA5: (2, 80, 280), 0xA6: (3, 50, 160), 0xA8: (3, 80, 160),
+                  0xAA: (3, 170, 50), 0xAC: (3, 40, 200), 0xAF: (3, 200, 480), 0xB0: (1, 140, 320),
+                  0xB2: (2, 520, 570), 0xB3: (1, 750, 90), 0xB4: (3, 110, 200), 0xB6: (1, 70, 340),
+                  0xB8: (2, 400, 570), 0xBA: (3, 120, 160), 0xBC: (3, 170, 160), 0xBE: (2, 630, 570),
+                  0xC0: (1, 100, 400), 0xC2: (2, 750, 570)}
+ARROWS = {1: "arrowglow.png", 2: "arrowglowdown.png", 3: "arrowleftglow.png", 4: "arrowrightglow.png"}
+
+
+def plant_arrow(c, direction: int, x: int, y: int) -> Piece:
+    """0x44D8DF: the arrow's picture placed to point at (x, y): up from below it (x - w / 2, y), down
+    (x - w / 2, y - h), left (x, y - h / 2), right (x - w, y - h / 2); then pushed along its
+    direction by trunc(cos(sin(phase x 3.14159 / 180)) x a quarter of its height (up, down) or
+    width (left, right)) (0x44DC12), the phase starting at -360 and stepping 5 or 8 a frame: the
+    first frame, drawn here, is pushed out by that quarter less one (it bobs back to about half)."""
+    import math
+    file = ARROWS[direction]
+    w, h = c.cell_size(file)
+    amp = (h if direction in (1, 2) else w) // 4
+    push = int(math.cos(math.sin(-360.0 * 3.14159 / 180.0)) * amp)
+    ax, ay = {1: (x - cdiv(w, 2), y + push), 2: (x - cdiv(w, 2), y - h - push), 3: (x + push, y - cdiv(h, 2)),
+              4: (x - w - push, y - cdiv(h, 2))}[direction]
+    return Piece(file, ax, ay)
+
+
+def plant_message(c, text: int, on_screen: bool = False) -> list:
     """The message box (0x44D690): GreenDlgTileGrid tiles for the text + 72 wide and the text + two
     button heights + 36 high (0x44D7BF), the text centred across at (H - that) / 2 + 36
-    (0x44DBB0), OK centred at H - h / 2 - h (0x44D874)."""
+    (0x44DBB0), OK centred at H - h / 2 - h (0x44D874). `on_screen`: where the game shows it, centred
+    on the 800 x 600 screen (0x401D20), with the tutorial's pointing arrow (drawn after the text,
+    before OK)."""
     data = c.text_bytes(Text((("id", text),)))
     tw, th = c.text_size(0, data)
     bw, bh = c.cell_size("widePTButton.png", 3, 1)
     want_h = th + 2 * bh + 0x24
     w, h = _tile_size(tw + 0x48, want_h)
-    out = dialog_tiles("GreenDlgTileGrid.png", w, h)
-    out.append(say(cdiv(w - tw, 2), cdiv(h - want_h, 2) + 0x24, ("id", text)))
-    out += label("widePTButton.png", cdiv(w - bw, 2), h - cdiv(bh, 2) - bh, ("id", 0x12))
+    x0, y0 = (cdiv(800 - w, 2), cdiv(600 - h, 2)) if on_screen else (0, 0)
+    out = dialog_tiles("GreenDlgTileGrid.png", w, h, x0, y0)
+    out.append(say(x0 + cdiv(w - tw, 2), y0 + cdiv(h - want_h, 2) + 0x24, ("id", text)))
+    if on_screen and text in PLANT_TUTORIAL:
+        out.append(plant_arrow(c, *PLANT_TUTORIAL[text]))
+    out += label("widePTButton.png", x0 + cdiv(w - bw, 2), y0 + h - cdiv(bh, 2) - bh, ("id", 0x12))
     return out
 
 
@@ -753,7 +797,7 @@ def _plant_pictures() -> list:
     out.append(Picture("screen:menu", screens, "Main menu (a sample player name)", tuple(menu), canvas=(800, 600)))
     out.append(Picture("screen:options", screens, "Options (over the main menu; sample settings: sounds full, music "
                        "half, windowed, Normal difficulty and speed, music track 1)", (), canvas=(800, 600),
-                       make=lambda c, m=tuple(menu): m + tuple(plant_options(c))))
+                       make=lambda c, m=tuple(menu): m + (shade(),) + tuple(plant_options(c))))
     out.append(Picture("screen:splash", screens, "Splash", (Piece("SPLASH_BG.jpg", 0, 0),), canvas=(800, 600)))
     green = [Piece("main_bg.png", 0, 0), Piece("trashbin.png", 143, 515, cols=2, rows=1), Piece("hose.png", 0, 0),
              _button("snapshot_button.png", 755, 4), *label("widePTButton.png", 31, 369, ident(0x41), PLANT_LILAC),
@@ -799,6 +843,19 @@ def _plant_pictures() -> list:
                             *label("widePTButton.png", 60, 550, ident(0x191)),              # 0x448630
                             *label("widePTButton.png", 310, 550, ident(0x1B2)),
                             *label("widePTButton.png", 560, 550, at(0x469850))), canvas=(800, 600)))
+    # the tutorial's message boxes where the game shows them: over the screen it is on, darkened
+    built = {p.key: p for p in out}
+    names = {"screen:greenhouse": "the greenhouse", "screen:store": "the Store", "screen:seedbox0": "the Seed box",
+             "screen:collections0": "Collections", "screen:nursery": "the Nursery"}
+    for step in range(0xA4, 0xC5):
+        where = {0xB3: "screen:store", 0xB9: "screen:seedbox0", 0xBF: "screen:collections0",
+                 0xC3: "screen:nursery"}.get(step, "screen:greenhouse")
+        arrow = PLANT_TUTORIAL.get(step)
+        out.append(Picture(f"tutorial:{step:x}", "Tutorial messages",
+                           f"Tutorial message {step - 0xA3} over {names[where]}"
+                           + (f", its arrow pointing {('up', 'down', 'left', 'right')[arrow[0] - 1]}" if arrow else ""),
+                           (), canvas=(800, 600),
+                           make=lambda c, b=built[where].pieces, i=step: b + (shade(),) + tuple(plant_message(c, i, True))))
     return out
 
 
@@ -1141,13 +1198,28 @@ class Composer:
             bottom = max(d[4] + d[6] for d in drawn)
         canvas = Image(max(1, right - left), max(1, bottom - top))
         for kind, p, what, x, y, _w, _h in drawn:
-            if kind == "text":
+            if p.shade:
+                _shade(canvas, p.fill, x - left, y - top)
+            elif kind == "text":
                 self.draw_text(canvas, p, what, x - left, y - top)
             elif p.alpha >= 255:
                 canvas.draw(what, x - left, y - top)
             else:
                 blend(canvas, what, x - left, y - top, p.alpha)
         return canvas
+
+
+def _shade(canvas: Image, rgbaw: tuple, x: int, y: int) -> None:
+    """0x403870: the rectangle's colour at alpha A over the screen, channel by channel."""
+    r, g, b, a, w, h = rgbaw
+    add = ((r * a) >> 8, (g * a) >> 8, (b * a) >> 8)
+    keep = 255 - a
+    table = [bytes(((v * keep) >> 8) + add[c] & 0xFF for v in range(256)) for c in range(3)]
+    d = canvas.data
+    for yy in range(max(0, y), min(canvas.height, y + h)):
+        for xx in range(max(0, x), min(canvas.width, x + w)):
+            i = (yy * canvas.width + xx) * 4
+            d[i], d[i + 1], d[i + 2] = table[0][d[i]], table[1][d[i + 1]], table[2][d[i + 2]]
 
 
 def _opaque_under(canvas: Image, x: int, y: int, w: int, h: int) -> bool:

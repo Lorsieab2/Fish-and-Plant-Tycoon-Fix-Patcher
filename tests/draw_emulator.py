@@ -243,6 +243,12 @@ class DrawEmulator(se.ScreenEmulator):
         emu.uc.mem_write(buffer, out + b"\0")
         return len(out)
 
+    def thunk_returning(self, value: int, kind: str = "", pop: int = 0) -> int:
+        """A function (for a vtable) that returns `value`, recorded as a Draw of `kind` if given."""
+        address = self.emu.thunk()
+        self.emu.hook(address, lambda e: (self.draws.append(Draw(kind)) if kind else None) or value, pop)
+        return address
+
     # ---- running
     def run(self, address: int, *args: int, this: int = 0) -> int:
         return self.emu.call(address, *args, ecx=this)
