@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.0.24
+
+- **Checked: neither game has Virtual Families' bank crash.** Virtual Families
+  1 crashes to the desktop when its bank chart divides by 0. Every integer
+  division in Fish Tycoon.exe (190) and Plant Tycoon.exe (199) was listed and
+  traced. 60 in each are the C runtime's own, 31 (Fish) and 34 (Plant) divide
+  by a constant, and the rest divide by a pixel count, a sprite's frame count,
+  a length or count checked for 0 first, or a value the game never sets to 0.
+  The only divisor that game data could make 0 is Fish Tycoon's game speed
+  (the age step, seconds / 60 / speed), and the game only ever sets it to 5,
+  10, 15 or 9999, in play and in the saves it writes. Random(0) does not
+  divide. The patcher's own code was checked as well: no division in any
+  executable patch, and the companion DLLs divide only by constants or after
+  a check. So Fix Vanilla Bugs needs nothing new for this. Tests:
+  tests/test_div_zero_audit.py (every site and its kind, and the game's own
+  code in Unicorn: the age step faults at speed 0 and counts as stock at 5, 10
+  and 15, Random(0) returns 0, and the guarded sites skip their division at
+  0).
+
 ## v1.0.23
 
 - **Fixed: the "Counts: On" / "Counts: Off" button was light blue, not yellow**
