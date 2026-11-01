@@ -381,7 +381,7 @@ never needs the internet.
   Trash the extra copies before turning it off again (with it off they are
   not shown; they come back if you turn it on).
 - Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
-  Upgrades" copy; Owner's Defaults turns it on instead of Render Unicode with
+  Upgrades" copy; Owner's Defaults leaves it off and keeps Render Unicode with
   In-Game Fonts, and the two cannot both be on). All of the game's text is
   drawn with one Windows font you choose beside the setting (Segoe UI unless
   you pick another; the fonts for other scripts fill in letters it lacks), at
@@ -417,7 +417,8 @@ never needs the internet.
   game draws, such as a translation) can be in any script: a letter the
   game's fonts have is drawn in them, any other (Turkish, Japanese, Chinese,
   Korean, cuneiform, emoji ...) from Windows' fonts at the font's size and
-  colour (emoji in one colour); typing takes them too, the emoji panel and
+  colour (colour emoji in their own colours, as the Text Maker draws them,
+  with the text's transparency); typing takes them too, the emoji panel and
   input methods included.
 
 ### Plant Tycoon
@@ -733,7 +734,7 @@ never needs the internet.
   - Design: the "Extra Chemical Slots" section of
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
 - Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
-  Upgrades" copy; Owner's Defaults turns it on instead of Render Unicode with
+  Upgrades" copy; Owner's Defaults leaves it off and keeps Render Unicode with
   In-Game Fonts, and the two cannot both be on). All of the game's text is
   drawn with one Windows font you choose beside the setting (Segoe UI unless
   you pick another; the fonts for other scripts fill in letters it lacks), at

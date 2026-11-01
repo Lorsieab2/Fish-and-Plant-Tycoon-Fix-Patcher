@@ -118,12 +118,12 @@ def configurations(game: str) -> dict[str, set[str]]:
     m = manifest(game)
     every = {s["id"] for s in m["settings"]}
     ticked = {s["id"] for s in m["settings"] if cheat.in_enable_all(s)}
-    # The two Unicode settings exclude each other: Select All keeps the default one (Render
-    # Unicode with In-Game Fonts), Owner's Defaults the other (Use Unicode Font).
+    # The two Unicode settings exclude each other: Select All and Owner's Defaults keep the
+    # default one (Render Unicode with In-Game Fonts); Use Unicode Font is built on its own.
     enable_all = ticked - {"unicode_system_font"}
     configs = {
         "Select All Patches": enable_all,
-        "Owner's Defaults": ticked - {"unicode_ingame_fonts"},
+        "Use Unicode Font instead": ticked - {"unicode_ingame_fonts"},
         "Select All Patches + Everything is Free": enable_all | {"everything_free"},
         "Default Patches": {s["id"] for s in m["settings"] if s.get("default")},
     }

@@ -1473,9 +1473,9 @@ TEXT_ENTRY = (
         "What the font draws: PT Font Small has ASCII and Latin-1 from ¢ (U+00A2) on; it lacks the "
         "no-break space, ¡ and the Windows-1252 letters at 0x80-0x9F, drawn as its first letter.",
         patched=(("unicode_ingame_fonts", "those too, made in the font's own style; any other letter is "
-                  "drawn from Windows' fonts (Segoe UI and the fonts for other scripts, emoji in one colour) at "
-                  "the font's size and in the text's colour."),
-                 ("unicode_system_font", "every letter, ASCII too, is drawn with the Windows font chosen in the patcher (Segoe UI unless another), then the fonts for other scripts, at the game fonts' line heights and in the game's colours."),)
+                  "drawn from Windows' fonts (Segoe UI and the fonts for other scripts) at "
+                  "the font's size and in the text's colour; colour emoji keep their own colours."),
+                 ("unicode_system_font", "every letter, ASCII too, is drawn with the Windows font chosen in the patcher (Segoe UI unless another), then the fonts for other scripts, at the game fonts' line heights and in the game's colours (colour emoji in their own)."),)
     ),
 )
 

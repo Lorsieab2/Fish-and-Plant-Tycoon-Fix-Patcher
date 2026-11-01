@@ -152,12 +152,12 @@ Fish Tycoon options:
 - Everything is Free (off by default; a CHEAT, so Select All Patches and
   Owner's Defaults leave it off: tick it yourself): every store item, research and Upgrades item costs $0,
   and Add Money costs $0 and still adds $1,000. Limits stay.
-- Use Unicode Font (overrides in-game fonts) (off by default; Owner's
-  Defaults turns it on instead of Render Unicode with In-Game Fonts): all
+- Use Unicode Font (overrides in-game fonts) (off by default, Owner's
+  Defaults too; it replaces Render Unicode with In-Game Fonts): all
   game text in one Windows font you pick beside the setting (Segoe UI
   unless you choose another), any script, at the game's sizes and colours.
-- Render Unicode with In-Game Fonts (on by default; Owner's Defaults leaves
-  it off): type accented letters (é ñ ü ß Æ ¿ £ ...) in names, drawn in the
+- Render Unicode with In-Game Fonts (on by default and in Owner's
+  Defaults): type accented letters (é ñ ü ß Æ ¿ £ ...) in names, drawn in the
   game's own fonts; letters a font lacks are made for it in its style.
   Names can be up to 300 letters, in any script (letters the game's fonts
   lack come from Windows' fonts); the full name is kept beside the save
@@ -274,12 +274,12 @@ Plant Tycoon options:
   doses left when you point at it. Turning it off loses nothing: loading a
   save puts page 2's chemicals into free stock slots where they fit, and the
   rest wait in the slot's Extra Chemical Slots file for when you turn it on.)
-- Use Unicode Font (overrides in-game fonts) (off by default; Owner's
-  Defaults turns it on instead of Render Unicode with In-Game Fonts): all
+- Use Unicode Font (overrides in-game fonts) (off by default, Owner's
+  Defaults too; it replaces Render Unicode with In-Game Fonts): all
   game text in one Windows font you pick beside the setting (Segoe UI
   unless you choose another), any script, at the game's sizes and colours.
-- Render Unicode with In-Game Fonts (on by default; Owner's Defaults leaves
-  it off): type accented letters (é ñ ü ß Æ ¿ £ ...) in names; the game's font
+- Render Unicode with In-Game Fonts (on by default and in Owner's
+  Defaults): type accented letters (é ñ ü ß Æ ¿ £ ...) in names; the game's font
   gets the few it lacks, made in its style. Names can be up to 300 letters,
   in any script, the full name kept beside the save.
 

@@ -51,7 +51,7 @@ EXPECTED = {
     # of the two Unicode settings (they exclude each other) Select All keeps the default one
     "select_all": {game: EVERY[game] - {"everything_free", "unicode_system_font"} for game in EVERY},
     "default_patches": DEFAULTS,
-    "owners_defaults": {game: EVERY[game] - {"everything_free", "unicode_ingame_fonts"} for game in EVERY},
+    "owners_defaults": {game: EVERY[game] - {"everything_free", "unicode_system_font"} for game in EVERY},
     "deselect_all": {game: set() for game in EVERY},
 }
 
@@ -95,7 +95,7 @@ class PresetSetTests(unittest.TestCase):
             chosen = gui.preset_selection("owners_defaults", game)
             self.assertNotIn("everything_free", chosen)
             self.assertTrue({"free_upgrades", "add_money", "time_warp"} <= chosen, game)
-        self.assertEqual(gui.OWNERS_DEFAULTS_OFF, {"everything_free", "unicode_ingame_fonts"})
+        self.assertEqual(gui.OWNERS_DEFAULTS_OFF, {"everything_free", "unicode_system_font"})
 
     def test_presets_keep_requirements(self) -> None:
         for preset in EXPECTED:
@@ -391,19 +391,18 @@ class ConflictTests(unittest.TestCase):
                 for other in setting.get("conflicts_settings", []):
                     self.assertIn(other, settings, (game, sid))
                     self.assertNotIn(other, setting.get("requires_settings", []), (game, sid))
-            # Use Unicode Font (overrides in-game fonts): off by default, on in Owner's Defaults,
-            # excluding Render Unicode with In-Game Fonts both ways; Select All and Default Patches
-            # keep only the default one of the two.
+            # Use Unicode Font (overrides in-game fonts): off by default and in Owner's Defaults,
+            # excluding Render Unicode with In-Game Fonts both ways; Select All, Default Patches
+            # and Owner's Defaults keep only the default one of the two.
             system = settings["unicode_system_font"]
             self.assertEqual(system["name"], "Use Unicode Font (overrides in-game fonts)")
             self.assertIs(system["default"], False)
             self.assertIs(system["separate_output"], True)
             self.assertEqual(system["conflicts_settings"], ["unicode_ingame_fonts"])
             self.assertEqual(settings["unicode_ingame_fonts"]["conflicts_settings"], ["unicode_system_font"])
-            self.assertNotIn("unicode_system_font", gui.OWNERS_DEFAULTS_OFF)
-            self.assertIn("unicode_system_font", gui.preset_selection("owners_defaults", game))
-            self.assertNotIn("unicode_ingame_fonts", gui.preset_selection("owners_defaults", game))
-            for preset in ("select_all", "default_patches"):
+            self.assertIn("unicode_system_font", gui.OWNERS_DEFAULTS_OFF)
+            self.assertNotIn("unicode_ingame_fonts", gui.OWNERS_DEFAULTS_OFF)
+            for preset in ("select_all", "default_patches", "owners_defaults"):
                 self.assertIn("unicode_ingame_fonts", gui.preset_selection(preset, game))
                 self.assertNotIn("unicode_system_font", gui.preset_selection(preset, game))
 

@@ -19,8 +19,11 @@
    game loads such a save as always. The full name goes into "<Game> Fix Patcher Data\Names
    <slot>.dat" beside the save: the short form, NUL, the full name in UTF-8, NUL. A file whose
    short form is not the one in the player list (the stock game renamed the player, or the
-   slot was emptied) is not used. The patcher's tools copy it with the slot (Copy Player Slot)
-   and write it (Rename Players).
+   slot was emptied) is not used. It is written as soon as a name is committed: getText into a
+   player's row (a rename) or of the new player's box, which the game then copies into row 1
+   (GAME_NEW_NAME_RETURN); written to "Names <slot>.dat.tmp" and moved over the old file. The
+   draws and the exit write it too (names_sync), should a name reach the list another way.
+   The patcher's tools copy it with the slot (Copy Player Slot) and write it (Rename Players).
 
    SHOWING THEM.  Where the game shows a name it has the short form; the DLL shows the full one
    instead: setText of a name box (box+0x30) with a player-list row, or with text that is a
@@ -131,18 +134,32 @@ static void read_slot_file(int slot) {
     e->used = e->full[0] != '\0';
 }
 
-static void write_slot_file(int slot) {
-    wchar_t path[1024];
+/* The slot's file, written whole or not at all: "Names <slot>.dat.tmp" first, then moved over
+   the old file, so a crash leaves the old file or the new one, never half of one. If the move
+   is refused the file is written in place, as before. */
+static int write_names_file(const wchar_t *path, const name_entry *e) {
     DWORD written;
     HANDLE file;
-    name_entry *e = &slot_names[slot - 1];
-    int a = s_len(e->shortf) + 1, b = s_len(e->full) + 1;
-    if (!names_path(slot, path)) return;
+    int a = s_len(e->shortf) + 1, b = s_len(e->full) + 1, ok;
     file = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (file == INVALID_HANDLE_VALUE) return;
-    WriteFile(file, e->shortf, (DWORD)a, &written, NULL);
-    WriteFile(file, e->full, (DWORD)b, &written, NULL);
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    ok = WriteFile(file, e->shortf, (DWORD)a, &written, NULL) && written == (DWORD)a
+         && WriteFile(file, e->full, (DWORD)b, &written, NULL) && written == (DWORD)b;
     CloseHandle(file);
+    return ok;
+}
+
+static void write_slot_file(int slot) {
+    wchar_t path[1024], temp[1024];
+    const name_entry *e = &slot_names[slot - 1];
+    if (!names_path(slot, path) || wcslen(path) + 5 >= 1024) return;
+    wcscpy_s(temp, 1024, path);
+    wcscat_s(temp, 1024, L".tmp");
+    if (write_names_file(temp, e) && MoveFileExW(temp, path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        return;
+    }
+    DeleteFileW(temp);
+    write_names_file(path, e);
 }
 
 static void names_start(const wchar_t *data_folder) {
@@ -235,6 +252,18 @@ static void names_sync(void) {
     }
 }
 
+/* A name committed to a slot (its box accepted): the slot's file is written at once, so a crash
+   before the next draw or the exit (names_sync, which stays as the fallback) keeps it. */
+static void commit_slot(int slot, const char *shortf, const char *full) {
+    name_entry *e = &slot_names[slot - 1];
+    if (full[0] == '\0') return;
+    if (e->used && s_eq(e->shortf, shortf) && s_eq(e->full, full)) return;
+    s_copy(e->shortf, shortf, SHORT_BYTES);
+    s_copy(e->full, full, NAME_BOX_BYTES + 1);
+    e->used = 1;
+    write_slot_file(slot);
+}
+
 static void remember_typed(const char *shortf, const char *full) {
     int i, j;
     for (i = 0; i < typed_count && !s_eq(typed_names[i].shortf, shortf); ++i) {}
@@ -280,8 +309,17 @@ static void __cdecl get_text(char *wrapper, unsigned int ret, char *dst, int siz
         short_form(full, shortf, size < SHORT_BYTES ? size : SHORT_BYTES);
         for (i = 0; shortf[i] && i < size - 1; ++i) dst[i] = shortf[i];
         for (; i < size; ++i) dst[i] = '\0';
-        if (full[0]) remember_typed(shortf, full);
-        names_sync();
+        if (full[0]) {
+            int slot;
+            remember_typed(shortf, full);
+            /* a player's row: renamed now; the new player's box: the game copies it to row 1 next */
+            for (slot = 1; slot <= SLOTS; ++slot) {
+                if (dst == slot_field(slot)) commit_slot(slot, shortf, full);
+            }
+            if (ret == GAME_NEW_NAME_RETURN) commit_slot(1, shortf, full);
+        }
+        /* not before the game's copy into row 1, which still holds the old name */
+        if (ret != GAME_NEW_NAME_RETURN) names_sync();
         return;
     }
     /* strncpy(dst, text, size); dst[size - 1] = 0 */

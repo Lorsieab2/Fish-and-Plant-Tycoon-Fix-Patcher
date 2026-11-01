@@ -72,10 +72,10 @@ PRESET_TITLES = {key: text for text, key in PRESET_BUTTONS}
 # The owner (2026-11-01): "a new Owner's Default's setting will turn every
 # patch ON, except for the "everything is free" cheat." By exact id, as VV's
 # Owner's Defaults lists the patches it leaves off. Free upgrades and Add
-# Money are therefore ticked by it. The owner (2026-11-01): Owner's Defaults has
-# "Render Unicode with In-Game Fonts" OFF (the owner's copies draw text with the
-# Unicode font instead).
-OWNERS_DEFAULTS_OFF = frozenset({"everything_free", "unicode_ingame_fonts"})
+# Money are therefore ticked by it. The owner (2026-11-01): "For Owner's Defaults,
+# I'd like to have the ingame fonts toggled on." So Render Unicode with In-Game
+# Fonts is on and Use Unicode Font (which excludes it) stays off.
+OWNERS_DEFAULTS_OFF = frozenset({"everything_free", "unicode_system_font"})
 # The owner (2026-11-01): "anything that sets prices to 0 is DEFAULT OFF".
 # Every setting that makes a price $0; tests pin them off by default and out
 # of Default Patches.
@@ -116,7 +116,7 @@ PATCH_HELP = {
         "Owner's Defaults",
         [
             "Ticks the patcher owner's own choice: every patch in both games except Everything is Free "
-            "and Render Unicode with In-Game Fonts (it ticks Use Unicode Font instead).",
+            "and Use Unicode Font (it keeps Render Unicode with In-Game Fonts, which excludes it).",
             "On top of Default Patches that includes Free upgrades (every item on the Upgrades "
             "screen costs $0), Add Money, Buy Multiple Golden Seahorses and the Optimize Prices "
             "button.",

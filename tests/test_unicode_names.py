@@ -6,8 +6,9 @@ screen. The DLL's own code and the game's run in Unicorn against the vanilla exe
 * The name boxes' setLimit(1, 0x20) (the five player rows and the new player's box) gives the
   shared limit; every other box keeps the game's.
 * getText into a player's name writes the short form (31 letters, Latin-1, '?' for any other
-  letter) and the full name goes into the save folder's "Names <slot>.dat" once the player list
-  holds it; setText of that row gives the box the full name again, also after a restart (the file
+  letter) and the full name goes into the save folder's "Names <slot>.dat" at once (a rename, or
+  the new player's box, which the game copies into row 1 next), written to "Names <slot>.dat.tmp"
+  and moved over the old file; setText of that row gives the box the full name again, also after a restart (the file
   is read at start) but not once the stock game has renamed the player.
 * The text draw and measure show a player's short form as the full name, fitted to the width the
   game left for a name; the boxes fit their own text and no longer cut it.
@@ -26,12 +27,12 @@ NAME_LETTERS = 300
 SHORT_BYTES = 32
 
 GAMES = {
-    "fish": dict(limit_call=0x417124, other_limit_call=0x4290E7, other_limit=8, text_call=0x417833,
+    "fish": dict(new_call=0x417D72, new_dst=0x1E3A5, limit_call=0x417124, other_limit_call=0x4290E7, other_limit=8, text_call=0x417833,
                  state_global=0x45ABDC, rows=0x1E3D8, stride=0x2A, set_text=0x40B970, new=0x42A793,
                  free=0x42A6B1, draw=0x4087E0, width=0x4023D0, box_cut=0x40B7ED,
                  sites=((0x40B970, 6), (0x40BC90, 6), (0x40BC30, 8), (0x40B7A3, 5), (0x40B7ED, 2),
                         (0x40B829, 5), (0x4087E0, 7), (0x4023D0, 7))),
-    "plant": dict(limit_call=0x415B6C, other_limit_call=0x4304C9, other_limit=6, text_call=0x416198,
+    "plant": dict(new_call=0x41B018, new_dst=8, limit_call=0x415B6C, other_limit_call=0x4304C9, other_limit=6, text_call=0x416198,
                   state_global=0x49333C, rows=0x53FC2, stride=0x21, set_text=0x40C380, new=0x44E894,
                   free=0x44E7B3, draw=0x408E20, width=0x402380, box_cut=0x40C1FD,
                   sites=((0x40C380, 6), (0x40C740, 6), (0x40C6E0, 8), (0x40C1B3, 5), (0x40C1FD, 2),
@@ -105,7 +106,10 @@ class Game:
 
     def type_name(self, name: str, slot: int = 1) -> bytes:
         """The name in a name box, its getText into player row 1 (the game's own call): the row."""
-        wrapper, _box = self.box(name.encode("latin-1"), limit=NAME_LETTERS)
+        if all(ord(c) < 0x100 for c in name):
+            wrapper, _box = self.box(name.encode("latin-1"), limit=NAME_LETTERS)
+        else:                                       # any script: the box holds it as UTF-8
+            wrapper, _box = self.box(name.encode("utf-8"), limit=4 * NAME_LETTERS)
         dst = self.row(slot)
         self.run_call(self.a["text_call"], wrapper, dst, 0x20)
         return bytes(self.emu.uc.mem_read(dst, 0x20))
@@ -162,6 +166,42 @@ class NamesCase:
                 self.assertEqual(row, short_form(name).ljust(32, b"\0"))
                 path = names_path(self.game, 1)
                 self.assertEqual(g.files["raw"][path], short_form(name) + b"\0" + name.encode("utf-8") + b"\0")
+
+    def test_the_new_players_name_is_written_at_once(self) -> None:
+        """The new player's box accepted: Names 1.dat is written before the game copies the name
+        into row 1 (no draw, no exit needed), even while row 1 still holds an older typed name."""
+        g = Game(self.game)
+        g.type_name("Older Name \u2713 one", slot=1)
+        path = names_path(self.game, 1)
+        name = "\u041d\u043e\u0432\u044b\u0439 \U0001F41F Yeni oyuncu \U0001202D"
+        wrapper, _box = g.box(name.encode("utf-8"), limit=4 * NAME_LETTERS)
+        dst = g.state + GAMES[self.game]["new_dst"]
+        g.files["moves"].clear()
+        g.run_call(GAMES[self.game]["new_call"], wrapper, dst, 0x20)
+        self.assertEqual(bytes(g.emu.uc.mem_read(dst, 0x20)), short_form(name).ljust(32, b"\0"))
+        self.assertEqual(g.files["raw"][path], short_form(name) + b"\0" + name.encode("utf-8") + b"\0")
+        # REPLACE_EXISTING | WRITE_THROUGH, from the temporary file
+        self.assertEqual(g.files["moves"], [(path + ".tmp", path, 0x1 | 0x8)])
+        self.assertNotIn(path + ".tmp", g.files["raw"])
+        # the game copies it into row 1: the row shows the full name
+        g.set_row(1, short_form(name))
+        _wrapper, box = g.box()
+        g.set_text(box, g.row(1))
+        self.assertEqual(g.text(box), name.encode("utf-8"))
+
+    def test_a_rename_is_written_at_once_through_a_temporary_file(self) -> None:
+        g = Game(self.game)
+        name = "\u00c7a\u011fr\u0131 Y\u0131lmaz \u5c71\u7530 \U0001F600 rename"
+        path = names_path(self.game, 3)
+        g.type_name(name, slot=3)
+        self.assertEqual(g.files["raw"][path], short_form(name) + b"\0" + name.encode("utf-8") + b"\0")
+        self.assertIn((path + ".tmp", path, 0x9), g.files["moves"])
+        # a move Windows refuses: the file is written in place, as before, the temporary removed
+        g.emu.hook_import("MoveFileExW", lambda e: 0, 12)
+        other = "Second name, \u00fcn\u00efc\u00f6d\u00e9 \u2728"
+        g.type_name(other, slot=3)
+        self.assertEqual(g.files["raw"][path], short_form(other) + b"\0" + other.encode("utf-8") + b"\0")
+        self.assertNotIn(path + ".tmp", g.files["raw"])
 
     def test_set_text_of_a_row_gives_the_full_name(self) -> None:
         g = Game(self.game)

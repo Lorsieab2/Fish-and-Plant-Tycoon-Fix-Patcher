@@ -13,7 +13,15 @@
       The chain: Segoe UI, then fonts for Japanese, Chinese and Korean (Yu Gothic, Meiryo,
       Microsoft YaHei, Malgun Gothic), the Indic and other scripts, Segoe UI Historic
       (cuneiform and other historic scripts), Segoe UI Emoji and Segoe UI Symbol. GDI draws
-      every glyph in one colour, emoji too.
+      every glyph in one colour.
+      A colour font's letter (a font with a COLR, CBDT, sbix or SVG table: Segoe UI Emoji's
+      emoji) is drawn by Direct2D and DirectWrite instead, as the patcher's Text Maker draws
+      them (src/text_raster.py: a DC render target on the same 32-bit DIB, grayscale
+      anti-aliasing, D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT, a white brush), at the GDI
+      font's em size with its baseline on the GDI font's: when that drawing has colour, the
+      surface keeps the font's colours (never tinted with the text's colour) with the text's
+      alpha. d2d1.dll and dwrite.dll are loaded when first needed; without them (or when a
+      call fails) the letter is drawn in one colour by GDI as before.
    3. A letter no font has is drawn as '?' from the game's font.
 
    In the Use Unicode Font mode (system_font) every letter is rasterised, with the chosen
@@ -88,8 +96,9 @@ typedef void (__cdecl *sdl_free_fn)(void *);
 typedef int (__cdecl *sdl_blit_fn)(void *, void *, void *, void *);
 
 /* Coverage of one letter (`*w` columns of `height` rows, 0-255), its left edge from the pen and
-   its advance; 0 when no font of the chain has it. Separate (and not inlined) so the tests can
-   stand in for Windows' fonts. */
+   its advance: 1; or, for a colour letter, its premultiplied B, G, R, A pixels (4 bytes each,
+   `*w` columns of `height` rows): 2; 0 when no font of the chain has it. Separate (and not
+   inlined) so the tests can stand in for Windows' fonts. */
 __declspec(noinline) static int raster_glyph(unsigned int cp, int height, unsigned char *coverage,
                                              int *w, int *xoff, int *adv);
 
@@ -105,10 +114,10 @@ static void free_glyphs(void) {
 }
 
 static const glyph *get_glyph(unsigned int cp, int height, unsigned int colour) {
-    static unsigned char coverage[GLYPH_MAX_W * GLYPH_MAX_H];
+    static unsigned char coverage[GLYPH_MAX_W * GLYPH_MAX_H * 4];
     unsigned int at = (cp * 2654435761u ^ (unsigned int)height * 40503u ^ colour * 2246822519u) % GLYPH_CACHE;
     glyph *g;
-    int w = 0, xoff = 0, adv = 0, x, y, pitch;
+    int w = 0, xoff = 0, adv = 0, x, y, pitch, kind;
     unsigned int alpha = colour >> 24, rgb;
     unsigned char *pixels;
     if (height < 1) height = 1;
@@ -129,7 +138,8 @@ static const glyph *get_glyph(unsigned int cp, int height, unsigned int colour) 
     g->used = 1;
     g->surface = NULL;
     ++glyph_count;
-    if (!raster_glyph(cp, height, coverage, &w, &xoff, &adv)) {
+    kind = raster_glyph(cp, height, coverage, &w, &xoff, &adv);
+    if (!kind) {
         g->adv = -1;                         /* no font has it: kept, so it is looked for once */
         g->w = 0;
         return NULL;
@@ -143,6 +153,26 @@ static const glyph *get_glyph(unsigned int cp, int height, unsigned int colour) 
     if (g->surface == NULL) return g;
     pitch = *(const unsigned short *)((char *)g->surface + 0x10);
     pixels = *(unsigned char **)((char *)g->surface + 0x14);
+    if (kind == 2) {
+        /* a colour letter: the font's own colours (premultiplied in, straight out), the text's alpha */
+        for (y = 0; y < height; ++y) {
+            unsigned int *row = (unsigned int *)(pixels + y * pitch);
+            for (x = 0; x < w; ++x) {
+                const unsigned char *px = coverage + (y * w + x) * 4;
+                unsigned int a = px[3], c[3], k;
+                if (a == 0) {
+                    row[x] = 0;
+                    continue;
+                }
+                for (k = 0; k < 3; ++k) {
+                    c[k] = (px[k] * 255u + a / 2) / a;
+                    if (c[k] > 255) c[k] = 255;
+                }
+                row[x] = ((a * alpha / 255) << 24) | (c[2] << 16) | (c[1] << 8) | c[0];
+            }
+        }
+        return g;
+    }
     rgb = ((colour & 0xFF) << 16) | (colour & 0xFF00) | ((colour >> 16) & 0xFF);
     for (y = 0; y < height; ++y) {
         unsigned int *row = (unsigned int *)(pixels + y * pitch);
@@ -301,6 +331,8 @@ typedef HRESULT (WINAPI *shape_fn)(HDC, SCRIPT_CACHE *, const WCHAR *, int, int,
 typedef HRESULT (WINAPI *place_fn)(HDC, SCRIPT_CACHE *, const WORD *, int, const SCRIPT_VISATTR *, SCRIPT_ANALYSIS *,
                                    int *, GOFFSET *, ABC *);
 typedef HRESULT (WINAPI *props_fn)(HDC, SCRIPT_CACHE *, SCRIPT_FONTPROPERTIES *);
+typedef DWORD (WINAPI *font_data_fn)(HDC, DWORD, DWORD, void *, DWORD);
+typedef BOOL (WINAPI *metrics_fn)(HDC, TEXTMETRICW *);
 
 static struct {
     int tried, ready;
@@ -317,6 +349,8 @@ static struct {
     shape_fn shape;
     place_fn place;
     props_fn props;
+    font_data_fn font_data;
+    metrics_fn metrics;
     HDC dc;
     unsigned char *bits;
 } gdi;
@@ -336,6 +370,7 @@ typedef struct face {
     HFONT font;
     SCRIPT_CACHE cache;
     WORD missing;
+    int colour;                      /* a colour font: COLR, CBDT, sbix or SVG */
 } face;
 
 static face faces[64];
@@ -364,6 +399,8 @@ static int gdi_start(void) {
     gdi.shape = (shape_fn)(UINT_PTR)GetProcAddress(u, "ScriptShape");
     gdi.place = (place_fn)(UINT_PTR)GetProcAddress(u, "ScriptPlace");
     gdi.props = (props_fn)(UINT_PTR)GetProcAddress(u, "ScriptGetFontProperties");
+    gdi.font_data = (font_data_fn)(UINT_PTR)GetProcAddress(g, "GetFontData");
+    gdi.metrics = (metrics_fn)(UINT_PTR)GetProcAddress(g, "GetTextMetricsW");
     if (!gdi.create_dc || !gdi.create_dib || !gdi.select || !gdi.create_font || !gdi.text_colour || !gdi.bk_mode
         || !gdi.ext_text || !gdi.flush || !gdi.align || !gdi.itemize || !gdi.shape || !gdi.place || !gdi.props) {
         return 0;
@@ -412,14 +449,196 @@ static face *get_face(int chain, int height) {
     props.cBytes = sizeof props;
     if (gdi.props(gdi.dc, &f->cache, &props) != S_OK) return NULL;
     f->missing = props.wgDefault;
+    if (gdi.font_data != NULL) {
+        static const DWORD COLOUR_TABLES[4] = {0x524C4F43u, 0x54444243u, 0x78696273u, 0x20475653u};
+        for (i = 0; i < 4 && !f->colour; ++i) {
+            f->colour = gdi.font_data(gdi.dc, COLOUR_TABLES[i], 0, NULL, 0) != GDI_ERROR;
+        }
+    }
     ++face_count;
     return f;
+}
+
+/* ---- colour letters: Direct2D and DirectWrite (as src/text_raster.py, the Text Maker's) */
+
+typedef struct dx_guid {
+    unsigned long a;
+    unsigned short b, c;
+    unsigned char d[8];
+} dx_guid;
+
+static const dx_guid IID_D2D_FACTORY = {0x06152247u, 0x6f50, 0x465a, {0x92, 0x45, 0x11, 0x8b, 0xfd, 0x3b, 0x60, 0x07}};
+static const dx_guid IID_DWRITE_FACTORY = {0xb859ee5au, 0xd838, 0x4b5b, {0xa2, 0xe8, 0x1a, 0xdc, 0x7d, 0x93, 0xdb, 0x48}};
+
+typedef struct dx_colour { float r, g, b, a; } dx_colour;
+typedef struct dx_point { float x, y; } dx_point;
+typedef struct dx_target_props {
+    unsigned int type, format, alpha_mode;
+    float dpi_x, dpi_y;
+    unsigned int usage, min_level;
+} dx_target_props;
+typedef struct dx_line {
+    unsigned int length, trailing, newline;
+    float height, baseline;
+    BOOL trimmed;
+} dx_line;
+
+/* vtable slots (d2d1.h, dwrite.h) */
+#define DX_RELEASE 2
+#define DX_F_CREATE_DC_TARGET 16          /* ID2D1Factory::CreateDCRenderTarget */
+#define DX_RT_CREATE_BRUSH 8              /* ID2D1RenderTarget::CreateSolidColorBrush */
+#define DX_RT_DRAW_LAYOUT 28              /* ::DrawTextLayout */
+#define DX_RT_TEXT_AA 34                  /* ::SetTextAntialiasMode */
+#define DX_RT_CLEAR 47
+#define DX_RT_BEGIN 48
+#define DX_RT_END 49
+#define DX_DCRT_BIND 57                   /* ID2D1DCRenderTarget::BindDC */
+#define DX_DW_CREATE_FORMAT 15            /* IDWriteFactory::CreateTextFormat */
+#define DX_DW_CREATE_LAYOUT 18            /* ::CreateTextLayout */
+#define DX_TL_LINE_METRICS 59             /* IDWriteTextLayout::GetLineMetrics */
+#define DX_FORMAT_B8G8R8A8 87
+#define DX_ALPHA_PREMULTIPLIED 1
+#define DX_TEXT_AA_GRAYSCALE 2
+#define DX_ENABLE_COLOR_FONT 4
+
+#define DX_SLOT(obj, slot) ((*(void ***)(obj))[slot])
+
+typedef HRESULT (WINAPI *d2d_create_fn)(unsigned int, const dx_guid *, const void *, void **);
+typedef HRESULT (WINAPI *dw_create_fn)(unsigned int, const dx_guid *, void **);
+typedef ULONG (WINAPI *dx_release_fn)(void *);
+typedef HRESULT (WINAPI *dx_create_target_fn)(void *, const dx_target_props *, void **);
+typedef HRESULT (WINAPI *dx_create_brush_fn)(void *, const dx_colour *, const void *, void **);
+typedef void (WINAPI *dx_text_aa_fn)(void *, unsigned int);
+typedef HRESULT (WINAPI *dx_bind_fn)(void *, HDC, const RECT *);
+typedef void (WINAPI *dx_begin_fn)(void *);
+typedef void (WINAPI *dx_clear_fn)(void *, const dx_colour *);
+typedef void (WINAPI *dx_draw_layout_fn)(void *, dx_point, void *, void *, unsigned int);
+typedef HRESULT (WINAPI *dx_end_fn)(void *, unsigned __int64 *, unsigned __int64 *);
+typedef HRESULT (WINAPI *dx_create_format_fn)(void *, const wchar_t *, void *, unsigned int, unsigned int,
+                                              unsigned int, float, const wchar_t *, void **);
+typedef HRESULT (WINAPI *dx_create_layout_fn)(void *, const wchar_t *, unsigned int, void *, float, float, void **);
+typedef HRESULT (WINAPI *dx_line_metrics_fn)(void *, dx_line *, unsigned int, unsigned int *);
+
+static struct {
+    int tried, ready;
+    void *dwrite, *target, *brush;
+} dx;
+
+static void dx_release(void *obj) {
+    if (obj != NULL) ((dx_release_fn)DX_SLOT(obj, DX_RELEASE))(obj);
+}
+
+/* Direct2D and DirectWrite, loaded once: 0 when this Windows has not got them (the letter is then
+   drawn in one colour by GDI). */
+static int dx_start(void) {
+    HMODULE d2d1, dwrite;
+    d2d_create_fn d2d_create;
+    dw_create_fn dw_create;
+    void *factory = NULL;
+    dx_target_props props;
+    dx_colour white = {1.0f, 1.0f, 1.0f, 1.0f};
+    if (dx.tried) return dx.ready;
+    dx.tried = 1;
+    d2d1 = LoadLibraryW(L"d2d1.dll");
+    dwrite = LoadLibraryW(L"dwrite.dll");
+    if (d2d1 == NULL || dwrite == NULL) return 0;
+    d2d_create = (d2d_create_fn)(UINT_PTR)GetProcAddress(d2d1, "D2D1CreateFactory");
+    dw_create = (dw_create_fn)(UINT_PTR)GetProcAddress(dwrite, "DWriteCreateFactory");
+    if (d2d_create == NULL || dw_create == NULL) return 0;
+    if (d2d_create(0, &IID_D2D_FACTORY, NULL, &factory) < 0 || factory == NULL) return 0;
+    if (dw_create(0, &IID_DWRITE_FACTORY, &dx.dwrite) < 0 || dx.dwrite == NULL) {
+        dx_release(factory);
+        return 0;
+    }
+    memset(&props, 0, sizeof props);
+    props.format = DX_FORMAT_B8G8R8A8;
+    props.alpha_mode = DX_ALPHA_PREMULTIPLIED;
+    props.dpi_x = props.dpi_y = 96.0f;
+    if (((dx_create_target_fn)DX_SLOT(factory, DX_F_CREATE_DC_TARGET))(factory, &props, &dx.target) < 0
+        || dx.target == NULL) {
+        dx_release(factory);
+        return 0;
+    }
+    dx_release(factory);                 /* the target keeps it */
+    ((dx_text_aa_fn)DX_SLOT(dx.target, DX_RT_TEXT_AA))(dx.target, DX_TEXT_AA_GRAYSCALE);
+    if (((dx_create_brush_fn)DX_SLOT(dx.target, DX_RT_CREATE_BRUSH))(dx.target, &white, NULL, &dx.brush) < 0
+        || dx.brush == NULL) {
+        return 0;
+    }
+    dx.ready = 1;
+    return 1;
+}
+
+/* The letter (`units`, `n` UTF-16 units) of chain font `chain` drawn by Direct2D with colour fonts
+   on, at the em size of the GDI font selected in gdi.dc (`height` its cell), its baseline on that
+   font's and its pen at `pad` in the DIB, as the Text Maker draws it. 1 with its premultiplied
+   B, G, R, A pixels (`*w` columns from `*xoff` past the pen, `height` rows) when the drawing has
+   colour; 0 when it has none (one-colour glyph: GDI draws it) or Direct2D is not there. */
+static int raster_colour(const WCHAR *units, int n, int chain, int height, int pad, unsigned char *bgra,
+                         int *w, int *xoff) {
+    TEXTMETRICW tm;
+    void *format = NULL, *layout = NULL;
+    dx_line lines[2];
+    unsigned int count = 0;
+    dx_colour clear = {0.0f, 0.0f, 0.0f, 0.0f};
+    dx_point origin;
+    RECT rect;
+    int x, y, left = -1, right = -1, coloured = 0, ok = 0;
+    if (gdi.metrics == NULL || !gdi.metrics(gdi.dc, &tm) || !dx_start()) return 0;
+    if (((dx_create_format_fn)DX_SLOT(dx.dwrite, DX_DW_CREATE_FORMAT))(
+            dx.dwrite, chain_name(chain), NULL, 400, 0, 5, (float)(tm.tmHeight - tm.tmInternalLeading), L"en-us",
+            &format) < 0 || format == NULL) {
+        return 0;
+    }
+    if (((dx_create_layout_fn)DX_SLOT(dx.dwrite, DX_DW_CREATE_LAYOUT))(
+            dx.dwrite, units, (unsigned int)n, format, 100000.0f, 100000.0f, &layout) >= 0 && layout != NULL
+        && ((dx_line_metrics_fn)DX_SLOT(layout, DX_TL_LINE_METRICS))(layout, lines, 2, &count) >= 0 && count >= 1) {
+        rect.left = 0;
+        rect.top = 0;
+        rect.right = DIB_W;
+        rect.bottom = height;
+        origin.x = (float)pad;
+        origin.y = (float)tm.tmAscent - lines[0].baseline;
+        if (((dx_bind_fn)DX_SLOT(dx.target, DX_DCRT_BIND))(dx.target, gdi.dc, &rect) >= 0) {
+            ((dx_begin_fn)DX_SLOT(dx.target, DX_RT_BEGIN))(dx.target);
+            ((dx_clear_fn)DX_SLOT(dx.target, DX_RT_CLEAR))(dx.target, &clear);
+            ((dx_draw_layout_fn)DX_SLOT(dx.target, DX_RT_DRAW_LAYOUT))(dx.target, origin, layout, dx.brush,
+                                                                      DX_ENABLE_COLOR_FONT);
+            ok = ((dx_end_fn)DX_SLOT(dx.target, DX_RT_END))(dx.target, NULL, NULL) >= 0;
+            gdi.flush();
+        }
+    }
+    dx_release(layout);
+    dx_release(format);
+    if (!ok) return 0;
+    for (x = 0; x < DIB_W; ++x) {
+        for (y = 0; y < height; ++y) {
+            const unsigned char *px = gdi.bits + (y * DIB_W + x) * 4;
+            if (px[3] == 0) continue;
+            if (left < 0) left = x;
+            right = x;
+            /* white ink has B = G = R = A; any other colour is the font's */
+            if (px[3] >= 16 && (px[0] + 16 < px[3] || px[1] + 16 < px[3] || px[2] + 16 < px[3])) coloured = 1;
+        }
+    }
+    if (!coloured || left < 0) return 0;
+    *w = right - left + 1;
+    *xoff = left - pad;
+    for (y = 0; y < height; ++y) {
+        memcpy(bgra + (y * *w) * 4, gdi.bits + (y * DIB_W + left) * 4, (size_t)*w * 4);
+    }
+    return 1;
 }
 
 __declspec(noinline) static int raster_glyph(unsigned int cp, int height, unsigned char *coverage,
                                              int *w, int *xoff, int *adv) {
     WCHAR units[2];
     int n = 1, c, first = system_font ? -1 : 0;
+    /* variation selectors (an emoji's U+FE0F) and the zero-width joiner: nothing drawn, no width */
+    if ((cp >= 0xFE00 && cp <= 0xFE0F) || cp == 0x200D || (cp >= 0xE0100 && cp <= 0xE01EF)) {
+        *w = *xoff = *adv = 0;
+        return 1;
+    }
     if (!gdi_start()) return 0;
     if (cp >= 0x10000) {
         units[0] = (WCHAR)(0xD800 + ((cp - 0x10000) >> 10));
@@ -450,6 +669,7 @@ __declspec(noinline) static int raster_glyph(unsigned int cp, int height, unsign
         if (*adv < 0) *adv = 0;
         if (pad * 2 + *adv > DIB_W) pad = (DIB_W - *adv) / 2;
         if (pad < 0) return 0;
+        if (f->colour && raster_colour(units, n, c, height, pad, coverage, w, xoff)) return 2;
         for (y = 0; y < height; ++y) memset(gdi.bits + y * DIB_W * 4, 0, DIB_W * 4);
         gdi.ext_text(gdi.dc, pad, 0, ETO_GLYPH_INDEX, NULL, (LPCWSTR)ids, (UINT)ids_n, advances);
         gdi.flush();

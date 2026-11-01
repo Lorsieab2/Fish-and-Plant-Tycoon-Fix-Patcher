@@ -55,6 +55,7 @@
 /* getText(name, 0x20) into a player's name: the rows, the new player's name (each call + 5) */
 #define GAME_NAME_TEXT_RETURNS 0x004176F2u, 0x00417838u, 0x00417883u, 0x004178CEu, 0x0041791Cu, \
     0x00417969u, 0x00417D77u
+#define GAME_NEW_NAME_RETURN 0x00417D77u  /* getText of the new player's box (the game copies it to row 1) */
 #define GAME_DEFAULT_FONT 0x34             /* the graphics' default font */
 #define GAME_SET_TEXT_RESUME 0x0040B976u
 #define GAME_SET_LIMIT_TARGET 0x0040B8B0u

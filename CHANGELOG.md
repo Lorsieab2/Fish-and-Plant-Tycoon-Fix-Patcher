@@ -2,16 +2,40 @@
 
 ## v1.0.24
 
+- **Colour emoji in the games** (Render Unicode with In-Game Fonts and Use
+  Unicode Font, both games). A letter from a colour font (Segoe UI Emoji's
+  emoji; any font with a COLR, CBDT, sbix or SVG table) is drawn by Direct2D
+  and DirectWrite as the Text Maker draws it (a DC render target on the same
+  DIB, grayscale anti-aliasing, colour fonts on), at the GDI font's em size on
+  its baseline: it keeps the font's own colours (never tinted with the text's
+  colour) and takes the text's alpha. d2d1.dll and dwrite.dll are loaded when
+  first needed, so the DLL still loads on old Windows; without them, or when a
+  call fails, the letter is drawn in one colour by GDI as before. Tests:
+  tests/test_unicode_colour.py (Unicorn: the colour letter's surface, colours
+  kept, alpha, the pen and the measure, both modes; natively, the DLL's own
+  raster_glyph from a 32-bit helper: emoji in colour, the same pixels as the
+  Text Maker's drawing, one-colour letters unchanged, the one-colour fallback).
+- **Full names survive a crash** (both games). "Names <slot>.dat" is written as
+  soon as a name is committed: the new player's box accepted (the game then
+  copies it into row 1) or a player renamed, no longer only at the next draws
+  or at exit (those stay as the fallback). It is written to "Names
+  <slot>.dat.tmp" and moved over the old file, so a crash leaves the old file
+  or the new one whole; if Windows refuses the move it is written in place as
+  before. Tests: tests/test_unicode_names.py.
+- **Owner's Defaults keeps Render Unicode with In-Game Fonts on** (the owner:
+  "For Owner's Defaults, I'd like to have the ingame fonts toggled on."). Use
+  Unicode Font stays off in it, as in Select All and Default Patches. Tests:
+  tests/test_patch_presets.py, tests/test_every_patch.py.
+
 - **Use Unicode Font (overrides in-game fonts)** (new setting, both games; off
-  by default, "Modded Upgrades" copy; Owner's Defaults turns it on instead of
-  Render Unicode with In-Game Fonts). All of the game's text, ASCII too, is
-  drawn with one Windows font chosen beside the setting in the patcher (a list
+  by default and in Owner's Defaults, "Modded Upgrades" copy). All of the
+  game's text, ASCII too, is drawn with one Windows font chosen beside the setting in the patcher (a list
   of the installed fonts, Segoe UI by default), then the fonts for other
   scripts for a letter it lacks, at the game fonts' line heights and in the
   game's colours; typing, long names and any script as with Render Unicode
   with In-Game Fonts. The two settings exclude each other (conflicts_settings,
-  both ways): Select All and Default Patches tick Render Unicode with In-Game
-  Fonts. It ships the same Unicode Text.dll (without the font pictures); the
+  both ways): Select All, Default Patches and Owner's Defaults tick Render
+  Unicode with In-Game Fonts. It ships the same Unicode Text.dll (without the font pictures); the
   patcher writes `Unicode Text.ini` beside it (Mode=system, Font=...; Mode=
   ingame for the other setting), so the DLL leaves the game's fonts alone and
   draws every letter at run time. `--unicode-font` sets the font from the
@@ -35,7 +59,7 @@
   (ImmGetCompositionStringW), surrogate pairs as one letter; Plant Tycoon every
   letter of SDL 2's text input. The text box keeps UTF-8: a letter goes in
   whole or not at all, Backspace takes off a whole letter, a name box stops at
-  300 letters. Emoji are drawn in one colour (GDI has no colour fonts). Tests:
+  300 letters. Colour emoji: see the entry above. Tests:
   tests/test_unicode_glyphs.py, tests/test_unicode_text.py,
   tests/test_unicode_names.py.
 - **Long names** (Render Unicode with In-Game Fonts, stage 2). Every name box
@@ -65,7 +89,7 @@
   It is now the game's yellow, as its captions. Tests:
   tests/test_tank_greenhouse_counts.py.
 - **Render Unicode with In-Game Fonts** (new setting, both games; on by default,
-  "Modded Upgrades" copy; Owner's Defaults leaves it off). Stage 1: Latin-1.
+  "Modded Upgrades" copy; on in Owner's Defaults too). Stage 1: Latin-1.
   Typing in the game takes every Latin-1 letter (U+00A0-U+00FF, AltGr too):
   Fish Tycoon's key path kept only ASCII (keysym.unicode < 0x80, then 0x20-0x7E
   at 0x403ED4) and Plant Tycoon's SDL_TEXTINPUT took only one-byte text

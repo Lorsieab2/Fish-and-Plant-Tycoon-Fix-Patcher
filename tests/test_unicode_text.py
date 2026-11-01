@@ -105,7 +105,7 @@ def hook_windows(emu, game: str, present: set[str] | None = None, existing: dict
     (`existing`: {path: bytes}) and the files it writes ({path: text}, "raw": {path: bytes}; "log" and
     "text" are its log's)."""
     files: dict = {"log": None, "written": {}, "raw": {}, "folders": [], "existing": dict(existing or {}),
-                   "reading": {}}
+                   "reading": {}, "moves": []}
     handles: dict = {}
     special = emu.thunk()
 
@@ -167,6 +167,21 @@ def hook_windows(emu, game: str, present: set[str] | None = None, existing: dict
         files["folders"].append(e.wstring(e.arg(0)))
         return 1
 
+    def move(e) -> int:                                            # MoveFileExW(from, to, flags)
+        source, dest = e.wstring(e.arg(0)), e.wstring(e.arg(1))
+        files["moves"].append((source, dest, e.arg(2)))
+        if source not in files["raw"]:
+            return 0
+        files["raw"][dest] = files["raw"].pop(source)
+        files["written"][dest] = files["written"].pop(source, files["raw"][dest].decode("latin-1"))
+        return 1
+
+    def delete(e) -> int:
+        path = e.wstring(e.arg(0))
+        files["raw"].pop(path, None)
+        files["written"].pop(path, None)
+        return 1
+
     emu.hook_import("GetModuleFileNameW", module_name, 12)
     emu.hook_import("GetFileAttributesW", attributes, 4)
     emu.hook_import("VirtualProtect", protect, 16)
@@ -179,6 +194,8 @@ def hook_windows(emu, game: str, present: set[str] | None = None, existing: dict
     emu.hook_import("LoadLibraryW", lambda e: 0x7000_0000, 4)
     emu.hook_import("GetProcAddress", lambda e: special if e.cstring(e.arg(1)) == b"SHGetSpecialFolderPathW" else 0, 8)
     emu.hook_import("CreateDirectoryW", make_folder, 8)
+    emu.hook_import("MoveFileExW", move, 12)
+    emu.hook_import("DeleteFileW", delete, 4)
     return files
 
 

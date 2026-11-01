@@ -1633,8 +1633,8 @@ TEXT_ENTRY = (
         patched=(("unicode_ingame_fonts", "every Latin-1 letter and the Windows-1252 letters € ' ' \" \" "
                   "– — … ™ Œ Š Ž Ÿ ..., made in each font's own style, and real letters for Paddington's "
                   "boxes; any other letter is drawn from Windows' fonts (Segoe UI and the fonts for "
-                  "other scripts, emoji in one colour) at the font's size and in the text's colour."),
-                 ("unicode_system_font", "every letter, ASCII too, is drawn with the Windows font chosen in the patcher (Segoe UI unless another), then the fonts for other scripts, at the game fonts' line heights and in the game's colours."),)
+                  "other scripts) at the font's size and in the text's colour; colour emoji keep their own colours."),
+                 ("unicode_system_font", "every letter, ASCII too, is drawn with the Windows font chosen in the patcher (Segoe UI unless another), then the fonts for other scripts, at the game fonts' line heights and in the game's colours (colour emoji in their own)."),)
     ),
 )
 
