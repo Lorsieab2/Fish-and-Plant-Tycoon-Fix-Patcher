@@ -175,7 +175,7 @@ __declspec(noinline) static void auto_set_tips(int shown) {
         if (auto_tip[i] == NULL) continue;
         auto_tip_set(i);
         tooltip_text(auto_tip[i], 0, auto_tip_text[i], TOOLTIP_COLOUR, 0, 0);
-        AT(auto_tip[i], 8, unsigned char) = (unsigned char)shown;
+        tip_place(auto_tip[i], &AUTO_ITEM[i].rect, shown);
     }
 }
 

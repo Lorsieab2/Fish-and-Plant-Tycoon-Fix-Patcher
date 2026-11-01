@@ -13,6 +13,9 @@
   holding a chemical, shows its tooltip -- never one from the other page or
   the game's own tray tooltips, and the tools have none. Tests:
   tests/test_chem_slots.py (every mouse point of the Tools box on both pages).
+  The store's Upgrades view had the same fault (the stock items' tooltips came
+  up under its items): fixed the same way in Store Upgrades and Items; tests:
+  tests/test_store_tooltips.py.
 
 ## v1.0.21
 

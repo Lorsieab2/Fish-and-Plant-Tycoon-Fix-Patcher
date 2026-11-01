@@ -840,6 +840,39 @@ static const RECT PLATE = { 462, 540, 574, 600 };     /* the bottom bar's "Suppl
 
 static int inside(const RECT *r, int x, int y) { return x >= r->left && x <= r->right && y >= r->top && y <= r->bottom; }
 
+/* A tooltip control (0x409870) is a 0x10-byte shell around its body (+0xC).  The body takes every
+   mouse move itself (0x409D70): over its rect (+0x10 left, +0x14 top, +0x18 right, +0x1C bottom,
+   inclusive) it is hovered (+0x3A), anywhere else not, and the screen draws every hovered body that
+   has text (0x40B540 -> 0x409E10 -> 0x409B70).  Nothing reads the shell's +8, so a tooltip is hidden
+   by emptying its rect (no point is ever in it) and clearing its hover; shown, it gets its rect back. */
+#define TIP_BODY 0x0C
+#define BODY_RECT 0x10
+#define BODY_HOVER 0x3A
+#define TIP_NOWHERE 0x7FFF
+
+static RECT body_rect(const char *tip) {
+    const char *body = AT(tip, TIP_BODY, const char *);
+    RECT r;
+    r.left = AT(body, BODY_RECT + 0, int);
+    r.top = AT(body, BODY_RECT + 4, int);
+    r.right = AT(body, BODY_RECT + 8, int);
+    r.bottom = AT(body, BODY_RECT + 12, int);
+    return r;
+}
+
+__declspec(noinline) static void tip_place(char *tip, const RECT *r, int shown) {
+    char *body;
+    if (tip == NULL) return;
+    AT(tip, 8, unsigned char) = (unsigned char)shown;
+    body = AT(tip, TIP_BODY, char *);
+    if (body == NULL) return;
+    AT(body, BODY_RECT + 0, int) = shown ? r->left : TIP_NOWHERE;
+    AT(body, BODY_RECT + 4, int) = shown ? r->top : TIP_NOWHERE;
+    AT(body, BODY_RECT + 8, int) = shown ? r->right : -TIP_NOWHERE;
+    AT(body, BODY_RECT + 12, int) = shown ? r->bottom : -TIP_NOWHERE;
+    if (!shown) AT(body, BODY_HOVER, unsigned char) = 0;
+}
+
 static RECT seed_rect(int i) { RECT r = { 598 + 60 * i, 290, 648 + 60 * i, 355 }; return r; }
 static const RECT FORMULA_RECT = { 610, 63, 655, 115 };
 /* The chemical shelf's next two places, 57 px apart as the store's shelves are. */
@@ -1117,25 +1150,53 @@ static void buy_box(char *scene) {
     if (tips[TIP_BOXES] != NULL) tooltip_text(tips[TIP_BOXES], 0, box_tip_text(), TOOLTIP_COLOUR, 0, 0);
 }
 
-static void set_tooltips(char *scene) {
-    int slot, i;
-    for (slot = 6; slot <= 53; ++slot) {                  /* the stock items' tooltips */
+/* The stock items' tooltips (scene slots 6-53, made and retexted by the store's 0x446D40, which keeps
+   their rect): hidden on the Upgrades view, their own rect kept here to give back on the stock view.
+   Run on every switch and every frame of the Upgrades view, so one the store makes or remakes while
+   it is up is hidden before the screen draws its tooltips. */
+#define STOCK_TIP_FIRST 6
+#define STOCK_TIP_LAST 53
+static char *stock_tip[STOCK_TIP_LAST + 1];
+static RECT stock_tip_rect[STOCK_TIP_LAST + 1];
+
+__declspec(noinline) static void place_stock_tips(char *scene, int shown) {
+    int slot;
+    for (slot = STOCK_TIP_FIRST; slot <= STOCK_TIP_LAST; ++slot) {
         char *tip = SCENE_TOOLTIP(scene, slot);
-        if (tip != NULL) AT(tip, 8, unsigned char) = (unsigned char)!upgrades_view;
+        RECT now;
+        if (tip == NULL || AT(tip, TIP_BODY, char *) == NULL) continue;
+        now = body_rect(tip);
+        if (now.left <= now.right && now.top <= now.bottom) {        /* its own rect: keep it */
+            stock_tip[slot] = tip;
+            stock_tip_rect[slot] = now;
+        }
+        if (stock_tip[slot] != tip) continue;                          /* never seen with a rect */
+        tip_place(tip, &stock_tip_rect[slot], shown);
     }
+}
+
+static RECT tip_rect(int i) {
+    return i < LEGENDARY_COUNT ? seed_rect(i) : i == TIP_FORMULA ? FORMULA_RECT : i == TIP_REVIVAL ? REVIVAL_RECT
+           : i == TIP_REVITA ? REVITA_RECT : i == TIP_BOMB ? BOMB_RECT : BOX_RECT;
+}
+
+static void set_tooltips(char *scene) {
+    int i;
+    place_stock_tips(scene, !upgrades_view);
     for (i = 0; i < TIPS; ++i) {
         int shown = i < LEGENDARY_COUNT ? (legendary[i].present & 0xFF) : i < TIP_BOXES ? 1 : box_count() > 0;
+        RECT r = tip_rect(i);
         if (tips[i] == NULL) continue;
         if (i == TIP_BOXES && box_count() > 0) tooltip_text(tips[i], 0, box_tip_text(), TOOLTIP_COLOUR, 0, 0);
-        AT(tips[i], 8, unsigned char) = (unsigned char)(upgrades_view && shown);
+        tip_place(tips[i], &r, upgrades_view && shown);
     }
-    if (warp_tip != NULL) AT(warp_tip, 8, unsigned char) = (unsigned char)upgrades_view;
-    if (money_tip != NULL) AT(money_tip, 8, unsigned char) = (unsigned char)upgrades_view;
+    tip_place(warp_tip, &WARP_RECT, upgrades_view);
+    tip_place(money_tip, &MONEY_RECT, upgrades_view);
     for (i = 0; i < EXTRA_ITEMS; ++i) {
         if (extra_tip[i] == NULL) continue;
         extra_tip_set(i);
         tooltip_text(extra_tip[i], 0, extra_tip_text[i], TOOLTIP_COLOUR, 0, 0);
-        AT(extra_tip[i], 8, unsigned char) = (unsigned char)upgrades_view;
+        tip_place(extra_tip[i], &EXTRA_ITEM[i].rect, upgrades_view);
     }
     auto_set_tips(upgrades_view);
     chem_set_tip(upgrades_view);
@@ -1154,8 +1215,7 @@ static void make_tooltips(char *scene) {
     int i;
     if (tips[0] != NULL) return;
     for (i = 0; i < TIPS; ++i) {
-        RECT r = i < LEGENDARY_COUNT ? seed_rect(i) : i == TIP_FORMULA ? FORMULA_RECT : i == TIP_REVIVAL ? REVIVAL_RECT
-                 : i == TIP_REVITA ? REVITA_RECT : i == TIP_BOMB ? BOMB_RECT : BOX_RECT;
+        RECT r = tip_rect(i);
         char *tip = (char *)game_new(0x10);
         if (tip == NULL) return;
         if (i < LEGENDARY_COUNT) sprintf_s(tip_text[i], sizeof tip_text[i], "%sPrice: $ %i", LEGENDARY_TITLE, price(LEGENDARY_PRICE));
@@ -1208,6 +1268,7 @@ static int __cdecl on_draw(char *scene) {
         draw_sprite(mgr, 0, LINK_SPRITE, link_hover ? 1 : 0, LINK_X, LINK_Y, 1.0f, 100, 1);
         return 0;
     }
+    place_stock_tips(scene, 0);
     for (i = 0; i < LEGENDARY_COUNT; ++i) {
         int x = 602 + 57 * i;
         if (!(legendary[i].present & 0xFF)) continue;
