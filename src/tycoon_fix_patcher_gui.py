@@ -116,7 +116,7 @@ PATCH_HELP = {
         "Owner's Defaults",
         [
             "Ticks the patcher owner's own choice: every patch in both games except Everything is Free "
-            "and Render Unicode with In-Game Fonts.",
+            "and Render Unicode with In-Game Fonts (it ticks Use Unicode Font instead).",
             "On top of Default Patches that includes Free upgrades (every item on the Upgrades "
             "screen costs $0), Add Money, Buy Multiple Golden Seahorses and the Optimize Prices "
             "button.",
@@ -150,6 +150,25 @@ def with_requirements(game_id: str, ids) -> set[str]:
                 chosen.add(needed)
                 pending.append(needed)
     return chosen
+
+
+UNICODE_FONT_SETTING = "unicode_system_font"
+DEFAULT_UNICODE_FONT = "Segoe UI"
+
+
+def unicode_font_families(master) -> list[str]:
+    """The installed font families (not the vertical "@" ones), Segoe UI first."""
+    try:
+        from tkinter import font as tkfont
+        names = sorted({f for f in tkfont.families(master) if f and not f.startswith("@")}, key=str.casefold)
+    except tk.TclError:
+        names = []
+    return [DEFAULT_UNICODE_FONT] + [f for f in names if f != DEFAULT_UNICODE_FONT]
+
+
+def chosen_unicode_font(app) -> str:
+    variable = vars(app).get("unicode_font")      # not getattr: a Tk without it recurses
+    return (variable.get().strip() if variable is not None else "") or DEFAULT_UNICODE_FONT
 
 
 def conflicts(game_id: str) -> dict[str, set[str]]:
@@ -227,6 +246,8 @@ class App(tk.Tk):
         self.busy = False
         self.game_choice = tk.StringVar(master=self, value="fish")
         self.output_parent = tk.StringVar(master=self)
+        # Use Unicode Font's font, one for both games (written into "Unicode Text.ini")
+        self.unicode_font = tk.StringVar(master=self, value=DEFAULT_UNICODE_FONT)
         self.path_vars = {
             game_id: {
                 "vanilla": tk.StringVar(master=self),
@@ -807,6 +828,8 @@ class App(tk.Tk):
                     wraplength=780 if compact else 820,
                     justify="left",
                 ).pack(anchor="w", padx=(24, 0))
+            if setting_id == UNICODE_FONT_SETTING:
+                self._unicode_font_row(entry)
             # A warning is shown in both tabs, including the compact Both
             # Games panels, which leave out descriptions.
             warning = str(setting.get("warning", "")).strip()
@@ -1138,6 +1161,7 @@ class App(tk.Tk):
                 "vanilla_dir": vanilla,
                 "output_dir": output,
                 "enabled": self._selected_settings(game_id),
+                "unicode_font": chosen_unicode_font(self),
             }
         return configs
 
@@ -1300,6 +1324,8 @@ class App(tk.Tk):
         if selected in GAMES:
             self.game_choice.set(selected)
         self.output_parent.set(str(data.get("output_parent", "")))
+        if "unicode_font" in vars(self):
+            self.unicode_font.set(str(data.get("unicode_font", "")).strip() or DEFAULT_UNICODE_FONT)
         breeding = data.get("breeding_guide")
         if isinstance(breeding, dict):
             self.breeding_settings = {"show_spoilers": bool(breeding.get("show_spoilers", False))}
@@ -1329,6 +1355,22 @@ class App(tk.Tk):
                         if setting_id in known:
                             variable.set(setting_id in enabled)
 
+    def _unicode_font_row(self, parent: tk.Widget) -> None:
+        """Use Unicode Font's font picker: the installed font families, Segoe UI by default. A letter
+        the font lacks comes from the fonts for other scripts (Yu Gothic, Microsoft YaHei, Malgun
+        Gothic, Segoe UI Historic, Segoe UI Emoji ...), in the DLL."""
+        if "unicode_font" not in vars(self):
+            self.unicode_font = tk.StringVar(master=parent, value=DEFAULT_UNICODE_FONT)
+        row = ttk.Frame(parent)
+        row.pack(anchor="w", padx=(24, 0), pady=(2, 0))
+        ttk.Label(row, text="Font:").pack(side="left")
+        box = ttk.Combobox(row, textvariable=self.unicode_font, values=unicode_font_families(parent), width=32)
+        box.pack(side="left", padx=(6, 0))
+        box.bind("<<ComboboxSelected>>", lambda _e: self._save_settings())
+        box.bind("<FocusOut>", lambda _e: self._save_settings())
+        ttk.Label(row, text="then Yu Gothic, Meiryo, Microsoft YaHei, Malgun Gothic, Segoe UI Historic, "
+                            "Segoe UI Emoji ... for letters it lacks").pack(side="left", padx=(8, 0))
+
     def _save_settings(self) -> str:
         """Save the remembered paths and choices; return why not, or ""."""
         data = {
@@ -1345,6 +1387,7 @@ class App(tk.Tk):
                 for game_id in GAMES
             },
             "breeding_guide": {"show_spoilers": bool(getattr(self, "breeding_settings", {}).get("show_spoilers", False))},
+            "unicode_font": chosen_unicode_font(self),
         }
         try:
             SETTINGS_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")

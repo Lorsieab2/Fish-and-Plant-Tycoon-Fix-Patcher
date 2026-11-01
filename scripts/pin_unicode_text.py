@@ -18,6 +18,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SETTING_ID = "unicode_ingame_fonts"
+SYSTEM_ID = "unicode_system_font"          # Use Unicode Font (overrides in-game fonts)
 DLL = "Unicode Text.dll"
 
 GAMES = {
@@ -86,6 +87,46 @@ def companion(game: dict) -> dict:
     return {"source": game["source"], "loader_tail": DLL, "files": files}
 
 
+def system_setting(game: dict) -> dict:
+    """Use Unicode Font: the same DLL, told by the "Unicode Text.ini" the patcher writes beside it
+    (src/fish_patcher.py, unicode_ini) to draw all text with the chosen font."""
+    return {
+        "id": SYSTEM_ID,
+        "name": "Use Unicode Font (overrides in-game fonts)",
+        "summary": "Draws all of the game's text with one Windows font you choose (Segoe UI unless you pick "
+                   "another), any script, at the game's sizes and colours, instead of the game's own fonts.",
+        "description": (
+            f"{game['typing']} Every letter the game draws (names, menus, prices, a translation) is drawn with "
+            "the font chosen beside this setting in the patcher (Segoe UI unless you pick another), then, for a "
+            "letter it lacks, the fonts for other scripts (Yu Gothic, Meiryo, Microsoft YaHei, Malgun Gothic, "
+            "Segoe UI Historic, Segoe UI Emoji ...), at the game fonts' line heights and in the game's colours "
+            "(emoji in one colour). The game's own fonts and pictures are not changed. Names are kept as with "
+            "Render Unicode with In-Game Fonts (the first 31 letters in the save, the full name beside it), and "
+            "the two settings cannot both be on. Runs as the same Unicode Text.dll, set by the "
+            "\"Unicode Text.ini\" the patcher writes beside it."
+        ),
+        "category": "main",
+        "default": False,
+        "separate_output": True,
+        "conflicts_settings": [SETTING_ID],
+    }
+
+
+def system_companion(game: dict) -> dict:
+    data = (ROOT / game["source"] / DLL).read_bytes()
+    return {"source": game["source"], "loader_tail": DLL, "files": [{
+        "path": DLL, "destination": f"{game['folder']}/{DLL}", "size": len(data),
+        "sha256": hashlib.sha256(data).hexdigest().upper()}]}
+
+
+def put(manifest: dict, entry: dict) -> None:
+    old = next((s for s in manifest["settings"] if s["id"] == entry["id"]), None)
+    if old is None:
+        manifest["settings"].append(entry)
+    else:
+        manifest["settings"][manifest["settings"].index(old)] = entry
+
+
 def main() -> int:
     if len(sys.argv) != 1:
         raise SystemExit(__doc__)
@@ -93,17 +134,14 @@ def main() -> int:
         path = game["manifest"]
         manifest = json.loads(path.read_text(encoding="utf-8"))
         entry = setting(game)
-        old = next((s for s in manifest["settings"] if s["id"] == SETTING_ID), None)
-        for key in ("conflicts_settings",):
-            if old is not None and key in old:
-                entry[key] = old[key]
+        entry["conflicts_settings"] = [SYSTEM_ID]
         entry["companion"] = companion(game)
-        if old is None:
-            manifest["settings"].append(entry)
-        else:
-            manifest["settings"][manifest["settings"].index(old)] = entry
+        put(manifest, entry)
+        system = system_setting(game)
+        system["companion"] = system_companion(game)
+        put(manifest, system)
         path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        print(f"{game_id}: {SETTING_ID} with {len(entry['companion']['files'])} files")
+        print(f"{game_id}: {SETTING_ID} with {len(entry['companion']['files'])} files, {SYSTEM_ID}")
     return 0
 
 

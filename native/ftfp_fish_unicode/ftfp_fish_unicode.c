@@ -82,6 +82,7 @@
 #include "../common/unicode_hooks.h"
 #include "../common/unicode_draw.h"
 #include "../common/unicode_typing.h"
+#include "../common/unicode_config.h"
 
 
 #define INPUT_PRINTABLE 0x00403EDC      /* the game's own path for 0x20-0x7E */
@@ -172,14 +173,14 @@ static ftfp_site_write writes[TOTAL_SITES];
 static int install_all(void) {
     ftfp_site_write *w = writes;
     int i;
-    for (i = 0; i < 3; ++i) {
+    for (i = 0; i < 3 && !system_font; ++i) {
         if (!picture_present(FONT_SITES[i].name)) {
             pictures_missing = 1;
             return 0;
         }
     }
     ftfp_site_branch(w++, SITE_INPUT_VA, SITE_INPUT_LEN, SITE_INPUT_EXPECT, 0xE9, CODE_ADDR(stub_input));
-    for (i = 0; i < 3; ++i) {
+    for (i = 0; i < 3 && !system_font; ++i) {      /* Use Unicode Font: the game's fonts stay as they are */
         unsigned int table = (unsigned int)(UINT_PTR)FONT_SITES[i].table;
         unsigned int name = (unsigned int)(UINT_PTR)FONT_SITES[i].name;
         w->va = FONT_SITES[i].va;
@@ -191,7 +192,7 @@ static int install_all(void) {
         ++w;
     }
     w = name_site_writes(w);
-    return ftfp_install_sites(writes, TOTAL_SITES);
+    return ftfp_install_sites(writes, (int)(w - writes));
 }
 
 static int own_folder(wchar_t *out, DWORD cap) {
@@ -204,7 +205,7 @@ static int own_folder(wchar_t *out, DWORD cap) {
 
 static void write_install_log(void) {
     wchar_t path[1024];
-    char line[96];
+    char line[160];
     const char *text;
     DWORD written;
     HANDLE file;
@@ -212,13 +213,15 @@ static void write_install_log(void) {
     if (!own_folder(path, 1024) || wcslen(path) + 20 >= 1024) return;
     wcscat_s(path, 1024, L"Unicode Text.log");
     if (installed) {
-        text = "Unicode Text: installed (typing and drawing any letter, the three fonts, long names)\r\n";
+        text = system_font ? "Unicode Text: installed as Use Unicode Font (typing and drawing any letter in "
+                             "the chosen font, long names)\r\n"
+                           : "Unicode Text: installed (typing and drawing any letter, the three fonts, long names)\r\n";
     } else if (pictures_missing) {
         text = "Unicode Text: not installed (a font picture is missing from Images)\r\n";
     } else {
         text = "Unicode Text: not installed (the game's code is not the stock code)\r\n";
     }
-    while (text[len] && len < 95) {
+    while (text[len] && len < 159) {
         line[len] = text[len];
         ++len;
     }
@@ -233,6 +236,10 @@ int __stdcall FtfpStartup(void) {
     static int started;
     if (started) return installed;
     started = 1;
+    {
+        wchar_t folder[1024];
+        if (own_folder(folder, 1024)) read_unicode_config(folder);
+    }
     __try {
         installed = install_all();
     } __except (EXCEPTION_EXECUTE_HANDLER) {

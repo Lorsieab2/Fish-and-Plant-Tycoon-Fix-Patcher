@@ -26,6 +26,22 @@
   and draw pixel for pixel, a save with such a name loaded by the stock and
   the patched game), tests/test_patch_presets.py (settings that exclude each
   other), tests/test_save_tools.py.
+- **Use Unicode Font (overrides in-game fonts)** (new setting, both games; off
+  by default, "Modded Upgrades" copy; Owner's Defaults turns it on instead of
+  Render Unicode with In-Game Fonts). All of the game's text, ASCII too, is
+  drawn with one Windows font chosen beside the setting in the patcher (a list
+  of the installed fonts, Segoe UI by default), then the fonts for other
+  scripts for a letter it lacks, at the game fonts' line heights and in the
+  game's colours; typing, long names and any script as with Render Unicode
+  with In-Game Fonts. The two settings exclude each other (conflicts_settings,
+  both ways): Select All and Default Patches tick Render Unicode with In-Game
+  Fonts. It ships the same Unicode Text.dll (without the font pictures); the
+  patcher writes `Unicode Text.ini` beside it (Mode=system, Font=...; Mode=
+  ingame for the other setting), so the DLL leaves the game's fonts alone and
+  draws every letter at run time. `--unicode-font` sets the font from the
+  command line. Tests: tests/test_unicode_glyphs.py (the ini, the mode, every
+  letter from the chosen font), tests/test_patch_presets.py,
+  tests/test_every_patch.py.
 - **Any script** (Render Unicode with In-Game Fonts, stage 3). Text is UTF-8
   now, in both games: names, and any text the game draws (Translations.dll
   writes UTF-8, as Unicode Text.dll's FtfpUnicodeTextActive now answers 1). A

@@ -601,6 +601,8 @@ def apply_manifest(args: argparse.Namespace) -> int:
             raise PatchError("Staged executable failed its post-write SHA-256 check.")
         report["assets"] = merge_assets(assets, game_fs, staging)
         report["companion_files"] = fish_patcher.install_companion_files(companions, staging)
+        report["companion_files"] += fish_patcher.install_unicode_ini(
+            manifest, enabled, staging, getattr(args, "unicode_font", None))
         report["backup_dir"] = str(long_paths.plain(backup_dir))
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".plant_tycoon_fix_output.json", {
@@ -703,6 +705,7 @@ def build_parser() -> argparse.ArgumentParser:
     apply_cmd.add_argument("--output-dir")
     apply_cmd.add_argument("--dry-run", action="store_true")
     apply_cmd.add_argument("--enable", action="append")
+    apply_cmd.add_argument("--unicode-font", help="Use Unicode Font: the Windows font family (default Segoe UI)")
     apply_cmd.add_argument("--disable", action="append")
     apply_cmd.add_argument("--disable-all", action="store_true")
     apply_cmd.set_defaults(func=apply_manifest)

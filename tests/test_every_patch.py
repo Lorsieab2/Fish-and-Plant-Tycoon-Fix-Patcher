@@ -117,9 +117,13 @@ def dll_settings(m: dict) -> list[str]:
 def configurations(game: str) -> dict[str, set[str]]:
     m = manifest(game)
     every = {s["id"] for s in m["settings"]}
-    enable_all = {s["id"] for s in m["settings"] if cheat.in_enable_all(s)}
+    ticked = {s["id"] for s in m["settings"] if cheat.in_enable_all(s)}
+    # The two Unicode settings exclude each other: Select All keeps the default one (Render
+    # Unicode with In-Game Fonts), Owner's Defaults the other (Use Unicode Font).
+    enable_all = ticked - {"unicode_system_font"}
     configs = {
-        "Select All Patches / Owner's Defaults": enable_all,
+        "Select All Patches": enable_all,
+        "Owner's Defaults": ticked - {"unicode_ingame_fonts"},
         "Select All Patches + Everything is Free": enable_all | {"everything_free"},
         "Default Patches": {s["id"] for s in m["settings"] if s.get("default")},
     }

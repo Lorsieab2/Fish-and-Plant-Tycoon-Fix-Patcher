@@ -299,9 +299,11 @@ def _namespace(
     output_dir: str | Path,
     enabled: Iterable[str],
     dry_run: bool,
+    unicode_font: str | None = None,
 ) -> argparse.Namespace:
     spec = game_spec(game_id)
     return argparse.Namespace(
+        unicode_font=unicode_font,
         game_dir=str(Path(vanilla_dir).expanduser()),
         manifest=str(spec.manifest_path),
         output_dir=str(Path(output_dir).expanduser()),
@@ -319,9 +321,10 @@ def run_game(
     enabled: Iterable[str],
     *,
     dry_run: bool,
+    unicode_font: str | None = None,
 ) -> dict:
     spec = game_spec(game_id)
-    args = _namespace(game_id, vanilla_dir, output_dir, enabled, dry_run)
+    args = _namespace(game_id, vanilla_dir, output_dir, enabled, dry_run, unicode_font)
     try:
         result = int(spec.engine.apply_manifest(args))
     except Exception as exc:
@@ -354,6 +357,7 @@ def run_games(
                 config["output_dir"],
                 config.get("enabled", ()),
                 dry_run=True,
+                unicode_font=config.get("unicode_font"),
             )
         )
     if dry_run:
@@ -369,6 +373,7 @@ def run_games(
                 config["output_dir"],
                 config.get("enabled", ()),
                 dry_run=False,
+                unicode_font=config.get("unicode_font"),
             )
         )
     return results
@@ -409,6 +414,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--enable", action="append", default=[])
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--unicode-font", help="Use Unicode Font: the Windows font family (default Segoe UI)")
     return parser
 
 
@@ -422,6 +428,7 @@ def main(argv: list[str] | None = None) -> int:
                     "vanilla_dir": args.vanilla_dir,
                     "output_dir": output,
                     "enabled": args.enable,
+                    "unicode_font": args.unicode_font,
                 }
             },
             dry_run=not args.apply,

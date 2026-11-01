@@ -11205,6 +11205,9 @@
       "category": "main",
       "default": true,
       "separate_output": true,
+      "conflicts_settings": [
+        "unicode_system_font"
+      ],
       "companion": {
         "source": "assets/plant_tycoon_unicode",
         "loader_tail": "Unicode Text.dll",
@@ -11212,14 +11215,38 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 108032,
-            "sha256": "DEFA5FBEF9D8FB718E5962A6F9056C4AE9E17D16EE7E1F185B5F04B443AEB546"
+            "size": 108544,
+            "sha256": "D3AC7AF175786F13BD58B1A1C866D142BA6F0A1FD3A32F161D9CFAE3188A4B6F"
           },
           {
             "path": "Images/PTfontsmall_unicode.png",
             "destination": "Images/PTfontsmall_unicode.png",
             "size": 10956,
             "sha256": "C6E9C590A161D486F48A5B43F7B6096DE36EB1210FA2148E7AFB02751AFDA241"
+          }
+        ]
+      }
+    },
+    {
+      "id": "unicode_system_font",
+      "name": "Use Unicode Font (overrides in-game fonts)",
+      "summary": "Draws all of the game's text with one Windows font you choose (Segoe UI unless you pick another), any script, at the game's sizes and colours, instead of the game's own fonts.",
+      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (an input method's text too); the game dropped everything but plain ASCII. Names can be up to 300 letters. Every letter the game draws (names, menus, prices, a translation) is drawn with the font chosen beside this setting in the patcher (Segoe UI unless you pick another), then, for a letter it lacks, the fonts for other scripts (Yu Gothic, Meiryo, Microsoft YaHei, Malgun Gothic, Segoe UI Historic, Segoe UI Emoji ...), at the game fonts' line heights and in the game's colours (emoji in one colour). The game's own fonts and pictures are not changed. Names are kept as with Render Unicode with In-Game Fonts (the first 31 letters in the save, the full name beside it), and the two settings cannot both be on. Runs as the same Unicode Text.dll, set by the \"Unicode Text.ini\" the patcher writes beside it.",
+      "category": "main",
+      "default": false,
+      "separate_output": true,
+      "conflicts_settings": [
+        "unicode_ingame_fonts"
+      ],
+      "companion": {
+        "source": "assets/plant_tycoon_unicode",
+        "loader_tail": "Unicode Text.dll",
+        "files": [
+          {
+            "path": "Unicode Text.dll",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
+            "size": 108544,
+            "sha256": "D3AC7AF175786F13BD58B1A1C866D142BA6F0A1FD3A32F161D9CFAE3188A4B6F"
           }
         ]
       }

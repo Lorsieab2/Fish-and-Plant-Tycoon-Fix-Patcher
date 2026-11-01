@@ -169,8 +169,10 @@ class GuiTests(unittest.TestCase):
                 for preset in ("select_all", "owners_defaults"):
                     app._set_selection(game, gui.preset_selection(preset, game))
                     self.assertFalse(var.get(), f"{preset} leaves the cheat off")
-                    # (Owner's Defaults leaves Render Unicode with In-Game Fonts off by the owner's choice)
-                    left_off = {SETTING} | (gui.OWNERS_DEFAULTS_OFF if preset == "owners_defaults" else set())
+                    # (Owner's Defaults leaves Render Unicode with In-Game Fonts off by the owner's choice;
+                    # Select All keeps it and so leaves Use Unicode Font, which excludes it, off)
+                    left_off = {SETTING} | (gui.OWNERS_DEFAULTS_OFF if preset == "owners_defaults"
+                                            else {"unicode_system_font"})
                     others = [v.get() for sid, v in app.patch_vars[game].items() if sid not in left_off]
                     self.assertTrue(all(others), f"{preset} still turns every other setting on")
                 app._set_selection(game, gui.preset_selection("default_patches", game))

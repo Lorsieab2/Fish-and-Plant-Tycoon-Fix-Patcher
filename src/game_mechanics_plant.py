@@ -1457,7 +1457,8 @@ TEXT_ENTRY = (
                   "still loads it, and the full name is kept beside the save (Fix Patcher Data\\Names "
                   "<slot>.dat). The game shows the full name wherever it shows the player's, ending in an "
                   "ellipsis where it is wider than the game's space for a name, and a text box shows its "
-                  "text fitted instead of cutting it."),),
+                  "text fitted instead of cutting it."),
+                 ("unicode_system_font", "the same as Render Unicode with In-Game Fonts."),)
     ),
     Fact(
         "What you can type: plain ASCII only. The game takes typed text (SDL's text input, UTF-8) "
@@ -1465,14 +1466,16 @@ TEXT_ENTRY = (
         "would store any byte 0x20-0xFF.",
         patched=(("unicode_ingame_fonts", "any letter of any script (é ñ ß, Ç ğ İ, 山田, 한국어, emoji, "
                   "cuneiform ...), an input method's text included, stored as UTF-8; Backspace takes off a "
-                  "whole letter."),),
+                  "whole letter."),
+                 ("unicode_system_font", "the same as Render Unicode with In-Game Fonts."),)
     ),
     Fact(
         "What the font draws: PT Font Small has ASCII and Latin-1 from ¢ (U+00A2) on; it lacks the "
         "no-break space, ¡ and the Windows-1252 letters at 0x80-0x9F, drawn as its first letter.",
         patched=(("unicode_ingame_fonts", "those too, made in the font's own style; any other letter is "
                   "drawn from Windows' fonts (Segoe UI and the fonts for other scripts, emoji in one colour) at "
-                  "the font's size and in the text's colour."),),
+                  "the font's size and in the text's colour."),
+                 ("unicode_system_font", "every letter, ASCII too, is drawn with the Windows font chosen in the patcher (Segoe UI unless another), then the fonts for other scripts, at the game fonts' line heights and in the game's colours."),)
     ),
 )
 

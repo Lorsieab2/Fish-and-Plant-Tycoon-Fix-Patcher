@@ -175,6 +175,83 @@ class TypingCase:
         self.assertEqual(stored, "あ".encode("utf-8") * 300)
 
 
+INI = "Unicode Text.ini"
+
+
+class SystemFontCase:
+    """Use Unicode Font: the same DLL told by "Unicode Text.ini" beside it (written by the patcher) to
+    draw every letter with the chosen font; the game's fonts stay as they are."""
+    game = "fish"
+
+    def test_the_ini_sets_the_mode_and_the_font(self) -> None:
+        dll, symbols = T.built(self.game)
+        ini = T.GAME_DIR[self.game] + T.DLL_FOLDER[self.game] + INI
+        fde = T.fde.FontDrawEmulator(self.game, screen_w=900, dll=dll, symbols=symbols)
+        emu = fde.emu
+        files = T.hook_windows(emu, self.game, present=set(),          # no extended font pictures needed
+                               existing={ini: "; patcher\r\n[Unicode Text]\r\nMode=system\r\nFont=Comic Sans MS\r\n".encode()})
+        stock = T.code_bytes(emu, [(va, 10) for va, _k in T.FONT_SITES[self.game]])
+        self.assertEqual(T.startup(emu, symbols), 1)
+        self.assertIn("Use Unicode Font", files["text"])
+        self.assertEqual(emu.read32(symbols["_system_font"]), 1)
+        self.assertEqual(emu.wstring(symbols["_chosen_font"]), "Comic Sans MS")
+        # the game's fonts are left as they are
+        self.assertEqual(T.code_bytes(emu, [(va, 10) for va, _k in T.FONT_SITES[self.game]]), stock)
+        # every letter, ASCII too, comes from the run-time glyphs
+        rasters = []
+
+        def raster(e) -> int:
+            cp, height, coverage, w_at, xoff_at, adv_at = (e.arg(i) for i in range(6))
+            rasters.append(cp)
+            e.uc.mem_write(coverage, b"\xFF" * (3 * height))
+            e.write32(w_at, 3)
+            e.write32(xoff_at, 0)
+            e.write32(adv_at, 4)
+            return 1
+        emu.hook(symbols["_raster_glyph"], raster, 0)
+        key = T.FONT_SITES[self.game][0][1]
+        spec = next(s for s in T.tm.FONTS[self.game] if s.key == key)
+        font = fde.load_font({"font_triplex_sanslightlin_bold_16pt": "FONT_TRIPLEX_SANSLIGHTLIN_BOLD_16PT"}.get(key, key),
+                             spec.table)
+        fde.draw(font, "Hi 山".encode("utf-8"), 4, 4, 0xFFFFFFFF)
+        self.assertEqual(rasters, [ord("H"), ord("i"), ord(" "), 0x5C71])
+
+    def test_no_ini_is_the_in_game_fonts(self) -> None:
+        dll, symbols = T.built(self.game)
+        emu = E.Emulator(T.EXES[self.game], dll, symbols)
+        emu.uc.mem_map(0, 0x1000)
+        T.hook_windows(emu, self.game)
+        self.assertEqual(T.startup(emu, symbols), 1)
+        self.assertEqual(emu.read32(symbols["_system_font"]), 0)
+
+
+class PatcherIniTests(unittest.TestCase):
+    def test_the_patcher_writes_the_mode_and_the_font(self) -> None:
+        import fish_patcher
+        import tycoon_fix_patcher as combined
+        for game, folder in (("fish", "Fish Tycoon Fix Patcher DLLs"), ("plant", "Plant Tycoon Fix Patcher DLLs")):
+            manifest = combined.load_manifest(game)
+            dest, data = fish_patcher.unicode_ini(manifest, {"unicode_system_font", "fix_vanilla_bugs"}, "Comic Sans MS")
+            self.assertEqual(dest, f"{folder}/Unicode Text.ini")
+            self.assertIn(b"Mode=system\r\nFont=Comic Sans MS\r\n", data)
+            _dest, data = fish_patcher.unicode_ini(manifest, {"unicode_ingame_fonts"}, None)
+            self.assertIn(b"Mode=ingame\r\nFont=Segoe UI\r\n", data)
+            self.assertIsNone(fish_patcher.unicode_ini(manifest, {"fix_vanilla_bugs"}, "Arial"))
+        self.assertEqual(fish_patcher.clean_font_name("  Yu  Gothic\r\nMode=x "), "Yu Gothic Mode x")
+        self.assertEqual(fish_patcher.clean_font_name(""), "Segoe UI")
+        self.assertEqual(fish_patcher.clean_font_name("游ゴシック"), "游ゴシック")
+
+
+@needs("fish")
+class FishSystemFontTests(SystemFontCase, unittest.TestCase):
+    game = "fish"
+
+
+@needs("plant")
+class PlantSystemFontTests(SystemFontCase, unittest.TestCase):
+    game = "plant"
+
+
 @needs("fish")
 class FishGlyphTests(GlyphCase, unittest.TestCase):
     game = "fish"

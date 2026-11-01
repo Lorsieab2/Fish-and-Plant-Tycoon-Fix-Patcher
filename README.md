@@ -380,6 +380,15 @@ never needs the internet.
   [docs/images/multiple-ornaments-tank.png](docs/images/multiple-ornaments-tank.png).
   Trash the extra copies before turning it off again (with it off they are
   not shown; they come back if you turn it on).
+- Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
+  Upgrades" copy; Owner's Defaults turns it on instead of Render Unicode with
+  In-Game Fonts, and the two cannot both be on). All of the game's text is
+  drawn with one Windows font you choose beside the setting (Segoe UI unless
+  you pick another; the fonts for other scripts fill in letters it lacks), at
+  the game's sizes and colours, instead of the game's own fonts. Typing, long
+  names and any script work as with Render Unicode with In-Game Fonts. It
+  ships the same `Unicode Text.dll`; the patcher writes the chosen font into
+  `Unicode Text.ini` beside it.
 - Render Unicode with In-Game Fonts (on by default; in the "Modded Upgrades"
   copy; Owner's Defaults leaves it off). Typing in the game (a player's name,
   any text box) takes every Latin-1 letter your keyboard makes (U+00A0-U+00FF:
@@ -723,6 +732,15 @@ never needs the internet.
     [docs/images/extra-chemical-slots-store.png](docs/images/extra-chemical-slots-store.png).
   - Design: the "Extra Chemical Slots" section of
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
+- Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
+  Upgrades" copy; Owner's Defaults turns it on instead of Render Unicode with
+  In-Game Fonts, and the two cannot both be on). All of the game's text is
+  drawn with one Windows font you choose beside the setting (Segoe UI unless
+  you pick another; the fonts for other scripts fill in letters it lacks), at
+  the game's sizes and colours, instead of the game's own fonts. Typing, long
+  names and any script work as with Render Unicode with In-Game Fonts. It
+  ships the same `Unicode Text.dll`; the patcher writes the chosen font into
+  `Unicode Text.ini` beside it.
 - Render Unicode with In-Game Fonts (on by default; in the "Modded Upgrades"
   copy; Owner's Defaults leaves it off). Typing in the game takes every Latin-1
   letter your keyboard makes (U+00A0-U+00FF); the stock game dropped all but
