@@ -57,11 +57,24 @@ class ModelTests(unittest.TestCase):
         for kind in ("foliage", "flower"):
             for part in self.extras.parts(kind):
                 want = "Legendary" if kind == "flower" and part.index >= 24 else expected[part.index]
-                self.assertEqual(self.extras.part_rarity(part), want, (kind, part.index))
-        self.assertEqual(sum(self.extras.part_rarity(p) == "Legendary" for p in self.extras.parts("flower")), 14)
+                self.assertEqual(B.part_packet(part.index, kind), want, (kind, part.index))
+        self.assertEqual(sum(B.part_packet(p.index, "flower") == "Legendary" for p in self.extras.parts("flower")), 14)
+
+    def test_part_tier_is_the_soil_class(self) -> None:
+        """The owner's tiers (2026-11-01): Tier 1 class A (Citrus ...), 2 class B (Rosaceae ...), 3 class C
+        (Nox ...), 4 class D (Arthurium ...), 5 the Legendary flowers; the same for the foliage."""
+        names = {"Citrus ": "Tier 1", "Rosaceae": "Tier 2", "Nox": "Tier 3", "Arthurium": "Tier 4", "Nightingale": "Tier 5"}
+        for word, tier in names.items():
+            self.assertEqual(B.part_rarity(B.FLOWER_WORD.index(word), "flower"), tier, word)
+        for kind in ("foliage", "flower"):
+            for part in self.extras.parts(kind):
+                g = part.index
+                want = ("Tier 5" if kind == "flower" and g >= 24 else "Tier 4" if g > 17 else "Tier 3" if g % 2 == 0
+                        else "Tier 2" if g in (3, 7, 11, 15) else "Tier 1")
+                self.assertEqual(self.extras.part_rarity(part), want, (kind, g))
 
     def test_species_rarity_is_its_rarer_packet(self) -> None:
-        order = B.RARITY_ORDER
+        order = B.TIER_ORDER
         for s in self.extras.species():
             words = [self.extras.part_rarity(p) for p in s.parts]
             self.assertEqual(s.rarity, max(words, key=order.index))
@@ -174,7 +187,7 @@ class ModelTests(unittest.TestCase):
         self.assertFalse(any(s.patcher for s in self.stock.species()))
         new = [s for s in self.extras.species() if s.patcher]
         self.assertEqual(sorted(s.key for s in new), NEW)
-        self.assertTrue(all(s.rarity == "Legendary" for s in new))
+        self.assertTrue(all(s.rarity == "Tier 5" for s in new))
         self.assertEqual(len(self.stock.parts("flower")), 23)
         self.assertEqual(len(self.extras.parts("flower")), 37)
         self.assertEqual(len(self.extras.parts("foliage")), 23)
@@ -186,7 +199,7 @@ class ModelTests(unittest.TestCase):
     def test_interface(self) -> None:
         self.assertEqual(self.stock.game, "plant")
         s = self.stock.species_by_key((4, 4))
-        self.assertEqual((s.name, s.rarity, s.value), ("Nox Orchid", "Extinct", 95))
+        self.assertEqual((s.name, s.rarity, s.value), ("Nox Orchid", "Tier 3", 95))
         self.assertEqual(tuple(p.kind for p in s.parts), ("foliage", "flower"))
         self.assertEqual(self.stock.species_by_key((9, 17)).name, "Citrus  Maranta")      # the exe's own two spaces
         self.assertEqual(self.stock.parts("flower")[16].name, "Citrus")
@@ -378,7 +391,7 @@ class GameTablesTests(unittest.TestCase):
             for part in model.parts(kind):
                 if part.index >= 24:
                     continue
-                name = model.part_rarity(part)
+                name = B.part_packet(part.index, kind)
                 p = tiers[name][part.index]
                 self.assertEqual(B.packet_chance(part.index), (name, p))
                 self.assertIn(f"{name} Seeds (${B.PACKET_PRICES[name]}, 3 packets a day): {100 * p:.2f}%", part.how)

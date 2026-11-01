@@ -2,6 +2,13 @@
 
 ## v1.0.22
 
+- **Rarity names** (Breeding Guide, its collection list and Picture Studio). Fish Tycoon's
+  middle rarity is now "Uncommon": Common / Uncommon / Rare (the eggs keep their
+  names, "Unusual Fish Eggs"). Plant Tycoon's flower and foliage parts go by tier,
+  from the soil they need to grow: Tier 1 (class A, e.g. Citrus), Tier 2 (class B,
+  e.g. Rosaceae), Tier 3 (class C, e.g. Nox), Tier 4 (class D, e.g. Arthurium) and
+  Tier 5 (the Legendary flowers); a species is as high as its higher part. The seed
+  packets keep their names.
 - **Plant Tycoon: one chemical tooltip at a time** (Extra Chemical Slots). On
   page 2 of the Tools box two tooltips could be drawn over each other (the
   slot's "Mutation Liquid Vaporbomb / 12 doses left" over another one, the

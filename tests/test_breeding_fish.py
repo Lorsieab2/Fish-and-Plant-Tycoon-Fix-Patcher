@@ -382,10 +382,12 @@ class EmulatedTests(unittest.TestCase):
         """Each rarity word is the exe's own word for those genes (TIER_STRINGS)."""
         for tier, (address, text) in bf.TIER_STRINGS.items():
             self.assertEqual(self.emu.cstring(address).decode("latin-1"), text, hex(address))
-            self.assertIn(bf.TIER_NAMES[tier].casefold(), text.casefold().split())
+            if tier != 2:                   # the middle one is the owner's "Uncommon" (the eggs say "Unusual")
+                self.assertIn(bf.TIER_NAMES[tier].casefold(), text.casefold().split())
+        self.assertEqual(bf.TIER_NAMES, {1: "Common", 2: "Uncommon", 3: "Rare"})
         model = bf.load(None, False)
         self.assertEqual({model.part_rarity(p) for p in model.parts("fin") if p.index % 4 == 0}, {"Common"})
-        self.assertEqual({model.part_rarity(p) for p in model.parts("fin") if p.index % 4 == 2}, {"Unusual"})
+        self.assertEqual({model.part_rarity(p) for p in model.parts("fin") if p.index % 4 == 2}, {"Uncommon"})
         self.assertEqual({model.part_rarity(p) for p in model.parts("fin") if p.index % 2}, {"Rare"})
 
     def _check_count(self, path: Path, slot: int, expected: int) -> None:
@@ -584,7 +586,7 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(bodies[0].name, "Shark")
         self.assertTrue(all(p.how for p in bodies))
         self.assertEqual(self.ds.get((7, 7)).rarity, "Rare")
-        self.assertEqual(self.ds.get((2, 4)).rarity, "Unusual")
+        self.assertEqual(self.ds.get((2, 4)).rarity, "Uncommon")
         self.assertEqual(self.ds.get((26, 26)).rarity, "Common")       # Trigger / Clown: DS 24
         self.assertEqual(self.stock.species_note((20, 16)), "Magic Fish of Fertility")
 

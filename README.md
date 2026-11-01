@@ -887,9 +887,13 @@ folder never fails with "path too long".
     a sortable List view, and exports as .xlsx or .csv. With spoilers off a
     species not collected yet is a "?" with no name or picture.
 
-  Rarities use the games' own words: Common, Unusual and Rare in Fish Tycoon
-  (as its Common and Unusual Fish Eggs), Common, Endangered and Extinct (the
-  seed packets) in Plant Tycoon, Legendary for the Unused Flowers. Every
+  Rarities: Common, Uncommon and Rare in Fish Tycoon (the Common and Unusual
+  Fish Eggs lay the Common and Uncommon parts). In Plant Tycoon, flower and
+  foliage parts go by tier, from the soil they need to grow: Tier 1 (class A,
+  Citrus and the like), Tier 2 (class B, Rosaceae), Tier 3 (class C, Nox),
+  Tier 4 (class D, Arthurium) and Tier 5 (the Legendary flowers of Unused
+  Flowers); a species is as high as its higher part. The seed packets keep
+  their names (Common, Endangered, Extinct, Legendary Seeds). Every
   "how it is obtained" quotes the exact odds from the game's code. A
   scrolling pane under each sheet shows the picked row's details.
 

@@ -111,7 +111,7 @@ class CountTests(unittest.TestCase):
         make_save(self.folder, 1, FISH_FOUND)
         cp = bc.Collectopedia(view_for("fish", self.folder, 1, False))
         tiers = cp.tiers()
-        self.assertEqual([t for t, _g, _n in tiers], ["Common", "Unusual", "Rare"])
+        self.assertEqual([t for t, _g, _n in tiers], ["Common", "Uncommon", "Rare"])
         self.assertEqual(sum(n for _t, _g, n in tiers), 441)
         for tier, got, total in tiers:
             self.assertEqual(total, sum(s.rarity == tier for s in cp.species))
@@ -139,10 +139,10 @@ class CountTests(unittest.TestCase):
         make_new_flowers(self.folder, 2, NEW_FOUND)
         cp = bc.Collectopedia(view_for("plant", self.folder, 2, False))
         tiers = cp.tiers()
-        self.assertEqual([t for t, _g, _n in tiers], ["Common", "Endangered", "Extinct", "Legendary"])
-        self.assertEqual(dict((t, n) for t, _g, n in tiers)["Legendary"], 23 * 14)
+        self.assertEqual([t for t, _g, _n in tiers], ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"])
+        self.assertEqual(dict((t, n) for t, _g, n in tiers)["Tier 5"], 23 * 14)
         self.assertEqual(dict((t, g) for t, g, _n in tiers),
-                         {"Common": 2, "Endangered": 1, "Extinct": 0, "Legendary": 1})   # (1,1) (5,5); (9,3); (5,30)
+                         {"Tier 1": 2, "Tier 2": 1, "Tier 3": 0, "Tier 4": 0, "Tier 5": 1})   # (1,1) (5,5); (9,3); (5,30)
         foliage = {p.name: (g, n) for p, g, n in cp.part_counts("foliage")}
         self.assertEqual(foliage["Astera"], (2, 37))
         self.assertIn("Foliage Astera: 2 of 37 flowers", cp.part_progress("foliage"))
@@ -480,9 +480,9 @@ class SeedGridTests(unittest.TestCase):
         self.assertEqual([p.index for p, _l, _c in rows], list(self.A + self.B + self.C + self.D))
         self.assertEqual([bg.foliage_class(p.index) for p, _l, _c in rows],
                          ["A"] * 5 + ["B"] * 4 + ["C"] * 8 + ["D"] * 6)
-        self.assertEqual(rows[0][1], "Reptans\nCommon, class A")
-        self.assertEqual(rows[5][1], "Grass\nEndangered, class B")
-        self.assertEqual(rows[-1][1], "Ridgeball\nExtinct, class D")
+        self.assertEqual(rows[0][1], "Reptans\nTier 1, class A")
+        self.assertEqual(rows[5][1], "Grass\nTier 2, class B")
+        self.assertEqual(rows[-1][1], "Ridgeball\nTier 4, class D")
         for part, _label, cells in rows:
             self.assertEqual([c.tier for c in cells], columns)
             self.assertEqual([c.art[0].index for c in cells], [(part.index - 1) * 4 + k for k in range(4)])

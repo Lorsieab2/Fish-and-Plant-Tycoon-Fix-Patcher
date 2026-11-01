@@ -142,7 +142,14 @@ def is_new_flower(flower: int) -> bool:
 # Seeds" (string 0x46FF58), "Endangered Seeds" (0x46FED4), "Extinct Seeds" (0x46FE48); the
 # new flowers are sold only as the patcher's "Legendary Seeds" (ftfp_plant_upgrades.c,
 # LEGENDARY_TITLE). Pinned by tests/test_breeding_plant.py (test_rarity_words_are_the_exes).
-RARITY_ORDER = ("Common", "Endangered", "Extinct", "Legendary")
+RARITY_ORDER = ("Common", "Endangered", "Extinct", "Legendary")     # the seed packets (unchanged names)
+
+# A part's tier, the owner's (2026-11-01: "Name the flower and plant parts by tier based on what soil is
+# needed for them to grow ... Seed packet names stay the same"): the game's class rule (rarity, 0x424100)
+# on the one gene, which sets the soil it needs (see Health and soil): Tier 1 class A (Citrus ...),
+# Tier 2 class B (Rosaceae ...), Tier 3 class C (Nox ...), Tier 4 class D (Arthurium ...), and Tier 5
+# the Legendary flowers (Unused Flowers). A species is as high as its higher part.
+TIER_ORDER = ("Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5")
 RARITY_STRINGS = {"Common": (0x46FF58, "Common Seeds"), "Endangered": (0x46FED4, "Endangered Seeds"),
                   "Extinct": (0x46FE48, "Extinct Seeds")}
 LEGENDARY_TITLE = 'static const char LEGENDARY_TITLE[] = "Legendary Seeds\\n";'
@@ -158,9 +165,9 @@ MUTA_PRICE = 2500                      # Muta-Flower, Muta-Foliage (Store Upgrad
 LEGENDARY_PRICE, LEGENDARY_A_DAY, NEW_FLOWER_COUNT = 5000, 3, 14
 
 
-def part_rarity(gene: int, kind: str) -> str:
-    """A part's rarity: the shop seed packet tier that lays it (0x41DC60), in the store's
-    words; the new flowers come only in Legendary Seeds (Unused Flowers)."""
+def part_packet(gene: int, kind: str) -> str:
+    """The shop seed packet that lays a part (0x41DC60), in the store's words; the new flowers
+    come only in Legendary Seeds (Unused Flowers)."""
     if kind == "flower" and is_new_flower(gene):
         return "Legendary"
     if gene in COMMON_GENES:
@@ -170,9 +177,16 @@ def part_rarity(gene: int, kind: str) -> str:
     return "Extinct"
 
 
+def part_rarity(gene: int, kind: str) -> str:
+    """A part's tier (TIER_ORDER): the soil its class needs, Tier 5 the Legendary flowers."""
+    if kind == "flower" and is_new_flower(gene):
+        return "Tier 5"
+    return "Tier " + str("ABCD".index(rarity((gene, 1) if kind == "foliage" else (1, gene))) + 1)
+
+
 def species_rarity(key: tuple[int, int]) -> str:
-    """A species' rarity: its rarer part's packet."""
-    return max(part_rarity(key[0], "foliage"), part_rarity(key[1], "flower"), key=RARITY_ORDER.index)
+    """A species' tier: its higher part's."""
+    return max(part_rarity(key[0], "foliage"), part_rarity(key[1], "flower"), key=TIER_ORDER.index)
 
 
 _RAND = 32768

@@ -885,10 +885,12 @@ HELP = (
         "leave the others out. Nothing undiscovered is named anywhere, exports included: \"how it is "
         "obtained\" counts the undiscovered parents instead of naming them, and the Magic Fish of Mutation "
         "is named only once you have discovered it.",
-        "Rarity, in the games' own words: Fish Tycoon parts are Common, Unusual or Rare (the Common and "
-        "Unusual Fish Eggs lay exactly the Common and Unusual parts; no egg lays a Rare one), a fish as rare "
-        "as its rarer part. Plant Tycoon parts are Common, Endangered or Extinct, the seed packets that "
-        "sell them (Legendary for the Unused Flowers), a plant as rare as its rarer part.",
+        "Rarity: Fish Tycoon parts are Common, Uncommon or Rare (the Common and Unusual Fish Eggs lay "
+        "exactly the Common and Uncommon parts; no egg lays a Rare one), a fish as rare as its rarer part. "
+        "Plant Tycoon parts are Tier 1 to Tier 5 by the soil they need to grow (the game's classes A-D: "
+        "Tier 1 Citrus and the like, Tier 2 Rosaceae, Tier 3 Nox, Tier 4 Arthurium; Tier 5 the Legendary "
+        "flowers of Unused Flowers), a plant as high as its higher part. The seed packets keep their "
+        "names (Common, Endangered, Extinct and Legendary Seeds).",
         "Patcher species (DS Exclusive Fish, Unused Flowers) are listed only when the save's game copy was "
         "patched with that setting: its patch log beside the .exe says so, or the setting's data file is "
         "beside the save. They are marked in the Patcher column.",
