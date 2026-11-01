@@ -58,7 +58,7 @@ SECOND_BASE = 0x18000000                 # where the second DLL is mapped
 
 FISH_SENTENCE = "Allows treated fish to sell at max price, regardless of their set value."   # the owner's words
 FISH_SENTENCE_DE = "Behandelte Fische bringen den Höchstpreis, egal welcher Preis eingestellt ist."
-PLANT_SENTENCE = "Treated plants sell for the highest possible price!"
+PLANT_SENTENCE = "Allows treated plants to sell at max price, regardless of their set value."
 
 
 def _toolchain() -> bool:
@@ -779,7 +779,10 @@ class Texts(unittest.TestCase):
 
     def test_the_descriptions_fit_the_panels(self) -> None:
         """At most 5 lines (the stock store's longest is 4, Plant's 5 with "Contains"), each no longer than
-        the stock texts' longest (Fish 46 characters, Plant 44)."""
+        the stock texts' longest (Fish 46 characters), Plant 47: the formula's text with the owner's
+        sentence ("Allows treated plants to sell at max price, regardless of their set value.") and
+        "No more dead leaves!" kept on one line needs 47 at 5 lines; checked in the game, its dialog's
+        47-character line ends well inside the red panel."""
         for text in _fish_items()["Radioactive Growth Hormone"]:
             lines = text.split("\n")
             self.assertLessEqual(len(lines), 5, text)
@@ -787,7 +790,7 @@ class Texts(unittest.TestCase):
         for name in ("FORMULA_DESC", "BOMB_DESC"):
             lines = _plant_descriptions()[name].rstrip("\n").split("\n")
             self.assertLessEqual(len(lines), 5, name)
-            self.assertLessEqual(max(map(len, lines)), 44, name)
+            self.assertLessEqual(max(map(len, lines)), 47, name)
 
     def test_the_patcher_descriptions(self) -> None:
         for game, setting, words in (("fish", "ds_store", "Treated fish sell for the highest possible price"),
@@ -813,11 +816,11 @@ class Texts(unittest.TestCase):
             },
             "plant": {
                 "Radioactive Plant Formula: not in the unpatched game.": ("plant_upgrades", (
-                    "Treated plants sell for the highest possible price", "below 2V", "decided by your asking "
+                    PLANT_SENTENCE, "Treated plants sell for the highest possible price", "below 2V", "decided by your asking "
                     "price", "Random(1300)", "2 real-time seconds", "Extra Greenhouses", "saves and loads",
                     "real time or age units", "nurseries not on screen", "dies", "planted in its pot", "$1186")),
                 "Radioactive Plant Formula Bomb: not in the unpatched game.": ("plant_upgrades", (
-                    "treated", "highest selling price")),
+                    PLANT_SENTENCE, "treated", "highest selling price")),
             },
         }
         for game, facts in rules.items():

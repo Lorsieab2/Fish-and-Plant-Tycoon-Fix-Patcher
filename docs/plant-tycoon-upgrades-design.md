@@ -149,6 +149,9 @@ a New Flowers site).
 | unit_top / units_done | 0x42E134 / 0x42E2DF | Automatic Sprinklers and the Auto-Healer, each age unit and after the loop (below) |
 | dead_untag | 0x42DF91 | the plant update's dead-plant untag: remembers a plant was for sale (+0x9F) for the Revival Potion (below); a dead plant loses the formula's 'R' mark |
 | sale_record / sale_cash | 0x435CF2 / 0x435D12 | a visitor's purchase (0x435C70): a plant treated with the formula pays its species' highest selling price into Money Earned and the cash (below) |
+| asking_pick | 0x4366F9 | a click on a plant for sale in the nursery stores its asking price (nursery + 8): the DLL remembers its pot (the treated price shown, below) |
+| asking_draw / sold_draw | 0x437CDC / 0x437E77 | the nursery bottom bar's two `call 0x44CCD0` (`$P`), "Asking Price: $P" and "Plant sold! Price: $P": "Treated: $M" after each for a treated plant |
+| price_popup_overlay | 0x469680 | the Set Price of Plant popup's vtable overlay slot (+0x1C, stock the empty 0x416730): "Treated: $M" under its price |
 | chem_picture_bound | 0x4308D3 | immediate 0x24 -> 0x28: the dialog draws chemicals 36-39 |
 | seed/chem sheet records, link record | 0x485F4C, 0x485F5C, 0x4875A4, 0x4875B4, 0x4882D4 | the sprite records above |
 
@@ -320,6 +323,38 @@ seen with every effect at its best stays below 2V; never less than P; a
 Fabled Lemonbush $1186), and the second clears the mark. The buy roll
 (`0x436BE0`) that chose the plant is over, so its chance is P's. The extra
 nurseries' off-screen sales are this same code on their arranged pots.
+
+## The treated price beside the set price (owner, 2026-10-31)
+
+"Put the 'treated' price beside the normal 'set' price", and: "Only show the
+treated price in: The nursery; The window that pops up when you set prices;
+Not anywhere else" -- never in the greenhouses. The number is `sale_price`'s,
+the price a sale pays (the highest selling price, never less than P).
+
+- The nursery's bottom bar (`0x437C40`, y 539, PTfontsmall). A click on a
+  plant for sale (`0x4366DC`) stores its asking price at nursery `+8` and
+  shows "Asking Price: $P" for 5 time units; `asking_pick` (`0x4366F9`,
+  `mov [esi+8], edx; call 0x403430`, right after New Flowers' index stub for
+  `0x4366E9` comes back) remembers that pot (its offset from `state +
+  0x2188`, foliage and flower). `asking_draw` (`0x437CDC`) calls the stock
+  `0x44CCD0` ($P at 626, 539) and, when that pot still holds the same plant,
+  alive and marked `'R'`, draws "Treated: $M" 14 px after the $P (widths from
+  the font's `0x402380`), in `0x44CCD0`'s colour (`[0x49054C]`), kept left of
+  x 798.
+- The sold line: after a sale (`0x435E54`) the nursery lists the pot (row
+  `+0x10`, column `+0x14`, 8 entries, shown one by one from `+0x50`) and
+  `0x437E05` shows "Plant sold! Price: $P". The sale has spent the mark, so
+  `sale_price` remembers its last 8 treated sales (pot, foliage, flower, the
+  price paid); `sold_draw` (`0x437E77`) draws "Treated: $M", the price paid,
+  while that pot still holds the plant sold.
+- The Set Price of Plant popup (`0x42FFE0`, vtable `0x469664`, opened from
+  the greenhouse's price button for the selected pot: row `+0x54`, column
+  `+0x58`, its price field `+0x50`). Its overlay slot (`+0x1C`, painted by
+  `0x40B6B0` after its controls) is the empty `0x416730`; the DLL points it at
+  `price_popup_overlay`, which draws "Treated: $M" centred at the popup's
+  y 130, under "Price: $" (y 100) and above OK, M for the price being typed
+  (`0x40C770`, kept to 9999 as the OK does).
+- The greenhouse panel's "Price: $P" (`0x428736`) stays stock.
 
 ## Live checks (test copy with the sdlpoke test shim)
 

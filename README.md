@@ -446,7 +446,13 @@ never needs the internet.
     Max effects; a Fabled Lemonbush pays $1186), instead of your asking price.
     Whether and when it sells still follow your asking price. The mark stays
     with the plant through moves, nurseries and saves, and ends when it is
-    sold, dies or its pot is replanted.
+    sold, dies or its pot is replanted. The treated price is shown beside the
+    set price, as "Treated: $1186", in two places only: the nursery's bottom
+    bar ("Asking Price: $665 Treated: $1186" when you click a treated plant
+    for sale, "Plant sold! Price: $665 Treated: $1186" when one sells) and the
+    Set Price of Plant window under its price. The greenhouses show only the
+    set price. The store describes both items with "Allows treated plants to
+    sell at max price, regardless of their set value."
   - Radioactive Plant Formula Bomb under the formula: $30,000, 3 doses; the
     stock Fertilizer Bomb made rainbow. One bomb gives every live plant in the
     greenhouse on screen exactly one Radioactive Plant Formula dose (the

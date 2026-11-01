@@ -179,7 +179,9 @@ Plant Tycoon options:
 - Add new store upgrades and items (off by default; needs Add unused
   flowers. An Upgrades link in the Supplies store: Legendary Seeds, the
   Radioactive Plant Formula and its Bomb (one dose for every plant in the
-  greenhouse on screen), the Revival Potion (revives a dead plant),
+  greenhouse on screen; a treated plant sells at its species' max price,
+  regardless of its set value, and the nursery and the Set Price of Plant
+  window show "Treated: $<max>" beside the set price), the Revival Potion (revives a dead plant),
   Revita-Seed (a plant that has given all its seeds can be pollinated
   again), Muta-Flower and Muta-Foliage ($2,500 each, 3 doses: the Mutation
   Liquid for the flower only or the foliage only), Automatic Sprinklers and
