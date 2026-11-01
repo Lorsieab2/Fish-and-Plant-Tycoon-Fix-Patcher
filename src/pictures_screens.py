@@ -592,22 +592,24 @@ def plant_message(c, text: int, on_screen: bool = False) -> list:
     return out
 
 
-def plant_question(c, text: int, cancel: bool, green: bool) -> list:
+def plant_question(c, text: int, cancel: bool, green: bool, on_screen: bool = False) -> list:
     """The question box (0x42AB50 -> 0x42A700): Orange- or GreenDlgTileGrid tiles for the wider of
     the text and the buttons, + 60, and the text + a button + 60 high; the text (0x40CBE0)
-    centred across at (H - that) / 2 + 20, the buttons at H - h - 20, OK and Cancel 3w/2 apart."""
+    centred across at (H - that) / 2 + 20, the buttons at H - h - 20, OK and Cancel 3w/2 apart.
+    `on_screen`: centred on the 800 x 600 screen (0x401D20)."""
     data = c.text_bytes(Text((("id", text),)))
     tw, th = c.text_size(0, data)
     bw, bh = c.cell_size("widePTButton.png", 3, 1)
     span = cdiv(5 * bw, 2) if cancel else bw
     want_h = th + bh + 0x3C
     w, h = _tile_size(max(span + 0x3C, tw + 0x3C), want_h)
-    out = dialog_tiles("GreenDlgTileGrid.png" if green else "OrangeDlgTileGrid.png", w, h)
-    out.append(say(cdiv(w - tw, 2), cdiv(h - want_h, 2) + 0x14, ("id", text)))
-    x = cdiv(w - span, 2)
-    out += label("widePTButton.png", x, h - bh - 0x14, ("id", 0x12))
+    x0, y0 = (cdiv(800 - w, 2), cdiv(600 - h, 2)) if on_screen else (0, 0)
+    out = dialog_tiles("GreenDlgTileGrid.png" if green else "OrangeDlgTileGrid.png", w, h, x0, y0)
+    out.append(say(x0 + cdiv(w - tw, 2), y0 + cdiv(h - want_h, 2) + 0x14, ("id", text)))
+    x = x0 + cdiv(w - span, 2)
+    out += label("widePTButton.png", x, y0 + h - bh - 0x14, ("id", 0x12))
     if cancel:
-        out += label("widePTButton.png", x + cdiv(3 * bw, 2), h - bh - 0x14, ("id", 0x13))
+        out += label("widePTButton.png", x + cdiv(3 * bw, 2), y0 + h - bh - 0x14, ("id", 0x13))
     return out
 
 
@@ -915,6 +917,15 @@ def _plant_pictures() -> list:
                             *label("widePTButton.png", 60, 550, ident(0x191)),              # 0x448630
                             *label("widePTButton.png", 310, 550, ident(0x1B2)),
                             *label("widePTButton.png", 560, 550, at(0x469850))), canvas=(800, 600)))
+    built = {p.key: p for p in out}
+    # question boxes where the game asks them (0x42A605 from the menu, 0x4247CC and 0x428202 in the
+    # greenhouse), over the darkened screen
+    for text, cancel, green, where, name in ((0x3E, True, True, "screen:menu", "the main menu: Start Over"),
+                                              (0x10A, True, False, "screen:greenhouse", "the greenhouse: delete a plant"),
+                                              (0x77, False, False, "screen:greenhouse", "the greenhouse: seed box full")):
+        out.append(Picture(f"question:{text:x}:screen", dialogs, f"Question box over {name}", (), canvas=(800, 600),
+                           make=lambda c, t=text, x=cancel, g=green, b=built[where].pieces: tuple(b) + (shade(),)
+                           + tuple(plant_question(c, t, x, g, True))))
     # the tutorial's message boxes where the game shows them: over the screen it is on, darkened
     built = {p.key: p for p in out}
     names = {"screen:greenhouse": "the greenhouse", "screen:store": "the Store", "screen:seedbox0": "the Seed box",

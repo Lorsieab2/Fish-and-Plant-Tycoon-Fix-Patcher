@@ -290,6 +290,19 @@ class PlantDraws(unittest.TestCase):
             d.vcall(button, 6)
             self.assertEqual(recorded(d.draws), composed(self.composer, [S.plant_replay(frame)]), frame)
 
+    def test_question_boxes(self) -> None:
+        """0x42AB50(text, green, cancel, ...) -> 0x42A700, built, centred and drawn by the game; the
+        calls the game makes (0x42A605, 0x4247CC, 0x425AFF, 0x428202, 0x415E7A)."""
+        for text, green, cancel in ((0x3E, 1, 1), (0x10A, 0, 1), (0x77, 0, 0), (0x16, 1, 1), (0x10A, 1, 0)):
+            d = self.emulator()
+            box = d._zeroed(0x200)
+            d.run(0x42AB50, text, green, cancel, 0, 0, this=box)
+            d.show(box)
+            want = composed(self.composer, S.plant_question(self.composer, text, bool(cancel), bool(green), True))
+            self.assertEqual(sorted(recorded(d.draws)), sorted(want), hex(text))
+        for text, green, cancel in ((0x10A, False, True), (0x77, False, False), (0x3E, True, True)):
+            self.assertEqual(S.by_key("plant")[f"question:{text:x}"].name.startswith("Green"), green)
+
     def test_main_menu_buttons_run_what_their_labels_say(self) -> None:
         """quit_button.png is labelled "Options" and opens the Options dialog; options_button.png
         is labelled "Quit" and quits (0x42A430, the menu's button handler)."""
