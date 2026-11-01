@@ -598,7 +598,8 @@ class PlantItemsAreTheGames(unittest.TestCase):
         got = self.renderer.render_custom({"subject": "bug", "bug": 30, "frame": "leaf"}).cropped(0)
         same(self, got, compose([(cell(art, 8, 6, 30), 0, 0)]), "the Ghost Dragonfly's leaf")
         bugs = self.renderer.custom_batch("bug")
-        self.assertEqual(len(bugs), 48 * 7)
+        import pictures_screens as ps
+        self.assertEqual(len(bugs), 48 * 7 + sum(len(ps.bug_views(b)) for b in range(48)))
         self.assertEqual(bugs[0][0], ("Butterflies and moths", "1. Blue Butterfly (Common)"))
         self.assertEqual(bugs[-1][0], ("Spiders", "48. Golden Spider (Rare)"))
         # The game's rarity in each family: 1-4 Common, 5-8 Uncommon, 9-12 Rare (0x4167DC).

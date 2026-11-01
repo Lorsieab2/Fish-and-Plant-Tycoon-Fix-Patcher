@@ -493,6 +493,87 @@ def collection_picture(bug: int, on_web: bool = False) -> Picture:
                    tuple(collections_screen([bug], web=bug if on_web else None, tabs=False)), crop=crop)
 
 
+# ------------------------------------------------------------------ Plant Tycoon's bugs, drawn by the game
+#
+# The greenhouse (0x416810, layer 0 before the pots, layer 1 after): cell 6 x bug + frame of
+# small_bugs.png at the bug's size, +0x44 = 70 + Random(30) percent, rolled once when it comes
+# (0x417820, 0x4178C1, 0x417960, 0x417A18), at alpha 1.0. The walking beetles and spiders have
+# shadowsmall.png under them at the same place and size (0x4169B2, 0x416AEB). Frames: butterflies
+# fly on 0/1 (right) and 3/4 (left), bugs 4, 5 and 11 also rest on 2; beetles walk on 0/1 and 3/4
+# and fly on 2 / 5; beetle 17 (Hiding Beetle) plays dead on 2 / 5 at alpha 0.5 (0x4169C3);
+# dragonflies rest on 0 and fly on 2 (right) / 5 (left); spiders walk on 0/1 and 3/4 and drop on
+# 2, fading to alpha 2 x (92 - t) / 100 once t > 50 (0x416A82), no shadow while they drop.
+
+GREENHOUSE_SIZES = (70, 85, 99)
+BUG_SHEET = ("small_bugs.png", 12, 24)
+SHADOW_SMALL = "shadowsmall.png"
+PLAYS_DEAD = 16
+SPIDER_FADE = (51, 70, 90)
+
+
+def greenhouse_frames(bug: int) -> tuple:
+    family = bug // 12
+    if family == 0:
+        return (0, 1, 3, 4) + ((2,) if bug in (3, 4, 10) else ())
+    if family == 1:
+        return (0, 1, 3, 4, 2, 5)
+    if family == 2:
+        return (0, 2, 5)
+    return (0, 1, 3, 4, 2)
+
+
+def _shadowed(bug: int, frame: int) -> bool:
+    return bug // 12 in (1, 3) and frame in (0, 1, 3, 4)
+
+
+def bug_views(bug: int) -> tuple:
+    """(key, label) of every composed picture the game draws of the bug."""
+    out = []
+    for frame in greenhouse_frames(bug):
+        for size in GREENHOUSE_SIZES:
+            out.append((f"g{size}_{frame}", f"In the greenhouse: frame {frame + 1}, {size}% size "
+                                            "(its size is random, 70-99%)" + (", on its shadow" if _shadowed(bug, frame) else "")))
+    if bug == PLAYS_DEAD:
+        for frame in (2, 5):
+            out.append((f"dead{frame}", f"In the greenhouse: playing dead, frame {frame + 1} (50% see-through, 85% size)"))
+    if bug // 12 == 3:
+        for t in SPIDER_FADE:
+            out.append((f"drop{t}", f"In the greenhouse: dropping, fading ({_fade(t)}% strong, 85% size)"))
+    out.append(("jar", "On the Collections screen, in its jar"))
+    if bug // 12 == 3:
+        out.append(("web", "On the Collections screen, on the web (the spider of the day)"))
+    return tuple(out)
+
+
+def _fade(t: int) -> int:
+    from pictures_plant import f32
+    return int(round(f32(f32(2.0 * (92 - t)) / 100.0) * 100))
+
+
+def bug_picture(bug: int, view: str) -> Picture:
+    name, cols, rows = BUG_SHEET
+    if view == "jar":
+        return collection_picture(bug)
+    if view == "web" and bug // 12 == 3:
+        return collection_picture(bug, on_web=True)
+    if view.startswith("g") and "_" in view:
+        size, frame = (int(v) for v in view[1:].split("_"))
+        if size in GREENHOUSE_SIZES and frame in greenhouse_frames(bug):
+            pieces = [Piece(SHADOW_SMALL, 0, 0, scale=size)] if _shadowed(bug, frame) else []
+            pieces.append(Piece(name, 0, 0, cols, rows, 6 * bug + frame, scale=size))
+            return Picture(view, "Bugs", view, tuple(pieces))
+    if view.startswith("dead") and bug == PLAYS_DEAD and view[4:] in ("2", "5"):
+        a = plant_alpha(0.5)
+        return Picture(view, "Bugs", view, (Piece(SHADOW_SMALL, 0, 0, scale=85),
+                                            Piece(name, 0, 0, cols, rows, 6 * bug + int(view[4:]), alpha=a, scale=85)))
+    if view.startswith("drop") and bug // 12 == 3 and view[4:].isdigit() and int(view[4:]) in SPIDER_FADE:
+        from pictures_plant import f32
+        alpha = f32(f32(2.0 * (92 - int(view[4:]))) / 100.0)
+        return Picture(view, "Bugs", view, (Piece(name, 0, 0, cols, rows, 6 * bug + 2, alpha=plant_alpha(alpha),
+                                                  scale=85),))
+    raise PictureError("The game does not draw this bug that way.")
+
+
 # ------------------------------------------------------------------ rendering
 
 
@@ -505,6 +586,13 @@ class Composer:
         for sheet in art.sheets:
             if sheet.readable:
                 self._by_name.setdefault(sheet.name.casefold(), sheet)
+
+    @classmethod
+    def of(cls, art) -> "Composer":
+        composer = getattr(art, "_composer", None)
+        if composer is None:
+            composer = art._composer = cls(art)
+        return composer
 
     def image(self, name: str) -> Image:
         sheet = self._by_name.get(name.casefold())
@@ -660,7 +748,4 @@ def render(art, spec: dict) -> Image:
     picture = by_key(art.game).get(str(spec.get("picture") or ""))
     if picture is None:
         raise PictureError("Pick a picture.")
-    composer = getattr(art, "_composer", None)
-    if composer is None:
-        composer = art._composer = Composer(art)
-    return composer.render(picture)
+    return Composer.of(art).render(picture)

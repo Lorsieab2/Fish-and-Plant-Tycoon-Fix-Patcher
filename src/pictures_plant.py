@@ -800,6 +800,15 @@ SOIL_LOOKS = (("none", "No soil"), ("soil", "Soil"), ("planted", "Soil, planted"
 SOIL_LEVELS = (0, 1, 2)              # 0x41DDE0: no soil upgrade, the first, the second
 
 
+def bug_picture_options(bug: int) -> tuple:
+    """The Bugs tab's pictures of a bug: its 6 cells, its leaf, and the game's compositions
+    (pictures_screens.bug_views)."""
+    import pictures_screens as ps
+    return (tuple(Option(f, f"Frame {f + 1}") for f in range(BUG_FRAMES))
+            + (Option("leaf", "Its leaf on the Collections screen"),)
+            + tuple(Option(key, label) for key, label in ps.bug_views(bug)))
+
+
 def bug_label(bug: int) -> str:
     return f"{bug + 1}. {BUG_NAMES[bug]} ({bug_rarity(bug)})"
 
@@ -1095,14 +1104,14 @@ class Renderer:
                     "whole repainted nursery building)."),
             Subject("bug", "Bugs",
                     (Field("bug", "Bug", tuple(Option(b, bug_label(b)) for b in range(BUG_COUNT)), 0),
-                     Field("frame", "Picture", tuple(Option(f, f"Frame {f + 1}") for f in range(BUG_FRAMES))
-                           + (Option("leaf", "Its leaf on the Collections screen"),), 0)),
-                    "The 48 collectible bugs, numbered in the game's (and the Collections screen's) order: each "
-                    "of its 6 pictures in small_bugs.png (the greenhouse picks one by what the bug is doing), and "
-                    "its leaf on the Collections screen. Drawn at full strength: in the greenhouse the game draws "
-                    "each bug see-through, at a strength it picks at random (70-99%), and on the Collections screen "
-                    "at its own size over its leaf (spiders on a web); those compositions are not offered, as their "
-                    "places and sizes are not ported yet."),
+                     Field("frame", "Picture", bug_picture_options(0), 0)),
+                    "The 48 collectible bugs, numbered in the game's (and the Collections screen's) order, with the "
+                    "game's rarity: each of its 6 pictures in small_bugs.png, its leaf on the Collections screen, "
+                    "and the bug as the game draws it: in the greenhouse at the size the game picks at random when "
+                    "it comes (70-99%; samples at 70, 85 and 99%), on its shadow when it walks (beetles, spiders), "
+                    "the Hiding Beetle playing dead (half see-through) and a spider fading as it drops; and on the "
+                    "Collections screen in its jar over its leaf (the spider of the day on its web). The game draws "
+                    "a bug see-through only in those two cases; its 70-99% is its size."),
             Subject("pot", "Pots",
                     (Field("style", "Pot", styles, 0),
                      Field("soil", "Soil", tuple(Option(k, label) for k, label in SOIL_LOOKS), "soil"),
@@ -1160,6 +1169,12 @@ class Renderer:
         if subject == "screens":
             import pictures_screens as ps
             return {"picture": ps.fields(self.game_art(), spec)["picture"]}
+        if subject == "bug":
+            try:
+                bug = int(spec.get("bug", 0))
+            except (TypeError, ValueError):
+                bug = 0
+            return {"frame": bug_picture_options(bug if 0 <= bug < BUG_COUNT else 0)}
         if subject != "items":
             return {}
         fields = self._item_fields(spec)
@@ -1192,6 +1207,9 @@ class Renderer:
                 out += [(folder, f"{bug_label(b)} - Frame {f + 1}", {"subject": "bug", "bug": b, "frame": f})
                         for f in range(BUG_FRAMES)]
                 out.append((folder, f"{bug_label(b)} - Collections leaf", {"subject": "bug", "bug": b, "frame": "leaf"}))
+                import pictures_screens as ps
+                out += [(folder, f"{bug_label(b)} - {label}", {"subject": "bug", "bug": b, "frame": key})
+                        for key, label in ps.bug_views(b)]
             return out
         if subject == "unused":
             import breeding_plant as bp
@@ -1268,4 +1286,11 @@ class Renderer:
         if spec.get("subject") == "screens":
             import pictures_screens as ps
             return ps.render(self.game_art(), spec)
+        frame = spec.get("frame")
+        if spec.get("subject") == "bug" and isinstance(frame, str) and frame != "leaf" and not frame.isdigit():
+            import pictures_screens as ps
+            bug = int(spec.get("bug", 0))
+            if not 0 <= bug < BUG_COUNT:
+                raise PictureError("Pick a bug.")
+            return ps.Composer.of(self.game_art()).render(ps.bug_picture(bug, frame))
         return composite(self.sheets, self.plan_custom(spec))

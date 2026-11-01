@@ -129,6 +129,22 @@ class PlantNumbersAreTheGames(unittest.TestCase):
         self.assertIn("cmp ecx, 0x64", code)
         self.assertIn("mov ecx, 1", code)
 
+    def test_bugs_as_the_greenhouse_and_collections_draw_them(self) -> None:
+        code = [f"{i.mnemonic} {i.op_str}" for i in disassemble(PLANT_EXE, 0x41780F, 0x417828)]
+        self.assertEqual((code[0], code[-1]), ("push 0x1e", "add eax, 0x46"), "size = 70 + Random(30) percent")
+        self.assertEqual(pushes(PLANT_EXE, 0x4169AD, 0x4169B2), [0xAF], "shadowsmall.png under a walking bug")
+        import pictures_plant_data as D
+        self.assertEqual(D.SPRITES[0xAF][0], S.SHADOW_SMALL)
+        data = PLANT_EXE.read_bytes()
+        import pefile
+        pe = pefile.PE(str(PLANT_EXE), fast_load=True)
+        at = pe.get_offset_from_rva(0x467434 - 0x400000)
+        self.assertEqual(struct.unpack("<f", data[at:at + 4])[0], 0.5, "playing dead: alpha 0.5")
+        code = [f"{i.mnemonic} {i.op_str}" for i in disassemble(PLANT_EXE, 0x4194C9, 0x4194D6)]
+        self.assertIn("mov eax, 9", code)
+        self.assertIn("mov eax, 0x2b", code)
+        self.assertEqual(S.JAR_REST, (9, 0x2B))
+
     def test_collections_tables(self) -> None:
         import pefile
         pe = pefile.PE(str(PLANT_EXE), fast_load=True)
@@ -168,6 +184,28 @@ class Pictures(unittest.TestCase):
                     self.assertGreater(image.width, 0, picture.key)
         for art, key in ((self.fish, "screen:tank1"), (self.plant, "screen:greenhouse")):
             self.assertEqual((S.render(art, {"picture": key}).width, S.render(art, {"picture": key}).height), (800, 600))
+
+    def test_bug_pictures(self) -> None:
+        import pictures_plant as pp
+        composer = S.Composer(self.plant)
+        sheet = composer.image("small_bugs.png")
+        shadow = composer.image("shadowsmall.png")
+        for bug in range(48):
+            for key, _label in S.bug_views(bug):
+                image = composer.render(S.bug_picture(bug, key))
+                self.assertGreater(image.width, 1, (bug, key))
+        # the Ladybug (15) walking, at 70%: its shadow, then the bug, both at 70%
+        cell = sheet.sub(*pi.cell_rect(sheet.width, sheet.height, 12, 24, 6 * 14)[:2], 35, 35)
+        expected = pi.Image(24, 24)
+        expected.draw(pp.resample(shadow, 70), 0, 0)
+        expected.draw(pp.resample(cell, 70), 0, 0)
+        same(self, composer.render(S.bug_picture(14, "g70_0")), expected, "Ladybug at 70%")
+        self.assertEqual([k for k, _l in S.bug_views(24)][:3], ["g70_0", "g85_0", "g99_0"])
+        self.assertIn("web", [k for k, _l in S.bug_views(40)])
+        self.assertNotIn("web", [k for k, _l in S.bug_views(14)])
+        self.assertIn("dead2", [k for k, _l in S.bug_views(16)])
+        with self.assertRaises(pi.PictureError):
+            S.bug_picture(0, "g70_2")             # the Blue Butterfly never rests on frame 3
 
     def test_pinned(self) -> None:
         import picture_formats as F

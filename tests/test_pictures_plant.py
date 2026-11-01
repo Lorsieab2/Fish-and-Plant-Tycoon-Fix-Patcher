@@ -824,7 +824,7 @@ class ChoicesTests(unittest.TestCase):
         with self.assertRaises(pi.PictureError):
             self.renderer.plan_custom({"subject": "unused", "part": "2:0"})
         self.assertEqual(len(subjects["decoration"].fields[0].options), 15)
-        self.assertEqual([len(f.options) for f in subjects["bug"].fields], [48, 7])
+        self.assertEqual([len(f.options) for f in subjects["bug"].fields], [48, 7 + 13])   # + the Blue Butterfly drawn by the game (pictures_screens.bug_views)
         self.assertEqual([len(f.options) for f in subjects["pot"].fields], [7, 3, 3, 2])
         for spec in ({"subject": "decoration", "ornament": 9}, {"subject": "bug", "bug": 47, "frame": 5},
                      {"subject": "pot", "style": 6, "soil": "planted", "level": 2, "wet": True}):
