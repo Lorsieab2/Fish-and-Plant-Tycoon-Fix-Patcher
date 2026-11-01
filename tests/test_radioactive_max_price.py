@@ -56,8 +56,8 @@ MARK, F_MARK = 0x58414D52, 0x48          # "RMAX" in the fish record's +0x48
 RADIOACTIVE, POT_MARK, SALE_KEPT = 0x52, 0x9F, 0x53
 SECOND_BASE = 0x18000000                 # where the second DLL is mapped
 
-FISH_SENTENCE = "Treated fish sell for the highest possible price!"
-FISH_SENTENCE_DE = "Behandelte Fische werden zum Höchstpreis verkauft!"
+FISH_SENTENCE = "Allows treated fish to sell at max price, regardless of their set value."   # the owner's words
+FISH_SENTENCE_DE = "Behandelte Fische bringen den Höchstpreis, egal welcher Preis eingestellt ist."
 PLANT_SENTENCE = "Treated plants sell for the highest possible price!"
 
 
@@ -407,7 +407,8 @@ class FishSales(unittest.TestCase):
             self.roll(rig, scene)
             self.assertEqual(rig.get(S_MONEY), 1000 + paid, dosed)
             self.assertEqual(rig.get(S_EARNED), paid, "Money Earned")
-            self.assertEqual(rig.emu.read32(scene + 0x28), paid, "the sold fish's price in the selling scene")
+            # The selling scene shows the asking price; the treated price goes beside it (test_treated_price_display).
+            self.assertEqual(rig.emu.read32(scene + 0x28), ASKING, "the sold fish's asking price in the selling scene")
             self.assertEqual(rig.get(S_SOLD), 1)
             self.assertEqual(rig.emu.read32(entry_at(rig.state, 7, 7) + 0x20), ASKING, "the asking price is back")
             at = rig.state + FISH_BASE + 2 * TANK + 5 * SLOT
@@ -801,7 +802,8 @@ class Texts(unittest.TestCase):
         rules = {
             "fish": {
                 "Radioactive Growth Hormone: not in the unpatched game.": ("ds_store", (
-                    "Treated fish sell for the highest possible price", "2B - 1", "Advertising",
+                    "Treated fish sell for the highest possible price", FISH_SENTENCE, "2B - 1", "Advertising",
+                    "Treated: $475", "Species Chart", "Fish Store",
                     "decided by your asking price", "Random(900)", "real-time second", "ClonaFish clone",
                     "Tanks 4-6", "saves and loads", "real time or age steps", "Babies are never treated",
                     "dies", "thrown away", "$475")),

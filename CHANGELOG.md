@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.0.21
+
+- **Fish Tycoon: the treated price is shown beside the price you set** (DS
+  Store Items). A fish treated with the Radioactive Growth Hormone sells for
+  its species' highest selling price whatever asking price is set, so the two
+  screens that show a price you set now show the treated price too, for a
+  treated fish only: the Fish Store (the selling screen Sell Fish opens) shows
+  the sold fish's "Price: $40" (the price you set) with "Treated: $475" (what
+  it was paid) at the foot of the sold fish's box, and the Species Chart (the
+  window where you set the price, for the fish in the isolation tank) shows
+  "Treated: $475" under "Price: $40", following the price as you change it.
+  The number is exactly what the sale pays. Nothing is added in the tanks
+  (the Sale Tank included), and untreated fish look as before. The
+  Radioactive Growth Hormone's store description and Game Mechanics now say
+  "Allows treated fish to sell at max price, regardless of their set value."
+
 ## v1.0.20
 
 - **Fixed: Copy Player Slot found no empty slot** when the player list still

@@ -365,7 +365,9 @@ is untouched. Each dose:
   that one call, so the sale's three uses of it agree: the money
   (`state + 0x38C`), Money Earned (`state + 0x20`) and the sold fish's price in
   the selling scene (`0x4236D0`, scene `+0x28`). The asking price goes back
-  and the mark is cleared after. The roll that chose the fish is over, so the
+  and the mark is cleared after; scene `+0x28` is then set back to the asking
+  price, and the scene, asking price and price paid are kept for the display
+  below. The roll that chose the fish is over, so the
   chance and the 5-second pause are the asking price's.
 - **The price.** `native/common/max_sale_price.h`, a port of the Breeding
   Guide's `prices(key, "max").highest_selling`: 2B - 1 with B the species'
@@ -373,6 +375,25 @@ is untouched. Each dose:
   3; never less than the asking price. A Golden Guppy: $475.
 - **Cleared** at the sale, at death (`stub_death`, the dead path), by the
   trash (`fish_trashed`) and by the Revival Potion.
+- **The treated price, shown** (owner, 2026-10-31: "put the 'treated' price
+  beside the normal 'set' price", only "in the selling screen when fish are
+  sold" and the window where prices are set, never in a tank). The game's
+  "$%d" (`0x443B00`) is pushed in exactly two places, each drawn by a
+  `call 0x408B80` (left-aligned text, esi = the screen); both calls go to the
+  DLL (sites `chart_price`, `sold_price`), which draws the stock text as is
+  and then, for a treated fish only, "Treated: $<sale_price>" in the default
+  font and the price's colour:
+  - the Species Chart, `0x425356` in its draw `0x4252C0`: the isolation
+    tank's fish (tank 3, record 0, whose body and fin the chart reads at
+    `state + 0xF9A0`) when it is marked; the line goes under "Price:" at
+    (560, y + 26), inside the price box (the chart's font leaves no room
+    beside the price);
+  - the Fish Store, `0x4239CC` in its draw `0x423800`: the last sold fish,
+    when it was marked (`on_fish_sale` keeps the scene, the asking price now
+    in scene `+0x28` and the price paid); the line is centred at the foot of
+    the sold fish's box (25-209, y 507), the price box (220-428) being full.
+  The tanks show no price (their info panel is the name and age), so nothing
+  is added there. `tests/test_treated_price_display.py` runs both stock draws.
 
 ## Revival Potion (item 30)
 

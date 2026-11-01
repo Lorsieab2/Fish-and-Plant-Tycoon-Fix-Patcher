@@ -84,7 +84,10 @@ Fish Tycoon options:
   Moray Eel and Exotic Fish Eggs, the Radioactive Growth Hormone (every fish
   in the tank on screen: pregnant ones give birth, then the fish that were
   there get full health, are cured and young ones become adults; the newborns
-  stay babies), the Revival Potion (revives the
+  stay babies; it allows treated fish to sell at max price, regardless of
+  their set value, and the Fish Store and the Species Chart show that
+  "Treated: $475" price beside the price you set, never in a tank), the
+  Revival Potion (revives the
   tank's dead fish), ClonaFish (clones every unique fish), Muta-Fin and
   Muta-Body ($2,500 each, 3 doses: the Unknown Chemical for the fins only
   or the bodies only), and the

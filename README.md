@@ -210,7 +210,10 @@ never needs the internet.
   price, 2B - 1 with B its base price after both Advertising levels (the
   Breeding Guide's "Highest selling" with Max effects; a Golden Guppy pays
   $475), instead of your asking price. Which fish sells and when still follow
-  your asking price. The mark stays with the fish through moves between tanks,
+  your asking price. The treated price is shown beside the price you set, for
+  a treated fish only: "Treated: $475" under the sold fish's "Price: $40" in
+  the Fish Store (the selling screen), and under "Price: $40" on the Species
+  Chart (where you set the price); nowhere else, not in any tank. The mark stays with the fish through moves between tanks,
   saves and ClonaFish clones (a clone of a treated fish is treated too), never
   passes to babies, and ends when the fish is sold, dies or is thrown away.
   Picture:

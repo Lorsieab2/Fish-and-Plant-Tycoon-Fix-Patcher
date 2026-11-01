@@ -588,21 +588,28 @@ MAGIC_HOW = (
 # The Radioactive Growth Hormone's price rule (DS Store Items, the owner 2026-10-31: "Always pays the
 # max"; native/ftfp_ds_store/ftfp_ds_store.c, on_fish_sale), shown under the hormone and in Selling.
 RADIOACTIVE_PRICE = (
+    "Allows treated fish to sell at max price, regardless of their set value. "
     "Treated fish sell for the highest possible price: each fish a dose heals (every fish that was in "
     "the tank before the births) is marked as treated. When a treated fish is sold, from the Sale Tank, "
     "or from Tanks 4-6 with 3 extra tanks, you are paid its species' highest selling price, 2B - 1, with "
     "B the species' base price after both Advertising research levels (B + B/10, then + B/7, each "
     "rounded down) whatever you have researched, instead of your asking price: the Breeding Guide's "
     "Highest selling with Max effects. Example: a treated Golden Guppy (B = 190) always sells for "
-    "$475. That one price is what the sale adds to your money and to Money Earned, and what the "
-    "selling scene shows for the sold fish. Which fish sells and when is still decided by your asking "
+    "$475. That one price is what the sale adds to your money and to Money Earned. Which fish sells and when is still decided by your asking "
     "price, exactly as for any fish: the same Random(900) roll once a real-time second (see Selling "
     "and customers). The mark is part of the fish's record, so it stays with the fish through moves "
     "between tanks, the isolation tank, Tanks 4-6, every slot with Bigger tanks, saves and loads, and "
     "no time passing (real time or age steps) wears it off. A ClonaFish clone of a treated fish is "
     "treated too (it is an exact copy). Babies are never treated: neither the dose's newborns nor any "
     "later baby. The mark ends when the fish is sold, dies (a fish the Revival Potion brings back is "
-    "not treated) or is thrown away."
+    "not treated) or is thrown away. "
+    "The treated price is shown beside the price you set, for a treated fish only, in two places: "
+    "the Fish Store (the selling screen Sell Fish opens, where fish are sold), where the sold fish's "
+    "panel shows \"Price: $40\" (your asking price) and \"Treated: $475\" (what it was paid) at the "
+    "foot of the sold fish's box; and the Species Chart (the window where you set a price, for the "
+    "fish in the isolation tank), where \"Treated: $475\" is under \"Price: $40\" and follows the price "
+    "as you change it. The number shown is exactly what the sale pays. It is shown nowhere else: not "
+    "in any tank (the Sale Tank included), and an untreated fish's prices look as in the unpatched game."
 )
 
 CONSUMABLES = (
