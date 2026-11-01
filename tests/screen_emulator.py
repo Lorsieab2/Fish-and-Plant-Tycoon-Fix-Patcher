@@ -61,13 +61,21 @@ class Game:
     button: int            # thiscall button constructor (id, sprite, x, y, parent, extra)
     label: int             # thiscall label setter (text, normal, over, pressed, font)
     quiet: tuple = ()      # (address, pop): calls that do nothing here (free, image loading)
+    images: tuple = ()     # the quiet calls tests/draw_emulator.py runs or answers itself
 
 
 GAMES = {
-    "fish": Game(0x42A793, 0x427050, 0x41BC90, 0x401BD0, 0, ((0x42A6B1, 0), (0x409540, 4), (0x409AB0, 4), (0x409F00, 0), (0x4251A0, 0))),
+    "fish": Game(0x42A793, 0x427050, 0x41BC90, 0x401BD0, 0, ((0x42A6B1, 0), (0x409540, 4), (0x409AB0, 4), (0x409F00, 0), (0x4251A0, 0)),
+                 (0x409540, 0x409AB0, 0x409F00)),
     "plant": Game(0x44E894, 0x44CA70, 0x420460, 0x401B60, 0x401570,
-                  ((0x44E7B3, 0), (0x420550, 4), (0x40A4D0, 4))),
+                  ((0x44E7B3, 0), (0x420550, 4), (0x40A4D0, 4)), (0x420550, 0x40A4D0)),
 }
+
+
+# Windows calls whose pushes the caller interleaves with its own (the guess from the pushes before
+# the call would count those too): what each pops.
+STDCALL_POPS = {"GetModuleFileNameA": 12, "GetPrivateProfileIntA": 16, "GetPrivateProfileStringA": 24,
+                "WritePrivateProfileStringA": 16, "timeGetTime": 0, "GetTickCount": 0}
 
 
 def available(game: str = "plant") -> bool:
@@ -79,7 +87,9 @@ def available(game: str = "plant") -> bool:
 
 
 class ScreenEmulator:
-    def __init__(self, game: str = "plant") -> None:
+    def __init__(self, game: str = "plant", widgets: bool = False) -> None:
+        """`widgets`: the buttons and sprites are the game's own (tests/draw_emulator.py makes
+        them); otherwise the button constructor and label setter are recorded, not run."""
         self.game = game
         g = self.g = GAMES[game]
         exe = EXES[game].read_bytes()
@@ -94,13 +104,15 @@ class ScreenEmulator:
         self._string_at: dict[int, int] = {}
         emu.hook(g.new, lambda e: self._zeroed(max(1, e.arg(0))), 0)
         emu.hook(g.lookup, self._lookup, 4)
-        emu.hook(g.sprite, lambda e: SPRITE_MARK | e.arg(0), 4)
-        emu.hook(g.button, self._button, 0x18)
-        if g.label:
-            emu.hook(g.label, self._label, 0x14)
+        if not widgets:
+            emu.hook(g.sprite, lambda e: SPRITE_MARK | e.arg(0), 4)
+            emu.hook(g.button, self._button, 0x18)
+            if g.label:
+                emu.hook(g.label, self._label, 0x14)
         self.calls: list = []
         for address, pop in g.quiet:
-            emu.hook(address, lambda e: 0, pop)
+            if not (widgets and address in g.images):
+                emu.hook(address, lambda e: 0, pop)
         self._stub_imports(exe)
         import pefile
         pe = pefile.PE(data=exe, fast_load=True)
@@ -148,7 +160,11 @@ class ScreenEmulator:
             for imp in entry.imports:
                 thunk = emu.thunk()
                 emu.write32(imp.address, thunk)
-                emu.hook(thunk, self._stdcall_stub if stdcall else (lambda e: 0), 0)
+                name = (imp.name or b"").decode("latin-1")
+                if stdcall and name in STDCALL_POPS:
+                    emu.hook(thunk, lambda e: 0, STDCALL_POPS[name])
+                else:
+                    emu.hook(thunk, self._stdcall_stub if stdcall else (lambda e: 0), 0)
 
     def _stdcall_stub(self, emu: Emulator) -> int:
         """A Windows import: pop what the caller pushed (moving the return address up)."""

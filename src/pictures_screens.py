@@ -123,13 +123,21 @@ def say(x: int, y: int, *parts, font: int = 0, colour: int = 0, align: str = "le
     return Piece("", x, y, text=Text(tuple(parts), font, colour, align, x2))
 
 
-def label(file: str, x: int, y: int, part, colour: int = 0xFFFFFFFF, frame: int = 0) -> tuple:
+def label(file: str, x: int, y: int, part, colour: int = 0xFFFFFFFF, frame: int = 0, dim: bool = False) -> tuple:
     """A button and its label as the button draws them (Fish 0x4011F0, Plant 0x4011B0): the label
     centred in the frame (by the font's line height), 2 right and down when pressed, in the
-    colour the button was given for that state."""
+    colour the button was given for that state. `dim`: Plant Tycoon's disabled button, frame 0
+    dimmed and its label drawn twice at the same place, in its normal colour and then in the
+    disabled colour [0x47A0FC] = 0x80646464 (0x40131F: the second draw at the first one's x, y)."""
     shift = 2 if frame == 2 else 0
-    return (Piece(file, x, y, cols=3, rows=1, cell=frame),
-            Piece("", x + shift, y + shift, text=Text((part,), 0, colour, "button", 0, file)))
+    button = Piece(file, x, y, cols=3, rows=1, cell=0 if dim else frame, dim=dim)
+    words = Piece("", x + shift, y + shift, text=Text((part,), 0, colour, "button", 0, file))
+    if dim:
+        return button, words, Piece("", x, y, text=Text((part,), 0, PLANT_DIM, "button", 0, file))
+    return button, words
+
+
+PLANT_DIM = 0x80646464                    # [0x47A0FC]: a disabled button's tint and its label's colour
 
 
 def ident(n: int) -> tuple:
@@ -559,6 +567,63 @@ def plant_question(c, text: int, cancel: bool, green: bool) -> list:
     return out
 
 
+# The Options dialog (0x42AF10, opened by the main menu's button 3; its draw 0x42B710): the
+# GreenDlgTileGrid picture for 640 x 508 (0x40D160), so 10 x 8 tiles, centred by 0x401D20 at
+# (80, 44); its words and radio buttons at L = the dialog's left and T = its top + (512 - 508) / 2
+# (0x42B13D..0x42B17C); the title centred at (400, T + 20). The text colour [0x493C70] is never
+# written: 0, the text draw's default, white (0x408E7E, [0x47A27C]).
+PLANT_OPTIONS_SIZE = (0x280, 0x1FC)
+PLANT_OPTIONS_WORDS = ((ident(0x2D), 0x32, 0x3C), (ident(0x2E), 0x32, 0x78), (ident(0x2F), 0x32, 0xAE),
+                       (at(0x469428), 0xD8, 0xCC), (at(0x469424), 0x14C, 0xCC), (at(0x469420), 0x1C0, 0xCC),
+                       (at(0x46941C), 0x234, 0xCC),
+                       (ident(0x3B), 0x32, 0xEF), (ident(0x3C), 0xC8, 0x10D), (ident(0x3D), 0x13C, 0x10D),
+                       (ident(0x32), 0x32, 0x130), (ident(0x33), 0xC5, 0x14E), (ident(0x38), 0x12F, 0x14E),
+                       (ident(0x35), 0x1AD, 0x14E),
+                       (ident(0x36), 0x32, 0x171), (ident(0x37), 0xB1, 0x18F), (ident(0x39), 0x138, 0x18F),
+                       (ident(0x38), 0x1A3, 0x18F), (ident(0x3A), 0x221, 0x18F))
+PLANT_OPTIONS_RADIO_XS = (0xC8, 0x13C, 0x1B0, 0x224)
+PLANT_OPTIONS_SPEEDS = (9999, 15, 10, 2)        # [game + 0x534]: Stop Time, Slow, Normal, Fast
+PLANT_OPTIONS_CHECK_XS, PLANT_OPTIONS_CHECK_Y = (0xC8, 0x13C, 0x1B0, 0x224), 0xAE   # the music tracks
+
+
+def plant_options(c, sound: float = 1.0, music: float = 0.5, windowed: bool = True, difficulty: int = 1,
+                  speed: int = 2, tracks: tuple = (True, False, False, False), fullscreen_row: bool = True) -> list:
+    """The Options dialog as 0x42B710 and its widgets draw it. The Fullscreen row only when
+    ldw.ini forces neither (0x42B0FB); the slider handles at L + 0xCC + trunc(volume x 236); a
+    radio: radioselected.png for the setting, radioblank.png for the others; the music tracks'
+    check boxes (0x40B1E0, CheckboxStrip.png at the dialog's top + 0xAE) ticked is frame 2, not ticked frame 1
+    (0x40AC13: the frame is min(state, cols / 2 - 1), + cols / 2 when ticked); "Done" on
+    widePTButton02.png centred across, 2 x (7 - h) above the bottom (0x42B252)."""
+    import pictures_plant as pp
+    w, h = _tile_size(*PLANT_OPTIONS_SIZE)
+    left, top = cdiv(800 - w, 2), cdiv(600 - h, 2)
+    L, T = left, top + cdiv(h - PLANT_OPTIONS_SIZE[1], 2)
+    out = dialog_tiles("GreenDlgTileGrid.png", w, h, left, top)
+    out.append(say(cdiv(w, 2) + left, T + 0x14, ident(9), align="centre"))
+    if fullscreen_row:
+        out += [say(L + x, T + y, part) for part, x, y in PLANT_OPTIONS_WORDS[7:10]]
+        out += _radios(L, T + 0xEF, 2, 1 if windowed else 0)
+    out += _radios(L, T + 0x171, 4, speed)
+    out += [say(L + x, T + y, part) for part, x, y in PLANT_OPTIONS_WORDS[14:]]
+    out += _radios(L, T + 0x130, 3, difficulty)
+    out += [say(L + x, T + y, part) for part, x, y in PLANT_OPTIONS_WORDS[10:14]]
+    for k, volume in enumerate((sound, music)):
+        y = T + (0x3C, 0x78)[k]
+        out += [Piece("WideSlider2.png", L + 0xC8, y),
+                Piece("sliderhandle.png", L + 0xCC + int(pp.f32(volume) * 236.0), y)]
+    out += [say(L + x, T + y, part) for part, x, y in PLANT_OPTIONS_WORDS[:7]]
+    bw, bh = c.cell_size("widePTButton02.png", 3, 1)
+    out += label("widePTButton02.png", left + cdiv(w, 2) - cdiv(bw, 2), top + h + 2 * (7 - bh), ident(0x192))
+    for x, ticked in zip(PLANT_OPTIONS_CHECK_XS, tracks):
+        out.append(Piece("CheckboxStrip.png", left + x, top + PLANT_OPTIONS_CHECK_Y, cols=2, rows=1, cell=1 if ticked else 0))
+    return out
+
+
+def _radios(L: int, y: int, n: int, chosen: int) -> list:
+    return [Piece("radioselected.png" if k == chosen else "radioblank.png", L + PLANT_OPTIONS_RADIO_XS[k], y)
+            for k in range(n)]
+
+
 def plant_pot_words() -> list:
     """A picked pot's words (0x428250 / 0x4286E6 and the helpers 0x44CD80 / 0x44CB30, 0x4232F0):
     its name centred at (118, 254), "NA" seeds at (62, 302), "Age:" and the age, its state at
@@ -648,14 +713,26 @@ def _plant_pictures() -> list:
         out.append(Picture(f"message:{text:x}", dialogs, "Message box (a real message)", (),
                            make=lambda c, t=text: plant_message(c, t)))
     for frame in (0, 1):
-        out.append(Picture(f"checkbox{frame}", buttons, f"Options: check box, frame {frame + 1} of 2",
+        out.append(Picture(f"checkbox{frame}", buttons, f"Options: music track check box - {('not ticked', 'ticked')[frame]}",
                            (Piece("CheckboxStrip.png", 0, 0, cols=2, rows=1, cell=frame),)))
     for file, where in PLANT_BUTTONS:
         for frame, state in PLANT_STATES:
             piece = _button(file, 0, 0, 0 if frame == "dim" else frame)
             if frame == "dim":
                 piece = Piece(file, 0, 0, cols=3, rows=1, cell=0, dim=True)
-            out.append(Picture(f"button:{file}:{frame}", buttons, f"{where} - {state}", (piece,)))
+            out.append(Picture(f"button:{file}:{frame}", buttons, f"{where} - {state}", (piece,),
+                               unused=frame == "dim"))
+    # a disabled button with its label: the game never disables a button in this version (nothing
+    # clears the enabled byte +0x29 that the constructor 0x401A08 sets), so the look is unused
+    for file, text, colour, where in (("widePTButton.png", ident(0x41), PLANT_LILAC, "Greenhouse: Price"),
+                                      ("sell_button.png", ident(0x184), PLANT_LILAC, "Greenhouse: Sell"),
+                                      ("sell_button.png", ident(0x185), PLANT_LILAC, "Greenhouse: Sell All"),
+                                      ("purplePTButton.png", ident(0x17A), PLANT_LILAC, "Bottom tab bar: Seeds"),
+                                      ("widePTButton.png", ident(0x12), 0xFFFFFFFF, "Message box: OK"),
+                                      ("widePTButton02.png", ident(0x192), 0xFFFFFFFF, "Options: Done")):
+        for frame, state in ((0, "normal"), ("dim", "disabled, its label dimmed")):
+            out.append(Picture(f"labelled:{file}:{text[1]:x}:{frame}", buttons, f"{where} - {state}",
+                               label(file, 0, 0, text, colour, dim=frame == "dim"), unused=frame == "dim"))
     for frame, state in ((0, "closed"), (1, "open (mouse over it)")):
         out.append(Picture(f"trashbin{frame}", buttons, f"Trash bin - {state}",
                            (Piece("trashbin.png", 0, 0, cols=2, rows=1, cell=frame),)))
@@ -674,6 +751,9 @@ def _plant_pictures() -> list:
              say(5, 0x244, ident(0xF), colour=0xFFCCCCCC),                                  # 0x42A274
              say(0x316, 0x244, at(0x4692C4), colour=0xFFCCCCCC, align="right")]             # 0x42A2F6
     out.append(Picture("screen:menu", screens, "Main menu (a sample player name)", tuple(menu), canvas=(800, 600)))
+    out.append(Picture("screen:options", screens, "Options (over the main menu; sample settings: sounds full, music "
+                       "half, windowed, Normal difficulty and speed, music track 1)", (), canvas=(800, 600),
+                       make=lambda c, m=tuple(menu): m + tuple(plant_options(c))))
     out.append(Picture("screen:splash", screens, "Splash", (Piece("SPLASH_BG.jpg", 0, 0),), canvas=(800, 600)))
     green = [Piece("main_bg.png", 0, 0), Piece("trashbin.png", 143, 515, cols=2, rows=1), Piece("hose.png", 0, 0),
              _button("snapshot_button.png", 755, 4), *label("widePTButton.png", 31, 369, ident(0x41), PLANT_LILAC),
@@ -1014,6 +1094,13 @@ class Composer:
         if colour >> 24 == 0:
             colour = 0xFFFFFFFF                       # the default colour: white
         rgb = ((colour & 0xFF) << 16) | (colour & 0xFF00) | ((colour >> 16) & 0xFF)
+        # Plant Tycoon: a colour less than opaque draws each letter with its alpha blit at A / 255
+        # (0x408F21 -> 0x404610), the colour's alpha byte otherwise unused (0x402700 keeps the
+        # letters' own alpha)
+        see_through = self.art.game == "plant" and colour >> 24 != 0xFF
+        if see_through:
+            import pictures_plant as pp
+            alpha = plant_alpha(pp.f32((colour >> 24) / 255.0))
         start = x
         for byte in data:
             if byte == 0x0A:
@@ -1023,7 +1110,9 @@ class Composer:
             if glyph.advance == 0:
                 continue
             letter = tm.tint(glyph.pixels, rgb)
-            if _opaque_under(canvas, x, y, letter.width, letter.height):
+            if see_through:
+                blend(canvas, letter, x, y, alpha)
+            elif _opaque_under(canvas, x, y, letter.width, letter.height):
                 tm.sdl_blend(canvas, letter, x, y)
             else:
                 canvas.draw(letter, x, y)
