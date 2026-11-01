@@ -957,6 +957,16 @@ folder never fails with "path too long".
     the Collections screen. Drawn at full strength: the greenhouse draws a
     bug see-through at a random 70-99%, and the Collections screen at its own
     size over its leaf; those compositions are not offered yet.
+  - Make your own, All game art (both games): every picture file of the
+    game, one picture per sprite cell (the game's own grid from its sprite
+    records), cut exactly as the game cuts it, at full size and strength, by
+    category: Fish Tycoon 3,512 pictures, Plant Tycoon 2,114. Files the
+    game's executable never names are marked "(unused)" (shown whole), the
+    patcher's own art "(patcher)". Not in it yet: the compositions the game
+    builds from several pieces (screens, bars and meters filled and joined,
+    buttons in their states, counters, rope borders, tooltips) and the BMP,
+    JPG and GIF backgrounds (named in the tab's note). It reads the game copy
+    the Studio found (read only).
   - "Save all on this tab..." (Make your own) saves every picture of the tab
     into a new folder (the Items tab: a folder per category); the Fish and
     Plant tabs have too many pictures for it.

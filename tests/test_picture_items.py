@@ -301,6 +301,53 @@ class FishItemsAreTheGames(unittest.TestCase):
              "Extra Supply Slots")
 
 
+@unittest.skipUnless(UNICORN and (FISH / "Assets" / "ft.dat").is_file() and (PLANT / "Images").is_dir(),
+                     "the vanilla games and Unicorn")
+class AllGameArtTests(unittest.TestCase):
+    """The All game art tab: every picture file, one picture per sprite cell, cut as the game cuts it."""
+
+    def test_fish_sprite_table_is_the_games(self) -> None:
+        import pictures_fish_art_table as t
+        emu = fde.FishDrawEmulator({})
+        self.assertEqual(len(t.FISH_SPRITES), fde.SPRITE_COUNT)
+        for k, entry in enumerate(t.FISH_SPRITES):
+            self.assertEqual(emu.table_entry(k), entry, k)
+
+    def test_every_sheet_cell_and_marks(self) -> None:
+        import pictures_game_art as ga
+        for game, folder, table_len in (("fish", FISH, 197), ("plant", PLANT, None)):
+            art = ga.GameArt(game, folder)
+            self.assertEqual(art.problem, "")
+            batch = ga.batch(art)
+            self.assertEqual(len(batch), sum(s.frames for s in art.drawable()))
+            unused = {s.name.casefold() for s in art.sheets if s.unused}
+            exe = next(p for p in folder.glob("*.exe") if p.name.casefold() != "uninst.exe").read_bytes().lower()
+            for name in unused:                       # never named by the executable
+                self.assertNotIn(name.encode(), exe, name)
+            if game == "fish":
+                self.assertTrue({i.whole.casefold() for i in fi.ITEMS if i.unused} <= unused,
+                                "the Items tab's unused art is the same")
+            self.assertTrue(any(s.patcher for s in art.sheets))
+        fish = ga.GameArt("fish", FISH)
+        people = fish.by_key["People_Grid.png"]
+        self.assertEqual((people.cols, people.rows), (20, 7))
+        sheet = FishArt().image("People_Grid.png")
+        same(self, fish.render("People_Grid.png", 45), _whole_cell(sheet, 20, 7, 45), "a customer, frame 46")
+        plant = ga.GameArt("plant", PLANT)
+        heads = plant.by_key["female_heads.png"]
+        sheet = PlantArt().image("female_heads.png")
+        same(self, plant.render(heads.key, 40), _whole_cell(sheet, heads.cols, heads.rows, 40), "a visitor's head")
+        self.assertIn("Chemicals_Grid_upgrades.png", {s.name for s in plant.sheets if s.patcher})
+
+
+def _whole_cell(sheet: pi.Image, cols: int, rows: int, k: int) -> pi.Image:
+    """The cell exactly as cut (not cropped), on a clear canvas."""
+    piece = cell(sheet, cols, rows, k)
+    out = pi.Image(piece.width, piece.height)
+    out.draw(piece, 0, 0)
+    return out
+
+
 class MorayEelTests(unittest.TestCase):
     """The owner's three eel pictures: out of its home (swimming), in its home, its home alone."""
 

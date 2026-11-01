@@ -350,7 +350,9 @@ Tools box; on the mouse; in the tank; owned with the tick; a pot with each
 soil). The patcher's items are marked "(patcher)", and art in the game's
 files that the game never draws is marked "(unused)". Rarities read
 Common, Uncommon and Rare. Plant Tycoon's Bugs tab names the 48 collectible
-bugs in the Collections screen's order, with each one's leaf. With Show Spoilers off
+bugs in the Collections screen's order, with each one's leaf. "All game
+art" has every picture file of the game, one picture per sprite cell, by
+category ("(unused)": a file the game never names). With Show Spoilers off
 (the Breeding Guide's setting) only the parts you have discovered (items are
 always all offered). Pick a PNG size (the game's
 own, 2x, 4x, or your own width and height) and Small margin, then "Save

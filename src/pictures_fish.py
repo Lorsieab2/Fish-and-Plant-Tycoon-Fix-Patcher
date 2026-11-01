@@ -912,7 +912,19 @@ class FishRenderer:
             note="Eggs dropped into a tank, as the game's tank effect draws them (16 pictures as they fall "
                  "and spread, see-through as in the game). The game draws nothing else for an egg: a fish "
                  "is not drawn before it hatches (age 0), then it is a baby (the Fish tab's Baby stage).")
-        return [fish, creature, decoration, eggs, self._items_subject()]
+        import pictures_game_art as ga
+        return [fish, creature, decoration, eggs, self._items_subject(), ga.subject(self.game_art())]
+
+
+    # ---- All game art (pictures_game_art): read straight from the game copy the window found
+    art_copy = None
+
+    def game_art(self):
+        import pictures_game_art as ga
+        if getattr(self, "_art", None) is None or self._art_for != self.art_copy:
+            self._art = ga.GameArt(self.game, self.art_copy)
+            self._art_for = self.art_copy
+        return self._art
 
     # ---- items (pictures_fish_items)
     def _items_subject(self) -> Subject:
@@ -940,7 +952,12 @@ class FishRenderer:
         return {"category": categories, "item": items, "view": views}
 
     def refine_choices(self, subject: str, spec: dict) -> dict:
-        """The options that follow the others' picks (Items: the category's items, the item's pictures)."""
+        """The options that follow the others' picks (Items: the category's items, the item's pictures;
+        All game art: the category's files, the file's frames)."""
+        if subject == "art":
+            import pictures_game_art as ga
+            fields = ga.fields(self.game_art(), spec)
+            return {"sheet": fields["sheet"], "frame": fields["frame"]}
         if subject != "items":
             return {}
         fields = self._item_fields(spec)
@@ -969,6 +986,9 @@ class FishRenderer:
         (sub-folder names, file name, spec), or None for the Fish tab (every body, fin, stage, state,
         facing and frame would be over a hundred thousand pictures)."""
         out = []
+        if subject == "art":
+            import pictures_game_art as ga
+            return ga.batch(self.game_art())
         if subject == "items":
             import pictures_fish_items as fi
             for item in fi.ITEMS:
@@ -1061,4 +1081,7 @@ class FishRenderer:
         raise PictureError("Pick what to draw.")
 
     def render_custom(self, spec: dict) -> pi.Image:
+        if spec.get("subject") == "art":
+            import pictures_game_art as ga
+            return ga.render(self.game_art(), spec)
         return self.render_plan(self.plan_custom(spec))

@@ -183,3 +183,10 @@ Rules for both renderers:
   composition (the rock's centred shadow, DS_EEL_HOME_BACK_Grid frame, DS_EEL_ROCK.png,
   DS_EEL_HOME_FRONT_Grid frame; Field `home_frame`, 0-31: 13 idle, 19 of the snap), "eel_rock" the
   rock alone on its shadow. They left the Decorations tab.
+- Bugs (Plant Tycoon): `BUG_NAMES` by the game's bug number (the name switch 0x418940), the Bugs
+  tab's Picture adds "leaf" (collectionLeafGrid.png cell k, 0x4184BB).
+- All game art (`src/pictures_game_art.py`, subject "art"): every sheet of the game's sprite table
+  (Fish Tycoon `src/pictures_fish_art_table.py`, Plant Tycoon `pictures_plant_data.SPRITES`), every
+  other picture file in the copy ("(unused)" when the executable never names it, by file, stem or
+  numbered stem) and the patcher's assets ("(patcher)"), one picture per cell
+  (`picture_image.cell_rect`), read straight from the copy: the window sets `renderer.art_copy`.

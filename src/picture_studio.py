@@ -67,6 +67,10 @@ HELP = (
         "tick, or a pot with each soil. Items a patcher setting adds are marked \"(patcher)\"; art in the game's "
         "files that the game never draws is marked \"(unused)\" and shown whole. The Moray Eel is on the "
         "Creatures tab three ways: out of its home (swimming), in its home (every frame), and its home alone.",
+        "All game art (both games): every picture file of the game, one picture per sprite cell, cut as the game "
+        "cuts it, by category; files the game's executable never names are \"(unused)\", the patcher's own art "
+        "\"(patcher)\". The game's compositions of several pieces (screens, filled bars, buttons in their "
+        "states ...) are not there yet.",
         "\"Save all on this tab...\" (Make your own) saves every picture the tab offers into a new folder (the "
         "Items tab: a folder per category). The Fish and Plant tabs have too many pictures for it.",
         "States the game never draws are not offered: a plant has no wilting or infested look (the game "
@@ -364,6 +368,7 @@ class PictureStudio:
             copies = breeding_guide.art_copies(game, folder, self.game_parents)
             source = pi.picture_source(game, copies, self.module.required_files(), self.module.patcher_art())
             self.renderer = self.module.load(source)
+            self.renderer.art_copy = copies[0] if copies else None      # All game art reads the copy itself
             if source.problem:
                 problems.append(source.problem)
             # The patcher's parts are always offered, so the discoveries are read with them too

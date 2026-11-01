@@ -1118,7 +1118,19 @@ class Renderer:
                     "A greenhouse pot as the game draws it: wet soil is a pot with more than 500 water; "
                     "planted soil has the mound a plant grows from."),
             self._items_subject(),
+            __import__("pictures_game_art").subject(self.game_art()),
         ]
+
+
+    # ---- All game art (pictures_game_art): read straight from the game copy the window found
+    art_copy = None
+
+    def game_art(self):
+        import pictures_game_art as ga
+        if getattr(self, "_art", None) is None or self._art_for != self.art_copy:
+            self._art = ga.GameArt(self.game, self.art_copy)
+            self._art_for = self.art_copy
+        return self._art
 
     # -------------------------------------------------------------- items (pictures_plant_items)
     def _items_subject(self) -> Subject:
@@ -1145,7 +1157,12 @@ class Renderer:
         return {"category": categories, "item": items, "view": views}
 
     def refine_choices(self, subject: str, spec: dict) -> dict:
-        """The options that follow the others' picks (Items: the category's items, the item's pictures)."""
+        """The options that follow the others' picks (Items: the category's items, the item's pictures;
+        All game art: the category's files, the file's frames)."""
+        if subject == "art":
+            import pictures_game_art as ga
+            fields = ga.fields(self.game_art(), spec)
+            return {"sheet": fields["sheet"], "frame": fields["frame"]}
         if subject != "items":
             return {}
         fields = self._item_fields(spec)
@@ -1154,6 +1171,9 @@ class Renderer:
     def custom_batch(self, subject: str):
         """Every picture of a "Make your own" tab, for its "Save all on this tab...": a list of
         (sub-folder names, file name, spec), or None for the Plant tab (too many)."""
+        if subject == "art":
+            import pictures_game_art as ga
+            return ga.batch(self.game_art())
         if subject == "items":
             import pictures_plant_items as pit
             out = []
@@ -1242,4 +1262,7 @@ class Renderer:
         return self.planner.plan(plant, 0, 0, pot=pot)
 
     def render_custom(self, spec: dict) -> Image:
+        if spec.get("subject") == "art":
+            import pictures_game_art as ga
+            return ga.render(self.game_art(), spec)
         return composite(self.sheets, self.plan_custom(spec))

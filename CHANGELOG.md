@@ -33,6 +33,14 @@
   Rarities in the Studio read Common, Uncommon and Rare (the Uncommon Fish
   Eggs are the store's Unusual Fish Eggs; seed packets: Common, Uncommon and
   Rare for the shop's Common, Endangered and Extinct).
+  A new All game art tab (both games) has every picture file of the game,
+  one picture per sprite cell, cut exactly as the game cuts it (3,512 in Fish
+  Tycoon, 2,114 in Plant Tycoon, by category), with the files the game's
+  executable never names marked "(unused)" and the patcher's own art marked
+  "(patcher)"; "Save all on this tab" saves them all. Not in it yet: the
+  game's compositions of several pieces (screens, bars and meters filled and
+  joined, buttons in their states, counters, rope borders, tooltips) and the
+  BMP, JPG and GIF backgrounds, which the tab names.
 
 ## v1.0.21
 
