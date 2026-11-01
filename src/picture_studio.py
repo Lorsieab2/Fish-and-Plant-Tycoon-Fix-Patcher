@@ -305,11 +305,9 @@ class PictureStudio:
         folder = self.current_folder()
         if folder is not None:
             try:
-                names = save_tools.read_slot_names(self.game_id, folder)
+                self.slots = save_tools.players(self.game_id, folder)
             except (OSError, save_tools.SaveToolError):
-                names = []
-            self.slots = [(slot, name) for slot, name in enumerate(names, start=1)
-                          if save_tools.slot_is_active(self.game_id, folder, slot, name)]
+                self.slots = []
         self.slot_box.configure(values=[f"Player {slot}: {name}" for slot, name in self.slots])
         if self.slots:
             self.slot_box.current(0)

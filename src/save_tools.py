@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
+from datetime import datetime
 import os
 from pathlib import Path
 import re
@@ -138,34 +139,51 @@ def read_slot_names(game_id: str, folder: Path) -> list[str]:
 EMPTY_SLOT_NAME = "NEW PLAYER"     # what the game lists for a slot nobody plays
 
 
+def _is_player_name(name: str | None) -> bool:
+    return bool(name and name.strip()) and name.strip().casefold() != EMPTY_SLOT_NAME.casefold()
+
+
+def _name_inside(fmt: SaveFormat, folder: Path, slot: int) -> str | None:
+    """The player's name inside "<Game><slot>.ldw"; None when the slot has no such file."""
+    path = folder / f"{fmt.title}{slot}.ldw"
+    if not path.is_file():
+        return None
+    try:
+        return _name_at(_read_ldw(path), fmt.slot_name_offset, fmt.max_name + 1)
+    except (OSError, SaveToolError):
+        return ""
+
+
+def player_name(game_id: str, folder: Path, slot: int, listed: str) -> str:
+    """The name of the player in `slot`: the player list's, or, where the list says "NEW PLAYER"
+    but the slot's saved game holds a player, the name inside that save."""
+    if _is_player_name(listed):
+        return listed
+    inside = _name_inside(FORMATS[game_id], folder, slot)
+    return inside if _is_player_name(inside) else listed
+
+
 def slot_is_active(game_id: str, folder: Path, slot: int, name: str) -> bool:
-    """A slot someone plays: a real name in the player list and its saved game on disk."""
+    """A slot someone plays. The game's player slots are the files "<Game>1.ldw" to
+    "<Game>5.ldw": a slot is in use when its file is on disk with a player's name, in the
+    player list or inside the save."""
     fmt = FORMATS[game_id]
-    if not name or name.strip().casefold() == EMPTY_SLOT_NAME.casefold():
+    if not (folder / f"{fmt.title}{slot}.ldw").is_file():
         return False
-    return (folder / f"{fmt.title}{slot}.ldw").is_file()
+    return _is_player_name(player_name(game_id, folder, slot, name))
 
 
 def slot_is_empty(game_id: str, folder: Path, slot: int) -> bool:
-    """A slot that can be copied to: "NEW PLAYER" (or blank) in the player list, not marked as a
-    started game, and no saved game of its own with a player's name in it (the game lists such a
-    slot under that name even when the list says "NEW PLAYER")."""
-    fmt = FORMATS[game_id]
-    settings = _read_ldw(_settings_path(fmt, folder))
-    name = read_slot_names(game_id, folder)[slot - 1]
-    if name.strip() and name.strip().casefold() != EMPTY_SLOT_NAME.casefold():
-        return False
-    if len(settings) > fmt.started_offset + slot - 1 and settings[fmt.started_offset + slot - 1]:
-        return False
-    path = folder / f"{fmt.title}{slot}.ldw"
-    if path.is_file():
-        try:
-            inside = _name_at(_read_ldw(path), fmt.slot_name_offset, fmt.max_name + 1).strip()
-        except SaveToolError:
-            return True
-        if inside and inside.casefold() != EMPTY_SLOT_NAME.casefold():
-            return False
-    return True
+    """A slot that can be copied to: one not in use, above all one with no "<Game><slot>.ldw",
+    where the game starts a new player whatever the player list still says."""
+    return not slot_is_active(game_id, folder, slot, read_slot_names(game_id, folder)[slot - 1])
+
+
+def players(game_id: str, folder: Path) -> list[tuple[int, str]]:
+    """(slot, name) of each slot in use, as player_name names it."""
+    return [(slot, player_name(game_id, folder, slot, name))
+            for slot, name in enumerate(read_slot_names(game_id, folder), start=1)
+            if slot_is_active(game_id, folder, slot, name)]
 
 
 def validate_name(game_id: str, name: str) -> str:
@@ -193,7 +211,7 @@ def rename_slot(game_id: str, folder: Path, slot: int, new_name: str,
     new_name = validate_name(game_id, new_name)
     settings_path = _settings_path(fmt, folder)
     settings = _read_ldw(settings_path)
-    old_name = read_slot_names(game_id, folder)[slot - 1]
+    old_name = player_name(game_id, folder, slot, read_slot_names(game_id, folder)[slot - 1])
     if not slot_is_active(game_id, folder, slot, old_name):
         raise SaveToolError(f"Slot {slot} has no saved game to rename; only slots in use can be renamed.")
     if save_backup.game_running(folder, processes):
@@ -250,13 +268,13 @@ def _slot_side_files(fmt: SaveFormat, folder: Path, slot: int) -> list[tuple[Pat
 
 
 def copy_slot(game_id: str, folder: Path, source: int, target: int, new_name: str,
-              processes=None) -> dict:
-    """Copy player slot `source` to the empty slot `target` (1-5) under `new_name`: the
-    slot's save files, the patcher's own files for it, and the name in the player list
-    and inside the copied save, with the game closed. Backs the folder up first, as
-    "Backups\\Backup <date> (before copy)" inside it. Leftover files of the empty
-    target slot (in the backup) are replaced or removed, so nothing of an old player
-    mixes in."""
+              processes=None, overwrite: bool = False) -> dict:
+    """Copy player slot `source` to slot `target` (1-5) under `new_name`: the slot's save
+    files, the patcher's own files for it, and the name in the player list and inside the
+    copied save, with the game closed. `target` must be empty unless `overwrite` is set,
+    when the player there is replaced. Backs the folder up first, as
+    "Backups\\Backup <date> (before copy)" inside it. The target slot's own files (in the
+    backup) are replaced or removed, so nothing of an old player mixes in."""
     import save_backup
     fmt = FORMATS[game_id]
     for slot in (source, target):
@@ -268,11 +286,14 @@ def copy_slot(game_id: str, folder: Path, source: int, target: int, new_name: st
     settings_path = _settings_path(fmt, folder)
     settings = _read_ldw(settings_path)
     names = read_slot_names(game_id, folder)
-    old_name = names[source - 1]
+    old_name = player_name(game_id, folder, source, names[source - 1])
     if not slot_is_active(game_id, folder, source, old_name):
         raise SaveToolError(f"Slot {source} has no saved game to copy.")
-    if not slot_is_empty(game_id, folder, target):
-        raise SaveToolError(f"Slot {target} is in use; copy only to an empty slot (\"{EMPTY_SLOT_NAME}\").")
+    replaced = None
+    if slot_is_active(game_id, folder, target, names[target - 1]):
+        if not overwrite:
+            raise SaveToolError(f"Slot {target} holds a saved game; copy only to an empty slot.")
+        replaced = player_name(game_id, folder, target, names[target - 1])
     if save_backup.game_running(folder, processes):
         raise SaveToolError(f"{save_backup.game_exe_name(folder)} is running. Quit the game first; nothing was changed.")
     copies: list[tuple[Path, bytes]] = []
@@ -291,22 +312,48 @@ def copy_slot(game_id: str, folder: Path, source: int, target: int, new_name: st
         copies.append((path.with_name(f"{what} {target + extra}{kind}.dat"), path.read_bytes()))
     backup = save_backup.copy_save_folder(folder, suffix=save_backup.BEFORE_COPY).backup_folder
 
-    written = {path for path, _data in copies}
-    stale = [folder / f"{fmt.title}{target + extra}.ldw" for extra in fmt.slot_file_offsets]
-    stale += [path for path, *_rest in _slot_side_files(fmt, folder, target)]
-    removed = []
-    for path in stale:
-        if path not in written and path.is_file():
-            path.unlink()
-            removed.append(path.name)
+    # The target slot's own files (a replaced player's, or an empty slot's leftovers) are set
+    # aside, not deleted: moved into "Backups\Replaced by copy <date> - Player <n> - <old name>",
+    # keeping their paths (as every LDW patcher does), and moved back if the copy fails.
+    old_files = [folder / f"{fmt.title}{target + extra}.ldw" for extra in fmt.slot_file_offsets]
+    old_files = [path for path in old_files if path.is_file()]
+    old_files += [path for path, *_rest in _slot_side_files(fmt, folder, target)]
+    gone = player_name(game_id, folder, target, names[target - 1]).strip() or EMPTY_SLOT_NAME
+    gone = re.sub(r'[\\/:*?"<>|]', "_", gone).rstrip(". ")
+    aside = folder / save_backup.BACKUPS_FOLDER / (
+        f"Replaced by copy {datetime.now():%Y-%m-%d %H-%M-%S} - Player {target} - {gone}")
+    base, count = aside, 1
+    while aside.exists():
+        count += 1
+        aside = base.with_name(f"{base.name} ({count})")
     offset = fmt.names_offset + (target - 1) * fmt.name_stride
     settings[offset: offset + fmt.name_stride] = new_name.encode("ascii").ljust(fmt.name_stride, b"\0")
     settings[fmt.started_offset + target - 1] = settings[fmt.started_offset + source - 1] or 1
     copies.append((settings_path, bytes(settings)))
-    for path, data in copies:
-        temp = path.with_name(path.name + ".tmp")
-        temp.write_bytes(data)
-        temp.replace(path)
+    moved: list[tuple[Path, Path]] = []
+    written: list[Path] = []
+    try:
+        for path in old_files:
+            dest = aside / path.relative_to(folder)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            path.replace(dest)
+            moved.append((path, dest))
+        for path, data in copies:
+            temp = path.with_name(path.name + ".tmp")
+            temp.write_bytes(data)
+            if path != settings_path:
+                written.append(path)
+            temp.replace(path)
+    except BaseException:
+        for path, _data in copies:
+            path.with_name(path.name + ".tmp").unlink(missing_ok=True)
+        for path in written:
+            path.unlink(missing_ok=True)
+        for path, dest in reversed(moved):
+            dest.replace(path)
+        raise
     return {"source": source, "target": target, "old_name": old_name, "new_name": new_name,
-            "copied": [path.name for path, _data in copies[:-1]], "removed": removed,
-            "backup": str(backup)}
+            "copied": [path.name for path, _data in copies[:-1]],
+            "removed": [path.name for path, _dest in moved],
+            "set_aside": str(aside) if moved else None,
+            "replaced": replaced, "backup": str(backup)}

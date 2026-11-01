@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.19**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.20**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -788,15 +788,23 @@ folder never fails with "path too long".
   `(before rename)`. A save file is changed only where
   it holds exactly the old name; anything else is left alone. The layouts are
   in `src/save_tools.py`.
-- **Copy Player Slot.** Copies a player into an empty slot ("NEW PLAYER") of
-  the same save folder under a new name: the slot's save files and the
+- **Copy Player Slot.** Copies a player into another slot of the same save
+  folder under a new name: the slot's save files and the
   patcher's own files for it (`<Game> Fix Patcher Data\<what> <slot>.dat`
   and their `.previous` copies: extra tanks and greenhouses, supply slots, DS
   fish, tank animals, seed boxes, new flowers and the rest), with the new name
-  in the player list and inside the copied save. The original is not changed,
-  a slot in use is never copied over, and anything an earlier player left on
-  the empty slot is replaced or removed. It asks before copying, needs the
-  game closed and backs the save folder up first, as `(before copy)`.
+  in the player list and inside the copied save. The original is not changed.
+  The target can be an empty slot or one in use, whose player is replaced
+  after a warning that names them (No is the default). The replaced player's
+  files, or anything an earlier player left on an empty slot, are not deleted
+  but moved into `Backups\Replaced by copy <date> - Player <n> - <name>`,
+  keeping their paths, and moved back if the copy fails; that folder is not a
+  backup Restore Saves lists. It asks before copying, needs the game closed
+  and backs the save folder up first, as `(before copy)`. As in
+  the game, the slots are the files `<Game>1.ldw` to `<Game>5.ldw`: a slot
+  without its file is empty even when the player list still names someone,
+  and a slot whose file holds a player is that player even when the list says
+  "NEW PLAYER" (all the tools list players this way).
 - **Game Mechanics.** A read-only page, with a tab for each game, on how the
   games really work underneath, read from their code:
   - time away, health, food, sickness, pests, breeding, seeds, the store,

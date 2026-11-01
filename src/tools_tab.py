@@ -81,8 +81,12 @@ HELP = {
             "name: the game's save files for that slot and the patcher's own files for it (extra tanks or "
             "greenhouses, supply slots, DS fish, tank animals, seed boxes, new flowers and the rest), so "
             "the copy has everything the original has. The original is not changed.",
-            "Only an empty slot (\"NEW PLAYER\") can be copied to; anything left over there from an "
-            "earlier player is replaced or removed, so nothing of it mixes in. The new name follows the "
+            "The game's player slots are its save files <Game>1.ldw to <Game>5.ldw: a slot with no such "
+            "file is empty, whatever the player list still says. A slot in use can be copied over too: "
+            "it asks first (No is the default) and the player there is replaced. The replaced player's "
+            "files, or anything an earlier player left on an empty slot, are not deleted but moved into "
+            "Backups\\Replaced by copy <date> - Player <n> - <name>, so nothing of them mixes in. The new "
+            "name follows the "
             "game's rules: up to 31 plain characters, not \"NEW PLAYER\".",
             "The game must be closed. The save folder is backed up first, as \"Backup <date> (before "
             "copy)\", so Restore Saves can undo it.",
@@ -559,14 +563,13 @@ class ToolsTab:
             if 0 <= index < len(state["folders"]):
                 folder = state["folders"][index]
                 try:
-                    names = save_tools.read_slot_names(game(), folder)
+                    found = save_tools.players(game(), folder)
                 except (OSError, save_tools.SaveToolError) as exc:
                     problem_var.set(f"The player list could not be read: {exc}")
-                    names = []
-                for slot, name in enumerate(names, start=1):
-                    if save_tools.slot_is_active(game(), folder, slot, name):
-                        state["slots"].append((slot, name))
-                        slot_list.insert("end", f"Player {slot}: {name}")
+                    found = []
+                for slot, name in found:
+                    state["slots"].append((slot, name))
+                    slot_list.insert("end", f"Player {slot}: {name}")
                 if not state["slots"]:
                     slot_list.insert("end", "No saved players in this folder.")
                 else:
@@ -629,9 +632,10 @@ class ToolsTab:
         dialog, frame = self._dialog("Copy Player Slot")
         ttk.Label(
             frame,
-            text=("Copies a player's saved game, and the patcher's own files for it, into an empty slot under a "
-                  "new name. The original is not changed. The game must be closed. The save folder is backed "
-                  "up first, into <save folder>\\Backups\\Backup <date and time> (before copy)."),
+            text=("Copies a player's saved game, and the patcher's own files for it, into another slot under a "
+                  "new name: an empty slot, or one in use, whose player is then replaced (it asks first). The "
+                  "original is not changed. The game must be closed. The save folder is backed up first, into "
+                  "<save folder>\\Backups\\Backup <date and time> (before copy)."),
             wraplength=560, justify="left",
         ).grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 10))
         titles = list(GAMES.values())
@@ -641,7 +645,7 @@ class ToolsTab:
         name_var = tk.StringVar(master=dialog)
         counter_var = tk.StringVar(master=dialog)
         problem_var = tk.StringVar(master=dialog)
-        state: dict = {"folders": [], "slots": [], "empty": []}
+        state: dict = {"folders": [], "slots": [], "targets": []}
         ttk.Label(frame, text="Game:").grid(row=1, column=0, sticky="w")
         ttk.Combobox(frame, textvariable=game_var, values=titles, state="readonly", width=48).grid(
             row=1, column=1, columnspan=2, sticky="we", pady=2)
@@ -651,8 +655,8 @@ class ToolsTab:
         ttk.Label(frame, text="Copy player:").grid(row=3, column=0, sticky="nw", pady=(4, 0))
         slot_list = tk.Listbox(frame, height=5, width=60, exportselection=False, font=("Segoe UI", 9))
         slot_list.grid(row=3, column=1, columnspan=2, sticky="we", pady=(4, 2))
-        ttk.Label(frame, text="To empty slot:").grid(row=4, column=0, sticky="w", pady=(8, 0))
-        target_box = ttk.Combobox(frame, textvariable=target_var, state="readonly", width=20)
+        ttk.Label(frame, text="To slot:").grid(row=4, column=0, sticky="w", pady=(8, 0))
+        target_box = ttk.Combobox(frame, textvariable=target_var, state="readonly", width=44)
         target_box.grid(row=4, column=1, sticky="w", pady=(8, 0))
         ttk.Label(frame, text="New name:").grid(row=5, column=0, sticky="w", pady=(8, 0))
         name_entry = ttk.Entry(frame, textvariable=name_var, width=36)
@@ -675,8 +679,23 @@ class ToolsTab:
             return state["slots"][picked[0]] if picked and state["slots"] else None
 
         def target():
+            """(slot, name of the player there or None) of the chosen slot to copy to."""
             index = target_box.current()
-            return state["empty"][index] if 0 <= index < len(state["empty"]) else None
+            item = chosen()
+            options = [t for t in state["targets"] if item is None or t[0] != item[0]]
+            return options[index] if 0 <= index < len(options) else None
+
+        def load_targets(*_args) -> None:
+            item = chosen()
+            options = [t for t in state["targets"] if item is None or t[0] != item[0]]
+            target_box.configure(values=[f"Player {slot} (empty)" if name is None
+                                         else f"Player {slot}: {name} (replace)" for slot, name in options])
+            empty = [i for i, (_slot, name) in enumerate(options) if name is None]
+            if options:
+                target_box.current(empty[0] if empty else 0)
+            else:
+                target_var.set("")
+            check()
 
         def check(*_args) -> None:
             fmt = save_tools.FORMATS[game()]
@@ -689,7 +708,7 @@ class ToolsTab:
             elif chosen() is None:
                 problem = "Choose a player to copy."
             elif target() is None:
-                problem = "There is no empty slot in this save folder to copy to."
+                problem = "There is no other slot in this save folder to copy to."
             elif name:
                 try:
                     save_tools.validate_name(game(), name)
@@ -700,31 +719,26 @@ class ToolsTab:
 
         def load_slots(*_args) -> None:
             slot_list.delete(0, "end")
-            state["slots"], state["empty"] = [], []
+            state["slots"], state["targets"] = [], []
             index = folder_box.current()
             if 0 <= index < len(state["folders"]):
                 folder = state["folders"][index]
                 try:
-                    names = save_tools.read_slot_names(game(), folder)
+                    found = save_tools.players(game(), folder)
+                    count = save_tools.FORMATS[game()].slots
                 except (OSError, save_tools.SaveToolError) as exc:
                     problem_var.set(f"The player list could not be read: {exc}")
-                    names = []
-                for slot, name in enumerate(names, start=1):
-                    if save_tools.slot_is_active(game(), folder, slot, name):
-                        state["slots"].append((slot, name))
-                        slot_list.insert("end", f"Player {slot}: {name}")
-                    elif save_tools.slot_is_empty(game(), folder, slot):
-                        state["empty"].append(slot)
+                    found, count = [], 0
+                for slot, name in found:
+                    state["slots"].append((slot, name))
+                    slot_list.insert("end", f"Player {slot}: {name}")
+                used = dict(found)
+                state["targets"] = [(slot, used.get(slot)) for slot in range(1, count + 1)]
                 if not state["slots"]:
                     slot_list.insert("end", "No saved players in this folder.")
                 else:
                     slot_list.selection_set(0)
-            target_box.configure(values=[f"Player {slot} (empty)" for slot in state["empty"]])
-            if state["empty"]:
-                target_box.current(0)
-            else:
-                target_var.set("")
-            check()
+            load_targets()
 
         def load_folders(*_args) -> None:
             state["folders"] = save_backup.find_save_folders(game())
@@ -736,20 +750,28 @@ class ToolsTab:
             load_slots()
 
         def start() -> None:
-            item, slot = chosen(), target()
-            if item is None or slot is None or not state["folders"]:
+            item, picked = chosen(), target()
+            if item is None or picked is None or not state["folders"]:
                 return
+            slot, replacing = picked
             folder = state["folders"][folder_box.current()]
             new_name = name_var.get()
-            if not messagebox.askyesno(
-                "Copy Player Slot",
-                f"Copy \"{item[1]}\" (player {item[0]}) to empty player {slot} as \"{new_name}\" in "
-                f"{folder.name}?\n\nThe save folder is backed up first.",
-                parent=dialog,
-            ):
+            # The same wording as the other LDW patchers' Copy Player Slot; No is the default, so
+            # Return and Escape both answer No.
+            if replacing is None:
+                question = (f"Player {slot} is empty. It will get a copy of {item[1]} (Player {item[0]}), "
+                            f"named {new_name}. The whole save folder ({folder}) is backed up first. Copy it?")
+            else:
+                question = (f"Player {slot} holds the {replacing} player. It will be replaced by a copy of "
+                            f"{item[1]} (Player {item[0]}), named {new_name}. The whole save folder "
+                            f"({folder}) is backed up first, and {replacing}'s files are kept in "
+                            f"Backups\\Replaced by copy <date>. Replace it?")
+            if not messagebox.askyesno("Copy Player Slot", question, default="no",
+                                       icon="question" if replacing is None else "warning", parent=dialog):
                 return
             try:
-                report = save_tools.copy_slot(game(), folder, item[0], slot, new_name)
+                report = save_tools.copy_slot(game(), folder, item[0], slot, new_name,
+                                              overwrite=replacing is not None)
             except (OSError, save_tools.SaveToolError, save_backup.BackupError) as exc:
                 self.app.status_var.set("Copy Player Slot: nothing was copied.")
                 messagebox.showerror("Copy Player Slot", str(exc), parent=dialog)
@@ -763,7 +785,9 @@ class ToolsTab:
                 "Copy Player Slot",
                 f"\"{report['old_name']}\" (player {item[0]}) is copied to player {slot} as "
                 f"\"{report['new_name']}\" ({folder.name}).\n\n{len(report['copied'])} file(s) copied."
-                f"\n\nBackup: {report['backup']}",
+                + (f"\n\n{report['replaced']}'s files are kept in {report['set_aside']}."
+                   if report["replaced"] and report["set_aside"] else "")
+                + f"\n\nBackup: {report['backup']}",
                 parent=dialog,
             )
             name_var.set("")
@@ -773,7 +797,7 @@ class ToolsTab:
         game_var.trace_add("write", load_folders)
         folder_box.bind("<<ComboboxSelected>>", load_slots)
         target_box.bind("<<ComboboxSelected>>", check)
-        slot_list.bind("<<ListboxSelect>>", check)
+        slot_list.bind("<<ListboxSelect>>", load_targets)
         name_var.trace_add("write", check)
         frame.columnconfigure(1, weight=1)
         load_folders()

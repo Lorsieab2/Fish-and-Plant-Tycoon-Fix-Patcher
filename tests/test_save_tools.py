@@ -7,10 +7,12 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+import save_backup  # noqa: E402
 import save_tools  # noqa: E402
 
 
@@ -212,32 +214,87 @@ class SaveToolTests(unittest.TestCase):
         self.assertFalse((data / "Extra Tanks 3.dat").exists(), "and its old patcher data")
         self.assertEqual((data / "Tank Animals 3.previous.dat").read_bytes(), b"prev1")
         self.assertIn(f"{fmt.title}43.ldw", report["removed"])
+        aside = Path(report["set_aside"])
+        self.assertEqual(aside.parent, folder / "Backups")
+        self.assertRegex(aside.name, r"^Replaced by copy \d{4}-\d\d-\d\d \d\d-\d\d-\d\d - Player 3 - NEW PLAYER$")
+        self.assertEqual((aside / f"{fmt.title} Fix Patcher Data" / "Extra Tanks 3.dat").read_bytes(),
+                         old["Extra Tanks 3.dat"], "the leftovers are set aside, not deleted")
+        self.assertTrue((aside / f"{fmt.title}43.ldw").is_file())
+        self.assertEqual([b.folder.name for b in save_backup.list_backups("plant", folder)],
+                         [Path(report["backup"]).name], "the set-aside folder is not a backup")
         backup = Path(report["backup"])
         self.assertEqual((backup / f"{fmt.title} Fix Patcher Data" / "Extra Tanks 3.dat").read_bytes(),
                          old["Extra Tanks 3.dat"], "the leftovers are in the backup")
 
-    def test_a_slot_the_game_still_lists_is_not_empty(self) -> None:
+    def test_copy_over_a_player_only_when_asked_and_keeps_theirs(self) -> None:
         for game_id in save_tools.FORMATS:
             fmt = save_tools.FORMATS[game_id]
-            folder = make_folder(self.root, game_id, ["Ana", "NEW PLAYER", "NEW PLAYER", "NEW PLAYER", "Ed"],
+            folder = make_folder(self.root, game_id, ["Ana", "Bo", "Cy", "Di", "Ed"], f"{game_id} o")
+            old = self.side_files(folder, game_id, 3)
+            self.side_files(folder, game_id, 1)
+            cy = {extra: (folder / f"{fmt.title}{3 + extra}.ldw").read_bytes() for extra in fmt.slot_file_offsets}
+            with self.assertRaises(save_tools.SaveToolError):
+                save_tools.copy_slot(game_id, folder, 1, 3, "Ana Two", NoGame())
+            self.assertFalse((folder / "Backups").exists(), "refused before anything is written")
+            report = save_tools.copy_slot(game_id, folder, 1, 3, "Ana Two", NoGame(), overwrite=True)
+            self.assertEqual(report["replaced"], "Cy")
+            self.assertEqual(save_tools.players(game_id, folder),
+                             [(1, "Ana"), (2, "Bo"), (3, "Ana Two"), (4, "Di"), (5, "Ed")])
+            aside = Path(report["set_aside"])
+            self.assertTrue(aside.name.endswith(" - Player 3 - Cy"), aside.name)
+            for extra, body in cy.items():
+                self.assertEqual((aside / f"{fmt.title}{3 + extra}.ldw").read_bytes(), body)
+            self.assertEqual((aside / f"{fmt.title} Fix Patcher Data" / "Extra Tanks 3.dat").read_bytes(),
+                             old["Extra Tanks 3.dat"])
+            self.assertEqual((folder / f"{fmt.title} Fix Patcher Data" / "Extra Tanks 3.dat").read_bytes(),
+                             b"tanks1", "the copy's own patcher data is in place")
+
+    def test_a_failed_copy_puts_the_replaced_files_back(self) -> None:
+        fmt = save_tools.FORMATS["fish"]
+        folder = make_folder(self.root, "fish", ["Ana", "Bo", "Cy", "Di", "Ed"], "fish f")
+        before = {p.relative_to(folder): p.read_bytes() for p in folder.rglob("*") if p.is_file()}
+        real_replace = Path.replace
+
+        def failing(self, target):
+            if Path(self).name == f"{fmt.title}0.ldw.tmp":
+                raise OSError("disk full")
+            return real_replace(self, target)
+
+        with mock.patch.object(Path, "replace", failing):
+            with self.assertRaises(OSError):
+                save_tools.copy_slot("fish", folder, 1, 3, "Ana Two", NoGame(), overwrite=True)
+        after = {p.relative_to(folder): p.read_bytes() for p in folder.rglob("*")
+                 if p.is_file() and p.relative_to(folder).parts[0] != "Backups"}
+        self.assertEqual(after, before, "Cy is back and nothing of the copy is left")
+
+    def test_the_slot_files_decide_which_slots_are_players(self) -> None:
+        for game_id in save_tools.FORMATS:
+            fmt = save_tools.FORMATS[game_id]
+            folder = make_folder(self.root, game_id, ["Ana", "NEW PLAYER", "NEW PLAYER", "Di", "Ed"],
                                  f"{game_id} e")
             for extra in fmt.slot_file_offsets:
                 (folder / f"{fmt.title}{3 + extra}.ldw").unlink()
                 (folder / f"{fmt.title}{4 + extra}.ldw").unlink()
             settings = bytearray((folder / f"{fmt.title}0.ldw").read_bytes())
-            settings[fmt.started_offset + 3] = 1                     # slot 4: a started game, no files
+            settings[fmt.started_offset + 3] = 1        # slot 4: listed as Di and started, but no "<Game>4.ldw"
             (folder / f"{fmt.title}0.ldw").write_bytes(bytes(settings))
-            # Slot 2: "NEW PLAYER" in the list, but its save still holds a player's name ("Bo"), as seen in a
-            # vanilla Fish Tycoon folder; the game lists that slot as Bo.
+            # Slot 2: "NEW PLAYER" in the list, but its save holds a player ("Bo"), as seen in a vanilla
+            # Fish Tycoon folder: a player, under the name inside the save.
             data = bytearray((folder / f"{fmt.title}2.ldw").read_bytes())
             data[fmt.slot_name_offset: fmt.slot_name_offset + 3] = b"Bo\0"
             (folder / f"{fmt.title}2.ldw").write_bytes(bytes(data))
             self.assertEqual([save_tools.slot_is_empty(game_id, folder, s) for s in range(1, 6)],
-                             [False, False, True, False, False])
-            for target in (2, 4, 5):
+                             [False, False, True, True, False])
+            self.assertEqual(save_tools.players(game_id, folder), [(1, "Ana"), (2, "Bo"), (5, "Ed")])
+            for target in (2, 5):
                 with self.assertRaises(save_tools.SaveToolError, msg=target):
                     save_tools.copy_slot(game_id, folder, 1, target, "Ann", NoGame())
             self.assertFalse((folder / "Backups").exists())
+            report = save_tools.copy_slot(game_id, folder, 2, 4, "Bo Two", NoGame())
+            self.assertEqual(report["old_name"], "Bo")
+            self.assertEqual(save_tools.players(game_id, folder), [(1, "Ana"), (2, "Bo"), (4, "Bo Two"), (5, "Ed")])
+            copied = (folder / f"{fmt.title}4.ldw").read_bytes()
+            self.assertEqual(copied[fmt.slot_name_offset: fmt.slot_name_offset + 7], b"Bo Two\0")
 
     def test_copy_is_refused_before_anything_changes(self) -> None:
         folder = make_folder(self.root, "fish", ["Ana", "Bo", "NEW PLAYER", "Di", "Ed"])

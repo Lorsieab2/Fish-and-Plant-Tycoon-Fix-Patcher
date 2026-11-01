@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.0.20
+
+- **Fixed: Copy Player Slot found no empty slot** when the player list still
+  named a slot whose save file was gone ("There is no empty slot in this save
+  folder to copy to"). As in the game, the player slots are the files
+  "<Game>1.ldw" to "<Game>5.ldw": a slot without its file is empty and can be
+  copied to, and a slot whose file holds a player is listed under that
+  player's name even when the list says "NEW PLAYER". Rename Players, the
+  Breeding Guide and Picture Studio list players the same way.
+- **Copy Player Slot can copy over a player.** Every slot but the source is
+  offered; one in use is marked "(replace)", and copying there asks a warning
+  that names the player who will be replaced (No is the default, so Return
+  and Escape answer No). The replaced player's files, and anything an earlier
+  player left on an empty slot, are no longer deleted: they are moved into
+  "Backups\Replaced by copy <date> - Player <n> - <name>", keeping their
+  paths, and moved back if the copy fails. The wording and folder names match
+  the Virtual Villagers and Virtual Families patchers.
+  Tests: tests/test_save_tools.py.
+
 ## v1.0.19
 
 - **Copy Player Slot** (Tools tab, new), both games: copies a player into an
