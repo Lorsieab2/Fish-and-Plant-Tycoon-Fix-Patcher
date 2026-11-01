@@ -788,8 +788,29 @@ ORNAMENT_NAMES = ("Stone Turtle", "Sundial", "Weather Vane", "Charming Lantern",
                   "Fence", "Gate", "Cash Register", "Refurbishment")
 BUG_SPRITE = 0x9E                    # small_bugs.png: 12 x 24 cells, 6 per bug (0x41685A: 6 x bug + pose)
 BUG_COUNT, BUG_FRAMES = 48, 6
+LEAF_SPRITE = 0xDB                   # collectionLeafGrid.png: 8 x 6, bug k's leaf on the Collections screen
+# The 48 collectible bugs, by the game's bug number (the name switch 0x418940, jump table 0x418DA4;
+# the Collections screen's leaf k and the save's collected flag state + 0x53F4B + k are the same k),
+# and each one's rarity, the game's own (Common 1-4, Uncommon 5-8, Rare 9-12 of each family: the
+# duplicate payout table 0x4167DC, the Collections hover strings 0x1AE-0x1B0): Game Mechanics' table,
+# read back out of the vanilla executable by tests/test_game_mechanics_bugs.py.
+from game_mechanics_plant import BUG_NAMES, bug_rarity  # noqa: E402
+BUG_GROUPS = ("Butterflies and moths", "Beetles", "Dragonflies", "Spiders")     # 12 each, in that order
 SOIL_LOOKS = (("none", "No soil"), ("soil", "Soil"), ("planted", "Soil, planted"))
 SOIL_LEVELS = (0, 1, 2)              # 0x41DDE0: no soil upgrade, the first, the second
+
+
+def bug_picture_options(bug: int) -> tuple:
+    """The Bugs tab's pictures of a bug: its 6 cells, its leaf, and the game's compositions
+    (pictures_screens.bug_views)."""
+    import pictures_screens as ps
+    return (tuple(Option(f, f"Frame {f + 1}") for f in range(BUG_FRAMES))
+            + (Option("leaf", "Its leaf on the Collections screen"),)
+            + tuple(Option(key, label) for key, label in ps.bug_views(bug)))
+
+
+def bug_label(bug: int) -> str:
+    return f"{bug + 1}. {BUG_NAMES[bug]} ({bug_rarity(bug)})"
 
 
 class SceneryPlanner:
@@ -816,6 +837,11 @@ class SceneryPlanner:
     def bug(self, bug: int, frame: int) -> list:
         """Cell 6 x bug + frame of small_bugs.png, unscaled (0x4208F0 with scale 1, alpha 100)."""
         return [self.planner._cell(BUG_SPRITE, bug * BUG_FRAMES + frame, 0, 0)]
+
+    def leaf(self, bug: int) -> list:
+        """Bug k's leaf on the Collections screen: collectionLeafGrid.png cell k, unscaled, alpha
+        100 (0x4184BB, drawn for each collected bug)."""
+        return [self.planner._cell(LEAF_SPRITE, bug, 0, 0)]
 
     def pot(self, style: int, soil: str, level: int, wet: bool) -> list:
         """The pot draw (0x42F740) of a pot with no plant (or a planted mound, soil frame + 1)."""
@@ -907,14 +933,22 @@ def required_files() -> list:
     for calls in D.DECORATIONS.values():
         names += [D.SPRITES[c[0]][0] for c in calls]
     names.append(D.SPRITES[BUG_SPRITE][0])
+    names.append(D.SPRITES[LEAF_SPRITE][0])
+    import pictures_plant_items as items
+    names += items.stock_files()
     return list(dict.fromkeys(names))
 
 
 def patcher_art() -> dict:
     """The patcher's own art: Unused Flowers' 64-pixel flower sheet (the stock cells unchanged,
-    the new flowers in its empty ones)."""
+    the new flowers in its empty ones), and Store Upgrades and Items' taller chemical and seed
+    sheets (the Items tab's patcher items)."""
     root = Path(__file__).resolve().parents[1] / "assets"
-    return {"flowers64x64_grid.png": root / "plant_tycoon_flowers" / "Images" / "flowers64x64_grid.png"}
+    import pictures_plant_items as items
+    art = {"flowers64x64_grid.png": root / "plant_tycoon_flowers" / "Images" / "flowers64x64_grid.png"}
+    for name in items.patcher_files():
+        art[name] = root / "plant_tycoon_upgrades" / "Images" / name
+    return art
 
 
 class _FolderSource:
@@ -960,6 +994,8 @@ class Renderer:
         self.problem = problem
         self.planner = Planner(self._cell_size)
         self.scenery = SceneryPlanner(self._cell_size, self.planner)
+        import pictures_plant_items as items
+        self.items = items.ItemPlanner(self.planner, self.scenery)
         self._saved: dict = {}
 
     def _cell_size(self, key) -> tuple:
@@ -1067,10 +1103,15 @@ class Renderer:
                     "Each nursery ornament as the nursery draws it once bought (the Refurbishment is the "
                     "whole repainted nursery building)."),
             Subject("bug", "Bugs",
-                    (Field("bug", "Bug", tuple(Option(b, f"Bug {b + 1}") for b in range(BUG_COUNT)), 0),
-                     Field("frame", "Frame", tuple(Option(f, f"Frame {f + 1}") for f in range(BUG_FRAMES)), 0)),
-                    "Every bug the greenhouse can show, in each of its 6 pictures (small_bugs.png), drawn "
-                    "as the game draws a bug."),
+                    (Field("bug", "Bug", tuple(Option(b, bug_label(b)) for b in range(BUG_COUNT)), 0),
+                     Field("frame", "Picture", bug_picture_options(0), 0)),
+                    "The 48 collectible bugs, numbered in the game's (and the Collections screen's) order, with the "
+                    "game's rarity: each of its 6 pictures in small_bugs.png, its leaf on the Collections screen, "
+                    "and the bug as the game draws it: in the greenhouse at the size the game picks at random when "
+                    "it comes (70-99%; samples at 70, 85 and 99%), on its shadow when it walks (beetles, spiders), "
+                    "the Hiding Beetle playing dead (half see-through) and a spider fading as it drops; and on the "
+                    "Collections screen in its jar over its leaf (the spider of the day on its web). The game draws "
+                    "a bug see-through only in those two cases; its 70-99% is its size."),
             Subject("pot", "Pots",
                     (Field("style", "Pot", styles, 0),
                      Field("soil", "Soil", tuple(Option(k, label) for k, label in SOIL_LOOKS), "soil"),
@@ -1078,7 +1119,109 @@ class Renderer:
                      Field("wet", "Watered", (Option(False, "Dry"), Option(True, "Wet")), False)),
                     "A greenhouse pot as the game draws it: wet soil is a pot with more than 500 water; "
                     "planted soil has the mound a plant grows from."),
+            self._items_subject(),
+            __import__("pictures_game_art").subject(self.game_art()),
+            __import__("pictures_screens").subject(self.game_art()),
         ]
+
+
+    # ---- All game art (pictures_game_art): read straight from the game copy the window found
+    art_copy = None
+
+    def game_art(self):
+        import pictures_game_art as ga
+        if getattr(self, "_art", None) is None or self._art_for != self.art_copy:
+            self._art = ga.GameArt(self.game, self.art_copy)
+            self._art_for = self.art_copy
+        return self._art
+
+    # -------------------------------------------------------------- items (pictures_plant_items)
+    def _items_subject(self) -> Subject:
+        fields = self._item_fields({})
+        return Subject("items", "Items", (
+            Field("category", "Category", fields["category"], fields["category"][0].key),
+            Field("item", "Item", fields["item"], fields["item"][0].key),
+            Field("view", "Picture", fields["view"], fields["view"][0].key)),
+            "Every item of the game, owned or not, as the game draws it: on its store shelf (on its shadow, "
+            "with the tick once owned), in the seed or chemical tray, in the Tools box, on the mouse (pouring, "
+            "watering, cutting ...), and pots with each soil. (patcher): an item a patcher setting adds.")
+
+    @staticmethod
+    def _item_fields(spec: dict) -> dict:
+        import pictures_plant_items as pit
+        categories = tuple(Option(c, c) for c in pit.CATEGORIES)
+        category = spec.get("category") if spec.get("category") in pit.CATEGORIES else pit.CATEGORIES[0]
+        in_category = [i for i in pit.ITEMS if i.category == category]
+        items = tuple(Option(i.key, i.name, i.patcher, i.unused) for i in in_category)
+        chosen = pit.BY_KEY.get(spec.get("item"))
+        if chosen is None or chosen.category != category:
+            chosen = in_category[0]
+        views = tuple(Option(k, label) for k, label in pit.views(chosen))
+        return {"category": categories, "item": items, "view": views}
+
+    def refine_choices(self, subject: str, spec: dict) -> dict:
+        """The options that follow the others' picks (Items: the category's items, the item's pictures;
+        All game art: the category's files, the file's frames)."""
+        if subject == "art":
+            import pictures_game_art as ga
+            fields = ga.fields(self.game_art(), spec)
+            return {"sheet": fields["sheet"], "frame": fields["frame"]}
+        if subject == "screens":
+            import pictures_screens as ps
+            return {"picture": ps.fields(self.game_art(), spec)["picture"]}
+        if subject == "bug":
+            try:
+                bug = int(spec.get("bug", 0))
+            except (TypeError, ValueError):
+                bug = 0
+            return {"frame": bug_picture_options(bug if 0 <= bug < BUG_COUNT else 0)}
+        if subject != "items":
+            return {}
+        fields = self._item_fields(spec)
+        return {"item": fields["item"], "view": fields["view"]}
+
+    def custom_batch(self, subject: str):
+        """Every picture of a "Make your own" tab, for its "Save all on this tab...": a list of
+        (sub-folder names, file name, spec), or None for the Plant tab (too many)."""
+        if subject == "art":
+            import pictures_game_art as ga
+            return ga.batch(self.game_art())
+        if subject == "screens":
+            import pictures_screens as ps
+            return ps.batch(self.game_art())
+        if subject == "items":
+            import pictures_plant_items as pit
+            out = []
+            for item in pit.ITEMS:
+                mark = " (patcher)" if item.patcher else " (unused)" if item.unused else ""
+                for key, label in pit.views(item):
+                    out.append(((item.category,), f"{item.name}{mark} - {label}",
+                                {"subject": "items", "category": item.category, "item": item.key, "view": key}))
+            return out
+        if subject == "decoration":
+            return [((), ORNAMENT_NAMES[k], {"subject": "decoration", "ornament": k}) for k in sorted(D.DECORATIONS)]
+        if subject == "bug":
+            out = []
+            for b in range(BUG_COUNT):
+                folder = (BUG_GROUPS[b // 12], bug_label(b))
+                out += [(folder, f"{bug_label(b)} - Frame {f + 1}", {"subject": "bug", "bug": b, "frame": f})
+                        for f in range(BUG_FRAMES)]
+                out.append((folder, f"{bug_label(b)} - Collections leaf", {"subject": "bug", "bug": b, "frame": "leaf"}))
+                import pictures_screens as ps
+                out += [(folder, f"{bug_label(b)} - {label}", {"subject": "bug", "bug": b, "frame": key})
+                        for key, label in ps.bug_views(b)]
+            return out
+        if subject == "unused":
+            import breeding_plant as bp
+            return [((), f"{bp.FOLIAGE_WORD[f]} - unused part {n + 1}" + (" - dead" if dead else ""),
+                     {"subject": "unused", "part": f"{f}:{p}", "state": "dead" if dead else "alive"})
+                    for f, parts in sorted(UNUSED_PARTS.items()) for n, p in enumerate(parts) for dead in (False, True)]
+        if subject == "pot":
+            return [((), f"Pot {s + 1} - {soil} - level {level} - {'wet' if wet else 'dry'}",
+                     {"subject": "pot", "style": s, "soil": soil, "level": level, "wet": wet})
+                    for s in range(D.SPRITES[POT_SPRITE][2]) for soil, _l in SOIL_LOOKS for level in SOIL_LEVELS
+                    for wet in (False, True)]
+        return None
 
     def _custom_plant(self, spec: dict) -> tuple:
         if spec.get("subject", "plant") != "plant":
@@ -1109,6 +1252,11 @@ class Renderer:
                 plant = unused_part_plant(foliage, part, spec.get("state") == "dead")
                 return self.planner.plan(plant, 0, 0, pot=False)
             if subject == "bug":
+                if spec.get("frame") == "leaf":
+                    bug = int(spec.get("bug", 0))
+                    if not 0 <= bug < BUG_COUNT:
+                        raise PictureError("Pick a bug.")
+                    return self.scenery.leaf(bug)
                 bug, frame = int(spec.get("bug", 0)), int(spec.get("frame", 0))
                 if not (0 <= bug < BUG_COUNT and 0 <= frame < BUG_FRAMES):
                     raise PictureError("Pick a bug and a frame.")
@@ -1120,10 +1268,29 @@ class Renderer:
                         and soil in dict(SOIL_LOOKS)):
                     raise PictureError("Pick a pot, its soil and its upgrade.")
                 return self.scenery.pot(style, soil, level, bool(spec.get("wet", False)))
+            if subject == "items":
+                import pictures_plant_items as pit
+                item = pit.BY_KEY.get(spec.get("item"))
+                if item is None:
+                    raise PictureError("Pick an item.")
+                return self.items.plan(item, spec.get("view", "shelf"))
         except (TypeError, ValueError):
             raise PictureError("Pick one of the choices offered.") from None
         plant, pot = self._custom_plant(spec)
         return self.planner.plan(plant, 0, 0, pot=pot)
 
     def render_custom(self, spec: dict) -> Image:
+        if spec.get("subject") == "art":
+            import pictures_game_art as ga
+            return ga.render(self.game_art(), spec)
+        if spec.get("subject") == "screens":
+            import pictures_screens as ps
+            return ps.render(self.game_art(), spec)
+        frame = spec.get("frame")
+        if spec.get("subject") == "bug" and isinstance(frame, str) and frame != "leaf" and not frame.isdigit():
+            import pictures_screens as ps
+            bug = int(spec.get("bug", 0))
+            if not 0 <= bug < BUG_COUNT:
+                raise PictureError("Pick a bug.")
+            return ps.Composer.of(self.game_art()).render(ps.bug_picture(bug, frame))
         return composite(self.sheets, self.plan_custom(spec))

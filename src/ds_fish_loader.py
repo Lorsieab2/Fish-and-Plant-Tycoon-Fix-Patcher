@@ -295,10 +295,19 @@ def _plant_profiles(enabled: set[str]) -> list[LoaderProfile]:
 # WinMain like every other, so the game always starts.
 
 UNICODE_DLL = "Unicode Text.dll"
+# "Translations" (src/translations.py): a tail too, so it starts after every companion has
+# installed (its lookup hook chains onto Plant Tycoon's Store Upgrades and Items' jump, and every
+# patcher DLL it translates is loaded) and after Unicode Text.dll.
+TRANSLATIONS_SETTING = "translations"
+TRANSLATIONS_DLL = "Translations.dll"
 TAIL_INSTALLS = {
     UNICODE_DLL: ("That checks the places it changes in the running game (where a typed character is "
                   "turned into a key event, and where the game sets up its fonts) and writes all of them "
                   "or none; {source} describes them."),
+    TRANSLATIONS_DLL: ("That reads the translation the patcher's Translations window chose, checks that the "
+                       "game's string lookup (and in Fish Tycoon the Goals page's five sprintf calls) hold "
+                       "their stock code or another companion's jump, and writes all of it or nothing; "
+                       "native/ftfp_translations/ftfp_translations.c describes it."),
 }
 TAIL_SOURCES = {"fish": "native/ftfp_fish_unicode/ftfp_fish_unicode.c",
                 "plant": "native/ftfp_plant_unicode/ftfp_plant_unicode.c"}

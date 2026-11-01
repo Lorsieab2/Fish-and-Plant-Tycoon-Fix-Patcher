@@ -1431,7 +1431,7 @@ class ArtAndManifestTests(unittest.TestCase):
                                "tank_greenhouse_counts", "new_flowers", "plant_upgrades", "sort_seeds", "optimize_prices",
                                "time_warp", "free_upgrades", "add_money", "everything_free", "extra_greenhouses",
                                "extra_nurseries",
-                               "extra_chemical_slots", "unicode_ingame_fonts", "unicode_system_font"])
+                               "extra_chemical_slots", "unicode_ingame_fonts", "translations", "unicode_system_font"])
         files = setting["companion"]["files"]
         data = DLL.read_bytes()
         import hashlib

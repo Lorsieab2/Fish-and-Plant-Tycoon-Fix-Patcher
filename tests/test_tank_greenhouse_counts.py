@@ -366,14 +366,14 @@ class _DllFixture:
         self.populate()
         self.frame()
         self.assertTrue(self.counts())
-        self.assertEqual(self.button(), [("Counts: On", 0xFFFFD040)])
+        self.assertEqual(self.button(), [("Counts: On", 0xFF40D0FF)])
         x, y = self.inside()
         self.assertEqual(self.click(x, y), [])                         # neither press nor release reach the game
         self.assertEqual(self.ini, {(self.FOLDER + self.INI, "Counts", "Shown"): "0"})
         self.frame()
         self.assertEqual(self.counts(), [])                            # hidden: only the button is drawn
         self.assertEqual([d[0] for d in self.text_draws if d[3] == 0xFFFFFFFF], [])
-        self.assertEqual(self.button(), [("Counts: Off", 0xFFFFD040)])
+        self.assertEqual(self.button(), [("Counts: Off", 0xFF40D0FF)])
         self.assertEqual(self.click(x, y), [])
         self.assertEqual(self.ini, {(self.FOLDER + self.INI, "Counts", "Shown"): "1"})
         self.frame()
@@ -391,7 +391,7 @@ class _DllFixture:
         self.assertIn(("ini read", self.FOLDER + self.INI, "Counts", "Shown"), self.calls)
         self.frame()
         self.assertEqual(self.counts(), [])
-        self.assertEqual(self.button(), [("Counts: Off", 0xFFFFD040)])
+        self.assertEqual(self.button(), [("Counts: Off", 0xFF40D0FF)])
         self.setUp()                                                   # no .ini yet: shown
         self.populate()
         self.frame()
@@ -407,7 +407,7 @@ class _DllFixture:
         self.assertEqual(self.button(), [("Counts: On", 0xFFFFFFFF)])
         self.mouse(1, 5, 300)
         self.frame()
-        self.assertEqual(self.button(), [("Counts: On", 0xFFFFD040)])
+        self.assertEqual(self.button(), [("Counts: On", 0xFF40D0FF)])
 
     def test_clicks_elsewhere_or_while_holding_reach_the_game(self) -> None:
         self.populate()
@@ -723,7 +723,7 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
             "Tiere: Mur\xe4ne",
             "Zuchtaquarium: 1 von 1 (1 ausgewachsen)  Krank: 1 Pilzinfektion",
         ])
-        self.assertEqual(self.button(), [("Z\xe4hlung: An", 0xFFFFD040)])
+        self.assertEqual(self.button(), [("Z\xe4hlung: An", 0xFF40D0FF)])
 
     def test_drawn_before_the_held_items_in_the_game_font_with_a_shadow(self) -> None:
         self.fish(0, 0, 25)
@@ -733,7 +733,7 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
         self.assertEqual(self.named("font"), [("font", MANAGER, 0)])          # paddington_tt_18
         texts = self.named("text")
         self.assertEqual([(t[2], t[3], t[4], t[5], t[6]) for t in texts], [
-            (695, 61, 0xFF000000, FONT, GRAPHICS), (694, 60, 0xFFFFD040, FONT, GRAPHICS),     # the button
+            (695, 61, 0xFF000000, FONT, GRAPHICS), (694, 60, 0xFF40D0FF, FONT, GRAPHICS),     # the button
             (13, 63, 0xFF000000, FONT, GRAPHICS), (12, 62, 0xFFFFFFFF, FONT, GRAPHICS),
             (13, 83, 0xFF000000, FONT, GRAPHICS), (12, 82, 0xFFFFFFFF, FONT, GRAPHICS),
         ])
@@ -928,7 +928,7 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
         self.frame()
         self.assertEqual(self.named("background"), [])
         self.assertEqual([(t[2], t[3], t[4], t[5], t[6]) for t in self.named("text")], [
-            (695, 27, 0xFF000000, 0, GRAPHICS), (694, 26, 0xFFFFD040, 0, GRAPHICS),          # the button
+            (695, 27, 0xFF000000, 0, GRAPHICS), (694, 26, 0xFF40D0FF, 0, GRAPHICS),          # the button
             (237, 5, 0xFF000000, 0, GRAPHICS), (236, 4, 0xFFFFFFFF, 0, GRAPHICS),
             (237, 27, 0xFF000000, 0, GRAPHICS), (236, 26, 0xFFFFFFFF, 0, GRAPHICS)])
 
@@ -946,7 +946,7 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
             self.frame()
             white = [(t[1], t[2]) for t in self.text_draws if t[3] == 0xFFFFFFFF]
             self.assertEqual(white, [(236, line_y), (236, line_y + 22)], count)
-            self.assertEqual([(t[1], t[2]) for t in self.text_draws if t[3] == 0xFFFFD040], [button], count)
+            self.assertEqual([(t[1], t[2]) for t in self.text_draws if t[3] == 0xFF40D0FF], [button], count)
             left, top, right, bottom = self.box()
             if count > 0:
                 for a_left, a_top, a_right, a_bottom in arrows:

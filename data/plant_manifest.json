@@ -10876,7 +10876,7 @@
             "path": "Greenhouse Counts.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Greenhouse Counts.dll",
             "size": 93184,
-            "sha256": "08C0D7837644B4161A15439BB840C8B176A6C643AE673E025D74A9576518E673"
+            "sha256": "3484262A82BD555A5C943D5BE0A3E79B3D68EF0670C2F27DDB84807EA532CFD6"
           }
         ]
       }
@@ -11223,6 +11223,27 @@
             "destination": "Images/PTfontsmall_unicode.png",
             "size": 10956,
             "sha256": "C6E9C590A161D486F48A5B43F7B6096DE36EB1210FA2148E7AFB02751AFDA241"
+          }
+        ]
+      }
+    },
+    {
+      "id": "translations",
+      "name": "Translations",
+      "summary": "Plays the game in the language you choose on the Tools tab (Translations...): installed translations and your own. English until you choose one.",
+      "description": "Lets Plant Tycoon show a translation: every text of the game's own string table and the patcher's own texts (store items, counts, popups). Choose the language on the Tools tab, Translations...: it applies from the next game start, with no patching again. \"English (original)\" leaves the game exactly as it is. A line the translation lacks, or one it got wrong, stays in English; the game never stops for a translation. Make your own there too (a built-in editor), add one you were sent, or share yours on the patcher's GitHub page. Text is shown in the game's fonts as Latin-1 (accents of French, German, Spanish...) unless a Unicode setting draws more. Runs as a companion DLL the game loads at start, after the others; saves are unchanged.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/translations",
+        "loader_tail": "Translations.dll",
+        "files": [
+          {
+            "path": "Translations.dll",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Translations.dll",
+            "size": 122880,
+            "sha256": "2D9CFC2591B480EB0C68EB82BDFD351CAB3A09E0F398F48F391A6F1E2F58571B"
           }
         ]
       }

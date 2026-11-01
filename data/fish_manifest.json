@@ -69788,7 +69788,7 @@
             "path": "Tank Counts.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Tank Counts.dll",
             "size": 94720,
-            "sha256": "1EBDD5AF75A1974559A662918698A1830EE786EB7242CE85C5FB0482266F184D"
+            "sha256": "ECF3F7465CDA5AFA375D3DD50194783A1E36A135E891E9403E8BE49F4D54F6D8"
           }
         ]
       }
@@ -70586,6 +70586,27 @@
             "destination": "Images/paddington_tt_30_unicode.png",
             "size": 23206,
             "sha256": "02DD0B46A603C5CFE26523B3BC70A9B8CD228856F3E892EE5FA2084FE6010DA9"
+          }
+        ]
+      }
+    },
+    {
+      "id": "translations",
+      "name": "Translations",
+      "summary": "Plays the game in the language you choose on the Tools tab (Translations...): installed translations and your own. English until you choose one.",
+      "description": "Lets Fish Tycoon show a translation: every text of the game's own string table and the patcher's own texts (store items, counts, popups). Choose the language on the Tools tab, Translations...: it applies from the next game start, with no patching again. \"English (original)\" leaves the game exactly as it is. A line the translation lacks, or one it got wrong, stays in English; the game never stops for a translation. Make your own there too (a built-in editor), add one you were sent, or share yours on the patcher's GitHub page. Text is shown in the game's fonts as Latin-1 (accents of French, German, Spanish...) unless a Unicode setting draws more. Runs as a companion DLL the game loads at start, after the others; saves are unchanged.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/translations",
+        "loader_tail": "Translations.dll",
+        "files": [
+          {
+            "path": "Translations.dll",
+            "destination": "Fish Tycoon Fix Patcher DLLs/Translations.dll",
+            "size": 122880,
+            "sha256": "2D9CFC2591B480EB0C68EB82BDFD351CAB3A09E0F398F48F391A6F1E2F58571B"
           }
         ]
       }

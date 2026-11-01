@@ -98,7 +98,7 @@
 #define BUTTON_X_ARROWS 646         /* "Counts: Off" is 98 px (646-744): right of the name (to x 577) */
 #define BUTTON_Y_ARROWS 4           /* above the greenhouse's name (y 26) */
 #define WHITE 0xFFFFFFFFu
-#define YELLOW 0xFFFFD040u
+#define YELLOW 0xFF40D0FFu
 #define SHADOW 0xFF000000u
 
 typedef void (__fastcall *scene_fn)(void *scene, int edx);

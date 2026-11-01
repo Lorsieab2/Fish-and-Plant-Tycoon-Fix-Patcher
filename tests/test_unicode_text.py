@@ -635,6 +635,36 @@ class TranslationsContractTests(unittest.TestCase):
     def test_plant(self) -> None:
         self.check("plant")
 
+    @needs("fish")
+    @needs("plant")
+    def test_translations_writes_utf8_with_this_dll(self) -> None:
+        """The two DLLs together: what this DLL's FtfpUnicodeTextActive answers once installed is what
+        Translations.dll asks (tests/translations_emulator.py), and with it the translation comes
+        through as UTF-8, letters past Windows-1252 included."""
+        try:
+            import translations_emulator as te
+            import test_translations_runtime as tr
+        except Exception as exc:                      # no Keystone, or no Translations.dll
+            self.skipTest(f"needs the Translations emulator: {exc}")
+        if not te.ready():
+            self.skipTest("needs the Translations emulator")
+        for game in ("fish", "plant"):
+            dll, symbols = built(game)
+            emu = E.Emulator(EXES[game], dll, symbols)
+            emu.uc.mem_map(0, 0x1000)
+            hook_windows(emu, game)
+            self.assertEqual(startup(emu, symbols), 1)
+            answer = emu.call(symbols["_FtfpUnicodeTextActive@0"])
+            ident, english = (1, "Age: ") if game == "fish" else (7, "Play")
+            text = "Âge : \u65e5\u672c \U0001F41F İ"
+            rt = te.Runtime(game, {tr.INI[game]: te.ini(tr.PATH), tr.PATH: tr.make(game, [(ident, english, text)])},
+                            unicode_active=answer)
+            if game == "plant":
+                rt.hook_plant_table()
+            self.assertEqual(rt.start(), 1)
+            self.assertEqual(rt.lookup(ident), text.encode("utf-8"), game)
+            self.assertIn("UTF-8 text", rt.log)
+
     def test_def_files_export_it(self) -> None:
         for game in ("fish", "plant"):
             text = (ROOT / "native" / PROJECTS[game] / f"{PROJECTS[game]}.def").read_text(encoding="ascii")
@@ -713,7 +743,8 @@ class PatcherTests(unittest.TestCase):
             defaults = {sid for sid, s in settings.items() if s.get("default")}
             original = EXES[game].read_bytes()
             key = patcher.settings_key if game == "fish" else (lambda core, m=manifest: plant_patcher.settings_key(core, m))
-            for others in (defaults - {SETTING}, {"fix_vanilla_bugs"}, set()):
+            # Translations is a loader tail too (loaded after this one): left out here.
+            for others in (defaults - {SETTING, "translations"}, {"fix_vanilla_bugs"}, set()):
                 with self.subTest(game=game, others=sorted(others)):
                     enabled = others | {SETTING}
                     self.assertEqual(fish_patcher.pin_settings(manifest, enabled), others)
@@ -736,7 +767,7 @@ class PatcherTests(unittest.TestCase):
                     self.assertTrue(loader)
             # a damaged pin for the other settings refuses the build with the tail too
             broken = dict(manifest, patched_sha256_by_settings=dict(manifest["patched_sha256_by_settings"]))
-            broken["patched_sha256_by_settings"][key(defaults - {SETTING})] = "0" * 64
+            broken["patched_sha256_by_settings"][key(defaults - {SETTING, "translations"})] = "0" * 64
             with self.assertRaises(Exception):
                 fish_patcher.build_executable(broken, original, defaults, game, patcher.active_patch_records,
                                               patcher.apply_patch_bytes, patcher.expected_patched_hash, key)

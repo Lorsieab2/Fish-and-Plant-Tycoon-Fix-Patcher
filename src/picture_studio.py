@@ -61,6 +61,18 @@ HELP = (
         "rules. Creatures and decorations are on their own tabs. The patcher's parts and creatures (DS "
         "Exclusive Fish, DS Store Items, Unused Flowers) are always offered, marked \"(patcher)\", and a save's "
         "DS fish and Unused Flowers plants are drawn whenever the save holds them.",
+        "Items (a Make your own tab in both games): every item of the game, owned or not. Pick a Category, an "
+        "Item and a Picture: in the store (at rest, pointed at, or picked while the store makes it pulse), in its "
+        "supply slot or tray, in the Tools box, on the mouse (pouring, watering ...), in the tank, owned with the "
+        "tick, or a pot with each soil. Items a patcher setting adds are marked \"(patcher)\"; art in the game's "
+        "files that the game never draws is marked \"(unused)\" and shown whole. The Moray Eel is on the "
+        "Creatures tab three ways: out of its home (swimming), in its home (every frame), and its home alone.",
+        "All game art (both games): every picture file of the game, one picture per sprite cell, cut as the game "
+        "cuts it, by category; files the game's executable never names are \"(unused)\", the patcher's own art "
+        "\"(patcher)\". The game's compositions of several pieces (screens, filled bars, buttons in their "
+        "states ...) are not there yet.",
+        "\"Save all on this tab...\" (Make your own) saves every picture the tab offers into a new folder (the "
+        "Items tab: a folder per category). The Fish and Plant tabs have too many pictures for it.",
         "States the game never draws are not offered: a plant has no wilting or infested look (the game "
         "checks only whether it is dead), and a fish is not drawn at all before it hatches (age 0).",
         "Show Spoilers is the Breeding Guide's setting: off, Make your own offers only the parts your save "
@@ -136,6 +148,13 @@ def detect_settings(game_id: str, save_folder: Path | None, slot: int | None, pa
         folder = Path(save_folder) / SIDECAR_FOLDERS[game_id]
         found = {setting for setting, name in SIDECAR_SIGNS.get(game_id, ()) if (folder / name.format(slot=slot)).is_file()}
     return frozenset(found), "No game copy was found for this save; its patcher files were read instead."
+
+
+def option_label(option) -> str:
+    """A choice as the window lists it: marked "(patcher)" (a patcher setting adds it) or
+    "(unused)" (art the game has but never draws)."""
+    return option.label + ("  (patcher)" if option.patcher else "") + \
+        ("  (unused)" if getattr(option, "unused", False) else "")
 
 
 def load_renderer_module(game_id: str):
@@ -349,6 +368,7 @@ class PictureStudio:
             copies = breeding_guide.art_copies(game, folder, self.game_parents)
             source = pi.picture_source(game, copies, self.module.required_files(), self.module.patcher_art())
             self.renderer = self.module.load(source)
+            self.renderer.art_copy = copies[0] if copies else None      # All game art reads the copy itself
             if source.problem:
                 problems.append(source.problem)
             # The patcher's parts are always offered, so the discoveries are read with them too
@@ -563,6 +583,12 @@ class PictureStudio:
         buttons = ttk.Frame(right, padding=(10, 6))
         buttons.pack(fill="x")
         ttk.Button(buttons, text="Save PNG...", command=lambda: self.save_png("custom")).pack(anchor="w")
+        self.save_tab_button = ttk.Button(buttons, text="Save all on this tab...", command=self.save_all_custom)
+        self.save_tab_button.pack(anchor="w", pady=(6, 0))
+        ttk.Label(buttons, text="Saves every picture the tab offers (every item and picture on the Items tab, "
+                                "in a folder per category) into a new folder. Not offered on the Fish and Plant "
+                                "tabs: they have far too many.", wraplength=PREVIEW, justify="left",
+                  foreground="#555555").pack(anchor="w", pady=(4, 0))
         self.custom_notebook.bind("<<NotebookTabChanged>>", lambda _e: self._show_custom())
         self._fill_custom()
 
@@ -580,9 +606,9 @@ class PictureStudio:
             boxes = {}
             for row, field in enumerate(subject.fields):
                 ttk.Label(frame, text=f"{field.label}:").grid(row=row, column=0, sticky="w", pady=3)
-                labels = [o.label + ("  (patcher)" if o.patcher else "") for o in field.options]
+                labels = [option_label(o) for o in field.options]
                 var = tk.StringVar(master=self.window)
-                box = ttk.Combobox(frame, textvariable=var, values=labels, state="readonly", width=40)
+                box = ttk.Combobox(frame, textvariable=var, values=labels, state="readonly", width=56)
                 box.grid(row=row, column=1, sticky="w", padx=(6, 0), pady=3)
                 keep = picks.get(subject.key, {}).get(field.key)
                 if keep in labels:
@@ -593,8 +619,8 @@ class PictureStudio:
                         box.current(keys.index(field.default))
                     elif labels:
                         box.current(0)
-                box.bind("<<ComboboxSelected>>", lambda _e: self._show_custom())
-                boxes[field.key] = {"box": box, "var": var, "field": field}
+                box.bind("<<ComboboxSelected>>", lambda _e, key=subject.key: self._custom_changed(key))
+                boxes[field.key] = {"box": box, "var": var, "field": field, "options": tuple(field.options)}
             if subject.note:
                 ttk.Label(frame, text=subject.note, wraplength=520, justify="left", foreground="#555555").grid(
                     row=len(subject.fields), column=0, columnspan=2, sticky="w", pady=(10, 0))
@@ -603,7 +629,39 @@ class PictureStudio:
                           foreground="#a01010").grid(row=len(subject.fields) + 1, column=0, columnspan=2, sticky="w",
                                                      pady=(6, 0))
             self.custom_boxes[subject.key] = boxes
+            self._refine(subject.key)
         self._show_custom()
+
+    def _custom_changed(self, subject_key: str) -> None:
+        self._refine(subject_key)
+        self._show_custom()
+
+    def _refine(self, subject_key: str) -> None:
+        """Options that follow the others' picks (the Items tab: a category's items, an item's
+        pictures), from the renderer's refine_choices; a pick still offered is kept."""
+        refine = getattr(self.renderer, "refine_choices", None)
+        boxes = self.custom_boxes.get(subject_key)
+        if refine is None or not boxes:
+            return
+        spec = {"subject": subject_key}
+        for key, box in boxes.items():
+            index = box["box"].current()
+            spec[key] = box["options"][index].key if 0 <= index < len(box["options"]) else None
+        for key, options in (refine(subject_key, spec) or {}).items():
+            box = boxes.get(key)
+            if box is None:
+                continue
+            old = spec.get(key)
+            box["options"] = tuple(options)
+            box["box"].configure(values=[option_label(o) for o in options])
+            keys = [o.key for o in options]
+            if old in keys:
+                box["box"].current(keys.index(old))
+            elif keys:
+                box["box"].current(0)
+            else:
+                box["var"].set("")
+            spec[key] = box["options"][box["box"].current()].key if keys else None
 
     def current_subject(self) -> pi.Subject | None:
         try:
@@ -619,12 +677,73 @@ class PictureStudio:
         spec: dict = {"subject": subject.key}
         for key, box in self.custom_boxes[subject.key].items():
             index = box["box"].current()
-            options = box["field"].options
+            options = box["options"]
             spec[key] = options[index].key if 0 <= index < len(options) else None
         return spec
 
+    def custom_batch(self) -> list | None:
+        """The current Make your own tab's every picture (the renderer's custom_batch), or None."""
+        subject = self.current_subject()
+        batch = getattr(self.renderer, "custom_batch", None)
+        if subject is None or batch is None:
+            return None
+        return batch(subject.key) or None
+
+    def save_all_custom(self, folder: str | None = None) -> Path | None:
+        """"Save all on this tab...": every picture of the tab, into a new folder named after the
+        game and the tab, each in its sub-folder (the Items tab: one per category)."""
+        subject = self.current_subject()
+        batch = self.custom_batch()
+        if subject is None or not batch:
+            self._tell("info", "This tab has too many pictures to save at once: pick one and use Save PNG...")
+            return None
+        try:
+            options = self.export_choice()
+        except pi.PictureError as exc:
+            self._tell("warning", str(exc))
+            return None
+        if folder is None:
+            folder = filedialog.askdirectory(parent=self.window, title="Save the pictures in...")
+        if not folder:
+            return None
+        title = TITLES.get(self.game_id, "Pictures")
+        target = Path(folder) / pi.safe_file_name(f"{title} - {subject.title}")
+        n = 2
+        while target.exists():
+            target = Path(folder) / pi.safe_file_name(f"{title} - {subject.title} ({n})")
+            n += 1
+        try:
+            target.mkdir(parents=True)
+        except OSError as exc:
+            self._tell("warning", f"The folder could not be made: {exc}")
+            return None
+        saved, empty, failed = 0, 0, []
+        for folders, name, spec in batch:
+            where = target
+            for part in folders:
+                where = where / pi.safe_file_name(part)
+            try:
+                image = self.renderer.render_custom(spec)
+                if image.bbox() is None:
+                    empty += 1                      # the game draws nothing there (an empty cell)
+                    continue
+                where.mkdir(parents=True, exist_ok=True)
+                pi.save_png(image, pi.unique_path(where, pi.safe_file_name(name, 120)), **options)
+                saved += 1
+            except (OSError, pi.PictureError) as exc:
+                failed.append(f"{name}: {exc}")
+        text = f"{saved} picture(s) of the {subject.title} tab saved in {target}."
+        if empty:
+            text += f" {empty} the game draws as nothing (an empty picture) were left out."
+        if failed:
+            text += "\nNot saved:\n" + "\n".join(failed[:10])
+        self._tell("info", text)
+        return target
+
     def _show_custom(self) -> None:
         spec = self.custom_spec()
+        if hasattr(self, "save_tab_button") and self.save_tab_button.winfo_exists():
+            self.save_tab_button.configure(state="normal" if self.custom_batch() else "disabled")
         if spec is None:
             return
         try:
@@ -646,13 +765,17 @@ class PictureStudio:
             return pi.safe_file_name(f"{item.label}, {item.location}" if item else "picture")
         spec = self.custom_spec() or {}
         subject = self.current_subject()
+        named = getattr(self.renderer, "custom_name", None)
+        name = named(spec) if named is not None and spec else None
+        if name:
+            return pi.safe_file_name(name, 120)
         parts = []
         if subject is not None:
             for key, box in self.custom_boxes.get(subject.key, {}).items():
                 index = box["box"].current()
-                if 0 <= index < len(box["field"].options):
-                    parts.append(box["field"].options[index].label)
-        return pi.safe_file_name(" - ".join(parts) or spec.get("subject", "picture"))
+                if 0 <= index < len(box["options"]):
+                    parts.append(option_label(box["options"][index]).replace("  (", " ("))
+        return pi.safe_file_name(" - ".join(parts) or spec.get("subject", "picture"), 120)
 
     def save_png(self, which: str, path: str | None = None) -> Path | None:
         image = self.shown.get(which)

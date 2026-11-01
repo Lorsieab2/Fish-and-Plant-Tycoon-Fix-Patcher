@@ -8,3 +8,6 @@ outputs/*
 !outputs/.gitkeep
 Breeding Guide Pictures/
 Picture Studio Pictures/
+translation_choice.json
+translations/*.txt
+translations/Shared/

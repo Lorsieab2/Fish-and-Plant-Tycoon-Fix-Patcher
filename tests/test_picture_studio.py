@@ -157,6 +157,54 @@ class WindowTests(unittest.TestCase):
             self.root.update()
             self.assertIn("custom", self.studio.shown, self.studio.subjects[tab].title)
 
+    def pick(self, subject: str, field: str, label: str) -> None:
+        box = self.studio.custom_boxes[subject][field]["box"]
+        box.current(list(box.cget("values")).index(label))
+        self.studio._custom_changed(subject)
+        self.root.update()
+
+    def test_items_tab_by_category(self) -> None:
+        """The owner's rule: every item, owned or not, unused and patcher ones marked; the item list
+        follows the category and the pictures follow the item."""
+        titles = [s.title for s in self.studio.subjects]
+        self.studio.custom_notebook.select(titles.index("Items"))
+        self.root.update()
+        self.assertIn("custom", self.studio.shown)
+        self.pick("items", "category", "Ornaments")
+        items = list(self.studio.custom_boxes["items"]["item"]["box"].cget("values"))
+        self.assertEqual(items[0], "Shell Ornament")
+        self.assertIn("Yellow coral  (unused)", items)
+        self.pick("items", "category", "Medicines and chemicals")
+        self.assertIn("Muta-Fin  (patcher)", self.studio.custom_boxes["items"]["item"]["box"].cget("values"))
+        self.pick("items", "item", "Growth Hormone")
+        views = list(self.studio.custom_boxes["items"]["view"]["box"].cget("values"))
+        self.assertIn("In the store, pointed at (120%)", views)
+        self.pick("items", "view", "In the hand (on the mouse)")
+        self.assertEqual(self.studio.custom_spec(), {"subject": "items", "category": "Medicines and chemicals",
+                                                     "item": "hormone", "view": "hand"})
+        self.assertIn("custom", self.studio.shown)
+        self.assertEqual(self.studio.picture_name("custom"),
+                         "Medicines and chemicals - Growth Hormone - In the hand (on the mouse)")
+
+    def test_save_all_on_a_tab(self) -> None:
+        """"Save all on this tab": the Creatures tab saves the Moray Eel out of its home, every
+        frame of it in its home, and its home alone; the Fish tab has too many to offer it."""
+        titles = [s.title for s in self.studio.subjects]
+        self.studio.custom_notebook.select(titles.index("Fish"))
+        self.root.update()
+        self.assertEqual(str(self.studio.save_tab_button.cget("state")), "disabled")
+        self.studio.custom_notebook.select(titles.index("Creatures"))
+        self.root.update()
+        self.assertEqual(str(self.studio.save_tab_button.cget("state")), "normal")
+        out = Path(self.tmp.name) / "tab"
+        out.mkdir()
+        target = self.studio.save_all_custom(str(out))
+        self.assertEqual(target.name, "Fish Tycoon - Creatures")
+        self.assertEqual(len(list((target / "Moray Eel in its home (patcher)").glob("*.png"))), 32)
+        self.assertEqual(len(list((target / "Moray Eel, out of its home (swimming) (patcher)").glob("*.png"))), 18)
+        self.assertTrue((target / "Moray Eel's home (its rock, the eel out) (patcher).png").is_file())
+        self.assertIn("saved in", self.studio.last_message)
+
     def test_young_fish_are_named_only_with_spoilers(self) -> None:
         """The game names a fish only from age 20 (info panel 0x41D9ED): with Show Spoilers off a
         baby or teen is "Baby fish" / "Teen fish", in the list and in the PNG's file name; adults
