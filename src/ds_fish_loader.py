@@ -284,6 +284,51 @@ def _plant_profiles(enabled: set[str]) -> list[LoaderProfile]:
     return profiles
 
 
+# ---- loader tails: a DLL loaded after all the others, its setting left out of the pins.
+#
+# A setting whose companion says "loader_tail": "<dll>" (Render Unicode with In-Game Fonts:
+# "Unicode Text.dll") changes the executable only by adding that DLL to the end of the loader's
+# list. Its executable is checked in two steps (src/fish_patcher.py, build_executable): the
+# executable WITHOUT it must match the manifest's pin for the other settings, exactly as before;
+# then the same patched bytes get the loader with the tail DLL added (or a one-DLL loader for it
+# alone when no other companion needs one). A tail DLL that is missing or refuses goes on to
+# WinMain like every other, so the game always starts.
+
+UNICODE_DLL = "Unicode Text.dll"
+TAIL_INSTALLS = {
+    UNICODE_DLL: ("That checks the places it changes in the running game (where a typed character is "
+                  "turned into a key event, and where the game sets up its fonts) and writes all of them "
+                  "or none; {source} describes them."),
+}
+TAIL_SOURCES = {"fish": "native/ftfp_fish_unicode/ftfp_fish_unicode.c",
+                "plant": "native/ftfp_plant_unicode/ftfp_plant_unicode.c"}
+GAME_PROFILES = {"fish": FISH, "plant": PLANT}
+
+
+def tail_profile(game: str, dll_name: str) -> LoaderProfile:
+    """A tail DLL loaded the way every companion is (its full path beside the executable)."""
+    text = TAIL_INSTALLS.get(dll_name, "That checks every place it changes and writes all of them or none.")
+    return replace(GAME_PROFILES[game], dll_name=dll_name, then_dlls=(),
+                   what_it_installs=text.format(source=TAIL_SOURCES.get(game, "its source")))
+
+
+def with_tails(game: str, base: LoaderProfile | None, dll_names) -> LoaderProfile:
+    """The loader for these settings: the one the other settings make (None: none), then each tail
+    DLL in order, each once."""
+    tails: list[LoaderProfile] = []
+    # Unicode Text first: Translations.dll asks it (FtfpUnicodeTextActive) whether to write UTF-8,
+    # so it must be loaded before any other tail.
+    dll_names = sorted(dll_names, key=lambda name: name != UNICODE_DLL)
+    for name in dll_names:
+        if all(p.dll_name != name for p in tails) and (base is None or name not in base.dll_names):
+            tails.append(tail_profile(game, name))
+    if not tails:
+        if base is None:
+            raise LoaderError("no DLL to load")
+        return base
+    return chain(([base] if base is not None else []) + tails)
+
+
 PATH_WCHARS = 0x208
 PATH_BYTES = PATH_WCHARS * 2
 LOAD_WITH_ALTERED_SEARCH_PATH = 0x8

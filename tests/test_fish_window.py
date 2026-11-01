@@ -160,7 +160,8 @@ class ManifestTests(unittest.TestCase):
     def test_pins_match_the_vanilla_executable(self) -> None:
         vanilla = FISH_EXE.read_bytes()
         pins = self.manifest["patched_sha256_by_settings"]
-        defaults = fish_patcher.enabled_settings(self.manifest, Namespace(enable=None, disable=None, disable_all=False))
+        defaults = fish_patcher.pin_settings(self.manifest, fish_patcher.enabled_settings(
+            self.manifest, Namespace(enable=None, disable=None, disable_all=False)))     # without the loader tail
         for enabled in ({SETTING}, defaults, defaults | {"bigger_tanks"}, defaults | {"ds_fish"}):
             patched, _ = fish_patcher.apply_patch_bytes(
                 vanilla, fish_patcher.active_patch_records(self.manifest, enabled))

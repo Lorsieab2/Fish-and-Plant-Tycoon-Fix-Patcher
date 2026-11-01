@@ -380,6 +380,25 @@ never needs the internet.
   [docs/images/multiple-ornaments-tank.png](docs/images/multiple-ornaments-tank.png).
   Trash the extra copies before turning it off again (with it off they are
   not shown; they come back if you turn it on).
+- Render Unicode with In-Game Fonts (on by default; in the "Modded Upgrades"
+  copy; Owner's Defaults leaves it off). Typing in the game (a player's name,
+  any text box) takes every Latin-1 letter your keyboard makes (U+00A0-U+00FF:
+  é ñ ü ß Æ Ø ¿ £ © ..., AltGr letters too); the stock game took only plain
+  ASCII. All three fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every
+  Latin-1 letter they lack, and the Windows-1252 letters € ' ' " " – — … ™ Œ
+  Š Ž Ÿ ..., and Paddington's empty boxes for % * + < = > [ \ ] ^ { | } ~
+  become real letters: accented letters are made from each font's own letter
+  and accent, the rest drawn in the font's size, baseline and weight (the
+  Text Maker's "patcher-made" letters). They are added below copies of the
+  fonts' pictures (`Images\paddington_tt_18_unicode.png` ...); `ft.dat` is not
+  changed. A name stays one byte a letter in the save, whose layout is
+  unchanged; a copy without the setting loads it as always and shows such a
+  letter as a blank. Runs as a companion DLL
+  (`Fish Tycoon Fix Patcher DLLs\Unicode Text.dll`, loaded after every other
+  one), which checks the four places it changes and writes all or none.
+  Rename Players and Copy Player Slot accept these names for a save folder
+  whose copy has the setting (it leaves `Fish Tycoon Fix Patcher Data\Unicode
+  Text.ini` there when it starts).
 
 ### Plant Tycoon
 
@@ -693,6 +712,16 @@ never needs the internet.
     [docs/images/extra-chemical-slots-store.png](docs/images/extra-chemical-slots-store.png).
   - Design: the "Extra Chemical Slots" section of
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
+- Render Unicode with In-Game Fonts (on by default; in the "Modded Upgrades"
+  copy; Owner's Defaults leaves it off). Typing in the game takes every Latin-1
+  letter your keyboard makes (U+00A0-U+00FF); the stock game dropped all but
+  plain ASCII. The game's font already has most of Latin-1: the no-break space,
+  ¡ and the Windows-1252 letters € ' ' " " – — … ™ Œ Š Ž Ÿ ... are made for it
+  in its style, in a copy of its picture (`Images\PTfontsmall_unicode.png`).
+  Names stay one byte a letter in the save. Runs as a companion DLL
+  (`Plant Tycoon Fix Patcher DLLs\Unicode Text.dll`, loaded after every other
+  one); Rename Players and Copy Player Slot accept such names for its save
+  folders, as in Fish Tycoon.
 
 ## Use
 

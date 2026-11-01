@@ -166,9 +166,23 @@ class Build:
                                         sorted(enabled), dry_run=False)
         self.folder = Path(summary["output_dir"])
         self.exe = self.folder / summary["output_exe_name"]
-        self.pin = PATCHERS[game].expected_patched_hash(manifest(game), self.enabled)
+        m = manifest(game)
+        # A loader-tail setting (Unicode Text) is left out of the pins: the executable without it
+        # must be the manifest's pin (build_executable checks that), and the executable with it is
+        # those same bytes with the tail DLL added to the loader.
+        self.pin = PATCHERS[game].expected_patched_hash(m, fish_patcher.pin_settings(m, self.enabled))
+        self.tails = fish_patcher.loader_tail_dlls(m, self.enabled)
+        if self.tails:
+            patcher = PATCHERS[game]
+            original = (VANILLA_DIRS[game] / spec.vanilla_exe_name).read_bytes()
+            key = patcher.settings_key if game == "fish" else (lambda core: patcher.settings_key(core, m))
+            tailed, _s, _l, core_pin = fish_patcher.build_executable(
+                m, original, self.enabled, game, patcher.active_patch_records, patcher.apply_patch_bytes,
+                patcher.expected_patched_hash, key)
+            assert core_pin == self.pin
+            self.pin = hashlib.sha256(tailed).hexdigest().upper()
         self.sha256 = hashlib.sha256(self.exe.read_bytes()).hexdigest().upper()
-        self.profile = PROFILES[game](self.enabled)
+        self.profile = fish_patcher.loader_profile(m, self.enabled, game) or PROFILES[game](self.enabled)
         self.dll_folder = self.folder / self.profile.patcher_files_folder
         self.dlls = shipped_dlls(game, self.enabled)
         self.active_patches = PATCHERS[game].active_patch_records(manifest(game), self.enabled)
@@ -190,12 +204,14 @@ PROJECTS = {
         "Extra Tanks.dll": "ftfp_extra_tanks", "Extra Supply Slots.dll": "ftfp_supply_slots",
         "Multiple Ornaments.dll": "ftfp_ornaments", "Optimize Prices.dll": "ftfp_fish_prices",
         "Tank Counts.dll": "ftfp_tank_counts", "Maximizable Window.dll": "ftfp_fish_window",
+        "Unicode Text.dll": "ftfp_fish_unicode",
     },
     "plant": {
         "Unused Flowers.dll": "ftfp_new_flowers", "Store Upgrades and Items.dll": "ftfp_plant_upgrades",
         "Extra Seed Boxes.dll": "ftfp_seed_boxes", "Sort Seeds.dll": "ftfp_sort_seeds",
         "Optimize Prices.dll": "ftfp_plant_prices", "Greenhouse Counts.dll": "ftfp_greenhouse_counts",
         "Extra Greenhouses.dll": "ftfp_extra_greenhouses", "Extra Chemical Slots.dll": "ftfp_chem_slots",
+        "Unicode Text.dll": "ftfp_plant_unicode",
     },
 }
 
@@ -1375,6 +1391,7 @@ EVIDENCE = {
                                 "FtfpOptimizePricesInstalled"),
         "Tank Counts.dll": (None, None),
         "Maximizable Window.dll": (None, None),
+        "Unicode Text.dll": ("Unicode Text: installed", None),
     },
     "plant": {
         "Unused Flowers.dll": ("New Flowers: installed (all sites)", "FtfpNewFlowersInstalled"),
@@ -1385,6 +1402,7 @@ EVIDENCE = {
         "Greenhouse Counts.dll": (None, None),
         "Extra Greenhouses.dll": ("Extra Greenhouses: installed (all sites)", "FtfpExtraGreenhousesInstalled"),
         "Extra Chemical Slots.dll": ("Extra Chemical Slots: installed (all sites)", "FtfpChemSlotsInstalled"),
+        "Unicode Text.dll": ("Unicode Text: installed", None),
     },
 }
 

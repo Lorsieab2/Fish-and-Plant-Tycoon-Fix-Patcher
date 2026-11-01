@@ -145,13 +145,15 @@ class CombinedPatcherTests(unittest.TestCase):
                 "extra_tanks",
                 "extra_supply_slots",
                 "multiple_ornaments",
+                "unicode_ingame_fonts",
             ],
         )
         self.assertEqual(
             list(combined.patch_settings("plant")),
             ["fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets", "tank_greenhouse_counts", "new_flowers",
              "plant_upgrades", "sort_seeds", "optimize_prices", "time_warp", "free_upgrades", "add_money",
-             "everything_free", "extra_greenhouses", "extra_nurseries", "extra_chemical_slots"],
+             "everything_free", "extra_greenhouses", "extra_nurseries", "extra_chemical_slots",
+             "unicode_ingame_fonts"],
         )
 
     def test_unknown_chemical_text_is_corrected_in_both_languages(self) -> None:
@@ -428,7 +430,7 @@ class SectionLayoutTests(unittest.TestCase):
             # itself, after every other change.
             loader_only = {"ds_fish", "ds_store", "time_warp", "free_upgrades", "add_money", "maximizable_window",
                            "optimize_prices", "tank_greenhouse_counts", "multiple_ornaments", "extra_tanks",
-                           "extra_supply_slots"}
+                           "extra_supply_slots", "unicode_ingame_fonts"}
             expected = 0 if not (enabled - loader_only) else 1
             self.assertEqual(
                 len(checksum_patches),

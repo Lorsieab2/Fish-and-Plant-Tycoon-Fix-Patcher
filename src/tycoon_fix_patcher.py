@@ -250,6 +250,18 @@ def setting_companion_details(game_id: str, setting_id: str) -> list[PatchDetail
     """The executable changes a companion setting's startup loader makes."""
     setting = patch_settings(game_id).get(setting_id, {})
     companion = setting.get("companion")
+    if isinstance(companion, dict) and companion.get("loader_tail"):
+        import ds_fish_loader
+
+        # A loader tail: its DLL is loaded after every other companion (alone, as here, when no
+        # other companion is on), and its executable is otherwise the other settings' pin.
+        return [
+            PatchDetail(id=f"startup_loader_{index}", file_offset=offset, virtual_address=va,
+                        length=length, note=note)
+            for index, (offset, va, length, note) in enumerate(
+                ds_fish_loader.described_changes(
+                    ds_fish_loader.with_tails(game_id, None, [str(companion["loader_tail"])])))
+        ]
     if not isinstance(companion, dict) or not companion.get("startup_loader"):
         return []
     import ds_fish_loader

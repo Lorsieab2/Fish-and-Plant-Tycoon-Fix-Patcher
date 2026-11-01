@@ -1420,7 +1420,7 @@ class Manifest(unittest.TestCase):
         import fish_patcher
         pins = self.manifest["patched_sha256_by_settings"]
         vanilla = EXE.read_bytes()
-        everything = {s["id"] for s in self.manifest["settings"]}
+        everything = fish_patcher.pin_settings(self.manifest, {s["id"] for s in self.manifest["settings"]})
         for enabled in ({"extra_supply_slots", "ds_fish", "ds_store"},
                         {"extra_supply_slots", "ds_fish", "ds_store", "universal_supply_slots", "extra_tanks"},
                         everything):

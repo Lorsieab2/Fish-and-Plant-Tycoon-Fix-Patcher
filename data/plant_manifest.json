@@ -11196,6 +11196,33 @@
           }
         ]
       }
+    },
+    {
+      "id": "unicode_ingame_fonts",
+      "name": "Render Unicode with In-Game Fonts",
+      "summary": "Type and show accented letters and symbols (é ñ ü ß Æ Ø ¿ £ © ...) in names, drawn in the game's own fonts; letters a font lacks are made for it in its style.",
+      "description": "Typing in the game (a player's name, any text box), any letter of your keyboard from the Latin-1 set (U+00A0-U+00FF) goes in; the game dropped everything but plain ASCII. The game's font already has most of Latin-1; the no-break space and the inverted exclamation mark (¡) are made for it in its style, in a copy of its picture in the Images folder (the game's own picture is not changed). Names are kept in the save exactly as the game keeps them, one byte a letter, so the save's layout is unchanged and the patcher's tools (Rename Players, Copy Player Slot, the Breeding Guide and Picture Studio) read and write such names too. A copy of the game without this setting shows these letters as well (its font has them), except ¡, and loads and plays the save as always.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/plant_tycoon_unicode",
+        "loader_tail": "Unicode Text.dll",
+        "files": [
+          {
+            "path": "Unicode Text.dll",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
+            "size": 95232,
+            "sha256": "C1193D06749C3DBD475338B05A0CA8637CCDB9A1D77F98637CFF9814BC350B45"
+          },
+          {
+            "path": "Images/PTfontsmall_unicode.png",
+            "destination": "Images/PTfontsmall_unicode.png",
+            "size": 10956,
+            "sha256": "C6E9C590A161D486F48A5B43F7B6096DE36EB1210FA2148E7AFB02751AFDA241"
+          }
+        ]
+      }
     }
   ],
   "patches": [

@@ -552,8 +552,9 @@ class ToolsTab:
             elif item is None:
                 problem = "Choose a player."
             elif name:
+                folder = state["folders"][folder_box.current()]
                 try:
-                    save_tools.validate_name(game(), name)
+                    save_tools.validate_name(game(), name, save_tools.unicode_names(game(), folder))
                 except save_tools.SaveToolError as exc:
                     problem = str(exc)
                 if problem is None and name == item[1]:
@@ -715,8 +716,9 @@ class ToolsTab:
             elif target() is None:
                 problem = "There is no other slot in this save folder to copy to."
             elif name:
+                folder = state["folders"][folder_box.current()]
                 try:
-                    save_tools.validate_name(game(), name)
+                    save_tools.validate_name(game(), name, save_tools.unicode_names(game(), folder))
                 except save_tools.SaveToolError as exc:
                     problem = str(exc)
             problem_var.set(problem or "")

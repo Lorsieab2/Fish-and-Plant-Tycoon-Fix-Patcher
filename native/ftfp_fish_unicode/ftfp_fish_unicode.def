@@ -1,0 +1,4 @@
+LIBRARY "Unicode Text"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpUnicodeTextActive = _FtfpUnicodeTextActive@0
