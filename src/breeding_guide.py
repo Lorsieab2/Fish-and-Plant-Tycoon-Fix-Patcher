@@ -928,7 +928,7 @@ HELP = (
         "less a day. With Mutation Liquid a chain can be long (the fewest generations first): "
         "its length is shown and the list scrolls. Each species' details list the exact "
         "assumptions.",
-        "In the game: with the patcher's Optimize Prices button setting (on by default), an \"Optimize "
+        "In the game: with the patcher's Optimize Prices button setting (off by default), an \"Optimize "
         "Prices\" button (Fish Tycoon: on the Species Chart and the Fish Store screen; Plant Tycoon: in the "
         "Nursery) sets every "
         "discovered species to its best price per day, worked out with this guide's own maths for your shop "

@@ -1680,7 +1680,7 @@ class ManifestTests(unittest.TestCase):
     def test_the_setting(self) -> None:
         s = self.setting
         self.assertEqual(s["name"], "5 extra greenhouses")
-        self.assertFalse(s["default"])
+        self.assertTrue(s["default"])  # on by default (the owner, 2026-11-01: new content stays on)
         self.assertTrue(s["separate_output"])
         self.assertEqual(s["requires_settings"], ["plant_upgrades"])        # sold on the Upgrades screen
         self.assertIn("empty", s["warning"].lower())
@@ -1692,7 +1692,7 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual((entry["size"], entry["sha256"]), (len(data), hashlib.sha256(data).hexdigest().upper()))
         nurseries = next(n for n in self.manifest["settings"] if n["id"] == "extra_nurseries")
         self.assertEqual(nurseries["name"], "5 extra nurseries")
-        self.assertFalse(nurseries["default"])
+        self.assertTrue(nurseries["default"])
         self.assertEqual(nurseries["requires_settings"], ["plant_upgrades"])
         self.assertEqual({f["destination"] for f in nurseries["companion"]["files"]},
                          {f"{FOLDER}/Extra Greenhouses.dll", f"{FOLDER}/Extra Nurseries.ini"})

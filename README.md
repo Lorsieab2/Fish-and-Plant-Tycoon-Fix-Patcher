@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.21**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.22**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -40,11 +40,11 @@ never needs the internet.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and
   egg types.
-- Buy Multiple Golden Seahorses. Allows purchasing of multiple Golden
+- Buy Multiple Golden Seahorses (off by default). Allows purchasing of multiple Golden
   Seahorses, in case you trash or lose it somehow. It shipped broken from
   v1.0.6 and was fixed in v1.0.12; see
   [docs/golden-seahorse-defects.md](docs/golden-seahorse-defects.md).
-- Bigger tanks: 30 fish (off by default; **EXPERIMENTAL - USE AT OWN RISK**). Tank 1, Tank 2 and the Sale Tank
+- Bigger tanks: 30 fish (on by default; **EXPERIMENTAL - USE AT OWN RISK**). Tank 1, Tank 2 and the Sale Tank
   (Tank 3) hold 30 fish instead of 21 (the isolation tank still holds one;
   with 3 extra tanks, Tanks 4-6 hold 30 too), and
   fish 22-30 get everything fish 1-21 get. Every adult in the Sale Tank is
@@ -53,7 +53,7 @@ never needs the internet.
   game's save already has room for them, so saves keep their layout. Sell or
   move fish down to 21 per tank before turning it off again. Design:
   [docs/fish-tycoon-tank-expansion.md](docs/fish-tycoon-tank-expansion.md).
-- 3 extra tanks (off by default; **EXPERIMENTAL - USE AT OWN RISK**; **needs
+- 3 extra tanks (on by default; **EXPERIMENTAL - USE AT OWN RISK**; **needs
   DS Store Items, which it turns on**). Tank 4, Tank 5 and Tank 6:
   three more full tanks for breeding, exactly like Tank 1 and Tank 2. Buy
   them on the Supplies store's Upgrades screen: the Extra Tank item (the
@@ -98,7 +98,7 @@ never needs the internet.
   "Fish Tycoon - Modded" copy; nothing is saved. How it works, with every
   address: `native/ftfp_fish_window/ftfp_fish_window.c`. Plant Tycoon draws
   through SDL2, a different renderer, so this setting is Fish Tycoon's only.
-- Optimize Prices button (on by default). An "Optimize Prices" button on the
+- Optimize Prices button (off by default). An "Optimize Prices" button on the
   Species Chart's bottom bar, left of Done (where you set prices), and the
   same button on the Fish Store screen (opened with Sell Fish), on its bottom
   bar left of Done, so it can be used any time: the Species Chart only opens
@@ -159,7 +159,7 @@ never needs the internet.
   `native/ftfp_tank_counts/ftfp_tank_counts.c`. Pictures:
   [docs/images/tank-counts-fish.png](docs/images/tank-counts-fish.png),
   [docs/images/tank-counts-fish-off.png](docs/images/tank-counts-fish-off.png).
-- DS Exclusive Fish (off by default). Adds the Nintendo DS version's seven
+- DS Exclusive Fish (on by default). Adds the Nintendo DS version's seven
   extra bodies (Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang, Idle)
   and seven extra fins (Small Fin, Roundy, Angel, Clown, Yellow, Blue,
   Moorish): 343 new species. Eggs, the store and two PC parents never give
@@ -175,7 +175,7 @@ never needs the internet.
   every address it uses:
   [docs/fish-tycoon-ds-fish-technical-map.md](docs/fish-tycoon-ds-fish-technical-map.md).
   Sell or trash every DS fish before turning it off again.
-- DS Store Items (off by default; needs DS Exclusive Fish, which it turns on
+- DS Store Items (on by default; needs DS Exclusive Fish, which it turns on
   with it). An Upgrades button in the Supplies store opens the DS version's
   store items. The Puffer Fish, Sting Ray and Moray Eel ($1250 each) are tank
   companions like the Golden Seahorse: they swim, can be dragged between
@@ -283,7 +283,7 @@ never needs the internet.
   [docs/fish-tycoon-ds-store-items-design.md](docs/fish-tycoon-ds-store-items-design.md).
   Trash the store animals, and let the eel out of its rock, before turning it
   off again.
-- Time Warp (off by default; turns on the store's Upgrades screen it lives on).
+- Time Warp (on by default; turns on the store's Upgrades screen it lives on).
   A clock item on the Upgrades screen: pay a flat $500, type 1-72 real-time
   hours in a small Windows popup, confirm Yes, and the game plays those hours as
   if you had been away, with no catch-up cap. At Normal speed 1 hour is 6 age
@@ -307,8 +307,8 @@ never needs the internet.
   $1,000 to your money, as often as you like. Money stops at the largest
   value the game holds ($2,147,483,647). Picture:
   [docs/images/add-money-fish.png](docs/images/add-money-fish.png).
-- Everything is Free (off by default; **CHEAT**; not turned on by Enable All:
-  tick it yourself). "Every store item and upgrade is free. Obviously a cheat
+- Everything is Free (off by default; **CHEAT**; not turned on by Select All
+  Patches or Owner's Defaults: tick it yourself). "Every store item and upgrade is free. Obviously a cheat
   mod, have fun!" Every price you pay is $0 and the store says $0: every
   Supplies store item (food, medicines, chemicals, eggs, plants, ornaments,
   Tank Two, the Golden Seahorse), research, and everything on the Upgrades
@@ -321,7 +321,7 @@ never needs the internet.
   reads are zeroed in place (the price table in the save is never touched);
   the store DLLs read "Everything Free.ini" beside them. Selling fish is
   unchanged.
-- Extra supply slots (off by default; **EXPERIMENTAL - USE AT OWN RISK**;
+- Extra supply slots (on by default; **EXPERIMENTAL - USE AT OWN RISK**;
   **needs DS Store Items, which it turns on**). Eleven supply slots instead of
   four, in three pages at the top left of the tank screen: page 1 is the
   stock four (the fish food and slots 2-4), page 2 four more and page 3
@@ -364,7 +364,7 @@ never needs the internet.
   Turning it off: use or move what is on pages 2 and 3 first. Nothing is
   deleted -- the file stays and everything comes back, with the purchase,
   when you turn it on again -- but until then the game cannot reach them.
-- Multiple ornaments (off by default; **EXPERIMENTAL - USE AT OWN RISK**). The Shell, Pagoda, Diver, Fancy Coral,
+- Multiple ornaments (on by default; **EXPERIMENTAL - USE AT OWN RISK**). The Shell, Pagoda, Diver, Fancy Coral,
   Sunken Antique Column and Sunken Ship can be bought again once you own
   them, at their normal price, up to 10 extra copies per tank. The copies are
   only for decorating: they are drawn, fall, and are dragged, placed and
@@ -409,7 +409,7 @@ never needs the internet.
   fountain, insect buzz, medical drip, wind in the trees and windchimes); 294
   bundled files are identical to the game's own and are ignored, and 7 that
   differ are left at the game's version.
-- Add unused flowers (off by default). Fourteen flower heads ship in the game's art
+- Add unused flowers (on by default). Fourteen flower heads ship in the game's art
   but no plant uses them; this adds them as new flowers: Nightingale, Rosetta,
   Lilac, Veronica, Violetta, Stella, Silvermist, Anagallis, Buttercup,
   Cerulean, Phalaena, Mirabilis, Indigoberry and Prunus. With the 23 foliages
@@ -426,7 +426,7 @@ never needs the internet.
   - Design:
     [docs/plant-tycoon-new-flowers-design.md](docs/plant-tycoon-new-flowers-design.md).
     Sell or compost the new flowers before turning it off again.
-- Add new store upgrades and items (off by default; needs Add unused
+- Add new store upgrades and items (on by default; needs Add unused
   flowers). An Upgrades link on the bricks at the left of the Supplies store
   opens a second view of the store with only the new items, each where it
   would sit in the stock store:
@@ -513,7 +513,7 @@ never needs the internet.
   - Click Supplies in the bottom bar to go back.
   - Design:
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
-- Time Warp (off by default; turns on the store's Upgrades screen it lives on).
+- Time Warp (on by default; turns on the store's Upgrades screen it lives on).
   A clock item on the Upgrades screen: pay a flat $500, type 1-72 real-time
   hours in a small Windows popup, confirm Yes, and the game plays those hours as
   if you had been away, with no catch-up cap. At Normal speed 1 hour is 6 age
@@ -537,8 +537,8 @@ never needs the internet.
   asked Yes/No, adds $1,000 to your money through the game's own cash code, as
   often as you like. Cash stops at the game's own maximum, $4,000,000,000.
   Picture: [docs/images/add-money-plant.png](docs/images/add-money-plant.png).
-- Everything is Free (off by default; **CHEAT**; not turned on by Enable All:
-  tick it yourself). "Every store item and upgrade is free. Obviously a cheat
+- Everything is Free (off by default; **CHEAT**; not turned on by Select All
+  Patches or Owner's Defaults: tick it yourself). "Every store item and upgrade is free. Obviously a cheat
   mod, have fun!" Every price you pay is $0 and the purchase window says
   "Price: $0": seeds, the Extinct and imported seeds, tools, chemicals,
   nursery items, and everything on the Upgrades view (Legendary Seeds, the
@@ -549,13 +549,13 @@ never needs the internet.
   Seeds a day, room in the seed and chemical trays, tools you already own,
   and the boxes, greenhouses and nurseries in order all stay. Selling plants
   is unchanged.
-- Sort Seeds button (off by default). A "Sort Seeds" button on the Seed
+- Sort Seeds button (on by default). A "Sort Seeds" button on the Seed
   Storage title bar. After a Yes/No question it sorts every seed in the
   unlocked seed box space by the class of the plant it grows, its foliage and
   flower, then its parents (unknown first), and packs them from the first
   slot: boxes 1-3 fill before 4-6, and locked drawers stay empty. It checks
   that exactly the same seeds come out as went in before writing anything.
-- Optimize Prices button (on by default). An "Optimize Prices" button on the
+- Optimize Prices button (off by default). An "Optimize Prices" button on the
   Nursery's bottom bar, at the right. It asks "Set every discovered species
   to its best price per day?"; on Yes, every species you have discovered gets
   the Breeding Guide's "best per day" asking price (the price that earns the
@@ -604,7 +604,7 @@ never needs the internet.
   `native/ftfp_greenhouse_counts/ftfp_greenhouse_counts.c`. Pictures:
   [docs/images/greenhouse-counts-plant.png](docs/images/greenhouse-counts-plant.png),
   [docs/images/greenhouse-counts-plant-off.png](docs/images/greenhouse-counts-plant-off.png).
-- 5 extra greenhouses (**EXPERIMENTAL - USE AT OWN RISK**; off by default;
+- 5 extra greenhouses (**EXPERIMENTAL - USE AT OWN RISK**; on by default;
   **needs Add new store upgrades and items, which it turns on**; in the
   "Modded Upgrades" copy). Every greenhouse screen is named at the top in the
   game's font ("Greenhouse 1" is the stock one). Up to six
@@ -635,7 +635,7 @@ never needs the internet.
     [docs/images/extra-greenhouses-store.png](docs/images/extra-greenhouses-store.png).
   - Design:
     [docs/plant-tycoon-extra-greenhouses-design.md](docs/plant-tycoon-extra-greenhouses-design.md).
-- 5 extra nurseries (**EXPERIMENTAL - USE AT OWN RISK**; off by default;
+- 5 extra nurseries (**EXPERIMENTAL - USE AT OWN RISK**; on by default;
   **needs Add new store upgrades and items, which it turns on**; in the
   "Modded Upgrades" copy). Without any, the game's own limit holds: at most 15
   plants are for sale at once. An Extra Nursery item on the Upgrades screen's
@@ -655,7 +655,7 @@ never needs the internet.
   switching it off.**
   - Pictures: Nursery 2 [docs/images/extra-nurseries-switch.png](docs/images/extra-nurseries-switch.png)
     beside the stock Nursery 1 [docs/images/extra-nurseries-nursery-1.png](docs/images/extra-nurseries-nursery-1.png).
-- Extra chemical slots (**EXPERIMENTAL - USE AT OWN RISK**; off by default;
+- Extra chemical slots (**EXPERIMENTAL - USE AT OWN RISK**; on by default;
   **needs Add new store upgrades and items, which it turns on**; in the
   "Modded Upgrades" copy). The greenhouse's Tools box is a 4 x 2 grid: the
   four tools, and under them the four chemical slots. This adds a second page
@@ -700,10 +700,49 @@ never needs the internet.
 3. Click **Find Both in Parent Folder...** and pick the folder your game
    folders sit in, or select each vanilla folder yourself.
 4. Select **One Game** or **Both Games**.
-5. Choose the fixes you want, using **Defaults**, **Enable All**, or
-   **Disable All** if it is quicker. Enable All turns on every setting except a
-   cheat (marked **CHEAT**, Everything is Free), which you tick yourself.
+5. Choose the fixes you want. The buttons above the tabs set both games'
+   lists at once (see "Choosing patches" below); every row can still be
+   ticked or unticked by hand afterwards.
 6. Validate, dry run, or create the fixed copy/copies.
+
+### Choosing patches
+
+Above the One Game / Both Games tabs, as in the Virtual Villagers Fun
+Patcher, one row of buttons (each with a **?** that explains it) replaces the
+ticks in **both games** at once:
+
+- **Select All Patches**: every patch except Everything is Free (a **CHEAT**,
+  which you tick yourself).
+- **Default Patches**: each game's recommended set, the one a fresh install
+  starts with. Everything that costs something in the game (money, tech
+  points, food) and everything that adds new content is on: every fix, the
+  DS Exclusive Fish and DS Store Items, the unused flowers and new store
+  upgrades and items, Time Warp, Sort Seeds and the EXPERIMENTAL settings
+  (Bigger tanks, 3 extra tanks, Extra supply slots, Multiple ornaments, 5
+  extra greenhouses, 5 extra nurseries, Extra chemical slots). So the
+  default copies are the "- Modded Upgrades" ones. Cheats and anything free
+  are off until you tick them: **Everything is Free**, **Free upgrades**
+  (both make prices $0), **Add Money**, **Buy Multiple Golden Seahorses**
+  and the **Optimize Prices button**.
+- **Owner's Defaults**: the patcher owner's own choice, every patch in both
+  games except Everything is Free: Default Patches plus Free upgrades, Add
+  Money, Buy Multiple Golden Seahorses and the Optimize Prices button.
+- **Deselect All Patches**: unticks every patch in both games.
+
+A setting that needs another one (DS Store Items needs DS Exclusive Fish,
+Time Warp needs DS Store Items or the new store upgrades) brings it along, as
+when you tick it yourself.
+
+**Patch Selection Settings...** (on its own row, with its **?**) opens a
+window listing every patch name once, with the games that have it ("(both
+games)", "(Fish Tycoon)" or "(Plant Tycoon)"). Tick the names you want and
+press **Tick These** or **Untick These**: each one is changed in every game
+that has it, and the status line says what changed ("Ticked 4 patches across
+the games: Fix Vanilla Bugs, Time Warp.").
+
+Your ticks are remembered in `patcher_local_settings.json` beside the
+patcher, written whenever they change and read when it starts; a setting the
+file does not know yet starts at its default.
 
 The GUI remembers separate vanilla and modded paths for both games. Every blue
 underlined path is a direct File Explorer link to that folder.

@@ -80,7 +80,7 @@ SETTING = {
         "again. Sell or move fish down to 21 per tank before switching it off."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
 }
 SETTING = experimental.mark(SETTING)       # src/experimental.py: the owner's label
 

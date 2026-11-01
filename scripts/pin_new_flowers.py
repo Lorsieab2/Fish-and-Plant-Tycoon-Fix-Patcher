@@ -53,7 +53,7 @@ SETTING = {
         "cannot draw or price. Sell or compost them before switching it off."
     ),
     "category": "main",
-    "default": False,
+    "default": True,
     "separate_output": True,
 }
 

@@ -1296,7 +1296,7 @@ class ArtAndManifestTests(unittest.TestCase):
         ids = [s["id"] for s in manifest["settings"]]
         setting = next(s for s in manifest["settings"] if s["id"] == "extra_chemical_slots")
         self.assertEqual((setting["name"], setting["default"], setting["experimental"], setting["requires_settings"]),
-                         ("Extra chemical slots", False, True, ["plant_upgrades"]))
+                         ("Extra chemical slots", True, True, ["plant_upgrades"]))
         self.assertTrue(setting["summary"].startswith("EXPERIMENTAL - USE AT OWN RISK."))
         self.assertEqual(ids, ["fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets",
                                "tank_greenhouse_counts", "new_flowers", "plant_upgrades", "sort_seeds", "optimize_prices",
