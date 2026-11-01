@@ -201,8 +201,14 @@ Rules for both renderers:
   `text_maker.load_fonts` on the game copy, measured as the games' width / height functions, drawn as
   the games' draw loop (SDL's blend on opaque screen). A `Picture.make(composer)` builds the pieces at
   render time for layouts the games work out from picture and text sizes (Fish Tycoon's Options popup
-  and message boxes, Plant Tycoon's message and question boxes). tests/screen_emulator.py runs a
-  screen's constructor in Unicorn and records its buttons and labels.
+  and message boxes, Plant Tycoon's message and question boxes, Options dialog, tooltips and the
+  dialogs over their screens). A `Piece.shade` fill is laid over what is drawn (Plant's see-through
+  rectangle 0x403870: a dialog's darkened screen, a tooltip's box); a Plant colour less than opaque
+  draws its letters with the alpha blit. tests/screen_emulator.py runs a screen's constructor in
+  Unicorn and records its buttons and labels; tests/draw_emulator.py (`DrawEmulator`) runs a Plant
+  screen, dialog, box or tooltip with the game's own widgets and image objects and records every
+  draw call (picture, cell, place; text, place, colour), which tests/test_picture_screen_draws.py
+  compares with the pieces.
 - Bugs: the Picture also offers `pictures_screens.bug_views` (greenhouse "g<size>_<frame>",
   "dead<frame>", "drop<t>", Collections "jar" / "web"), refined per bug (`refine_choices`).
 - Items: Plant items add "fx<type>_<frame>" (the effect manager's sheets, `CHEM_EFFECTS`).

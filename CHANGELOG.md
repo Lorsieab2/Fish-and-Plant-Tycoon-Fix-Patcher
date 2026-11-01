@@ -25,6 +25,29 @@
   and placing code and the screens' constructors in Unicorn
   (tests/screen_emulator.py); the tab's note names what is read without
   running.
+- **Picture Studio, Screens, bars and buttons: more of what the games draw,
+  drawn by the games' own code.** Plant Tycoon's screens, dialogs, boxes and
+  tooltips are now built and drawn in Unicorn with the game's own code and
+  every draw call compared (tests/draw_emulator.py,
+  tests/test_picture_screen_draws.py). New: the Options dialog (its words,
+  sliders, radio buttons, music track check boxes and Done, over the main
+  menu; a ticked check box is CheckboxStrip.png's second frame); the 33
+  tutorial messages over the screen each appears on, with the arrow the
+  tutorial points (the message box centred on the screen); the questions
+  over the menu or greenhouse; a dialog darkens the screen under it; the
+  chemical tray's tooltips ("Plant Food / Remaining uses: 3"); the hidden
+  "Replay Tutorial Instruction" text button; a disabled button's dimmed label
+  (unused by the game: nothing disables a button). The greenhouse gains its
+  pots, the tool tray's soil bag and watering can and the trays' and trash
+  bin's names; the Seed box and Store their headings, tray names and cash; a
+  screen's own tab its name; Help page 1 loses its back arrow and page 6 its
+  next arrow, as in the game. The main menu's button labelled "Options" (on
+  quit_button.png) opens Options and the one labelled "Quit" (on
+  options_button.png) quits, checked in Unicorn. Fish Tycoon: the supply
+  slots' tooltips (the patcher's DS Store Items) in the hint's rope box over
+  tank 1, checked against the patcher's own code. The tab's note names what
+  is still read without running (Fish Tycoon's screen words and box sizes, a
+  picked pot's words).
 
 ## v1.0.23
 
