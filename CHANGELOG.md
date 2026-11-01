@@ -27,12 +27,13 @@
   Tycoon's shelves, Tools box and mouse pictures, item names) and pinned
   pixel for pixel against the game's art: tests/test_picture_items.py.
   Plant Tycoon's Bugs tab now names the 48 collectible bugs, numbered in the
-  game's (and the Collections screen's) order (1. Blue Butterfly ... 48.
-  Golden Spider), with each one's leaf on the Collections screen besides its
+  game's (and the Collections screen's) order (1. Blue Butterfly (Common) ...
+  48. Golden Spider (Rare)), with each one's leaf on the Collections screen besides its
   6 pictures, and "Save all on this tab" saves them in a folder per bug group.
-  Rarities in the Studio read Common, Uncommon and Rare (the Uncommon Fish
-  Eggs are the store's Unusual Fish Eggs; seed packets: Common, Uncommon and
-  Rare for the shop's Common, Endangered and Extinct).
+  Each bug's name carries the game's rarity (1-4 of a family Common, 5-8
+  Uncommon, 9-12 Rare: the duplicate payout table 0x4167DC). Items keep the
+  games' own names: Unusual Fish Eggs, and the Common, Endangered, Extinct
+  and Legendary Seeds packets.
   A new All game art tab (both games) has every picture file of the game,
   one picture per sprite cell, cut exactly as the game cuts it (3,512 in Fish
   Tycoon, 2,114 in Plant Tycoon, by category), with the files the game's

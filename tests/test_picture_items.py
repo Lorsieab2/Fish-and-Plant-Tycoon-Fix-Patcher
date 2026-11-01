@@ -144,6 +144,14 @@ class FishItemCatalogTests(unittest.TestCase):
         self.assertEqual(len(batch), sum(len(fi.views(i)) for i in fi.ITEMS))
         self.assertIsNone(r.custom_batch("fish"), "the Fish tab has too many pictures for one batch")
 
+    def test_item_names_are_the_games(self) -> None:
+        """The owner: item names stay the game's (the store's "Unusual Fish Eggs"); Common /
+        Uncommon / Rare are for fish parts and species only."""
+        names = {i.key: i.name for i in fi.ITEMS}
+        self.assertEqual((names["eggs_common"], names["eggs_unusual"], names["eggs_rare"]),
+                         ("Common Fish Eggs", "Unusual Fish Eggs", "Rare Fish Eggs"))
+        self.assertFalse([i.name for i in fi.ITEMS if "Uncommon" in i.name + i.note])
+
 
 @unittest.skipUnless(UNICORN and (FISH / "Assets" / "ft.dat").is_file(), "the vanilla Fish Tycoon and Unicorn")
 class FishItemsAreTheGames(unittest.TestCase):
@@ -442,6 +450,25 @@ class PlantItemCatalogTests(unittest.TestCase):
         views = [o.key for o in r.refine_choices("items", {"category": "Chemicals", "item": "chem36"})["view"]]
         self.assertEqual(views, ["shelf", "tray", "pour"])
 
+    def test_seed_packets_keep_the_shops_names(self) -> None:
+        """The owner: the packets are the shop's Common, Endangered, Extinct and Legendary Seeds
+        (the tiers are for flower and foliage parts and species only)."""
+        import breeding_plant as bp
+        self.assertEqual([pit.BY_KEY[f"seed1_{t}"].name for t in range(4)],
+                         ["Reptans seed, Common Seeds packet", "Reptans seed, Endangered Seeds packet",
+                          "Reptans seed, Extinct Seeds packet",
+                          "Reptans seed, Extinct Seeds packet (Arthurium to Tilia flower)"])
+        self.assertEqual(pit.BY_KEY["legendary5"].name, "Astera seed, Legendary Seeds packet")
+        for frame_tier, gene in enumerate(pit.PACKET_FRAME_FLOWERS):   # each frame's flowers' packet
+            groups = (bp.COMMON_GENES, bp.ENDANGERED_GENES, tuple(g for g in bp.EXTINCT_GENES if g < 18),
+                      tuple(range(18, 24)))
+            self.assertIn(gene, groups[frame_tier])
+            self.assertEqual({bp.part_packet(g, "flower") for g in groups[frame_tier]},
+                             {bp.part_packet(gene, "flower")})
+        names = " ".join(i.name for i in pit.ITEMS)
+        self.assertNotIn("Uncommon", names)
+        self.assertNotIn("Tier", names)
+
 
 @unittest.skipUnless((PLANT / "Plant Tycoon.exe").is_file(), "the vanilla Plant Tycoon")
 class PlantItemsAreTheGames(unittest.TestCase):
@@ -538,8 +565,12 @@ class PlantItemsAreTheGames(unittest.TestCase):
         same(self, got, compose([(cell(art, 8, 6, 30), 0, 0)]), "the Ghost Dragonfly's leaf")
         bugs = self.renderer.custom_batch("bug")
         self.assertEqual(len(bugs), 48 * 7)
-        self.assertEqual(bugs[0][0], ("Butterflies and moths", "1. Blue Butterfly"))
-        self.assertEqual(bugs[-1][0], ("Spiders", "48. Golden Spider"))
+        self.assertEqual(bugs[0][0], ("Butterflies and moths", "1. Blue Butterfly (Common)"))
+        self.assertEqual(bugs[-1][0], ("Spiders", "48. Golden Spider (Rare)"))
+        # The game's rarity in each family: 1-4 Common, 5-8 Uncommon, 9-12 Rare (0x4167DC).
+        for b in range(48):
+            self.assertTrue(pp.bug_label(b).endswith(f" ({('Common', 'Uncommon', 'Rare')[b % 12 // 4]})"), b)
+        self.assertEqual(pp.bug_label(4), "5. Pale Moth (Uncommon)")
 
     def _bytes(self, va: int, n: int) -> bytes:
         data = self.EXE.read_bytes()

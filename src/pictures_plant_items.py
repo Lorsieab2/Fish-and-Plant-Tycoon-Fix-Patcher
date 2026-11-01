@@ -62,8 +62,17 @@ TOOL_COLUMNS = (("soil", ("Common Soil", "Bio-organic Soil", "Soil from Isola"))
                 ("net", ("Crude Butterfly Net", "Large Butterfly Net", "Golden Butterfly Net")),
                 ("box", ("First Seed Box", "Second Seed Box", "Third Seed Box")))
 HAND_WORDS = {"soil": "pouring soil", "water": "watering", "shears": "cutting", "net": "catching"}
-# The owner's rarity words (Common, Uncommon, Rare) for the shop's Common, Endangered and Extinct packets.
-TIER_WORDS = ("Common packet", "Uncommon packet", "Rare packet", "Rare packet (Arthurium to Tilia flower)")
+# The seed packets keep the shop's names (the owner, 2026-11-01): a flower of each frame's group gives
+# the packet by breeding_plant.part_packet (frame 3 is still an Extinct packet, for flowers 18-23).
+PACKET_FRAME_FLOWERS = (1, 3, 2, 18)
+
+
+def packet_words(frame_tier: int) -> str:
+    import breeding_plant as bp
+    words = f"{bp.part_packet(PACKET_FRAME_FLOWERS[frame_tier], 'flower')} Seeds packet"
+    if frame_tier == 3:
+        words += f" ({bp.FLOWER_WORD[18]} to {bp.FLOWER_WORD[23]} flower)"
+    return words
 PATCHER_CHEMICALS = ((36, "Radioactive Plant Formula"), (37, "Revival Potion"), (38, "Revita-Seed"),
                      (39, "Radioactive Plant Formula Bomb"), (48, "Muta-Flower"), (49, "Muta-Foliage"))
 PATCHER_UPGRADES = (   # key, name, (file, cols, rows) or sheet id, frame, shelf kind
@@ -102,11 +111,11 @@ def _items() -> tuple:
     seeds, chems, tools, orns, pots, upgrades = CATEGORIES
     out = []
     for foliage in range(1, 24):
-        for tier, words in enumerate(TIER_WORDS):
-            out.append(Item(f"seed{foliage}_{tier}", f"{bp.FOLIAGE_WORD[foliage]} seed, {words}", seeds, SEEDS,
+        for tier in range(4):
+            out.append(Item(f"seed{foliage}_{tier}", f"{bp.FOLIAGE_WORD[foliage]} seed, {packet_words(tier)}", seeds, SEEDS,
                             (foliage - 1) * 4 + tier, "seed"))
     for foliage in range(1, 24):
-        out.append(Item(f"legendary{foliage}", f"{bp.FOLIAGE_WORD[foliage]} seed, Legendary packet", seeds,
+        out.append(Item(f"legendary{foliage}", f"{bp.FOLIAGE_WORD[foliage]} seed, Legendary Seeds packet", seeds,
                         SEED_LEGENDARY, LEGENDARY_BASE + foliage, "seed", patcher=True))
     for k, name in enumerate(CHEMICAL_NAMES):
         out.append(Item(f"chem{27 + k}", name, chems, CHEMICALS, 2 * k, "chemical", chemical=27 + k))

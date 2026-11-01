@@ -168,8 +168,7 @@ def _items() -> tuple:
     out.append(Item("fishfood_can", "Fish food box", food, whole="item_fishfood.png", unused=True))
     out += [
         Item("eggs_common", "Common Fish Eggs", eggs, store=5, effect=4, **_stock_supply(5)),
-        Item("eggs_unusual", "Uncommon Fish Eggs", eggs, store=6, effect=4, **_stock_supply(6),
-             note="The store names them Unusual Fish Eggs; the Studio says Uncommon, as for every rarity."),
+        Item("eggs_unusual", "Unusual Fish Eggs", eggs, store=6, effect=4, **_stock_supply(6)),
         Item("eggs_rare", "Rare Fish Eggs", eggs, store=7, effect=4, **_stock_supply(7)),
         Item("eggs_exotic", "Exotic Fish Eggs", eggs, ds="ITEM_FISHEGGS_EXOTIC.png",
              icon="TOOL_FISHEGGS_EXOTIC.png", cursor=("TOOL_FISHEGGS_EXOTIC.png", 0, 0), patcher=True),

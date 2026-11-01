@@ -790,25 +790,18 @@ BUG_SPRITE = 0x9E                    # small_bugs.png: 12 x 24 cells, 6 per bug 
 BUG_COUNT, BUG_FRAMES = 48, 6
 LEAF_SPRITE = 0xDB                   # collectionLeafGrid.png: 8 x 6, bug k's leaf on the Collections screen
 # The 48 collectible bugs, by the game's bug number (the name switch 0x418940, jump table 0x418DA4;
-# the Collections screen's leaf k and the save's collected flag state + 0x53F4B + k are the same k).
-BUG_NAMES = (
-    "Blue Butterfly", "Mission Blue Butterfly", "Fern Butterfly", "Black Moth", "Pale Moth", "Lapis Butterfly",
-    "Lemon Moth", "Amber Butterfly", "Plum Butterfly", "Cherry Butterfly", "Jet Moth", "Golden Butterfly",
-    "Green Beetle", "Brown Bug", "Ladybug", "Shiny Blue Beetle", "Hiding Beetle", "Zebra Beetle", "Cockroach",
-    "Mystic Scarab", "Ebony Scarab", "Fire Scarab", "Shiny Flower Beetle", "Golden Beetle",
-    "Blue Dragonfly", "Pink Dragonfly", "Tiger Dragonfly", "Emerald Dragonfly", "Dart Dragonfly",
-    "Fragile Dragonfly", "Ghost Dragonfly", "Glassy Dragonfly", "Fire Dragonfly", "Black Dragonfly",
-    "Earth Dragonfly", "Golden Dragonfly",
-    "Cactus Spider", "Yellow Spider", "Brown Spider", "Spotted Spider", "Pearly Spider", "Limelike Spider",
-    "Bamboo Spider", "Cricket Spider", "Bumpy Spider", "Jade Spider", "Tahitian Spider", "Golden Spider",
-)
+# the Collections screen's leaf k and the save's collected flag state + 0x53F4B + k are the same k),
+# and each one's rarity, the game's own (Common 1-4, Uncommon 5-8, Rare 9-12 of each family: the
+# duplicate payout table 0x4167DC, the Collections hover strings 0x1AE-0x1B0): Game Mechanics' table,
+# read back out of the vanilla executable by tests/test_game_mechanics_bugs.py.
+from game_mechanics_plant import BUG_NAMES, bug_rarity  # noqa: E402
 BUG_GROUPS = ("Butterflies and moths", "Beetles", "Dragonflies", "Spiders")     # 12 each, in that order
 SOIL_LOOKS = (("none", "No soil"), ("soil", "Soil"), ("planted", "Soil, planted"))
 SOIL_LEVELS = (0, 1, 2)              # 0x41DDE0: no soil upgrade, the first, the second
 
 
 def bug_label(bug: int) -> str:
-    return f"{bug + 1}. {BUG_NAMES[bug]}"
+    return f"{bug + 1}. {BUG_NAMES[bug]} ({bug_rarity(bug)})"
 
 
 class SceneryPlanner:
