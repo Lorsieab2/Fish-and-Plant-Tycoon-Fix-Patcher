@@ -233,6 +233,63 @@ class PlantDraws(unittest.TestCase):
         S._shade(start, (*S.PLANT_SHADE, 64, 16), 0, 0)
         self.assertEqual(bytes(start.data), bytes(screen.data))
 
+    def screen(self, ctor: int, page: int | None = None, player: bool = False) -> list:
+        """A screen built and drawn by the game (its constructor, then 0x40B6B0): no pot picked
+        (99), $1000, a player named Player."""
+        d = self.emulator()
+        state = d.game_state
+        d.emu.write32(state + 0x63E58, 99)
+        d.emu.write32(state + 0x217C, 1000)
+        if player:
+            d.emu.write32(state + 0x53FB8, 1)
+            d.emu.uc.mem_write(state + 8, b"Player\0")
+        screen = d._zeroed(0x800)
+        d.run(ctor, this=screen)
+        if ctor == 0x429D00:
+            d.run(0x429C10, this=screen)             # the player's name and Change (0x429C10)
+        if page is not None:
+            d.emu.write32(screen + 0x1C, page)
+            d.run(0x420F00, this=screen)
+            d.run(0x420F00, this=screen)
+        d.show(screen)
+        return recorded(d.draws)
+
+    def test_screens_as_the_game_draws_them(self) -> None:
+        """Every picture, word and button of these screens where the game draws them, and nothing
+        more: their constructors and draws run (the words' places from the draw calls' pushes)."""
+        for ctor, key, kwargs in ((0x424BB0, "screen:greenhouse", {}), (0x429D00, "screen:menu", {"player": True})):
+            got = self.screen(ctor, **kwargs)
+            want = composed(self.composer, self.composer.pieces(S.by_key("plant")[key]))
+            self.assertEqual(sorted(got), sorted(want), key)
+        for page in range(6):
+            got = self.screen(0x420A00, page=page)
+            want = composed(self.composer, S.by_key("plant")[f"screen:help{page + 1}"].pieces)
+            self.assertEqual(sorted(got), sorted(want), page)
+
+    def test_screens_words(self) -> None:
+        """Screens whose pictures leave out what depends on a game (the seed tray's seeds, the
+        Store's shelves): every word the game draws is in the picture, and every piece of the
+        picture is drawn by the game."""
+        for ctor, key in ((0x4332C0, "screen:seedbox0"), (0x446630, "screen:store")):
+            got = self.screen(ctor)
+            want = composed(self.composer, S.by_key("plant")[key].pieces)
+            self.assertEqual(sorted(x for x in got if x[0] == "text"), sorted(x for x in want if x[0] == "text"), key)
+            for x in want:
+                self.assertIn(x, got, key)
+
+    def test_greenhouse_replay_button(self) -> None:
+        """The greenhouse's text button 8 "Replay Tutorial Instruction" in each state."""
+        for frame in (0, 1, 2):
+            d = self.emulator()
+            screen = d._zeroed(0x800)
+            d.run(0x424BB0, this=screen)
+            button = next(w for w, ident in d.widgets if ident == 8)
+            d.vcall(button, 5, 1)
+            d.emu.write32(d.emu.read32(button + 0x10) + 0x30, frame)
+            d.draws.clear()
+            d.vcall(button, 6)
+            self.assertEqual(recorded(d.draws), composed(self.composer, [S.plant_replay(frame)]), frame)
+
     def test_main_menu_buttons_run_what_their_labels_say(self) -> None:
         """quit_button.png is labelled "Options" and opens the Options dialog; options_button.png
         is labelled "Quit" and quits (0x42A430, the menu's button handler)."""

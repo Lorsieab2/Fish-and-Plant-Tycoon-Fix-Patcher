@@ -668,6 +668,21 @@ def _radios(L: int, y: int, n: int, chosen: int) -> list:
             for k in range(n)]
 
 
+# The greenhouse's text button "Replay Tutorial Instruction" (0x424BB0: button 8, no picture, at
+# (400, 0); its label white, mouse over and pressed 0xFF003333). The greenhouse takes it off the
+# screen at once and shows it only while the tutorial has an instruction to replay (0x428AE1).
+# A button without a picture is as big as its label plus 2 all round (0x401079), so the label is
+# drawn at its own place, 2 right and down when pressed.
+PLANT_REPLAY = (0x190, 0, 0x91)
+PLANT_REPLAY_COLOURS = (0xFFFFFFFF, 0xFF003333, 0xFF003333)
+
+
+def plant_replay(frame: int = 0) -> Piece:
+    x, y, text = PLANT_REPLAY
+    shift = 2 if frame == 2 else 0
+    return say(x + shift, y + shift, ident(text), colour=PLANT_REPLAY_COLOURS[frame])
+
+
 def plant_pot_words() -> list:
     """A picked pot's words (0x428250 / 0x4286E6 and the helpers 0x44CD80 / 0x44CB30, 0x4232F0):
     its name centred at (118, 254), "NA" seeds at (62, 302), "Age:" and the age, its state at
@@ -707,18 +722,61 @@ STORE_TABS = (("id", 0x191), ("id", 0x17A), None, ("id", 0x17D), ("id", 0x180)) 
 COLLECTIONS_TABS = (("id", 0x191), ("at", 0x467B44), ("at", 0x467B38), None, ("at", 0x467B30))      # 0x418E70
 
 
+# A screen's own tab: lit_button.png and its name in white, left-aligned at (x, 560), drawn by the
+# screen itself (Seed box 0x434330, Store 0x447D73, Collections 0x4184E9; colours [0x48EA2C],
+# [0x48EB40], [0x482464] all 0xFFFFFFFF).
+OWN_TABS = {1: (at(0x467B44), 0x17C), 2: (ident(0x181), 0x1E4), 3: (ident(0x17D), 0x25B)}
+
+
 def _tabs(skip: int | None, labels: tuple | None = None) -> list:
-    out = []
+    own, rest = _split_tabs(skip, labels)
+    return own + rest
+
+
+def _split_tabs(skip: int | None, labels: tuple | None = None) -> tuple:
+    """(the screen's own lit tab and its name, the other tabs as buttons)."""
+    own, rest = [], []
     for k, x in enumerate(TAB_XS):
         if k == skip:
-            out.append(Piece("lit_button.png", x, TAB_Y))
+            own.append(Piece("lit_button.png", x, TAB_Y))
+            if k in OWN_TABS:
+                part, tx = OWN_TABS[k]
+                own.append(say(tx, 0x230, part, colour=0xFFFFFFFF))
     for k, x in enumerate(TAB_XS):
         if k != skip:
             if labels is not None and labels[k] is not None:
-                out += label("purplePTButton.png", x, TAB_Y, labels[k], PLANT_LILAC)
+                rest += label("purplePTButton.png", x, TAB_Y, labels[k], PLANT_LILAC)
             else:
-                out.append(_button("purplePTButton.png", x, TAB_Y))
-    return out
+                rest.append(_button("purplePTButton.png", x, TAB_Y))
+    return own, rest
+
+
+# The trays' names (text widgets 0x40CBE0, centred, colour 0xFF010832, set by 0x40C6C0) on the
+# greenhouse (0x424BB0) and the Seed box (0x4332C0), and the trash bin's (0xFF000662).
+TRAY_WORDS = {"seeds": (ident(0x17A), 0x6B, 7), "tools": (ident(0x17C), 0x6B, 0x69),
+              "seeds2": (ident(0x17A), 0x47, 0x159), "pollen": (ident(0x17B), 0x9F, 0x159)}
+TRAY_COLOUR, TRASH_COLOUR = 0xFF010832, 0xFF000662
+TRASH_WORD = (ident(0x190), 0xC9, 0x21F)
+TOOL_TRAY = (Piece("soilbag_grid.png", 19, 136, cols=2, rows=3), Piece("waterbucket_grid.png", 64, 136, cols=2, rows=3))
+POTS = tuple(Piece("pot.png", x, y, cols=1, rows=7) for y in (102, 246, 390) for x in (295, 388, 481, 574, 667))
+
+
+# The Store's headings (text widgets, centred, white; 0x446630).
+STORE_WORDS = ((0x194, 0x21C, 7), (0x195, 0x1D2, 0x25), (0x196, 0x2AB, 0x25), (0x180, 0x1D2, 0x111), (0x197, 0x2AB, 0x111))
+
+
+def _cash() -> list:
+    """CASH and the player's cash (a sample $1000) at the bottom left (0x44CDE0, 0x44CC20)."""
+    return [say(0xD, 0x21F, ident(0x3F), colour=0xFFFFFFFF), say(0x4B, 0x221, fmt(0x470C44, 1000), colour=PLANT_BLACK)]
+
+
+def _tray(*names) -> list:
+    return [say(x, y, part, colour=TRAY_COLOUR, align="centre") for part, x, y in (TRAY_WORDS[n] for n in names)]
+
+
+def _trash() -> list:
+    part, x, y = TRASH_WORD
+    return [Piece("trashbin.png", 143, 515, cols=2, rows=1), say(x, y, part, colour=TRASH_COLOUR, align="centre")]
 
 
 def _plant_pictures() -> list:
@@ -799,37 +857,51 @@ def _plant_pictures() -> list:
                        "half, windowed, Normal difficulty and speed, music track 1)", (), canvas=(800, 600),
                        make=lambda c, m=tuple(menu): m + (shade(),) + tuple(plant_options(c))))
     out.append(Picture("screen:splash", screens, "Splash", (Piece("SPLASH_BG.jpg", 0, 0),), canvas=(800, 600)))
-    green = [Piece("main_bg.png", 0, 0), Piece("trashbin.png", 143, 515, cols=2, rows=1), Piece("hose.png", 0, 0),
-             _button("snapshot_button.png", 755, 4), *label("widePTButton.png", 31, 369, ident(0x41), PLANT_LILAC),
+    # in the game's order (0x40B6B0: the background, the widgets, the overlay)
+    green = [Piece("main_bg.png", 0, 0), *_trash(),
+             *label("sell_button.png", 115, 407, ident(0x185), PLANT_LILAC),
              *label("sell_button.png", 31, 407, ident(0x184), PLANT_LILAC),
-             *label("sell_button.png", 115, 407, ident(0x185), PLANT_LILAC)] + _tabs(None, GREENHOUSE_TABS)
-    green += [say(0xD, 0x21F, ident(0x3F), colour=0xFFFFFFFF), say(0x4B, 0x221, fmt(0x470C44, 1000), colour=PLANT_BLACK)]
+             *label("widePTButton.png", 31, 369, ident(0x41), PLANT_LILAC), _button("snapshot_button.png", 755, 4),
+             *_tabs(None, GREENHOUSE_TABS), *_tray("tools", "seeds", "pollen", "seeds2"),
+             Piece("hose.png", 0, 0), *TOOL_TRAY, *POTS]
+    green += _cash()
     out.append(Picture("screen:greenhouse", screens, "Greenhouse (empty, no pot picked)",
                        tuple(green) + (say(0x76, 0xFE, ident(0x18D), colour=PLANT_BLACK, align="centre"),),
                        canvas=(800, 600)))
+    out.append(Picture("screen:greenhouse:replay", screens, "Greenhouse with its hidden text button \"Replay "
+                       "Tutorial Instruction\" (shown only while the tutorial has an instruction to replay)",
+                       tuple(green) + (say(0x76, 0xFE, ident(0x18D), colour=PLANT_BLACK, align="centre"),
+                                       plant_replay()), canvas=(800, 600)))
+    for frame, state in ((0, "normal"), (1, "mouse over"), (2, "pressed")):
+        out.append(Picture(f"replay{frame}", buttons, f"Greenhouse: Replay Tutorial Instruction (a text button) - {state}",
+                           (Piece("main_bg.png", 0, 0), plant_replay(frame)), crop=(380, 0, 640, 30)))
     out.append(Picture("screen:greenhouse:pot", screens, "Greenhouse, a pot picked (its words; the plant is not drawn)",
                        tuple(green) + tuple(plant_pot_words()), canvas=(800, 600)))
     for n in (0, 1, 2):
-        tabs = _tabs(1, SEEDBOX_TABS)
-        seeds = [Piece("SeedBox_BG.jpg", 0, 0)] + tabs[:1] + [Piece("trashbin.png", 143, 515, cols=2, rows=1)]
-        seeds += [Piece("addlSeedBox.png", 239, y) for y in (201, 354)[:n]] + tabs[1:]
+        own, rest = _split_tabs(1, SEEDBOX_TABS)
+        seeds = [Piece("SeedBox_BG.jpg", 0, 0)] + own + [say(0x21C, 7, ident(0x198), colour=0xFFFFFFFF, align="centre"),
+                                                         *_tray("seeds", "tools"), *rest, *_trash(), *TOOL_TRAY]
+        seeds += [Piece("addlSeedBox.png", 239, y) for y in (201, 354)[:n]]
         out.append(Picture(f"screen:seedbox{n}", screens, f"Seed box (empty; {n} extra seed box{'es' if n != 1 else ''})",
                            tuple(seeds), canvas=(800, 600)))
-    out.append(Picture("screen:store", screens, "Store (the background and tabs; the shelves are on the Items tab)",
-                       (Piece("Store_BG.jpg", 0, 0), *_tabs(2, STORE_TABS)), canvas=(800, 600)))
+    store = [Piece("Store_BG.jpg", 0, 0), *_tabs(2, STORE_TABS), *_cash()]
+    store += [say(x, y, ident(t), colour=0xFFFFFFFF, align="centre") for t, x, y in STORE_WORDS] + _tray("seeds", "tools")
+    out.append(Picture("screen:store", screens, "Store (its words; the shelves are on the Items tab)", tuple(store),
+                       canvas=(800, 600)))
     out.append(Picture("screen:nursery", screens, "Nursery (no ornaments)",
                        (Piece("Nursery_BG.jpg", 0, 0), Piece("nurseryUI.png", 0, 484),
                         *label("purplePTButton.png", 227, 540, ident(0x191), PLANT_LILAC)), canvas=(800, 600)))
-    tabs = _tabs(3, COLLECTIONS_TABS)
+    own, rest = _split_tabs(3, COLLECTIONS_TABS)
+    tabs = own + rest
     out.append(Picture("screen:collections0", screens, "Collections (no bug caught)",
-                       (Piece("collections_bg.jpg", 0, 0), *tabs[:1], Piece("collection_jars.png", 0, 0),
-                        *label("widePTButton.png", 59, 514, at(0x467B4C)), *tabs[1:]), canvas=(800, 600)))
+                       (Piece("collections_bg.jpg", 0, 0), *own, Piece("collection_jars.png", 0, 0),
+                        *label("widePTButton.png", 59, 514, at(0x467B4C)), *rest), canvas=(800, 600)))
     out.append(Picture("screen:collections48", screens, "Collections (all 48 bugs caught, in their jars)",
                        tuple(collections_screen(range(48))), canvas=(800, 600)))
-    for k in range(1, 7):
+    for k in range(1, 7):     # 0x420F00: no back arrow on the first page, no next arrow on the last
+        arrows = (() if k == 1 else (_button("leftarrow.png", 345, 541),)) +             (() if k == 6 else (_button("rightarrow.png", 428, 541),))
         out.append(Picture(f"screen:help{k}", screens, f"Help, page {k}",
-                           (Piece(f"help{k}.jpg", 0, 0), _button("leftarrow.png", 345, 541),
-                            _button("rightarrow.png", 428, 541), *label("widePTButton.png", 28, 553, ident(0x17E)),
+                           (Piece(f"help{k}.jpg", 0, 0), *arrows, *label("widePTButton.png", 28, 553, ident(0x17E)),
                             *label("widePTButton.png", 610, 553, ident(0x19E))), canvas=(800, 600)))
     for key, name, bg in (("credits", "Credits", "credits.jpg"), ("story1", "Story, page 1", "story1_bg.jpg"),
                           ("gamewin", "Game won", "gamewin_bg.jpg")):
@@ -889,12 +961,12 @@ def collections_screen(caught, web: int | None = None, tabs: bool = True) -> lis
     out = [Piece("collections_bg.jpg", 0, 0)]
     out += [Piece("collectionLeafGrid.png", *LEAVES[k], cols=8, rows=6, cell=k) for k in caught]
     if tabs:
-        out += _tabs(3, COLLECTIONS_TABS)[:1]
+        out += _split_tabs(3, COLLECTIONS_TABS)[0]
     for k in caught:
         out += collection_bug(k, on_web=k == web)
     out.append(Piece("collection_jars.png", 0, 0))
     if tabs:
-        out += list(label("widePTButton.png", 59, 514, ("at", 0x467B4C))) + _tabs(3, COLLECTIONS_TABS)[1:]
+        out += list(label("widePTButton.png", 59, 514, ("at", 0x467B4C))) + _split_tabs(3, COLLECTIONS_TABS)[1]
     return out
 
 

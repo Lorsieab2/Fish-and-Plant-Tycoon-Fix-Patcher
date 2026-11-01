@@ -102,6 +102,7 @@ class Calls:
     width: int             # thiscall () on that surface
     height: int
     strip: int             # thiscall (name, cols, rows): a sprite strip
+    image: int             # thiscall (name): a whole picture
     sprite: int            # thiscall (id) on the sprite manager: the sprite's strip
     sprite_image: int      # thiscall (id): the sprite's whole picture
     text_width: int        # thiscall (text, scale) on a font
@@ -113,13 +114,16 @@ class Calls:
     draws: dict            # graphics wrapper -> (kind, pop, argument names)
 
 
-PLANT = Calls(0x40A4D0, 0x40A730, 0x40A740, 0x409FB0, 0x420460, 0x420550, 0x402380, 0x402450, 0x408E20,
+PLANT = Calls(0x40A4D0, 0x40A730, 0x40A740, 0x409FB0, 0x409E20, 0x420460, 0x420550, 0x402380, 0x402450, 0x408E20,
               0x493948, 0x44F30B, 0x4097E0, {
                   0x409080: ("image", 0xC, ("obj", "x", "y")),
                   0x409090: ("image", 0x10, ("obj", "x", "y", "alpha")),
                   0x409120: ("frame", 0x10, ("obj", "x", "y", "cell")),
                   0x409130: ("frame", 0x14, ("obj", "x", "y", "cell", "alpha")),
                   0x409220: ("tinted", 0x1C, ("obj", "x", "y", "cell", "tint", "alpha", "alpha2")),
+                  # the sprite manager's draws, by sprite id
+                  0x4207F0: ("frame", 0x14, ("id", "x", "y", "alpha", "scale")),
+                  0x4208F0: ("frame", 0x1C, ("id", "cell", "x", "y", "alpha", "scale", "centred")),
               })
 
 
@@ -130,6 +134,7 @@ class DrawEmulator(se.ScreenEmulator):
         super().__init__(game, widgets=True)
         c = self.c = PLANT
         self.size = size
+        self.table = sprites or {}
         self.files: dict[int, str] = {}          # a loaded surface -> its file
         self.draws: list[Draw] = []
         self.widgets: list[tuple[int, int]] = []  # (widget, parent) in the order made
@@ -160,9 +165,17 @@ class DrawEmulator(se.ScreenEmulator):
         for ident, (file, cols, rows) in (sprites or {}).items():
             if cols and rows:
                 self.sprites[ident] = self.strip(file, cols, rows)
+            elif file.casefold().endswith((".png", ".jpg", ".bmp")):
+                self.sprites[ident] = self.image(file)
         emu.hook(c.sprite, lambda e: self.sprites.get(e.arg(0), 0), 4)
         emu.hook(c.sprite_image, lambda e: self.sprites.get(e.arg(0), 0), 4)
         emu.uc.hook_add(UC_HOOK_CODE, self._widget, begin=c.widget_base, end=c.widget_base)
+        # the game's state (0x41FCD0's object) is far bigger than a made-up singleton: its own block
+        made = self.run(0x41FCD0)
+        self.game_state = self._zeroed(0x70000)
+        for g in self.globals:
+            if emu.read32(g) == made:
+                emu.write32(g, self.game_state)
 
     def _this(self) -> int:
         return self.emu.uc.reg_read(X.UC_X86_REG_ECX)
@@ -176,6 +189,11 @@ class DrawEmulator(se.ScreenEmulator):
     def strip(self, file: str, cols: int, rows: int) -> int:
         obj = self._zeroed(0x40)
         self.emu.call(self.c.strip, self.emu.text(file), cols, rows, ecx=obj)
+        return obj
+
+    def image(self, file: str) -> int:
+        obj = self._zeroed(0x10)
+        self.emu.call(self.c.image, self.emu.text(file), ecx=obj)
         return obj
 
     def describe(self, obj: int) -> tuple:
@@ -217,10 +235,13 @@ class DrawEmulator(se.ScreenEmulator):
         kind, _pop, names = self.c.draws[address]
         emu = self.emu
         args = {n: emu.arg(i) for i, n in enumerate(names)}
-        file, cols, rows = self.describe(args["obj"])
+        if "id" in args:
+            file, cols, rows = self.table.get(args["id"], ("<sprite %#x>" % args["id"], 1, 1))
+        else:
+            file, cols, rows = self.describe(args["obj"])
         self.draws.append(Draw(kind, file, cols, rows, args.get("cell", 0), s32(args["x"]), s32(args["y"]),
                                tint=args.get("tint", 0), alpha=f32(args["alpha"]) if "alpha" in args else 1.0,
-                               via=address))
+                               scale=args.get("scale", 100), via=address))
         return 0
 
     # ---- printf
@@ -242,6 +263,22 @@ class DrawEmulator(se.ScreenEmulator):
         out = re.sub(rb"%([-0 +#]*)(\d*)([diusx])", one, fmt.replace(b"%%", b"\x00")).replace(b"\x00", b"%")
         emu.uc.mem_write(buffer, out + b"\0")
         return len(out)
+
+    def children(self, screen: int) -> list:
+        """The widgets a screen or dialog shows, in its list's order (0x40B400 adds at the head)."""
+        out, node = [], self.emu.read32(self.emu.read32(screen + 4) + 0x18)
+        while node:
+            out.append(self.emu.read32(node))
+            node = self.emu.read32(node + 4)
+        return out
+
+    def show(self, screen: int) -> None:
+        """Draw a screen or dialog as the game does each frame (0x40B6B0: its background, its
+        widgets, its overlay), shown."""
+        self.emu.write8(self.emu.read32(screen + 4), 1)
+        for widget in self.children(screen):
+            self.vcall(widget, 5, 1)
+        self.vcall(screen, 5)
 
     def thunk_returning(self, value: int, kind: str = "", pop: int = 0) -> int:
         """A function (for a vtable) that returns `value`, recorded as a Draw of `kind` if given."""
