@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.23
+
+- **Fixed: the "Counts: On" / "Counts: Off" button was light blue, not yellow**
+  (Tank Counts, Greenhouse Counts). The games' text draw takes its colour as
+  0xAABBGGRR (SDL_MapRGBA gets the low byte as red), so the button's yellow
+  (255, 208, 64) was written the wrong way round and showed as (64, 208, 255).
+  It is now the game's yellow, as its captions. Tests:
+  tests/test_tank_greenhouse_counts.py.
+
 ## v1.0.22
 
 - **Rarity names** (Breeding Guide, its collection list and Picture Studio). Fish Tycoon's

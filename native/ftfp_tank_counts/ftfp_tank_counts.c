@@ -135,7 +135,7 @@
 #define BUTTON_X 694
 #define BUTTON_Y 60
 #define WHITE 0xFFFFFFFFu
-#define YELLOW 0xFFFFD040u          /* the button, like the game's yellow captions */
+#define YELLOW 0xFF40D0FFu          /* the button, like the game's yellow captions: (255, 208, 64); the draw takes 0xAABBGGRR */
 #define SHADOW 0xFF000000u
 
 typedef void (__fastcall *scene_fn)(void *impl, int edx);
