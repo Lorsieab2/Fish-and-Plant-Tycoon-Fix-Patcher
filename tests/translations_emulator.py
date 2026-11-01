@@ -13,14 +13,16 @@ from pathlib import Path
 import struct
 import tempfile
 
-from keystone import KS_ARCH_X86, KS_MODE_32, Ks
-
-import store_emulator as se
+try:
+    from keystone import KS_ARCH_X86, KS_MODE_32, Ks
+    import store_emulator as se
+except ImportError:           # Keystone or Unicorn is not installed (CI): ready() is False
+    se = None
 
 ROOT = Path(__file__).resolve().parents[1]
 DLL = ROOT / "assets" / "translations" / "Translations.dll"
-EXES = {"fish": se.VANILLA / "Fish Tycoon" / "Fish Tycoon.exe",
-        "plant": se.VANILLA / "Plant Tycoon" / "Plant Tycoon.exe"}
+EXES = {} if se is None else {"fish": se.VANILLA / "Fish Tycoon" / "Fish Tycoon.exe",
+                              "plant": se.VANILLA / "Plant Tycoon" / "Plant Tycoon.exe"}
 FOLDERS = {"fish": "C:\\Game\\Fish Tycoon Fix Patcher DLLs\\", "plant": "C:\\Game\\Plant Tycoon Fix Patcher DLLs\\"}
 FISH_LOOKUP, PLANT_LOOKUP = 0x00426FD0, 0x0044CA70
 
@@ -28,7 +30,7 @@ _built: dict[str, object] = {}
 
 
 def ready() -> bool:
-    return se.toolchain_ready() and all(p.is_file() for p in EXES.values()) and DLL.is_file()
+    return se is not None and se.toolchain_ready() and all(p.is_file() for p in EXES.values()) and DLL.is_file()
 
 
 def built() -> tuple[Path, dict[str, int]]:
