@@ -145,6 +145,39 @@ class PlantNumbersAreTheGames(unittest.TestCase):
         self.assertIn("mov eax, 0x2b", code)
         self.assertEqual(S.JAR_REST, (9, 0x2B))
 
+    def test_use_effects_are_the_games(self) -> None:
+        """The chemical switch's cases (0x4266B6, table 0x4273A8, chemical - 27) add these effect
+        types (the last push before each 0x41C1F0), and each type's sheet is the add's switch
+        (0x41BADE, table 0x41BEA0: the case's first push)."""
+        import pefile
+        import pictures_plant as pp
+        import pictures_plant_items as pit
+        pe = pefile.PE(str(PLANT_EXE), fast_load=True)
+        data = PLANT_EXE.read_bytes()
+
+        def read(va, n):
+            at = pe.get_offset_from_rva(va - 0x400000)
+            return data[at:at + n]
+        table = struct.unpack("<9I", read(0x4273A8, 36))
+        starts = sorted(set(table))
+        for k, case in enumerate(table):
+            end = min([s for s in starts if s > case] + [case + 0x400])
+            kinds, last = [], None
+            for i in disassemble(PLANT_EXE, case, end):
+                if i.mnemonic == "push" and i.op_str.startswith("0x") or (i.mnemonic == "push" and i.op_str.isdigit()):
+                    last = int(i.op_str, 0)
+                if i.mnemonic == "call" and i.op_str == "0x41c1f0":
+                    kinds.append(last)
+            self.assertEqual(tuple(kinds), pit.CHEM_EFFECTS[27 + k], 27 + k)
+        self.assertLess(table[34 - 27], 0x426EFA, "Muta-Flower / Muta-Foliage go on inside the Mutation case")
+        sprites = struct.unpack("<22I", read(0x41BEA0, 88))
+        for kind, sprite in pit.EFFECT_SPRITES.items():
+            case = sprites[kind - 2]
+            first = next(int(i.op_str, 0) for i in disassemble(PLANT_EXE, case, case + 32) if i.mnemonic == "push")
+            self.assertEqual(first, sprite, kind)
+            self.assertTrue(pp.sprite(sprite)[0].endswith(".png"))
+        self.assertEqual(pushes(PLANT_EXE, 0x423DC0, 0x423DDA)[-1:], [5], "soil dropped in a pot: type 5")
+
     def test_collections_tables(self) -> None:
         import pefile
         pe = pefile.PE(str(PLANT_EXE), fast_load=True)

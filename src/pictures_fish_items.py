@@ -26,6 +26,10 @@ checks every number here against the executable, and pins pictures against the g
   frames alpha 254, eggs_Grid.png 16 frames alpha 175, pellets_Grid.png 16 frames alpha 175,
   ANIM_TINYSHRIMP_Grid.png 26 frames alpha 125 (frame = the effect's count, 0 to its last).
   The equipment and ornaments in the tank are drawn as pictures_fish draws them.
+  The patcher's chemicals (DS Store Items) get the stock chemical's drop: its hook (stub_chem_use,
+  0x420E6F) comes after the stock splash 0x420E47 (0x413B00(3, ...)); they add a sparkle on the
+  fish (the Growth Hormone's, or Muta-Fin / Muta-Body's own), which the Items tab does not draw.
+  Exotic Fish Eggs splash as the stock eggs (exotic_hatch: SPLASH(4, x, y)).
 * DS Store Items (native/ftfp_ds_store, the patcher's): its Upgrades page (draw_page) draws
   each picture whole, the pointed-at one at 120% and the picked one at a percent pulsing
   48..128 (0x30 + a triangle of 0x50 over 1.6 s) through the same 0x408030, without shadows;
@@ -146,15 +150,15 @@ def _items() -> tuple:
         Item("vitamins", "Fish Vitamins", med, store=2, effect=3, **_stock_supply(2)),
         Item("hormone", "Growth Hormone", med, store=3, effect=3, **_stock_supply(3)),
         Item("unknown", "Unknown Chemical", med, store=4, effect=3, **_stock_supply(4)),
-        Item("rgh", "Radioactive Growth Hormone", med, ds="ITEM_RADIOACTIVE_GROWTHHORMONE.png",
+        Item("rgh", "Radioactive Growth Hormone", med, effect=3, ds="ITEM_RADIOACTIVE_GROWTHHORMONE.png",
              icon="TOOL_RADIOACTIVE_GROWTHHORMONE.png", cursor=("TOOL_dropper_RADIOACTIVE.png", 0, 0), patcher=True),
-        Item("revival", "Revival Potion", med, ds="ITEM_REVIVAL_POTION.png", icon="TOOL_REVIVAL_POTION.png",
+        Item("revival", "Revival Potion", med, effect=3, ds="ITEM_REVIVAL_POTION.png", icon="TOOL_REVIVAL_POTION.png",
              cursor=("TOOL_dropper_REVIVAL.png", 0, 0), patcher=True),
-        Item("clonafish", "ClonaFish", med, ds="ITEM_CLONAFISH.png", icon="TOOL_CLONAFISH.png",
+        Item("clonafish", "ClonaFish", med, effect=3, ds="ITEM_CLONAFISH.png", icon="TOOL_CLONAFISH.png",
              cursor=("TOOL_dropper_CLONAFISH.png", 0, 0), patcher=True),
-        Item("muta_fin", "Muta-Fin", med, ds="ITEM_MUTA_FIN.png", icon="TOOL_MUTA_FIN.png",
+        Item("muta_fin", "Muta-Fin", med, effect=3, ds="ITEM_MUTA_FIN.png", icon="TOOL_MUTA_FIN.png",
              cursor=("TOOL_dropper_MUTA_FIN.png", 0, 0), patcher=True),
-        Item("muta_body", "Muta-Body", med, ds="ITEM_MUTA_BODY.png", icon="TOOL_MUTA_BODY.png",
+        Item("muta_body", "Muta-Body", med, effect=3, ds="ITEM_MUTA_BODY.png", icon="TOOL_MUTA_BODY.png",
              cursor=("TOOL_dropper_MUTA_BODY.png", 0, 0), patcher=True),
         Item("orange_beaker", "Orange beaker", med, whole="item_orangebeaker.png", unused=True),
         Item("dropper_sheet", "Dropper sheet", med, whole="tool_dropper_grid.png", unused=True),
@@ -170,7 +174,7 @@ def _items() -> tuple:
         Item("eggs_common", "Common Fish Eggs", eggs, store=5, effect=4, **_stock_supply(5)),
         Item("eggs_unusual", "Unusual Fish Eggs", eggs, store=6, effect=4, **_stock_supply(6)),
         Item("eggs_rare", "Rare Fish Eggs", eggs, store=7, effect=4, **_stock_supply(7)),
-        Item("eggs_exotic", "Exotic Fish Eggs", eggs, ds="ITEM_FISHEGGS_EXOTIC.png",
+        Item("eggs_exotic", "Exotic Fish Eggs", eggs, effect=4, ds="ITEM_FISHEGGS_EXOTIC.png",
              icon="TOOL_FISHEGGS_EXOTIC.png", cursor=("TOOL_FISHEGGS_EXOTIC.png", 0, 0), patcher=True),
         Item("aerator", "Aeration System", equip, store=8, tank=("image", 1)),
         Item("heater", "Temperature Regulator", equip, store=9, tank=("image", 2)),

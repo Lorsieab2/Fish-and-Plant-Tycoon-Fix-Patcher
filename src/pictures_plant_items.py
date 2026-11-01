@@ -34,6 +34,15 @@ and alpha 100 (the picture as it is):
   foliage), and the Extra Seed Box (Tools_Grid frame 4); the Extra Greenhouse's shadow at
   (x + 4, y + 30) and tick at (x - 1, y + 22).
 
+* Using an item on a pot starts the effect manager's sprays (the add 0x41C1F0 and its kin; drawn by
+  0x41C000 with 0x4208F0 at alpha 1.0, scale 100, every cell of the sheet in turn): the chemical
+  switch 0x4266B6 (table 0x4273A8) adds, per chemical, the effect types in CHEM_EFFECTS; soil
+  dropped in a pot falls as type 5 (0x423DD5), water poured as type 8 (0x424042). The type's sheet
+  is the add's switch 0x41BADE (table 0x41BEA0). The patcher's chemicals 36-39 start no effect
+  (ftfp_plant_upgrades.c: apply_chemical, then the tail that only plays the sound); Muta-Flower and
+  Muta-Foliage continue into the Mutation Liquid's case (k_mutation_rest 0x426EFA), so theirs are
+  its effects.
+
 The game has no unused item art: every cell of these sheets is drawn by one of the above (the
 seed sheet's last four cells, 92-95, are empty).
 """
@@ -86,6 +95,23 @@ PATCHER_UPGRADES = (   # key, name, (file, cols, rows) or sheet id, frame, shelf
     ("extra_nursery", "Extra Nursery", CHEM_UPGRADES, 40, "upgrade"),
 )
 POT_SOILS = ("common soil", "bio-organic soil", "soil from Isola")
+EFFECT_SPRITES = {3: 0xAA, 5: 0x27, 8: 0x2A, 11: 0x31, 12: 0x32, 13: 0x34, 14: 0x35, 15: 0x33, 17: 0xAD}
+EFFECT_WORDS = {3: "sparkles", 5: "falling soil", 8: "falling water", 11: "white spray", 12: "red spray",
+                13: "blue spray", 14: "purple spray", 15: "yellow spray", 17: "blurry sparkles"}
+CHEM_EFFECTS = {27: (14, 14, 14), 28: (15, 15), 29: (11, 11, 11), 30: (12, 12, 12, 12), 31: (15, 15, 15, 15),
+                32: (12, 12, 15, 15), 33: (15, 15, 12, 12, 12, 11), 34: (15, 11, 14, 12, 13, 17, 3),
+                35: (14, 14, 13, 13)}
+CHEM_EFFECTS.update({48: CHEM_EFFECTS[34], 49: CHEM_EFFECTS[34]})   # Muta-Flower, Muta-Foliage
+TOOL_EFFECTS = {"soil": 5, "water": 8}
+
+
+def effect_types(item) -> tuple:
+    """The effect types the item starts on a pot, each sheet once, in the game's order."""
+    if item.chemical is not None:
+        return tuple(dict.fromkeys(CHEM_EFFECTS.get(item.chemical, ())))
+    if item.hand in TOOL_EFFECTS:
+        return (TOOL_EFFECTS[item.hand],)
+    return ()
 CATEGORIES = ("Seeds", "Chemicals", "Tools", "Nursery ornaments", "Pots", "Store Upgrades and Items")
 
 
@@ -155,6 +181,12 @@ def views(item: Item) -> tuple:
     if item.chemical is not None:
         out.append(("tray", "In the chemical tray, and on the mouse"))
         out.append(("pour", "On the mouse over a pot (pouring)"))
+    for kind in effect_types(item):
+        import pictures_plant as pp
+        name, cols, rows = pp.sprite(EFFECT_SPRITES[kind])
+        frames = max(1, cols) * max(1, rows)
+        out += [(f"fx{kind}_{k}", f"Used on a pot: {EFFECT_WORDS[kind]}, frame {k + 1} of {frames}")
+                for k in range(frames)]
     if item.ornament is not None:
         import pictures_plant_data as D
         if item.ornament in D.DECORATIONS:
@@ -210,6 +242,13 @@ class ItemPlanner:
         if view in ("tray", "pour") and item.chemical is not None:
             frame = 2 * item.chemical - 54 + (1 if view == "pour" else 0)
             return [self.cell(item.sheet, frame)]
+        if view.startswith("fx") and "_" in view:
+            kind, k = (int(v) for v in view[2:].split("_"))
+            import pictures_plant as pp
+            if kind in effect_types(item):
+                name, cols, rows = pp.sprite(EFFECT_SPRITES[kind])
+                if 0 <= k < max(1, cols) * max(1, rows):
+                    return [self.cell(EFFECT_SPRITES[kind], k)]
         if view == "nursery" and item.ornament is not None:
             return self.scenery.decoration(item.ornament)
         if item.pot is not None:
@@ -227,7 +266,7 @@ class ItemPlanner:
 
 def stock_files() -> list:
     import pictures_plant as pp
-    ids = [SHADOW, TICK, SEEDS, TOOLS, CHEMICALS, ORNAMENTS, *HAND_SHEETS.values()]
+    ids = [SHADOW, TICK, SEEDS, TOOLS, CHEMICALS, ORNAMENTS, *HAND_SHEETS.values(), *EFFECT_SPRITES.values()]
     return [pp.sprite(i)[0] for i in ids]
 
 

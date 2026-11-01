@@ -152,6 +152,17 @@ class FishItemCatalogTests(unittest.TestCase):
                          ("Common Fish Eggs", "Unusual Fish Eggs", "Rare Fish Eggs"))
         self.assertFalse([i.name for i in fi.ITEMS if "Uncommon" in i.name + i.note])
 
+    def test_the_patchers_chemicals_drop_as_the_stock_ones(self) -> None:
+        """DS Store Items' chemical hook sits after the stock splash (0x420E47: 0x413B00(3, ...)), and
+        its Exotic eggs splash as the stock eggs (SPLASH(4, x, y))."""
+        source = (ROOT / "native" / "ftfp_ds_store" / "ftfp_ds_store.c").read_text(encoding="utf-8")
+        self.assertIn("/* 0x420E6F, the chemical switch", source)
+        self.assertIn("SPLASH(P(impl, 0x3C), NULL, 4, x, y);", source)
+        for key in ("rgh", "revival", "clonafish", "muta_fin", "muta_body"):
+            self.assertEqual(fi.BY_KEY[key].effect, 3, key)
+            self.assertIn("tank0", [k for k, _l in fi.views(fi.BY_KEY[key])])
+        self.assertEqual(fi.BY_KEY["eggs_exotic"].effect, 4)
+
 
 @unittest.skipUnless(UNICORN and (FISH / "Assets" / "ft.dat").is_file(), "the vanilla Fish Tycoon and Unicorn")
 class FishItemsAreTheGames(unittest.TestCase):
