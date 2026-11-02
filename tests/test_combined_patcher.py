@@ -364,11 +364,27 @@ class SectionLayoutTests(unittest.TestCase):
         target = combined.load_manifest(game_id)["target"]
         return target.get("section_layout", [])
 
+    def _tails(self, game_id: str) -> set[str]:
+        manifest = combined.load_manifest(game_id)
+        return set(fish_patcher.loader_tail_dlls(manifest, set(combined.patch_settings(game_id))))
+
     def _combinations(self, game_id: str):
-        ids = sorted(combined.patch_settings(game_id))
+        # Loader tails (Unicode Text, Translations, Copy and Paste...) only add a DLL to the
+        # loader: no patch record names them (test_loader_tails_have_no_patch_records), so a
+        # combination with them has exactly the records of the same combination without them.
+        ids = sorted(set(combined.patch_settings(game_id)) - self._tails(game_id))
         for size in range(len(ids) + 1):
             for combo in itertools.combinations(ids, size):
                 yield set(combo)
+
+    def test_loader_tails_have_no_patch_records(self) -> None:
+        for game_id in combined.GAMES:
+            tails = self._tails(game_id)
+            if game_id == "fish":
+                self.assertTrue(tails)
+            for patch in combined.load_manifest(game_id)["patches"]:
+                named = set(patch.get("requires", [])) | set(patch.get("excludes", []))
+                self.assertFalse(named & tails, (game_id, patch.get("id")))
 
     def test_fish_records_its_section_layout(self) -> None:
         layout = self._layout("fish")
