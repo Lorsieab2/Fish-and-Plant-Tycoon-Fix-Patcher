@@ -30,20 +30,24 @@ helpers; nothing in the game code calls those helpers). The game code's sites:
   slide_steps   Plant Tycoon's sliding panels: the step count is the 6th
                 argument of 0x421190, `push 5` at all 14 calls (checked);
   game_speed    Fish Tycoon's age step: seconds / 60 / the game speed (state +
-                0x1E168), run for every live fish. The speed is 0 in no state
-                the game makes: a new game sets 10, the options dialog writes
-                only 9999, 10, 15, 5 (or 8 when no button is checked), loading
-                a save turns anything over 100 into 10, and a save must be the
-                full 0x1E3C8 bytes the game writes. Shown here: the real code
-                faults with speed 0 and gives the stock count with 5/10/15, and
-                every write to the field is one of those.
+                0x1E168), run for every live fish. The game itself never sets
+                0: a new game sets 10, the options dialog writes only 9999,
+                10, 15, 5 (or 8 when no button is checked), and its "over 100
+                becomes 10" check runs only when no save is found. But the
+                load (0x41AE70) copies the save's speed as it is, so a
+                hand-edited or damaged save with speed 0 crashes the game as
+                its fish age. Fix Vanilla Bugs now loads such a save at speed
+                10 (tests/test_vanilla_fixes.py runs the load and the age step,
+                stock and patched). Shown here: the real code faults with
+                speed 0 and gives the stock count with 5/10/15, and every write
+                to the field is one of those.
 
-So no site can divide by 0 in play or from a save the game writes; nothing in
-Fix Vanilla Bugs changes for this. The patcher's own code was checked too: no
-division in any executable patch of either manifest (also tested here), and
-the native DLLs' divisions are by constants or behind a check (the one
-unchecked divisor, Time Warp's report of Fish Tycoon's speed, has the same
-never-0 speed).
+So no site can divide by 0 in play or from a save the game writes, and with
+Fix Vanilla Bugs not from an edited save either. The patcher's own code was
+checked too: no division in any executable patch of either manifest (also
+tested here), and the native DLLs' divisions are by constants or behind a
+check (the one unchecked divisor, Time Warp's report of Fish Tycoon's speed,
+has the same speed, never 0 after a load with Fix Vanilla Bugs).
 """
 
 from __future__ import annotations
@@ -115,8 +119,8 @@ PLANT_SITES = {
 }
 
 FISH_SPEED = 0x1E168
-# Every write to the speed: the new game, the load's "over 100" reset, two more resets, and the options
-# dialog's `mov [eax + 0x1E168], edi`.
+# Every write to the speed in the stock code: the new game, the no-save start's "over 100" reset, a
+# speed choice (10 or 5), the tutorial's 5, and the options dialog's `mov [eax + 0x1E168], edi`.
 FISH_SPEED_WRITES = {0x418AFB: 10, 0x41AAAD: 10, 0x41C2E6: 10, 0x41C2FF: 5, 0x421976: 5, 0x4230D7: None}
 # The options dialog's choices for edi (0x422F10, run for message 8 only: `cmp [esp + 4], 8`).
 FISH_SPEED_CHOICES = {0x422FD4: 9999, 0x422FEF: 10, 0x42300A: 15, 0x423023: 5}
@@ -337,7 +341,8 @@ class DivisionInventory(unittest.TestCase):
         self.assertEqual(data[0x2302A:0x2302E], b"\x8B\x7C\x24\x10")        # mov edi, [esp + 0x10]
         self.assertEqual(data[0x22F10:0x22F15], b"\x83\x7C\x24\x04\x08")    # cmp dword [esp + 4], 8
         self.assertEqual(data[0x22F18:0x22F1A], b"\x0F\x85")                # jne (anything else)
-        # A loaded save over 100 becomes 10, and a save is read only whole (0x1E3C8 bytes, 0x403350).
+        # The no-save start (0x41AA70) turns a speed over 100 into 10; a load (0x41AE70) reads the save only
+        # whole (0x1E3C8 bytes, 0x403350) and keeps its speed as it is (Fix Vanilla Bugs turns 0 into 10).
         self.assertEqual(data[0x1AAA4:0x1AAB7], bytes.fromhex("83 BE 68 E1 01 00 64 7E 0A"      # cmp speed, 100 ; jle
                                                               "C7 86 68 E1 01 00 0A 00 00 00"))  # speed = 10
         self.assertEqual(data[0x1AF2D:0x1AF32], b"\x68\xC8\xE3\x01\x00")
@@ -451,10 +456,14 @@ class PatcherCode(unittest.TestCase):
     @unittest.skipUnless(capstone is not None, "needs Capstone")
     def test_no_division_in_executable_patches(self) -> None:
         md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
-        for manifest in ("fish_manifest.json", "plant_manifest.json"):
+        # Only the code: .text's file range (file offset = VA - 0x400000). The PE header's checksum and
+        # VirtualSize records and the data sections' tables are numbers, not instructions.
+        for manifest, text_end in (("fish_manifest.json", 0x40000), ("plant_manifest.json", 0x65000)):
             patches = json.loads((ROOT / "data" / manifest).read_text(encoding="utf-8"))["patches"]
             for patch in patches:
                 if not patch.get("file_path", "").lower().endswith(".exe") or not patch.get("replacement"):
+                    continue
+                if not 0x1000 <= int(patch["offset"], 16) < text_end:
                     continue
                 code = bytes.fromhex(patch["replacement"].replace(" ", ""))
                 with self.subTest(patch=patch["id"]):

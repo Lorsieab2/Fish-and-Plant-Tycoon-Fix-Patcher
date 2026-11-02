@@ -34,9 +34,33 @@ Stock bugs fixed by data changes alone, each listed in VANILLA_FIXES:
     of .text, so .text's VirtualSize grows to 0x3F000 as for the other
     payloads there.
 
+  * A save whose game speed (state + 0x1E168) is 0 crashes the game. The age
+    step divides each live fish's seconds by 60 x speed (0x41FFFF, 0x420953:
+    div dword ptr [ecx + 0x1E168]), so speed 0 is an integer divide by zero,
+    the crash Virtual Families 1's bank chart has. The game never writes 0
+    (a new game sets 10; the options write 5, 10, 15 or 9999), but its load
+    takes the speed as the save holds it, so a hand-edited, Cheat Engine
+    edited or damaged save can hold 0. The only stock check, "over 100
+    becomes 10" (0x41AAA4), runs when no save is found, not on a load. The
+    load jump at 0x41AF54 now goes to SPEED_LOAD_CAVE first: a speed of 0 in
+    the read buffer becomes 10 (the game's own fallback and a new game's
+    speed), then it jumps on to SEAHORSE_LOAD_CAVE, unchanged. Every other
+    speed, negative ones included (an unsigned divide by a huge divisor, no
+    fault), loads as stock.
+
 Then run scripts/pin_tank_expansion.py (it rebuilds the PE checksum record
 and pin of every byte-patch combination, this setting's included),
-scripts/pin_ds_fish.py and scripts/pin_ds_store.py.
+scripts/pin_ds_fish.py and scripts/pin_ds_store.py, then the companions'
+pin scripts that re-pin from those: pin_time_warp, pin_store_extras,
+pin_extra_tanks, pin_supply_slots, pin_time_warp, pin_store_extras,
+pin_multiple_ornaments, pin_fish_window, pin_counts, pin_optimize_prices,
+pin_everything_free, pin_time_warp, pin_store_extras, pin_unicode_text and
+pin_translations (the v1.0.24 run). pin_ds_fish.py and pin_ds_store.py also
+pin combinations with the loader-tail settings (Render Unicode with In-Game
+Fonts, Translations), which the patcher never looks up (fish_patcher.pin_settings
+leaves them out) and the tests forbid; drop every key that
+names one. Afterwards the key set must be the same as before and only the
+combinations with this setting may change.
 """
 
 from __future__ import annotations
@@ -54,8 +78,8 @@ SETTING = {
     "id": SETTING_ID,
     "name": "Fix Vanilla Bugs",
     "summary": (
-        "Fixes stock bugs: the Plant of Incubation and Plant of Nutrition do what their names say, and the "
-        "Golden Seahorse has full health and food."
+        "Fixes stock bugs: the Plant of Incubation and Plant of Nutrition do what their names say, the "
+        "Golden Seahorse has full health and food, and a save with game speed 0 no longer crashes."
     ),
     "description": (
         "Fixes bugs in the base game. The store's two plants do each other's job: the Plant of Incubation "
@@ -66,7 +90,9 @@ SETTING = {
         "bought switch to their proper effect. The Golden Seahorse arrives with full health and a full food "
         "meter (the base game gives it health 80-94 and food 50), and a seahorse already in a save is filled "
         "up the first time the save is loaded with this setting. The game never lowers a seahorse's meters, so "
-        "it stays full; nothing else about it changes."
+        "it stays full; nothing else about it changes. A save whose game speed is 0 (the game never saves that, "
+        "but a hand-edited or damaged save can hold it) crashed the game with a divide by zero as its fish aged; "
+        "it now loads at speed 10, the speed a new game starts at."
     ),
     "category": "main",
     "default": True,
@@ -79,6 +105,9 @@ SEAHORSE_FOOD = 0x427E2A                        # the 50 of mov dword ptr [esp +
 LOAD_PUSH_SIZE = 0x41AF54                       # push 0x1E3C8, before the memcpy into the state
 LOAD_BACK = 0x41AF59                            # lea ecx, [esp + 0x120]
 SEAHORSE_LOAD_CAVE = 0x43F880                   # zero tail of .text, after the other payloads
+SPEED_LOAD_CAVE = 0x43F8D0                      # right after the seahorse routine (0x43F880..0x43F8CE)
+GAME_SPEED = 0x1E168                            # state + 0x1E168: the age step's divisor (0x41FFFF, 0x420953)
+FALLBACK_SPEED = 10                             # a new game's speed, and the stock "over 100" reset's
 TEXT_VIRTUAL_SIZE = 0x1F8                       # .text VirtualSize: 0x3E29F -> 0x3F000
 FULL_METER = 100                                # the game's cap for health and food
 
@@ -121,6 +150,21 @@ def seahorse_load_cave() -> bytes:
     return bytes(code)
 
 
+def speed_load_cave() -> bytes:
+    """A save's game speed of 0 becomes 10, then on to the seahorse routine.
+
+    At 0x41AF54 the read buffer (the state from +8) is at [esp + 0x11C], so the speed
+    (state + 0x1E168) is at [esp + 0x1E27C]. The flags it changes are set again before the
+    load reads any (the seahorse routine's first compare)."""
+    at = (0x11C + GAME_SPEED - 8).to_bytes(4, "little")
+    code = bytearray()
+    code += b"\x83\xBC\x24" + at + b"\x00"                                        # cmp dword [esp + 0x1E27C], 0
+    code += b"\x75\x0B"                                                            # jne past the store
+    code += b"\xC7\x84\x24" + at + FALLBACK_SPEED.to_bytes(4, "little")           # mov dword [esp + 0x1E27C], 10
+    code += b"\xE9" + rel32(SPEED_LOAD_CAVE + len(code) + 5, SEAHORSE_LOAD_CAVE)  # jmp 0x43F880
+    return bytes(code)
+
+
 def spaced(raw: bytes) -> str:
     return raw.hex(" ").upper()
 
@@ -139,9 +183,14 @@ VANILLA_FIXES = [
     ("fix_golden_seahorse_spawn_food", offset(SEAHORSE_FOOD), "32 00 00 00", "64 00 00 00",
      "A bought Golden Seahorse's food is 100, not 50."),
     ("fix_golden_seahorse_load_jump", offset(LOAD_PUSH_SIZE), "68 C8 E3 01 00",
-     spaced(b"\xE9" + rel32(LOAD_PUSH_SIZE + 5, SEAHORSE_LOAD_CAVE)),
-     f"Loading a save jumps to the full-meters routine at 0x{SEAHORSE_LOAD_CAVE:X} before copying it into the "
-     "state; the routine does the stock push 0x1E3C8 and jumps back."),
+     spaced(b"\xE9" + rel32(LOAD_PUSH_SIZE + 5, SPEED_LOAD_CAVE)),
+     f"Loading a save jumps to the game speed check at 0x{SPEED_LOAD_CAVE:X}, then the full-meters routine at "
+     f"0x{SEAHORSE_LOAD_CAVE:X}, before copying it into the state; that routine does the stock push 0x1E3C8 and "
+     "jumps back."),
+    ("fix_game_speed_zero_on_load", offset(SPEED_LOAD_CAVE), spaced(bytes(len(speed_load_cave()))),
+     spaced(speed_load_cave()),
+     "A save just read with game speed 0 (state + 0x1E168, the age step's divisor at 0x41FFFF and 0x420953) gets "
+     "speed 10, the game's own fallback, instead of a divide-by-zero crash; then the full-meters routine."),
     ("install_golden_seahorse_load_full_meters", offset(SEAHORSE_LOAD_CAVE), spaced(bytes(len(seahorse_load_cave()))),
      spaced(seahorse_load_cave()),
      "Every live Golden Seahorse (body 22, fin 22) in the save just read gets health 100 and food 100."),

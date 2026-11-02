@@ -109,6 +109,14 @@ CLOCKS = (
         "Speed 1/2 speed, Normal and 2x speed change only game time. Stop Time pauses fish steps, "
         "research and the ambient sounds; nothing else checks it.",
     ),
+    Fact(
+        "The speed is saved with the game and loaded as the save holds it. The game only ever "
+        "sets 2x speed, Normal, 1/2 speed or Stop Time, but a save edited or damaged to hold "
+        "speed 0 crashes the game to the desktop as soon as a fish ages (an age step divides "
+        "by the speed).",
+        patched=(("fix_vanilla_bugs", "a save with speed 0 loads at Normal speed instead of "
+                  "crashing; every other speed loads as saved."),),
+    ),
 )
 
 TIME_AWAY = (

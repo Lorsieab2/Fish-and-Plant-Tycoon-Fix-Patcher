@@ -13,11 +13,19 @@
   10, 15 or 9999, in play and in the saves it writes. Random(0) does not
   divide. The patcher's own code was checked as well: no division in any
   executable patch, and the companion DLLs divide only by constants or after
-  a check. So Fix Vanilla Bugs needs nothing new for this. Tests:
-  tests/test_div_zero_audit.py (every site and its kind, and the game's own
-  code in Unicorn: the age step faults at speed 0 and counts as stock at 5, 10
-  and 15, Random(0) returns 0, and the guarded sites skip their division at
-  0).
+  a check. Tests: tests/test_div_zero_audit.py (every site and its kind, and
+  the game's own code in Unicorn: the age step faults at speed 0 and counts as
+  stock at 5, 10 and 15, Random(0) returns 0, and the guarded sites skip their
+  division at 0).
+- **Fixed: a Fish Tycoon save with game speed 0 crashed the game** (Fix
+  Vanilla Bugs). The load copies the save's speed as it is (the stock "over
+  100 becomes 10" check runs only when there is no save), so a hand-edited,
+  Cheat Engine edited or damaged save with speed 0 crashed to the desktop as
+  soon as a fish aged (an integer divide by 0 at 0x41FFFF). Such a save now
+  loads at speed 10, a new game's speed: the load's jump at 0x41AF54 goes
+  through a few bytes at 0x43F8D0 before the Golden Seahorse routine. Every
+  other speed loads as before. Tests: tests/test_vanilla_fixes.py (the load
+  and the age step in Unicorn, stock and patched).
 
 ## v1.0.23
 
