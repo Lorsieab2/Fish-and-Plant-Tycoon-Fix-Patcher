@@ -87,8 +87,11 @@ def main() -> int:
     manifest["settings"] = [s for s in manifest["settings"] if s["id"] != SETTING_ID] + [setting]
 
     # Settings that build on DS Fish (DS Store Items) are pinned by their own
-    # script: run scripts/pin_ds_store.py after this one.
-    others = [s["id"] for s in manifest["settings"] if s["id"] != SETTING_ID and not s.get("requires_settings")]
+    # script: run scripts/pin_ds_store.py after this one. Loader tails (Unicode
+    # Text, Translations, Copy and Paste...) are never part of a pin key
+    # (fish_patcher.pin_settings), so they get no combinations here either.
+    others = [s["id"] for s in manifest["settings"] if s["id"] != SETTING_ID and not s.get("requires_settings")
+              and not (s.get("companion") or {}).get("loader_tail")]
     pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items() if SETTING_ID not in k.split(",")}
     for count in range(len(others) + 1):
         for combo in itertools.combinations(others, count):
