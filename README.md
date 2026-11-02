@@ -1112,7 +1112,19 @@ folder never fails with "path too long".
     levels, alone and in their frames; every button normal, mouse over,
     pressed (and disabled in Plant Tycoon; Fish Tycoon does not draw a
     disabled button); Fish Tycoon's rope boxes; Plant Tycoon's dialog and
-    message boxes. The words (the games' font text) are not drawn.
+    message boxes. With their words: each screen's text, cash and status
+    lines, meter and button labels and message boxes, in the games' own
+    fonts and colours, read from your copy of the game (cash, names and
+    prices are sample values); Fish Tycoon's Options popup and message boxes
+    and Plant Tycoon's message and question boxes sized for real messages as
+    the games size them. Also: Plant Tycoon's tutorial messages (with their
+    pointing arrows) and questions over the darkened screen they appear on,
+    its Options dialog and the chemical tray's tooltips; Fish Tycoon's supply
+    slot tooltips with the slot's item under them; the greenhouse with sample
+    plants in its pots, the Store with its shelves (and sample seeds), the
+    Collections screen with some bugs caught; a new game's Fish tank with its
+    starting supplies. Both games' screens, popups and boxes are checked by
+    running the games' own draw code.
   - Make your own, Items: Plant Tycoon's chemicals and tools also show what
     they do to a pot (each chemical's sprays and sparkles, the falling soil
     and water, frame by frame); Fish Tycoon's patcher chemicals their drop in

@@ -108,6 +108,74 @@
   a text box no longer cuts letters off its own text while it is too wide
   (0x40B7E9 / 0x40C1F9) but shows it fitted: the end while you type, the start
   otherwise. Tests: tests/test_unicode_names.py, tests/test_save_tools.py.
+- **Picture Studio, Screens, bars and buttons: the words.** Each screen now has
+  its words, drawn as the games draw them: the game's own text (read from your
+  copy of the game), in its own bitmap fonts (the Text Maker's), its colours
+  (0xAABBGGRR) and its placing (left, centred, right, centred between two
+  points, centred in a button). Fish Tycoon: the cash line, the isolation
+  tank's fish (name, status, age), TIME STOPPED, the Supplies store's cash and
+  a picked item (title, description, price, or research level and progress
+  bar), the Sell Fish screen's cash, fish for sale and price, the Species
+  chart's price and family tree, the Trophy case's empty slots (#1/7 ...
+  #7/7 and their question marks), the Options popup (new: its headers, radio
+  buttons and labels, OK and Cancel, Fullscreen too) and rope message boxes
+  sized for real messages. Plant Tycoon: every button label (tabs, Price,
+  Sell, Sell All, the menu, Help, Story, Collections, the snapshot scene's
+  Main / Take Snapshot / Change Scene), the greenhouse's CASH and cash, "No
+  plant selected" and a picked pot's words, the menu's version, copyright and
+  player name, and message and question boxes sized for real messages as the
+  game sizes them (from the text's width). Sample values: cash $1000, names,
+  prices, ages. New placements: Plant Tycoon's Sell All button (115, 407), the
+  snapshot scene's three buttons, CheckboxStrip.png as 2 x 1 frames. Tests:
+  tests/test_picture_screen_words.py runs the games' text width, height, draw
+  and placing code and the screens' constructors in Unicorn
+  (tests/screen_emulator.py); the tab's note names what is read without
+  running.
+- **Picture Studio, Screens, bars and buttons: more of what the games draw,
+  drawn by the games' own code.** Plant Tycoon's screens, dialogs, boxes and
+  tooltips are now built and drawn in Unicorn with the game's own code and
+  every draw call compared (tests/draw_emulator.py,
+  tests/test_picture_screen_draws.py). New: the Options dialog (its words,
+  sliders, radio buttons, music track check boxes and Done, over the main
+  menu; a ticked check box is CheckboxStrip.png's second frame); the 33
+  tutorial messages over the screen each appears on, with the arrow the
+  tutorial points (the message box centred on the screen); the questions
+  over the menu or greenhouse; a dialog darkens the screen under it; the
+  chemical tray's tooltips ("Plant Food / Remaining uses: 3"); the hidden
+  "Replay Tutorial Instruction" text button; a disabled button's dimmed label
+  (unused by the game: nothing disables a button). The greenhouse gains its
+  pots, the tool tray's soil bag and watering can and the trays' and trash
+  bin's names; the Seed box and Store their headings, tray names and cash; a
+  screen's own tab its name; Help page 1 loses its back arrow and page 6 its
+  next arrow, as in the game. The main menu's button labelled "Options" (on
+  quit_button.png) opens Options and the one labelled "Quit" (on
+  options_button.png) quits, checked in Unicorn. Fish Tycoon: the supply
+  slots' tooltips (the patcher's DS Store Items) in the hint's rope box over
+  tank 1, checked against the patcher's own code. The tab's note names what
+  is still read without running (Fish Tycoon's screen words and box sizes, a
+  picked pot's words).
+- **Picture Studio, Screens, bars and buttons: Fish Tycoon drawn by its own
+  code, and plants, seeds, shelves and bugs on their screens.** Fish
+  Tycoon's screens, message boxes and Options popup are now built and drawn
+  by the game's own code in Unicorn on a new game's state and every draw
+  compared (tests/draw_emulator.py FishScreens): tank 1, the main menu, the
+  trophy case, Help, the intro, the Supplies store, Sell Fish, the rope
+  message boxes (sizes, OK and Cancel) and the Options popup (headers, radio
+  buttons, their labels). Fixed where the pictures differed: Options'
+  Fullscreen On and Off are centred as a pair as the game centres them; the
+  main menu gains the game's version label; Sell Fish gains the selling
+  area's door. New: a new game's tank 1 with its starting supplies in the
+  slots, and the supply slots' tooltips with the slot's item under them.
+  Plant Tycoon, new: the greenhouse with sample plants in its pots (several
+  kinds at several ages, grown and drawn by the plant compositing of Make
+  your own, at the pots' places); the Store with every tool, chemical and
+  ornament on its shelves and its four tools in the tray (exactly as the
+  game draws it), and with sample seed packets on the seed shelf; the Seed
+  box with sample seeds in its trays (the trays' places checked in Unicorn)
+  and its information box's unknown seeds and pollen; the Collections screen
+  with a few bugs caught (bug data given to the game's own constructor and
+  draw: leaves, bugs in their jars, the spider of the day on its web, and
+  "Collected: n out of 48", now on every Collections picture).
 
 ## v1.0.23
 
