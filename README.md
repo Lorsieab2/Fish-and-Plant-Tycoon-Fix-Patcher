@@ -35,7 +35,9 @@ never needs the internet.
   The Golden Seahorse arrives with full health and food (100 and 100; the
   game gave it health 80-94 and food 50), and a seahorse already in a save is
   filled up the first time the save is loaded with the patch. The game never
-  lowers its meters, so it stays full.
+  lowers its meters, so it stays full. A save whose game speed is 0 (the game
+  never saves that, but an edited or damaged save can hold it) crashed the
+  game with a divide by zero as its fish aged; it now loads at Normal speed.
 - Crimson Comet 20% curing fix.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and

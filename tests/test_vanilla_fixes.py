@@ -23,6 +23,7 @@ import pin_vanilla_fixes  # noqa: E402
 
 try:
     import store_emulator as E
+    from unicorn import UC_HOOK_INTR, UcError
 except ImportError:          # Unicorn is not installed
     E = None
 
@@ -32,6 +33,7 @@ VANILLA = (Path.home() / "Downloads" / "Current Modded LDW Games and Dumps" / "V
 SAVE_BODY = 0x1E3C8                     # the state from +8, as a save stores it after its 0x18-byte header
 FISH, TANK, RECORD = 0x390, 0x51EC, 0x288
 HEALTH, FOOD, BODY, FIN = 0x3C, 0x44, 0x4C, 0x50
+SPEED = 0x1E168                          # the game speed, the age step's divisor (0x41FFFF)
 
 
 def record_at(tank: int, slot: int) -> int:
@@ -99,6 +101,14 @@ class VanillaFixTests(unittest.TestCase):
             self.assertEqual(patches[name]["requires"], ["fix_vanilla_bugs"], name)
         self.assertEqual(patches["install_golden_seahorse_load_full_meters"]["replacement"],
                          pin_vanilla_fixes.spaced(pin_vanilla_fixes.seahorse_load_cave()))
+        speed = patches["fix_game_speed_zero_on_load"]
+        self.assertEqual(speed["requires"], ["fix_vanilla_bugs"])
+        self.assertEqual((int(speed["offset"], 16), speed["replacement"]),
+                         (0x3F8D0, pin_vanilla_fixes.spaced(pin_vanilla_fixes.speed_load_cave())))
+        self.assertEqual(speed["expected"], " ".join(["00"] * len(pin_vanilla_fixes.speed_load_cave())))
+        # The load's jump goes to the speed check, which ends by jumping to the seahorse routine.
+        self.assertEqual(patches["fix_golden_seahorse_load_jump"]["replacement"], "E9 77 49 02 00")
+        self.assertLessEqual(0x43F8D0 + len(pin_vanilla_fixes.speed_load_cave()), 0x43FE00)   # bigger_tanks' code
         for name in pin_vanilla_fixes.OTHER_VIRTUAL_SIZE_RECORDS:     # one VirtualSize record per combination
             self.assertIn("fix_vanilla_bugs", patches[name]["excludes"], name)
         self.assertIn("Golden Seahorse", combined.patch_settings("fish")["fix_vanilla_bugs"]["summary"])
@@ -209,6 +219,63 @@ class GoldenSeahorseMeterTests(unittest.TestCase):
     def test_a_full_seahorse_loads_unchanged(self) -> None:
         body = save_body({(2, 3): (99, 22, 22, 100, 100)})
         self.assertEqual(self.load(self.fixed, body)[8:], bytes(body))
+
+    # ------------------------------------------------ game speed 0 in a save (the divide by zero)
+    def age_step(self, exe: Path, speed: int, seconds: int = 6000) -> int | None:
+        """The stock age step for one live fish, 0x41FFD1..0x420005 (seconds / 60 / speed, the divide
+        at 0x41FFFF), on a state loaded from a save with this game speed; the steps, or None on #DE."""
+        body = save_body({(0, 0): (99, 3, 4, 40, 20)})
+        struct.pack_into("<i", body, SPEED - 8, speed)
+        emu = E.Emulator(exe, None, {})
+        emu.hook_fish_save_read(body)
+        state = emu.alloc(SAVE_BODY + 0x1000)
+        self.assertEqual(emu.call(0x0041AE70, 1, ecx=state) & 0xFF, 1)
+        fish = record_at(0, 0)
+        emu.write32(state + fish + 0x394, seconds)
+        scene = emu.alloc(0x40)
+        emu.write32(scene + 0x34, state)
+        faults: list[int] = []
+
+        def interrupt(uc, number, _user) -> None:
+            faults.append(number)
+            uc.emu_stop()
+        emu.uc.hook_add(UC_HOOK_INTR, interrupt)
+        for reg, value in ((E.X.UC_X86_REG_ESI, scene), (E.X.UC_X86_REG_EDI, fish), (E.X.UC_X86_REG_EBX, 100),
+                           (E.X.UC_X86_REG_ESP, E.STACK + E.STACK_SIZE - 0x1000)):
+            emu.uc.reg_write(reg, value)
+        try:
+            emu.uc.emu_start(0x0041FFD1, 0x00420005, count=1000)
+        except UcError:
+            faults.append(-1)
+        if faults:
+            self.assertEqual((faults, emu.uc.reg_read(E.X.UC_X86_REG_EIP)), ([0], 0x0041FFFF))
+            return None
+        self.loaded_speed = emu.read32(state + SPEED, signed=True)
+        return emu.uc.reg_read(E.X.UC_X86_REG_EAX)
+
+    def test_a_speed_0_save_crashes_stock(self) -> None:
+        self.assertIsNone(self.age_step(self.stock, 0))
+        self.assertEqual(self.age_step(self.stock, 10), 10)
+
+    def test_a_speed_0_save_loads_at_10_with_the_setting(self) -> None:
+        for exe in (self.fixed, self.together):
+            self.assertEqual(self.age_step(exe, 0), 10)        # 6000 s / 60 / 10
+            self.assertEqual(self.loaded_speed, 10)
+            body = save_body(self.RECORDS)
+            struct.pack_into("<i", body, SPEED - 8, 0)
+            expected = bytearray(body)
+            struct.pack_into("<i", expected, SPEED - 8, 10)                 # only the speed changes,
+            for tank, slot in ((0, 5), (2, 27), (3, 30)):                   # besides the seahorses' meters
+                struct.pack_into("<i", expected, record_at(tank, slot) - 8 + HEALTH, 100)
+                struct.pack_into("<i", expected, record_at(tank, slot) - 8 + FOOD, 100)
+            self.assertEqual(self.load(exe, body)[8:], bytes(expected))
+
+    def test_every_other_speed_loads_as_stock(self) -> None:
+        for speed, steps in ((5, 20), (10, 10), (15, 6), (9999, 0), (-3, 0), (100, 1), (101, 0)):
+            with self.subTest(speed=speed):
+                self.assertEqual(self.age_step(self.fixed, speed), steps)
+                self.assertEqual(self.loaded_speed, speed)
+                self.assertEqual(self.age_step(self.stock, speed), steps)
 
 
 if __name__ == "__main__":
