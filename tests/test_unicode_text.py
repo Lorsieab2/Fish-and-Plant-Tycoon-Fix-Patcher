@@ -85,7 +85,9 @@ _TEMPS: list[tempfile.TemporaryDirectory] = []
 
 
 def built(game: str) -> tuple[Path, dict]:
-    if game not in _BUILT:
+    # another test module using this one (tests/test_unicode_names.py) may run after this module's
+    # tearDownModule removed the build: build it again then
+    if game not in _BUILT or not _BUILT[game][0].is_file():
         temp = tempfile.TemporaryDirectory()
         _TEMPS.append(temp)
         _BUILT[game] = E.build_with_map(PROJECTS[game], ASSETS[game] / "Unicode Text.dll", Path(temp.name))
@@ -97,11 +99,13 @@ def tearDownModule() -> None:
         temp.cleanup()
 
 
-def hook_windows(emu, game: str, present: set[str] | None = None) -> dict:
+def hook_windows(emu, game: str, present: set[str] | None = None, existing: dict | None = None) -> dict:
     """The DLL's Windows calls: its module and the game's paths, the Images pictures that are
-    there (all of them unless `present` says which), page protection, Documents, and the files it
-    writes ({path: text}; "log" and "text" are its log's)."""
-    files: dict = {"log": None, "written": {}, "folders": []}
+    there (all of them unless `present` says which), page protection, Documents, the files it reads
+    (`existing`: {path: bytes}) and the files it writes ({path: text}, "raw": {path: bytes}; "log" and
+    "text" are its log's)."""
+    files: dict = {"log": None, "written": {}, "raw": {}, "folders": [], "existing": dict(existing or {}),
+                   "reading": {}, "moves": []}
     handles: dict = {}
     special = emu.thunk()
 
@@ -129,23 +133,53 @@ def hook_windows(emu, game: str, present: set[str] | None = None) -> dict:
 
     def create(e) -> int:
         path = e.wstring(e.arg(0))
+        if e.arg(1) & 0x80000000 and e.arg(4) == 3:                # GENERIC_READ, OPEN_EXISTING
+            if path not in files["existing"]:
+                return 0xFFFFFFFF
+            files["reading"][0x44 + 4 * len(handles)] = bytearray(files["existing"][path])
         if path.endswith(".log"):
             files["log"] = path
         handle = 0x44 + 4 * len(handles)
         handles[handle] = path
+        if not e.arg(1) & 0x80000000:                              # CREATE_ALWAYS: written anew
+            files["raw"].pop(path, None)
         return handle
 
+    def read(e) -> int:
+        data = files["reading"].get(e.arg(0), bytearray())
+        n = min(len(data), e.arg(2))
+        e.uc.mem_write(e.arg(1), bytes(data[:n]))
+        del data[:n]
+        e.write32(e.arg(3), n)
+        return 1
+
     def write(e) -> int:
-        text = bytes(e.uc.mem_read(e.arg(1), e.arg(2))).decode("ascii")
+        raw = bytes(e.uc.mem_read(e.arg(1), e.arg(2)))
         path = handles[e.arg(0)]
-        files["written"][path] = text
+        files["raw"][path] = files["raw"].get(path, b"") + raw
+        files["written"][path] = files["raw"][path].decode("latin-1")
         if path.endswith(".log"):
-            files["text"] = text
+            files["text"] = files["written"][path]
         e.write32(e.arg(3), e.arg(2))
         return 1
 
     def make_folder(e) -> int:
         files["folders"].append(e.wstring(e.arg(0)))
+        return 1
+
+    def move(e) -> int:                                            # MoveFileExW(from, to, flags)
+        source, dest = e.wstring(e.arg(0)), e.wstring(e.arg(1))
+        files["moves"].append((source, dest, e.arg(2)))
+        if source not in files["raw"]:
+            return 0
+        files["raw"][dest] = files["raw"].pop(source)
+        files["written"][dest] = files["written"].pop(source, files["raw"][dest].decode("latin-1"))
+        return 1
+
+    def delete(e) -> int:
+        path = e.wstring(e.arg(0))
+        files["raw"].pop(path, None)
+        files["written"].pop(path, None)
         return 1
 
     emu.hook_import("GetModuleFileNameW", module_name, 12)
@@ -155,10 +189,13 @@ def hook_windows(emu, game: str, present: set[str] | None = None) -> dict:
     emu.hook_import("GetCurrentProcess", lambda e: 0xFFFFFFFF, 0)
     emu.hook_import("CreateFileW", create, 28)
     emu.hook_import("WriteFile", write, 20)
+    emu.hook_import("ReadFile", read, 20)
     emu.hook_import("CloseHandle", lambda e: 1, 4)
     emu.hook_import("LoadLibraryW", lambda e: 0x7000_0000, 4)
     emu.hook_import("GetProcAddress", lambda e: special if e.cstring(e.arg(1)) == b"SHGetSpecialFolderPathW" else 0, 8)
     emu.hook_import("CreateDirectoryW", make_folder, 8)
+    emu.hook_import("MoveFileExW", move, 12)
+    emu.hook_import("DeleteFileW", delete, 4)
     return files
 
 
@@ -211,7 +248,7 @@ class InstallCase(unittest.TestCase):
         self.assertIn("installed", files["text"])
         self.assertTrue(files["log"].endswith(DLL_FOLDER[self.game] + "Unicode Text.log"))
         # the save folder's marker for the patcher's tools, its folders made as needed
-        self.assertIn("Render Unicode with In-Game Fonts", files["written"][marker_path(self.game)])
+        self.assertIn("names in any script (UTF-8)", files["written"][marker_path(self.game)])
         self.assertEqual(files["folders"][-1], marker_path(self.game).rsplit("\\", 1)[0])
         after = code_bytes(emu, site_ranges(self.game))
         self.assertNotEqual(stock, after)
@@ -369,15 +406,20 @@ class FishTypingTests(unittest.TestCase):
             self.assertNotIn(code, [post[2] & 0xFF for post in stock.key(code, code)])
 
     def test_every_other_key_is_posted_as_the_stock_game_posts_it(self) -> None:
+        """A key's letter past U+00FF (any script) is posted as that letter (keysym.unicode is UCS-2;
+        half a surrogate pair and U+FFFE/U+FFFF are not letters); a special key (sym 0x100 and up:
+        arrows, keypad, F keys) and every ASCII key go the stock game's way."""
         patched, stock = FishKeys(patched=True), FishKeys(patched=False)
         cases = []
-        for unicode in list(range(0x00, 0x80)) + [0x100, 0x142, 0x20AC, 0x3042]:
+        for unicode in list(range(0x00, 0x80)) + [0x100, 0x142, 0x20AC, 0x3042, 0xAC00, 0xD83D, 0xDE00, 0xFFFE]:
             for sym in {unicode if unicode < 0x100 else 0, 0x61, 0x111, 0x100 + 5, 0x13A}:
                 for mod in (0, KMOD_SHIFT, KMOD_CTRL_ALT, KMOD_CAPS, 0x0400):
                     cases.append((sym, unicode, mod))
         for sym, unicode, mod in cases:
             with self.subTest(sym=hex(sym), unicode=hex(unicode), mod=hex(mod)):
-                self.assertEqual(patched.key(sym, unicode, mod), stock.key(sym, unicode, mod))
+                letter = unicode >= 0xA0 and sym < 0x100 and not 0xD800 <= unicode <= 0xDFFF and unicode < 0xFFFE
+                expected = [(5, unicode, unicode)] if letter else stock.key(sym, unicode, mod)
+                self.assertEqual(patched.key(sym, unicode, mod), expected)
 
     def test_the_text_box_stores_the_typed_name(self) -> None:
         keys = FishKeys(patched=True)
@@ -388,7 +430,7 @@ class FishTypingTests(unittest.TestCase):
                 posted += [post[2] for post in keys.key(byte, byte, KMOD_SHIFT if chr(byte).isupper() else 0)]
             with self.subTest(name=name):
                 stored = text_box(keys.emu, 0x0040BFC0, FISH_EVENTS_GET, 0x00402030, posted)
-                self.assertEqual(stored, raw)
+                self.assertEqual(stored, name.encode("utf-8"))          # the box keeps UTF-8 now
         # the stock path's sign-extended byte (what 0x403F3A would post) is refused by the box
         self.assertEqual(text_box(keys.emu, 0x0040BFC0, FISH_EVENTS_GET, 0x00402030, [0xFFFFFFE9]), b"")
 
@@ -404,13 +446,19 @@ class PlantTypingTests(unittest.TestCase):
                 self.assertEqual(stock.text(chr(code).encode("utf-8")), [])
 
     def test_everything_else_is_as_the_stock_game_has_it(self) -> None:
+        """One byte goes the stock game's way; longer text (an accented letter, any script, an
+        emoji, an input method's whole text) is posted letter by letter, whatever of it is UTF-8."""
         patched, stock = PlantText(patched=True), PlantText(patched=False)
         samples = [bytes([b]) for b in range(1, 0x80)] + [
             "\u0080".encode(), "\u009f".encode(), "ł".encode(), "€".encode(), "あ".encode(), "😀".encode(),
-            b"ab", b"\xc3", b"\xc3\x28", b"\xc2\xc2", b"\xe2\x82"]
+            "日本語".encode(), "𒀀".encode(), b"ab", b"\xc3", b"\xc3\x28", b"\xc2\xc2", b"\xe2\x82"]
         for raw in samples:
             with self.subTest(raw=raw):
-                self.assertEqual(patched.text(raw), stock.text(raw))
+                if len(raw) == 1:
+                    expected = stock.text(raw)
+                else:
+                    expected = [(5, 0, ord(c)) for c in raw.decode("utf-8", "ignore") if ord(c) >= 0x20]
+                self.assertEqual(patched.text(raw), expected)
 
     def test_the_text_box_stores_the_typed_name(self) -> None:
         text = PlantText(patched=True)
@@ -419,7 +467,7 @@ class PlantTypingTests(unittest.TestCase):
             for ch in name:
                 posted += [post[2] for post in text.text(ch.encode("utf-8"))]
             with self.subTest(name=name):
-                self.assertEqual(text_box(text.emu, 0x0040CA90, PLANT_EVENTS_GET, 0x00402020, posted), name.encode("latin-1"))
+                self.assertEqual(text_box(text.emu, 0x0040CA90, PLANT_EVENTS_GET, 0x00402020, posted), name.encode("utf-8"))
 
 
 # ------------------------------------------------------------------ drawing
@@ -591,10 +639,10 @@ class TranslationsContractTests(unittest.TestCase):
         active = symbols["_FtfpUnicodeTextActive@0"]
         self.assertEqual(emu.call(active), 0)                       # not installed yet
         self.assertEqual(startup(emu, symbols), 1)
-        # This stage draws the game's bytes (Windows-1252 letters included), not UTF-8: it answers 0
+        # Installed, it draws UTF-8: nonzero, so Translations.dll writes UTF-8
+        self.assertNotEqual(emu.call(active), 0)
+        emu.write32(symbols["_utf8_drawing"], 0)                    # while it drew the game's bytes: 0
         self.assertEqual(emu.call(active), 0)
-        emu.write32(symbols["_utf8_drawing"], 1)                    # once it draws UTF-8
-        self.assertEqual(emu.call(active), 1)
 
     @needs("fish")
     def test_fish(self) -> None:
@@ -603,6 +651,36 @@ class TranslationsContractTests(unittest.TestCase):
     @needs("plant")
     def test_plant(self) -> None:
         self.check("plant")
+
+    @needs("fish")
+    @needs("plant")
+    def test_translations_writes_utf8_with_this_dll(self) -> None:
+        """The two DLLs together: what this DLL's FtfpUnicodeTextActive answers once installed is what
+        Translations.dll asks (tests/translations_emulator.py), and with it the translation comes
+        through as UTF-8, letters past Windows-1252 included."""
+        try:
+            import translations_emulator as te
+            import test_translations_runtime as tr
+        except Exception as exc:                      # no Keystone, or no Translations.dll
+            self.skipTest(f"needs the Translations emulator: {exc}")
+        if not te.ready():
+            self.skipTest("needs the Translations emulator")
+        for game in ("fish", "plant"):
+            dll, symbols = built(game)
+            emu = E.Emulator(EXES[game], dll, symbols)
+            emu.uc.mem_map(0, 0x1000)
+            hook_windows(emu, game)
+            self.assertEqual(startup(emu, symbols), 1)
+            answer = emu.call(symbols["_FtfpUnicodeTextActive@0"])
+            ident, english = (1, "Age: ") if game == "fish" else (7, "Play")
+            text = "Âge : \u65e5\u672c \U0001F41F İ"
+            rt = te.Runtime(game, {tr.INI[game]: te.ini(tr.PATH), tr.PATH: tr.make(game, [(ident, english, text)])},
+                            unicode_active=answer)
+            if game == "plant":
+                rt.hook_plant_table()
+            self.assertEqual(rt.start(), 1)
+            self.assertEqual(rt.lookup(ident), text.encode("utf-8"), game)
+            self.assertIn("UTF-8 text", rt.log)
 
     def test_def_files_export_it(self) -> None:
         for game in ("fish", "plant"):
@@ -682,8 +760,10 @@ class PatcherTests(unittest.TestCase):
             defaults = {sid for sid, s in settings.items() if s.get("default")}
             original = EXES[game].read_bytes()
             key = patcher.settings_key if game == "fish" else (lambda core, m=manifest: plant_patcher.settings_key(core, m))
-            # Translations is a loader tail too (loaded after this one): left out here.
-            for others in (defaults - {SETTING, "translations"}, {"fix_vanilla_bugs"}, set()):
+            # Translations is a loader tail too (loaded after this one), and Copy and Paste in Text Boxes
+            # ships this same DLL: left out here.
+            tails = {SETTING, "translations", "copy_paste_text_boxes"}
+            for others in (defaults - tails, {"fix_vanilla_bugs"}, set()):
                 with self.subTest(game=game, others=sorted(others)):
                     enabled = others | {SETTING}
                     self.assertEqual(fish_patcher.pin_settings(manifest, enabled), others)
@@ -706,7 +786,7 @@ class PatcherTests(unittest.TestCase):
                     self.assertTrue(loader)
             # a damaged pin for the other settings refuses the build with the tail too
             broken = dict(manifest, patched_sha256_by_settings=dict(manifest["patched_sha256_by_settings"]))
-            broken["patched_sha256_by_settings"][key(defaults - {SETTING, "translations"})] = "0" * 64
+            broken["patched_sha256_by_settings"][key(defaults - tails)] = "0" * 64
             with self.assertRaises(Exception):
                 fish_patcher.build_executable(broken, original, defaults, game, patcher.active_patch_records,
                                               patcher.apply_patch_bytes, patcher.expected_patched_hash, key)

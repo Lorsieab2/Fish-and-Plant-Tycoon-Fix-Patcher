@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.23**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.24**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -35,7 +35,9 @@ never needs the internet.
   The Golden Seahorse arrives with full health and food (100 and 100; the
   game gave it health 80-94 and food 50), and a seahorse already in a save is
   filled up the first time the save is loaded with the patch. The game never
-  lowers its meters, so it stays full.
+  lowers its meters, so it stays full. A save whose game speed is 0 (the game
+  never saves that, but an edited or damaged save can hold it) crashed the
+  game with a divide by zero as its fish aged; it now loads at Normal speed.
 - Crimson Comet 20% curing fix.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and
@@ -380,8 +382,30 @@ never needs the internet.
   [docs/images/multiple-ornaments-tank.png](docs/images/multiple-ornaments-tank.png).
   Trash the extra copies before turning it off again (with it off they are
   not shown; they come back if you turn it on).
+- Copy and Paste in Text Boxes (on by default; in the "Modded Upgrades" copy;
+  in every preset). While one of the game's text boxes has the typing cursor
+  (a player's name, the new player's box, the registration boxes), Ctrl+V or Shift+Insert
+  pastes the Windows clipboard's text at the cursor, Ctrl+C or Ctrl+Insert
+  copies the box's whole text (a player's full name) and Ctrl+X cuts it. A
+  paste goes in as if typed letter by letter: line breaks and tabs become
+  spaces, other control characters are left out, the box keeps its own limit
+  (300 letters for a name) and letters (digits only in a price box), and a
+  letter with its accents or a joined emoji goes in whole or not at all. Any
+  script with Render Unicode with In-Game Fonts or Use Unicode Font; without
+  them plain ASCII only, as the stock box takes. It runs as `Unicode Text.dll`
+  (alone, `Unicode Text.ini` says Mode=none and it changes only the text
+  box's draw, to know which box has the cursor).
+- Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
+  Upgrades" copy; Owner's Defaults leaves it off and keeps Render Unicode with
+  In-Game Fonts, and the two cannot both be on). All of the game's text is
+  drawn with one Windows font you choose beside the setting (Segoe UI unless
+  you pick another; the fonts for other scripts fill in letters it lacks), at
+  the game's sizes and colours, instead of the game's own fonts. Typing, long
+  names and any script work as with Render Unicode with In-Game Fonts. It
+  ships the same `Unicode Text.dll`; the patcher writes the chosen font into
+  `Unicode Text.ini` beside it.
 - Render Unicode with In-Game Fonts (on by default; in the "Modded Upgrades"
-  copy; Owner's Defaults leaves it off). Typing in the game (a player's name,
+  copy; on in Owner's Defaults too). Typing in the game (a player's name,
   any text box) takes every Latin-1 letter your keyboard makes (U+00A0-U+00FF:
   é ñ ü ß Æ Ø ¿ £ © ..., AltGr letters too); the stock game took only plain
   ASCII. All three fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every
@@ -398,7 +422,19 @@ never needs the internet.
   one), which checks the four places it changes and writes all or none.
   Rename Players and Copy Player Slot accept these names for a save folder
   whose copy has the setting (it leaves `Fish Tycoon Fix Patcher Data\Unicode
-  Text.ini` there when it starts).
+  Text.ini` there when it starts). Names can be up to 300 letters, in every
+  name box and in those tools: the save's own field keeps the first 31 letters
+  ("?" for a letter Latin-1 has not), so a copy without the setting still loads
+  it, and the full name is kept in `Fish Tycoon Fix Patcher Data\Names
+  <slot>.dat`; the game shows the full name wherever it shows the player's,
+  with an ellipsis where it does not fit, and a text box shows a long text
+  fitted to its width instead of cutting letters off. Names (and any text the
+  game draws, such as a translation) can be in any script: a letter the
+  game's fonts have is drawn in them, any other (Turkish, Japanese, Chinese,
+  Korean, cuneiform, emoji ...) from Windows' fonts at the font's size and
+  colour (colour emoji in their own colours, as the Text Maker draws them,
+  with the text's transparency); typing takes them too, the emoji panel and
+  input methods included.
 
 ### Plant Tycoon
 
@@ -712,8 +748,30 @@ never needs the internet.
     [docs/images/extra-chemical-slots-store.png](docs/images/extra-chemical-slots-store.png).
   - Design: the "Extra Chemical Slots" section of
     [docs/plant-tycoon-upgrades-design.md](docs/plant-tycoon-upgrades-design.md).
+- Copy and Paste in Text Boxes (on by default; in the "Modded Upgrades" copy;
+  in every preset). While one of the game's text boxes has the typing cursor
+  (a player's name, the new player's box, the price box), Ctrl+V or Shift+Insert
+  pastes the Windows clipboard's text at the cursor, Ctrl+C or Ctrl+Insert
+  copies the box's whole text (a player's full name) and Ctrl+X cuts it. A
+  paste goes in as if typed letter by letter: line breaks and tabs become
+  spaces, other control characters are left out, the box keeps its own limit
+  (300 letters for a name) and letters (digits only in a price box), and a
+  letter with its accents or a joined emoji goes in whole or not at all. Any
+  script with Render Unicode with In-Game Fonts or Use Unicode Font; without
+  them plain ASCII only, as the stock box takes. It runs as `Unicode Text.dll`
+  (alone, `Unicode Text.ini` says Mode=none and it changes only the text
+  box's draw, to know which box has the cursor).
+- Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
+  Upgrades" copy; Owner's Defaults leaves it off and keeps Render Unicode with
+  In-Game Fonts, and the two cannot both be on). All of the game's text is
+  drawn with one Windows font you choose beside the setting (Segoe UI unless
+  you pick another; the fonts for other scripts fill in letters it lacks), at
+  the game's sizes and colours, instead of the game's own fonts. Typing, long
+  names and any script work as with Render Unicode with In-Game Fonts. It
+  ships the same `Unicode Text.dll`; the patcher writes the chosen font into
+  `Unicode Text.ini` beside it.
 - Render Unicode with In-Game Fonts (on by default; in the "Modded Upgrades"
-  copy; Owner's Defaults leaves it off). Typing in the game takes every Latin-1
+  copy; on in Owner's Defaults too). Typing in the game takes every Latin-1
   letter your keyboard makes (U+00A0-U+00FF); the stock game dropped all but
   plain ASCII. The game's font already has most of Latin-1: the no-break space,
   ¡ and the Windows-1252 letters € ' ' " " – — … ™ Œ Š Ž Ÿ ... are made for it
@@ -721,7 +779,9 @@ never needs the internet.
   Names stay one byte a letter in the save. Runs as a companion DLL
   (`Plant Tycoon Fix Patcher DLLs\Unicode Text.dll`, loaded after every other
   one); Rename Players and Copy Player Slot accept such names for its save
-  folders, as in Fish Tycoon.
+  folders, as in Fish Tycoon, and names can be up to 300 letters, the full
+  name kept in `Plant Tycoon Fix Patcher Data\Names <slot>.dat`, in any
+  script, typed (an input method's text too) and drawn as in Fish Tycoon.
 
 ## Use
 
@@ -1054,7 +1114,19 @@ folder never fails with "path too long".
     levels, alone and in their frames; every button normal, mouse over,
     pressed (and disabled in Plant Tycoon; Fish Tycoon does not draw a
     disabled button); Fish Tycoon's rope boxes; Plant Tycoon's dialog and
-    message boxes. The words (the games' font text) are not drawn.
+    message boxes. With their words: each screen's text, cash and status
+    lines, meter and button labels and message boxes, in the games' own
+    fonts and colours, read from your copy of the game (cash, names and
+    prices are sample values); Fish Tycoon's Options popup and message boxes
+    and Plant Tycoon's message and question boxes sized for real messages as
+    the games size them. Also: Plant Tycoon's tutorial messages (with their
+    pointing arrows) and questions over the darkened screen they appear on,
+    its Options dialog and the chemical tray's tooltips; Fish Tycoon's supply
+    slot tooltips with the slot's item under them; the greenhouse with sample
+    plants in its pots, the Store with its shelves (and sample seeds), the
+    Collections screen with some bugs caught; a new game's Fish tank with its
+    starting supplies. Both games' screens, popups and boxes are checked by
+    running the games' own draw code.
   - Make your own, Items: Plant Tycoon's chemicals and tools also show what
     they do to a pot (each chemical's sprays and sparkles, the falling soil
     and water, frame by frame); Fish Tycoon's patcher chemicals their drop in

@@ -1448,20 +1448,46 @@ OTHER_GAME = (
 
 TEXT_ENTRY = (
     Fact(
+        "Copy and paste: none. The game's text boxes take only typed keys; Ctrl+V, Ctrl+C and the like do "
+        "nothing.",
+        patched=(("copy_paste_text_boxes", "while a text box has the typing cursor (a player's name, the new player's box, the price box), Ctrl+V or "
+                  "Shift+Insert pastes the Windows clipboard's text at the cursor as if typed letter by letter "
+                  "(line breaks and tabs become spaces, other control characters are left out, the box keeps "
+                  "its limit, 300 letters for a name, and its own letters, digits only in a price box; a "
+                  "letter with its accents or a joined emoji goes in whole or not at all), Ctrl+C or "
+                  "Ctrl+Insert copies the box's whole text (a player's full name) and Ctrl+X cuts it. Any "
+                  "script with Render Unicode with In-Game Fonts or Use Unicode Font; without them only plain "
+                  "ASCII (0x20-0x7E), what the stock game takes from SDL's text input (one-byte text only)."),)
+    ),
+    Fact(
         "A name (the player's, any text box) is at most 31 letters, one byte each, kept in the save "
-        "as the game typed it.",
+        "as the game typed it. A text box whose text is wider than the box loses its last letters until it "
+        "fits.",
+        patched=(("unicode_ingame_fonts", "every name box (the player list's rows, the new player's) takes "
+                  "up to 300 letters, the box's own 1200 bytes at up to 4 bytes a letter. The save's own "
+                  "field keeps the first 31 letters ('?' for any letter Latin-1 has not), so the stock game "
+                  "still loads it, and the full name is kept beside the save (Fix Patcher Data\\Names "
+                  "<slot>.dat). The game shows the full name wherever it shows the player's, ending in an "
+                  "ellipsis where it is wider than the game's space for a name, and a text box shows its "
+                  "text fitted instead of cutting it."),
+                 ("unicode_system_font", "the same as Render Unicode with In-Game Fonts."),)
     ),
     Fact(
         "What you can type: plain ASCII only. The game takes typed text (SDL's text input, UTF-8) "
         "only when it is one byte long, so any accented letter is dropped, though its text box "
         "would store any byte 0x20-0xFF.",
-        patched=(("unicode_ingame_fonts", "every Latin-1 letter too (U+00A0-U+00FF: é ñ ü ß Æ ¿ £ ...), "
-                  "stored as its Latin-1 byte."),),
+        patched=(("unicode_ingame_fonts", "any letter of any script (é ñ ß, Ç ğ İ, 山田, 한국어, emoji, "
+                  "cuneiform ...), an input method's text included, stored as UTF-8; Backspace takes off a "
+                  "whole letter."),
+                 ("unicode_system_font", "the same as Render Unicode with In-Game Fonts."),)
     ),
     Fact(
         "What the font draws: PT Font Small has ASCII and Latin-1 from ¢ (U+00A2) on; it lacks the "
         "no-break space, ¡ and the Windows-1252 letters at 0x80-0x9F, drawn as its first letter.",
-        patched=(("unicode_ingame_fonts", "those too, made in the font's own style."),),
+        patched=(("unicode_ingame_fonts", "those too, made in the font's own style; any other letter is "
+                  "drawn from Windows' fonts (Segoe UI and the fonts for other scripts) at "
+                  "the font's size and in the text's colour; colour emoji keep their own colours."),
+                 ("unicode_system_font", "every letter, ASCII too, is drawn with the Windows font chosen in the patcher (Segoe UI unless another), then the fonts for other scripts, at the game fonts' line heights and in the game's colours (colour emoji in their own)."),)
     ),
 )
 

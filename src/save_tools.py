@@ -12,11 +12,19 @@ slot names, and each slot's game is in numbered files beside it.
 
 Every file starts with the game's 24-byte "ldwg" header, and the games check
 only that magic and the data size, so a name can be changed in place. The
-name box in the game takes up to 31 characters (Fish Tycoon: a 0x20-byte
-buffer, 0x40BC90); names here are limited to the same, printable ASCII only --
-or, for a save folder whose copy of the game has "Render Unicode with In-Game Fonts"
-(its DLL leaves "<Game> Fix Patcher Data\\Unicode Text.ini" there), printable Latin-1
-too (Ã© Ã± Ã¼ ÃŸ ...), one byte a letter as that copy types and draws them.
+name box in the stock game takes up to 31 characters (Fish Tycoon: a 0x20-byte
+buffer, 0x40BC90); names here are limited to the same, printable ASCII only.
+
+A save folder whose copy of the game has "Render Unicode with In-Game Fonts" (its
+"Unicode Text.dll" leaves "<Game> Fix Patcher Data\\Unicode Text.ini" there) takes
+the DLL's names: up to NAME_LIMIT (300) letters, the one limit of every name box
+in both games (native/common/unicode_names.h), in Latin-1 (é ñ ü ß ...). The
+game's own fields keep the SHORT FORM: each letter as its Latin-1 byte, "?" for a
+letter Latin-1 has not, cut after 31 letters, so the stock game still loads the
+save; the full name is in "<Game> Fix Patcher Data\\Names <slot>.dat" (the short
+form, NUL, the full name in UTF-8, NUL), used only while the player list still
+holds that short form. Rename Players writes it and Copy Player Slot copies it
+with the new name.
 
 Nothing is written without a backup first: a rename copies the whole save
 folder into its Backups folder (save_backup.py) before it changes anything. A
@@ -184,35 +192,103 @@ def slot_is_empty(game_id: str, folder: Path, slot: int) -> bool:
 
 def players(game_id: str, folder: Path) -> list[tuple[int, str]]:
     """(slot, name) of each slot in use, as player_name names it."""
-    return [(slot, player_name(game_id, folder, slot, name))
+    return [(slot, full_name(game_id, folder, slot, player_name(game_id, folder, slot, name)))
             for slot, name in enumerate(read_slot_names(game_id, folder), start=1)
             if slot_is_active(game_id, folder, slot, name)]
 
 
 UNICODE_MARKER = "Unicode Text.ini"
+NAME_LIMIT = 300            # every name box with Unicode Text.dll (native/common/unicode_names.h)
+NAMES_FILE = "Names {slot}.dat"
+LATIN1, ANY_SCRIPT = 1, 2   # unicode_level
 
 
-def unicode_names(game_id: str, folder: Path) -> bool:
-    """This save folder's copy of the game types and draws Latin-1 names: its "Unicode Text.dll"
-    (Render Unicode with In-Game Fonts) left its marker in "<Game> Fix Patcher Data"."""
-    return (folder / f"{FORMATS[game_id].title} Fix Patcher Data" / UNICODE_MARKER).is_file()
+def _data_folder(fmt: SaveFormat, folder: Path) -> Path:
+    return folder / f"{fmt.title} Fix Patcher Data"
 
 
-def name_allowed(ch: str, unicode: bool) -> bool:
-    code = ord(ch)
-    return 0x20 <= code < 0x7F or (unicode and 0xA0 <= code <= 0xFF)
+def unicode_level(game_id: str, folder: Path) -> int:
+    """What this save folder's copy of the game types and draws in names: 0 plain ASCII (the stock
+    game), LATIN1, or ANY_SCRIPT once its "Unicode Text.dll" draws UTF-8. The DLL (Render Unicode
+    with In-Game Fonts, or Use Unicode Font) leaves its marker in "<Game> Fix Patcher Data"."""
+    marker = _data_folder(FORMATS[game_id], folder) / UNICODE_MARKER
+    if not marker.is_file():
+        return 0
+    try:
+        text = marker.read_text(encoding="latin-1")
+    except OSError:
+        return LATIN1
+    return ANY_SCRIPT if "any script" in text else LATIN1
 
 
-def validate_name(game_id: str, name: str, unicode: bool = False) -> str:
-    """`unicode`: the save folder's copy takes Latin-1 names (unicode_names)."""
+def unicode_names(game_id: str, folder: Path) -> int:
+    """Nonzero (its unicode_level) when this save folder's copy takes more than plain ASCII names."""
+    return unicode_level(game_id, folder)
+
+
+def name_limit(game_id: str, folder: Path | None = None) -> int:
+    """The most letters a name may have in this save folder: the stock game's 31, or NAME_LIMIT
+    where the copy has Unicode Text.dll."""
+    if folder is not None and unicode_level(game_id, folder):
+        return NAME_LIMIT
+    return FORMATS[game_id].max_name
+
+
+def name_allowed(ch: str, unicode: int | bool) -> bool:
+    import unicodedata
+    code, level = ord(ch), int(unicode)
+    if 0x20 <= code < 0x7F:
+        return True
+    if level >= LATIN1 and 0xA0 <= code <= 0xFF:
+        return True
+    return level >= ANY_SCRIPT and code >= 0xA0 and unicodedata.category(ch) not in ("Cc", "Cs", "Co", "Cn")
+
+
+def short_form(name: str, length: int = 31) -> bytes:
+    """The name as the game's own field keeps it: each letter its Latin-1 byte, "?" for a letter
+    Latin-1 has not, at most `length` letters."""
+    return bytes(ord(c) if 0x20 <= ord(c) <= 0xFF and not 0x7F <= ord(c) < 0xA0 else 0x3F
+                 for c in name[:length])
+
+
+def _names_path(fmt: SaveFormat, folder: Path, slot: int) -> Path:
+    return _data_folder(fmt, folder) / NAMES_FILE.format(slot=slot)
+
+
+def _names_bytes(name: str) -> bytes:
+    return short_form(name) + b"\0" + name.encode("utf-8") + b"\0"
+
+
+def full_name(game_id: str, folder: Path, slot: int, listed: str) -> str:
+    """The full name of the player whose short form is `listed`: "Names <slot>.dat" when its short
+    form is that one, else `listed` itself."""
+    path = _names_path(FORMATS[game_id], folder, slot)
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return listed
+    parts = data.split(b"\0")
+    if len(parts) < 2 or parts[0] != listed.encode("latin-1", "replace") or not parts[1]:
+        return listed
+    try:
+        return parts[1].decode("utf-8")
+    except UnicodeDecodeError:
+        return listed
+
+
+def validate_name(game_id: str, name: str, unicode: int | bool = False) -> str:
+    """`unicode`: what the save folder's copy takes (unicode_level; True is LATIN1)."""
     fmt = FORMATS[game_id]
+    limit = NAME_LIMIT if unicode else fmt.max_name
     if not name or name != name.strip():
         raise SaveToolError("A name cannot be empty or start or end with a space.")
     if name.casefold() == EMPTY_SLOT_NAME.casefold():
         raise SaveToolError(f"\"{EMPTY_SLOT_NAME}\" is how the game marks an empty slot; choose another name.")
-    if len(name) > fmt.max_name:
-        raise SaveToolError(f"A name can be at most {fmt.max_name} characters, as in the game.")
+    if len(name) > limit:
+        raise SaveToolError(f"A name can be at most {limit} characters, as in the game.")
     if any(not name_allowed(c, unicode) for c in name):
+        if int(unicode) >= ANY_SCRIPT:
+            raise SaveToolError("Use letters, numbers, punctuation and symbols; no control characters.")
         if unicode:
             raise SaveToolError("Use letters, numbers and punctuation of Western European languages "
                                 "(Ã© Ã± Ã¼ ÃŸ Ã† ...): the game takes no others yet.")
@@ -231,10 +307,12 @@ def rename_slot(game_id: str, folder: Path, slot: int, new_name: str,
     fmt = FORMATS[game_id]
     if not 1 <= slot <= fmt.slots:
         raise SaveToolError(f"Slot must be 1-{fmt.slots}.")
-    new_name = validate_name(game_id, new_name, unicode_names(game_id, folder))
+    level = unicode_level(game_id, folder)
+    new_name = validate_name(game_id, new_name, level)
     settings_path = _settings_path(fmt, folder)
     settings = _read_ldw(settings_path)
     old_name = player_name(game_id, folder, slot, read_slot_names(game_id, folder)[slot - 1])
+    old_full = full_name(game_id, folder, slot, old_name)
     if not slot_is_active(game_id, folder, slot, old_name):
         raise SaveToolError(f"Slot {slot} has no saved game to rename; only slots in use can be renamed.")
     if save_backup.game_running(folder, processes):
@@ -242,7 +320,7 @@ def rename_slot(game_id: str, folder: Path, slot: int, new_name: str,
     backup = save_backup.copy_save_folder(folder, suffix=save_backup.BEFORE_RENAME).backup_folder
 
     offset = fmt.names_offset + (slot - 1) * fmt.name_stride
-    settings[offset: offset + fmt.name_stride] = new_name.encode("latin-1").ljust(fmt.name_stride, b"\0")
+    settings[offset: offset + fmt.name_stride] = short_form(new_name).ljust(fmt.name_stride, b"\0")
     changed = [settings_path.name]
     writes = [(settings_path, settings)]
     skipped = []
@@ -255,16 +333,22 @@ def rename_slot(game_id: str, folder: Path, slot: int, new_name: str,
         at = fmt.slot_name_offset
         if old_name and bytes(data[at: at + len(old_field)]) == old_field:
             field = fmt.max_name + 1
-            data[at: at + field] = new_name.encode("latin-1").ljust(field, b"\0")
+            data[at: at + field] = short_form(new_name).ljust(field, b"\0")
             writes.append((path, data))
             changed.append(path.name)
         else:
             skipped.append(path.name)
+    if level:
+        # the full name beside the save, for the copy's Unicode Text.dll
+        names = _names_path(fmt, folder, slot)
+        names.parent.mkdir(parents=True, exist_ok=True)
+        writes.append((names, bytearray(_names_bytes(new_name))))
+        changed.append(names.name)
     for path, data in writes:
-        temp = path.with_suffix(".ldw.tmp")
+        temp = path.with_name(path.name + ".tmp")
         temp.write_bytes(bytes(data))
         temp.replace(path)
-    return {"old_name": old_name, "new_name": new_name, "changed": changed,
+    return {"old_name": old_full, "new_name": new_name, "changed": changed,
             "skipped": skipped, "backup": str(backup)}
 
 
@@ -305,11 +389,13 @@ def copy_slot(game_id: str, folder: Path, source: int, target: int, new_name: st
             raise SaveToolError(f"Slot must be 1-{fmt.slots}.")
     if source == target:
         raise SaveToolError("Choose a different slot to copy to.")
-    new_name = validate_name(game_id, new_name, unicode_names(game_id, folder))
+    level = unicode_level(game_id, folder)
+    new_name = validate_name(game_id, new_name, level)
     settings_path = _settings_path(fmt, folder)
     settings = _read_ldw(settings_path)
     names = read_slot_names(game_id, folder)
     old_name = player_name(game_id, folder, source, names[source - 1])
+    old_full = full_name(game_id, folder, source, old_name)
     if not slot_is_active(game_id, folder, source, old_name):
         raise SaveToolError(f"Slot {source} has no saved game to copy.")
     replaced = None
@@ -317,6 +403,7 @@ def copy_slot(game_id: str, folder: Path, source: int, target: int, new_name: st
         if not overwrite:
             raise SaveToolError(f"Slot {target} holds a saved game; copy only to an empty slot.")
         replaced = player_name(game_id, folder, target, names[target - 1])
+        replaced = full_name(game_id, folder, target, replaced)
     if save_backup.game_running(folder, processes):
         raise SaveToolError(f"{save_backup.game_exe_name(folder)} is running. Quit the game first; nothing was changed.")
     copies: list[tuple[Path, bytes]] = []
@@ -329,10 +416,15 @@ def copy_slot(game_id: str, folder: Path, source: int, target: int, new_name: st
         at = fmt.slot_name_offset
         if bytes(data[at: at + len(old_field)]) == old_field:
             field = fmt.max_name + 1
-            data[at: at + field] = new_name.encode("latin-1").ljust(field, b"\0")
+            data[at: at + field] = short_form(new_name).ljust(field, b"\0")
         copies.append((folder / f"{fmt.title}{target + extra}.ldw", bytes(data)))
+    target_names = _names_path(fmt, folder, target)
     for path, what, extra, kind in _slot_side_files(fmt, folder, source):
-        copies.append((path.with_name(f"{what} {target + extra}{kind}.dat"), path.read_bytes()))
+        copy_to = path.with_name(f"{what} {target + extra}{kind}.dat")
+        if copy_to != target_names:            # the full name is written anew below
+            copies.append((copy_to, path.read_bytes()))
+    if level:
+        copies.append((target_names, _names_bytes(new_name)))
     backup = save_backup.copy_save_folder(folder, suffix=save_backup.BEFORE_COPY).backup_folder
 
     # The target slot's own files (a replaced player's, or an empty slot's leftovers) are set
@@ -341,7 +433,8 @@ def copy_slot(game_id: str, folder: Path, source: int, target: int, new_name: st
     old_files = [folder / f"{fmt.title}{target + extra}.ldw" for extra in fmt.slot_file_offsets]
     old_files = [path for path in old_files if path.is_file()]
     old_files += [path for path, *_rest in _slot_side_files(fmt, folder, target)]
-    gone = player_name(game_id, folder, target, names[target - 1]).strip() or EMPTY_SLOT_NAME
+    gone = full_name(game_id, folder, target, player_name(game_id, folder, target, names[target - 1]))
+    gone = gone.strip() or EMPTY_SLOT_NAME
     gone = re.sub(r'[\\/:*?"<>|]', "_", gone).rstrip(". ")
     aside = folder / save_backup.BACKUPS_FOLDER / (
         f"Replaced by copy {datetime.now():%Y-%m-%d %H-%M-%S} - Player {target} - {gone}")
@@ -350,7 +443,7 @@ def copy_slot(game_id: str, folder: Path, source: int, target: int, new_name: st
         count += 1
         aside = base.with_name(f"{base.name} ({count})")
     offset = fmt.names_offset + (target - 1) * fmt.name_stride
-    settings[offset: offset + fmt.name_stride] = new_name.encode("latin-1").ljust(fmt.name_stride, b"\0")
+    settings[offset: offset + fmt.name_stride] = short_form(new_name).ljust(fmt.name_stride, b"\0")
     settings[fmt.started_offset + target - 1] = settings[fmt.started_offset + source - 1] or 1
     copies.append((settings_path, bytes(settings)))
     moved: list[tuple[Path, Path]] = []
@@ -375,7 +468,7 @@ def copy_slot(game_id: str, folder: Path, source: int, target: int, new_name: st
         for path, dest in reversed(moved):
             dest.replace(path)
         raise
-    return {"source": source, "target": target, "old_name": old_name, "new_name": new_name,
+    return {"source": source, "target": target, "old_name": old_full, "new_name": new_name,
             "copied": [path.name for path, _data in copies[:-1]],
             "removed": [path.name for path, _dest in moved],
             "set_aside": str(aside) if moved else None,

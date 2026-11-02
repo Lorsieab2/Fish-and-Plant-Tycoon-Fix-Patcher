@@ -457,6 +457,63 @@ def companion_plan(
     return plan
 
 
+UNICODE_DLL = "Unicode Text.dll"
+UNICODE_INI = "Unicode Text.ini"
+UNICODE_SYSTEM_SETTING = "unicode_system_font"
+UNICODE_INGAME_SETTING = "unicode_ingame_fonts"
+COPY_PASTE_SETTING = "copy_paste_text_boxes"
+DEFAULT_UNICODE_FONT = "Segoe UI"
+
+
+def clean_font_name(font: str | None) -> str:
+    """A font family name as the DLL reads it (one line, at most 63 letters), Segoe UI when empty."""
+    name = " ".join(str(font or "").replace("=", " ").split())[:63].strip()
+    return name or DEFAULT_UNICODE_FONT
+
+
+def unicode_ini(manifest: dict[str, Any], enabled: set[str], font: str | None = None) -> tuple[str, bytes] | None:
+    """(destination, text) of the "Unicode Text.ini" written beside "Unicode Text.dll" when one of
+    its settings is on (native/common/unicode_config.h): "Mode=ingame" for Render Unicode with
+    In-Game Fonts, "Mode=system" and the chosen font for Use Unicode Font, "Mode=none" when only
+    Copy and Paste in Text Boxes ships it; "Paste=1" with Copy and Paste in Text Boxes. Always
+    written with the DLL, so a copy patched again with other settings does not keep the old mode."""
+    settings = manifest_settings(manifest)
+    for setting_id in sorted(enabled):
+        companion = settings.get(setting_id, {}).get("companion")
+        if not isinstance(companion, dict) or companion.get("loader_tail") != UNICODE_DLL:
+            continue
+        dll = next((f for f in companion.get("files", []) if Path(str(f.get("destination", ""))).name == UNICODE_DLL), None)
+        if dll is None:
+            continue
+        folder = Path(str(dll["destination"])).parent.as_posix()
+        if UNICODE_SYSTEM_SETTING in enabled:
+            mode = "system"
+        elif UNICODE_INGAME_SETTING in enabled:
+            mode = "ingame"
+        else:
+            mode = "none"
+        names = [str(settings[s].get("name", s)) for s in sorted(enabled)
+                 if isinstance(settings.get(s, {}).get("companion"), dict)
+                 and settings[s]["companion"].get("loader_tail") == UNICODE_DLL]
+        paste = 1 if COPY_PASTE_SETTING in enabled else 0
+        text = (f"; Written by the patcher for {', '.join(names)}.\r\n"
+                f"[Unicode Text]\r\nMode={mode}\r\nFont={clean_font_name(font)}\r\nPaste={paste}\r\n")
+        return f"{folder}/{UNICODE_INI}", text.encode("utf-8")
+    return None
+
+
+def install_unicode_ini(manifest: dict[str, Any], enabled: set[str], staging: Path, font: str | None) -> list[dict[str, Any]]:
+    found = unicode_ini(manifest, enabled, font)
+    if found is None:
+        return []
+    destination, data = found
+    target = staging / Path(destination)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    replaced = target.exists()
+    target.write_bytes(data)
+    return [{"setting": "unicode", "path": destination, "action": "replaced" if replaced else "added"}]
+
+
 def install_companion_files(plan: list[dict[str, Any]], staging: Path) -> list[dict[str, Any]]:
     """Copy each planned companion file into the staged output, read back."""
     summary: list[dict[str, Any]] = []
@@ -700,6 +757,7 @@ def apply_manifest(args: argparse.Namespace) -> int:
         report["companion_files"] = install_companion_files(companions, staging)
         if "translations" in enabled:          # the language chosen on the Tools tab (src/translations.py)
             translations.write_choice_into(staging, "fish")
+        report["companion_files"] += install_unicode_ini(manifest, enabled, staging, getattr(args, "unicode_font", None))
         report["backup_dir"] = str(long_paths.plain(backup_dir))
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".fish_tycoon_bug_fix_output.json", {
@@ -802,6 +860,7 @@ def build_parser() -> argparse.ArgumentParser:
     apply_cmd.add_argument("--output-dir")
     apply_cmd.add_argument("--dry-run", action="store_true")
     apply_cmd.add_argument("--enable", action="append")
+    apply_cmd.add_argument("--unicode-font", help="Use Unicode Font: the Windows font family (default Segoe UI)")
     apply_cmd.add_argument("--disable", action="append")
     apply_cmd.add_argument("--disable-all", action="store_true")
     apply_cmd.set_defaults(func=apply_manifest)

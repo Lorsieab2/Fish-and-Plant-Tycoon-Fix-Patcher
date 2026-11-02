@@ -32,25 +32,27 @@ from tycoon_fix_patcher import patch_settings  # noqa: E402
 # that adds new content to the game (besides the stuff I explicitly mentioned to turn off) stays ON
 # by default." Off: the cheats and anything free.
 DEFAULT_OFF = {"everything_free", "free_upgrades", "add_money", "golden_seahorse_repurchase",
-               "optimize_prices"}
+               "optimize_prices", "unicode_system_font"}
 DEFAULTS = {
     "fish": {
         "fix_vanilla_bugs", "crimson_comet_20_percent_cure", "unknown_chemical_three_uses",
         "universal_supply_slots", "maximizable_window", "tank_greenhouse_counts",
         "ds_fish", "ds_store", "time_warp", "bigger_tanks", "extra_tanks", "extra_supply_slots",
-        "multiple_ornaments", "unicode_ingame_fonts", "translations",
+        "multiple_ornaments", "unicode_ingame_fonts", "translations", "copy_paste_text_boxes",
     },
     "plant": {
         "fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets",
         "tank_greenhouse_counts", "new_flowers", "plant_upgrades", "sort_seeds", "time_warp",
         "extra_greenhouses", "extra_nurseries", "extra_chemical_slots", "unicode_ingame_fonts", "translations",
+        "copy_paste_text_boxes",
     },
 }
 EVERY = {game: set(patch_settings(game)) for game in ("fish", "plant")}
 EXPECTED = {
-    "select_all": {game: EVERY[game] - {"everything_free"} for game in EVERY},
+    # of the two Unicode settings (they exclude each other) Select All keeps the default one
+    "select_all": {game: EVERY[game] - {"everything_free", "unicode_system_font"} for game in EVERY},
     "default_patches": DEFAULTS,
-    "owners_defaults": {game: EVERY[game] - {"everything_free", "unicode_ingame_fonts"} for game in EVERY},
+    "owners_defaults": {game: EVERY[game] - {"everything_free", "unicode_system_font"} for game in EVERY},
     "deselect_all": {game: set() for game in EVERY},
 }
 
@@ -94,7 +96,7 @@ class PresetSetTests(unittest.TestCase):
             chosen = gui.preset_selection("owners_defaults", game)
             self.assertNotIn("everything_free", chosen)
             self.assertTrue({"free_upgrades", "add_money", "time_warp"} <= chosen, game)
-        self.assertEqual(gui.OWNERS_DEFAULTS_OFF, {"everything_free", "unicode_ingame_fonts"})
+        self.assertEqual(gui.OWNERS_DEFAULTS_OFF, {"everything_free", "unicode_system_font"})
 
     def test_presets_keep_requirements(self) -> None:
         for preset in EXPECTED:
@@ -378,7 +380,9 @@ class ConflictTests(unittest.TestCase):
             fish_patcher.check_setting_requirements(manifest, {"pair_default", "pair_other"})
         fish_patcher.check_setting_requirements(manifest, {"pair_other"})
         self.assertEqual(fish_patcher.conflicting_settings(manifest),
-                         {"pair_default": {"pair_other"}, "pair_other": {"pair_default"}})
+                         {"pair_default": {"pair_other"}, "pair_other": {"pair_default"},
+                          "unicode_ingame_fonts": {"unicode_system_font"},
+                          "unicode_system_font": {"unicode_ingame_fonts"}})
 
     def test_the_real_unicode_pair(self) -> None:
         """Every conflict in the manifests names a real setting of that game, both ways round."""
@@ -388,6 +392,20 @@ class ConflictTests(unittest.TestCase):
                 for other in setting.get("conflicts_settings", []):
                     self.assertIn(other, settings, (game, sid))
                     self.assertNotIn(other, setting.get("requires_settings", []), (game, sid))
+            # Use Unicode Font (overrides in-game fonts): off by default and in Owner's Defaults,
+            # excluding Render Unicode with In-Game Fonts both ways; Select All, Default Patches
+            # and Owner's Defaults keep only the default one of the two.
+            system = settings["unicode_system_font"]
+            self.assertEqual(system["name"], "Use Unicode Font (overrides in-game fonts)")
+            self.assertIs(system["default"], False)
+            self.assertIs(system["separate_output"], True)
+            self.assertEqual(system["conflicts_settings"], ["unicode_ingame_fonts"])
+            self.assertEqual(settings["unicode_ingame_fonts"]["conflicts_settings"], ["unicode_system_font"])
+            self.assertIn("unicode_system_font", gui.OWNERS_DEFAULTS_OFF)
+            self.assertNotIn("unicode_ingame_fonts", gui.OWNERS_DEFAULTS_OFF)
+            for preset in ("select_all", "default_patches", "owners_defaults"):
+                self.assertIn("unicode_ingame_fonts", gui.preset_selection(preset, game))
+                self.assertNotIn("unicode_system_font", gui.preset_selection(preset, game))
 
 
 class ConflictGuiTests(unittest.TestCase):

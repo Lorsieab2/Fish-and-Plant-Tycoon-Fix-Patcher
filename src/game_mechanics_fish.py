@@ -109,6 +109,14 @@ CLOCKS = (
         "Speed 1/2 speed, Normal and 2x speed change only game time. Stop Time pauses fish steps, "
         "research and the ambient sounds; nothing else checks it.",
     ),
+    Fact(
+        "The speed is saved with the game and loaded as the save holds it. The game only ever "
+        "sets 2x speed, Normal, 1/2 speed or Stop Time, but a save edited or damaged to hold "
+        "speed 0 crashes the game to the desktop as soon as a fish ages (an age step divides "
+        "by the speed).",
+        patched=(("fix_vanilla_bugs", "a save with speed 0 loads at Normal speed instead of "
+                  "crashing; every other speed loads as saved."),),
+    ),
 )
 
 TIME_AWAY = (
@@ -1604,16 +1612,39 @@ OTHER_GAME = (
 
 TEXT_ENTRY = (
     Fact(
+        "Copy and paste: none. The game's text boxes take only typed keys; Ctrl+V, Ctrl+C and the like do "
+        "nothing.",
+        patched=(("copy_paste_text_boxes", "while a text box has the typing cursor (a player's name, the new player's box, the registration boxes), Ctrl+V or "
+                  "Shift+Insert pastes the Windows clipboard's text at the cursor as if typed letter by letter "
+                  "(line breaks and tabs become spaces, other control characters are left out, the box keeps "
+                  "its limit, 300 letters for a name, and its own letters, digits only in a price box; a "
+                  "letter with its accents or a joined emoji goes in whole or not at all), Ctrl+C or "
+                  "Ctrl+Insert copies the box's whole text (a player's full name) and Ctrl+X cuts it. Any "
+                  "script with Render Unicode with In-Game Fonts or Use Unicode Font; without them only plain "
+                  "ASCII (0x20-0x7E), what the stock game takes from the keyboard."),)
+    ),
+    Fact(
         "A name (the player's, any text box) is at most 31 letters, one byte each, kept in the save "
-        "as the game typed it.",
+        "as the game typed it. A text box whose text is wider than the box loses its last letters until it "
+        "fits.",
+        patched=(("unicode_ingame_fonts", "every name box (the player list's rows, the new player's) takes "
+                  "up to 300 letters, the box's own 1200 bytes at up to 4 bytes a letter. The save's own "
+                  "field keeps the first 31 letters ('?' for any letter Latin-1 has not), so the stock game "
+                  "still loads it, and the full name is kept beside the save (Fix Patcher Data\\Names "
+                  "<slot>.dat). The game shows the full name wherever it shows the player's, ending in an "
+                  "ellipsis where it is wider than the game's space for a name, and a text box shows its "
+                  "text fitted instead of cutting it."),
+                 ("unicode_system_font", "the same as Render Unicode with In-Game Fonts."),)
     ),
     Fact(
         "What you can type: plain ASCII only, 0x20-0x7E. The game reads the key's character "
         "(keysym.unicode) only when it is below 0x80, keeps only 0x20-0x7E, and drops every key "
         "pressed with Ctrl or Alt, so AltGr letters never arrive either. Its text box itself would "
         "store any byte 0x20-0xFF.",
-        patched=(("unicode_ingame_fonts", "every Latin-1 letter too (U+00A0-U+00FF: é ñ ü ß Æ ¿ £ ...), "
-                  "AltGr letters included, stored as its Latin-1 byte."),),
+        patched=(("unicode_ingame_fonts", "any letter of any script (é ñ ß, Ç ğ İ, 山田, 한국어, emoji, "
+                  "cuneiform ...), AltGr letters, the emoji panel and input methods included, stored as UTF-8; "
+                  "Backspace takes off a whole letter."),
+                 ("unicode_system_font", "the same as Render Unicode with In-Game Fonts."),)
     ),
     Fact(
         "What the fonts draw: Paddington 18 and 30 and Triplex Sans Bold 16 have ASCII and only "
@@ -1621,7 +1652,9 @@ TEXT_ENTRY = (
         "^ { | } ~). A letter a font lacks is drawn as its first letter, a space.",
         patched=(("unicode_ingame_fonts", "every Latin-1 letter and the Windows-1252 letters € ' ' \" \" "
                   "– — … ™ Œ Š Ž Ÿ ..., made in each font's own style, and real letters for Paddington's "
-                  "boxes."),),
+                  "boxes; any other letter is drawn from Windows' fonts (Segoe UI and the fonts for "
+                  "other scripts) at the font's size and in the text's colour; colour emoji keep their own colours."),
+                 ("unicode_system_font", "every letter, ASCII too, is drawn with the Windows font chosen in the patcher (Segoe UI unless another), then the fonts for other scripts, at the game fonts' line heights and in the game's colours (colour emoji in their own)."),)
     ),
 )
 

@@ -206,7 +206,7 @@ class Pictures(unittest.TestCase):
             composer = S.Composer(art)
             for picture in S.pictures(art.game):
                 for piece in picture.pieces:
-                    if not piece.fill:
+                    if not piece.fill and piece.text is None:
                         composer.image(piece.file)
 
     def test_every_picture_but_the_screens_renders(self) -> None:

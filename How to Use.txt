@@ -70,7 +70,8 @@ Each option in the patcher describes exactly what it changes and where.
 
 Fish Tycoon options:
 - Fix Vanilla Bugs (the two store plants do what their names say; the Golden
-  Seahorse has full health and food)
+  Seahorse has full health and food; a save with game speed 0 no longer
+  crashes the game)
 - Crimson Comet 20% curing fix
 - Unknown Chemical: 3 uses
 - Universal supply slots 2-4
@@ -152,9 +153,20 @@ Fish Tycoon options:
 - Everything is Free (off by default; a CHEAT, so Select All Patches and
   Owner's Defaults leave it off: tick it yourself): every store item, research and Upgrades item costs $0,
   and Add Money costs $0 and still adds $1,000. Limits stay.
-- Render Unicode with In-Game Fonts (on by default; Owner's Defaults leaves
-  it off): type accented letters (é ñ ü ß Æ ¿ £ ...) in names, drawn in the
+- Copy and Paste in Text Boxes (on by default): in any text box of the
+  game, Ctrl+V or Shift+Insert pastes, Ctrl+C or Ctrl+Insert copies the
+  whole text (a player's full name) and Ctrl+X cuts. A paste is typed in
+  letter by letter: line breaks become spaces, the box keeps its limit.
+- Use Unicode Font (overrides in-game fonts) (off by default, Owner's
+  Defaults too; it replaces Render Unicode with In-Game Fonts): all
+  game text in one Windows font you pick beside the setting (Segoe UI
+  unless you choose another), any script, at the game's sizes and colours.
+- Render Unicode with In-Game Fonts (on by default and in Owner's
+  Defaults): type accented letters (é ñ ü ß Æ ¿ £ ...) in names, drawn in the
   game's own fonts; letters a font lacks are made for it in its style.
+  Names can be up to 300 letters, in any script (letters the game's fonts
+  lack come from Windows' fonts); the full name is kept beside the save
+  and shown fitted where the game has less room.
 
 Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
 - What moves: fish of any age, healthy or sick (a pregnant fish keeps her
@@ -267,9 +279,18 @@ Plant Tycoon options:
   doses left when you point at it. Turning it off loses nothing: loading a
   save puts page 2's chemicals into free stock slots where they fit, and the
   rest wait in the slot's Extra Chemical Slots file for when you turn it on.)
-- Render Unicode with In-Game Fonts (on by default; Owner's Defaults leaves
-  it off): type accented letters (é ñ ü ß Æ ¿ £ ...) in names; the game's font
-  gets the few it lacks, made in its style.
+- Copy and Paste in Text Boxes (on by default): in any text box of the
+  game, Ctrl+V or Shift+Insert pastes, Ctrl+C or Ctrl+Insert copies the
+  whole text (a player's full name) and Ctrl+X cuts. A paste is typed in
+  letter by letter: line breaks become spaces, the box keeps its limit.
+- Use Unicode Font (overrides in-game fonts) (off by default, Owner's
+  Defaults too; it replaces Render Unicode with In-Game Fonts): all
+  game text in one Windows font you pick beside the setting (Segoe UI
+  unless you choose another), any script, at the game's sizes and colours.
+- Render Unicode with In-Game Fonts (on by default and in Owner's
+  Defaults): type accented letters (é ñ ü ß Æ ¿ £ ...) in names; the game's font
+  gets the few it lacks, made in its style. Names can be up to 300 letters,
+  in any script, the full name kept beside the save.
 
 Moving things between greenhouses (5 extra greenhouses):
 - A plant: drag it onto the left or right arrow, as you would drag it to
@@ -379,7 +400,13 @@ sprite cell, by category ("(unused)": a file the game never names; files
 the game names but lacks are listed, not drawn). "Screens, bars and
 buttons" has the games' pictures made of several pieces: whole screens,
 meters and bars empty and filled, every button in each state, rope and
-dialog boxes (without their words). The Bugs tab also shows each bug as the
+dialog boxes, with the games' words in their own fonts and colours (cash,
+names and prices are sample values) and message boxes sized for real
+messages: the tooltips with their words, the Options dialogs, question and
+message boxes (Plant's tutorial messages with their arrows, over the screen
+they darken), the greenhouse with sample plants, the Store's shelves, the
+Collections screen with some bugs caught, and a new game's Fish tank with
+its supplies. The Bugs tab also shows each bug as the
 greenhouse and the Collections screen draw it. With Show Spoilers off
 (the Breeding Guide's setting) only the parts you have discovered (items are
 always all offered). Pick a PNG size (the game's

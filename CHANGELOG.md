@@ -1,5 +1,206 @@
 # Changelog
 
+## v1.0.24
+
+- **Copy and Paste in Text Boxes** (new setting, both games; on by default and
+  in Select All, Default Patches and Owner's Defaults, "Modded Upgrades"
+  copy). While a game text box has typing focus (the box the game last drew
+  with its focus), Ctrl+V / Shift+Insert paste the clipboard's text
+  (CF_UNICODETEXT) at the caret (the boxes' caret is at the end), Ctrl+C /
+  Ctrl+Insert copy the box's whole text (a player's full name, never the
+  31-letter short form) and Ctrl+X cuts; the keys are taken in the game
+  window's procedure and never reach the game. A paste is posted as the
+  game's own character events, so the box takes it as if typed: CR, LF (CR LF
+  as one) and Tab become spaces, other control characters and lone
+  surrogates are left out, the box keeps its byte limit (a name 300 letters,
+  1,200 bytes) and its letters (the price box digits only), and a letter with
+  its combining marks, variation selectors, skin tone or zero-width-joined
+  emoji goes in whole or not at all. With either Unicode setting any script;
+  without them printable ASCII only, which is what both stock games' boxes get
+  from the keyboard (Fish Tycoon's event loop posts only 0x20-0x7E, Plant
+  Tycoon's only one-byte SDL text). The clipboard is opened with the game's
+  window and always closed; a busy clipboard does nothing; at most 2,408
+  UTF-16 units are read. It runs as Unicode Text.dll, a loader tail (no
+  executable pins): `Unicode Text.ini` gets Paste=1, and Mode=none when
+  neither Unicode setting is on, when the DLL changes only the box draw's
+  site and, so an empty box is found too, its caret blink's time call. Also:
+  a letter past U+FFFF sent to the window as two WM_CHARs is joined and
+  posted as its one letter (checked live in Plant Tycoon; Fish Tycoon's
+  window is an ANSI one, whose GetMessageA turns such halves into '?' before
+  any window procedure, so there such letters come, as before, joined from
+  the emoji panel's VK_PACKET and an input method's text). Tests:
+  tests/test_text_clipboard.py, tests/test_unicode_names.py (viewing a long
+  name never shortens it).
+- **Colour emoji in the games** (Render Unicode with In-Game Fonts and Use
+  Unicode Font, both games). A letter from a colour font (Segoe UI Emoji's
+  emoji; any font with a COLR, CBDT, sbix or SVG table) is drawn by Direct2D
+  and DirectWrite as the Text Maker draws it (a DC render target on the same
+  DIB, grayscale anti-aliasing, colour fonts on), at the GDI font's em size on
+  its baseline: it keeps the font's own colours (never tinted with the text's
+  colour) and takes the text's alpha. d2d1.dll and dwrite.dll are loaded when
+  first needed, so the DLL still loads on old Windows; without them, or when a
+  call fails, the letter is drawn in one colour by GDI as before. Tests:
+  tests/test_unicode_colour.py (Unicorn: the colour letter's surface, colours
+  kept, alpha, the pen and the measure, both modes; natively, the DLL's own
+  raster_glyph from a 32-bit helper: emoji in colour, the same pixels as the
+  Text Maker's drawing, one-colour letters unchanged, the one-colour fallback).
+- **Full names survive a crash** (both games). "Names <slot>.dat" is written as
+  soon as a name is committed: the new player's box accepted (the game then
+  copies it into row 1) or a player renamed, no longer only at the next draws
+  or at exit (those stay as the fallback). It is written to "Names
+  <slot>.dat.tmp" and moved over the old file, so a crash leaves the old file
+  or the new one whole; if Windows refuses the move it is written in place as
+  before. Tests: tests/test_unicode_names.py.
+- **Owner's Defaults keeps Render Unicode with In-Game Fonts on** (the owner:
+  "For Owner's Defaults, I'd like to have the ingame fonts toggled on."). Use
+  Unicode Font stays off in it, as in Select All and Default Patches. Tests:
+  tests/test_patch_presets.py, tests/test_every_patch.py.
+
+- **Use Unicode Font (overrides in-game fonts)** (new setting, both games; off
+  by default and in Owner's Defaults, "Modded Upgrades" copy). All of the
+  game's text, ASCII too, is drawn with one Windows font chosen beside the setting in the patcher (a list
+  of the installed fonts, Segoe UI by default), then the fonts for other
+  scripts for a letter it lacks, at the game fonts' line heights and in the
+  game's colours; typing, long names and any script as with Render Unicode
+  with In-Game Fonts. The two settings exclude each other (conflicts_settings,
+  both ways): Select All, Default Patches and Owner's Defaults tick Render
+  Unicode with In-Game Fonts. It ships the same Unicode Text.dll (without the font pictures); the
+  patcher writes `Unicode Text.ini` beside it (Mode=system, Font=...; Mode=
+  ingame for the other setting), so the DLL leaves the game's fonts alone and
+  draws every letter at run time. `--unicode-font` sets the font from the
+  command line. Tests: tests/test_unicode_glyphs.py (the ini, the mode, every
+  letter from the chosen font), tests/test_patch_presets.py,
+  tests/test_every_patch.py.
+- **Any script** (Render Unicode with In-Game Fonts, stage 3). Text is UTF-8
+  now, in both games: names, and any text the game draws (Translations.dll
+  writes UTF-8, as Unicode Text.dll's FtfpUnicodeTextActive now answers 1). A
+  byte that does not start a whole UTF-8 letter reads as its Latin-1 letter, so
+  every old save and text reads as before. Each letter is drawn from the first
+  source that has it: the game's own font (with the patcher-made letters; a run
+  of them is drawn and measured by the game's own code, pixel for pixel), then
+  Windows' fonts at run time (GDI and Uniscribe: Segoe UI, Yu Gothic, Meiryo,
+  Microsoft YaHei, Malgun Gothic, Nirmala UI and the other script fonts,
+  Segoe UI Historic for cuneiform, Segoe UI Emoji, Segoe UI Symbol), sized to
+  the game font's line, tinted to the text's colour and kept; a letter no font
+  has is '?'. Typing takes any letter: Fish Tycoon every keysym.unicode letter
+  of a normal key (SDL 1.2's UCS-2), and through the game's window the emoji
+  panel's letters (VK_PACKET) and an input method's finished text
+  (ImmGetCompositionStringW), surrogate pairs as one letter; Plant Tycoon every
+  letter of SDL 2's text input. The text box keeps UTF-8: a letter goes in
+  whole or not at all, Backspace takes off a whole letter, a name box stops at
+  300 letters. Colour emoji: see the entry above. Tests:
+  tests/test_unicode_glyphs.py, tests/test_unicode_text.py,
+  tests/test_unicode_names.py.
+- **Long names** (Render Unicode with In-Game Fonts, stage 2). Every name box
+  in both games (the five player rows of the player list and the new player's
+  box) takes up to 300 letters, the one limit of the DLL and of Rename Players
+  and Copy Player Slot: the game's text box holds at most 1200 bytes (its
+  setLimit clamps at 0x4B0) and a letter is up to 4 bytes in UTF-8. The game's
+  own 32-byte fields keep a short form (each letter's Latin-1 byte, "?" for any
+  other, cut after 31 letters), so the stock game still loads the save; the full
+  name goes into `<Game> Fix Patcher Data\Names <slot>.dat` beside the save,
+  used only while the player list still holds its short form. Rename Players
+  writes it and Copy Player Slot copies it under the new name. Wherever the game
+  draws a player's short form it draws the full name, through one hook on the
+  game's text draw and one on its measure (Fish 0x4087E0 / 0x4023D0, Plant
+  0x408E20 / 0x402380), fitted with an ellipsis to the width the game left for
+  a name (the wider of the short form and its own 26-underscore placeholder);
+  a text box no longer cuts letters off its own text while it is too wide
+  (0x40B7E9 / 0x40C1F9) but shows it fitted: the end while you type, the start
+  otherwise. Tests: tests/test_unicode_names.py, tests/test_save_tools.py.
+- **Picture Studio, Screens, bars and buttons: the words.** Each screen now has
+  its words, drawn as the games draw them: the game's own text (read from your
+  copy of the game), in its own bitmap fonts (the Text Maker's), its colours
+  (0xAABBGGRR) and its placing (left, centred, right, centred between two
+  points, centred in a button). Fish Tycoon: the cash line, the isolation
+  tank's fish (name, status, age), TIME STOPPED, the Supplies store's cash and
+  a picked item (title, description, price, or research level and progress
+  bar), the Sell Fish screen's cash, fish for sale and price, the Species
+  chart's price and family tree, the Trophy case's empty slots (#1/7 ...
+  #7/7 and their question marks), the Options popup (new: its headers, radio
+  buttons and labels, OK and Cancel, Fullscreen too) and rope message boxes
+  sized for real messages. Plant Tycoon: every button label (tabs, Price,
+  Sell, Sell All, the menu, Help, Story, Collections, the snapshot scene's
+  Main / Take Snapshot / Change Scene), the greenhouse's CASH and cash, "No
+  plant selected" and a picked pot's words, the menu's version, copyright and
+  player name, and message and question boxes sized for real messages as the
+  game sizes them (from the text's width). Sample values: cash $1000, names,
+  prices, ages. New placements: Plant Tycoon's Sell All button (115, 407), the
+  snapshot scene's three buttons, CheckboxStrip.png as 2 x 1 frames. Tests:
+  tests/test_picture_screen_words.py runs the games' text width, height, draw
+  and placing code and the screens' constructors in Unicorn
+  (tests/screen_emulator.py); the tab's note names what is read without
+  running.
+- **Picture Studio, Screens, bars and buttons: more of what the games draw,
+  drawn by the games' own code.** Plant Tycoon's screens, dialogs, boxes and
+  tooltips are now built and drawn in Unicorn with the game's own code and
+  every draw call compared (tests/draw_emulator.py,
+  tests/test_picture_screen_draws.py). New: the Options dialog (its words,
+  sliders, radio buttons, music track check boxes and Done, over the main
+  menu; a ticked check box is CheckboxStrip.png's second frame); the 33
+  tutorial messages over the screen each appears on, with the arrow the
+  tutorial points (the message box centred on the screen); the questions
+  over the menu or greenhouse; a dialog darkens the screen under it; the
+  chemical tray's tooltips ("Plant Food / Remaining uses: 3"); the hidden
+  "Replay Tutorial Instruction" text button; a disabled button's dimmed label
+  (unused by the game: nothing disables a button). The greenhouse gains its
+  pots, the tool tray's soil bag and watering can and the trays' and trash
+  bin's names; the Seed box and Store their headings, tray names and cash; a
+  screen's own tab its name; Help page 1 loses its back arrow and page 6 its
+  next arrow, as in the game. The main menu's button labelled "Options" (on
+  quit_button.png) opens Options and the one labelled "Quit" (on
+  options_button.png) quits, checked in Unicorn. Fish Tycoon: the supply
+  slots' tooltips (the patcher's DS Store Items) in the hint's rope box over
+  tank 1, checked against the patcher's own code. The tab's note names what
+  is still read without running (Fish Tycoon's screen words and box sizes, a
+  picked pot's words).
+- **Picture Studio, Screens, bars and buttons: Fish Tycoon drawn by its own
+  code, and plants, seeds, shelves and bugs on their screens.** Fish
+  Tycoon's screens, message boxes and Options popup are now built and drawn
+  by the game's own code in Unicorn on a new game's state and every draw
+  compared (tests/draw_emulator.py FishScreens): tank 1, the main menu, the
+  trophy case, Help, the intro, the Supplies store, Sell Fish, the rope
+  message boxes (sizes, OK and Cancel) and the Options popup (headers, radio
+  buttons, their labels). Fixed where the pictures differed: Options'
+  Fullscreen On and Off are centred as a pair as the game centres them; the
+  main menu gains the game's version label; Sell Fish gains the selling
+  area's door. New: a new game's tank 1 with its starting supplies in the
+  slots, and the supply slots' tooltips with the slot's item under them.
+  Plant Tycoon, new: the greenhouse with sample plants in its pots (several
+  kinds at several ages, grown and drawn by the plant compositing of Make
+  your own, at the pots' places); the Store with every tool, chemical and
+  ornament on its shelves and its four tools in the tray (exactly as the
+  game draws it), and with sample seed packets on the seed shelf; the Seed
+  box with sample seeds in its trays (the trays' places checked in Unicorn)
+  and its information box's unknown seeds and pollen; the Collections screen
+  with a few bugs caught (bug data given to the game's own constructor and
+  draw: leaves, bugs in their jars, the spider of the day on its web, and
+  "Collected: n out of 48", now on every Collections picture).
+- **Checked: neither game has Virtual Families' bank crash.** Virtual Families
+  1 crashes to the desktop when its bank chart divides by 0. Every integer
+  division in Fish Tycoon.exe (190) and Plant Tycoon.exe (199) was listed and
+  traced. 60 in each are the C runtime's own, 31 (Fish) and 34 (Plant) divide
+  by a constant, and the rest divide by a pixel count, a sprite's frame count,
+  a length or count checked for 0 first, or a value the game never sets to 0.
+  The only divisor that game data could make 0 is Fish Tycoon's game speed
+  (the age step, seconds / 60 / speed), and the game only ever sets it to 5,
+  10, 15 or 9999, in play and in the saves it writes. Random(0) does not
+  divide. The patcher's own code was checked as well: no division in any
+  executable patch, and the companion DLLs divide only by constants or after
+  a check. Tests: tests/test_div_zero_audit.py (every site and its kind, and
+  the game's own code in Unicorn: the age step faults at speed 0 and counts as
+  stock at 5, 10 and 15, Random(0) returns 0, and the guarded sites skip their
+  division at 0).
+- **Fixed: a Fish Tycoon save with game speed 0 crashed the game** (Fix
+  Vanilla Bugs). The load copies the save's speed as it is (the stock "over
+  100 becomes 10" check runs only when there is no save), so a hand-edited,
+  Cheat Engine edited or damaged save with speed 0 crashed to the desktop as
+  soon as a fish aged (an integer divide by 0 at 0x41FFFF). Such a save now
+  loads at speed 10, a new game's speed: the load's jump at 0x41AF54 goes
+  through a few bytes at 0x43F8D0 before the Golden Seahorse routine. Every
+  other speed loads as before. Tests: tests/test_vanilla_fixes.py (the load
+  and the age step in Unicorn, stock and patched).
+
 ## v1.0.23
 
 - **Fixed: the "Counts: On" / "Counts: Off" button was light blue, not yellow**
@@ -9,7 +210,7 @@
   It is now the game's yellow, as its captions. Tests:
   tests/test_tank_greenhouse_counts.py.
 - **Render Unicode with In-Game Fonts** (new setting, both games; on by default,
-  "Modded Upgrades" copy; Owner's Defaults leaves it off). Stage 1: Latin-1.
+  "Modded Upgrades" copy; on in Owner's Defaults too). Stage 1: Latin-1.
   Typing in the game takes every Latin-1 letter (U+00A0-U+00FF, AltGr too):
   Fish Tycoon's key path kept only ASCII (keysym.unicode < 0x80, then 0x20-0x7E
   at 0x403ED4) and Plant Tycoon's SDL_TEXTINPUT took only one-byte text

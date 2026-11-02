@@ -3,9 +3,12 @@ pieces: whole screens as assembled, meters and bars empty and filled and joined 
 buttons in each state, rope boxes and dialog boxes, for the tab of that name in "Make your own".
 
 Every number is the game's own (tests/test_picture_screens.py reads them back out of the
-executables, and runs Fish Tycoon's meter in Unicorn). Text is not drawn: the words on the
-screens and buttons are the game's font text, which the Studio does not draw, so a screen or a
-button shows its art only (the tab's note says so).
+executables, and runs Fish Tycoon's meter in Unicorn). The words are drawn as the games draw
+them (Text pieces: the game's own text read from the player's copy, its fonts through text_maker,
+its colours and its placing; tests/test_picture_screen_words.py runs the games' text code and the
+screens' constructors in Unicorn, tests/test_picture_screen_draws.py draws Plant Tycoon's screens,
+dialogs, boxes and tooltips with the game's own code and compares every draw call). What is read
+without running is named in the tab's note.
 
 Fish Tycoon (Fish Tycoon.exe):
 * Images: a PNG keeps its alpha (0x409AB0: SDL_DisplayFormatAlpha); a BMP is opaque (the game
@@ -40,16 +43,45 @@ Plant Tycoon (Plant Tycoon.exe):
   files are the same picture in this build), cols = max(2, ceil(W / 64)), rows likewise; corners
   8, 0, 5, 6, edges 1 (top), 4 (bottom), 3 (left), 2 (right), middle 7.
 * Buttons (0x4016F8, 0x4017E0): a 3 x 1 strip, frame 0 normal, 1 mouse over, 2 pressed;
-  disabled: frame 0 with each colour (c x 127 >> 8) + 50 (0x409220, tint 0x47A0FC).
+  disabled: frame 0 with each colour (c x 127 >> 8) + 50 (0x409220, tint 0x47A0FC), its label
+  drawn again over itself in 0x80646464 (never used: nothing disables a button).
+* Dialogs (0x401C90): the screen under them darkened (black at 0.25), centred (0x401D20).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Callable
 
 from picture_image import Image, PictureError
 
 # ------------------------------------------------------------------ pieces and pictures
+
+
+@dataclass(frozen=True)
+class Text:
+    """Words as the game draws them (Fish 0x4087E0, Plant 0x408E20): `parts` joined, each the
+    game's own text read from the player's copy of the executable -- ("id", n) a line of its
+    string table, ("at", address) a C string in it, ("fmt", address, args) that C string as
+    printf fills it (%d / %u / %i / %s; each arg a number or a part) -- or ("sample", "...") a
+    sample value for what the game fills in at run time (a player name, a species name).
+    `font` is the game's font number (Fish: 0 paddington_tt_18, 1 paddington_tt_30, 2 the
+    Triplex font; Plant: 0 PTfontsmall), `colour` the game's 0xAABBGGRR (alpha 0: the default,
+    white), `align` how the game places it from x: "left" (0x408B80 / 0x4092A0), "centre"
+    (0x408BE0 / 0x4092B0: x - width / 2), "right" (0x408B90: x - width) or "between"
+    (0x408C30: centred between x and x2)."""
+    parts: tuple
+    font: int = 0
+    colour: int = 0
+    align: str = "left"
+    x2: int = 0
+    button: str = ""      # align "button": a label centred in this 3 x 1 button picture's frame
+
+
+def cdiv(a: int, b: int) -> int:
+    """C's integer division (toward zero), as the games' cdq / sar pairs do it."""
+    q = abs(a) // abs(b)
+    return q if (a >= 0) == (b > 0) else -q
 
 
 @dataclass(frozen=True)
@@ -69,6 +101,10 @@ class Piece:
     scale: int = 100
     dim: bool = False
     fill: tuple | None = None
+    text: Text | None = None
+    shade: bool = False   # a fill laid over what is drawn: Plant Tycoon's see-through rectangle
+    image: object = field(default=None, compare=False)   # drawn already (a pot and its plant, by
+    #                                    pictures_plant's planner and the game's scaler)
 
 
 @dataclass(frozen=True)
@@ -81,10 +117,61 @@ class Picture:
     canvas: tuple | None = None        # (w, h): drawn on a screen this big, not cut to its pixels
     unused: bool = False
     patcher: bool = False
+    make: Callable | None = field(default=None, compare=False)   # (composer) -> pieces: layouts
+    #                                    the game works out from picture and text sizes
 
 
 def fill(x, y, w, h, rgba) -> Piece:
     return Piece("", x, y, fill=(*rgba, w, h))
+
+
+# A modal dialog's backdrop (0x401C90 with its second argument 0, every Plant Tycoon dialog and
+# message box): the screen under it drawn, then 0x401E57 lays black at alpha 0.25 over all of
+# it (0x407B80 -> 0x403870: A = trunc(0.25 x 255 + 0.5) = 64, each channel (c x (255 - A)) >> 8
+# + (colour x A) >> 8), then the dialog.
+PLANT_SHADE = (0, 0, 0, 64)
+
+
+def shade(rgba=PLANT_SHADE, w: int = 800, h: int = 600, x: int = 0, y: int = 0) -> Piece:
+    return Piece("", x, y, fill=(*rgba, w, h), shade=True)
+
+
+def say(x: int, y: int, *parts, font: int = 0, colour: int = 0, align: str = "left", x2: int = 0) -> Piece:
+    """Words at (x, y), as the game passes them to its text draw."""
+    return Piece("", x, y, text=Text(tuple(parts), font, colour, align, x2))
+
+
+def label(file: str, x: int, y: int, part, colour: int = 0xFFFFFFFF, frame: int = 0, dim: bool = False) -> tuple:
+    """A button and its label as the button draws them (Fish 0x4011F0, Plant 0x4011B0): the label
+    centred in the frame (by the font's line height), 2 right and down when pressed, in the
+    colour the button was given for that state. `dim`: Plant Tycoon's disabled button, frame 0
+    dimmed and its label drawn twice at the same place, in its normal colour and then in the
+    disabled colour [0x47A0FC] = 0x80646464 (0x40131F: the second draw at the first one's x, y)."""
+    shift = 2 if frame == 2 else 0
+    button = Piece(file, x, y, cols=3, rows=1, cell=0 if dim else frame, dim=dim)
+    words = Piece("", x + shift, y + shift, text=Text((part,), 0, colour, "button", 0, file))
+    if dim:
+        return button, words, Piece("", x, y, text=Text((part,), 0, PLANT_DIM, "button", 0, file))
+    return button, words
+
+
+PLANT_DIM = 0x80646464                    # [0x47A0FC]: a disabled button's tint and its label's colour
+
+
+def ident(n: int) -> tuple:
+    return ("id", n)
+
+
+def at(address: int) -> tuple:
+    return ("at", address)
+
+
+def fmt(address: int, *args) -> tuple:
+    return ("fmt", address, args)
+
+
+def sample(text: str) -> tuple:
+    return ("sample", text)
 
 
 def plant_alpha(alpha: float) -> int:
@@ -190,6 +277,169 @@ def _button(file: str, x: int, y: int, frame: int = 0) -> Piece:
     return Piece(file, x, y, cols=3, rows=1, cell=frame)
 
 
+# ---- Fish Tycoon's words. Colours: [0x456F7C] etc. hold 0xFF66CCFF (orange); the globals that read
+# 0 (never written) are the default colour, white. Fonts: the screens' own font fields are
+# GetFont(n) (0x418210 / 0x4181F0) in their constructors; 0 is also the default font (0x418652).
+FISH_ORANGE = 0xFF66CCFF
+FISH_PANEL_Y = 485                         # [screen + 0x10]: the bottom bar's top (0x41D6FC)
+FISH_CASH = say(0x146, FISH_PANEL_Y + 0x59, fmt(0x4439C0, ident(7), 1000))          # 0x41D910
+FISH_TIME_STOPPED = say(0, 0x1A4, ident(0), align="between", x2=800)                # 0x41CF20
+
+
+def fish_info(name: str = "Sample Fish", status: int = 3, age: int = 12) -> list:
+    """0x41F800 / 0x41D980 / 0x41DA40: the fish in the isolation tank (or held): its species
+    name, "Status: " and its state (Pregnant 3, Sick 4, Dead 5), "Age: " and the age."""
+    y = FISH_PANEL_Y
+    return [say(0x146, y + 0x14, sample(name), colour=FISH_ORANGE),
+            say(0x146, y + 0x28, ident(2)), say(0x18A, y + 0x28, ident(status), colour=FISH_ORANGE),
+            say(0x146, y + 0x3B, ident(1)), say(0x178, y + 0x3B, fmt(0x440374, age), colour=FISH_ORANGE)]
+
+
+def supplies_item(title: int, price: int = 0, level: int = 0, progress: int = 0) -> list:
+    """0x4271E0, the picked item: its title (font 1) at (57, 345), its description at (57, 385),
+    then a research's level line at (57, 460) and "Progress:" with the research bar, or
+    "Price:  $n" at (57, 509)."""
+    out = [say(0x39, 0x159, ident(title), font=1, colour=0xFFFFFFFF), say(0x39, 0x181, ident(title + 1))]
+    if progress:
+        out += [say(0x39, 0x1CC, ident(0xE4 + level)), say(0x39, 0x1FD, ident(0xE7)),
+                Piece(*FISH_RESEARCH_FRAME)] + fish_meter(*FISH_RESEARCH_METER_AT, progress)
+    else:
+        out.append(say(0x39, 0x1FD, fmt(0x44C230, ident(0xAD), price)))
+    return out
+
+
+def sell_words(picked: bool = False) -> list:
+    """0x423800: cash, "Fish for sale: " and the count (right-aligned at 409), all font 1; a
+    picked fish adds "Price:" and its price, and its name centred at x 117 (font 0)."""
+    out = [say(0x29, 0x22F, fmt(0x4439C0, ident(7), 1000), font=1, colour=0xFFFFFFFF),
+           say(0xE5, 0x19E, ident(0xF0), font=1, colour=0xFFFFFFFF),
+           say(0x199, 0x19F, fmt(0x440374, 3), font=1, colour=FISH_ORANGE, align="right")]
+    if picked:
+        out += [say(0xE5, 0x1E0, ident(0xAD), font=1, colour=0xFFFFFFFF),
+                say(0x130, 0x1E0, fmt(0x443B00, 120), font=1, colour=FISH_ORANGE),
+                say(0x75, 0x198, sample("Sample Fish"), align="centre")]
+    return out
+
+
+def species_words() -> list:
+    """0x4252C0: "Price:" and the price (font 1), and the family tree's names centred (font 0):
+    the species, its parents, its grandparents."""
+    out = [say(0x230, 0x5F, ident(0xAD), font=1, colour=0xFFFFFFFF),
+           say(0x280, 0x5F, fmt(0x443B00, 50), font=1, colour=FISH_ORANGE),
+           say(0x26F, 0xFC, sample("Sample Fish"), align="centre")]
+    for x, y in ((0x17E, 0x8F), (0x17E, 0x189), (0x87, 0x5B), (0x87, 0xC9), (0x87, 0x153), (0x87, 0x1C4)):
+        out.append(say(x, y, ident(6), align="centre"))
+    return out
+
+
+# 0x4288C0: each empty slot of the trophy case: "#n/7" (its own C string) and questionmark.png
+FISH_TROPHY_SLOTS = ((0x44C364, 0xF7, 0xB5, 0xF5, 0x6A), (0x44C35C, 0x20C, 0xB5, 0x20C, 0x6A),
+                     (0x44C354, 0x6E, 0x151, 0x70, 0x107), (0x44C34C, 0x293, 0x151, 0x29B, 0x107),
+                     (0x44C344, 0xF0, 0x1F1, 0xF3, 0x1A9), (0x44C33C, 0x208, 0x1F1, 0x20C, 0x1A7),
+                     (0x44C334, 0x17D, 0x151, 0x180, 0x106))
+
+
+# The supply slots (0x41BEB0, from the tank's draw): slot k's item picture (a plain sprite, state +0x2C4
+# + 0x1C k) at (its x, 15); a bought item's x is 0x30 k + 0x1E (0x4275CB), a new game's (0x419982,
+# 0x420A15) its own. (sprite file, x)
+FISH_NEW_GAME_SUPPLIES = (("TOOL_FOODCAN_FLAKES.png", 0x19), ("TOOL_GROWTHHORMONE.png", 0x7E),
+                          ("TOOL_FISHEGGS_COMMON.png", 0xA6))
+FISH_TIP_ITEMS = (("TOOL_FOODCAN_FLAKES.png", 0x19), ("TOOL_ICKTREATMENT.png", 0x4E),
+                  ("TOOL_UNKNOWNCHEMICAL.png", 0x7E), ("TOOL_FISHEGGS_COMMON.png", 0xAE))
+FISH_VERSION = say(10, 572, at(0x4438BC), colour=FISH_ORANGE)       # the main menu's label (0x41C773)
+
+
+def supply(file: str, x: int) -> Piece:
+    return Piece(file, x, 15)
+
+
+def trophy_empty() -> list:
+    out = []
+    for text, tx, ty, ix, iy in FISH_TROPHY_SLOTS:
+        out += [say(tx, ty, at(text)), Piece("questionmark.png", ix, iy)]
+    return out
+
+
+# The options popup (0x422530): 270 x 350, centred (0x401D90), a rope box (0x423150); its headers
+# (0x40C110: x, y, align) and radio buttons (0x40A7C0: x, y), relative to the popup.
+FISH_OPTIONS_SIZE = (0x10E, 0x15E)
+FISH_OPTIONS_HEADERS = ((0xC, 0x14, 0xF, "left"), (0xF, 0x8C, 0xF, "left"), (0x13, 0x87, 0x88, "centre"),
+                        (0x18, 0x87, 0xE6, "centre"))
+FISH_OPTIONS_RADIOS = ((0xD, 0x14, 0x29, True), (0xE, 0x14, 0x45, False), (0x10, 0x92, 0x29, False),
+                       (0x11, 0x92, 0x45, True), (0x12, 0x92, 0x61, False), (0x14, 0x10, 0xA2, False),
+                       (0x15, 0x92, 0xA2, True), (0x16, 0x10, 0xBE, False), (0x17, 0x92, 0xBE, False),
+                       (0x19, 0x10, 0x100, False), (0x1A, 0x92, 0x100, True))
+
+
+def fish_options(c) -> list:
+    """The popup as the game puts it together: a radio's label at (right + 4, its middle) (0x40A170);
+    OK at ((270 - 5w/2) / 2, 350 - h/4 - h) and Cancel 3w/2 to its right (w x h: a button frame)."""
+    w, h = FISH_OPTIONS_SIZE
+    left, top = cdiv(800 - w, 2), cdiv(600 - h, 2)
+    out = rope_box(left, top, left + w, top + h)
+    bw, bh = c.cell_size("RopeDlgOkButton.png", 3, 1)
+    ok_x = cdiv(w - cdiv(5 * bw, 2), 2)
+    y = h - cdiv(bh, 4) - bh
+    out += [_button("RopeDlgOkButton.png", left + ok_x, top + y),
+            _button("RopeDlgCancelButton.png", left + ok_x + cdiv(3 * bw, 2), top + y)]
+    for text, x, yy, align in FISH_OPTIONS_HEADERS:
+        out.append(say(left + x, top + yy, ident(text), align=align))
+    rw, rh = c.cell_size("OptionsRadioButton.png", 2, 1)
+    line = c.font(0).line_height
+    # Fullscreen's On and Off (made at x 0x10 and 0x92) are then centred as a pair (0x422DDE): a
+    # radio's width is w + w/2 + its label's (0x40A090); On at (270 - (On + w) - Off) / 2, Off
+    # On + w further. Off is there only on a desktop bigger than 800 x 600 (0x407AF0; otherwise
+    # the game deletes it), as on any computer today.
+    width = lambda t: rw + cdiv(rw, 2) + c.text_size(0, c.text_bytes(Text((ident(t),))))[0]  # noqa: E731
+    on_x = cdiv(w - (width(0x19) + rw) - width(0x1A), 2)
+    moved = {0x19: on_x, 0x1A: on_x + width(0x19) + rw}
+    for text, x, yy, on in FISH_OPTIONS_RADIOS:
+        x = moved.get(text, x)
+        out.append(Piece("OptionsRadioButton.png", left + x, top + yy, cols=2, rows=1, cell=1 if on else 0))
+        out.append(say(left + x + rw + 4, top + yy + cdiv(rh - line, 2), ident(text)))
+    return out
+
+
+def fish_message(c, text: int, cancel: bool = False) -> list:
+    """The rope message box (0x4221A0): the text (0x40C110, font 0) sets its size: width
+    max(text + 40, buttons + 40), height text + button + 60, centred on the screen; the text at
+    ((W - text) / 2, 20), OK at ((W - buttons) / 2, H - button - 20), Cancel 3w/2 to its right."""
+    data = c.text_bytes(Text((ident(text),)))
+    tw, th = c.text_size(0, data)
+    bw, bh = c.cell_size("RopeDlgOkButton.png", 3, 1)
+    span = cdiv(5 * bw, 2) if cancel else bw
+    w, h = max(span + 0x28, tw + 0x28), th + bh + 0x3C
+    left, top = cdiv(800 - w, 2), cdiv(600 - h, 2)
+    out = rope_box(left, top, left + w, top + h)
+    out.append(say(left + cdiv(w - tw, 2), top + 0x14, ident(text)))
+    x = left + cdiv(w - span, 2)
+    out.append(_button("RopeDlgOkButton.png", x, top + h - bh - 0x14))
+    if cancel:
+        out.append(_button("RopeDlgCancelButton.png", x + cdiv(3 * bw, 2), top + h - bh - 0x14))
+    return out
+
+
+# The supply slots' tooltips (the patcher's DS Store Items, native/ftfp_ds_store slot_tooltip, run in
+# Unicorn by tests/test_picture_screen_draws.py): the hint's own rope box (0x423280) just under the
+# top bar (y 60), as wide as the longer line in the default font + 20 (at least 44) and 12 + 20 a
+# line high (at least 54, so the rope fits), centred under the slot and kept 12 from the screen's
+# edges; the lines centred between its sides (0x408C30) from (h - 20 x lines) / 2, white (the
+# hints' colour [0x45B26C], never written).
+FISH_TIP_SLOTS = ((14, 9, 49, 48), (63, 9, 98, 48), (113, 9, 148, 48), (164, 9, 199, 48))
+
+
+def fish_tooltip(c, slot: int, lines: tuple) -> list:
+    data = [c.text_bytes(Text((part,))) for part in lines]
+    w = max(44, max(c.text_size(0, d)[0] for d in data) + 20)
+    h = max(54, 12 + 20 * len(lines))
+    sx0, _sy0, sx1, _sy1 = FISH_TIP_SLOTS[slot]
+    left = min(max(12, cdiv(sx0 + sx1, 2) - cdiv(w, 2)), 800 - 12 - w)
+    out = rope_box(left, 60, left + w, 60 + h)
+    y = 60 + cdiv(h - 20 * len(lines), 2)
+    out += [say(left, y + 20 * k, part, align="between", x2=left + w) for k, part in enumerate(lines)]
+    return out
+
+
 def _fish_pictures() -> list:
     import pictures_fish_items as fi
     out = []
@@ -237,11 +487,36 @@ def _fish_pictures() -> list:
         if k < 3:
             file, x = FISH_TANK_BUTTONS[k]
             pieces.append(_button(file, x, TANK_BUTTON_Y, 2))
-        pieces += [_button(f, x, y) for f, x, y in FISH_TANK_SCREEN_BUTTONS]
+        pieces += [_button(f, x, y) for f, x, y in FISH_TANK_SCREEN_BUTTONS] + [FISH_CASH]
         out.append(Picture(f"screen:tank{k + 1}", screens, f"Tank {k + 1} (empty, no fish held)", tuple(pieces),
                            canvas=(800, 600)))
-    menu = [Piece("options_bg.png", 0, 0)] + [_button(f, x, y) for f, x, y in FISH_MENU_BUTTONS] + [Piece(*FISH_TITLE)]
+        if k == 0:
+            tank1 = tuple(pieces)
+    out.append(Picture("screen:tank1fish", screens, "Tank 1, a fish in the isolation tank (its words; the fish is "
+                       "not drawn)", tank1 + tuple(fish_info()), canvas=(800, 600)))
+    out.append(Picture("screen:tank1stopped", screens, "Tank 1, time stopped", tank1 + (FISH_TIME_STOPPED,),
+                       canvas=(800, 600)))
+    started = tank1[:5] + tuple(supply(*item) for item in FISH_NEW_GAME_SUPPLIES) + tank1[5:]
+    out.append(Picture("screen:tank1new", screens, "Tank 1 in a new game: its supplies in the slots (Fish Food, "
+                       "Growth Hormone, Common Fish Eggs; the starting plant sways and is not drawn)", started,
+                       canvas=(800, 600)))
+    for slot, lines, what in ((0, (sample("Fish Food"),), "Fish Food (by name only)"),
+                              (1, (ident(0xAE), sample("2 doses left")), "Ick Treatment, 2 doses left"),
+                              (2, (ident(0xB6), sample("1 use left")), "Unknown Chemical, 1 use left"),
+                              (3, (ident(0xB8), sample("1 batch left")), "Common Fish Eggs, 1 batch left")):
+        out.append(Picture(f"tooltip:slot{slot}", "Tooltips (patcher)", f"Tank 1, supply slot {slot + 1}'s tooltip: {what}",
+                           (), canvas=(800, 600), patcher=True,
+                           make=lambda c, k=slot, t=lines, b=tank1: b[:5] + (supply(*FISH_TIP_ITEMS[k]),) + b[5:]
+                           + tuple(fish_tooltip(c, k, t))))
+    menu = [Piece("options_bg.png", 0, 0), FISH_VERSION] + [_button(f, x, y) for f, x, y in FISH_MENU_BUTTONS]
+    menu.append(Piece(*FISH_TITLE))
     out.append(Picture("screen:menu", screens, "Main menu", tuple(menu), canvas=(800, 600)))
+    out.append(Picture("screen:options", screens, "Options (over the main menu)", (),
+                       canvas=(800, 600), make=lambda c, m=tuple(menu): m + tuple(fish_options(c))))
+    for key, ident_, cancel, name in ((0x1C, 0x1C, False, "the first tip"), (0x35, 0x35, False, "a one-line tip"),
+                                      (0xEC, 0xEC, True, "a question with OK and Cancel")):
+        out.append(Picture(f"screen:tip{key:x}", screens, f"Tank 1 with a message box: {name}", (), canvas=(800, 600),
+                           make=lambda c, i=ident_, x=cancel: tank1 + tuple(fish_message(c, i, x))))
     shop = [Piece("supplyshop_bg_out.bmp", 0, 0)]
     for k in range(26):
         (ix, iy), shadow, file = fi.STORE[k]
@@ -249,12 +524,25 @@ def _fish_pictures() -> list:
             shop.append(Piece(fi.SHADOW_FILE, *shadow))
         shop.append(Piece(file, ix, iy))
     shop += [_button("suppliesbuybutton.png", 578, 551), _button("suppliesdonebutton.png", 695, 551)]
+    shop.append(say(0x38, 0x233, fmt(0x4439C0, ident(7), 1000), font=1, colour=0xFFFFFFFF))   # 0x427A43
     out.append(Picture("screen:supplies", screens, "Supplies store (every item for sale)", tuple(shop), canvas=(800, 600)))
+    out.append(Picture("screen:supplies:item", screens, "Supplies store, Growth Hormone picked (a sample price)",
+                       tuple(shop) + tuple(supplies_item(0xB4, price=25)), canvas=(800, 600)))
+    out.append(Picture("screen:supplies:research", screens, "Supplies store, Fish Food Research being researched (51%)",
+                       tuple(shop) + tuple(supplies_item(0xDC, level=1, progress=51)), canvas=(800, 600)))
+    sell = (Piece("sellfishshop_bg_png.png", 0, 0), Piece("sellingarea_door.png", 595, 214),        # 0x423800
+            _button("selldonebutton.png", 701, 547)) + tuple(sell_words())
+    out.append(Picture("screen:sell", screens, "Sell fish (3 for sale)", sell, canvas=(800, 600)))
+    out.append(Picture("screen:sell:picked", screens, "Sell fish, a fish picked (a sample name and price)",
+                       sell + tuple(sell_words(picked=True)[3:]), canvas=(800, 600)))
+    species = (Piece("species_bg.bmp", 0, 0), _button("speciesdonebutton.png", 690, 546))
+    out.append(Picture("screen:species", screens, "Species (the price and family tree words; the fish are not drawn)",
+                       species + tuple(species_words()), canvas=(800, 600)))
+    trophy = (Piece("trophycase_bg.bmp", 0, 0), _button("trophycasestatsbutton.png", 577, 547),
+              _button("trophycasedonebutton.png", 694, 547))
+    out.append(Picture("screen:trophy", screens, "Trophy case (no Magic Fish found yet)",
+                       trophy + tuple(trophy_empty()), canvas=(800, 600)))
     for key, name, bg, buttons_ in (
-            ("sell", "Sell fish", "sellfishshop_bg_png.png", (("selldonebutton.png", 701, 547),)),
-            ("species", "Species", "species_bg.bmp", (("speciesdonebutton.png", 690, 546),)),
-            ("trophy", "Trophy case", "trophycase_bg.bmp", (("trophycasestatsbutton.png", 577, 547),
-                                                             ("trophycasedonebutton.png", 694, 547))),
             ("intro1", "Intro, page 1", "intro1_bg_bmp.bmp", ()),
             ("intro2", "Intro, page 2", "intro2_bg_bmp.bmp", (("introyesbutton.png", 280, 545),
                                                               ("intronobutton.png", 420, 545))),
@@ -316,6 +604,207 @@ def dialog_tiles(file: str, width: int, height: int, x: int = 0, y: int = 0) -> 
     return out
 
 
+def _tile_size(width: int, height: int) -> tuple:
+    return max(2, -(-width // TILE)) * TILE, max(2, -(-height // TILE)) * TILE
+
+
+# The tutorial's message boxes (0x41F230, run in Unicorn by the tests): the message and where its
+# pointing arrow points, (direction, x, y): 1 up (arrowglow.png), 2 down (arrowglowdown.png), 3 left
+# (arrowleftglow.png), 4 right (arrowrightglow.png, never used); every other message has none.
+PLANT_TUTORIAL = {0xA4: (3, 620, 105), 0xA5: (2, 80, 280), 0xA6: (3, 50, 160), 0xA8: (3, 80, 160),
+                  0xAA: (3, 170, 50), 0xAC: (3, 40, 200), 0xAF: (3, 200, 480), 0xB0: (1, 140, 320),
+                  0xB2: (2, 520, 570), 0xB3: (1, 750, 90), 0xB4: (3, 110, 200), 0xB6: (1, 70, 340),
+                  0xB8: (2, 400, 570), 0xBA: (3, 120, 160), 0xBC: (3, 170, 160), 0xBE: (2, 630, 570),
+                  0xC0: (1, 100, 400), 0xC2: (2, 750, 570)}
+ARROWS = {1: "arrowglow.png", 2: "arrowglowdown.png", 3: "arrowleftglow.png", 4: "arrowrightglow.png"}
+
+
+def plant_arrow(c, direction: int, x: int, y: int) -> Piece:
+    """0x44D8DF: the arrow's picture placed to point at (x, y): up from below it (x - w / 2, y), down
+    (x - w / 2, y - h), left (x, y - h / 2), right (x - w, y - h / 2); then pushed along its
+    direction by trunc(cos(sin(phase x 3.14159 / 180)) x a quarter of its height (up, down) or
+    width (left, right)) (0x44DC12), the phase starting at -360 and stepping 5 or 8 a frame: the
+    first frame, drawn here, is pushed out by that quarter less one (it bobs back to about half)."""
+    import math
+    file = ARROWS[direction]
+    w, h = c.cell_size(file)
+    amp = (h if direction in (1, 2) else w) // 4
+    push = int(math.cos(math.sin(-360.0 * 3.14159 / 180.0)) * amp)
+    ax, ay = {1: (x - cdiv(w, 2), y + push), 2: (x - cdiv(w, 2), y - h - push), 3: (x + push, y - cdiv(h, 2)),
+              4: (x - w - push, y - cdiv(h, 2))}[direction]
+    return Piece(file, ax, ay)
+
+
+def plant_message(c, text: int, on_screen: bool = False) -> list:
+    """The message box (0x44D690): GreenDlgTileGrid tiles for the text + 72 wide and the text + two
+    button heights + 36 high (0x44D7BF), the text centred across at (H - that) / 2 + 36
+    (0x44DBB0), OK centred at H - h / 2 - h (0x44D874). `on_screen`: where the game shows it, centred
+    on the 800 x 600 screen (0x401D20), with the tutorial's pointing arrow (drawn after the text,
+    before OK)."""
+    data = c.text_bytes(Text((("id", text),)))
+    tw, th = c.text_size(0, data)
+    bw, bh = c.cell_size("widePTButton.png", 3, 1)
+    want_h = th + 2 * bh + 0x24
+    w, h = _tile_size(tw + 0x48, want_h)
+    x0, y0 = (cdiv(800 - w, 2), cdiv(600 - h, 2)) if on_screen else (0, 0)
+    out = dialog_tiles("GreenDlgTileGrid.png", w, h, x0, y0)
+    out.append(say(x0 + cdiv(w - tw, 2), y0 + cdiv(h - want_h, 2) + 0x24, ("id", text)))
+    if on_screen and text in PLANT_TUTORIAL:
+        out.append(plant_arrow(c, *PLANT_TUTORIAL[text]))
+    out += label("widePTButton.png", x0 + cdiv(w - bw, 2), y0 + h - cdiv(bh, 2) - bh, ("id", 0x12))
+    return out
+
+
+def plant_question(c, text: int, cancel: bool, green: bool, on_screen: bool = False) -> list:
+    """The question box (0x42AB50 -> 0x42A700): Orange- or GreenDlgTileGrid tiles for the wider of
+    the text and the buttons, + 60, and the text + a button + 60 high; the text (0x40CBE0)
+    centred across at (H - that) / 2 + 20, the buttons at H - h - 20, OK and Cancel 3w/2 apart.
+    `on_screen`: centred on the 800 x 600 screen (0x401D20)."""
+    data = c.text_bytes(Text((("id", text),)))
+    tw, th = c.text_size(0, data)
+    bw, bh = c.cell_size("widePTButton.png", 3, 1)
+    span = cdiv(5 * bw, 2) if cancel else bw
+    want_h = th + bh + 0x3C
+    w, h = _tile_size(max(span + 0x3C, tw + 0x3C), want_h)
+    x0, y0 = (cdiv(800 - w, 2), cdiv(600 - h, 2)) if on_screen else (0, 0)
+    out = dialog_tiles("GreenDlgTileGrid.png" if green else "OrangeDlgTileGrid.png", w, h, x0, y0)
+    out.append(say(x0 + cdiv(w - tw, 2), y0 + cdiv(h - want_h, 2) + 0x14, ("id", text)))
+    x = x0 + cdiv(w - span, 2)
+    out += label("widePTButton.png", x, y0 + h - bh - 0x14, ("id", 0x12))
+    if cancel:
+        out += label("widePTButton.png", x + cdiv(3 * bw, 2), y0 + h - bh - 0x14, ("id", 0x13))
+    return out
+
+
+# The tooltip control (0x409870, drawn by 0x409B70; the greenhouse's chemical tray makes one per
+# slot, 0x4277A3: "%s\n%s: %d", the chemical's name, "Remaining uses" and its doses): once the
+# mouse has rested 500 ms, the text's box (2 larger all round) at the mouse + (34, 30), kept on the
+# screen (0x4096E0), the text black at its corner; behind it black at alpha 0x66, 8 larger all round
+# than that box, and white at alpha 0x99, 6 larger (0x407AF0 -> 0x403870).
+PLANT_TIP_OFFSET, PLANT_TIP_COLOURS = (34, 30), ((0, 0, 0, 0x66), (255, 255, 255, 0x99))
+PLANT_CHEM_SLOT = (0x14, 0xAD, 0x2F, 0xFD)         # chemical slot k: + 45 k across
+
+
+def plant_tooltip(c, part, mouse: tuple) -> list:
+    data = c.text_bytes(Text((part,)))
+    w, h = c.text_size(0, data)
+    x, y = mouse[0] + PLANT_TIP_OFFSET[0] - 2, mouse[1] + PLANT_TIP_OFFSET[1] - 2
+    x, y = min(max(8, x), 800 - (w + 12)), min(max(8, y), 600 - (h + 12))     # the whole box on the screen
+    outer, inner = PLANT_TIP_COLOURS
+    return [shade(outer, w + 20, h + 20, x - 8, y - 8), shade(inner, w + 16, h + 16, x - 6, y - 6),
+            say(x, y, part, colour=PLANT_BLACK)]
+
+
+# The Options dialog (0x42AF10, opened by the main menu's button 3; its draw 0x42B710): the
+# GreenDlgTileGrid picture for 640 x 508 (0x40D160), so 10 x 8 tiles, centred by 0x401D20 at
+# (80, 44); its words and radio buttons at L = the dialog's left and T = its top + (512 - 508) / 2
+# (0x42B13D..0x42B17C); the title centred at (400, T + 20). The text colour [0x493C70] is never
+# written: 0, the text draw's default, white (0x408E7E, [0x47A27C]).
+PLANT_OPTIONS_SIZE = (0x280, 0x1FC)
+PLANT_OPTIONS_WORDS = ((ident(0x2D), 0x32, 0x3C), (ident(0x2E), 0x32, 0x78), (ident(0x2F), 0x32, 0xAE),
+                       (at(0x469428), 0xD8, 0xCC), (at(0x469424), 0x14C, 0xCC), (at(0x469420), 0x1C0, 0xCC),
+                       (at(0x46941C), 0x234, 0xCC),
+                       (ident(0x3B), 0x32, 0xEF), (ident(0x3C), 0xC8, 0x10D), (ident(0x3D), 0x13C, 0x10D),
+                       (ident(0x32), 0x32, 0x130), (ident(0x33), 0xC5, 0x14E), (ident(0x38), 0x12F, 0x14E),
+                       (ident(0x35), 0x1AD, 0x14E),
+                       (ident(0x36), 0x32, 0x171), (ident(0x37), 0xB1, 0x18F), (ident(0x39), 0x138, 0x18F),
+                       (ident(0x38), 0x1A3, 0x18F), (ident(0x3A), 0x221, 0x18F))
+PLANT_OPTIONS_RADIO_XS = (0xC8, 0x13C, 0x1B0, 0x224)
+PLANT_OPTIONS_SPEEDS = (9999, 15, 10, 2)        # [game + 0x534]: Stop Time, Slow, Normal, Fast
+PLANT_OPTIONS_CHECK_XS, PLANT_OPTIONS_CHECK_Y = (0xC8, 0x13C, 0x1B0, 0x224), 0xAE   # the music tracks
+
+
+def plant_options(c, sound: float = 1.0, music: float = 0.5, windowed: bool = True, difficulty: int = 1,
+                  speed: int = 2, tracks: tuple = (True, False, False, False), fullscreen_row: bool = True) -> list:
+    """The Options dialog as 0x42B710 and its widgets draw it. The Fullscreen row only when
+    ldw.ini forces neither (0x42B0FB); the slider handles at L + 0xCC + trunc(volume x 236); a
+    radio: radioselected.png for the setting, radioblank.png for the others; the music tracks'
+    check boxes (0x40B1E0, CheckboxStrip.png at the dialog's top + 0xAE) ticked is frame 2, not ticked frame 1
+    (0x40AC13: the frame is min(state, cols / 2 - 1), + cols / 2 when ticked); "Done" on
+    widePTButton02.png centred across, 2 x (7 - h) above the bottom (0x42B252)."""
+    import pictures_plant as pp
+    w, h = _tile_size(*PLANT_OPTIONS_SIZE)
+    left, top = cdiv(800 - w, 2), cdiv(600 - h, 2)
+    L, T = left, top + cdiv(h - PLANT_OPTIONS_SIZE[1], 2)
+    out = dialog_tiles("GreenDlgTileGrid.png", w, h, left, top)
+    out.append(say(cdiv(w, 2) + left, T + 0x14, ident(9), align="centre"))
+    if fullscreen_row:
+        out += [say(L + x, T + y, part) for part, x, y in PLANT_OPTIONS_WORDS[7:10]]
+        out += _radios(L, T + 0xEF, 2, 1 if windowed else 0)
+    out += _radios(L, T + 0x171, 4, speed)
+    out += [say(L + x, T + y, part) for part, x, y in PLANT_OPTIONS_WORDS[14:]]
+    out += _radios(L, T + 0x130, 3, difficulty)
+    out += [say(L + x, T + y, part) for part, x, y in PLANT_OPTIONS_WORDS[10:14]]
+    for k, volume in enumerate((sound, music)):
+        y = T + (0x3C, 0x78)[k]
+        out += [Piece("WideSlider2.png", L + 0xC8, y),
+                Piece("sliderhandle.png", L + 0xCC + int(pp.f32(volume) * 236.0), y)]
+    out += [say(L + x, T + y, part) for part, x, y in PLANT_OPTIONS_WORDS[:7]]
+    bw, bh = c.cell_size("widePTButton02.png", 3, 1)
+    out += label("widePTButton02.png", left + cdiv(w, 2) - cdiv(bw, 2), top + h + 2 * (7 - bh), ident(0x192))
+    for x, ticked in zip(PLANT_OPTIONS_CHECK_XS, tracks):
+        out.append(Piece("CheckboxStrip.png", left + x, top + PLANT_OPTIONS_CHECK_Y, cols=2, rows=1, cell=1 if ticked else 0))
+    return out
+
+
+def _radios(L: int, y: int, n: int, chosen: int) -> list:
+    return [Piece("radioselected.png" if k == chosen else "radioblank.png", L + PLANT_OPTIONS_RADIO_XS[k], y)
+            for k in range(n)]
+
+
+# The greenhouse's text button "Replay Tutorial Instruction" (0x424BB0: button 8, no picture, at
+# (400, 0); its label white, mouse over and pressed 0xFF003333). The greenhouse takes it off the
+# screen at once and shows it only while the tutorial has an instruction to replay (0x428AE1).
+# A button without a picture is as big as its label plus 2 all round (0x401079), so the label is
+# drawn at its own place, 2 right and down when pressed.
+PLANT_REPLAY = (0x190, 0, 0x91)
+PLANT_REPLAY_COLOURS = (0xFFFFFFFF, 0xFF003333, 0xFF003333)
+
+
+def plant_replay(frame: int = 0) -> Piece:
+    x, y, text = PLANT_REPLAY
+    shift = 2 if frame == 2 else 0
+    return say(x + shift, y + shift, ident(text), colour=PLANT_REPLAY_COLOURS[frame])
+
+
+def plant_pot_words() -> list:
+    """A picked pot's words (0x428250 / 0x4286E6 and the helpers 0x44CD80 / 0x44CB30, 0x4232F0):
+    its name centred at (118, 254), "NA" seeds and pollen at (62, 302) and (146, 302), "Age:" and the age, its state at
+    (20, 466) and how long to the next stage at (50, 500), all black."""
+    black = 0xFF000000
+    return [say(0x76, 0xFE, ("id", 0x18E), colour=black, align="centre"),
+            say(0x3E, 0x12E, ("id", 0x5F), colour=black), say(0x92, 0x12E, ("id", 0x5F), colour=black),
+            say(0x8C, 0x1D2, ("id", 0x40), colour=black), say(0xB7, 0x1D2, ("fmt", 0x4653BC, (3,)), colour=black),
+            say(0x14, 0x1D2, ("id", 0x5E), colour=black),
+            say(0x32, 0x1F4, ("fmt", 0x4691BC, (("id", 0x18A), 12)), colour=black)]
+
+
+# Sample plants in the greenhouse's pots: (pot k = row x 5 + column, foliage, flower, stage), grown by
+# pictures_plant.grow_custom (the game's rules) and drawn by its planner (the plant draw 0x42E4A0,
+# the pot draw 0x42F740, checked in Unicorn by tests/test_pictures_plant.py) at the pot's place
+# (0x42FDE0: (323 + 93 c, 117 + 144 r)), in place of the empty pot.
+GREENHOUSE_SAMPLES = ((0, 1, 3, "sprout"), (1, 4, 7, "seedling"), (3, 9, 12, "growing"), (6, 6, 2, "budding"),
+                      (7, 12, 17, "bloom"), (9, 17, 21, "max"), (11, 22, 9, "bloom"), (13, 3, 14, "growing"))
+
+
+def greenhouse_pots(c, samples=GREENHOUSE_SAMPLES) -> dict:
+    """pot k -> a Piece: the pot with its plant (and wet soil), drawn on a screen-sized layer."""
+    import pictures_plant as pp
+    planner = pp.Planner(lambda key: c.cell_size(*key))
+    out = {}
+    for k, foliage, flower, stage in samples:
+        plant = pp.grow_custom(foliage, flower, 0, stage)
+        plant.water = 600
+        x, y = pp.GREENHOUSE_PLACES[k]
+        layer = pp.composite(c, planner.plan(plant, x, y), origin=(0, 0), size=(800, 600))
+        out[k] = Piece("", 0, 0, image=layer)
+    return out
+
+
+STORY2_START = (say(0x15E, 0x1EA, ident(0x98), colour=0xFF000000, align="centre"),
+                say(0x15E, 0x212, ident(0x99), colour=0xFF000000, align="centre"))
+
+
 PLANT_BUTTONS = (
     ("play_button.png", "Main menu: Play"), ("startover_button.png", "Main menu: Start over"),
     ("options_button.png", "Main menu: Options"), ("help_button.png", "Main menu: Help"),
@@ -332,15 +821,115 @@ TAB_XS = (236, 349, 462, 575, 688)        # Menu / Main, Seeds, Supplies, Collec
 TAB_Y = 540
 
 
-def _tabs(skip: int | None) -> list:
-    out = []
+# Each screen's tab labels (its constructor's 0x401570 calls, run in Unicorn by the tests): a
+# string-table line or the executable's own C string; the screen's own tab is lit_button.png,
+# unlabelled.
+PLANT_LILAC = 0xFFD7B9BA                  # the tabs' and menu buttons' normal label colour
+PLANT_BLACK = 0xFF000000                  # [0x48C6A0], [0x490548]
+GREENHOUSE_TABS = (("id", 0x17E), ("id", 0x17A), ("id", 0x181), ("id", 0x17D), ("id", 0x180))      # 0x424BB0
+SEEDBOX_TABS = (("id", 0x191), None, ("at", 0x467B38), ("at", 0x4696F4), ("at", 0x467B30))          # 0x4332C0
+STORE_TABS = (("id", 0x191), ("id", 0x17A), None, ("id", 0x17D), ("id", 0x180))                    # 0x446630
+COLLECTIONS_TABS = (("id", 0x191), ("at", 0x467B44), ("at", 0x467B38), None, ("at", 0x467B30))      # 0x418E70
+
+
+# A screen's own tab: lit_button.png and its name in white, left-aligned at (x, 560), drawn by the
+# screen itself (Seed box 0x434330, Store 0x447D73, Collections 0x4184E9; colours [0x48EA2C],
+# [0x48EB40], [0x482464] all 0xFFFFFFFF).
+OWN_TABS = {1: (at(0x467B44), 0x17C), 2: (ident(0x181), 0x1E4), 3: (ident(0x17D), 0x25B)}
+
+
+def _tabs(skip: int | None, labels: tuple | None = None) -> list:
+    own, rest = _split_tabs(skip, labels)
+    return own + rest
+
+
+def _split_tabs(skip: int | None, labels: tuple | None = None) -> tuple:
+    """(the screen's own lit tab and its name, the other tabs as buttons)."""
+    own, rest = [], []
     for k, x in enumerate(TAB_XS):
         if k == skip:
-            out.append(Piece("lit_button.png", x, TAB_Y))
+            own.append(Piece("lit_button.png", x, TAB_Y))
+            if k in OWN_TABS:
+                part, tx = OWN_TABS[k]
+                own.append(say(tx, 0x230, part, colour=0xFFFFFFFF))
     for k, x in enumerate(TAB_XS):
         if k != skip:
-            out.append(_button("purplePTButton.png", x, TAB_Y))
+            if labels is not None and labels[k] is not None:
+                rest += label("purplePTButton.png", x, TAB_Y, labels[k], PLANT_LILAC)
+            else:
+                rest.append(_button("purplePTButton.png", x, TAB_Y))
+    return own, rest
+
+
+# The trays' names (text widgets 0x40CBE0, centred, colour 0xFF010832, set by 0x40C6C0) on the
+# greenhouse (0x424BB0) and the Seed box (0x4332C0), and the trash bin's (0xFF000662).
+TRAY_WORDS = {"seeds": (ident(0x17A), 0x6B, 7), "tools": (ident(0x17C), 0x6B, 0x69),
+              "seeds2": (ident(0x17A), 0x47, 0x159), "pollen": (ident(0x17B), 0x9F, 0x159)}
+TRAY_COLOUR, TRASH_COLOUR = 0xFF010832, 0xFF000662
+TRASH_WORD = (ident(0x190), 0xC9, 0x21F)
+TOOL_TRAY = (Piece("soilbag_grid.png", 19, 136, cols=2, rows=3), Piece("waterbucket_grid.png", 64, 136, cols=2, rows=3))
+POTS = tuple(Piece("pot.png", x, y, cols=1, rows=7) for y in (102, 246, 390) for x in (295, 388, 481, 574, 667))
+
+
+# The Store's headings (text widgets, centred, white; 0x446630).
+STORE_WORDS = ((0x194, 0x21C, 7), (0x195, 0x1D2, 0x25), (0x196, 0x2AB, 0x25), (0x180, 0x1D2, 0x111), (0x197, 0x2AB, 0x111))
+
+
+# The Seed box's trays (0x434480): slot k (state + 0x52CE4 + 0x24 k: a byte, set when it holds a
+# seed, and at +4 its seed_grid.png frame) at (242 + 53 c, 46 + 152 b + 34 r): box b = k / 40 (the
+# first, then the two extra seed boxes), row r = k % 40 / 10, column c = k % 10. With no seed picked
+# the information box shows unknown.png for the seeds and pollen at (5, 320) and (112, 320) and the
+# picked packet's frame (none: 0) at (83, 494) (0x434185).
+SEEDBOX_INFO = (Piece("unknown.png", 5, 320), Piece("unknown.png", 112, 320),
+                Piece("seed_grid.png", 83, 494, cols=16, rows=6))
+SEEDBOX_SAMPLE = tuple((k, (k * 7) % 92) for k in (*range(0, 23), *range(40, 52), *range(80, 86)))
+
+
+def seedbox_seeds(slots) -> list:
+    return [Piece("seed_grid.png", 242 + 53 * (k % 10), 46 + 152 * (k // 40) + 34 * (k % 40 // 10), cols=16, rows=6,
+                  cell=frame) for k, frame in slots]
+
+
+# The Store's shelves (0x447D40; pictures_plant_items names the places): each item on
+# peep_shadow1.png. Tools_Grid.png frame 5 r + c at (233 + 57 c, 50 + 61 r), its shadow at (x + 25,
+# y + 30); Chemicals_Grid.png frame 2 k (k = 3 r + c) at (598 + 57 c, 55 + 66 r), shadow (x + 25,
+# y + 30); Ornaments_Grid.png frame 5 r + c at (253 + 57 c, 297 + 64 r), shadow (x + 5, y + 10); the
+# seeds in stock, seed_grid.png frame f at (602 + 57 c, 315 + 66 r), shadow (x + 5, y + 5). The
+# Store's tool tray has all four tools (soil, water, shears, net) at (19 + 45 k, 136).
+STORE_TOOL_TRAY = (Piece("soilbag_grid.png", 19, 136, cols=2, rows=3), Piece("waterbucket_grid.png", 64, 136, cols=2, rows=3),
+                   Piece("scissors.png", 109, 136, cols=2, rows=3), Piece("net.png", 153, 136, cols=2, rows=3))
+STORE_SAMPLE_SEEDS = (0, 9, 18, 27, 36, 45, 54, 63, 72)      # seed_grid frames: (foliage - 1) x 4 + rarity
+
+
+def store_shelves(seeds=()) -> list:
+    out = []
+    shelves = (("Tools_Grid.png", 5, 3, 15, lambda k: (233 + 57 * (k % 5), 50 + 61 * (k // 5)), lambda k: k, (25, 30)),
+               ("Chemicals_Grid.png", 2, 9, 9, lambda k: (598 + 57 * (k % 3), 55 + 66 * (k // 3)), lambda k: 2 * k,
+                (25, 30)),
+               ("Ornaments_Grid.png", 5, 3, 15, lambda k: (253 + 57 * (k % 5), 297 + 64 * (k // 5)), lambda k: k,
+                (5, 10)))
+    for file, cols, rows, n, place, frame, (dx, dy) in shelves:
+        for k in range(n):
+            x, y = place(k)
+            out += [Piece("peep_shadow1.png", x + dx, y + dy), Piece(file, x, y, cols=cols, rows=rows, cell=frame(k))]
+    for k, f in enumerate(seeds):
+        x, y = 602 + 57 * (k % 3), 315 + 66 * (k // 3)
+        out += [Piece("peep_shadow1.png", x + 5, y + 5), Piece("seed_grid.png", x, y, cols=16, rows=6, cell=f)]
     return out
+
+
+def _cash() -> list:
+    """CASH and the player's cash (a sample $1000) at the bottom left (0x44CDE0, 0x44CC20)."""
+    return [say(0xD, 0x21F, ident(0x3F), colour=0xFFFFFFFF), say(0x4B, 0x221, fmt(0x470C44, 1000), colour=PLANT_BLACK)]
+
+
+def _tray(*names) -> list:
+    return [say(x, y, part, colour=TRAY_COLOUR, align="centre") for part, x, y in (TRAY_WORDS[n] for n in names)]
+
+
+def _trash() -> list:
+    part, x, y = TRASH_WORD
+    return [Piece("trashbin.png", 143, 515, cols=2, rows=1), say(x, y, part, colour=TRASH_COLOUR, align="centre")]
 
 
 def _plant_pictures() -> list:
@@ -371,26 +960,34 @@ def _plant_pictures() -> list:
                            (640, 512, "Options (640 x 512)")):
             out.append(Picture(f"dialog:{colour}:{w}x{h}", dialogs, f"{colour.capitalize()} dialog box, {what}",
                                tuple(dialog_tiles(file, w, h))))
-    bw, bh = 163, 39                                      # widePTButton's frame
-    for count in (1, 2):
-        span = bw + 60 if count == 1 else 5 * bw // 2 + 60
-        width, height = max(2, -(-span // TILE)) * TILE, max(2, -(-(bh + 60) // TILE)) * TILE
-        pieces = dialog_tiles("OrangeDlgTileGrid.png", span, bh + 60)
-        if count == 1:
-            pieces.append(_button("widePTButton.png", (width - bw) // 2, height - bh - 20))
-        else:
-            x1 = (width - 5 * bw // 2) // 2
-            pieces += [_button("widePTButton.png", x1, height - bh - 20),
-                       _button("widePTButton.png", x1 + 3 * bw // 2, height - bh - 20)]
-        out.append(Picture(f"message{count}", dialogs,
-                           f"Message box with {'an OK button' if count == 1 else 'OK and Cancel'} (an empty message)",
-                           tuple(pieces)))
+    for text, cancel, green in ((0x10A, True, False), (0x77, False, False), (0x3E, True, True)):
+        out.append(Picture(f"question:{text:x}", dialogs,
+                           f"{'Green' if green else 'Orange'} question box with OK{' and Cancel' if cancel else ''} "
+                           "(a real message)", (), make=lambda c, t=text, x=cancel, g=green: plant_question(c, t, x, g)))
+    for text in (0x6E, 0x78, 0x8C, 0xAA, 0xCD):
+        out.append(Picture(f"message:{text:x}", dialogs, "Message box (a real message)", (),
+                           make=lambda c, t=text: plant_message(c, t)))
+    for frame in (0, 1):
+        out.append(Picture(f"checkbox{frame}", buttons, f"Options: music track check box - {('not ticked', 'ticked')[frame]}",
+                           (Piece("CheckboxStrip.png", 0, 0, cols=2, rows=1, cell=frame),)))
     for file, where in PLANT_BUTTONS:
         for frame, state in PLANT_STATES:
             piece = _button(file, 0, 0, 0 if frame == "dim" else frame)
             if frame == "dim":
                 piece = Piece(file, 0, 0, cols=3, rows=1, cell=0, dim=True)
-            out.append(Picture(f"button:{file}:{frame}", buttons, f"{where} - {state}", (piece,)))
+            out.append(Picture(f"button:{file}:{frame}", buttons, f"{where} - {state}", (piece,),
+                               unused=frame == "dim"))
+    # a disabled button with its label: the game never disables a button in this version (nothing
+    # clears the enabled byte +0x29 that the constructor 0x401A08 sets), so the look is unused
+    for file, text, colour, where in (("widePTButton.png", ident(0x41), PLANT_LILAC, "Greenhouse: Price"),
+                                      ("sell_button.png", ident(0x184), PLANT_LILAC, "Greenhouse: Sell"),
+                                      ("sell_button.png", ident(0x185), PLANT_LILAC, "Greenhouse: Sell All"),
+                                      ("purplePTButton.png", ident(0x17A), PLANT_LILAC, "Bottom tab bar: Seeds"),
+                                      ("widePTButton.png", ident(0x12), 0xFFFFFFFF, "Message box: OK"),
+                                      ("widePTButton02.png", ident(0x192), 0xFFFFFFFF, "Options: Done")):
+        for frame, state in ((0, "normal"), ("dim", "disabled, its label dimmed")):
+            out.append(Picture(f"labelled:{file}:{text[1]:x}:{frame}", buttons, f"{where} - {state}",
+                               label(file, 0, 0, text, colour, dim=frame == "dim"), unused=frame == "dim"))
     for frame, state in ((0, "closed"), (1, "open (mouse over it)")):
         out.append(Picture(f"trashbin{frame}", buttons, f"Trash bin - {state}",
                            (Piece("trashbin.png", 0, 0, cols=2, rows=1, cell=frame),)))
@@ -401,45 +998,128 @@ def _plant_pictures() -> list:
                            (Piece("WideSlider2.png", 0, 0), Piece("sliderhandle.png", 4 + 236 * v // 100, 0))))
     # screens
     menu = [Piece("Menu_BG.jpg", 0, 0), Piece("logo1.png", 16, 17), _button("playername_button.png", 587, 430)]
-    menu += [_button(f, x, y) for f, x, y in (("play_button.png", 433, 337), ("startover_button.png", 210, 259),
-                                              ("quit_button.png", 513, 44), ("help_button.png", 199, 414),
-                                              ("options_button.png", 304, 521), ("change_button.png", 614, 479))]
-    out.append(Picture("screen:menu", screens, "Main menu", tuple(menu), canvas=(800, 600)))
+    for file, x, y, text in (("play_button.png", 433, 337, 7), ("startover_button.png", 210, 259, 8),
+                             ("quit_button.png", 513, 44, 9), ("help_button.png", 199, 414, 0xA),
+                             ("options_button.png", 304, 521, 0xB), ("change_button.png", 614, 479, 5)):
+        menu += label(file, x, y, ident(text), PLANT_LILAC)
+    menu += [say(0x29E, 0x1B8, sample("Player"), align="centre"),                         # 0x42A39A
+             say(5, 0x244, ident(0xF), colour=0xFFCCCCCC),                                  # 0x42A274
+             say(0x316, 0x244, at(0x4692C4), colour=0xFFCCCCCC, align="right")]             # 0x42A2F6
+    out.append(Picture("screen:menu", screens, "Main menu (a sample player name)", tuple(menu), canvas=(800, 600)))
+    out.append(Picture("screen:options", screens, "Options (over the main menu; sample settings: sounds full, music "
+                       "half, windowed, Normal difficulty and speed, music track 1)", (), canvas=(800, 600),
+                       make=lambda c, m=tuple(menu): m + (shade(),) + tuple(plant_options(c))))
     out.append(Picture("screen:splash", screens, "Splash", (Piece("SPLASH_BG.jpg", 0, 0),), canvas=(800, 600)))
-    green = [Piece("main_bg.png", 0, 0), Piece("trashbin.png", 143, 515, cols=2, rows=1), Piece("hose.png", 0, 0),
-             _button("snapshot_button.png", 755, 4), _button("widePTButton.png", 31, 369),
-             _button("sell_button.png", 31, 407)] + _tabs(None)
-    out.append(Picture("screen:greenhouse", screens, "Greenhouse (empty, no pot picked)", tuple(green), canvas=(800, 600)))
+    # in the game's order (0x40B6B0: the background, the widgets, the overlay)
+    green = [Piece("main_bg.png", 0, 0), *_trash(),
+             *label("sell_button.png", 115, 407, ident(0x185), PLANT_LILAC),
+             *label("sell_button.png", 31, 407, ident(0x184), PLANT_LILAC),
+             *label("widePTButton.png", 31, 369, ident(0x41), PLANT_LILAC), _button("snapshot_button.png", 755, 4),
+             *_tabs(None, GREENHOUSE_TABS), *_tray("tools", "seeds", "pollen", "seeds2"),
+             Piece("hose.png", 0, 0), *TOOL_TRAY, *POTS]
+    green += _cash()
+    out.append(Picture("screen:greenhouse", screens, "Greenhouse (empty, no pot picked)",
+                       tuple(green) + (say(0x76, 0xFE, ident(0x18D), colour=PLANT_BLACK, align="centre"),),
+                       canvas=(800, 600)))
+    out.append(Picture("screen:greenhouse:replay", screens, "Greenhouse with its hidden text button \"Replay "
+                       "Tutorial Instruction\" (shown only while the tutorial has an instruction to replay)",
+                       tuple(green) + (say(0x76, 0xFE, ident(0x18D), colour=PLANT_BLACK, align="centre"),
+                                       plant_replay()), canvas=(800, 600)))
+    for frame, state in ((0, "normal"), (1, "mouse over"), (2, "pressed")):
+        out.append(Picture(f"replay{frame}", buttons, f"Greenhouse: Replay Tutorial Instruction (a text button) - {state}",
+                           (Piece("main_bg.png", 0, 0), plant_replay(frame)), crop=(380, 0, 640, 30)))
+    out.append(Picture("screen:greenhouse:pot", screens, "Greenhouse, a pot picked (its words; the plant is not drawn)",
+                       tuple(green) + tuple(plant_pot_words()), canvas=(800, 600)))
+
+    def planted(c, base=tuple(green)):
+        pots = greenhouse_pots(c)
+        return tuple(pots.get(POTS.index(p), p) if p in POTS else p for p in base) + (
+            say(0x76, 0xFE, ident(0x18D), colour=PLANT_BLACK, align="centre"),)
+    out.append(Picture("screen:greenhouse:plants", screens, "Greenhouse with sample plants in its pots (several kinds "
+                       "at several ages: sprout, seedling, growing, budding, in bloom, max bloom; wet soil)", (),
+                       canvas=(800, 600), make=planted))
     for n in (0, 1, 2):
-        seeds = [Piece("SeedBox_BG.jpg", 0, 0)] + _tabs(1)[:1] + [Piece("trashbin.png", 143, 515, cols=2, rows=1)]
-        seeds += [Piece("addlSeedBox.png", 239, y) for y in (201, 354)[:n]] + _tabs(1)[1:]
+        own, rest = _split_tabs(1, SEEDBOX_TABS)
+        seeds = [Piece("SeedBox_BG.jpg", 0, 0)] + own + [say(0x21C, 7, ident(0x198), colour=0xFFFFFFFF, align="centre"),
+                                                         *_tray("seeds", "tools"), *rest, *_trash(), *TOOL_TRAY]
+        seeds += [Piece("addlSeedBox.png", 239, y) for y in (201, 354)[:n]] + list(SEEDBOX_INFO)
         out.append(Picture(f"screen:seedbox{n}", screens, f"Seed box (empty; {n} extra seed box{'es' if n != 1 else ''})",
                            tuple(seeds), canvas=(800, 600)))
-    out.append(Picture("screen:store", screens, "Store (the background and tabs; the shelves are on the Items tab)",
-                       (Piece("Store_BG.jpg", 0, 0), *_tabs(2)), canvas=(800, 600)))
+    out.append(Picture("screen:seedbox:seeds", screens, "Seed box with sample seeds in its trays (two extra seed "
+                       "boxes)", tuple(seeds) + tuple(seedbox_seeds(SEEDBOX_SAMPLE)), canvas=(800, 600)))
+    own, rest = _split_tabs(2, STORE_TABS)
+    words = [*_cash(), *(say(x, y, ident(t), colour=0xFFFFFFFF, align="centre") for t, x, y in STORE_WORDS),
+             *_tray("seeds", "tools")]
+    store = [Piece("Store_BG.jpg", 0, 0), *own, *store_shelves(), *STORE_TOOL_TRAY, *rest, *words]
+    out.append(Picture("screen:store", screens, "Store (every tool, chemical and ornament on its shelves; no seeds "
+                       "in stock)", tuple(store), canvas=(800, 600)))
+    seeded = [Piece("Store_BG.jpg", 0, 0), *own, *store_shelves(STORE_SAMPLE_SEEDS), *STORE_TOOL_TRAY, *rest, *words]
+    out.append(Picture("screen:store:seeds", screens, "Store with nine sample seed packets on the seed shelf",
+                       tuple(seeded), canvas=(800, 600)))
     out.append(Picture("screen:nursery", screens, "Nursery (no ornaments)",
                        (Piece("Nursery_BG.jpg", 0, 0), Piece("nurseryUI.png", 0, 484),
-                        _button("purplePTButton.png", 227, 540)), canvas=(800, 600)))
+                        *label("purplePTButton.png", 227, 540, ident(0x191), PLANT_LILAC)), canvas=(800, 600)))
+    own, rest = _split_tabs(3, COLLECTIONS_TABS)
+    tabs = own + rest
     out.append(Picture("screen:collections0", screens, "Collections (no bug caught)",
-                       (Piece("collections_bg.jpg", 0, 0), *_tabs(3)[:1], Piece("collection_jars.png", 0, 0),
-                        _button("widePTButton.png", 59, 514), *_tabs(3)[1:]), canvas=(800, 600)))
+                       tuple(collections_screen(())), canvas=(800, 600)))
+    out.append(Picture("screen:collections:some", screens, "Collections, a few bugs caught (" +
+                       ", ".join(str(k + 1) for k in COLLECTIONS_SAMPLE) + "), the rest not",
+                       tuple(collections_screen(COLLECTIONS_SAMPLE)), canvas=(800, 600)))
     out.append(Picture("screen:collections48", screens, "Collections (all 48 bugs caught, in their jars)",
                        tuple(collections_screen(range(48))), canvas=(800, 600)))
-    for k in range(1, 7):
+    for k in range(1, 7):     # 0x420F00: no back arrow on the first page, no next arrow on the last
+        arrows = (() if k == 1 else (_button("leftarrow.png", 345, 541),)) +             (() if k == 6 else (_button("rightarrow.png", 428, 541),))
         out.append(Picture(f"screen:help{k}", screens, f"Help, page {k}",
-                           (Piece(f"help{k}.jpg", 0, 0), _button("leftarrow.png", 345, 541),
-                            _button("rightarrow.png", 428, 541), _button("widePTButton.png", 28, 553),
-                            _button("widePTButton.png", 610, 553)), canvas=(800, 600)))
+                           (Piece(f"help{k}.jpg", 0, 0), *arrows, *label("widePTButton.png", 28, 553, ident(0x17E)),
+                            *label("widePTButton.png", 610, 553, ident(0x19E))), canvas=(800, 600)))
     for key, name, bg in (("credits", "Credits", "credits.jpg"), ("story1", "Story, page 1", "story1_bg.jpg"),
                           ("gamewin", "Game won", "gamewin_bg.jpg")):
         out.append(Picture(f"screen:{key}", screens, name, (Piece(bg, 0, 0),), canvas=(800, 600)))
     out.append(Picture("screen:story2", screens, "Story, page 2",
-                       (Piece("story2_bg.jpg", 0, 0), _button("widePTButton02.png", 228, 560),
-                        _button("widePTButton02.png", 428, 560)), canvas=(800, 600)))
+                       (Piece("story2_bg.jpg", 0, 0), *label("widePTButton02.png", 228, 560, ident(0x10)),
+                        *label("widePTButton02.png", 428, 560, ident(0x11))), canvas=(800, 600)))
+    # Story page 2 as it opens (0x421880): its lines are text widgets (0x40CBE0, centred at x 350,
+    # black) that the page's update moves up and shows one after another; the first two are shown at
+    # once, Yes and No only after the last line (the run in tests/test_picture_screen_draws.py).
+    out.append(Picture("screen:story2:start", screens, "Story, page 2 as it opens (its first two lines; the rest "
+                       "scroll in after them, then Yes and No)",
+                       (Piece("story2_bg.jpg", 0, 0), *STORY2_START), canvas=(800, 600)))
     for k in (1, 2, 3):
         out.append(Picture(f"screen:arrangement{k}", screens, f"Snapshot scene {k} (no plants), with its message",
-                           (Piece(f"arrangementBG0{k}.jpg", 0, 0), Piece("PhotoMsg.png", 120, 10, scale=60)),
-                           canvas=(800, 600)))
+                           (Piece(f"arrangementBG0{k}.jpg", 0, 0), Piece("PhotoMsg.png", 120, 10, scale=60),
+                            *label("widePTButton.png", 60, 550, ident(0x191)),              # 0x448630
+                            *label("widePTButton.png", 310, 550, ident(0x1B2)),
+                            *label("widePTButton.png", 560, 550, at(0x469850))), canvas=(800, 600)))
+    built = {p.key: p for p in out}
+    for k, (chem, doses) in enumerate(((0x1A4, 3), (0x1A6, 1), (0x1AB, 5))):
+        x0, y0, x1, y1 = PLANT_CHEM_SLOT
+        mouse = (cdiv(x0 + x1, 2) + 45 * k, cdiv(y0 + y1, 2))
+        out.append(Picture(f"tooltip:chem{k}", "Tooltips", f"Greenhouse, chemical tray slot {k + 1}'s tooltip "
+                           f"(the mouse resting on it; the bottle is not drawn)", (), canvas=(800, 600),
+                           make=lambda c, t=chem, n=doses, m=mouse, b=built["screen:greenhouse"].pieces: tuple(b) + tuple(
+                               plant_tooltip(c, fmt(0x46924C, ident(t), ident(0x1AD), n), m))))
+    # question boxes where the game asks them (0x42A605 from the menu, 0x4247CC and 0x428202 in the
+    # greenhouse), over the darkened screen
+    for text, cancel, green, where, name in ((0x3E, True, True, "screen:menu", "the main menu: Start Over"),
+                                              (0x10A, True, False, "screen:greenhouse", "the greenhouse: delete a plant"),
+                                              (0x77, False, False, "screen:greenhouse", "the greenhouse: seed box full")):
+        out.append(Picture(f"question:{text:x}:screen", dialogs, f"Question box over {name}", (), canvas=(800, 600),
+                           make=lambda c, t=text, x=cancel, g=green, b=built[where].pieces: tuple(b) + (shade(),)
+                           + tuple(plant_question(c, t, x, g, True))))
+    # the tutorial's message boxes where the game shows them: over the screen it is on, darkened
+    built = {p.key: p for p in out}
+    names = {"screen:greenhouse": "the greenhouse", "screen:store": "the Store", "screen:seedbox0": "the Seed box",
+             "screen:collections0": "Collections", "screen:nursery": "the Nursery"}
+    for step in range(0xA4, 0xC5):
+        where = {0xB3: "screen:store", 0xB9: "screen:seedbox0", 0xBF: "screen:collections0",
+                 0xC3: "screen:nursery"}.get(step, "screen:greenhouse")
+        arrow = PLANT_TUTORIAL.get(step)
+        out.append(Picture(f"tutorial:{step:x}", "Tutorial messages",
+                           f"Tutorial message {step - 0xA3} over {names[where]}"
+                           + (f", its arrow pointing {('up', 'down', 'left', 'right')[arrow[0] - 1]}" if arrow else ""),
+                           (), canvas=(800, 600),
+                           make=lambda c, b=built[where].pieces, i=step: b + (shade(),) + tuple(plant_message(c, i, True))))
     return out
 
 
@@ -459,6 +1139,7 @@ JARS = ((0, 6), (53, 6), (106, 6), (0, 101), (53, 101), (106, 101), (109, 217), 
         (559, 172), (614, 172), (691, 173), (743, 173), (426, 344), (480, 344), (534, 344), (591, 344),
         (682, 330), (634, 417), (734, 399))
 JAR_REST, WEB_SPIDER, JAR_BOX = (9, 43), (2, 10), (53, 78)
+COLLECTIONS_SAMPLE = (0, 5, 13, 30, 40, 47)
 
 
 def collection_bug(bug: int, on_web: bool = False) -> list:
@@ -473,12 +1154,14 @@ def collections_screen(caught, web: int | None = None, tabs: bool = True) -> lis
     out = [Piece("collections_bg.jpg", 0, 0)]
     out += [Piece("collectionLeafGrid.png", *LEAVES[k], cols=8, rows=6, cell=k) for k in caught]
     if tabs:
-        out += _tabs(3)[:1]
+        out += _split_tabs(3, COLLECTIONS_TABS)[0]
     for k in caught:
         out += collection_bug(k, on_web=k == web)
     out.append(Piece("collection_jars.png", 0, 0))
     if tabs:
-        out += [_button("widePTButton.png", 59, 514)] + _tabs(3)[1:]
+        # 0x4185A6: "Collected: %i out of 48" at (20, 570) in [0x482464] (white)
+        out.append(say(0x14, 0x23A, fmt(0x467818, len(list(caught))), colour=0xFFFFFFFF))
+        out += list(label("widePTButton.png", 59, 514, ("at", 0x467B4C))) + _split_tabs(3, COLLECTIONS_TABS)[1]
     return out
 
 
@@ -603,6 +1286,8 @@ class Composer:
     def piece(self, p: Piece) -> tuple:
         """(picture, x, y) of a piece as the game draws it."""
         import picture_image as pi
+        if p.image is not None:
+            return p.image, p.x, p.y
         if p.fill is not None:
             r, g, b, a, w, h = p.fill
             out = Image(w, h)
@@ -633,24 +1318,187 @@ class Composer:
                     d[i + 2] = (d[i + 2] * 127 >> 8) + 50
         return piece, x, y
 
+    # ---- sizes the games' layouts are worked out from
+    def cell_size(self, file: str, cols: int = 1, rows: int = 1) -> tuple:
+        import picture_image as pi
+        image = self.image(file)
+        left, top, right, bottom = pi.cell_rect(image.width, image.height, cols, rows, 0)
+        return right - left, bottom - top
+
+    # ---- the game's words
+    def _game(self) -> tuple:
+        """(fonts by number, executable bytes, string table) of the game copy, read once."""
+        cached = getattr(self, "_words", None)
+        if cached is not None:
+            return cached
+        import text_maker as tm
+        import translation_strings as ts
+        from pathlib import Path
+        copy = getattr(self.art.source, "copy", None) if self.art.source is not None else None
+        if copy is None or not (Path(copy) / tm.EXE_NAMES[self.art.game]).is_file():
+            raise PictureError("The game's words need a game copy: click \"Find game...\".")
+        exe = (Path(copy) / tm.EXE_NAMES[self.art.game]).read_bytes()
+        loaded = {f.spec.key: f for f in tm.load_fonts(self.art.game, Path(copy))}
+        fonts = [loaded.get(spec.key) for spec in tm.FONTS[self.art.game] if spec.table is not None]
+        strings = {s.id: s.english.encode("cp1252", "replace") for s in ts.read_table(self.art.game, exe)}
+        self._words = (fonts, exe, strings)
+        return self._words
+
+    def font(self, number: int):
+        fonts = self._game()[0]
+        font = fonts[number] if number < len(fonts) else None
+        if font is None:
+            raise PictureError("The game's font picture is not in the game copy found.")
+        return font
+
+    def c_string(self, address: int) -> bytes:
+        import translation_strings as ts
+        exe = self._game()[1]
+        at_ = ts._offset(exe, address)
+        return exe[at_:exe.index(b"\0", at_)]
+
+    def part(self, part) -> bytes:
+        if isinstance(part, int):
+            return b"%d" % part
+        kind = part[0]
+        if kind == "id":
+            return self._game()[2].get(part[1], b"")
+        if kind == "at":
+            return self.c_string(part[1])
+        if kind == "sample":
+            return part[1].encode("cp1252")
+        if kind == "fmt":
+            import re
+            args = list(part[2])
+
+            def one(match):
+                value = args.pop(0)
+                if match.group(1) == b"s":
+                    return self.part(value) if not isinstance(value, bytes) else value
+                return b"%d" % (value if isinstance(value, int) else int(self.part(value)))
+            return re.sub(rb"%([dsui])", one, self.c_string(part[1]))
+        raise PictureError(f"unknown text part {part!r}")
+
+    def text_bytes(self, text: Text) -> bytes:
+        return b"".join(self.part(p) for p in text.parts)
+
+    def text_size(self, font_number: int, data: bytes) -> tuple:
+        """The game's text width (Fish 0x4023D0, Plant 0x402380: each line the sum of its
+        letters' widths and the spacing, the widest line, less one spacing) and height (0x4024A0
+        / 0x402450: one line height per line)."""
+        font = self.font(font_number)
+        widest = 0
+        for line in data.split(b"\n"):
+            widest = max(widest, sum(font.game_glyph(b).advance + font.spacing for b in line))
+        if widest:
+            widest -= font.spacing
+        return widest, font.line_height * (data.count(b"\n") + 1)
+
+    def text_place(self, p: Piece) -> tuple:
+        """(bytes, x, y, width, height) of a text piece where the game draws it."""
+        data = self.text_bytes(p.text)
+        w, h = self.text_size(p.text.font, data)
+        x = p.x
+        if p.text.align == "centre":
+            x -= cdiv(w, 2)
+        elif p.text.align == "right":
+            x -= w
+        elif p.text.align == "between":
+            x += cdiv(p.text.x2 - p.x - w, 2)
+        elif p.text.align == "button":         # 0x401250 / 0x4011F0: centred in the frame
+            cw, ch = self.cell_size(p.text.button, 3, 1)
+            x += cdiv(cw - w, 2)
+            return data, x, p.y + cdiv(ch - self.font(p.text.font).line_height, 2), w, h
+        return data, x, p.y, w, h
+
+    def draw_text(self, canvas: Image, p: Piece, data: bytes, x: int, y: int) -> None:
+        """The game's draw loop (text_maker.render_game_bytes): each byte's letter in the colour
+        (each channel ANDed, 0x402730), SDL's blend where the screen is opaque."""
+        import text_maker as tm
+        font = self.font(p.text.font)
+        colour = p.text.colour & 0xFFFFFFFF
+        if colour >> 24 == 0:
+            colour = 0xFFFFFFFF                       # the default colour: white
+        rgb = ((colour & 0xFF) << 16) | (colour & 0xFF00) | ((colour >> 16) & 0xFF)
+        # Plant Tycoon: a colour less than opaque draws each letter with its alpha blit at A / 255
+        # (0x408F21 -> 0x404610), the colour's alpha byte otherwise unused (0x402700 keeps the
+        # letters' own alpha)
+        see_through = self.art.game == "plant" and colour >> 24 != 0xFF
+        if see_through:
+            import pictures_plant as pp
+            alpha = plant_alpha(pp.f32((colour >> 24) / 255.0))
+        start = x
+        for byte in data:
+            if byte == 0x0A:
+                x, y = start, y + font.line_height
+                continue
+            glyph = font.game_glyph(byte)
+            if glyph.advance == 0:
+                continue
+            letter = tm.tint(glyph.pixels, rgb)
+            if see_through:
+                blend(canvas, letter, x, y, alpha)
+            elif _opaque_under(canvas, x, y, letter.width, letter.height):
+                tm.sdl_blend(canvas, letter, x, y)
+            else:
+                canvas.draw(letter, x, y)
+            x += glyph.advance + font.spacing
+
+    def pieces(self, picture: Picture) -> tuple:
+        return tuple(picture.make(self)) if picture.make is not None else picture.pieces
+
     def render(self, picture: Picture) -> Image:
-        drawn = [(self.piece(p), p.alpha) for p in picture.pieces]
+        drawn = []
+        for p in self.pieces(picture):
+            if p.text is not None:
+                data, x, y, w, h = self.text_place(p)
+                drawn.append(("text", p, data, x, y, w, h))
+            else:
+                image, x, y = self.piece(p)
+                drawn.append(("image", p, image, x, y, image.width, image.height))
         if picture.canvas:
             left, top, right, bottom = 0, 0, *picture.canvas
         elif picture.crop:
             left, top, right, bottom = picture.crop
         else:
-            left = min(x for (im, x, y), _a in drawn)
-            top = min(y for (im, x, y), _a in drawn)
-            right = max(x + im.width for (im, x, y), _a in drawn)
-            bottom = max(y + im.height for (im, x, y), _a in drawn)
+            left = min(d[3] for d in drawn)
+            top = min(d[4] for d in drawn)
+            right = max(d[3] + d[5] for d in drawn)
+            bottom = max(d[4] + d[6] for d in drawn)
         canvas = Image(max(1, right - left), max(1, bottom - top))
-        for (image, x, y), alpha in drawn:
-            if alpha >= 255:
-                canvas.draw(image, x - left, y - top)
+        for kind, p, what, x, y, _w, _h in drawn:
+            if p.shade:
+                _shade(canvas, p.fill, x - left, y - top)
+            elif kind == "text":
+                self.draw_text(canvas, p, what, x - left, y - top)
+            elif p.alpha >= 255:
+                canvas.draw(what, x - left, y - top)
             else:
-                blend(canvas, image, x - left, y - top, alpha)
+                blend(canvas, what, x - left, y - top, p.alpha)
         return canvas
+
+
+def _shade(canvas: Image, rgbaw: tuple, x: int, y: int) -> None:
+    """0x403870: the rectangle's colour at alpha A over the screen, channel by channel."""
+    r, g, b, a, w, h = rgbaw
+    add = ((r * a) >> 8, (g * a) >> 8, (b * a) >> 8)
+    keep = 255 - a
+    table = [bytes(((v * keep) >> 8) + add[c] & 0xFF for v in range(256)) for c in range(3)]
+    d = canvas.data
+    for yy in range(max(0, y), min(canvas.height, y + h)):
+        for xx in range(max(0, x), min(canvas.width, x + w)):
+            i = (yy * canvas.width + xx) * 4
+            d[i], d[i + 1], d[i + 2] = table[0][d[i]], table[1][d[i + 1]], table[2][d[i + 2]]
+
+
+def _opaque_under(canvas: Image, x: int, y: int, w: int, h: int) -> bool:
+    a = canvas.data
+    for yy in range(max(0, y), min(canvas.height, y + h)):
+        row = yy * canvas.width
+        for xx in range(max(0, x), min(canvas.width, x + w)):
+            if a[(row + xx) * 4 + 3] != 255:
+                return False
+    return True
 
 
 def blend(canvas: Image, src: Image, x: int, y: int, alpha: int) -> None:
@@ -686,17 +1534,49 @@ def blend(canvas: Image, src: Image, x: int, y: int, alpha: int) -> None:
 
 NOTE = {
     "fish": ("The game's pictures made of several pieces, put together exactly as Fish Tycoon draws them: whole "
-             "screens (the background, the screen's pieces and its buttons in their normal look), the Health and "
-             "Fed meters and the research bar empty, filled at several levels and joined to their frames, every "
-             "button in each state (normal, mouse over, pressed; a disabled button is not drawn at all in Fish "
-             "Tycoon, so it has no picture), and the rope boxes of the hints and tooltips. Not drawn: the words "
-             "(font text), fish, customers and bubbles."),
+             "screens (the background, the screen's pieces and its buttons in their normal look) with their "
+             "words, the Options popup, message boxes, the Health and Fed meters and the research bar empty, "
+             "filled at several levels and joined to their frames, every button in each state (normal, mouse "
+             "over, pressed; a disabled button is not drawn at all in Fish Tycoon, so it has no picture), and the "
+             "rope boxes of the hints and tooltips. The words are the game's own text from your copy of the game "
+             "in its own fonts and colours; a player's cash ($1000), counts, prices, ages and names are sample "
+             "values. The supply slots' tooltips (the patcher's DS Store Items) are drawn in the hint's rope box "
+             "over tank 1, their words in the game's own font, the slot's item picture under them; a new "
+             "game's tank 1 with its starting supplies. Checked by running the game's code: the screens (tank, "
+             "main menu, trophy case, Help, intro, Supplies store, Sell Fish), the message boxes and the "
+             "Options popup are built and drawn by the game itself on a new game's state and every draw "
+             "compared (pictures, words, places, fonts, colours, the rope box's fill); the text widths, heights, "
+             "draw and placing; the patcher's tooltip code with the font's real widths. The Options popup's "
+             "Fullscreen On and Off are centred as a pair as the game centres them (Off is there on any desktop "
+             "bigger than 800 x 600); which radio button is on is the player's setting (samples here). Not "
+             "drawn: fish, customers, bubbles and the starting plant (they move); the Supplies store's picked "
+             "item bobs and is shown on its shelf."),
     "plant": ("The game's pictures made of several pieces, put together exactly as Plant Tycoon draws them: whole "
-              "screens (the background, the screen's pieces and its buttons in their normal look), the health and "
-              "water meters at several levels (alone and in their slots on the greenhouse panel), the loading bar, "
-              "the dialog boxes at their sizes, and every button in each state (normal, mouse over, pressed, "
-              "disabled). Not drawn: the words (font text), plants, visitors and the lightbeam. The orange and "
-              "green dialog pictures are the same picture in this version of the game."),
+              "screens (the background, the screen's pieces and its buttons in their normal look) with their "
+              "words and button labels, message and question boxes sized for real messages, the health and water "
+              "meters at several levels (alone and in their slots on the greenhouse panel), the loading bar, the "
+              "dialog boxes at their sizes, every button in each state (normal, mouse over, pressed, disabled with "
+              "its label dimmed), the Options dialog, the tooltips, and the message boxes, tutorial messages "
+              "(with their pointing arrows) and questions where the game shows them, over the screen it darkens. "
+              "The words are the game's own text from your copy of the game in its own font and colours; cash, "
+              "ages, times, settings and the player's name are sample values. Checked by running the game's "
+              "code (its constructors and draws, every draw call recorded): the greenhouse, main menu and Help "
+              "pages exactly, the Seed box's and Store's words, every screen's buttons and labels, the Options "
+              "dialog and its check boxes (ticked is the second frame), message and question boxes (sizes, "
+              "places, colours, Cancel, the arrows and where the tutorial points them), the darkening, the "
+              "tooltips, the disabled label, the main menu's buttons (quit_button.png opens Options, "
+              "options_button.png quits), the hidden \"Replay Tutorial Instruction\" button, the text widths, "
+              "heights, draw and placing, the Store with its shelves, the Seed box with seeds in its trays, "
+              "the Collections screen with bugs caught (the spider of the day on its web), a picked pot's words, "
+              "Story page 2 as it opens. The sample plants in the greenhouse are grown and drawn by the plant "
+              "pictures of Make your own (their draw checked in Unicorn by their own tests) at the pots' "
+              "places. Still read from the code without running it: the snapshot scenes (PhotoMsg.png at 60%) "
+              "and the Store's seed shelf places (sample packets). "
+              "Unused by the game: the disabled look (nothing disables a button in this version). Not drawn: "
+              "visitors and the lightbeam (they move); Story page 2's later lines scroll in one after another "
+              "and are shown as the page opens; the arrows bob, shown at their first frame. The orange and "
+              "green dialog pictures are the same "
+              "picture in this version of the game."),
 }
 
 
