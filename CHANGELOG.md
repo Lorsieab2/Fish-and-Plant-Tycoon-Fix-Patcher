@@ -23,8 +23,12 @@
   UTF-16 units are read. It runs as Unicode Text.dll, a loader tail (no
   executable pins): `Unicode Text.ini` gets Paste=1, and Mode=none when
   neither Unicode setting is on, when the DLL changes only the box draw's
-  site. Also: a letter past U+FFFF sent to the window as two WM_CHARs is
-  joined and posted as its one letter (both games). Tests:
+  site and, so an empty box is found too, its caret blink's time call. Also:
+  a letter past U+FFFF sent to the window as two WM_CHARs is joined and
+  posted as its one letter (checked live in Plant Tycoon; Fish Tycoon's
+  window is an ANSI one, whose GetMessageA turns such halves into '?' before
+  any window procedure, so there such letters come, as before, joined from
+  the emoji panel's VK_PACKET and an input method's text). Tests:
   tests/test_text_clipboard.py, tests/test_unicode_names.py (viewing a long
   name never shortens it).
 - **Colour emoji in the games** (Render Unicode with In-Game Fonts and Use
