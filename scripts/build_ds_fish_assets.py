@@ -70,6 +70,20 @@ MIRRORED = [False] * 6 + [True] * 9 + [False] * 3
 BODY_DY = (0x38 - BODY_CELL[1]) // 2
 # A left-facing fish (frames 0-5) has its fins at fish x + 50 - anchor x (0x414878).
 FIN_MIRROR_X = 0x32
+# The stock game animates a fish with two independent counters (traced from
+# 0x4145F0 and its callers): the body steps through frames 0-3 and back
+# (record +0x2C, a tail wag whose pace follows the swim speed) and each fin
+# runs its own flap, 0 -> 5 -> 0, three ticks per step, starting at random from
+# the rest pose (record +0x34, 0x414554). The DS art has one still pose, so
+# frames 0-5 (and their mirror 6-11) are generated here to move like the PC's:
+# medians over the 21 PC fin sheets, frame k against frame 0.
+FIN_FLAP_HEIGHT = {"top": [1.0, 0.95, 0.92, 0.85, 0.80, 0.70], "bottom": [1.0, 0.98, 0.91, 0.85, 0.76, 0.67]}
+FIN_FLAP_WIDTH = {"top": [1.0, 1.03, 1.02, 1.05, 1.07, 1.11], "bottom": [1.0, 1.03, 1.09, 1.15, 1.18, 1.23]}
+# The PC tail curls up a few pixels over frames 0-5: as a fraction of body
+# height, over the rear 45% of the body only so the fins stay attached.
+TAIL_CURL = [0.0, 0.02, 0.05, 0.08, 0.10, 0.12]
+TAIL_TAPER = [0.0, 0.03, 0.06, 0.10, 0.13, 0.16]    # the tail also thins as it flicks
+CURL_START = 0.55
 FIN_ALPHA = 210        # the PC's most common fin alpha; the DS has no fin alpha
 
 
@@ -99,8 +113,27 @@ def cell(image: Image.Image, k: int, size: tuple[int, int], cols: int) -> Image.
     return image.crop((x, y, x + size[0], y + size[1]))
 
 
-def body_frames(body: Image.Image) -> tuple[list[Image.Image], dict]:
-    """The 18 body cells, and where the art sits in frame 0 (for the anchors)."""
+def curled(art: Image.Image, rise: float, taper: float) -> Image.Image:
+    """Flick the rear of a left-facing body: lift it by up to `rise` pixels and
+    thin it by up to `taper` (a fraction of its height), both growing toward
+    the tail, so the head and middle (and every fin anchor) stay put. Bodies
+    that fill their cell have no room to lift and only thin."""
+    if rise <= 0 and taper <= 0:
+        return art
+    out = Image.new("RGBA", art.size)
+    for x in range(art.width):
+        t = max(0.0, (x / max(1, art.width - 1) - CURL_START) / (1 - CURL_START)) ** 2
+        column = art.crop((x, 0, x + 1, art.height))
+        height = max(1, round(art.height * (1 - taper * t)))
+        if height != art.height:
+            column = column.resize((1, height), Image.NEAREST)
+        out.paste(column, (x, (art.height - height) // 2 - round(rise * t)))
+    return out
+
+
+def body_frames(body: Image.Image, wag: bool = True) -> tuple[list[Image.Image], dict]:
+    """The 18 body cells, and where the art sits in frame 0 (for the anchors).
+    With wag off, frames 0-5 are the plain squash (the teen sheet uses that)."""
     box = body.getbbox()
     scale = min(SCALE, BODY_CELL[0] / (box[2] - box[0]), BODY_CELL[1] / (box[3] - box[1]))
     art = scaled(body, scale)
@@ -108,7 +141,11 @@ def body_frames(body: Image.Image) -> tuple[list[Image.Image], dict]:
     top = (BODY_CELL[1] - art.height) // 2
     cells = []
     for k, (width, mirrored) in enumerate(zip(BODY_WIDTH, MIRRORED)):
-        frame = art.resize((max(1, round(art.width * width)), art.height), Image.LANCZOS)
+        source = art
+        if wag and k < 12:
+            # Never lift past the cell's top edge.
+            source = curled(art, min(TAIL_CURL[k % 6] * art.height, top), TAIL_TAPER[k % 6])
+        frame = source.resize((max(1, round(art.width * width)), art.height), Image.LANCZOS)
         if mirrored:
             frame = frame.transpose(Image.FLIP_LEFT_RIGHT)
         if k < 6:                       # facing left: the head edge stays put
@@ -123,12 +160,37 @@ def body_frames(body: Image.Image) -> tuple[list[Image.Image], dict]:
     return cells, {"left": left0, "top": top, "scale": scale, "ds_left": box[0], "ds_top": box[1]}
 
 
+def flapped(art: Image.Image, k: int, top: bool) -> Image.Image:
+    """Fin pose k of the PC's six-step flap: the fin flattens toward the body
+    and its tip sweeps back, the attaching edge (a top fin's bottom-left, a
+    bottom fin's top-left corner) fixed."""
+    if k == 0:
+        return art
+    kind = "top" if top else "bottom"
+    height = max(1, round(art.height * FIN_FLAP_HEIGHT[kind][k]))
+    base = art.resize((art.width, height), Image.LANCZOS)
+    sweep = (FIN_FLAP_WIDTH[kind][k] - 1) * art.width / max(1, height - 1)
+    grow = int(sweep * (height - 1)) + 1
+    # Rows farther from the attaching edge shift farther back (to the right).
+    if top:
+        coeffs = (1, sweep, -sweep * (height - 1), 0, 1, 0)
+    else:
+        coeffs = (1, -sweep, 0, 0, 1, 0)
+    out = base.transform((art.width + grow, height), Image.AFFINE, coeffs, Image.BILINEAR)
+    if out.width > FIN_CELL[0]:
+        out = out.resize((FIN_CELL[0], height), Image.LANCZOS)
+    return out.crop(out.getbbox() or (0, 0, 1, 1))    # resampling can leave an empty edge row
+
+
 def fin_frames(fin: Image.Image, top: bool) -> list[Image.Image]:
     art = scaled(fin, SCALE)
     art = art.crop((0, 0, min(art.width, FIN_CELL[0]), min(art.height, FIN_CELL[1])))
     cells = []
-    for width, mirrored in zip(FIN_WIDTH, MIRRORED):
-        frame = art.resize((max(1, round(art.width * width)), art.height), Image.LANCZOS)
+    for k, (width, mirrored) in enumerate(zip(FIN_WIDTH, MIRRORED)):
+        if k < 12:
+            frame = flapped(art, k % 6, top)
+        else:
+            frame = art.resize((max(1, round(art.width * width)), art.height), Image.LANCZOS)
         if mirrored:
             frame = frame.transpose(Image.FLIP_LEFT_RIGHT)
         x = FIN_CELL[0] - frame.width if mirrored else 0
@@ -198,8 +260,9 @@ def main() -> int:
         fin_ds = {part: load(one(ds / "fins", f"{d:02d}_*_{part}.png")) for part in ("top", "bottom")}
         if d >= DS_FIRST:
             cells, placed = body_frames(body_ds)
+            plain, _ = body_frames(body_ds, wag=False)
             sheet(cells, BODY_CELL, 7, 3).save(OUT / f"FISH_{gene}_body_Grid.png")
-            teen_rows.append([c.resize(TEEN_CELL, Image.LANCZOS) for c in cells])
+            teen_rows.append([c.resize(TEEN_CELL, Image.LANCZOS) for c in plain])
             dead = scaled(load(one(ds / "dead_bodies", f"{d:02d}_*_dead.png")), placed["scale"])
             dead = dead.transpose(Image.FLIP_LEFT_RIGHT)      # PC dead fish face right
             dead = dead.crop((0, 0, min(dead.width, BODY_CELL[0]), min(dead.height, BODY_CELL[1])))
