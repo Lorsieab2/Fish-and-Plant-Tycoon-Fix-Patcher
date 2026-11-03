@@ -55,6 +55,16 @@
   returns. Not yet seen in a running game. Lines no run reaches use the safe
   rule's room, which is an estimate, and patcher DLL texts drawn by the DLLs
   themselves are checked against the safe rule only.
+- **DS fish bodies and fins now animate like the stock fish** (DS Exclusive
+  Fish, Fish Tycoon; art only, the game files are unchanged, and not yet seen
+  in a running game). The stock game wags each fish's tail and flaps each fin
+  on its own timer, but the seven DS bodies and fins only had one still pose,
+  so they slid along without moving. Their sheets now hold the same six-step
+  flap as the stock sheets: the fin flattens and its tip sweeps back and forth,
+  the tail flicks up and thins, and the fins stay attached through every step.
+  Teen and dead fish are unchanged. New tests check the frame counts, that
+  the frames really differ, and that the fins stay on their edge.
+
 - **Patch boxes use the patch's own translation** (Translations.dll, Plant
   Tycoon; checked in the emulator, not yet seen in a running game). Sort Seeds'
   question, its Yes and No buttons, and Extra Greenhouses' "full" box put their

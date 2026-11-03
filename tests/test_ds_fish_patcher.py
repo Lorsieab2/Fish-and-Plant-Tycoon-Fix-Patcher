@@ -299,5 +299,83 @@ class GuiAndReleaseTests(unittest.TestCase):
         self.assertIn("docs/fish-tycoon-ds-fish-testing-guide.md", packaged)
 
 
+try:
+    from PIL import Image, ImageChops
+except ImportError:  # pragma: no cover
+    Image = None
+
+SHEETS = ROOT / "assets" / "fish_tycoon_ds" / "Images"
+BODY_CELL, FIN_CELL = (110, 50), (60, 35)
+
+
+def sheet_cell(name: str, k: int, size: tuple[int, int], cols: int):
+    image = Image.open(SHEETS / name).convert("RGBA")
+    x, y = (k % cols) * size[0], (k // cols) * size[1]
+    return image.crop((x, y, x + size[0], y + size[1]))
+
+
+@unittest.skipIf(Image is None, "Pillow is not installed")
+class DsFishAnimationTests(unittest.TestCase):
+    """The stock game steps the body through frames 0-3 and each fin through a
+    0-5-0 flap (record +0x2C / +0x34, drawn by 0x4145F0), so a DS grid needs the
+    stock's 18 frames with 0-5 really moving, 6-11 their mirror, fins attached."""
+
+    GENES = range(23, 30)
+
+    def test_grids_have_the_stock_size_and_every_frame_is_drawn(self) -> None:
+        for gene in self.GENES:
+            for part, size, cols, rows in (("body", BODY_CELL, 7, 3), ("top", FIN_CELL, 13, 2), ("bot", FIN_CELL, 13, 2)):
+                image = Image.open(SHEETS / f"FISH_{gene}_{part}_Grid.png")
+                self.assertEqual(image.size, (size[0] * cols, size[1] * rows), (gene, part))
+                for k in range(18):
+                    self.assertIsNotNone(sheet_cell(f"FISH_{gene}_{part}_Grid.png", k, size, cols).getbbox(), (gene, part, k))
+
+    def test_body_and_fin_flap_frames_differ(self) -> None:
+        for gene in self.GENES:
+            for part, size, cols in (("body", BODY_CELL, 7), ("top", FIN_CELL, 13), ("bot", FIN_CELL, 13)):
+                frames = [sheet_cell(f"FISH_{gene}_{part}_Grid.png", k, size, cols).tobytes() for k in range(6)]
+                self.assertEqual(len(set(frames)), 6, (gene, part, "frames 0-5 must all differ"))
+
+    def test_mirrored_frames_repeat_the_swim_frames(self) -> None:
+        for gene in self.GENES:
+            for part, size, cols in (("top", FIN_CELL, 13), ("bot", FIN_CELL, 13)):
+                for k in range(6):
+                    left = sheet_cell(f"FISH_{gene}_{part}_Grid.png", k, size, cols)
+                    right = sheet_cell(f"FISH_{gene}_{part}_Grid.png", k + 6, size, cols)
+                    self.assertEqual(ImageChops.difference(left.transpose(Image.FLIP_LEFT_RIGHT), right).getbbox(), None, (gene, part, k))
+
+    def test_fins_stay_on_their_attaching_edge_through_the_flap(self) -> None:
+        # PC convention: a top fin sits on its cell's bottom edge, a bottom fin
+        # hangs from the top edge, both against the left edge (the right when mirrored).
+        for gene in self.GENES:
+            for part, row in (("top", FIN_CELL[1] - 1), ("bot", 0)):
+                for k in range(12):
+                    box = sheet_cell(f"FISH_{gene}_{part}_Grid.png", k, FIN_CELL, 13).getbbox()
+                    edge = box[3] - 1 if part == "top" else box[1]
+                    self.assertEqual(edge, row, (gene, part, k))
+                    self.assertEqual(box[2] if k >= 6 else box[0], FIN_CELL[0] if k >= 6 else 0, (gene, part, k))
+
+    def test_frame_zero_and_the_head_stay_put(self) -> None:
+        # Frame 0 anchors every fin; the head edge must not move as the tail flicks.
+        for gene in self.GENES:
+            zero = sheet_cell(f"FISH_{gene}_body_Grid.png", 0, BODY_CELL, 7).getbbox()
+            for k in range(6):
+                box = sheet_cell(f"FISH_{gene}_body_Grid.png", k, BODY_CELL, 7).getbbox()
+                self.assertEqual(box[0], zero[0], (gene, k))
+            for k in range(6, 12):
+                box = sheet_cell(f"FISH_{gene}_body_Grid.png", k, BODY_CELL, 7).getbbox()
+                self.assertEqual(box[2], BODY_CELL[0] - zero[0], (gene, k))
+
+    def test_teen_and_dead_fish_stay_single_still_sprites(self) -> None:
+        teen = Image.open(SHEETS / "FISH_DS_teen_Grid.png")
+        self.assertEqual(teen.size, (44 * 18, 20 * 7))
+        for row in range(7):
+            # Teens carry no tail flick: frames 0-5 follow the plain squash only.
+            widths = [teen.crop((k * 44, row * 20, k * 44 + 44, row * 20 + 20)).getbbox()[2] for k in range(6)]
+            self.assertEqual(widths, sorted(widths, reverse=True), row)
+        dead = Image.open(SHEETS / "FISH_DS_adult_dead_Grid.png")
+        self.assertEqual(dead.size, (BODY_CELL[0] * 7, BODY_CELL[1]))
+
+
 if __name__ == "__main__":
     unittest.main()
