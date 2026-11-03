@@ -1676,9 +1676,8 @@ TEXT_ENTRY = (
         "^ { | } ~). A letter a font lacks is drawn as its first letter, a space.",
         patched=(("unicode_ingame_fonts", "every Latin-1 letter and the Windows-1252 letters € ' ' \" \" "
                   "– — … ™ Œ Š Ž Ÿ ..., made in each font's own style, and real letters for Paddington's "
-                  "boxes; any other letter is drawn from Windows' fonts (Segoe UI and the fonts for "
-                  "other scripts) at the font's size and in the text's colour; colour emoji keep their own colours."),
-                 ("unicode_system_font", "every letter, ASCII too, is drawn with the Windows font chosen in the patcher (Segoe UI unless another), then the fonts for other scripts, at the game fonts' line heights and in the game's colours (colour emoji in their own)."),)
+                  "boxes; " + 'any other letter is drawn from Windows\' fonts in the font\'s own style (its capital height, baseline, stroke weight, side bearings and shading) and in the text\'s colour, from the first font of the shared fallback chain that has every code point of it (Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships); a letter with a combining accent that has a precomposed form is that letter, scripts that join or reorder (Arabic, Hebrew, the Indic scripts, Thai ...) are shaped and ordered by Windows a whole run at a time, colour emoji keep their own colours, and a letter no font has is an empty box in the font\'s style (never "?"). Not yet seen in a running game.'),
+                 ("unicode_system_font", 'every letter, ASCII too, is drawn with the font chosen in the patcher (Tools tab, Unicode Font..., or the Font box beside the setting; Segoe UI unless another; a font file works too), then the shared fallback chain, each game font keeping its line height, baseline, weight and shading, its size fitted so "The quick brown fox jumps over the lazy dog 0123456789" is as wide as the game draws it (within 60%-130%), in the game\'s colours (colour emoji in their own). Not yet seen in a running game.'),)
     ),
 )
 

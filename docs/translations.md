@@ -186,6 +186,15 @@ the player list, where they mark an empty slot.
 
 ### Letters
 
+How "Unicode Text.dll" draws a translation's letters (the shared Unicode spec's row 3): the game
+font's own letter; a patcher-made one; else a letter drawn from Windows' fonts in the game font's
+style, from the first font of the shared fallback chain (Segoe UI, Segoe UI Historic, Segoe UI Symbol,
+Segoe UI Emoji, the CJK fonts, Nirmala UI, Ebrima ... Cambria Math, Noto if installed, then the fonts the
+patcher ships) that has every code point; else an empty box, never "?". Arabic, Hebrew, the Indic
+scripts, Thai and the other scripts that join or reorder are shaped and ordered by Windows a whole run
+at a time. Neither game has a word wrapper: a long line is broken only where the translation has
+`\n`, so keep lines as short as the English. Not yet seen in a running game.
+
 The game draws bytes with its own fonts. Until the patcher's Unicode font settings draw more, a
 translation is shown in Windows-1252: Latin-1 (French, German, Spanish, Portuguese, Italian, Dutch,
 Nordic...) plus the usual quotes and dashes; any other letter shows as `?`. The editor warns about such

@@ -420,9 +420,14 @@ never needs the internet.
 - Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
   Upgrades" copy; Owner's Defaults leaves it off and keeps Render Unicode with
   In-Game Fonts, and the two cannot both be on). All of the game's text is
-  drawn with one Windows font you choose beside the setting (Segoe UI unless
-  you pick another; the fonts for other scripts fill in letters it lacks), at
-  the game's sizes and colours, instead of the game's own fonts. Typing, long
+  drawn with one font you choose (the Tools tab's Unicode Font... window,
+  with previews of every game font, or the Font box beside the setting; any
+  installed font or a .ttf/.otf/.ttc file, copied beside the DLL and loaded
+  for the game only; Segoe UI unless you pick another), then the shared
+  fallback chain for letters it lacks, instead of the game's own fonts. Each
+  game font keeps its line height, baseline, weight and shading; the size is
+  fitted so "The quick brown fox jumps over the lazy dog 0123456789" is as
+  wide as the game draws it (within 60%-130%). Not yet seen in a running game. Typing, long
   names and any script work as with Render Unicode with In-Game Fonts. It
   ships the same `Unicode Text.dll`; the patcher writes the chosen font into
   `Unicode Text.ini` beside it.
@@ -465,10 +470,24 @@ never needs the internet.
   fitted to its width instead of cutting letters off. Names (and any text the
   game draws, such as a translation) can be in any script: a letter the
   game's fonts have is drawn in them, any other (Turkish, Japanese, Chinese,
-  Korean, cuneiform, emoji ...) from Windows' fonts at the font's size and
-  colour (colour emoji in their own colours, as the Text Maker draws them,
+  Korean, cuneiform, emoji ...) from Windows' fonts in the font's own style
+  (capital height, baseline, stroke weight, side bearings, shading) and the
+  text's colour (colour emoji in their own colours, as Game Text draws them,
   with the text's transparency); typing takes them too, the emoji panel and
-  input methods included.
+  input methods included. The font is the first of the shared fallback chain
+  (Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji, the CJK fonts,
+  Nirmala UI, Ebrima ... Cambria Math, Noto if installed, then the fonts the
+  patcher ships) whose character map has every code point of the letter. A
+  letter with a combining accent that has a precomposed form is that letter
+  (the game's own é for e + U+0301); Arabic, Hebrew, the Indic scripts, Thai
+  and the other scripts that join or reorder are shaped and ordered by Windows
+  a whole run at a time; a letter no font has is an empty box in the font's
+  style, never "?". A name is fitted to the room the game's layout gives it
+  (a player row's own width, the main menu label's side of the screen). In a
+  box that is not a name (the registration boxes, Plant Tycoon's price box),
+  a letter is refused when the text would be wider than the stock game allows
+  there. Neither game has a word wrapper: text breaks only at its own line
+  breaks. Not yet seen in a running game.
 
 ### Plant Tycoon
 
@@ -811,9 +830,14 @@ never needs the internet.
 - Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
   Upgrades" copy; Owner's Defaults leaves it off and keeps Render Unicode with
   In-Game Fonts, and the two cannot both be on). All of the game's text is
-  drawn with one Windows font you choose beside the setting (Segoe UI unless
-  you pick another; the fonts for other scripts fill in letters it lacks), at
-  the game's sizes and colours, instead of the game's own fonts. Typing, long
+  drawn with one font you choose (the Tools tab's Unicode Font... window,
+  with previews of every game font, or the Font box beside the setting; any
+  installed font or a .ttf/.otf/.ttc file, copied beside the DLL and loaded
+  for the game only; Segoe UI unless you pick another), then the shared
+  fallback chain for letters it lacks, instead of the game's own fonts. Each
+  game font keeps its line height, baseline, weight and shading; the size is
+  fitted so "The quick brown fox jumps over the lazy dog 0123456789" is as
+  wide as the game draws it (within 60%-130%). Not yet seen in a running game. Typing, long
   names and any script work as with Render Unicode with In-Game Fonts. It
   ships the same `Unicode Text.dll`; the patcher writes the chosen font into
   `Unicode Text.ini` beside it.
@@ -1218,9 +1242,13 @@ folder never fails with "path too long".
   Pictures" folder beside the patcher, as the Breeding Guide's. See
   [docs/picture-studio-interface.md](docs/picture-studio-interface.md).
 
-- **Text Maker.** Type anything and see it in the games' own fonts, drawn
-  exactly as the game draws it, then Export PNG (transparent background if
-  you like). Fish Tycoon: Paddington 18 (its main text), Paddington 30
+- **Game Text** (was Text Maker). Type anything and see it in the games' own
+  fonts, drawn exactly as the game draws it, then Export PNG (transparent
+  background if you like). Show: "As Render Unicode with In-Game Fonts draws
+  it", "As the stock game shows it" or "As Use Unicode Font draws it"; every
+  letter the game lacks is listed as (patcher-made), (drawn by Windows: the
+  font) or (missing), and the character picker labels each character the same
+  way, (game) included. Fish Tycoon: Paddington 18 (its main text), Paddington 30
   (titles) and Triplex Sans Bold 16 (labels); Plant Tycoon: PT Font Small,
   plus PT Font Big and LDW Arial Bold (in its folder, never used by the
   game). Colour (the games' own or any), shadow or outline, size 1x-8x,
@@ -1248,6 +1276,16 @@ folder never fails with "path too long".
     emoji keep their colours, and joined emoji and skin tones stay whole.
     Untick "Make missing letters" to see what the game itself draws.
   - It reads the fonts from your copy of the game and changes nothing.
+
+- **Unicode Font.** The font Use Unicode Font draws with: any installed font
+  (with a search) or a .ttf/.otf/.ttc file, previewed in each game font as the
+  stock game shows it and as Use Unicode Font will draw it. Save keeps it for
+  every later patch (it is the same choice as the Font box beside the
+  setting) and updates the modded copies that already have Unicode Text.ini;
+  a font file is copied beside Unicode Text.dll (`File=` in Unicode Text.ini)
+  and loaded for the game only. `scripts/make_unicode_preview.py` draws a
+  sheet of every game font's own, patcher-made and fallback letters with the
+  DLL's and the games' own drawing code.
 
 - **Translations.** Play both games in another language, or make a
   translation yourself. Patch with the **Translations** setting on (default),

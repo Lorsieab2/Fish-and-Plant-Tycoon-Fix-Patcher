@@ -61,6 +61,48 @@
   only printable ASCII, what the games' stock fonts draw.
 - **Rename Players / Copy Player Slot** count "N / 1,200 bytes" and the
   characters, and say which short form the save will keep.
+- **Drawing, the shared Unicode spec's row 3** (Unicode Text.dll, both games;
+  not yet seen in a running game):
+  - a letter no font has is an empty box in the game font's style (its capital
+    height, two thirds as wide, half its stem as stroke), never the game's "?";
+    the Text Maker draws the same box;
+  - the fallback chain is the shared list in its order: Segoe UI, Segoe UI
+    Historic, Segoe UI Symbol, Segoe UI Emoji, Yu Gothic, Meiryo, Microsoft
+    YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB, Nirmala UI, Ebrima,
+    Gadugi, Leelawadee UI ... Cambria Math, the Noto fonts if installed, then
+    the faces kept from before and the fonts the patcher ships; a face is used
+    only when it is installed and its character map has every code point;
+  - letters Windows draws are made in each game font's style (the em at which
+    Segoe UI's H is as tall as the font's capitals, its weight, baseline, side
+    bearings and alpha steps: `native/ftfp_<game>_unicode/unicode_styles.h`,
+    measured by the Text Maker's code);
+  - a letter and its combining marks that make one precomposed letter (NFC)
+    are that letter, so e + U+0301 is the game's own é; Arabic, Hebrew,
+    Syriac, Thaana, N'Ko, the Indic scripts, Thai, Lao, Tibetan, Myanmar,
+    Khmer and Mongolian are shaped and ordered by Uniscribe a whole run at a
+    time (with their marks, digits and the spaces between their words);
+  - names are fitted to each spot's real room, read from the box as the game
+    made it (a player row's own width; Plant Tycoon's rows are 26 spaces wide,
+    narrower than the old 26-underscore estimate; Fish Tycoon's main-menu
+    "Player:" label its side of the screen);
+  - a box that is not a name (the registration boxes, the price box) refuses a
+    letter that would make the text wider than the stock game allows there;
+  - neither game has a word wrapper (its text breaks only at "\n"), so there
+    is nothing to hook with UAX #14 line breaking; a test keeps that checked;
+  - Use Unicode Font fits each game font's em so the fox sentence is as wide
+    as the game draws it (60%-130%), keeping its line height, baseline,
+    weight and shading.
+- **Unicode Font...** (Tools tab): any installed font with a search, or a
+  .ttf/.otf/.ttc file, previewed in each game font as the stock game shows it
+  and as Use Unicode Font will draw it; Save keeps it for every later patch
+  and updates modded copies that already have Unicode Text.ini. A font file
+  is copied beside Unicode Text.dll (`File=`) and loaded for the game only;
+  `--unicode-font-file` on the command lines.
+- **Game Text...** (was Text Maker...): "As the stock game shows it", "As
+  Use Unicode Font draws it", and each character labelled (game),
+  (patcher-made), (drawn by Windows: face) or (missing).
+- `scripts/make_unicode_preview.py` draws a sheet of every game font's own,
+  patcher-made and fallback letters with the DLL's and the games' own code.
 - Tests (all in the games' own code under Unicorn, and against the Python
   tools): the DLL's rows and Names files equal `src/save_tools.py`'s for the
   same names; guard bytes after the 32-byte field, the box's buffer and the

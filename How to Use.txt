@@ -166,8 +166,9 @@ Fish Tycoon options:
   keeps only printable ASCII, what the game's own fonts draw.
 - Use Unicode Font (overrides in-game fonts) (off by default, Owner's
   Defaults too; it replaces Render Unicode with In-Game Fonts): all
-  game text in one Windows font you pick beside the setting (Segoe UI
-  unless you choose another), any script, at the game's sizes and colours.
+  game text in one font you pick (Tools tab, Unicode Font..., or the
+  Font box beside the setting; Segoe UI unless you choose another), any
+  script, sized to match each game font's width, in the game's colours.
 - Render Unicode with In-Game Fonts (on by default and in Owner's
   Defaults): type accented letters (é ñ ü ß Æ ¿ £ ...) in names, drawn in the
   game's own fonts; letters a font lacks are made for it in its style.
@@ -298,8 +299,9 @@ Plant Tycoon options:
   keeps only printable ASCII, what the game's own fonts draw.
 - Use Unicode Font (overrides in-game fonts) (off by default, Owner's
   Defaults too; it replaces Render Unicode with In-Game Fonts): all
-  game text in one Windows font you pick beside the setting (Segoe UI
-  unless you choose another), any script, at the game's sizes and colours.
+  game text in one font you pick (Tools tab, Unicode Font..., or the
+  Font box beside the setting; Segoe UI unless you choose another), any
+  script, sized to match each game font's width, in the game's colours.
 - Render Unicode with In-Game Fonts (on by default and in Owner's
   Defaults): type accented letters (é ñ ü ß Æ ¿ £ ...) in names; the game's font
   gets the few it lacks, made in its style. Names can be up to 1,200 bytes,
@@ -432,7 +434,21 @@ copies the pictures it needs from your game into "Picture Studio Pictures"
 beside the patcher ("Find game..." if it has none yet), and never changes a
 save.
 
-Tools tab, Text Maker: pick the game and one of its fonts, type in the box
+Tools tab, Unicode Font...: the font Use Unicode Font draws with. Search
+the installed fonts or "Choose a font file..." (.ttf, .otf, .ttc); the
+previews show each game font as the stock game shows it and as Use Unicode
+Font will draw it. Save keeps it for every later patch and updates the
+modded copies already made. A font file is copied beside Unicode Text.dll
+and used by the game only; nothing is installed in Windows.
+
+Letters the game's fonts lack (with Render Unicode with In-Game Fonts) are
+drawn from Windows' fonts in each game font's own style: Segoe UI, Segoe UI
+Historic, Symbol and Emoji, the CJK fonts, Nirmala UI, Ebrima ..., Noto if
+installed, then the fonts the patcher ships. Arabic, Hebrew, Indic and Thai
+text is joined and ordered by Windows; a letter no font has is an empty
+box. Not yet seen in a running game.
+
+Tools tab, Game Text (was Text Maker): pick the game and one of its fonts, type in the box
 (Enter starts a new line), and the preview shows it exactly as the game
 draws it. Pick the colour, Shadow or Outline, the size and the background,
 then "Export PNG..." (tick "Transparent background" for a clear one). The
@@ -440,7 +456,8 @@ Insert character list has accented letters by language; "Any Unicode"
 takes a code like U+00E9 or 1F41F, a character name, or the characters
 themselves (Japanese, Chinese, Korean, Greek, Cyrillic, cuneiform, emoji).
 Letters the font lacks are made for it, in its style, and listed as
-"patcher-made". It reads the fonts from your copy of the game ("Game
+(patcher-made), (drawn by Windows: the font) or (missing). "Show:" draws
+it as the patched game, as the stock game or as Use Unicode Font would. It reads the fonts from your copy of the game ("Game
 Copy..." to choose one) and never changes a game file.
 
 Tools tab, Translations: play the game in another language. Patch with the

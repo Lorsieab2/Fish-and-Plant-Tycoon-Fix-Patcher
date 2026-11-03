@@ -19,10 +19,20 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from unicode_data import NAME_BOX_BYTES as LIMIT  # noqa: E402
+CHAIN = ('Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships')
 SETTING_ID = "unicode_ingame_fonts"
 SYSTEM_ID = "unicode_system_font"          # Use Unicode Font (overrides in-game fonts)
 PASTE_ID = "copy_paste_text_boxes"          # Copy and Paste in Text Boxes
 DLL = "Unicode Text.dll"
+DRAW_TEXT = ("A letter the game's fonts lack is drawn from Windows' fonts in that font's own style (its "
+             "capital height, baseline, stroke weight, side bearings and shading), from the first font of the "
+             "shared fallback chain that has every code point of it: Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships. A letter with a combining accent "
+             "that has a precomposed form is that letter; Arabic, Hebrew, the Indic scripts, Thai and the other "
+             "scripts that join or reorder are shaped and ordered by Windows a whole run at a time; a letter no "
+             "font has is an empty box in the font's style, never \"?\". Each name is fitted to the room the "
+             "game's layout gives it, with an ellipsis. In a box that is not a name (" + "{boxes}" + "), a "
+             "letter is refused when the text would be wider than the stock game allows there. The games have "
+             "no word wrapper: text breaks only where it has a line break. Not yet seen in a running game.")
 FONTS_TEXT = ("Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one.")
 
 GAMES = {
@@ -77,7 +87,7 @@ def setting(game: dict) -> dict:
             "Patcher Data\\Names <slot>.dat (the Names format the Fun Patchers share: one checked record a "
             "name, never removed). The patcher's tools (Rename Players, Copy Player Slot, Back Up and Restore "
             "Saves, the Breeding Guide and Picture Studio) read, write and carry such names too. "
-            f"{FONTS_TEXT} {game['older']}"
+            f"{DRAW_TEXT.replace('{boxes}', game['boxes'])} {FONTS_TEXT} {game['older']}"
         ),
         "category": "main",
         "default": True,
@@ -121,10 +131,13 @@ def system_setting(game: dict) -> dict:
                    "another), any script, at the game's sizes and colours, instead of the game's own fonts.",
         "description": (
             f"{game['typing']} Every letter the game draws (names, menus, prices, a translation) is drawn with "
-            "the font chosen beside this setting in the patcher (Segoe UI unless you pick another), then, for a "
-            "letter it lacks, the fonts for other scripts (Yu Gothic, Meiryo, Microsoft YaHei, Malgun Gothic, "
-            "Segoe UI Historic, Segoe UI Emoji ...), at the game fonts' line heights and in the game's colours "
-            f"(colour emoji in their own colours). {FONTS_TEXT} The game's own fonts and pictures are not changed. "
+            "the font chosen in the patcher (the Tools tab's Unicode Font... window, with previews, or the Font "
+            "box beside this setting; any installed font or a .ttf/.otf/.ttc file, copied beside the DLL and "
+            "loaded for the game only; Segoe UI unless you pick another), then, for a letter it lacks, the "
+            f"shared fallback chain ({CHAIN}). Each game font keeps its line height, baseline, weight and "
+            "shading; the size is fitted so \"The quick brown fox jumps over the lazy dog 0123456789\" is as "
+            "wide as the game draws it (within 60%-130%), in the game's colours (colour emoji in their own "
+            f"colours). {FONTS_TEXT} The game's own fonts and pictures are not changed. Not yet seen in a running game. "
             "Names are kept as with "
             "Render Unicode with In-Game Fonts (the name or its short form with \"...\" in the save, the whole "
             "name beside it in Names <slot>.dat), and "
