@@ -656,8 +656,15 @@ class Setting(unittest.TestCase):
             companion = setting["companion"]
             self.assertNotIn("startup_loader", companion)
             self.assertEqual(companion["loader_tail"], "Translations.dll")
-            self.assertEqual(companion["files"], [{"path": "Translations.dll", "destination": f"{folder}/Translations.dll",
-                                                   "size": len(dll), "sha256": hashlib.sha256(dll).hexdigest().upper()}])
+            files = companion["files"]
+            self.assertEqual(files[0], {"path": "Translations.dll", "destination": f"{folder}/Translations.dll",
+                                        "size": len(dll), "sha256": hashlib.sha256(dll).hexdigest().upper()})
+            self.assertEqual(len(files) - 1, 7)       # the word lists beside it (Thai, Lao, Khmer, Burmese, CJ breaks)
+            for entry in files[1:]:
+                data = (ROOT / "assets" / "translations" / entry["path"]).read_bytes()
+                self.assertTrue(entry["path"].startswith("word-lists/"))
+                self.assertEqual(entry["destination"], folder + "/" + entry["path"])
+                self.assertEqual((entry["size"], entry["sha256"]), (len(data), hashlib.sha256(data).hexdigest().upper()))
             self.assertFalse(any("translations" in k.split(",") for k in manifest["patched_sha256_by_settings"]))
     def test_a_new_patch_gets_the_chosen_language(self) -> None:
         tmp = Path(tempfile.mkdtemp())

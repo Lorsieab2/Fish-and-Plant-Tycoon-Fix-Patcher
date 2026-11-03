@@ -394,7 +394,7 @@ class Module:
                 at = hits[0]
                 while at > max(0, hits[0] - 0x40) and code[at - 1] != 0xCC:
                     at -= 1
-                if code[at - 1] == 0xCC:
+                if at == 0 or code[at - 1] == 0xCC:
                     starts = [preferred + text_rva + at]
             if not starts:
                 raise AssertionError(f"{self.name}: no DllMain found before 0x{call_at:X}")
