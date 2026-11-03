@@ -220,3 +220,57 @@ class NativeTests(unittest.TestCase):
         for text, keep in (("ab" + family, "ab"), ("x\U0001F1EF\U0001F1F5", "x"), ("e\u0301", ""),
                            ("a\u0915\u094D\u0937", "a"), ("ab", "a")):
             self.assertEqual(self.run_lines(["b " + self.hexes(text)]), [str(len(keep.encode("utf-8")))], text)
+
+
+CHAIN_FILES = ("unifont-18.0.01.otf", "unifont_upper-18.0.01.otf", "NotoSerifTangut-Regular.ttf",
+               "NotoSansCuneiform-Regular.ttf", "LastResort-Regular.ttf")
+
+
+class CoverageTests(unittest.TestCase):
+    """Every assigned code point draws: a real glyph in a bundled font of the chain (the Windows
+    fonts come first in the games, but are not counted here, so the proof is the same on every PC)."""
+
+    def setUp(self) -> None:
+        self.doc = json.loads((DATA / "font_coverage.json").read_text(encoding="utf-8"))
+        self.fonts = json.loads((DATA / "fonts.json").read_text(encoding="utf-8"))["fonts"]
+
+    def test_fonts_are_pinned_and_shipped_for_both_games(self) -> None:
+        self.assertEqual(tuple(f["file"] for f in self.fonts), CHAIN_FILES)
+        for game in ("fish_tycoon_unicode", "plant_tycoon_unicode"):
+            folder = ROOT / "assets" / game / "Fonts"
+            for f, cov in zip(self.fonts, self.doc["fonts"]):
+                data = (folder / f["file"]).read_bytes()
+                self.assertEqual((len(data), hashlib.sha256(data).hexdigest().upper()), (f["size"], f["sha256"]))
+                self.assertEqual(cov["sha256"], f["sha256"])
+                self.assertTrue(f["license"].startswith("OFL-1.1"))
+                text = (folder / f["license_file"]).read_text(encoding="utf-8").upper()
+                self.assertIn("SIL OPEN FONT LICENSE", text)
+
+    def test_every_assigned_code_point_has_a_glyph(self) -> None:
+        import bisect
+        tables = [([r[0] for r in f["ranges"]], [r[1] for r in f["ranges"]], f["family"]) for f in self.doc["fonts"]]
+        counts = {t[2]: 0 for t in tables}
+        missing = []
+        for cp in assigned():
+            hit = None
+            for firsts, lasts, family in tables:
+                i = bisect.bisect_right(firsts, cp) - 1
+                if i >= 0 and cp <= lasts[i]:
+                    hit = family
+                    break
+            if hit is None:
+                missing.append(cp)
+            else:
+                counts[hit] += 1
+        self.assertEqual(missing, [])
+        self.assertEqual(sum(counts.values()), 172808)
+        self.assertEqual(counts, {"Unifont": 57506, "Unifont Upper": 20888, "Noto Serif Tangut": 6657,
+                                  "Noto Sans Cuneiform": 1234, "Last Resort": 86523})
+
+    def test_table_matches_the_font_files(self) -> None:
+        try:
+            import build_unicode18_coverage as C
+            import fontTools  # noqa: F401
+        except ImportError:
+            self.skipTest("needs fontTools (pip install fonttools)")
+        self.assertEqual(C.build(), self.doc)
