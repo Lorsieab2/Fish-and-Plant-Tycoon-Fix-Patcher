@@ -1,5 +1,38 @@
 # Changelog
 
+## v1.0.27
+
+- **Mixed left-to-right and right-to-left lines in their true order**
+  (Unicode Text.dll, both games, Render Unicode with In-Game Fonts and Use
+  Unicode Font; not yet seen in a running game). A line that holds Hebrew,
+  Arabic or another right-to-left script is put in visual order as a whole
+  by the Unicode bidi algorithm (UAX #9): Windows' Uniscribe gives every
+  character its level for the whole line (a left-to-right base, as the games
+  write), and the line's runs are ordered by ScriptLayout across all of them,
+  so "Fish مرحبا 123 שלום Tycoon" reads Fish, שלום, 123, مرحبا, Tycoon.
+  Numbers in right-to-left text read left to right in the game's own digits,
+  the spaces fall on the right side, each right-to-left run is shaped whole
+  with a right-to-left base (joined Arabic, mirrored brackets), and the width
+  the game lays a name or label out with is the drawn width. A line with no
+  right-to-left letter is drawn exactly as before (checked pixel for pixel
+  against v1.0.26).
+- **Flags are flags** (same DLL and settings; not yet seen in a running
+  game). Windows' Segoe UI Emoji draws a flag as its two letters ("JP");
+  a flag (🇯🇵 🇺🇸 🇫🇷, and the subdivision flags such as England's 🏴) is now
+  one picture in its own colours, from Twemoji Mozilla 0.7.0 (Mozilla's
+  COLR build of Twemoji, 1.4 MB, the same file Firefox ships), shipped beside
+  the DLL in its Fonts folder with its license and loaded for the game only.
+  The DLL draws its colour layers itself, as Direct2D does not see a font
+  loaded for one program. Other emoji still come from Segoe UI Emoji,
+  unchanged; Twemoji Mozilla also draws an emoji Windows lacks. Twemoji
+  artwork: Copyright 2019 Twitter, Inc and other contributors, CC-BY 4.0
+  (README credits).
+- Tests: `tests/test_unicode_bidi.py` (Uniscribe's levels and ScriptLayout
+  run natively, the games' own draw and measure in Unicorn) and
+  `tests/test_unicode_flags.py` (JP, US, FR and GB-ENG as one colour picture
+  each; other emoji the same picture as without the shipped fonts). The
+  preview sheet has rows for mixed lines and flags.
+
 ## v1.0.26
 
 - **Housekeeping: the pin scripts keep every pin.** The scripts that record which executables the

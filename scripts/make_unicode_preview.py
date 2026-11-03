@@ -8,7 +8,8 @@ fonts the patcher ships, and the missing-glyph box.
 Every row is drawn by the real code: Unicode Text.dll (rebuilt from its source) and the game's own font
 loader and draw run in Unicorn against the vanilla executables (tests/font_draw_emulator.py), and each
 letter the DLL asks Windows for is made by the DLL's own raster_glyph / raster_cluster, run natively in
-the game font's style with Windows' fonts and the bundled ones (tests/native_glyphs.py). Needs Windows,
+the game font's style with Windows' fonts and the bundled ones (tests/native_glyphs.py); a line's bidi
+levels are the DLL's own line_levels (Windows' Uniscribe), run natively too. Needs Windows,
 the pinned MSVC toolset, Unicorn and the vanilla games (tests/test_unicode_text.py).
 """
 
@@ -45,7 +46,11 @@ ROWS = (
     ("Thai", "สวัสดีครับ"),
     ("Chinese and Japanese", "中文 日本語 ひらがな"),
     ("Korean", "한국어 가나다"),
-    ("Emoji (in colour)", "🐟🌻 👨‍👩‍👧 👍🏽 🇯🇵"),
+    ("Bidi: a mixed line (UAX #9 order)", "Fish مرحبا 123 שלום Tycoon"),
+    ("Bidi: numbers in right-to-left text", "שלום 1234 עולם · מחיר 12.5% · مرحبا ١٢٣"),
+    ("Emoji (in colour)", "🐟🌻 👨‍👩‍👧 👍🏽 ❤️"),
+    ("Flags (Twemoji Mozilla)", "🇯🇵 🇺🇸 🇫🇷 🇧🇷 🇺🇦 🏴󠁧󠁢󠁥󠁮󠁧󠁿 "
+                                "🏴󠁧󠁢󠁳󠁣󠁴󠁿"),
     ("Bundled: Tangut, cuneiform, Unicode 18", "𗀀𗀁 𒀀𒀁 \U0003D000"),
     ("Missing-glyph box (no font has it)", "!box"),
 )
@@ -98,10 +103,27 @@ def draw_font_rows(game: str, font_index: int, server, fonts_present: bool = Tru
     def cluster(e) -> int:
         cps_at, n, _h, coverage, w_at, xoff_at, adv_at = (e.arg(i) for i in range(7))
         cps = [e.read32(cps_at + 4 * k) for k in range(n)]
-        return put(e, server.raster(cps), w_at, xoff_at, adv_at, coverage)
+        rtl = e.read32(symbols["_piece_rtl"])           # a right-to-left run of a line: shaped so natively too
+        if rtl:
+            server.poke("piece_rtl", 1)
+        try:
+            return put(e, server.raster(cps), w_at, xoff_at, adv_at, coverage)
+        finally:
+            if rtl:
+                server.poke("piece_rtl", 0)
+
+    def line_levels(e) -> int:
+        units_at, n, levels_at = e.arg(0), e.arg(1), e.arg(2)
+        raw = bytes(e.uc.mem_read(units_at, 2 * n))
+        levels = server.levels(raw.decode("utf-16-le", "surrogatepass"))
+        if levels is None:
+            return 0
+        e.uc.mem_write(levels_at, bytes(levels))
+        return 1
 
     emu.hook(symbols["_raster_glyph"], glyph, 0)
     emu.hook(symbols["_raster_cluster"], cluster, 0)
+    emu.hook(symbols["_line_levels"], line_levels, 0)
     rows = []
     for label, text in ROWS:
         state["none"] = text == "!box"

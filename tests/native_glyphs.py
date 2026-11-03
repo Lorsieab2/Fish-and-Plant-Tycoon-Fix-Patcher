@@ -8,8 +8,11 @@ Requests go one per line on its standard input:
 
     pen <style index> <height>          the pen set to that game font's style (-1: no style)
     poke <rva> <value>                  a 32-bit value written into the DLL (system_font, ...)
+    peek <rva>                          a 32-bit value read from the DLL
     wpoke <rva> <hex UTF-16 units>      a UTF-16 string written into the DLL (chosen_font)
     raster <hex code point> ...         one code point (raster_glyph) or a piece (raster_cluster)
+    levels <hex UTF-16 unit> ...        a line's bidi levels (line_levels: Uniscribe's ScriptItemize)
+    order <level> ...                   runs' visual order: visual_order (ScriptLayout), then reverse_runs
 
 and each "raster" answers with a line "kind w xoff adv drawn_by" and then w x height coverage
 bytes (kind 1) or w x height x 4 premultiplied B, G, R, A bytes (kind 2) as hex.
@@ -34,9 +37,12 @@ SERVER = r"""
 typedef int (__cdecl *raster_fn)(unsigned int, int, unsigned char *, int *, int *, int *);
 typedef int (__cdecl *cluster_fn)(const unsigned int *, int, int, unsigned char *, int *, int *, int *);
 typedef void (__cdecl *pen_fn)(int, int);
+typedef int (__cdecl *levels_fn)(const unsigned short *, int, unsigned char *);
+typedef void (__cdecl *order_fn)(int, const unsigned char *, int *);
 static unsigned char buf[1024 * 128 * 4];
 static char line[65536];
-/* server <dll> <pen_for_style rva> <raster_glyph rva> <raster_cluster rva> <pen rva> <drawn_by rva> */
+/* server <dll> <pen_for_style rva> <raster_glyph rva> <raster_cluster rva> <pen rva> <drawn_by rva>
+          <line_levels rva> <visual_order rva> <reverse_runs rva> */
 int main(int argc, char **argv) {
     HMODULE m;
     char *base;
@@ -44,7 +50,9 @@ int main(int argc, char **argv) {
     raster_fn glyph;
     cluster_fn cluster;
     int *pen_state, *drawn;
-    if (argc < 7) return 2;
+    levels_fn levels;
+    order_fn order, reverse;
+    if (argc < 10) return 2;
     m = LoadLibraryA(argv[1]);
     if (m == NULL) return 3;
     base = (char *)m;
@@ -53,6 +61,9 @@ int main(int argc, char **argv) {
     cluster = (cluster_fn)(base + strtoul(argv[4], NULL, 16));
     pen_state = (int *)(base + strtoul(argv[5], NULL, 16));
     drawn = (int *)(base + strtoul(argv[6], NULL, 16));
+    levels = (levels_fn)(base + strtoul(argv[7], NULL, 16));
+    order = (order_fn)(base + strtoul(argv[8], NULL, 16));
+    reverse = (order_fn)(base + strtoul(argv[9], NULL, 16));
     while (fgets(line, sizeof line, stdin) != NULL) {
         char *word = strtok(line, " \r\n");
         if (word == NULL) continue;
@@ -92,6 +103,31 @@ int main(int argc, char **argv) {
             total = kind == 2 ? w * height * 4 : kind == 1 ? w * height : 0;
             for (i = 0; i < total; ++i) printf("%02x", buf[i]);
             printf("\n");
+        } else if (strcmp(word, "peek") == 0) {
+            unsigned long rva = strtoul(strtok(NULL, " \r\n"), NULL, 16);
+            printf("%d\n", *(int *)(base + rva));
+        } else if (strcmp(word, "levels") == 0) {
+            static unsigned short units[1100];
+            static unsigned char got[1100];
+            int n = 0, i, ok;
+            char *t;
+            while ((t = strtok(NULL, " \r\n")) != NULL && n < 1100) units[n++] = (unsigned short)strtoul(t, NULL, 16);
+            ok = levels(units, n, got);
+            printf("%d", ok);
+            for (i = 0; ok && i < n; ++i) printf(" %d", got[i]);
+            printf("\n");
+        } else if (strcmp(word, "order") == 0) {
+            static unsigned char runs[300];
+            static int a[300], b[300];
+            int n = 0, i;
+            char *t;
+            while ((t = strtok(NULL, " \r\n")) != NULL && n < 300) runs[n++] = (unsigned char)atoi(t);
+            order(n, runs, a);
+            reverse(n, runs, b);
+            for (i = 0; i < n; ++i) printf("%d ", a[i]);
+            printf("|");
+            for (i = 0; i < n; ++i) printf(" %d", b[i]);
+            printf("\n");
         } else {
             printf("?\n");
         }
@@ -100,6 +136,30 @@ int main(int argc, char **argv) {
     return 0;
 }
 """
+
+
+def uniscribe_levels(units: list[int]) -> list[int] | None:
+    """Each UTF-16 unit's bidi level as Uniscribe's ScriptItemize gives it with a full analysis (a
+    SCRIPT_CONTROL and a left-to-right SCRIPT_STATE), as the DLL's line_levels asks it: what the
+    Unicorn tests stand in for line_levels with (Windows only; None elsewhere or when it fails)."""
+    if os.name != "nt" or not units:
+        return None
+    import ctypes
+
+    class Item(ctypes.Structure):
+        _fields_ = [("pos", ctypes.c_int), ("analysis", ctypes.c_uint16), ("state", ctypes.c_uint16)]
+    n = len(units)
+    text = (ctypes.c_uint16 * n)(*units)
+    items = (Item * (n + 2))()
+    control, state, count = ctypes.c_uint32(0), ctypes.c_uint16(0), ctypes.c_int(0)
+    if ctypes.windll.usp10.ScriptItemize(text, n, n + 1, ctypes.byref(control), ctypes.byref(state), items,
+                                         ctypes.byref(count)) != 0:
+        return None
+    levels = [0] * n
+    for i in range(count.value):
+        for k in range(items[i].pos, min(items[i + 1].pos, n)):
+            levels[k] = items[i].state & 0x1F
+    return levels
 
 
 def available() -> bool:
@@ -150,12 +210,13 @@ class GlyphServer:
         result = subprocess.run(command, cwd=out, capture_output=True, text=True)
         if result.returncode != 0:
             raise AssertionError(result.stdout + result.stderr)
-        rva = {name: symbols[f"_{name}"] - T.DLL_BASE for name in
-               ("pen_for_style", "raster_glyph", "raster_cluster", "pen", "drawn_by")}
+        names = ("pen_for_style", "raster_glyph", "raster_cluster", "pen", "drawn_by", "line_levels", "visual_order",
+                 "reverse_runs")
+        rva = {name: symbols[f"_{name}"] - T.DLL_BASE for name in names}
         self.rva = rva
         self.process = subprocess.Popen(
             [str(out / "server.exe"), str(folder / "Unicode Text.dll")]
-            + [f"{rva[k]:x}" for k in ("pen_for_style", "raster_glyph", "raster_cluster", "pen", "drawn_by")],
+            + [f"{rva[k]:x}" for k in names],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
         self.height = 16
 
@@ -173,6 +234,10 @@ class GlyphServer:
         import test_unicode_text as T
         self._ask(f"poke {self.symbols['_' + symbol] - T.DLL_BASE:x} {value}")
 
+    def peek(self, symbol: str) -> int:
+        import test_unicode_text as T
+        return int(self._ask(f"peek {self.symbols['_' + symbol] - T.DLL_BASE:x}"))
+
     def poke_offset(self, symbol: str, offset: int, value: int) -> None:
         import test_unicode_text as T
         self._ask(f"poke {self.symbols['_' + symbol] - T.DLL_BASE + offset:x} {value}")
@@ -189,6 +254,18 @@ class GlyphServer:
         body = self.process.stdout.readline().strip()
         kind, w, xoff, adv, drawn = (int(v) for v in head)
         return Piece(kind, w, xoff, adv, drawn, self.height, bytes.fromhex(body))
+
+    def levels(self, text: str) -> list[int] | None:
+        """line_levels of `text`: each UTF-16 unit's bidi level, None when it failed."""
+        raw = text.encode("utf-16-le")
+        units = [raw[i] | raw[i + 1] << 8 for i in range(0, len(raw), 2)]
+        answer = [int(v) for v in self._ask("levels " + " ".join(f"{u:x}" for u in units)).split()]
+        return answer[1:] if answer[0] else None
+
+    def order(self, levels: list[int]) -> tuple[list[int], list[int]]:
+        """(visual_order, reverse_runs) of runs at `levels`."""
+        left, right = self._ask("order " + " ".join(str(v) for v in levels)).split("|")
+        return [int(v) for v in left.split()], [int(v) for v in right.split()]
 
     def close(self) -> None:
         if self.process.poll() is None:

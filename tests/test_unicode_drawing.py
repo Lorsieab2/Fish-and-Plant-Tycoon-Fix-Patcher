@@ -127,7 +127,8 @@ class PieceCase:
 
     def test_a_run_to_shape_is_asked_for_whole(self) -> None:
         b = self.base
-        for run in (ARABIC, HEBREW, DEVANAGARI, THAI, "مرحبا ١٢٣"):
+        # (an Arabic run with its Arabic-Indic digits: tests/test_unicode_bidi.py, whole-line order)
+        for run in (ARABIC, HEBREW, DEVANAGARI, THAI):
             with self.subTest(run=run):
                 self.pieces.clear()
                 shown = b.draw(("A " + run + " b").encode("utf-8"))

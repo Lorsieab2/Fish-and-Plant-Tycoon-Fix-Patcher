@@ -747,7 +747,7 @@ class PatcherTests(unittest.TestCase):
             folder = ROOT / companion["source"]
             paths = {f["path"] for f in companion["files"]}
             fonts = {f"Fonts/{p.name}" for p in (folder / "Fonts").iterdir()}     # tests/test_unicode18.py
-            self.assertEqual(len(fonts), 9)
+            self.assertEqual(len(fonts), 11)        # and Twemoji Mozilla with its license (flags)
             self.assertEqual(paths, {"Unicode Text.dll"} | {f"Images/{n}" for n in picture_names(game)} | fonts)
             for entry in companion["files"]:
                 data = (folder / entry["path"]).read_bytes()

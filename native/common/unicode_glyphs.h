@@ -28,6 +28,12 @@
       font's colours (never tinted with the text's colour) with the text's alpha. d2d1.dll and
       dwrite.dll are loaded when first needed; without them (or when a call fails) the letter
       is drawn in one colour by GDI as before.
+      A FLAG (two regional indicators, or a black flag with its tags: England, Scotland, Wales),
+      which Segoe UI Emoji draws as its two letters, is asked of Twemoji Mozilla first (Mozilla's
+      COLR build of Twemoji, shipped beside the DLL); any other emoji is asked of Segoe UI Emoji
+      first and Twemoji Mozilla right after it (an emoji Windows lacks). Direct2D does not see a
+      font loaded for this process only, so Twemoji Mozilla's COLR/CPAL layers are drawn here
+      (raster_colr) after OpenType shaping with its ligatures (ScriptShapeOpenType).
    4. A letter no font has is the MISSING-GLYPH BOX, drawn in the font's style: as tall as its
       capitals, two thirds as wide, on its baseline, with a stroke of half its stem, in the
       text's colour (missing_box; the same box src/text_maker.py draws).
@@ -43,6 +49,12 @@
    ScriptPlace, ScriptTextOut): joined Arabic letters, Indic reordering, Hebrew right to left.
    A run no single font has is drawn a cluster at a time; a cluster no font has whole, a code
    point at a time.
+
+   LINES.  A line holding a right-to-left letter is first put in VISUAL ORDER as a whole (UAX #9:
+   Uniscribe's levels for the whole line, its runs of one level ordered by ScriptLayout; see
+   walk_bidi_line), its right-to-left runs shaped with a right-to-left base, its digits and
+   left-to-right words drawn as any text; drawing and measuring walk the same order. A line with
+   no right-to-left letter is drawn exactly as before.
 
    In the Use Unicode Font mode (system_font) every letter is drawn at run time, with the chosen
    font first in the chain (then Segoe UI and the rest), each game font keeping its line height,
@@ -191,6 +203,7 @@ typedef struct glyph {
 
 static glyph glyphs[GLYPH_CACHE];
 static int glyph_count;
+static int piece_rtl;                       /* a piece shaped with a right-to-left base (whole-line bidi) */
 
 typedef void *(__cdecl *sdl_create_fn)(unsigned int, int, int, int, unsigned int, unsigned int, unsigned int, unsigned int);
 typedef void (__cdecl *sdl_free_fn)(void *);
@@ -252,7 +265,8 @@ static int missing_box(int height, unsigned char *coverage, int *w, int *xoff, i
 static const glyph *get_piece(const unsigned int *cps, int n, unsigned int colour) {
     static unsigned char coverage[GLYPH_MAX_W * GLYPH_MAX_H * 4];
     int height = pen.height;
-    unsigned int cp = n == 1 ? cps[0] : gb_fnv(cps, n), key2 = n == 1 ? 0 : piece_key2(cps, n);
+    unsigned int cp = n == 1 ? cps[0] : gb_fnv(cps, n);
+    unsigned int key2 = n == 1 ? 0 : piece_key2(cps, n) ^ (piece_rtl ? 0x52544C21u : 0u);   /* "RTL!" */
     unsigned int at;
     glyph *g;
     int w = 0, xoff = 0, adv = 0, x, y, pitch, kind;
@@ -539,14 +553,26 @@ static void walk_cluster(walk *w, const unsigned int *cps, int n) {
     walk_letter(w, cps[0]);
 }
 
-static void walk_text(walk *w, const char *text) {
+static int walk_bidi_line(walk *w, const unsigned char **p);
+
+/* The text, unit by unit; with `bidi`, a line holding right-to-left letters is first put in
+   visual order (walk_bidi_line). */
+static void walk_units(walk *w, const char *text, int bidi) {
     static unsigned int cps[UNIT_MAX];
     const unsigned char *p = (const unsigned char *)text;
+    int line_start = 1;
     while (*p) {
-        const unsigned char *start = p;
-        int clusters, n = next_unit(&p, cps, UNIT_MAX, &clusters);
+        const unsigned char *start;
+        int clusters, n;
+        if (line_start) {
+            line_start = 0;
+            if (bidi && walk_bidi_line(w, &p)) continue;
+        }
+        start = p;
+        n = next_unit(&p, cps, UNIT_MAX, &clusters);
         if (n == 0) break;
         if (is_newline(cps, n)) {
+            line_start = 1;
             if (w->graphics != NULL) {
                 walk_flush(w);
                 w->y += w->height;
@@ -574,6 +600,235 @@ static void walk_text(walk *w, const char *text) {
         }
         walk_cluster(w, cps, n);
     }
+}
+
+static void walk_text(walk *w, const char *text) {
+    walk_units(w, text, 1);
+}
+
+/* ---- whole-line bidi (UAX #9)
+
+   A line (the text up to a line break) that holds a right-to-left letter (Hebrew, Arabic, Syriac,
+   Thaana, N'Ko and the other right-to-left scripts, or a right-to-left mark or embedding) is put in
+   visual order as a whole before it is drawn or measured, the same way for both, so the width the
+   game lays a name out with is the width drawn:
+   1. its UTF-16 is itemized by Uniscribe with a full bidi analysis (line_levels: ScriptItemize with
+      a SCRIPT_CONTROL and a SCRIPT_STATE of left-to-right base level 0, the games' direction), which
+      gives every code unit its embedding level; digits, spaces and punctuation are resolved by
+      Uniscribe (European digits after Arabic letters are Arabic numbers, a space between two
+      right-to-left words is right to left, one between a right-to-left and a left-to-right word
+      takes the line's direction);
+   2. its graphemes are cut into RUNS of one level (a grapheme takes the level of its first unit,
+      so a letter and its marks stay together), and the runs are put in visual order by ScriptLayout
+      across ALL of them (visual_order; rule L2 reverse_runs without Uniscribe);
+   3. the runs are drawn left to right in that order: a left-to-right run (an even level: Latin,
+      digits, CJK, an Indic run...) unit by unit as any text (the game's own letters by the game);
+      a right-to-left run (odd) as one piece shaped by Uniscribe with a right-to-left base
+      (piece_rtl: joined Arabic, mirrored brackets, its inner spaces), its spaces at either end drawn
+      as the game's spaces on the side they fall in visual order; a run no font has whole, its words
+      last first, each shaped right to left (a word no font has whole, its graphemes last first, a
+      lone bracket mirrored).
+   A line with no right-to-left letter never comes here, so it is drawn exactly as before; without
+   Uniscribe (line_levels fails) a line is drawn in its logical order as before. */
+
+#define BIDI_UNITS 1024
+#define BIDI_RUNS 256
+
+
+__declspec(noinline) static int line_levels(const WCHAR *units, int n, BYTE *levels);
+__declspec(noinline) static void visual_order(int runs, const BYTE *levels, int *order);
+
+/* A code point that makes a line need bidi: a right-to-left letter (the RTL blocks; Arabic-Indic
+   digits alone do not: in a left-to-right line they read left to right as before), RLM, ALM, RLE,
+   RLO or RLI. */
+static int rtl_letter(unsigned int cp) {
+    if ((cp >= 0x0660 && cp <= 0x0669) || (cp >= 0x06F0 && cp <= 0x06F9)) return 0;
+    return (cp >= 0x0590 && cp <= 0x08FF) || (cp >= 0xFB1D && cp <= 0xFDFF) || (cp >= 0xFE70 && cp <= 0xFEFE)
+        || (cp >= 0x10800 && cp <= 0x10FFF) || (cp >= 0x1E800 && cp <= 0x1EFFF)
+        || cp == 0x200F || cp == 0x061C || cp == 0x202B || cp == 0x202E || cp == 0x2067;
+}
+
+/* UAX #9 rule L2: from the highest level down to the lowest odd one, every sequence of runs at that
+   level or higher is reversed. `order` gets the logical index of each run in visual order (as
+   ScriptLayout's piVisualToLogical). */
+__declspec(noinline) static void reverse_runs(int runs, const BYTE *levels, int *order) {
+    int i, high = 0, low = 255, level;
+    for (i = 0; i < runs; ++i) {
+        order[i] = i;
+        if (levels[i] > high) high = levels[i];
+        if (levels[i] < low) low = levels[i];
+    }
+    low |= 1;                                /* the lowest odd level */
+    for (level = high; level >= low; --level) {
+        i = 0;
+        while (i < runs) {
+            int a, b;
+            if (levels[order[i]] < level) {
+                ++i;
+                continue;
+            }
+            a = i;
+            while (i < runs && levels[order[i]] >= level) ++i;
+            for (b = i - 1; a < b; ++a, --b) {
+                int t = order[a];
+                order[a] = order[b];
+                order[b] = t;
+            }
+        }
+    }
+}
+
+/* The mirrored bracket (Bidi_Mirroring_Glyph) a lone one in a right-to-left run is drawn as. */
+static unsigned int mirrored(unsigned int cp) {
+    static const unsigned int PAIRS[][2] = {{'(', ')'}, {'[', ']'}, {'{', '}'}, {'<', '>'}, {0xAB, 0xBB},
+                                            {0x2039, 0x203A}, {0x2045, 0x2046}, {0x207D, 0x207E}, {0x208D, 0x208E}};
+    int i;
+    for (i = 0; i < (int)(sizeof PAIRS / sizeof PAIRS[0]); ++i) {
+        if (PAIRS[i][0] == cp) return PAIRS[i][1];
+        if (PAIRS[i][1] == cp) return PAIRS[i][0];
+    }
+    return cp;
+}
+
+/* One right-to-left grapheme: a lone code point its mirrored bracket, else as walk_cluster draws it. */
+static void walk_rtl_cluster(walk *w, const unsigned int *cps, int n) {
+    if (n == 1) walk_letter(w, mirrored(cps[0]));
+    else walk_cluster(w, cps, n);
+}
+
+/* UTF-8 `a`..`b` drawn whole: one grapheme, or a piece shaped right to left when a font has all of
+   it. 0 when it is not (nothing drawn). */
+static int walk_rtl_whole(walk *w, const unsigned char *a, const unsigned char *b) {
+    static unsigned int cps[UNIT_MAX];
+    unsigned int one[GRAPHEME_MAX];
+    const unsigned char *q = a;
+    const glyph *g;
+    int n = 0, m = next_grapheme(&q, one, GRAPHEME_MAX);
+    if (m > 0 && q >= b) {
+        walk_rtl_cluster(w, one, m);
+        return 1;
+    }
+    for (q = a; q < b && n < UNIT_MAX;) cps[n++] = utf8_next(&q);
+    if (q < b) return 0;
+    piece_rtl = 1;
+    g = get_piece(cps, n, walk_shade(w));
+    piece_rtl = 0;
+    if (g == NULL) return 0;
+    walk_piece(w, g);
+    return 1;
+}
+
+/* A right-to-left run (UTF-8 `s`..`e`, no line break) at the pen: its last spaces (on its left), the
+   rest whole (walk_rtl_whole), else its words last first (each whole, else its graphemes last
+   first) with the spaces between them, then its first spaces (on its right). */
+static void walk_rtl_run(walk *w, const unsigned char *s, const unsigned char *e) {
+    static const unsigned char *marks[BIDI_UNITS + 1];
+    unsigned int one[GRAPHEME_MAX];
+    const unsigned char *a = s, *b = e, *q;
+    int lead = 0, trail = 0, count, k;
+    while (a < b && *a == ' ') {
+        ++a;
+        ++lead;
+    }
+    while (b > a && b[-1] == ' ') {
+        --b;
+        ++trail;
+    }
+    for (k = 0; k < trail; ++k) walk_letter(w, ' ');
+    if (a < b && !walk_rtl_whole(w, a, b)) {
+        /* its words and spaces, last first */
+        const unsigned char *word_end = b;
+        q = b;
+        while (q > a) {
+            const unsigned char *word = q;
+            if (q[-1] == ' ') {
+                walk_letter(w, ' ');
+                --q;
+                continue;
+            }
+            while (word > a && word[-1] != ' ') --word;
+            word_end = q;
+            if (!walk_rtl_whole(w, word, word_end)) {
+                const unsigned char *r = word;
+                count = 0;
+                while (r < word_end && count < BIDI_UNITS) {
+                    marks[count++] = r;
+                    if (next_grapheme(&r, one, GRAPHEME_MAX) == 0) break;
+                }
+                for (k = count - 1; k >= 0; --k) {
+                    int m;
+                    r = marks[k];
+                    m = next_grapheme(&r, one, GRAPHEME_MAX);
+                    if (m > 0) walk_rtl_cluster(w, one, m);
+                }
+            }
+            q = word;
+        }
+    }
+    for (k = 0; k < lead; ++k) walk_letter(w, ' ');
+}
+
+/* The line at *p, in visual order, when it holds a right-to-left letter: 1 with *p at its line break
+   (or the end); 0 to draw it as before (no such letter, too long, or no Uniscribe). */
+static int walk_bidi_line(walk *w, const unsigned char **p) {
+    static WCHAR units[BIDI_UNITS];
+    static BYTE unit_levels[BIDI_UNITS], run_levels[BIDI_RUNS];
+    static int first_unit[BIDI_UNITS + 1];
+    static const unsigned char *first_byte[BIDI_UNITS + 1];
+    static const unsigned char *run_byte[BIDI_RUNS + 1];
+    static int order[BIDI_RUNS];
+    static char even[BIDI_UNITS * 4 + 1];
+    const unsigned char *start = *p, *end = start, *q;
+    int nu = 0, ng = 0, runs = 0, rtl = 0, i;
+    while (*end && *end != '\n') ++end;
+    if (*end == '\n' && end > start && end[-1] == '\r') --end;
+    for (q = start; q < end && !rtl;) rtl = rtl_letter(utf8_next(&q));
+    if (!rtl) return 0;
+    /* the line's graphemes and its UTF-16 */
+    for (q = start; q < end;) {
+        const unsigned char *g_end = q, *r;
+        unsigned int one[GRAPHEME_MAX];
+        if (ng >= BIDI_UNITS || next_grapheme(&g_end, one, GRAPHEME_MAX) == 0 || g_end > end) return 0;
+        first_byte[ng] = q;
+        first_unit[ng++] = nu;
+        for (r = q; r < g_end;) {
+            unsigned int cp = utf8_next(&r);
+            if (nu + 2 > BIDI_UNITS) return 0;
+            if (cp >= 0x10000) {
+                units[nu++] = (WCHAR)(0xD800 + ((cp - 0x10000) >> 10));
+                units[nu++] = (WCHAR)(0xDC00 + ((cp - 0x10000) & 0x3FF));
+            } else {
+                units[nu++] = (WCHAR)cp;
+            }
+        }
+        q = g_end;
+    }
+    first_byte[ng] = end;
+    if (nu == 0 || !line_levels(units, nu, unit_levels)) return 0;
+    /* runs of one level, a grapheme taking its first unit's level */
+    for (i = 0; i < ng; ++i) {
+        BYTE level = unit_levels[first_unit[i]];
+        if (runs > 0 && run_levels[runs - 1] == level) continue;
+        if (runs >= BIDI_RUNS) return 0;
+        run_levels[runs] = level;
+        run_byte[runs++] = first_byte[i];
+    }
+    run_byte[runs] = end;
+    visual_order(runs, run_levels, order);
+    for (i = 0; i < runs; ++i) {
+        int r = order[i];
+        if (run_levels[r] & 1) {
+            walk_rtl_run(w, run_byte[r], run_byte[r + 1]);
+        } else {
+            size_t len = (size_t)(run_byte[r + 1] - run_byte[r]);
+            if (len >= sizeof even) continue;
+            memcpy(even, run_byte[r], len);
+            even[len] = '\0';
+            walk_units(w, even, 0);
+        }
+    }
+    *p = end;
+    return 1;
 }
 
 static int unicode_width(void *font, const char *text, float scale) {
@@ -651,6 +906,9 @@ typedef DWORD (WINAPI *font_data_fn)(HDC, DWORD, DWORD, void *, DWORD);
 typedef BOOL (WINAPI *metrics_fn)(HDC, TEXTMETRICW *);
 typedef int (WINAPI *face_name_fn)(HDC, int, LPWSTR);
 typedef BOOL (WINAPI *extent_fn)(HDC, LPCWSTR, int, SIZE *);
+typedef HRESULT (WINAPI *shape_ot_fn)(HDC, SCRIPT_CACHE *, SCRIPT_ANALYSIS *, OPENTYPE_TAG, OPENTYPE_TAG, int *,
+                                      TEXTRANGE_PROPERTIES **, int, const WCHAR *, int, int, WORD *, SCRIPT_CHARPROP *,
+                                      WORD *, SCRIPT_GLYPHPROP *, int *);
 
 static struct {
     int tried, ready;
@@ -673,6 +931,7 @@ static struct {
     metrics_fn metrics;
     face_name_fn face_name;
     extent_fn extent;
+    shape_ot_fn shape_ot;                   /* ScriptShapeOpenType: a shipped colour font's ligatures */
     HDC dc;
     unsigned char *bits;
 } gdi;
@@ -693,16 +952,17 @@ static const wchar_t *const CHAIN[] = {
     L"Noto Sans", L"Noto Sans Symbols", L"Noto Sans Symbols 2", L"Noto Sans CJK JP", L"Noto Sans CJK SC",
     L"Noto Sans Math", L"Noto Sans Cuneiform", L"Noto Color Emoji",
     L"SimSun", L"SimSun-ExtG", L"MingLiU-ExtB",
-    L"Unifont", L"Unifont Upper", L"Noto Serif Tangut", L"Last Resort",
+    L"Twemoji Mozilla", L"Unifont", L"Unifont Upper", L"Noto Serif Tangut", L"Last Resort",
 };
 #define CHAIN_FONTS ((int)(sizeof CHAIN / sizeof CHAIN[0]))
 #define CHAIN_EMOJI 3                      /* Segoe UI Emoji */
+#define CHAIN_TWEMOJI 35                   /* Twemoji Mozilla (COLR, shipped): flags, emoji Windows lacks */
 #define CHAIN_LAST_RESORT (CHAIN_FONTS - 1)
 
 /* The files beside the DLL, in "Fonts" (assets/<game>_tycoon_unicode/Fonts) */
 static const wchar_t *const BUNDLED_FONT_FILES[] = {
     L"unifont-18.0.01.otf", L"unifont_upper-18.0.01.otf", L"NotoSerifTangut-Regular.ttf",
-    L"NotoSansCuneiform-Regular.ttf", L"LastResort-Regular.ttf",
+    L"NotoSansCuneiform-Regular.ttf", L"LastResort-Regular.ttf", L"Twemoji.Mozilla.ttf",
 };
 
 typedef int (WINAPI *add_font_fn)(LPCWSTR, DWORD, PVOID);
@@ -747,6 +1007,9 @@ typedef struct face {
     WORD missing;
     int colour;                      /* a colour font: COLR, CBDT, sbix or SVG */
     int absent;                      /* not installed: Windows gave another face */
+    int colr_tried;                  /* its COLR and CPAL tables read (a shipped colour font) */
+    unsigned char *colr, *cpal;
+    DWORD colr_size, cpal_size;
 } face;
 
 #define FACES 256
@@ -783,6 +1046,7 @@ static int gdi_start(void) {
     gdi.metrics = (metrics_fn)(UINT_PTR)GetProcAddress(g, "GetTextMetricsW");
     gdi.face_name = (face_name_fn)(UINT_PTR)GetProcAddress(g, "GetTextFaceW");
     gdi.extent = (extent_fn)(UINT_PTR)GetProcAddress(g, "GetTextExtentPoint32W");
+    gdi.shape_ot = (shape_ot_fn)(UINT_PTR)GetProcAddress(u, "ScriptShapeOpenType");
     if (!gdi.create_dc || !gdi.create_dib || !gdi.select || !gdi.create_font || !gdi.text_colour || !gdi.bk_mode
         || !gdi.flush || !gdi.align || !gdi.itemize || !gdi.shape || !gdi.place || !gdi.props || !gdi.layout
         || !gdi.text_out || !gdi.cmap) {
@@ -1085,9 +1349,201 @@ static int face_maps_all(face *f, const WCHAR *units, int n) {
     return 1;
 }
 
+/* ---- whole-line bidi: Uniscribe's levels and order */
+
+/* Every UTF-16 unit's embedding level in a line of `n` units (a full bidi analysis: ScriptItemize
+   with a SCRIPT_CONTROL and a left-to-right SCRIPT_STATE); 0 without Uniscribe. Separate (and not
+   inlined) so the tests can run it natively and stand in for it in Unicorn. */
+__declspec(noinline) static int line_levels(const WCHAR *units, int n, BYTE *levels) {
+    static SCRIPT_ITEM items[BIDI_UNITS + 1];
+    SCRIPT_CONTROL control;
+    SCRIPT_STATE state;
+    int count = 0, i, k;
+    if (n <= 0 || n > BIDI_UNITS || !gdi_start()) return 0;
+    memset(&control, 0, sizeof control);
+    memset(&state, 0, sizeof state);
+    state.uBidiLevel = 0;                    /* the games' text runs left to right */
+    if (gdi.itemize(units, n, BIDI_UNITS, &control, &state, items, &count) != S_OK || count < 1) return 0;
+    for (i = 0; i < count; ++i) {
+        for (k = items[i].iCharPos; k < items[i + 1].iCharPos && k < n; ++k) levels[k] = (BYTE)items[i].a.s.uBidiLevel;
+    }
+    return 1;
+}
+
+/* The runs' visual order (`order`: the logical index of each run, left to right) from their levels:
+   ScriptLayout across all of a line's runs, else rule L2 by hand (reverse_runs). */
+__declspec(noinline) static void visual_order(int runs, const BYTE *levels, int *order) {
+    if (gdi.ready && gdi.layout != NULL && runs > 0 && gdi.layout(runs, levels, order, NULL) == S_OK) return;
+    reverse_runs(runs, levels, order);
+}
+
+/* ---- a shipped colour font (Twemoji Mozilla): COLR/CPAL layers drawn by GDI
+
+   The fonts the patcher ships are loaded for the game only (AddFontResourceExW, FR_PRIVATE), which
+   DirectWrite does not see, so Direct2D cannot draw them. Twemoji Mozilla is a COLR version 0 font:
+   each emoji is a stack of one-colour glyphs (layers), each with a colour of the font's palette
+   (CPAL), so it is drawn here as VV's COLR/CPAL renderer does: the piece shaped by
+   ScriptShapeOpenType with the font's ligatures (ccmp, liga, rlig, clig: a flag's two regional
+   indicators, or a subdivision flag's black flag and tags, become one glyph), then each glyph's
+   layers drawn by GDI in order at the pen's em, on its baseline, and laid over each other in their
+   palette colours (premultiplied); a glyph with no layers in white. */
+
+#define BE16(p) ((unsigned int)(((p)[0] << 8) | (p)[1]))
+#define BE32(p) ((unsigned int)(((unsigned int)(p)[0] << 24) | ((p)[1] << 16) | ((p)[2] << 8) | (p)[3]))
+#define OT_TAG(a, b, c, d) ((OPENTYPE_TAG)(a) | ((OPENTYPE_TAG)(b) << 8) | ((OPENTYPE_TAG)(c) << 16) \
+                            | ((OPENTYPE_TAG)(d) << 24))
+
+/* The face's COLR and CPAL tables (the face selected in gdi.dc), read once: 0 when it has not both. */
+static int face_colr(face *f) {
+    if (!f->colr_tried) {
+        DWORD a, b;
+        f->colr_tried = 1;
+        if (gdi.font_data == NULL) return 0;
+        a = gdi.font_data(gdi.dc, 0x524C4F43u, 0, NULL, 0);          /* COLR */
+        b = gdi.font_data(gdi.dc, 0x4C415043u, 0, NULL, 0);          /* CPAL */
+        if (a == GDI_ERROR || b == GDI_ERROR || a < 14 || b < 14) return 0;
+        f->colr = (unsigned char *)HeapAlloc(GetProcessHeap(), 0, a);
+        f->cpal = (unsigned char *)HeapAlloc(GetProcessHeap(), 0, b);
+        if (f->colr == NULL || f->cpal == NULL || gdi.font_data(gdi.dc, 0x524C4F43u, 0, f->colr, a) != a
+            || gdi.font_data(gdi.dc, 0x4C415043u, 0, f->cpal, b) != b || BE16(f->colr) != 0) {
+            if (f->colr != NULL) HeapFree(GetProcessHeap(), 0, f->colr);
+            if (f->cpal != NULL) HeapFree(GetProcessHeap(), 0, f->cpal);
+            f->colr = f->cpal = NULL;
+            return 0;
+        }
+        f->colr_size = a;
+        f->cpal_size = b;
+    }
+    return f->colr != NULL;
+}
+
+/* The layers of glyph `gid` (COLR version 0): how many, *first the index of the first; 0 for none. */
+static int colr_layers(const face *f, unsigned int gid, unsigned int *first) {
+    const unsigned char *c = f->colr;
+    unsigned int count = BE16(c + 2), base = BE32(c + 4), layers = BE32(c + 8), total = BE16(c + 12);
+    int lo = 0, hi = (int)count - 1;
+    if (base + count * 6 > f->colr_size || layers + total * 4 > f->colr_size) return 0;
+    while (lo <= hi) {
+        int mid = (lo + hi) / 2;
+        const unsigned char *r = c + base + mid * 6;
+        unsigned int g = BE16(r);
+        if (gid < g) hi = mid - 1;
+        else if (gid > g) lo = mid + 1;
+        else {
+            *first = BE16(r + 2);
+            return *first + BE16(r + 4) <= total ? (int)BE16(r + 4) : 0;
+        }
+    }
+    return 0;
+}
+
+/* Palette 0's colour `index` as 0xAARRGGBB (white for the text colour, 0xFFFF, or one out of range). */
+static unsigned int cpal_colour(const face *f, unsigned int index) {
+    const unsigned char *c = f->cpal, *rec;
+    unsigned int entries = BE16(c + 2), records = BE16(c + 6), at = BE32(c + 8), first = BE16(c + 12);
+    if (index >= entries || first + index >= records || at + (first + index + 1) * 4 > f->cpal_size) return 0xFFFFFFFFu;
+    rec = c + at + (first + index) * 4;                               /* B, G, R, A */
+    return ((unsigned int)rec[3] << 24) | ((unsigned int)rec[2] << 16) | ((unsigned int)rec[1] << 8) | rec[0];
+}
+
+/* `units` (n UTF-16 units) in face `f` (selected in gdi.dc) from its COLR layers: 2 with the
+   premultiplied B, G, R, A pixels as raster_colour, *adv the shaped advance; 0 when the face lacks a
+   glyph of it (or Uniscribe's OpenType shaping is not there). */
+static int raster_colr(face *f, const WCHAR *units, int n, int height, unsigned char *bgra, int *w, int *xoff,
+                       int *adv) {
+    static WORD ids[PIECE_UNITS * 2], clusters[PIECE_UNITS];
+    static SCRIPT_CHARPROP char_props[PIECE_UNITS];
+    static SCRIPT_GLYPHPROP glyph_props[PIECE_UNITS * 2];
+    static SCRIPT_VISATTR attrs[PIECE_UNITS * 2];
+    static int advances[PIECE_UNITS * 2];
+    static GOFFSET offsets[PIECE_UNITS * 2];
+    static unsigned char acc[DIB_W * DIB_H * 4];
+    static OPENTYPE_FEATURE_RECORD features[4] = {
+        {OT_TAG('c', 'c', 'm', 'p'), 1}, {OT_TAG('l', 'i', 'g', 'a'), 1}, {OT_TAG('r', 'l', 'i', 'g'), 1},
+        {OT_TAG('c', 'l', 'i', 'g'), 1},
+    };
+    TEXTRANGE_PROPERTIES range, *ranges = &range;
+    SCRIPT_ANALYSIS sa;
+    ABC abc;
+    int range_chars = n, count = 0, total = 0, pad = height, span, x0, y0, k, x, y, left = -1, right = -1;
+    if (gdi.shape_ot == NULL || n <= 0 || n > PIECE_UNITS || !face_colr(f)) return 0;
+    range.potfRecords = features;
+    range.cotfRecords = 4;
+    memset(&sa, 0, sizeof sa);
+    if (gdi.shape_ot(gdi.dc, &f->cache, &sa, OT_TAG('D', 'F', 'L', 'T'), OT_TAG('d', 'f', 'l', 't'), &range_chars,
+                     &ranges, 1, units, n, PIECE_UNITS * 2, clusters, char_props, ids, glyph_props, &count) != S_OK
+        || count < 1) {
+        return 0;
+    }
+    for (k = 0; k < count; ++k) {
+        if (ids[k] == f->missing || ids[k] == 0) return 0;
+        attrs[k] = glyph_props[k].sva;
+    }
+    if (gdi.place(gdi.dc, &f->cache, ids, count, attrs, &sa, advances, offsets, &abc) != S_OK) return 0;
+    for (k = 0; k < count; ++k) total += advances[k];
+    if (total < 0) total = 0;
+    if (pad * 2 + total > DIB_W) pad = (DIB_W - total) / 2;
+    if (pad < 0) return 0;
+    span = pad * 2 + total;
+    if (span > DIB_W) span = DIB_W;
+    for (y = 0; y < height; ++y) memset(acc + y * DIB_W * 4, 0, (size_t)span * 4);
+    gdi.align(gdi.dc, (pen.id ? TA_BASELINE : TA_TOP) | TA_LEFT | TA_NOUPDATECP);
+    y0 = pen.id ? pen.baseline : 0;
+    x0 = pad;
+    for (k = 0; k < count; ++k) {
+        unsigned int first = 0, layer;
+        int layers = colr_layers(f, ids[k], &first);
+        for (layer = 0; layer < (unsigned int)(layers > 0 ? layers : 1); ++layer) {
+            const unsigned char *rec = f->colr + BE32(f->colr + 8) + (first + layer) * 4;
+            WORD gid = layers > 0 ? (WORD)BE16(rec) : ids[k];
+            unsigned int colour = layers > 0 ? cpal_colour(f, BE16(rec + 2)) : 0xFFFFFFFFu;
+            unsigned int ca = colour >> 24, cb = colour & 0xFF, cg = (colour >> 8) & 0xFF, cr = (colour >> 16) & 0xFF;
+            for (y = 0; y < height; ++y) memset(gdi.bits + y * DIB_W * 4, 0, (size_t)span * 4);
+            gdi.text_out(gdi.dc, &f->cache, x0, y0, 0, NULL, &sa, NULL, 0, &gid, 1, &advances[k], NULL, &offsets[k]);
+            gdi.flush();
+            for (y = 0; y < height; ++y) {
+                for (x = 0; x < span; ++x) {
+                    unsigned int cov = gdi.bits[(y * DIB_W + x) * 4 + 1], a, keep;
+                    unsigned char *o;
+                    if (cov == 0) continue;
+                    a = cov * ca / 255;
+                    keep = 255 - a;
+                    o = acc + (y * DIB_W + x) * 4;
+                    o[0] = (unsigned char)((cb * a + o[0] * keep + 127) / 255);
+                    o[1] = (unsigned char)((cg * a + o[1] * keep + 127) / 255);
+                    o[2] = (unsigned char)((cr * a + o[2] * keep + 127) / 255);
+                    o[3] = (unsigned char)((255 * a + o[3] * keep + 127) / 255);
+                }
+            }
+        }
+        x0 += advances[k];
+    }
+    for (x = 0; x < span; ++x) {
+        for (y = 0; y < height; ++y) {
+            if (acc[(y * DIB_W + x) * 4 + 3]) {
+                if (left < 0) left = x;
+                right = x;
+                break;
+            }
+        }
+    }
+    *adv = total;
+    if (left < 0) {
+        *w = 0;
+        *xoff = 0;
+        return 2;
+    }
+    *w = right - left + 1;
+    *xoff = left - pad;
+    for (y = 0; y < height; ++y) memcpy(bgra + (y * *w) * 4, acc + (y * DIB_W + left) * 4, (size_t)*w * 4);
+    return 2;
+}
+
 /* `units` (n UTF-16 units: a code point, a grapheme or a run) from the first font of the chain that
    has all of it: 1 (coverage) or 2 (a colour drawing) as raster_glyph, 0 when none.
-   `emoji`: Segoe UI Emoji is asked first; `last_resort`: Last Resort may answer.
+   `emoji`: Segoe UI Emoji is asked first, then Twemoji Mozilla (2, a flag: Twemoji Mozilla first, as
+   Segoe UI Emoji draws a flag as its two letters); `last_resort`: Last Resort may answer. With
+   piece_rtl the piece is itemized with a right-to-left base (a right-to-left run of a line).
    Shaped by Uniscribe: itemized (a run may hold several scripts, directions and digits), its items
    laid out in visual order (ScriptLayout), each shaped, placed and drawn (ScriptTextOut, with its
    glyph offsets) on the pen's baseline at the pen's em and weight. */
@@ -1100,20 +1556,47 @@ static int raster_units(const WCHAR *units, int n, int emoji, int last_resort, i
     static GOFFSET offsets[PIECE_UNITS * 2];
     static BYTE levels[PIECE_UNITS];
     static int order[PIECE_UNITS], item_ids[PIECE_UNITS + 1];
-    int step, first = system_font ? -1 : 0, em = pen.id ? -fit_em() : height, weight = pen.id ? pen.weight : FW_SEMIBOLD;
+    int seq[CHAIN_FONTS + 3], seq_n = 0, step, em, weight;
+    SCRIPT_CONTROL control;
+    SCRIPT_STATE state;
     if (!gdi_start() || n <= 0 || n > PIECE_UNITS) return 0;
-    for (step = first - (emoji ? 1 : 0); step < CHAIN_FONTS; ++step) {
+    em = pen.id ? -fit_em() : height;
+    weight = pen.id ? pen.weight : FW_SEMIBOLD;
+    /* the fonts to ask, in order: an emoji's colour fonts first, the chosen face (Use Unicode Font),
+       then the chain */
+    if (emoji == 2) seq[seq_n++] = CHAIN_TWEMOJI;
+    if (emoji) seq[seq_n++] = CHAIN_EMOJI;
+    if (emoji == 1) seq[seq_n++] = CHAIN_TWEMOJI;
+    if (system_font) seq[seq_n++] = -1;
+    for (step = 0; step < CHAIN_FONTS; ++step) {
+        if (!(emoji && (step == CHAIN_EMOJI || step == CHAIN_TWEMOJI))) seq[seq_n++] = step;
+    }
+    memset(&control, 0, sizeof control);
+    memset(&state, 0, sizeof state);
+    state.uBidiLevel = 1;
+    for (step = 0; step < seq_n; ++step) {
         int items_n = 0, i, x, y, left = -1, right = -1, pad = height, total = 0, ok = 1, used = 0;
-        int c = step;
+        int c = seq[step];
         face *f;
-        if (emoji) {
-            if (step == first - 1) c = CHAIN_EMOJI;
-            else if (step == CHAIN_EMOJI) continue;
-        }
         if (c == CHAIN_LAST_RESORT && !last_resort) continue;
         f = get_face(c, em, weight);
-        if (f == NULL || !face_maps_all(f, units, n)) continue;
-        if (gdi.itemize(units, n, PIECE_UNITS, NULL, NULL, items, &items_n) != S_OK || items_n < 1) continue;
+        if (f == NULL) continue;
+        if (c == CHAIN_TWEMOJI) {
+            /* a shipped colour font: its COLR layers (Direct2D does not see it). Uniscribe's
+               ScriptGetCMap does not read this font's supplementary-plane map, so whether it has the
+               piece is what its OpenType shaping finds (no glyph 0) */
+            int kind = raster_colr(f, units, n, height, coverage, w, xoff, adv);
+            if (kind) {
+                drawn_by = c;
+                return kind;
+            }
+            continue;
+        }
+        if (!face_maps_all(f, units, n)) continue;
+        if (gdi.itemize(units, n, PIECE_UNITS, piece_rtl ? &control : NULL, piece_rtl ? &state : NULL, items,
+                        &items_n) != S_OK || items_n < 1) {
+            continue;
+        }
         /* shape every item (logical order), each glyph found */
         for (i = 0; i < items_n && ok; ++i) {
             int start = items[i].iCharPos, len = items[i + 1].iCharPos - start, count = 0, k;
@@ -1226,18 +1709,24 @@ __declspec(noinline) static int raster_glyph(unsigned int cp, int height, unsign
     return raster_units(units, to_units(&cp, 1, 0, units), gb_emoji(&cp, 1), 1, height, coverage, w, xoff, adv);
 }
 
+/* A flag: two regional indicators, or a black flag with its tags (a subdivision flag, GB-ENG). */
+static int flag_sequence(const unsigned int *cps, int n) {
+    if (n == 2 && cps[0] >= 0x1F1E6 && cps[0] <= 0x1F1FF && cps[1] >= 0x1F1E6 && cps[1] <= 0x1F1FF) return 1;
+    return n >= 3 && cps[0] == 0x1F3F4 && cps[1] >= 0xE0020 && cps[1] <= 0xE007E && cps[n - 1] == 0xE007F;
+}
+
 __declspec(noinline) static int raster_cluster(const unsigned int *cps, int n, int height, unsigned char *coverage,
                                                int *w, int *xoff, int *adv) {
     static WCHAR units[PIECE_UNITS], seen[PIECE_UNITS];
-    int u = to_units(cps, n, 0, units), v, kind;
+    int u = to_units(cps, n, 0, units), v, kind, emoji = flag_sequence(cps, n) ? 2 : gb_emoji(cps, n);
     /* the whole piece, by a font that has every glyph of it (not Last Resort: its boxes would
        stand for the marks too) */
-    if (u > 0 && (kind = raster_units(units, u, gb_emoji(cps, n), 0, height, coverage, w, xoff, adv)) != 0) {
+    if (u > 0 && (kind = raster_units(units, u, emoji, 0, height, coverage, w, xoff, adv)) != 0) {
         return kind;
     }
     /* its visible code points alone (an emoji's U+FE0F, a joiner, a tag the font has not) */
     v = to_units(cps, n, 1, seen);
-    if (v > 0 && v != u) return raster_units(seen, v, gb_emoji(cps, n), 0, height, coverage, w, xoff, adv);
+    if (v > 0 && v != u) return raster_units(seen, v, emoji, 0, height, coverage, w, xoff, adv);
     return 0;                           /* drawn a cluster or a code point at a time */
 }
 
