@@ -26,6 +26,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tests"))
 
 import ds_fish_loader  # noqa: E402
+import fish_patcher  # noqa: E402
 import plant_patcher  # noqa: E402
 
 try:
@@ -1716,10 +1717,17 @@ class ManifestTests(unittest.TestCase):
         pins = self.manifest["patched_sha256_by_settings"]
         ours = {SETTING, "extra_nurseries"}
         without = [k for k in pins if not ours & set(k.split(","))]
+        built = 0
         for key in without:
             for extra in ({SETTING}, {"extra_nurseries"}, ours):
                 enabled = {s for s in key.split(",") if s} | extra
+                try:                         # the patcher refuses a combination without Store Upgrades and Items
+                    fish_patcher.check_setting_requirements(self.manifest, enabled)
+                except fish_patcher.PatchError:
+                    continue
+                built += 1
                 self.assertIn(plant_patcher.settings_key(enabled, self.manifest), pins)
+        self.assertGreater(built, 1000)
 
     def test_off_leaves_every_other_combination_as_it_was(self) -> None:
         self.assertFalse(any(SETTING in p.get("requires", []) for p in self.manifest["patches"]))
@@ -1738,7 +1746,9 @@ class ManifestTests(unittest.TestCase):
     def test_pins_are_the_patchers_output(self) -> None:
         vanilla = PLANT_EXE.read_bytes()
         pins = self.manifest["patched_sha256_by_settings"]
-        for key in (SETTING, f"new_flowers,{SETTING}", f"sort_seeds,{SETTING}", "extra_nurseries",
+        # Store Upgrades and Items needs Add unused flowers, and both extras need Store Upgrades and Items
+        for key in (f"new_flowers,plant_upgrades,{SETTING}", f"new_flowers,plant_upgrades,sort_seeds,{SETTING}",
+                    "extra_nurseries,new_flowers,plant_upgrades",
                     f"extra_nurseries,{SETTING},new_flowers,plant_upgrades"):
             enabled = set(key.split(","))
             patched, _ = plant_patcher.apply_patch_bytes(vanilla, plant_patcher.active_patch_records(self.manifest, enabled))

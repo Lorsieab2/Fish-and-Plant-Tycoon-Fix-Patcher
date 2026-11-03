@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import sys
 
@@ -137,9 +138,9 @@ def main() -> int:
         settings.append(setting)
     manifest["settings"] = settings
 
-    pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items() if not IDS & set(k.split(","))}
+    pins = dict(manifest["patched_sha256_by_settings"])   # keep every pin (scripts/pin_keys.py)
     added = 0
-    for key in [""] + list(pins):
+    for key in [""] + pin_keys.sources(manifest, pins, IDS):
         base = {s for s in key.split(",") if s}
         for extra in ({"extra_greenhouses"}, {"extra_nurseries"}, IDS):
             enabled = base | extra
@@ -147,7 +148,7 @@ def main() -> int:
             patched, _ = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.plant_profile(enabled))
             pins[plant_patcher.settings_key(enabled, manifest)] = sha256(patched)
             added += 1
-    manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+    manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
     MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Pinned 2 settings and {added} Extra Greenhouses / Nurseries executable combinations")
     return 0

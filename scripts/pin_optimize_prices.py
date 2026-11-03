@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import sys
 
@@ -147,8 +148,8 @@ def pin(game: dict, vanilla: bytes) -> int:
             entry.update(record(companion["source"], entry["path"], entry["destination"]))
 
     patcher = game["patcher"]
-    pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items() if SETTING_ID not in k.split(",")}
-    keys = [""] + list(pins)
+    pins = dict(manifest["patched_sha256_by_settings"])   # keep every pin (scripts/pin_keys.py)
+    keys = [""] + pin_keys.sources(manifest, pins, {SETTING_ID})
     for key in keys:
         enabled = {s for s in key.split(",") if s} | {SETTING_ID}
         patched, _ = patcher.apply_patch_bytes(vanilla, patcher.active_patch_records(manifest, enabled))
@@ -156,7 +157,7 @@ def pin(game: dict, vanilla: bytes) -> int:
         new_key = (patcher.settings_key(enabled, manifest) if patcher is plant_patcher
                    else patcher.settings_key(enabled))
         pins[new_key] = sha256(patched)
-    manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+    manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
     game["manifest"].write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return len(keys)
 

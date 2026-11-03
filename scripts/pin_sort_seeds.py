@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import sys
 
@@ -83,8 +84,8 @@ def main() -> int:
     setting["companion"] = {"source": SOURCE, "startup_loader": True, "files": companion_files()}
     manifest["settings"] = [s for s in manifest["settings"] if s["id"] != SETTING_ID] + [setting]
 
-    pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items() if SETTING_ID not in k.split(",")}
-    keys = [""] + list(pins)
+    pins = dict(manifest["patched_sha256_by_settings"])   # keep every pin (scripts/pin_keys.py)
+    keys = [""] + pin_keys.sources(manifest, pins, {SETTING_ID})
     added = 0
     for key in keys:
         enabled = {s for s in key.split(",") if s} | {SETTING_ID}
@@ -96,7 +97,7 @@ def main() -> int:
             value = sha256(patched)
         pins[plant_patcher.settings_key(enabled, manifest)] = value
         added += 1
-    manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+    manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
     MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Pinned {len(setting['companion']['files'])} companion files and {added} Sort Seeds executable combinations")
     return 0

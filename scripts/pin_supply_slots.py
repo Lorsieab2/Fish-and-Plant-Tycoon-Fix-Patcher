@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import sys
 
@@ -114,8 +115,8 @@ def main() -> int:
     added = 0
     if not files_only:
         vanilla = (Path(args[0]) / "Fish Tycoon.exe").read_bytes()
-        pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items() if SETTING_ID not in k.split(",")}
-        for key in list(pins):
+        pins = dict(manifest["patched_sha256_by_settings"])   # keep every pin (scripts/pin_keys.py)
+        for key in pin_keys.sources(manifest, pins, {SETTING_ID}):
             if "ds_store" not in key.split(","):
                 continue                                   # it needs DS Store Items (its Upgrades screen)
             enabled = set(key.split(",")) | {SETTING_ID}
@@ -123,8 +124,7 @@ def main() -> int:
             patched, _ = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.fish_profile(enabled))
             pins[fish_patcher.settings_key(enabled)] = sha256(patched)
             added += 1
-        manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(),
-                                                             key=lambda kv: (len(kv[0].split(",")), kv[0])))
+        manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
     MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Pinned {len(setting['companion']['files'])} companion files and {added} executable combinations")
     return 0
