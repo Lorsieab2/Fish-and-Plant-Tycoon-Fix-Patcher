@@ -201,6 +201,7 @@ static unsigned char *read_file(const wchar_t *path, int *size) {
     low = length.LowPart;
     data = (unsigned char *)tr_alloc(low + 4);
     if (data == NULL || (low > 0 && (!ReadFile(file, data, low, &got, NULL) || got != low))) {
+        if (data != NULL) HeapFree(GetProcessHeap(), 0, data);
         CloseHandle(file);
         return NULL;
     }
@@ -694,7 +695,7 @@ static const char *translate_game(int id, const char *result) {
         for (other = 0; other < MAX_IDS; ++other) {
             if (other == id || never_translated(other)) continue;
             for (r = by_id[other]; r != NULL; r = r->next) {
-                if (r->kind == 1 && strcmp(r->english_game, result) == 0) return (const char *)r->out;
+                if (r->kind == 1 && strcmp(r->english_game, result) == 0) return r->fallback ? result : (const char *)r->out;
             }
         }
     }

@@ -6,12 +6,14 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import text_wrap as tw  # noqa: E402
 import unicode_data  # noqa: E402
+import word_break as wb  # noqa: E402
 
 
 def measure(line: str) -> int:
@@ -107,7 +109,21 @@ class WrapToFit(unittest.TestCase):
         self.assertTrue(all(measure(line) <= 100 for line in result.text.split("\n")))
         self.assertEqual(tw.wrap("a b", 100, measure).cut, 0)
 
+    def no_word_lists(self) -> None:
+        """These two tests are about Thai with no word list beside the DLL (the lists are tested in test_word_break)."""
+        empty = tempfile.TemporaryDirectory()
+        old = wb.FOLDER
+        wb._CACHE.clear()
+        wb.FOLDER = Path(empty.name)
+
+        def restore() -> None:
+            wb.FOLDER = old
+            wb._CACHE.clear()
+            empty.cleanup()
+        self.addCleanup(restore)
+
     def test_thai_without_spaces_is_reported_not_cut(self) -> None:
+        self.no_word_lists()
         thai = "ฉันขายปลาสามตัววันนี้"
         result = tw.wrap(thai, 50, measure)
         self.assertEqual(result.text, thai)
@@ -115,6 +131,7 @@ class WrapToFit(unittest.TestCase):
         self.assertEqual(result.cut, 0)
 
     def test_thai_with_spaces_breaks_at_the_spaces(self) -> None:
+        self.no_word_lists()
         result = tw.wrap("ฉันขาย ปลาสามตัว วันนี้", 100, measure)
         self.assertEqual(result.text.replace("\n", " "), "ฉันขาย ปลาสามตัว วันนี้")
         self.assertGreater(result.text.count("\n"), 0)

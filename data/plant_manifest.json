@@ -10108,7 +10108,7 @@
             "path": "Greenhouse Counts.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Greenhouse Counts.dll",
             "size": 94208,
-            "sha256": "360708920D77BDDAEDFFD83C708318FD69BC7EDE73EE49E26BC3127F28648C6D"
+            "sha256": "5C0D5C7795152412D6A2D479D11150D3114C506FCFB3600673CA0051DA357AC3"
           }
         ]
       }
@@ -10447,8 +10447,8 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 168448,
-            "sha256": "8B3E0421BD764905284624F15E8FBA6F74E774F35DBCA899F14036672A61966D"
+            "size": 168960,
+            "sha256": "7379171A63D47B027CB50A02FC58603F81658EB36238D43DECD0A4010FD8E470"
           },
           {
             "path": "Images/PTfontsmall_unicode.png",
@@ -10541,7 +10541,7 @@
             "path": "Translations.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Translations.dll",
             "size": 147456,
-            "sha256": "D0E7EB496B7DA299CA53188ED3D5F8A9351AB3A196AD3328AE9104428D7C8B1A"
+            "sha256": "FE7CE2AE149662F3A880189E84A429423F0A51F561A9050E80750D003C5C2EC5"
           },
           {
             "path": "word-lists/burmesedict.txt",
@@ -10606,8 +10606,8 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 168448,
-            "sha256": "8B3E0421BD764905284624F15E8FBA6F74E774F35DBCA899F14036672A61966D"
+            "size": 168960,
+            "sha256": "7379171A63D47B027CB50A02FC58603F81658EB36238D43DECD0A4010FD8E470"
           },
           {
             "path": "Fonts/unifont-18.0.01.otf",
@@ -10693,8 +10693,8 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 168448,
-            "sha256": "8B3E0421BD764905284624F15E8FBA6F74E774F35DBCA899F14036672A61966D"
+            "size": 168960,
+            "sha256": "7379171A63D47B027CB50A02FC58603F81658EB36238D43DECD0A4010FD8E470"
           }
         ]
       }

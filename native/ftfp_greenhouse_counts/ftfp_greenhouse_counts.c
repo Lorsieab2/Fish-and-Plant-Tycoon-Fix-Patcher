@@ -214,7 +214,7 @@ static void draw_counts(char *scene) {
         void *impl = *(void **)graphics, *font = impl != NULL ? *(void **)((char *)impl + 0x5C) : NULL;
         at = toggle_label(label, (int)sizeof label, toggle.shown ? "Counts: On" : "Counts: Off", bx, text_width,
                           font, &shown_w);
-        if (at < bx) toggle.box.left = at - 4;                       /* the click area follows a label moved left */
+        toggle.box.left = (at < bx ? at : bx) - 4;                   /* the click area follows the label, as the tank's does */
         if (arrows && at + shown_w + 1 > toggle.box.right) toggle.box.right = at + shown_w + 1;
         draw_at(graphics, label, at, by, toggle.hovered ? WHITE : YELLOW);
     }

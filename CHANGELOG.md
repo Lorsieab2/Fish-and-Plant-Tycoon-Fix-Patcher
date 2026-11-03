@@ -24,6 +24,8 @@
   the same dictionaries in a `word-lists` folder beside the DLL, read only when
   such text needs breaking. The lists ship unchanged in
   `assets/translations/word-lists` with ICU's licence (about 2.4 MB zipped).
+  In the game too, a Chinese or Japanese word wider than the room now breaks
+  between characters instead of being cut with "...".
 - **Translations fit the screen.** Every line a translation can replace now
   has a room in pixels where the game draws it, in
   `data/translation_limits.json` (numbers only, no game text). It is measured

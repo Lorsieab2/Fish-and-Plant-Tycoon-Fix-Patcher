@@ -113,7 +113,11 @@ static void wb_load(int sc) {
     for (i = 0; i < size; ++i) if (d->data[i] == '\n') ++lines;
     while (size_slots < lines + lines / 2 + 2) size_slots *= 2;
     d->slots = (unsigned int *)tr_alloc((SIZE_T)size_slots * 4);
-    if (d->slots == NULL) return;
+    if (d->slots == NULL) {
+        HeapFree(GetProcessHeap(), 0, d->data);
+        d->data = NULL;
+        return;
+    }
     d->mask = (unsigned int)size_slots - 1;
     i = 0;
     if (size >= 3 && d->data[0] == 0xEF && d->data[1] == 0xBB && d->data[2] == 0xBF) i = 3;
@@ -275,7 +279,8 @@ static int wb_icu_segment(int sc, int n) {
     wb_begin[0] = 1;
     __try {
         iterator = wb_ubrk_open(sc == WB_CJ ? 1 : 2, "", wb_u16, length, &status);   /* UBRK_WORD, UBRK_LINE */
-        if (iterator == NULL || status > 0) return 0;
+        if (iterator != NULL && status > 0) { wb_ubrk_close(iterator); return 0; }
+        if (iterator == NULL) return 0;
         for (guard = 0, p = wb_ubrk_next(iterator); p > 0 && p < length && guard <= length; p = wb_ubrk_next(iterator), ++guard) {
             if (wb_umap[p] != wb_umap[p - 1]) { wb_begin[wb_umap[p]] = 1; ++boundaries; }
         }

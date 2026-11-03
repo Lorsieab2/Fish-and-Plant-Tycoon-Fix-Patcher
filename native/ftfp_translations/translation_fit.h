@@ -127,10 +127,10 @@ static int tf_list(unsigned int cp, const unsigned int *list, int count) {
 #define TF_SPACE(cp) ((cp) == ' ' || (cp) == 0x3000)
 
 /* Where a line may end, between `prev` (at s[a..b)) and `cp`: 0 no, 1 replace the space prev, 2 insert. */
-static int tf_opportunity(const tf_ctx *c, int at, unsigned int before, unsigned int prev, unsigned int cp) {
+static int tf_opportunity(const tf_ctx *c, int at, unsigned int before, unsigned int prev, unsigned int cp, int force) {
     if (TF_EXTENDS(cp) || prev == 0x200D || cp == '\n' || prev == '\n') return 0;
     if (c->utf8 && at >= 0 && at < FIT_MAX) {
-        if (tf_wb[at] == 1) return 0;                                           /* inside a dictionary word */
+        if (tf_wb[at] == 1 && !force) return 0;                                          /* inside a dictionary word */
         if (tf_wb[at] == 2 && wb_script(prev) >= 1 && wb_script(prev) <= 4 && wb_script(cp) >= 1 && wb_script(cp) <= 4)
             return 2;                                                           /* between two Thai-like words */
     }
@@ -177,7 +177,7 @@ static int tf_cut(tf_ctx *c, int *o, const char *s, int n) {
 
 /* One line (no "\n") re-broken to the room; a piece wider than the room is cut. */
 static int tf_break_line(tf_ctx *c, int *o, const char *s, int n) {
-    int start = 0;
+    int start = 0, force;
     while (start < n) {
         int i = start, last = -1, last_kind = 0, last_end = start, prev_at = start;
         unsigned int before = 0, prev = 0;
@@ -186,12 +186,16 @@ static int tf_break_line(tf_ctx *c, int *o, const char *s, int n) {
             memset(tf_wb, 0, sizeof tf_wb);
             if (c->utf8 && n <= FIT_MAX) wb_mark(s, n);
         }
-        /* the last opportunity whose line fits */
+        /* the last opportunity whose line fits; if none, again allowing a break inside a dictionary word */
+        for (force = 0; force < 2 && last < 0; ++force) {
+        i = start;
+        before = prev = 0;
+        prev_at = start;
         while (i < n) {
             int at = i;
             unsigned int cp = tf_cp(c, s, n, &i);
             if (at > start) {
-                int kind = tf_opportunity(c, at, before, prev, cp);
+                int kind = tf_opportunity(c, at, before, prev, cp, force);
                 if (kind) {
                     int end = kind == 1 ? prev_at : at;
                     if (tf_px(c, s + start, end - start) > c->room) break;
@@ -204,6 +208,7 @@ static int tf_break_line(tf_ctx *c, int *o, const char *s, int n) {
             prev = cp;
             prev_at = at;
         }
+        }
         if (last < 0) {
             /* nothing fits: the piece up to the next opportunity (or the end) is cut */
             int next = n;
@@ -213,7 +218,7 @@ static int tf_break_line(tf_ctx *c, int *o, const char *s, int n) {
             while (i < n) {
                 int at = i;
                 unsigned int cp = tf_cp(c, s, n, &i);
-                if (at > start && tf_opportunity(c, at, before, prev, cp)) { next = at; break; }
+                if (at > start && tf_opportunity(c, at, before, prev, cp, 0)) { next = at; break; }
                 before = prev;
                 prev = cp;
             }

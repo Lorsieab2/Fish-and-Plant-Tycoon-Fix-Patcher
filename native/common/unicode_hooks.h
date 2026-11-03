@@ -151,14 +151,16 @@ __declspec(naked) static void stub_width(void) {
 __declspec(naked) static void stub_save(void) {
     __asm {
         push ecx
+        push edx
         push 1
-        call names_sync_now
+        call names_sync_now             ; cdecl: the caller pops the argument
         add esp, 4
+        pop edx
         pop ecx
         lea eax, [ecx + 8]
         push GAME_SAVE_SIZE
-        mov edx, GAME_SAVE_RESUME
-        jmp edx
+        push GAME_SAVE_RESUME
+        ret
     }
 }
 

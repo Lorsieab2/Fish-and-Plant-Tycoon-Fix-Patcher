@@ -260,6 +260,28 @@ class Fitting(unittest.TestCase):
                 for line in got.split("\n")[1:]:
                     self.assertNotIn(line[:1], "，。？")
 
+    def test_a_word_wider_than_the_room_breaks_between_characters(self) -> None:
+        """One dictionary word wider than the room breaks between characters (kinsoku kept), as text_wrap does."""
+        ident = next(s.id for s, limit, b in lines_and_limits("plant") if limit.multiline and limit.proven
+                     and b is None and not limit.format)
+        english = self.english("plant", ident)
+        word = "\u30d7\u30ed\u30b0\u30e9\u30df\u30f3\u30b0\u8a00\u8a9e\u958b\u767a\u74b0\u5883\u306e\u69cb\u7bc9\u3068\u904b\u7528" * 3
+        text = word + "\u3002"
+        lists = {INI["plant"].replace("Translation.ini", "word-lists\\cjdict.txt"): (word + "\t5\n").encode("utf-8")}
+        f = tf.new_file("plant", [tf.Entry(tf.make_key("strings", str(ident), english), english)], "Test", "de")
+        f.rows[0].translation = text
+        rt = te.Runtime("plant", {INI["plant"]: te.ini(PATH), PATH: tf.to_bytes(f), **lists}, unicode_active=1)
+        rt.hook_plant_table()
+        rt.emu.call_count = 2_000_000_000
+        self.fonts = Fonts(rt, "plant", True)
+        self.assertEqual(rt.start(), 1)
+        got = rt.lookup(ident).decode("utf-8")
+        self.assertGreater(got.count("\n"), 0)
+        self.assertNotIn("...", got)
+        self.assertEqual(got.replace("\n", ""), text)                              # nothing lost
+        for line in got.split("\n")[1:]:
+            self.assertNotEqual(line[:1], "\u3002")
+
     def test_too_tall_for_its_box_shows_english(self) -> None:
         """A message box's text taller than the box the game can make on the screen: English."""
         ident, limit = next((s.id, l) for s, l, b in lines_and_limits("plant") if l.height and b is None)
