@@ -220,7 +220,10 @@ HEALTH = (
         "Common genes are 0, 4, 8, 12, 16 and 20; half-rare genes are 2, 6, 10, 14 and 18; every odd "
         "gene is rare.",
         patched=(("ds_fish", "the DS genes follow the DS game's rarity: 23, 25, 27 and 29 are rare, "
-                  "24 and 28 half-rare, 26 common."),),
+                  "24 and 28 half-rare, 26 common. For health, though, every fish with a DS body or a "
+                  "DS fin is rare, whatever its other part: -19 / -6 / 0 a step at Fish Environment "
+                  "level 1 / 2 / 3, exactly like the stock rare fish, so it keeps its health only at "
+                  "level 3 (the DLL's tier at 0x41DF68). Sickness keeps the body's own DS tier."),),
     ),
     Fact(
         "There is no survival roll: a fish whose health reaches 0 dies.",
@@ -968,6 +971,8 @@ RESEARCH = (
             "(dies in about 6 steps without help); level 3 makes rare fish safe.",
             "It does not change sickness, food, breeding, prices or customers.",
         ),
+        patched=(("ds_fish", "every fish with a DS body or a DS fin counts as rare here: -19 / -6 / 0, "
+                  "so DS fish need level 3."),),
     ),
     Fact(
         "Advertising research ($350 then $1500): three effects, all in the selling scene:",

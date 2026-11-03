@@ -12,7 +12,9 @@
      * a baby with a DS parent gets the DS game's rule: the average of the
        parents' genes, an odd sum rounded up or down at random, one roll per
        litter (DS arm9 0x02034B54).  PC x PC keeps the PC's floor average.
-   Rarity tiers, prices, names, sprites and fin placement follow the DS:
+   Rarity tiers, prices, names, sprites and fin placement follow the DS,
+   except that any fish with a DS part needs Fish Environment level 3 for
+   its health, like the PC's rare fish (health_tier):
    docs/fish-tycoon-ds-fish-technical-map.md has every address.
 
    HOW.  The patched executable's startup stub loads this DLL by its full
@@ -136,6 +138,16 @@ static int __cdecl gene_tier(int g) {
 static int __cdecl fish_tier(int body, int fin) {
     int a = gene_tier(body), b = gene_tier(fin);
     return a > b ? a : b;
+}
+
+/* The health tick's tier (0x41DF68): a fish with a DS body or a DS fin is a
+   Fish Environment level 3 fish, exactly like the stock rare (odd-gene)
+   fish -- -19 / -6 / 0 health a step at level 1 / 2 / 3 -- whatever its
+   DS rarity.  The owner's rule; everything else (the sickness odds by the
+   body's tier, tutorial goal 0x17, prices, labels) keeps gene_tier. */
+static int __cdecl health_tier(int body, int fin) {
+    if (is_ds(body) || is_ds(fin)) return 3;
+    return fish_tier(body, fin);
 }
 
 static int __cdecl rare_pair(int body, int fin) {
@@ -642,7 +654,7 @@ __declspec(naked) static void stub_tier_health(void) {
         push esi
         push ecx
         push eax
-        call fish_tier
+        call health_tier
         add esp, 8
         cmp eax, 3
         je t3

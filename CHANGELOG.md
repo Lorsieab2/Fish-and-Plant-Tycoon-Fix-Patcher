@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.0.25
+
+- **DS Exclusive Fish: every DS fish needs Fish Environment level 3.** A fish
+  with a DS body or a DS fin now keeps its health only at Fish Environment
+  level 3, exactly like the game's own rare fish: -19 / -6 / 0 health a step
+  at level 1 / 2 / 3. Before, the health tick used each DS gene's own DS
+  tier, so a Trigger body or Clown fin fish (DS tier 1) gained health at
+  level 1 and a Discus, Roundy, Tang or Blue fish (DS tier 2) at level 2.
+  `DS Exclusive Fish.dll`'s existing health-tier hook (`0x41DF68`, byte-checked
+  and all-or-nothing as before) now gives any fish with a DS part tier 3;
+  PC fish are unchanged. Eggs, breeding, the Unknown Chemical, prices, art,
+  labels, the sickness odds and the tutorial goal are unchanged. Game
+  Mechanics (Health, Research), the README and the DS fish docs say so.
+
 ## v1.0.24
 
 - **Copy and Paste in Text Boxes** (new setting, both games; on by default and

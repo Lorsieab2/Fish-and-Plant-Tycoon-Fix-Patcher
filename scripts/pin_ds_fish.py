@@ -43,8 +43,9 @@ SETTING = {
         "fish never give them. The Unknown Chemical, and the Magic Fish of Mutation at hatching, "
         "can now step a Spotanus body or a Twin-Fin fin one place further, into the DS ones, with "
         "the same odds as before. Breeding a DS fish follows the DS game: the parents' average, an "
-        "odd total rounded up or down at random. Prices, rarity (most need environment level 3), "
-        "names and fin placement follow the DS game. Runs as a companion DLL the game loads at "
+        "odd total rounded up or down at random. Prices, rarity, names and fin placement follow the "
+        "DS game; every DS fish needs Fish Environment level 3 to keep its health, like the PC's "
+        "rare fish. Runs as a companion DLL the game loads at "
         "start; new sprites go in Images, and each save slot keeps its DS species data in a "
         "separate file beside the save. See docs/fish-tycoon-ds-fish-testing-guide.md."
     ),
