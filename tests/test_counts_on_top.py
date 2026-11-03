@@ -368,6 +368,7 @@ class FishCountsOnTopTests(unittest.TestCase):
         w.record(0x408C30, "text", 0x14)
         w.record(0x418210, "font manager", 0, 0x0F0F0000)
         w.record(0x4181F0, "font", 4, FISH_FONT)
+        w.emu.hook(0x4023D0, lambda e: 8 * len(e.cstring(e.arg(0))), 8)   # the game's text measure: 8 pixels a letter
         w.record(0x417FD0, "messages shown", 0, 1)                    # no queued message this frame
         for start, end in ((TANK_DRAW, TANK_DRAW_END), (TANK_OVERLAY, TANK_OVERLAY_END)):
             w.record_callees(start, end, names)
@@ -485,7 +486,7 @@ class FishCountsOnTopTests(unittest.TestCase):
 PLANT_FOLDER = "C:\\Games\\Plant Tycoon\\Plant Tycoon Fix Patcher DLLs\\"
 PLANT_STATE_SIZE = 0x63E70
 GH_OVERLAY, GH_HELD, GH_HELD_END, GH_OVERLAY_END = 0x428E70, 0x4291D2, 0x4295EE, 0x4296FB
-PLANT_GRAPHICS = 0x00C0FFEE
+PLANT_GRAPHICS = 0x00C0F100
 
 
 @_needs(PLANT_EXE)
@@ -522,6 +523,10 @@ class PlantCountsOnTopTests(unittest.TestCase):
                  0x44CC20: "money", 0x44CDE0: "money box", 0x41B1C0: "timed message"}
         w.record(0x4257A0, "background", 0)
         w.record(0x407A90, "graphics", 0, PLANT_GRAPHICS)
+        emu.uc.mem_map(PLANT_GRAPHICS & ~0xFFF, 0x1000)               # the graphics: [0] its implementation, +0x5C its font
+        emu.write32(PLANT_GRAPHICS, PLANT_GRAPHICS + 0x100)
+        emu.write32(PLANT_GRAPHICS + 0x100 + 0x5C, 0x0F0F1000)
+        emu.hook(0x402380, lambda e: 8 * len(e.cstring(e.arg(0))), 8)  # the game's text measure: 8 pixels a letter
         w.record(0x4092A0, "text", 0x14)
         w.record(0x4092B0, "centred text", 0x14)
         w.record(0x44CA70, "string", 4, lambda e: e.text("text"))

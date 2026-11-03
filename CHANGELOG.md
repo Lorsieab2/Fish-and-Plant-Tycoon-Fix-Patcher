@@ -2,6 +2,59 @@
 
 ## v1.0.27
 
+- **Translations fit the screen.** Every line a translation can replace now
+  has a room in pixels where the game draws it, in
+  `data/translation_limits.json` (numbers only, no game text). It is measured
+  by running the games' own code in Unicorn
+  (`scripts/build_translation_limits.py`): every function that looks a line
+  up by a fixed id, the Help pages, the tutorial messages, the Plant Options
+  dialog and the Fish screens are run twice, the second time with every text
+  64 pixels wider. How a line moved gives its alignment, and its room is then
+  the screen's edge, the picture it sits in (a button frame, a panel), a text
+  box's own fields (the Unicode setting's `box_room` rule), or the widest text
+  the game's message, question or tooltip box keeps on the 800 x 600 screen
+  (Fish message 758 pixels; Plant message 696, question 708, tooltip 780).
+  A room runs to the screen's edge: a line may run past its box, over the
+  next word or a check box, but never off the screen. This gives a measured
+  room for 81 of Fish Tycoon's 248 lines and 121 of Plant Tycoon's 391. The
+  Counts button's label has the screen's edge as its room (796 pixels).
+  Every other line, and every other patcher DLL text, gets the
+  safe rule: the English's widest line plus a quarter (at least 16 pixels),
+  never past the screen. A Windows popup's text (Time Warp's dialog) has no
+  limit: Windows wraps it.
+- **The first live check's French lines.** In Unicorn, with the French test
+  translation, every line is drawn whole and none runs off the screen:
+  "Morceaux de musique", "Arrêter le temps", "ARGENT", "Poubelle" and
+  "Pépinière" may run past their boxes or over a neighbour (the owner's rule:
+  things may run out of boxes, they just must not run off the screen). The
+  Counts button's label ("Compteurs : oui") moves left to end at the screen's
+  edge instead of being cut; English is drawn exactly as before, and only a
+  label wider than the whole screen is cut, from its end.
+- **The editor and the validator warn.** A translated line wider than its
+  room, measured with the game's font the way Wrap to fit measures (the Text
+  Maker's layout, with the patcher-made and Windows-drawn letters), is shown
+  "too wide" in red, with the line, the key, its width and the room. It is a
+  warning only: the line is still used. Check names the same lines. Wrap to
+  fit and Wrap all now re-break to the recorded room (the widest English line
+  where none is recorded).
+- **The game fits it.** Translations.dll measures every used line with the
+  game's own measure (Fish 0x4023D0, Plant 0x402380; where Unicode Text.dll
+  draws wide letters its hook on that measure sees them) once the fonts are
+  made. A line wider than its room is re-broken where the English has line
+  breaks (at spaces, after hyphens, between Chinese and Japanese characters
+  with the kinsoku rules, never inside a letter with its marks or an emoji),
+  otherwise cut with "..." after the last whole letter that fits; if even
+  that does not fit, or the text is taller than its box, the English is
+  shown. Printf formats are never cut, lines with a number choice are left
+  alone (English if too wide), and nothing grows past a line's byte limit.
+  Translations.log says how many lines were re-broken, cut or shown in
+  English. Checked in Unicorn against both games: every game line at a long
+  German-like, Chinese, Thai, Arabic and emoji width, in Windows-1252 and
+  UTF-8, and the games' own screens (Plant main menu, Options, message and
+  question boxes; Fish Options and message box) drawn with what the DLL
+  returns. Not yet seen in a running game. Lines no run reaches use the safe
+  rule's room, which is an estimate, and patcher DLL texts drawn by the DLLs
+  themselves are checked against the safe rule only.
 - **Patch boxes use the patch's own translation** (Translations.dll, Plant
   Tycoon; checked in the emulator, not yet seen in a running game). Sort Seeds'
   question, its Yes and No buttons, and Extra Greenhouses' "full" box put their

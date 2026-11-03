@@ -69787,8 +69787,8 @@
           {
             "path": "Tank Counts.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Tank Counts.dll",
-            "size": 95232,
-            "sha256": "D2BFB2C8B4914F6FABEA756E8AA566600392CCF150CA725D7252B3CECEED7622"
+            "size": 95744,
+            "sha256": "1CC935EAD3FD2E11DAF66EB456F74153514FF32EF0D34B1922A7F60D0F991A73"
           }
         ]
       }
@@ -70671,8 +70671,8 @@
           {
             "path": "Translations.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Translations.dll",
-            "size": 131584,
-            "sha256": "251B16FA912BFF88471818EAC7E7E2FAEED628F976FAA297C5020DD1727DD1A3"
+            "size": 143360,
+            "sha256": "F0D7441D8C21CC720563BCEF2983271F8200D3C92A029C8FF07417304DE603CA"
           }
         ]
       }

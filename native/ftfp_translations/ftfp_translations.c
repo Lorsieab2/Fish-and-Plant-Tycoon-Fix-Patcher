@@ -38,6 +38,8 @@
 #include "../ftfp_ds_fish/install_sites.h"
 #include "translation_text.h"
 #include "translation_tables.h"
+#include "translation_limits.h"
+#include "translation_fit.h"
 
 #define AT(base, offset, type) (*(type *)((char *)(base) + (offset)))
 
@@ -96,6 +98,7 @@ typedef struct row {
     int translation_n;
     void *out;                       /* the translation as the game gets it (choices: o / other) */
     int has_select;
+    int fallback;                    /* too wide for its room even fitted: the English is shown */
     struct row *next;                /* the next line with the same id */
 } row;
 
@@ -671,7 +674,7 @@ static const char *translate_game(int id, const char *result) {
         english = game_english(id, NULL);
         if (english != NULL) {
             for (r = by_id[id]; r != NULL; r = r->next) {
-                if (strcmp(r->english_game, english) == 0) return (const char *)r->out;
+                if (strcmp(r->english_game, english) == 0) return r->fallback ? result : (const char *)r->out;
             }
         }
     }
@@ -679,7 +682,7 @@ static const char *translate_game(int id, const char *result) {
     {
         int len = slen(result);
         for (r = mod_rows[fnv(result, len) & 63u]; r != NULL; r = r->next) {
-            if (strcmp(r->english_game, result) == 0) return (const char *)r->out;
+            if (strcmp(r->english_game, result) == 0) return r->fallback ? result : (const char *)r->out;
         }
     }
     /* another line's text put in this line's place (Sort Seeds' box: Yes and No where OK and Cancel
@@ -696,11 +699,130 @@ static const char *translate_game(int id, const char *result) {
     return result;
 }
 
+/* ----------------------------------------------------------------- every line fitted to its room
+
+   Once the game's fonts are made (the first lookup after that), every used line is measured with
+   the game's own measure and, if wider than its room (translation_limits.h), fitted
+   (translation_fit.h): re-broken, cut with an ellipsis, or English.  In place: the line's own
+   block, never longer than the byte limit it was already held to. */
+#define FISH_WIDTH 0x004023D0u
+#define FISH_HEIGHT 0x004024A0u
+#define FISH_FONTS 0x0045B270u              /* the font manager: [0] the fonts, by number (0x4181F0) */
+#define PLANT_WIDTH 0x00402380u
+#define PLANT_HEIGHT 0x00402450u
+#define PLANT_GRAPHICS 0x00493948u          /* the graphics: [0] its implementation, +0x5C its font */
+#define PLANT_FONT 0x5C
+
+static int fitted = 0;
+static int fit_broken = 0, fit_cut = 0, fit_english = 0;
+
+static void *font_object(int n) {
+    if (game == GAME_FISH) {
+        char *manager = *(char **)(UINT_PTR)FISH_FONTS;
+        void **fonts;
+        if (manager == NULL || (fonts = *(void ***)manager) == NULL) return NULL;
+        return fonts[n >= 0 && n <= 2 ? n : 0];
+    } else {
+        char *graphics = *(char **)(UINT_PTR)PLANT_GRAPHICS, *impl;
+        if (graphics == NULL || (impl = *(char **)graphics) == NULL) return NULL;
+        return *(void **)(impl + PLANT_FONT);
+    }
+}
+
+static const tl_line *line_limit(int id) {
+    const tl_line *t = game == GAME_FISH ? TL_FISH : TL_PLANT;
+    int n = game == GAME_FISH ? TL_FISH_N : TL_PLANT_N, k;
+    for (k = 0; k < n; ++k) if (t[k].id == id) return &t[k];
+    return NULL;
+}
+
+static const tl_mod *mod_limit(const tr_mod_text *m) {
+    int k;
+    for (k = 0; k < TL_MODS_N; ++k) if (TL_MODS[k].game == m->game && strcmp(TL_MODS[k].id, m->id) == 0) return &TL_MODS[k];
+    return NULL;
+}
+
+static void fit_row(row *r) {
+    tf_ctx c;
+    int width, height = 0, flags, font = 0, limit, n, got;
+    if (r->out == NULL) return;
+    if (r->kind == 1) {
+        const tl_line *l = line_limit(r->id);
+        if (l == NULL) return;
+        width = l->width; height = l->height; flags = l->flags; font = l->font;
+        limit = game_limit(r->id, r->english_n);
+    } else {
+        const tr_mod_text *m = &TR_MOD_TEXTS[r->id];
+        const tl_mod *l;
+        if (m->wide || m->counted || (l = mod_limit(m)) == NULL) return;   /* a popup wraps itself */
+        width = l->width; flags = l->flags;
+        limit = m->limit;
+    }
+    if (limit > TR_ABSOLUTE_MAX) limit = TR_ABSOLUTE_MAX;
+    c.width = (tf_width_fn)(UINT_PTR)(game == GAME_FISH ? FISH_WIDTH : PLANT_WIDTH);
+    c.height = (tf_height_fn)(UINT_PTR)(game == GAME_FISH ? FISH_HEIGHT : PLANT_HEIGHT);
+    c.font = font_object(font);
+    if (c.font == NULL) c.font = font_object(0);
+    if (c.font == NULL) return;
+    c.utf8 = text_mode == 1;
+    c.room = width;
+    c.format = (flags & TL_FORMAT) != 0;
+    c.cap = limit;
+    c.broke = c.cut = 0;
+    n = slen((const char *)r->out);
+    got = tf_fit(&c, (const char *)r->out, n, (flags & TL_MULTILINE) != 0, height);
+    if (got == TF_FITS) return;                                     /* fits as it is */
+    if (got < 0 || r->has_select) {
+        /* the English: a game line through the lookup; a DLL's text in its own block */
+        if (r->kind == 2) {
+            int e = slen(r->english_game);
+            if (e > TR_ABSOLUTE_MAX * 2) return;
+            memcpy(r->out, r->english_game, (size_t)e + 1);
+        }
+        r->fallback = 1;
+        ++fit_english;
+        return;
+    }
+    memcpy(r->out, fit_out, (size_t)got + 1);
+    if (c.broke) ++fit_broken;
+    if (c.cut) ++fit_cut;
+}
+
+static void fit_all(void) {
+    void *font = font_object(0);
+    int k;
+    if (font == NULL) return;
+    {
+        tf_width_fn width = (tf_width_fn)(UINT_PTR)(game == GAME_FISH ? FISH_WIDTH : PLANT_WIDTH);
+        if (width(font, NULL, "M", 1.0f) <= 0) return;                  /* not loaded yet */
+    }
+    fitted = 1;
+    for (k = 0; k < row_count; ++k) {
+        __try {
+            fit_row(&rows[k]);
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+        }
+    }
+    if (fit_broken + fit_cut + fit_english > 0) {
+        log_add("Translations: fitted to their room on the screen: ");
+        log_int(fit_broken);
+        log_add(" re-broken, ");
+        log_int(fit_cut);
+        log_add(" cut with an ellipsis, ");
+        log_int(fit_english);
+        log_add(" too wide even then (English)\r\n");
+        write_log();
+    }
+}
+
+int __stdcall FtfpTranslationsFitted(void) { return fitted; }
+
 typedef const char *(__fastcall *lookup_fn)(void *self, int edx, int id);
 
 static const char *__cdecl tr_lookup(void *self, int id) {
     const char *result = ((lookup_fn)(UINT_PTR)next_lookup)(self, 0, id);
     __try {
+        if (!fitted) fit_all();
         result = translate_game(id, result);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }

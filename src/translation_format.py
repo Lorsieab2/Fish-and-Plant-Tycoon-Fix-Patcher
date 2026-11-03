@@ -1047,8 +1047,10 @@ class Report:
         return "\n".join(lines)
 
 
-def validate(tf: TranslationFile, entries: list[Entry] | None = None) -> Report:
-    """Coverage, errors and warnings; against the program's inventory when given."""
+def validate(tf: TranslationFile, entries: list[Entry] | None = None, widths=None) -> Report:
+    """Coverage, errors and warnings; against the program's inventory when given. `widths`
+    (translation_fit.checker): (key, English, translation) -> a warning when a line is wider than
+    its room in the game, or None; a width is only ever a warning, never a reason to refuse a line."""
     errors = list(tf.errors)
     warnings = list(tf.warnings)
     changed: list[str] = []
@@ -1070,6 +1072,9 @@ def validate(tf: TranslationFile, entries: list[Entry] | None = None) -> Report:
                     errors.append(Problem(row.line, "error", too_long_message(entry.max_length), row.key))
                 else:
                     translated += 1
+                    wide = widths(row.key, entry.english, row.translation) if widths is not None else None
+                    if wide:
+                        warnings.append(Problem(row.line, "warning", wide, row.key))
         elif split_key(row.key) and base_key(row.key) in bases:
             changed.append(row.key)
             if row.translation:

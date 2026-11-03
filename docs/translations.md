@@ -60,7 +60,12 @@ built-in editor:
   starts with `。、）」！？` and the like, or ends with `（「『【`); never inside a letter with its marks, an
   emoji, a flag or a placeholder (`%d`, `%s`, `{name}`, a number choice); a word wider than the room is cut.
   Thai has no word list, so it breaks only at spaces and a long Thai run is reported as "cannot wrap".
-  Only line breaks and spaces change, never the words; the warning under the preview uses the same rule;
+  Only line breaks and spaces change, never the words; the warning under the preview uses the same rule.
+  Where the line's room on the screen is recorded (see "Fitting the screen" below), Wrap to fit, Wrap all
+  and the warning use that room instead of the English's widest line;
+- a red **too wide** status and message when a line is wider than its room on the screen: the line, the
+  key, its width and the room in pixels. It is a warning, never an error: the line is still used, and the
+  game fits it (below). **Check** lists the same warnings;
 - it saves by itself; if the game uses this translation, its copy in the game folders follows.
 
 The file is plain UTF-8 text, so Notepad works too, and so does a spreadsheet (open it as tab-separated
@@ -206,6 +211,67 @@ at a time, and a line that mixes left-to-right and right-to-left text is put in 
 right-to-left text reading left to right. A flag is drawn as a flag (Twemoji Mozilla, shipped beside
 the DLL). Neither game has a word wrapper: a long line is broken only where the translation has
 `\n`, so keep lines as short as the English. Not yet seen in a running game.
+
+### Fitting the screen
+
+Each line's room, in pixels, is in `data/translation_limits.json` (numbers only: the font, the width,
+whether the English breaks lines, the kind of spot, the box height for message boxes, and `proven`).
+`scripts/build_translation_limits.py` writes it, and `--header` writes
+`native/ftfp_translations/translation_limits.h` from it; `tests/test_translation_fit.py` runs the whole
+census again when the games and Unicorn are there and compares.
+
+- **Measured (`proven: true`).** Every function of the game that looks a line up by a fixed id (Fish
+  0x426FD0, Plant 0x44CA70), plus the Help pages, the tutorial messages, the Plant Options dialog and the
+  Fish screens, is run in Unicorn (`tests/draw_emulator.py`: the game's own screens, widgets and draws on
+  an 800 x 600 screen), twice: the second time every text is 64 pixels wider. A line that did not move is
+  placed from its left edge, one that moved 32 is centred, one that moved 64 is placed from its right
+  edge. Its room is the screen's edge as box_room gives a name its room (left: to the right edge; centred:
+  twice the distance to the nearer edge; right: from the left edge), and inside a picture that holds the
+  whole English line and does not move (a panel), that picture's sides; a button's label has its frame's
+  width; a text box that is built but not drawn gives its room from its own fields (box_room). A word
+  placed on a Plant dialog whose place the run does not know (a third run moves the dialog and the word
+  moves with it) gets no room from the screen's edge there. A line handed to a message, question or
+  tooltip box has the widest (and tallest) text that box keeps on the screen, found by building the box
+  with the game's code with ever wider text: Fish message 758 x 493, Plant message 696 x 462, question
+  708 x 477, tooltip 780 x 580. Lines the game picks by a number at one call (Fish Tycoon's Sell screen
+  line, 0x45-0x73) share the room found for one of them. 81 of Fish Tycoon's 248 lines and 121 of Plant
+  Tycoon's 391 are measured.
+- **The safe rule (`proven: false`).** Every other line (ids the game chooses by a register: species,
+  goals, store items...; spots no run could show) and every patcher DLL text drawn by the DLL itself: the
+  English's widest line plus a quarter (at least 16 pixels), never more than the screen's 800. It is an
+  estimate, not a measurement. Exception: the Counts button ("Counts: On" / "Off", drawn by Tank Counts
+  and Greenhouse Counts from x 694, Plant's from 646 under the Extra Greenhouses arrows) has the
+  screen's edge as its room (796 pixels), checked by running the DLL's draw in
+  `tests/test_tank_greenhouse_counts.py`. A wider translation ("Compteurs : oui") is drawn whole: the DLL
+  measures it with the game's own measure and moves its start left so it ends at x 796 (its click area
+  follows); English is drawn exactly as before, and only a label wider than the whole screen is cut,
+  from its end.
+- **No limit.** A Windows popup's text (Time Warp's dialog, the store popups): Windows wraps it.
+
+The editor and the validator (`src/translation_fit.py`, `translation_format.validate(widths=...)`)
+measure each line of a translation (choices at their longest) with the game's font as Wrap to fit does
+and warn when one is wider than its room. Width never refuses a line.
+
+In the game, `Translations.dll` (`translation_fit.h`) waits until the game's fonts are made (the first
+string lookup after that), then measures every used line with the game's own measure (Fish 0x4023D0,
+Plant 0x402380, called with the line's font; where Unicode Text.dll draws wide letters, its hook on that
+measure sees them, so the width is what will be drawn). A line wider than its room:
+
+1. where the English breaks lines, is broken again at its own break opportunities (the small rule set of
+   `src/text_wrap.py`: after a space, which becomes the break; after a hyphen, not before a digit; between
+   CJK characters with the kinsoku rules; never inside a letter with its marks, an emoji sequence or a
+   flag); the translator's own line breaks stay;
+2. a piece still too wide (one long word, Thai with no spaces), or any too-wide line where the English has
+   no line breaks, is cut with `...` after the last whole letter that fits;
+3. if nothing fits before the `...`, or the text is taller than its box, the English is shown.
+
+A printf format is only broken at spaces, never cut; a line with a number choice (Fish Tycoon's counted
+Goals lines) is re-made by the game's sprintf from the translation, so a too-wide one shows English. A
+line never grows past the byte limit it was already held to. `Translations.log` counts the lines
+re-broken, cut and shown in English. `tests/test_translations_fit_runtime.py` checks it in Unicorn:
+every game line of both games at a long German-like, Chinese, Thai, Arabic and emoji width (Windows-1252
+and UTF-8), the rules on single lines, and the games' own screens drawn with what the DLL returns. Not
+yet seen in a running game.
 
 The game draws bytes with its own fonts. Until the patcher's Unicode font settings draw more, a
 translation is shown in Windows-1252: Latin-1 (French, German, Spanish, Portuguese, Italian, Dutch,

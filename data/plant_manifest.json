@@ -10108,7 +10108,7 @@
             "path": "Greenhouse Counts.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Greenhouse Counts.dll",
             "size": 94208,
-            "sha256": "BBA1F54BC2E7278E518FCBB692EB7CBA58E29790731230B99E380842133A4E52"
+            "sha256": "360708920D77BDDAEDFFD83C708318FD69BC7EDE73EE49E26BC3127F28648C6D"
           }
         ]
       }
@@ -10540,8 +10540,8 @@
           {
             "path": "Translations.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Translations.dll",
-            "size": 131584,
-            "sha256": "251B16FA912BFF88471818EAC7E7E2FAEED628F976FAA297C5020DD1727DD1A3"
+            "size": 143360,
+            "sha256": "F0D7441D8C21CC720563BCEF2983271F8200D3C92A029C8FF07417304DE603CA"
           }
         ]
       }

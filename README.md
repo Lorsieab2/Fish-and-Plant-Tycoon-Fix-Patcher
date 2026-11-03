@@ -1299,9 +1299,11 @@ folder never fails with "path too long".
   "Make a translation" writes every English line of the game and of the
   patcher's own texts into a file and opens a built-in editor (search,
   untranslated only, progress, placeholders in colour, a preview in the
-  game's own font with a too-long warning, Wrap to fit / Wrap all / Undo
-  wrap, which re-break a translation to the widest line of its English with
-  the game's font metrics, autosave). "Add translation
+  game's own font with a too-long warning, a red "too wide" warning when a
+  line is wider than its room on the screen, Wrap to fit / Wrap all / Undo
+  wrap, which re-break a translation to that room (the widest line of its
+  English where no room is recorded) with the game's font metrics,
+  autosave). "Add translation
   file..." (or drag a file onto the window) checks and adds one you were
   sent; "Export translation..." saves a copy (several selected: one file
   each into a folder). The list of translations selects several (Ctrl+click,
@@ -1333,6 +1335,17 @@ folder never fails with "path too long".
     translations through their relocations. Lines the games copy into fixed
     buffers have a length limit, so a translation can never overflow one.
     `tests/test_translations_runtime.py` runs it in Unicorn against both games.
+  - Translations fit the screen: `data/translation_limits.json` holds each
+    line's room in pixels, measured by running the games' own code in Unicorn
+    (`scripts/build_translation_limits.py`; 81 Fish and 121 Plant lines, the
+    message, question and tooltip boxes' widest text); the other lines and
+    the patcher DLLs' texts get a safe estimate (the English's widest line
+    plus a quarter, never past the screen). The editor warns (never refuses)
+    about a wider line; in the game `Translations.dll` measures each line with
+    the game's own measure and re-breaks it where the English has line
+    breaks, cuts it with "..." otherwise, or shows the English if even that
+    does not fit (`tests/test_translations_fit_runtime.py`). Not yet seen in a
+    running game.
   - Every patch's own text can be translated: every patcher DLL's visible text
     (store items, descriptions, counts, popups, Time Warp, the DS fish's and
     the unused flowers' species-name words...) and every text an executable
