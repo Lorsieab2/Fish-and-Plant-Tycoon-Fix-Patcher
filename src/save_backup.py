@@ -471,6 +471,8 @@ def players_in(game_id: str, folder: Path) -> dict[int, str]:
     title = save_tools.FORMATS[game_id].title
     try:
         names = save_tools.read_slot_names(game_id, folder)
+        book = save_tools.NameBook(game_id, folder)        # a short form: the whole name
+        names = [book.full(slot, name) for slot, name in enumerate(names, start=1)]
     except (OSError, save_tools.SaveToolError):
         names = [""] * save_tools.FORMATS[game_id].slots
     return {slot: names[slot - 1] or "(no name)" for slot in range(1, len(names) + 1)
@@ -540,6 +542,7 @@ class RestorePlan:
     remove: list[Path] = field(default_factory=list)    # only in the save folder now
     unchanged: list[Path] = field(default_factory=list)
     player_name: str | None = None                       # one slot: its name, put back in the player list
+    player_field: bytes | None = None                    # ... as the player list holds it (bytes)
 
     @property
     def changes(self) -> int:
@@ -597,12 +600,14 @@ def plan_restore(game_id: str, save_folder: Path, backup: Path, slot: int | None
         if not (backup / f"{title}{slot}.ldw").is_file():
             raise RestoreRefused(f"This backup holds no save for player slot {slot}.")
         try:
-            wanted = save_tools.read_slot_names(game_id, backup)[slot - 1]
-            current = save_tools.read_slot_names(game_id, save_folder)[slot - 1]
+            wanted = save_tools.read_slot_fields(game_id, backup)[slot - 1]
+            current = save_tools.read_slot_fields(game_id, save_folder)[slot - 1]
+            shown = save_tools.NameBook(game_id, backup).full(slot, save_tools.unicode_data.decode_game_text(wanted))
         except (OSError, save_tools.SaveToolError) as exc:
             raise RestoreRefused(f"The player list could not be read ({exc}).") from exc
         if wanted != current:
-            plan.player_name = wanted
+            plan.player_name = shown
+            plan.player_field = wanted
     return plan
 
 
@@ -630,13 +635,14 @@ def _place(source: Path, target: Path) -> None:
             temp.unlink()
 
 
-def _set_player_name(game_id: str, save_folder: Path, slot: int, name: str) -> None:
-    """Write one slot's name into the player list, keeping everything else in it."""
+def _set_player_name(game_id: str, save_folder: Path, slot: int, field: bytes) -> None:
+    """Write one slot's name field (its bytes, as the backup's player list holds them: a short form
+    stays the short form its Names file names) into the player list, keeping everything else in it."""
     fmt = save_tools.FORMATS[game_id]
     path = save_folder / f"{fmt.title}0.ldw"
     data = bytearray(path.read_bytes())
     at = fmt.names_offset + (slot - 1) * fmt.name_stride
-    data[at: at + fmt.name_stride] = name.encode("latin-1").ljust(fmt.name_stride, b"\0")[: fmt.name_stride]
+    data[at: at + fmt.name_stride] = field.ljust(fmt.name_stride, b"\0")[: fmt.name_stride]
     temp = path.with_name(path.name + ".ftfp-restore.tmp")
     temp.write_bytes(bytes(data))
     os.replace(temp, path)
@@ -676,7 +682,7 @@ def restore_backup(game_id: str, save_folder: Path, backup: Path, slot: int | No
             (save_folder / relative).unlink()
         if plan.player_name is not None:
             done.append(settings)
-            _set_player_name(game_id, save_folder, slot, plan.player_name)
+            _set_player_name(game_id, save_folder, slot, plan.player_field)
     except (OSError, BackupError) as exc:
         problems = _roll_back(save_folder, before, done)
         if problems:

@@ -8,12 +8,14 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
+import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import save_backup  # noqa: E402
 import save_tools  # noqa: E402
+import unicode_data  # noqa: E402
 
 
 class NoGame:
@@ -150,15 +152,16 @@ class SaveToolTests(unittest.TestCase):
             self.assertEqual(save_tools.read_slot_names(game_id, folder)[1], "Zoë")
             self.assertEqual(save_tools.player_name(game_id, folder, 1, "NEW PLAYER"), "Renée Ørsted")
             # still only what the game takes: no letters past U+00FF, no C1 controls
-            for bad in ("Łukasz", "€uro", "a\x85b", "x" * 301):
+            for bad in ("Łukasz", "€uro", "a\x85b", "x" * (save_tools.NAME_BOX_BYTES + 1)):
                 with self.assertRaises(save_tools.SaveToolError, msg=bad):
                     save_tools.validate_name(game_id, bad, unicode=True)
 
     def test_long_names_keep_a_short_form_and_the_full_name_beside_the_save(self) -> None:
-        """With Unicode Text.dll a name has up to 300 letters (the one limit of every name box,
-        native/common/unicode_names.h): the game's fields get the short form (31 letters, Latin-1,
-        "?" for others) and "<Game> Fix Patcher Data\\Names <slot>.dat" the full name, which the
-        tools read back and Copy Player Slot copies under the new name."""
+        """With Unicode Text.dll a name takes up to NAME_BOX_BYTES bytes as stored, no character cap
+        (docs/UNICODE_SPEC.md section 2): the game's fields keep a name that fits as it is (the write
+        rule: a Windows-1252 byte a letter, else UTF-8), a longer one as its short form (its start of
+        whole characters and "..."), and "<Game> Fix Patcher Data\\Names <slot>.dat" gets the shared
+        format's record, which the tools read back and Copy Player Slot carries."""
         long_name = "Bartholomew Montgomery Fitzgerald the Third of Ørsted"
         for game_id in save_tools.FORMATS:
             fmt = save_tools.FORMATS[game_id]
@@ -171,39 +174,179 @@ class SaveToolTests(unittest.TestCase):
             (data / "Unicode Text.ini").write_text("Render Unicode with In-Game Fonts: this copy types and draws "
                                                    "Latin-1 names.")
             self.assertEqual(save_tools.unicode_level(game_id, folder), save_tools.LATIN1)
-            self.assertEqual(save_tools.name_limit(game_id, folder), 300)
+            self.assertEqual(save_tools.name_limit(game_id, folder), save_tools.NAME_BOX_BYTES)
             report = save_tools.rename_slot(game_id, folder, 1, long_name, NoGame())
             self.assertEqual((report["old_name"], report["new_name"]), ("Ana", long_name))
-            short = long_name.encode("latin-1")[:31]
-            self.assertEqual(save_tools.read_slot_names(game_id, folder)[0].encode("latin-1"), short)
+            short = b"Bartholomew Montgomery Fitzg..."
+            self.assertEqual(len(short), 31)
+            self.assertEqual(save_tools.read_slot_fields(game_id, folder)[0], short)
             slot = (folder / f"{fmt.title}1.ldw").read_bytes()
             self.assertEqual(slot[fmt.slot_name_offset: fmt.slot_name_offset + 32], short.ljust(32, b"\0"))
-            self.assertEqual((data / "Names 1.dat").read_bytes(), short + b"\0" + long_name.encode("utf-8") + b"\0")
+            body = f"{short.decode()}\t31\t{long_name}".encode("utf-8")
+            line = body + b"\t" + f"{zlib.crc32(body):08X}".encode() + b"\n"
+            self.assertEqual((data / "Names 1.dat").read_bytes(), b"FTFP Names 1\n" + line)
             self.assertEqual(save_tools.players(game_id, folder)[0], (1, long_name))
-            # Copy Player Slot: the copy's own full name
-            copied = save_tools.copy_slot(game_id, folder, 1, 3, "Second " + long_name, NoGame(), overwrite=True)
-            self.assertEqual(copied["old_name"], long_name)
+            # Copy Player Slot: the source's file carried, with the copy's own record
             second = "Second " + long_name
-            self.assertEqual((data / "Names 3.dat").read_bytes(),
-                             second.encode("latin-1")[:31] + b"\0" + second.encode("utf-8") + b"\0")
-            self.assertEqual((data / "Names 1.dat").read_bytes()[:31], short)
+            copied = save_tools.copy_slot(game_id, folder, 1, 3, second, NoGame(), overwrite=True)
+            self.assertEqual(copied["old_name"], long_name)
+            names3 = save_tools.parse_names((data / "Names 3.dat").read_bytes())
+            self.assertEqual([(r.short, r.whole) for r in names3],
+                             [(short.decode(), long_name), ("Second Bartholomew Montgomer...", second)])
+            self.assertEqual(save_tools.read_slot_fields(game_id, folder)[2], b"Second Bartholomew Montgomer...")
             self.assertEqual(dict(save_tools.players(game_id, folder))[3], second)
-            # renamed by a copy of the game without the DLL: its file no longer matches and is not used
+            # renamed by a copy of the game without the DLL: the field is its own name
             settings = bytearray((folder / f"{fmt.title}0.ldw").read_bytes())
             settings[fmt.names_offset: fmt.names_offset + 5] = b"Zed\0\0"
             (folder / f"{fmt.title}0.ldw").write_bytes(bytes(settings))
             self.assertEqual(dict(save_tools.players(game_id, folder))[1], "Zed")
-            # once the copy draws UTF-8: any script, its short form with "?"
+            # once the copy draws UTF-8: any script; a name that fits is kept as it is, by the write rule
             (data / "Unicode Text.ini").write_text("Render Unicode with In-Game Fonts: this copy types and draws "
                                                    "names in any script (UTF-8).")
             self.assertEqual(save_tools.unicode_level(game_id, folder), save_tools.ANY_SCRIPT)
-            save_tools.rename_slot(game_id, folder, 2, "山田 太郎 🐟 Ölçer", NoGame())
-            self.assertEqual(save_tools.read_slot_names(game_id, folder)[1], "?? ?? ? Ölçer")
-            self.assertEqual(dict(save_tools.players(game_id, folder))[2], "山田 太郎 🐟 Ölçer")
-            self.assertEqual(save_tools.short_form("x" * 300), b"x" * 31)
-            for bad in ("tab\there", "a\x85b", "x" * 301, "a\ud800b"):
-                with self.assertRaises(save_tools.SaveToolError, msg=bad):
+            save_tools.rename_slot(game_id, folder, 2, "山田 🐟 Ölçer", NoGame())
+            self.assertEqual(save_tools.read_slot_fields(game_id, folder)[1],
+                             "山田 🐟 ".encode("utf-8") + "Ölçer".encode("cp1252"))
+            self.assertEqual(save_tools.read_slot_names(game_id, folder)[1], "山田 🐟 Ölçer")
+            self.assertFalse((data / "Names 2.dat").exists(), "a name that fits needs no record")
+            # a longer one: whole characters, never a cut UTF-8 letter
+            save_tools.rename_slot(game_id, folder, 2, "山田 太郎 山田 太郎 🐟 Ölçer", NoGame())
+            self.assertEqual(save_tools.read_slot_fields(game_id, folder)[1], "山田 太郎 山田 太郎...".encode("utf-8"))
+            self.assertEqual(dict(save_tools.players(game_id, folder))[2], "山田 太郎 山田 太郎 🐟 Ölçer")
+            for bad in ("tab\there", "a\x85b", "a\ud800b", "x" * (save_tools.NAME_BOX_BYTES + 1)):
+                with self.assertRaises(save_tools.SaveToolError, msg=bad[:9]):
                     save_tools.validate_name(game_id, bad, save_tools.ANY_SCRIPT)
+
+    def test_the_name_limit_is_bytes_as_stored_with_no_character_cap(self) -> None:
+        """NAME_BOX_BYTES bytes as the game stores them: up to that many plain letters (no 300 cap),
+        a Windows-1252 letter one byte, any other its UTF-8 bytes; cuts keep whole characters."""
+        limit = save_tools.NAME_BOX_BYTES
+        self.assertEqual(save_tools.validate_name("fish", "x" * limit, save_tools.ANY_SCRIPT), "x" * limit)
+        self.assertEqual(save_tools.validate_name("fish", "é" * limit, save_tools.ANY_SCRIPT), "é" * limit)
+        with self.assertRaises(save_tools.SaveToolError):
+            save_tools.validate_name("fish", "山" * (limit // 3 + 1), save_tools.ANY_SCRIPT)
+        self.assertEqual(save_tools.name_bytes("Zoë 山 🐟"), 3 + 1 + 3 + 1 + 4)
+        self.assertEqual(save_tools.name_characters("é\U0001F468‍\U0001F469 🇯🇵"), 4)
+        self.assertEqual(unicode_data.cut_game_bytes("ab" + "é" * 3, 5), "abé")
+        text, over = save_tools.counter_text("fish", None, "Ann")
+        self.assertEqual((text, over), ("3 / 31 characters", False))
+        # the tools' counter where the copy has Unicode Text.dll: bytes, characters, the short form
+        folder = make_folder(self.root, "fish", ["Ana", "Bo", "Cy", "Di", "Ed"], "fish counter")
+        (folder / "Fish Tycoon Fix Patcher Data").mkdir()
+        (folder / "Fish Tycoon Fix Patcher Data" / "Unicode Text.ini").write_text("names in any script (UTF-8).")
+        self.assertEqual(save_tools.counter_text("fish", folder, "Zoë 🐟", 1),
+                         (f"8 / {limit:,} bytes, 5 characters", False))
+        text, over = save_tools.counter_text("fish", folder, "Bartholomew Montgomery Fitzgerald", 1)
+        self.assertEqual(text, f"33 / {limit:,} bytes, 33 characters; the save keeps the short form "
+                               "\"Bartholomew Montgomery Fitzg...\"")
+        self.assertFalse(over)
+        self.assertTrue(save_tools.counter_text("fish", folder, "x" * (limit + 1), 1)[1])
+
+    def test_short_forms_are_unique_and_reused(self) -> None:
+        """Two long names starting alike: "...", then "2..."; a name that already has a short form keeps
+        it; a name that fits but equals another's short form becomes a short form itself."""
+        a = "Wilhelmina Charlotte Augusta of Anhalt"
+        b = "Wilhelmina Charlotte Augusta of Brandenburg"
+        taken: dict[bytes, str] = {}
+        sa = save_tools.short_form(a, 31, taken)
+        self.assertEqual(sa, b"Wilhelmina Charlotte Augusta...")
+        taken[sa] = a
+        sb = save_tools.short_form(b, 31, taken)
+        self.assertEqual(sb, b"Wilhelmina Charlotte August2...")
+        taken[sb] = b
+        self.assertEqual(save_tools.short_form(a, 31, taken), sa)
+        self.assertEqual(save_tools.short_form("Wilhelmina Charlotte Augusta...", 31, taken),
+                         b"Wilhelmina Charlotte August3...")
+        # trailing spaces before the mark are dropped
+        self.assertEqual(save_tools.short_form("Abcdefghijklmnopqrstuvwxyz1 3456789", 31), b"Abcdefghijklmnopqrstuvwxyz1...")
+        # the write rule's fallback: a "Ã" then "©" would read as "é", so every non-ASCII letter is UTF-8
+        self.assertEqual(save_tools.short_form("Ã©"), "Ã©".encode("utf-8"))
+
+    def test_rename_twice_keeps_both_records_and_the_first_wins(self) -> None:
+        fmt = save_tools.FORMATS["fish"]
+        folder = make_folder(self.root, "fish", ["Ana", "Bo", "Cy", "Di", "Ed"])
+        data = folder / f"{fmt.title} Fix Patcher Data"
+        data.mkdir()
+        (data / "Unicode Text.ini").write_text("names in any script (UTF-8).")
+        a = "Bartholomew Montgomery Fitzgerald Alpha"
+        b = "Bartholomew Montgomery Fitzgerald Beta"
+        save_tools.rename_slot("fish", folder, 1, a, NoGame())
+        save_tools.rename_slot("fish", folder, 1, b, NoGame())
+        self.assertEqual(save_tools.read_slot_fields("fish", folder)[0], b"Bartholomew Montgomery Fitz2...")
+        records = save_tools.read_names("fish", folder, 1)
+        self.assertEqual([r.whole for r in records], [a, b], "records are never removed")
+        self.assertEqual(save_tools.players("fish", folder)[0], (1, b))
+        self.assertEqual(save_tools.full_name("fish", folder, 1, "Bartholomew Montgomery Fitzg..."), a)
+        # back to the first name: its short form is used again, no new record
+        save_tools.rename_slot("fish", folder, 1, a, NoGame())
+        self.assertEqual(save_tools.read_slot_fields("fish", folder)[0], b"Bartholomew Montgomery Fitzg...")
+        self.assertEqual(len(save_tools.read_names("fish", folder, 1)), 2)
+
+    def test_names_file_records_are_checked(self) -> None:
+        """A cut or merged record, a wrong CRC, no mark, too long for its room, a control character or
+        more than NAME_BOX_BYTES bytes: left out. The first record of a short form wins. A v1.0.25
+        file ("short NUL full NUL", "?" for other letters) is still read."""
+        good = save_tools.NameRecord("Abc...", 31, "Abcdefghijklmnopqrstuvwxyz0123456789")
+        line = save_tools.record_line(good)
+        later = save_tools.record_line(save_tools.NameRecord("Abc...", 31, "Another whole name for Abc"))
+        bad_crc = line[:-3] + b"0\n" if not line.endswith(b"0\n") else line[:-3] + b"1\n"
+        nomark = save_tools.record_line(save_tools.NameRecord("Abc", 31, "Abcdefghij"))
+        toolong = save_tools.record_line(save_tools.NameRecord("A" * 31 + "...", 31, "A" * 40))
+        control = save_tools.record_line(save_tools.NameRecord("Ctl...", 31, "Ctl\x07name"))
+        huge = save_tools.record_line(save_tools.NameRecord("Big...", 31, "x" * (save_tools.NAME_BOX_BYTES + 1)))
+        # a cut record (no LF of its own: merged with the next), a cut one alone, then the good one
+        data = (b"FTFP Names 1\n" + bad_crc + line[:15] + later + line[:20] + b"\n" + line + later + nomark + toolong + control + huge
+                + b"garbage\n" + line[:-1])
+        self.assertEqual(save_tools.parse_names(data), [good])
+        self.assertEqual(save_tools.parse_names(b"FTFP Names 9\n" + line), [])
+        self.assertEqual(save_tools.parse_names(b"\xff\xfe junk"), [])
+        legacy = "Renée Ørsted 山田 and a much longer tail"
+        old = save_tools.old_short_form(legacy).encode("latin-1")
+        self.assertEqual(old, b"Ren\xe9e \xd8rsted ?? and a much long")
+        records = save_tools.parse_names(old + b"\0" + legacy.encode("utf-8") + b"\0")
+        self.assertEqual([(r.short.encode("latin-1"), r.whole) for r in records], [(old, legacy)])
+        # a new record added to a v1.0.25 file: the shared format, the old record kept first
+        out = save_tools.render_names(old + b"\0" + legacy.encode("utf-8") + b"\0", [good])
+        self.assertEqual(save_tools.parse_names(out), records + [good])
+        self.assertTrue(out.startswith(b"FTFP Names 1\n"))
+
+    def test_a_v1025_names_file_is_still_read(self) -> None:
+        fmt = save_tools.FORMATS["plant"]
+        legacy = "Maximilian Alexander von Hohenstein-Waldburg"
+        old = save_tools.old_short_form(legacy).encode("latin-1")
+        folder = make_folder(self.root, "plant", ["x", "Bo", "Cy", "Di", "Ed"])
+        settings = bytearray((folder / f"{fmt.title}0.ldw").read_bytes())
+        settings[fmt.names_offset: fmt.names_offset + 32] = old.ljust(32, b"\0")
+        (folder / f"{fmt.title}0.ldw").write_bytes(bytes(settings))
+        data = folder / f"{fmt.title} Fix Patcher Data"
+        data.mkdir()
+        (data / "Unicode Text.ini").write_text("names in any script (UTF-8).")
+        (data / "Names 1.dat").write_bytes(old + b"\0" + legacy.encode("utf-8") + b"\0")
+        self.assertEqual(save_tools.players("plant", folder)[0], (1, legacy))
+
+    def test_a_failed_rename_puts_the_names_file_back(self) -> None:
+        fmt = save_tools.FORMATS["fish"]
+        folder = make_folder(self.root, "fish", ["Ana", "Bo", "Cy", "Di", "Ed"])
+        data = folder / f"{fmt.title} Fix Patcher Data"
+        data.mkdir()
+        (data / "Unicode Text.ini").write_text("names in any script (UTF-8).")
+        before = {p.relative_to(folder): p.read_bytes() for p in folder.rglob("*") if p.is_file()}
+        real = Path.replace
+        calls = []
+
+        def failing(self_path, target):
+            calls.append(target)
+            if str(target).endswith("Fish Tycoon21.ldw"):
+                raise OSError("disk full")
+            return real(self_path, target)
+
+        with mock.patch.object(Path, "replace", failing):
+            with self.assertRaises(OSError):
+                save_tools.rename_slot("fish", folder, 1, "Bartholomew Montgomery Fitzgerald Alpha", NoGame())
+        self.assertFalse((data / "Names 1.dat").exists(), "the Names file written first is undone")
+        for rel, body in before.items():
+            self.assertEqual((folder / rel).read_bytes(), body, rel)
+        self.assertFalse(list(folder.glob("*.tmp")))
 
     def test_only_slots_with_a_saved_game_can_be_renamed(self) -> None:
         fmt = save_tools.FORMATS["plant"]

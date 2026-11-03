@@ -72,11 +72,14 @@ HELP = {
             "Changes a player's name in the game's player list and inside that player's own save files.",
             "Only players with a saved game can be renamed, and \"NEW PLAYER\" is not a name (the game "
             "uses it for empty slots). Up to 31 plain characters, as in the game; where the copy of the "
-            "game has Render Unicode with In-Game Fonts or Use Unicode Font, up to 300 letters (the "
-            "same limit as every name box in that copy) in the letters it takes. The game's own fields "
-            "then keep the name's first 31 letters (\"?\" for a letter Latin-1 has not), so a copy of "
-            "the game without it still loads the save, and the full name is kept beside the save, in "
-            "<Game> Fix Patcher Data\\Names <slot>.dat.",
+            "game has Render Unicode with In-Game Fonts or Use Unicode Font, up to 1,200 bytes as the "
+            "game stores them (the same limit as every name box in that copy, and in the other Fun "
+            "Patchers: up to 1,200 plain letters, fewer when letters need more bytes) in the "
+            "characters it takes. The counter shows the bytes and the characters. A name that fits "
+            "the game's own 31-byte field is kept there as it is; a longer one is kept there as its "
+            "short form (its start and \"...\", or \"2...\", \"3...\" when two would start alike), "
+            "so a copy of the game without it still loads the save, and the whole name is kept beside "
+            "the save, in <Game> Fix Patcher Data\\Names <slot>.dat.",
             "The game must be closed: it saves when you quit, which would put the old name back. The "
             "save folder is backed up first, as \"Backup <date> (before rename)\".",
         ],
@@ -94,8 +97,9 @@ HELP = {
             "files, or anything an earlier player left on an empty slot, are not deleted but moved into "
             "Backups\\Replaced by copy <date> - Player <n> - <name>, so nothing of them mixes in. The new "
             "name follows the "
-            "game's rules: up to 31 plain characters (300 letters where the copy has Render Unicode with "
-            "In-Game Fonts or Use Unicode Font, its full name copied too), not \"NEW PLAYER\".",
+            "game's rules: up to 31 plain characters (1,200 bytes where the copy has Render Unicode "
+            "with In-Game Fonts or Use Unicode Font, the Names file copied with the new name's record), "
+            "not \"NEW PLAYER\".",
             "The game must be closed. The save folder is backed up first, as \"Backup <date> (before "
             "copy)\", so Restore Saves can undo it.",
         ],
@@ -553,10 +557,12 @@ class ToolsTab:
 
         def check(*_args) -> None:
             name = name_var.get()
-            limit = save_tools.name_limit(game(), state["folders"][folder_box.current()]
-                                          if state["folders"] and folder_box.current() >= 0 else None)
-            counter_var.set(f"{len(name)} / {limit} characters")
-            counter.configure(foreground="#a01010" if len(name) > limit else "")
+            text, over = save_tools.counter_text(
+                game(), state["folders"][folder_box.current()]
+                if state["folders"] and folder_box.current() >= 0 else None, name,
+                chosen()[0] if chosen() else None)
+            counter_var.set(text)
+            counter.configure(foreground="#a01010" if over else "")
             item = chosen()
             problem = None
             if not state["folders"]:
@@ -717,10 +723,12 @@ class ToolsTab:
 
         def check(*_args) -> None:
             name = name_var.get()
-            limit = save_tools.name_limit(game(), state["folders"][folder_box.current()]
-                                          if state["folders"] and folder_box.current() >= 0 else None)
-            counter_var.set(f"{len(name)} / {limit} characters")
-            counter.configure(foreground="#a01010" if len(name) > limit else "")
+            text, over = save_tools.counter_text(
+                game(), state["folders"][folder_box.current()]
+                if state["folders"] and folder_box.current() >= 0 else None, name,
+                target()[0] if target() else None)
+            counter_var.set(text)
+            counter.configure(foreground="#a01010" if over else "")
             problem = None
             if not state["folders"]:
                 problem = "No save folder was found for this game."
