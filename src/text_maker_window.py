@@ -12,7 +12,7 @@ from picture_image import Image
 import text_maker as tm
 
 HELP = (
-    "Text Maker",
+    "Game Text",
     [
         "Type any text and see it in the game's own fonts, drawn exactly as the game draws it: the "
         "game's letter pictures, widths, line height and colours (Fish Tycoon: Paddington 18 and 30 and "
@@ -30,6 +30,11 @@ HELP = (
         "fonts the patcher ships: Unifont, Noto Serif Tangut, Noto Sans Cuneiform and Last Resort) at the "
         "game font's size, baseline and stroke weight. Untick \"Make missing letters\" to see what the game "
         "itself would draw.",
+        "Show: \"As Render Unicode with In-Game Fonts draws it\" (the patched game), \"As the stock game shows "
+        "it\" (what the game itself draws, without the patcher's letters) or \"As Use Unicode Font draws it\" (the "
+        "font chosen in Unicode Font..., fitted to each game font). The list under the preview labels every "
+        "character: (game), (patcher-made), (drawn by Windows: the font) or (missing), as the character "
+        "picker does.",
         "It reads the fonts from a copy of the game (the folders on the Game tabs, or one you choose) and "
         "never changes any game file.",
     ],
@@ -40,6 +45,11 @@ BACKGROUNDS = (("Transparent", None), ("Black", (0, 0, 0)), ("Deep blue", (24, 4
 PREVIEW_CHECKER = ((204, 204, 204), (240, 240, 240))
 PATCHER_MADE_MARK = "#ff00c8"
 SAMPLE = "Fish and Plant Tycoon\nCafé, naïve, Ğğ Şş İı, 日本語, 中文 🐟🌻"
+# The preview's three ways (the shared spec's Game Text tool)
+SHOW_PATCHED = "As Render Unicode with In-Game Fonts draws it"
+SHOW_STOCK = "As the stock game shows it"
+SHOW_UNICODE = "As Use Unicode Font draws it"
+SHOW_MODES = (SHOW_PATCHED, SHOW_STOCK, SHOW_UNICODE)
 
 
 def _checker(width: int, height: int, cell: int = 8) -> Image:
@@ -65,7 +75,7 @@ class TextMakerWindow:
         self.custom_background = (0, 0, 0)
 
         win = self.window = tk.Toplevel(master)
-        win.title("Text Maker")
+        win.title("Game Text")
         win.geometry("1000x800")
         win.minsize(760, 560)
         frame = ttk.Frame(win, padding=10)
@@ -125,6 +135,11 @@ class TextMakerWindow:
         self.highlight_var = tk.BooleanVar(master=win, value=False)
         ttk.Checkbutton(row, text="Outline patcher-made letters in the preview", variable=self.highlight_var,
                         command=self.refresh).pack(side="left", padx=(16, 0))
+        ttk.Label(row, text="Show:").pack(side="left", padx=(16, 0))
+        self.show_var = tk.StringVar(master=win, value=SHOW_PATCHED)
+        show_box = ttk.Combobox(row, textvariable=self.show_var, state="readonly", width=44, values=SHOW_MODES)
+        show_box.pack(side="left", padx=(4, 0))
+        show_box.bind("<<ComboboxSelected>>", lambda _e: self._show_chosen())
 
         # ---- text and the character helper
         middle = ttk.Frame(frame)
@@ -180,9 +195,9 @@ class TextMakerWindow:
         ttk.Label(bottom, textvariable=self.status, wraplength=940, justify="left").pack(anchor="w")
         made = ttk.Frame(frame)
         made.pack(fill="x", pady=(4, 0))
-        self.made = ttk.Treeview(made, columns=("letter", "code", "how"), show="headings", height=4)
-        for column, title, width in (("letter", "Patcher-made", 90), ("code", "Unicode", 330),
-                                     ("how", "How it was made", 500)):
+        self.made = ttk.Treeview(made, columns=("letter", "label", "code", "how"), show="headings", height=4)
+        for column, title, width in (("letter", "Character", 80), ("label", "Drawn as", 210), ("code", "Unicode", 300),
+                                     ("how", "How it was made", 330)):
             self.made.heading(column, text=title)
             self.made.column(column, width=width, anchor="w")
         self.made.pack(side="left", fill="x", expand=True)
@@ -308,7 +323,9 @@ class TextMakerWindow:
         if not chars:
             return
         self.insert(chars)
-        self.unicode_note.set(tm.describe(chars)[:200])
+        font = self.font
+        label = tm.source_label(font, chars) if font is not None and len(tm.clusters(chars)) == 1 else ""
+        self.unicode_note.set((tm.describe(chars)[:200] + (" " + label if label else "")))
         self.unicode_var.set("")
 
     def _open_blocks(self) -> None:
@@ -328,6 +345,10 @@ class TextMakerWindow:
         state = {"page": 0}
         per = 16 * 12
 
+        def labelled(ch: str) -> str:
+            font = self.font
+            return tm.describe(ch) + (" " + tm.source_label(font, ch) if font is not None else "")
+
         def letters() -> tuple[int, ...]:
             label = block_var.get()
             _l, first, last = next(b for b in blocks if b[0] == label)
@@ -342,9 +363,9 @@ class TextMakerWindow:
             page_var.set(f"Page {state['page'] + 1} of {pages} ({len(cps)} letters)")
             for i, cp in enumerate(cps[state["page"] * per:(state["page"] + 1) * per]):
                 b = tk.Button(grid, text=chr(cp), width=2, font=("Segoe UI", 11), relief="groove",
-                              command=lambda c=cp: (self.insert(chr(c)), note.set(tm.describe(chr(c)))))
+                              command=lambda c=cp: (self.insert(chr(c)), note.set(labelled(chr(c)))))
                 b.grid(row=i // 16, column=i % 16)
-                b.bind("<Enter>", lambda _e, c=cp: note.set(tm.describe(chr(c))))
+                b.bind("<Enter>", lambda _e, c=cp: note.set(labelled(chr(c))))
 
         def turn(step: int) -> None:
             state["page"] = max(0, state["page"] + step)
@@ -369,10 +390,40 @@ class TextMakerWindow:
             self.window.after_cancel(self._after)
         self._after = self.window.after(120, self._draw)
 
+    def _show_chosen(self) -> None:
+        # the stock game makes no letters; the patched game does (the checkbox follows)
+        if self.show_var.get() == SHOW_STOCK:
+            self.generate_var.set(False)
+        elif self.show_var.get() == SHOW_PATCHED:
+            self.generate_var.set(True)
+        self.refresh()
+
+    def unicode_face(self) -> tuple[str, list[str]]:
+        """Use Unicode Font's face (the patcher's choice: the Unicode Font window or the Font box) and
+        its font file, if any."""
+        master = self.master
+        face = str(vars(master).get("unicode_font").get() if "unicode_font" in vars(master) else "") or "Segoe UI"
+        file = str(vars(master).get("unicode_font_file").get() if "unicode_font_file" in vars(master) else "")
+        return face, [file] if file and Path(file).is_file() else []
+
     def picture(self, transparent: bool) -> Image | None:
         font = self.font
         if font is None:
             return None
+        if self.show_var.get() == SHOW_UNICODE:
+            face, files = self.unicode_face()
+            lines = [tm.render_unicode_font(font, line, face, files, self.colour()) for line in
+                     self.text_value().split("\n")]
+            out = Image(max(1, max(i.width for i in lines) + 4), max(1, sum(i.height for i in lines) + 4))
+            if not transparent and self.background() is not None:
+                r, g, b = self.background()
+                out.data[:] = bytes((r, g, b, 255)) * (out.width * out.height)
+            y = 2
+            for line in lines:
+                out.draw(line, 2, y)
+                y += line.height
+            scale = int(self.scale_var.get())
+            return out.scaled(scale) if scale > 1 else out
         return tm.render(font, self.text_value(), self.colour(), self.effect_var.get(), int(self.scale_var.get()),
                          None if transparent else self.background(), self.generate_var.get())
 
@@ -407,8 +458,9 @@ class TextMakerWindow:
                     self.canvas.create_rectangle(x0, y0, x0 + p.glyph.pixels.width * scale,
                                                  y0 + font.line_height * scale, outline=PATCHER_MADE_MARK, dash=(3, 2))
         made = tm.generated_in(font, text) if generate else []
-        for cluster, how in made:
-            self.made.insert("", "end", values=(cluster, tm.describe(cluster), how))
+        for cluster, label, how in (tm.characters_in(font, text) if generate else []):
+            if label != "(game)":                  # the letters the game lacks, each labelled
+                self.made.insert("", "end", values=(cluster, label, tm.describe(cluster), how))
         count = len([c for c in tm.clusters(text) if c not in ("\n", "\r\n")])
         where = "in the game" if font.in_game else "not used by the game"
         self.status.set(

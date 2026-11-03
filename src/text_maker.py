@@ -1248,6 +1248,35 @@ def generated_in(font: GameFont, text: str) -> list[tuple[str, str]]:
     return out
 
 
+def source_label(font: GameFont, cluster: str) -> str:
+    """Where a character's picture comes from, as the shared spec's Game Text tool labels it: "(game)",
+    "(patcher-made)", "(drawn by Windows: <face>)" or "(missing)"; "" for one that draws nothing."""
+    g = glyph_for(font, cluster)
+    if g is None:
+        return ""
+    if g.source == "game":
+        return "(game)"
+    if g.source.startswith("drawn by Windows ("):
+        return f"(drawn by Windows: {g.source[len('drawn by Windows ('):].split(')', 1)[0]})"
+    if g.source.startswith("no font on this PC"):
+        return "(missing)"
+    return "(patcher-made)"
+
+
+def characters_in(font: GameFont, text: str) -> list[tuple[str, str, str]]:
+    """Every character a text uses, once: (cluster, its label, how it was made)."""
+    seen, out = set(), []
+    for cluster in clusters(text):
+        if cluster in seen or cluster in ("\n", "\r\n", "\r"):
+            continue
+        seen.add(cluster)
+        label = source_label(font, cluster)
+        if label:
+            g = glyph_for(font, cluster)
+            out.append((cluster, label, "the game's own letter" if g.source == "game" else g.source))
+    return out
+
+
 def describe(cluster: str) -> str:
     """'U+00E9 LATIN SMALL LETTER E WITH ACUTE' (each code point of a cluster; Unicode 18.0 names)."""
     return " + ".join(f"U+{ord(ch):04X} {unicode_data.name(ch, '')}".rstrip() for ch in cluster)

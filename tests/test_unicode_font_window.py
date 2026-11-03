@@ -7,7 +7,9 @@
   (Font=, File=), every other line kept.
 * The previews (Windows only) draw each game font as Use Unicode Font will: its line height, the em
   fitted to the fox sentence within 60%..130%.
-* The Tools tab offers "Unicode Font..." and "Game Text...".
+* The Tools tab offers "Unicode Font..." and "Game Text..."; the Game Text window shows text "As
+  Render Unicode with In-Game Fonts draws it", "As the stock game shows it" and "As Use Unicode Font
+  draws it", and labels every character (game), (patcher-made), (drawn by Windows: face) or (missing).
 """
 
 from __future__ import annotations
@@ -132,6 +134,48 @@ class PreviewTests(unittest.TestCase):
                     self.assertTrue(em0 * 6 // 10 <= em <= em0 * 13 // 10)
                     # the alpha steps are the font's own
                     self.assertTrue(set(unicode.data[3::4]) <= set(font.quantise) | {0})
+
+
+@unittest.skipUnless(_fonts_ready(), "needs Windows' font drawing and the vanilla games")
+class GameTextTests(unittest.TestCase):
+    def test_labels(self) -> None:
+        import text_maker as tm
+        font = tm.load_fonts("fish", VANILLA / "Fish Tycoon")[0]
+        self.assertEqual(tm.source_label(font, "A"), "(game)")
+        self.assertEqual(tm.source_label(font, "é"), "(patcher-made)")
+        self.assertEqual(tm.source_label(font, "中"), "(drawn by Windows: Yu Gothic)")
+        self.assertEqual(tm.source_label(font, "🐟"), "(drawn by Windows: Segoe UI Emoji)")
+        self.assertEqual(tm.source_label(font, "\u200d"), "")
+        rows = tm.characters_in(font, "Aé中A")
+        self.assertEqual([(c, label) for c, label, _how in rows],
+                         [("A", "(game)"), ("é", "(patcher-made)"), ("中", "(drawn by Windows: Yu Gothic)")])
+        glyph = tm._missing_box(font, "x")
+        self.assertTrue(glyph.source.startswith("no font on this PC"))
+
+    def test_the_three_ways_to_show(self) -> None:
+        import tkinter as tk
+        import text_maker_window as w
+        try:
+            root = tk.Tk()
+        except tk.TclError:
+            self.skipTest("no display")
+        root.withdraw()
+        try:
+            root.unicode_font = tk.StringVar(master=root, value="Arial")
+            win = w.open_window(root, "fish", {"fish": [str(VANILLA / "Fish Tycoon")], "plant": []})
+            self.assertEqual(win.window.title(), "Game Text")
+            widths = {}
+            for mode in w.SHOW_MODES:
+                win.show_var.set(mode)
+                win._show_chosen()
+                win._draw()
+                widths[mode] = win.picture(True).width
+            self.assertEqual(set(widths), {"As Render Unicode with In-Game Fonts draws it", "As the stock game shows it",
+                                           "As Use Unicode Font draws it"})
+            self.assertEqual(len(set(widths.values())), 3)          # three different drawings
+            win.window.destroy()
+        finally:
+            root.destroy()
 
 
 if __name__ == "__main__":
