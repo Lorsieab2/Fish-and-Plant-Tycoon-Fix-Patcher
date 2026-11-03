@@ -897,7 +897,62 @@ def _crop_ink(image: Image, rows: tuple[int, int] | None = None) -> Image | None
     return white(box[2] - box[0], box[3] - box[1], a)
 
 
+# Marks whose shape is wider than one column at any size (a 1-pixel "tilde" or "diaeresis" is
+# the placeholder some fonts keep for a letter they lack, paddington_tt_30's ~).
+_WIDE_MARKS = {"diaeresis", "tilde", "macron", "breve", "caron", "circumflex", "double acute", "ring",
+               "diaeresis below", "tilde below", "macron below", "circumflex below", "ring below"}
+
+
+def plausible_mark(name: str, mark: Image | None) -> bool:
+    """A mark big enough to be read as its accent: a tilde, diaeresis, circumflex, ... at
+    least 3 pixels wide (two dots and the gap between them) and 2 tall (a macron 1); a tilde
+    wider than tall."""
+    if mark is None:
+        return False
+    if name in _WIDE_MARKS:
+        if mark.width < 3 or mark.height < (1 if name.startswith("macron") else 2):
+            return False
+        if name.startswith("tilde") and mark.width <= mark.height:
+            return False
+    return True
+
+
+def _mark_by_difference(g: Image, base: Image, below: bool) -> Image | None:
+    """The accent of an accented letter: its ink that the plain letter does not have, lined up
+    on the plain letter (a font may set an accent beside a capital's top, on the same rows,
+    as paddington_tt_30's A-diaeresis does), kept above (or below) the plain letter's middle."""
+    if g.height != base.height:
+        return None
+    bink = ink(base)
+    if bink is None:
+        return None
+    ga, ba = g.data[3::4], base.data[3::4]
+    gw, bw = g.width, base.width
+
+    def at(x, y, dx):
+        bx = x - dx
+        return ba[y * bw + bx] if 0 <= bx < bw else 0
+
+    best = None
+    for dx in range(-3, 4):
+        miss = sum(1 for y in range(g.height) for x in range(gw)
+                   if at(x, y, dx) and abs(ga[y * gw + x] - at(x, y, dx)) > 32)
+        if best is None or miss < best[0]:
+            best = (miss, dx)
+    dx = best[1]
+    middle = (bink[1] + bink[3]) // 2
+    alpha = bytearray(gw * g.height)
+    for y in range(g.height):
+        if (y < middle) == below:
+            continue
+        for x in range(gw):
+            if ga[y * gw + x] and not at(x, y, dx):
+                alpha[y * gw + x] = ga[y * gw + x]
+    return _crop_ink(white(gw, g.height, bytes(alpha)))
+
+
 def _own_mark(font: GameFont, name: str, upper: bool) -> Image | None:
+    below = name in BELOW
     for accented in sorted(MARK_SOURCES.get(name, ""), key=lambda c: c.isupper() != upper):
         g = font.char_glyph(accented)
         base = font.char_glyph(unicodedata.normalize("NFD", accented)[0])
@@ -906,16 +961,21 @@ def _own_mark(font: GameFont, name: str, upper: bool) -> Image | None:
         bink = ink(base.pixels)
         if bink is None:
             continue
-        rows = (bink[3], g.pixels.height) if name in BELOW else (0, bink[1])
-        if rows[1] > rows[0]:
-            mark = _crop_ink(g.pixels, rows)
-            if mark is not None:
-                return mark
+        rows = (bink[3], g.pixels.height) if below else (0, bink[1])
+        mark = _crop_ink(g.pixels, rows) if rows[1] > rows[0] else None
+        if not below:
+            # The rows above the plain letter cut an accent the font sets beside a capital's
+            # top; its ink the plain letter lacks is the whole accent.
+            whole = _mark_by_difference(g.pixels, base.pixels, below)
+            if plausible_mark(name, whole) and (mark is None or whole.height >= mark.height):
+                mark = whole
+        if plausible_mark(name, mark):
+            return mark
     for ch in MARKS_BY_NAME.get(name, ("", ""))[0]:
         g = font.char_glyph(ch)
         if g is not None:
             mark = _crop_ink(g.pixels)
-            if mark is not None:
+            if plausible_mark(name, mark):
                 return mark
     return None
 

@@ -16,8 +16,10 @@
    a fixed box (the rows) its own rectangle less its margin; a label its side of the screen
    as its alignment leaves it (left: from its left edge to the screen's right; centred:
    twice the nearer screen edge's distance from its centre; right: from the screen's left to
-   its right edge), the screen being the graphics' clip of the last draw. A name wider than
-   its room ends in an ellipsis. Text the game draws outside a box keeps the old estimate:
+   its right edge), the screen being the graphics' clip of the last draw; where the game's
+   picture bounds the spot instead (spot_room: Plant Tycoon's main-menu name sign, a box the game
+   makes edge to edge in its dialog, inside the dialog's frame) that room, for any text. A name
+   wider than its room ends in an ellipsis. Text the game draws outside a box keeps the old estimate:
    the wider of the short form and the game's own name placeholder (GAME_NAME_PLACEHOLDER,
    the text its name rows are made with: 26 underscores in Fish Tycoon, 26 spaces in Plant
    Tycoon).
@@ -133,11 +135,37 @@ static const char *name_shown(void *font, const char *text, char *out, int cap, 
     return fit(font, whole, budget, 0, out, cap);
 }
 
+/* The room of a spot whose room is not the box's own: a game's picture around it (GAME_NAME_SIGN_*:
+   Plant Tycoon's main-menu name sign, a centred label the game makes on the menu picture's sign, as
+   wide as the sign's narrowest row the text crosses, less a clearance), or a fixed box the game
+   makes edge to edge in its dialog (left 0; GAME_DIALOG_BORDER: the dialog frame's width plus a
+   clearance, each side). 0: none. */
+static int spot_room(const char *box) {
+    int left = *(const int *)(box + 8), right = *(const int *)(box + 0x10);
+    (void)left;
+    (void)right;
+#ifdef GAME_NAME_SIGN_X
+    if (!box[0x24] && *(const int *)(box + 0x40) == 1 && *(const int *)(box + 0xC) == GAME_NAME_SIGN_Y) {
+        int centre = (left + right) / 2;
+        if (centre >= GAME_NAME_SIGN_X - 1 && centre <= GAME_NAME_SIGN_X + 1) return GAME_NAME_SIGN_ROOM;
+    }
+#endif
+#ifdef GAME_DIALOG_BORDER
+    if (box[0x24] && left == 0) {
+        int margin = *(const int *)(box + 0x44);
+        int room = right - (margin > 0 ? margin : 0) - 2 * GAME_DIALOG_BORDER;
+        if (room > 0) return room;
+    }
+#endif
+    return 0;
+}
+
 /* The room a box (or label) leaves its text, from the box as the game laid it out; 0 when it is not
    known (a label before the first draw has given the screen's width). */
 static int box_room(const char *box) {
     int left = *(const int *)(box + 8), right = *(const int *)(box + 0x10), margin = *(const int *)(box + 0x44);
-    int room = 0, centre;
+    int room = spot_room(box), centre;
+    if (room > 0) return room;
     if (margin < 0) margin = 0;
     if (box[0x24]) return right - left - margin;              /* fixed: its own rectangle */
     switch (*(const int *)(box + 0x40)) {
@@ -218,8 +246,11 @@ static int __cdecl box_width(void *font, const char *box, unsigned int ret, cons
     margin = *(const int *)(box + 0x44);
     if (margin < 0) margin = 0;
     room = *(const int *)(box + 0x10) - *(const int *)(box + 8) - margin;
-    /* the game cut only a fixed box (+0x24) */
-    if (text == NULL || box[0x24] == 0 || room <= 0 || w <= room) return w;
+    /* the game cut only a fixed box (+0x24); a spot with a room of its own (spot_room) is fitted
+       to it, whatever its text */
+    if (spot_room(box) > 0) room = spot_room(box);
+    else if (box[0x24] == 0) room = 0;
+    if (text == NULL || room <= 0 || w <= room) return w;
     {
         static char cut[NAME_BOX_BYTES + 8];
         const char *shown = fit(font, text, room, *(const char *)(box + 0x25) != 0, cut, sizeof cut);

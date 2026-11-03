@@ -72,6 +72,15 @@
 #define GAME_BOX_DRAW_TARGET 0x004092A0u  /* the box's left draw (thiscall wrapper) */
 #define GAME_CARET_TICK_TARGET 0x00402060u  /* the time the caret blink reads */
 #define GAME_WIDTH_RESUME 0x00402387u
+/* The main menu's name sign (0x42A39A: a centred label at x 0x29E, y 0x1B8 on the picture's sign,
+   which spans x 592..746 on the rows the text crosses): its room, 2 * (746 - 670 - 4). */
+#define GAME_NAME_SIGN_X 0x29E
+#define GAME_NAME_SIGN_Y 0x1B8
+#define GAME_NAME_SIGN_ROOM 144
+/* A box made edge to edge in its dialog (the new player's box, 0x41AEB3, rect 0..the dialog's
+   width): the dialog frame (OrangeDlgTileGrid.png's edge tiles, 10 px) each side, and beside the
+   centred text the caret (its "_", 7 px) and 3 px clear. */
+#define GAME_DIALOG_BORDER 20
 
 #define CODE_ADDR(fn) ((const void *)(UINT_PTR)(fn))
 
