@@ -60,6 +60,29 @@ text, save it as tab-separated text or "Unicode Text").
 **Add translation file...** (or drag a `.txt` file onto the window) checks a file you were sent and adds
 it; **Check** shows coverage, errors and warnings with line numbers; **Export translation...** saves a copy.
 
+## Managing the files
+
+The list under **Translations in the patcher** is for managing the files; the language the game uses is
+chosen in **Language in the game** above it. The list selects several at once: click selects one,
+**Ctrl+click** adds or removes one, **Shift+click** selects a range, and **Ctrl+A** or **Select All**
+selects them all. **Edit...**, **Check** and **Share on GitHub...** work on one translation.
+
+- **Export translation...** with one selected asks for a file name; with several it asks for a folder and
+  saves one file each under its own name (it asks before replacing a file already there; No, the default,
+  exports only the others).
+- **Delete...** (or the **Delete** key in the list) asks once, listing the files (**No** is the default and
+  changes nothing), then moves them to the Windows **Recycle Bin**, from where you can restore them. It is
+  never a plain delete: the patcher calls `SHFileOperationW` with `FOF_ALLOWUNDO | FOF_NOCONFIRMATION |
+  FOF_SILENT` (and `FOF_WANTNUKEWARNING`, so on a drive without a Recycle Bin Windows asks instead of
+  destroying the file). If that fails, the patcher shows the error and deletes nothing.
+  - **English (original)** is built into the game and is never deleted; if it is selected, the question says
+    it is skipped.
+  - Translations that came with the patcher (`translations\fish`, `translations\plant`) can be deleted from
+    your copy too; they come back with the next patcher update.
+  - If the game uses a translation you delete, it goes back to **English (original)** exactly as choosing
+    English does: `Translation.ini` and `Translation.txt` are removed from the game copies. An open editor of
+    a deleted file closes without saving.
+
 After a patcher update, open your file in the editor: new lines appear untranslated, a line whose English
 changed comes back untranslated with your old translation kept beside it, and everything else keeps
 working.

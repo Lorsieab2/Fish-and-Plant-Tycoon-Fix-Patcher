@@ -1,5 +1,5 @@
 """The patcher's side of translations: where they live, which one each game uses, installing,
-exporting and sharing. The window is src/translations_window.py; the format is
+exporting, deleting (to the Recycle Bin) and sharing. The window is src/translations_window.py; the format is
 src/translation_format.py; the game side is Translations.dll (native/ftfp_translations).
 
 * Every translation lives in the patcher's "translations" folder, one flat folder of
@@ -149,6 +149,55 @@ def install_file(source: Path, game: str, entries: list[tfmt.Entry] | None = Non
 def export_file(source: Path, destination: Path) -> Path:
     shutil.copyfile(source, destination)
     return destination
+
+
+# --------------------------------------------------------------------------- deleting (Recycle Bin only)
+
+FO_DELETE = 0x0003
+FOF_SILENT = 0x0004
+FOF_NOCONFIRMATION = 0x0010
+FOF_ALLOWUNDO = 0x0040
+# Where a file cannot be recycled (a drive without a Recycle Bin), Windows asks before destroying it
+# instead of doing it silently: nothing is ever deleted for good without the player saying so.
+FOF_WANTNUKEWARNING = 0x4000
+RECYCLE_FLAGS = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_WANTNUKEWARNING
+
+
+def _shell_file_operation(paths: list[str], flags: int) -> tuple[int, bool]:
+    """SHFileOperationW(FO_DELETE) through ctypes: (its result, whether anything was aborted)."""
+    import ctypes
+    from ctypes import wintypes
+
+    class SHFILEOPSTRUCTW(ctypes.Structure):
+        _fields_ = [("hwnd", wintypes.HWND), ("wFunc", wintypes.UINT), ("pFrom", wintypes.LPCWSTR),
+                    ("pTo", wintypes.LPCWSTR), ("fFlags", ctypes.c_ushort), ("fAnyOperationsAborted", wintypes.BOOL),
+                    ("hNameMappings", ctypes.c_void_p), ("lpszProgressTitle", wintypes.LPCWSTR)]
+
+    shell32 = ctypes.WinDLL("shell32")
+    shell32.SHFileOperationW.argtypes = [ctypes.POINTER(SHFILEOPSTRUCTW)]
+    shell32.SHFileOperationW.restype = ctypes.c_int
+    # pFrom is a list of full paths, each ended by a NUL, and the list by one more.
+    operation = SHFILEOPSTRUCTW(None, FO_DELETE, "".join(p + "\0" for p in paths) + "\0", None, flags, False, None, None)
+    result = shell32.SHFileOperationW(ctypes.byref(operation))
+    return result, bool(operation.fAnyOperationsAborted)
+
+
+def recycle(paths: list[Path], operation=None) -> list[Path]:
+    """Move files to the Windows Recycle Bin (SHFileOperationW, FOF_ALLOWUNDO | FOF_NOCONFIRMATION |
+    FOF_SILENT); never a plain delete. Raises OSError when the Recycle Bin call fails or a file is
+    missing, and then nothing else is tried. Returns the files moved."""
+    paths = [Path(p).resolve() for p in paths]
+    if not paths:
+        return []
+    missing = [p.name for p in paths if not p.is_file()]
+    if missing:
+        raise OSError("not found: " + ", ".join(missing))
+    result, aborted = (operation or _shell_file_operation)([str(p) for p in paths], RECYCLE_FLAGS)
+    if result != 0:
+        raise OSError(f"the Recycle Bin could not take the files (Windows error 0x{result & 0xFFFFFFFF:X})")
+    if aborted:
+        raise OSError("moving the files to the Recycle Bin was cancelled")
+    return paths
 
 
 # --------------------------------------------------------------------------- the choice
