@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.29
+
+- **Fish's big font: tildes and diaereses are whole again.** In Render Unicode with In-Game Fonts,
+  the Fish name prompt's font (paddington_tt_30) drew the tilde of N, A and O and the diaeresis of
+  capitals as a 1-pixel tick ("Núñez" looked like "Núnez" with a mark). The font's own ~ is a
+  1-pixel placeholder and its capital diaeresis sits beside the A's top, so only one row of it was
+  taken. The patcher now takes the accent as the ink the accented letter has and the plain letter
+  lacks, never uses a 1-pixel tilde or diaeresis, and draws the tilde in the font's style instead.
+  The small Fish font's capitals with a diaeresis gain their full dots too. A test checks every
+  patcher-made accent of all four fonts (tests/test_unicode_font_marks.py).
+
 ## v1.0.26
 
 - **Housekeeping: the pin scripts keep every pin.** The scripts that record which executables the
