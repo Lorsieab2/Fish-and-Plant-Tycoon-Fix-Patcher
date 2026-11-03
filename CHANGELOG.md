@@ -2,6 +2,11 @@
 
 ## v1.0.26
 
+- **Housekeeping: the pin scripts keep every pin.** The scripts that record which executables the
+  patcher may build no longer drop the combinations they do not derive (scripts/pin_keys.py,
+  tests/test_pin_keys.py), and the 768 Plant pins for combinations the patcher refuses (Extra
+  Greenhouses or Extra Nurseries without Store Upgrades and Items) are gone: nothing looked them up.
+  Nothing changes in the patched games.
 - **Long names, everywhere.** With Render Unicode with In-Game Fonts or Use
   Unicode Font on, every name box takes names up to 1,200 bytes (up to 1,200
   plain letters; fewer when letters need more bytes): the five player rows and
