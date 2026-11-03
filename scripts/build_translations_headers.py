@@ -6,7 +6,7 @@ The runtime DLL ("Translations.dll") needs, for every game line and patcher text
 replace, the same limits the patcher's editor and validator use: which game ids the game copies
 into fixed buffers (BUFFER_IDS), which it never translates (NEVER_TRANSLATED), and every
 patcher DLL text (MOD_STRINGS: its DLL, its id, the hash of its English, its limit, UTF-16 or
-not). --check exits 1 when the committed header is not what this writes (the tests run it).
+not, counted or not). --check exits 1 when the committed header is not what this writes (the tests run it).
 Then rebuild the DLL: scripts/build_ftfp_translations.ps1.
 """
 
@@ -65,11 +65,13 @@ def render() -> str:
     lines += [
         "",
         "/* The patcher DLLs' texts: game (1 Fish, 2 Plant), UTF-16 or not, the limit (bytes of UTF-8, or",
-        "   UTF-16 units), the hash of the English (the key's), the DLL and the key's id. */",
+        "   UTF-16 units), the hash of the English (the key's), the DLL and the key's id.  A counted text",
+        "   (counted 1) is never pointed at: its DLL asks FtfpTranslateCounted with its numbers. */",
         "typedef struct tr_mod_text {",
         "    unsigned char game;",
         "    unsigned char wide;",
         "    short limit;",
+        "    unsigned char counted;",
         "    unsigned int hash;",
         "    const char *dll;",
         "    const char *id;",
@@ -88,7 +90,7 @@ def render() -> str:
                 continue
             seen.add(key)
             ident, digest = key[len("mod/"):].rsplit("~", 1)
-            lines.append(f"    {{ {1 if game == 'fish' else 2}, {int(m.wide)}, {ts.mod_limit(m)}, 0x{digest}u, "
+            lines.append(f"    {{ {1 if game == 'fish' else 2}, {int(m.wide)}, {ts.mod_limit(m)}, {int(m.counted)}, 0x{digest}u, "
                          f"{c_string(m.dll)}, {c_string(ident)} }},")
             count += 1
     lines += [

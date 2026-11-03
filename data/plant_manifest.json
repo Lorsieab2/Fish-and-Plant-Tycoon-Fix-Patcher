@@ -10875,8 +10875,8 @@
           {
             "path": "Greenhouse Counts.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Greenhouse Counts.dll",
-            "size": 93184,
-            "sha256": "3484262A82BD555A5C943D5BE0A3E79B3D68EF0670C2F27DDB84807EA532CFD6"
+            "size": 94208,
+            "sha256": "BBA1F54BC2E7278E518FCBB692EB7CBA58E29790731230B99E380842133A4E52"
           }
         ]
       }
@@ -10898,7 +10898,7 @@
             "path": "Unused Flowers.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unused Flowers.dll",
             "size": 97792,
-            "sha256": "3BC1D73CDD7443D58673C16D82F49E4ABB70CB1EFDDE80315E7EAFCE3490CE75"
+            "sha256": "A1CE41C30589D5D83C3C789861E2B36A1B5DEAB0EFAC71C3EC9A96AFA652D6D4"
           },
           {
             "path": "Images/flowers64x64_grid.png",
@@ -10933,8 +10933,8 @@
           {
             "path": "Store Upgrades and Items.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Store Upgrades and Items.dll",
-            "size": 168448,
-            "sha256": "45A4AC58552D370B746FF2DAE78D101CCCC4C2ECC14C814635617297CE9C0B15"
+            "size": 170496,
+            "sha256": "DDFD5D80B176CFB5AAFBCDCE3A505B2C0DAFB2515242C94D02DD620DE28BD6C3"
           },
           {
             "path": "Extra Seed Boxes.dll",
@@ -11004,7 +11004,7 @@
             "path": "Optimize Prices.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Optimize Prices.dll",
             "size": 92160,
-            "sha256": "9A24CCFA2079EB3F6F2F717741B52B7CEE9C7CB81AB909589EE5EA40C2531ACA"
+            "sha256": "DBBE2746E79D47930DB9016B45C0DA2EC9D7CA176E8DF0C183EBC50BCCDB4617"
           },
           {
             "path": "Images/max_prices_button.png",
@@ -11127,8 +11127,8 @@
           {
             "path": "Extra Greenhouses.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Extra Greenhouses.dll",
-            "size": 103424,
-            "sha256": "941B69418B7B33E89B2452F980FF4648110F90A3CA4FEB2952AAB236DA42E8C7"
+            "size": 103936,
+            "sha256": "633EF70F4762E2F0275ED40C7BFAF1DA4CD7236BD53547E589A4E5B60E2E0818"
           },
           {
             "path": "Extra Greenhouses.ini",
@@ -11159,8 +11159,8 @@
           {
             "path": "Extra Greenhouses.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Extra Greenhouses.dll",
-            "size": 103424,
-            "sha256": "941B69418B7B33E89B2452F980FF4648110F90A3CA4FEB2952AAB236DA42E8C7"
+            "size": 103936,
+            "sha256": "633EF70F4762E2F0275ED40C7BFAF1DA4CD7236BD53547E589A4E5B60E2E0818"
           },
           {
             "path": "Extra Nurseries.ini",
@@ -11191,8 +11191,8 @@
           {
             "path": "Extra Chemical Slots.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Extra Chemical Slots.dll",
-            "size": 124416,
-            "sha256": "121E0804A784167188C6655B15AFBF0204EEF710ECDF572A635AE1E396EAD797"
+            "size": 125440,
+            "sha256": "781F6C2B2A48D84FAAD7567BC0D06A10A083DEFD1E0A6351262B59F6F7560DB9"
           }
         ]
       }
@@ -11242,8 +11242,8 @@
           {
             "path": "Translations.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Translations.dll",
-            "size": 122880,
-            "sha256": "2D9CFC2591B480EB0C68EB82BDFD351CAB3A09E0F398F48F391A6F1E2F58571B"
+            "size": 130048,
+            "sha256": "77C70EB4AC36D6D71B20EFCF049BDA27EADF1578E0A1B3CA074E16D2A8F2B776"
           }
         ]
       }

@@ -47,6 +47,7 @@
 #include "../ftfp_ds_fish/install_sites.h"
 #include "chem_slots_sites.h"
 #include "chem_slots_file.h"
+#include "../common/translated_count.h"
 
 #define AT(base, offset, type) (*(type *)((char *)(base) + (offset)))
 #define NOINLINE __declspec(noinline)   /* keeps the name in the map file the tests read */
@@ -440,6 +441,11 @@ static int slot_away(char *scene) {
 NOINLINE static int tip_text_for(char *scene, int g, char *out, int cap) {
     chem_record *r = logical(AT(scene, SC_STATE, char *), g);
     if (!r->present || !chem_id_valid(r->id)) return 0;
+    {   /* the player's translation of "<n> doses left", its words chosen by n */
+        const char *name = game_string(AT(scene, SC_STRINGS, void *), 0, name_id(r->id));
+        int n = r->doses, at = _snprintf_s(out, (size_t)cap, _TRUNCATE, "%s\n", name);
+        if (at >= 0 && ftfp_counted("%d {%1: one=dose | other=doses} left", &n, 1, out + at, cap - at)) return 1;
+    }
     sprintf_s(out, (size_t)cap, "%s\n%d %s left", game_string(AT(scene, SC_STRINGS, void *), 0, name_id(r->id)),
               r->doses, r->doses == 1 ? "dose" : "doses");
     return 1;

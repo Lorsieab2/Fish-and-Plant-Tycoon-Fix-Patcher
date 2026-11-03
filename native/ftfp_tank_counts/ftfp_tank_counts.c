@@ -281,9 +281,10 @@ static void health_parts(count_line *line, const words *w, const tank_count *c) 
 static void fish_line(count_line *line, const words *w, const char *label, const tank_count *c, int room) {
     ct_start(line);
     ct_count(line, label, c->fish, w->of, room);
-    ct_part(line, c->adults, w->adult, w->adults);
-    ct_part(line, c->teens, w->teen, w->teens);
-    ct_part(line, c->babies, w->baby, w->babies);
+    /* In German mode the parts stay German (a patcher text with a German version keeps it). */
+    ct_part_counted(line, c->adults, w == &ENGLISH ? "%d {%1: one=adult | other=adults}" : NULL, w->adult, w->adults);
+    ct_part_counted(line, c->teens, w == &ENGLISH ? "%d {%1: one=teen | other=teens}" : NULL, w->teen, w->teens);
+    ct_part_counted(line, c->babies, w == &ENGLISH ? "%d {%1: one=baby | other=babies}" : NULL, w->baby, w->babies);
     ct_close(line);
     ct_dead(line, w->dead, c->dead);
 }
