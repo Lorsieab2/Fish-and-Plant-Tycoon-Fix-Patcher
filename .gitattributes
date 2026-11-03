@@ -20,3 +20,4 @@ assets/plant_tycoon_unicode/Fonts/** -text
 # Translation files are downloaded byte-for-byte ("Download from GitHub..."): keep their CRLF.
 translations/**/*.txt -text
 translations/**/*.tsv -text
+assets/translations/word-lists/** -text

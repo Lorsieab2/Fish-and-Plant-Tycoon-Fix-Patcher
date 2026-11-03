@@ -10540,8 +10540,50 @@
           {
             "path": "Translations.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Translations.dll",
-            "size": 143360,
-            "sha256": "F0D7441D8C21CC720563BCEF2983271F8200D3C92A029C8FF07417304DE603CA"
+            "size": 147456,
+            "sha256": "D0E7EB496B7DA299CA53188ED3D5F8A9351AB3A196AD3328AE9104428D7C8B1A"
+          },
+          {
+            "path": "word-lists/burmesedict.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/burmesedict.txt",
+            "size": 1164408,
+            "sha256": "61D8ABC3D9102B2F9BF0C9F44DB0D7AB89B18172D8CD26832E4C83174BD8673B"
+          },
+          {
+            "path": "word-lists/cjdict.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/cjdict.txt",
+            "size": 4195904,
+            "sha256": "E73FD72048981D0CC13E9DC436A7EABA07FFB6EFF58C8A59DC75C1DF746663A0"
+          },
+          {
+            "path": "word-lists/ICU-LICENSE.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/ICU-LICENSE.txt",
+            "size": 26487,
+            "sha256": "451167C55C0FA447CC2D5632714F5E3C567FE4F1E1BADEFAB2C1333852198ACA"
+          },
+          {
+            "path": "word-lists/khmerdict.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/khmerdict.txt",
+            "size": 2031114,
+            "sha256": "87BEE2D17CD5148AA36957EB05409EEFC124DE8AD519B81B789298EF3E60B5D9"
+          },
+          {
+            "path": "word-lists/laodict.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/laodict.txt",
+            "size": 673894,
+            "sha256": "3C876934A3FA81031D2333525EAFACA6A7C9F842E3B98F18C38880420AFB5D36"
+          },
+          {
+            "path": "word-lists/README.md",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/README.md",
+            "size": 3755,
+            "sha256": "074575A4A301B7D1FF2C149AE249D2C6B6A5BEF059D1BE46F1C51CAF66353AB2"
+          },
+          {
+            "path": "word-lists/thaidict.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/thaidict.txt",
+            "size": 493054,
+            "sha256": "3166ABDE40C0F44AB91C28F5CE96D7D1472CB7882E1C0BDA0A72F8F69DBA4274"
           }
         ]
       }

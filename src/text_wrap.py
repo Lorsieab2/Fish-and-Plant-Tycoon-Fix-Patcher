@@ -10,8 +10,12 @@ are written directly): after spaces; after a hyphen (not before a digit); betwee
 and small marks such as the ideographic full stop, comma, closing brackets, ! and ?, nor end with an
 opening bracket); never inside a grapheme cluster (unicode_data.graphemes, the Text Maker's clusters) or a placeholder (%d, %s,
 {choices}); a word wider than the limit is cut. Thai, Lao, Khmer and Myanmar have no spaces between
-words and the repo has no dictionary: a run of them is never cut and is reported as "cannot wrap".
-Hangul breaks at spaces only (Korean has them).
+words: they break between the words of ICU's dictionaries (word_break.py, the lists in
+assets/translations/word-lists), and so do Chinese and Japanese, which may also break between any
+two characters when a word alone is too wide. A line is broken between words when a word boundary
+fits, and a dictionary word is never split while one does. A Thai-like word wider than the limit
+is never cut and is reported as "cannot wrap" (as is a stretch the lists do not know, or any such
+run when the lists are missing). Hangul breaks at spaces only (Korean has them).
 """
 
 from __future__ import annotations
@@ -22,6 +26,7 @@ from typing import Callable
 
 import translation_format as tfmt
 import unicode_data
+import word_break
 
 PLACEHOLDER_RE = re.compile(tfmt.CONVERSION_RE.pattern + r"|\{[^{}]*\}")
 Measure = Callable[[str], int]
@@ -48,6 +53,8 @@ def _in(cp: int, ranges) -> bool:
 class Atom:
     text: str
     kind: str       # "sp" space, "id" CJK, "sa" Thai-like, "ph" placeholder, "al" other, "nl" newline
+    inside: bool = False    # inside a dictionary word: no break before this atom (word_break.py)
+    words: bool = False     # this atom is in a run the word lists segmented
 
     @property
     def no_start(self) -> bool:
@@ -72,15 +79,30 @@ def _kind(unit: str) -> str:
     return "al"
 
 
+def _piece(text: str) -> list[Atom]:
+    """The clusters of a stretch with no placeholder, marked with the word lists' word boundaries."""
+    atoms = [Atom(c, _kind(c)) for c in unicode_data.graphemes(text)]
+    if not any(a.kind in ("sa", "id") for a in atoms):
+        return atoms
+    state = word_break.analyze(text)
+    at = 0
+    for a in atoms:
+        if state[at]:
+            a.words = True
+            a.inside = state[at] == 1
+        at += len(a.text)
+    return atoms
+
+
 def atoms_of(text: str) -> list[Atom]:
     """Grapheme clusters, with every placeholder one atom."""
     out: list[Atom] = []
     pos = 0
     for m in PLACEHOLDER_RE.finditer(text):
-        out += [Atom(c, _kind(c)) for c in unicode_data.graphemes(text[pos:m.start()])]
+        out += _piece(text[pos:m.start()])
         out.append(Atom(m.group(), "ph"))
         pos = m.end()
-    out += [Atom(c, _kind(c)) for c in unicode_data.graphemes(text[pos:])]
+    out += _piece(text[pos:])
     return out
 
 
@@ -92,6 +114,8 @@ def can_break(a: Atom, b: Atom) -> bool:
         return not b.no_start
     if b.kind == "sp":
         return False
+    if b.inside:
+        return False                      # inside a dictionary word
     al, bl = a.text[-1], b.text[0]
     if al in NO_BREAK_AROUND or bl in NO_BREAK_AROUND:
         return False
@@ -101,6 +125,8 @@ def can_break(a: Atom, b: Atom) -> bool:
         return False
     if a.kind == "al" and al in HYPHENS:
         return not bl.isdigit() and b.kind != "sa"
+    if a.kind == "sa" and b.kind == "sa":
+        return a.words and b.words        # a word boundary of the lists (never when they are missing)
     return a.kind == "id" or b.kind == "id"
 
 

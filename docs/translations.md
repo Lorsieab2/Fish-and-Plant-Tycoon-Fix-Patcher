@@ -59,7 +59,11 @@ built-in editor:
   after showing how many. Breaks are at spaces, after hyphens and between CJK characters (kinsoku: no line
   starts with `。、）」！？` and the like, or ends with `（「『【`); never inside a letter with its marks, an
   emoji, a flag or a placeholder (`%d`, `%s`, `{name}`, a number choice); a word wider than the room is cut.
-  Thai has no word list, so it breaks only at spaces and a long Thai run is reported as "cannot wrap".
+  Thai, Lao, Khmer and Burmese, which have no spaces, break between the words of ICU's dictionaries
+  (`assets/translations/word-lists`, `src/word_break.py`: longest match, as ICU's dictionary breaker
+  does); Chinese and Japanese break between words too, and between any two characters only when one word
+  alone is wider than the room. A dictionary word is never split while a word boundary fits. A Thai-like
+  word wider than the room (or a stretch the lists do not know) is reported as "cannot wrap".
   Only line breaks and spaces change, never the words; the warning under the preview uses the same rule.
   Where the line's room on the screen is recorded (see "Fitting the screen" below), Wrap to fit, Wrap all
   and the warning use that room instead of the English's widest line;
@@ -260,7 +264,12 @@ measure sees them, so the width is what will be drawn). A line wider than its ro
 1. where the English breaks lines, is broken again at its own break opportunities (the small rule set of
    `src/text_wrap.py`: after a space, which becomes the break; after a hyphen, not before a digit; between
    CJK characters with the kinsoku rules; never inside a letter with its marks, an emoji sequence or a
-   flag); the translator's own line breaks stay;
+   flag). Thai, Lao, Khmer, Burmese, Chinese and Japanese break between words: Windows' own `icu.dll`
+   break iterator when it loads (Windows 10 1703 and later; `LoadLibraryExW` from System32), else a
+   longest-match search of the word lists in the `word-lists` folder beside the DLL
+   (`native/ftfp_translations/word_break.h`; loaded only when text of that script needs breaking, and a
+   missing list leaves the old rules: Thai-like text is never broken, CJK breaks anywhere). The
+   translator's own line breaks stay;
 2. a piece still too wide (one long word, Thai with no spaces), or any too-wide line where the English has
    no line breaks, is cut with `...` after the last whole letter that fits;
 3. if nothing fits before the `...`, or the text is taller than its box, the English is shown.

@@ -228,6 +228,38 @@ class Fitting(unittest.TestCase):
         for line in got.split("\n")[1:]:
             self.assertNotEqual(line[:1], "，")
 
+    def test_thai_and_chinese_break_between_words_from_the_word_lists(self) -> None:
+        """icu.dll does not load in Unicorn, so the DLL reads ICU's lists beside it (word_break.h)."""
+        import word_break as wb
+        ident = next(s.id for s, limit, b in lines_and_limits("plant") if limit.multiline and limit.proven
+                     and b is None and not limit.format)
+        english = self.english("plant", ident)
+        tiny = ("\ufeff# a small list\n" + "".join(w + "\t5\n" for w in "我们 今天 去 公园 玩 好 吗".split())).encode("utf-8")
+        import tempfile
+        folder = Path(tempfile.mkdtemp())
+        (folder / "cjdict.txt").write_bytes(tiny)
+        for name, text, script in (("thaidict.txt", THAI * 2, "thai"), ("cjdict.txt", "我们今天去公园玩，好吗？" * 6, "cj")):
+            data = tiny if script == "cj" else (wb.FOLDER / name).read_bytes()
+            lists = {INI["plant"].replace("Translation.ini", "word-lists\\" + name): data}
+            f = tf.new_file("plant", [tf.Entry(tf.make_key("strings", str(ident), english), english)], "Test", "de")
+            f.rows[0].translation = text
+            rt = te.Runtime("plant", {INI["plant"]: te.ini(PATH), PATH: tf.to_bytes(f), **lists}, unicode_active=1)
+            rt.hook_plant_table()
+            rt.emu.call_count = 2_000_000_000                # the list is read and hashed by the DLL's own code
+            self.fonts = Fonts(rt, "plant", True)
+            self.assertEqual(rt.start(), 1)
+            got = rt.lookup(ident).decode("utf-8")
+            state = wb.analyze(text, folder if script == "cj" else None)
+            self.assertGreater(got.count("\n"), 0, script)
+            self.assertEqual(got.replace("\n", ""), text)
+            at = 0
+            for line in got.split("\n")[:-1]:
+                at += len(line)
+                self.assertEqual(state[at], 2, (script, got))                     # only between words
+            if script == "cj":
+                for line in got.split("\n")[1:]:
+                    self.assertNotIn(line[:1], "，。？")
+
     def test_too_tall_for_its_box_shows_english(self) -> None:
         """A message box's text taller than the box the game can make on the screen: English."""
         ident, limit = next((s.id, l) for s, l, b in lines_and_limits("plant") if l.height and b is None)
