@@ -391,6 +391,22 @@ class NamesCase:
         g.emu.call(g.symbols["_names_sync_now"], 1)
         self.assertEqual(g.files["raw"][path], HEADER + record(short, name) + record(short2, other))
 
+    def test_a_record_made_while_no_slot_is_known_waits_for_its_row(self) -> None:
+        """getText of a name into no player row: its record stays pending; once a row holds that short
+        form, the next sync records it for that row's slot."""
+        g = Game(self.game)
+        name = "Nobody's Row Yet, A Name Too Long For Its Field"
+        dst = g.emu.alloc(0x20)
+        wrapper, _box = g.box(unicode_data.encode_game_text(name), limit=NAME_BOX_BYTES)
+        g.run_call(GAMES[self.game]["text_call"], wrapper, dst, 0x20)
+        short = bytes(g.emu.uc.mem_read(dst, 0x20)).split(b"\0", 1)[0]
+        self.assertTrue(short.endswith(b"..."))
+        self.assertFalse(any(names_path(self.game, n) in g.files["raw"] for n in range(1, 6)))
+        g.set_row(4, short)
+        g.files["tick"] += 5000
+        g.emu.call(g.symbols["_names_sync"])
+        self.assertEqual(g.names_file(4), HEADER + record(short, name))
+
     def test_viewing_a_long_name_never_shortens_it(self) -> None:
         """A box set up with the game's 32-byte limit (no name site's setLimit) shown a name of
         NAME_BOX_BYTES bytes: setText keeps it whole (the game's setText grows the limit to the
