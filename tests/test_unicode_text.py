@@ -722,15 +722,13 @@ class PatcherTests(unittest.TestCase):
             self.assertNotIn("startup_loader", companion)
             folder = ROOT / companion["source"]
             paths = {f["path"] for f in companion["files"]}
-            fonts = {f"Fonts/{p.name}" for p in (folder / "Fonts").iterdir()}     # tests/test_unicode18.py
-            self.assertEqual(len(fonts), 9)
-            self.assertEqual(paths, {"Unicode Text.dll"} | {f"Images/{n}" for n in picture_names(game)} | fonts)
+            self.assertEqual(paths, {"Unicode Text.dll"} | {f"Images/{n}" for n in picture_names(game)})
             for entry in companion["files"]:
                 data = (folder / entry["path"]).read_bytes()
                 self.assertEqual((entry["size"], entry["sha256"]),
                                  (len(data), hashlib.sha256(data).hexdigest().upper()), entry["path"])
-                if entry["path"].endswith(".dll") or entry["path"].startswith("Fonts/"):
-                    self.assertEqual(entry["destination"], f"{tm.GAME_TITLES[game]} Fix Patcher DLLs/{entry['path']}")
+                if entry["path"].endswith(".dll"):
+                    self.assertEqual(entry["destination"], f"{tm.GAME_TITLES[game]} Fix Patcher DLLs/Unicode Text.dll")
                 else:
                     self.assertEqual(entry["destination"], entry["path"])
             # no pins carry the setting: it is left out of the pin key

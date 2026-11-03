@@ -5,11 +5,6 @@ Pure ctypes: the patcher ships no Pillow.
 
 raster(text, family, size, weight) -> Raster: the drawing's premultiplied pixels, its
 baseline and its advance width, in pixels (96 DPI: a DirectWrite DIP is a pixel).
-
-raster_gdi(text, family, size, weight, files) -> Raster: the same drawn by GDI, for the fonts the
-patcher ships (assets/<game>_tycoon_unicode/Fonts: Unifont, Noto, Last Resort), which it loads for
-this process only (AddFontResourceExW, FR_PRIVATE) as "Unicode Text.dll" does in the games;
-DirectWrite does not see such fonts. One colour (the fonts have no colour glyphs).
 """
 
 from __future__ import annotations
@@ -260,90 +255,3 @@ def raster(text: str, family: str = "Segoe UI", size: float = 16.0, weight: int 
     if engine is None:
         raise RasterError(_engine_error or "Direct2D is not available")
     return engine.raster(text, family, size, weight)
-
-
-# --------------------------------------------------------------------------- GDI, private fonts
-
-FR_PRIVATE = 0x10
-_private_loaded: set[str] = set()
-_gdi_lock = threading.Lock()
-
-
-def load_private_fonts(files) -> int:
-    """Load font files for this process only (never installed in Windows): how many are loaded."""
-    gdi = ctypes.WinDLL("gdi32")
-    gdi.AddFontResourceExW.argtypes = [ctypes.c_wchar_p, wintypes.DWORD, ctypes.c_void_p]
-    for path in files:
-        key = str(path)
-        if key not in _private_loaded and gdi.AddFontResourceExW(key, FR_PRIVATE, None) > 0:
-            _private_loaded.add(key)
-    return len(_private_loaded)
-
-
-class _TEXTMETRICW(ctypes.Structure):
-    _fields_ = [("tmHeight", wintypes.LONG), ("tmAscent", wintypes.LONG), ("tmDescent", wintypes.LONG),
-                ("tmInternalLeading", wintypes.LONG), ("tmExternalLeading", wintypes.LONG),
-                ("tmAveCharWidth", wintypes.LONG), ("tmMaxCharWidth", wintypes.LONG), ("rest", ctypes.c_byte * 40)]
-
-
-def raster_gdi(text: str, family: str, size: float, weight: int = 400, files=()) -> Raster:
-    """`text` drawn by GDI in `family` at em size `size` (anti-aliased, white): as raster()."""
-    load_private_fonts(files)
-    gdi = ctypes.WinDLL("gdi32")
-    gdi.CreateCompatibleDC.restype = ctypes.c_void_p
-    gdi.CreateCompatibleDC.argtypes = [ctypes.c_void_p]
-    gdi.CreateFontW.restype = ctypes.c_void_p
-    gdi.CreateFontW.argtypes = [ctypes.c_int] * 5 + [wintypes.DWORD] * 8 + [ctypes.c_wchar_p]
-    gdi.SelectObject.restype = ctypes.c_void_p
-    gdi.SelectObject.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
-    gdi.DeleteObject.argtypes = [ctypes.c_void_p]
-    gdi.DeleteDC.argtypes = [ctypes.c_void_p]
-    gdi.GetTextMetricsW.argtypes = [ctypes.c_void_p, ctypes.POINTER(_TEXTMETRICW)]
-    gdi.GetTextExtentPoint32W.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_int,
-                                          ctypes.POINTER(wintypes.SIZE)]
-    gdi.CreateDIBSection.restype = ctypes.c_void_p
-    gdi.CreateDIBSection.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint, ctypes.POINTER(ctypes.c_void_p),
-                                     ctypes.c_void_p, wintypes.DWORD]
-    gdi.SetTextColor.argtypes = [ctypes.c_void_p, wintypes.DWORD]
-    gdi.SetBkMode.argtypes = [ctypes.c_void_p, ctypes.c_int]
-    gdi.TextOutW.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int]
-    gdi.GdiFlush.argtypes = []
-    units = len(text.encode("utf-16-le")) // 2
-    with _gdi_lock:
-        dc = gdi.CreateCompatibleDC(None)
-        if not dc:
-            raise RasterError("CreateCompatibleDC failed")
-        font = gdi.CreateFontW(-max(1, round(size)), 0, 0, 0, weight, 0, 0, 0, 1, 4, 0, 4, 0, family)
-        old_font = gdi.SelectObject(dc, font)
-        bitmap = None
-        try:
-            tm = _TEXTMETRICW()
-            gdi.GetTextMetricsW(dc, ctypes.byref(tm))
-            extent = wintypes.SIZE()
-            gdi.GetTextExtentPoint32W(dc, text, units, ctypes.byref(extent))
-            pad = int(size) + 4
-            width, height = extent.cx + 2 * pad, tm.tmHeight + 2 * pad
-            header = BITMAPINFOHEADER(ctypes.sizeof(BITMAPINFOHEADER), width, -height, 1, 32, 0, 0, 0, 0, 0, 0)
-            bits = ctypes.c_void_p()
-            bitmap = gdi.CreateDIBSection(dc, ctypes.byref(header), 0, ctypes.byref(bits), None, 0)
-            if not bitmap:
-                raise RasterError("CreateDIBSection failed")
-            old_bitmap = gdi.SelectObject(dc, bitmap)
-            ctypes.memset(bits, 0, width * height * 4)
-            gdi.SetTextColor(dc, 0xFFFFFF)
-            gdi.SetBkMode(dc, 1)
-            gdi.TextOutW(dc, pad, pad, text, units)
-            gdi.GdiFlush()
-            data = bytearray(ctypes.string_at(bits, width * height * 4))
-            gdi.SelectObject(dc, old_bitmap)
-        finally:
-            gdi.SelectObject(dc, old_font)
-            gdi.DeleteObject(font)
-            if bitmap:
-                gdi.DeleteObject(bitmap)
-            gdi.DeleteDC(dc)
-    g = data[1::4]                    # GDI's coverage, white ink: premultiplied white with that alpha
-    data[0::4] = g
-    data[2::4] = g
-    data[3::4] = g
-    return Raster(width, height, bytes(data), float(pad + tm.tmAscent), float(extent.cx), float(pad))

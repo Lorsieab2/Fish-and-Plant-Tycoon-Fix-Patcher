@@ -54,12 +54,11 @@ import functools
 import os
 from pathlib import Path
 import struct
-import unicodedata              # normalize only: names and properties are Unicode 18.0 (unicode_data)
+import unicodedata
 import zipfile
 
 from picture_image import Image
 import text_raster
-import unicode_data
 
 IMAGE_BASE = 0x400000
 
@@ -490,7 +489,7 @@ ZWJ = "\u200d"
 
 
 def _is_mark(ch: str) -> bool:
-    return unicode_data.category(ch) in ("Mn", "Me", "Mc")
+    return unicodedata.category(ch) in ("Mn", "Me", "Mc")
 
 
 def _is_regional(ch: str) -> bool:
@@ -504,10 +503,36 @@ def _is_extender(ch: str) -> bool:
 
 
 def clusters(text: str) -> list[str]:
-    """User-perceived characters: the extended grapheme clusters of UAX #29, Unicode 18.0
-    (src/unicode_data.py, the same cuts as Unicode Text.dll): a letter with its marks, an Indic
-    conjunct, emoji joined by ZWJ, a flag, a keycap, CR LF."""
-    return unicode_data.graphemes(text)
+    """User-perceived characters (grapheme clusters): a letter with its combining marks,
+    variation selectors, skin tones and tags; emoji joined by ZWJ; regional-indicator
+    pairs (flags); CR LF."""
+    out: list[str] = []
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        j = i + 1
+        if ch == "\r" and j < n and text[j] == "\n":
+            out.append("\r\n")
+            i = j + 1
+            continue
+        if ch == "\n":
+            out.append(ch)
+            i = j
+            continue
+        if _is_regional(ch) and j < n and _is_regional(text[j]):
+            j += 1
+        while j < n:
+            if _is_extender(text[j]):
+                j += 1
+            elif text[j] == ZWJ and j + 1 < n and text[j + 1] != "\n":
+                j += 2
+            elif text[j] == ZWJ:
+                j += 1
+            else:
+                break
+        out.append(text[i:j])
+        i = j
+    return out
 
 
 # --------------------------------------------------------------------------- Windows fonts
@@ -525,34 +550,6 @@ FALLBACK_CHAIN = (
     ("arialuni.ttf", "Arial Unicode MS"),
 )
 EMOJI_FAMILY = "Segoe UI Emoji"
-
-# After Windows' fonts, the fonts the patcher ships (data/unicode/fonts.json), as Unicode Text.dll
-# has them beside it: Unifont, Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, Last Resort.
-BUNDLED_FONT_DIR = Path(__file__).resolve().parents[1] / "assets" / "fish_tycoon_unicode" / "Fonts"
-
-
-@functools.lru_cache(maxsize=None)
-def bundled_fonts() -> tuple[tuple[str, str], ...]:
-    """(file path, family) of each bundled font that is there, in the chain's order."""
-    import json
-    try:
-        fonts = json.loads((unicode_data.DATA / "fonts.json").read_text(encoding="utf-8"))["fonts"]
-    except (OSError, ValueError, KeyError):
-        return ()
-    return tuple((str(BUNDLED_FONT_DIR / f["file"]), f["family"]) for f in fonts
-                 if (BUNDLED_FONT_DIR / f["file"]).is_file())
-
-
-def is_bundled(family: str) -> bool:
-    return any(name == family for _file, name in bundled_fonts())
-
-
-def raster_family(text: str, family: str, size: float, weight: int):
-    """Windows' DirectWrite for its own fonts; GDI with the bundled fonts loaded for this process
-    (as the DLL draws them) for those."""
-    if is_bundled(family):
-        return text_raster.raster_gdi(text, family, size, weight, [f for f, _n in bundled_fonts()])
-    return text_raster.raster(text, family, size, weight)
 
 
 def _cmap_ranges(path: Path) -> list[tuple[int, int]]:
@@ -572,14 +569,14 @@ def _cmap_ranges(path: Path) -> list[tuple[int, int]]:
     for i in range(struct.unpack_from(">H", data, cmap + 2)[0]):
         platform, _encoding, sub = struct.unpack_from(">HHI", data, cmap + 4 + 8 * i)
         fmt = struct.unpack_from(">H", data, cmap + sub)[0]
-        rank = {12: 2, 13: 2, 4: 1}.get(fmt, 0) if platform in (0, 3) else 0
+        rank = {12: 2, 4: 1}.get(fmt, 0) if platform in (0, 3) else 0
         if rank and (best is None or rank > best[0]):
             best = (rank, cmap + sub, fmt)
     if best is None:
         return []
     _rank, at, fmt = best
     ranges = []
-    if fmt in (12, 13):
+    if fmt == 12:
         for g in range(struct.unpack_from(">I", data, at + 12)[0]):
             first, last, _glyph = struct.unpack_from(">III", data, at + 16 + 12 * g)
             ranges.append((first, last))
@@ -594,7 +591,7 @@ def _cmap_ranges(path: Path) -> list[tuple[int, int]]:
 
 @functools.lru_cache(maxsize=None)
 def _coverage(file: str) -> tuple[list[int], list[int]]:
-    path = Path(file) if os.path.isabs(file) else FONT_DIR / file
+    path = FONT_DIR / file
     try:
         ranges = _cmap_ranges(path) if path.is_file() else []
     except (OSError, struct.error):
@@ -615,7 +612,7 @@ def fallback_files() -> tuple[tuple[str, str], ...]:
         for path in sorted(FONT_DIR.glob("Noto*")):
             if path.suffix.lower() in (".ttf", ".otf", ".ttc"):
                 chain.append((path.name, _family_name(path) or path.stem))
-    return tuple(chain) + bundled_fonts()
+    return tuple(chain)
 
 
 def _family_name(path: Path) -> str | None:
@@ -749,7 +746,7 @@ def draw_windows(font: GameFont, text: str, family: str | None = None) -> Glyph:
     if not emoji:
         target = m["stem"] * SS
         weight = min(WEIGHTS, key=lambda w: abs(_family_measures("Segoe UI", w)[1] * size - target))
-    r = raster_family(text, family, size, weight)
+    r = text_raster.raster(text, family, size, weight)
     box = _raster_ink(r)
     if box is None:
         return _space(font, " ")
@@ -776,7 +773,7 @@ def draw_windows(font: GameFont, text: str, family: str | None = None) -> Glyph:
 def _scaled_to_line(font: GameFont, text: str, family: str, size: float, weight: int) -> Glyph:
     """A drawing taller than the line: drawn smaller until it fits."""
     for factor in (0.9, 0.8, 0.7, 0.6, 0.5, 0.4):
-        r = raster_family(text, family, size * factor, weight)
+        r = text_raster.raster(text, family, size * factor, weight)
         box = _raster_ink(r)
         if box and box[3] - box[1] <= font.line_height * SS:
             m = font.metrics
@@ -985,7 +982,7 @@ def _compose(font: GameFont, cluster: str) -> Glyph | None:
 
 
 def _is_space(cluster: str) -> bool:
-    return len(cluster) == 1 and (unicode_data.category(cluster) == "Zs" or cluster == "\t")
+    return len(cluster) == 1 and (unicodedata.category(cluster) == "Zs" or cluster == "\t")
 
 
 def _space(font: GameFont, cluster: str) -> Glyph:
@@ -1032,7 +1029,7 @@ def make_glyph(font: GameFont, cluster: str) -> Glyph:
 
 
 def is_zero_width(cluster: str) -> bool:
-    return all(c == ZWJ or _is_extender(c) or unicode_data.category(c) in ("Cf", "Cc") for c in cluster)
+    return all(c == ZWJ or _is_extender(c) or unicodedata.category(c) in ("Cf", "Cc") for c in cluster)
 
 
 def glyph_for(font: GameFont, cluster: str, generate: bool = True) -> Glyph | None:
@@ -1176,8 +1173,8 @@ def generated_in(font: GameFont, text: str) -> list[tuple[str, str]]:
 
 
 def describe(cluster: str) -> str:
-    """'U+00E9 LATIN SMALL LETTER E WITH ACUTE' (each code point of a cluster; Unicode 18.0 names)."""
-    return " + ".join(f"U+{ord(ch):04X} {unicode_data.name(ch, '')}".rstrip() for ch in cluster)
+    """'U+00E9 LATIN SMALL LETTER E WITH ACUTE' (each code point of a cluster)."""
+    return " + ".join(f"U+{ord(ch):04X} {unicodedata.name(ch, '')}".rstrip() for ch in cluster)
 
 
 def parse_unicode(entry: str) -> str:
@@ -1188,7 +1185,7 @@ def parse_unicode(entry: str) -> str:
     if not text:
         return ""
     try:
-        return unicode_data.lookup(text)
+        return unicodedata.lookup(text)
     except KeyError:
         pass
     out = []
@@ -1212,27 +1209,6 @@ def parse_unicode(entry: str) -> str:
             return text
         out.append(chr(value))
     return "".join(out)
-
-
-# The block picker: every block of Unicode 18.0 with its letters.
-
-@functools.lru_cache(maxsize=None)
-def picker_blocks() -> tuple[tuple[str, int, int], ...]:
-    """(label, first, last) of every Unicode 18.0 block that has a letter text can hold."""
-    out = []
-    for first, last, name in unicode_data.blocks():
-        letters = block_letters(first, last)
-        if not letters:
-            continue
-        new = any(unicode_data.age(cp) == "18.0" for cp in letters)
-        out.append((f"{name} (U+{first:04X}-U+{last:04X}){', new in 18.0' if new else ''}", first, last))
-    return tuple(out)
-
-
-@functools.lru_cache(maxsize=None)
-def block_letters(first: int, last: int) -> tuple[int, ...]:
-    """The block's assigned code points but controls, surrogates, private use and noncharacters."""
-    return tuple(cp for cp in range(first, last + 1) if unicode_data.is_text_letter(cp))
 
 
 # The accent picker: common letters with diacritics, by language.

@@ -10,8 +10,7 @@
      - a letter goes in as its UTF-8 bytes, only whole: while the box's byte limit (+0x28)
        has room for all of them and, in a name box (limit NAME_BOX_BYTES), it has fewer than
        NAME_LETTERS letters;
-     - Backspace takes off the last whole grapheme (unicode_grapheme.h: a letter with its marks,
-       an emoji sequence, a flag; the game took one byte);
+     - Backspace takes off the last whole letter (the game took one byte);
      - Enter and Tab do what they did (the box's own "done", Fish 0x40BA30, Plant 0x40C4D0);
      - control characters, C1 controls and lone surrogates are dropped;
      - a number box (+0x2D) or a box keeping a number (+0x2F) goes on the game's own way.
@@ -66,7 +65,7 @@ static int __cdecl box_char(char *box, unsigned int ch) {
     len = s_len(text);
     if (ch == 8) {
         if (len > 0) {
-            text[grapheme_before(text, text + len) - text] = '\0';
+            text[letter_before(text, text + len) - text] = '\0';
             box_changed(box);
         }
         return 1;
@@ -75,7 +74,7 @@ static int __cdecl box_char(char *box, unsigned int ch) {
         ((box_done_fn)(UINT_PTR)GAME_BOX_DONE)(box, NULL);
         return 1;
     }
-    if (!letter_typable(ch)) return 1;
+    if (ch < 0x20 || (ch >= 0x7F && ch < 0xA0) || (ch >= 0xD800 && ch <= 0xDFFF) || ch > 0x10FFFF) return 1;
     n = utf8_put(ch, bytes, 4);
     if (len + n > limit) return 1;
     if (limit == NAME_BOX_BYTES && letters_in(text) >= NAME_LETTERS) return 1;

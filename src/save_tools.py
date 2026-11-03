@@ -235,15 +235,20 @@ def name_limit(game_id: str, folder: Path | None = None) -> int:
 
 
 def name_allowed(ch: str, unicode: int | bool) -> bool:
-    """With ANY_SCRIPT, every assigned code point of Unicode 18.0 (src/unicode_data.py, not Python's
-    older unicodedata) but controls, surrogates, private use and noncharacters."""
-    import unicode_data
+    """With ANY_SCRIPT, any Unicode letter but controls, surrogates, private use and noncharacters.
+    Decided by code point ranges, not by Python's unicodedata: that is the Unicode version of the
+    Python running the patcher, which calls letters added since (Unicode 17 and 18) unassigned
+    ("Cn"), though the games take and draw them."""
     code, level = ord(ch), int(unicode)
     if 0x20 <= code < 0x7F:
         return True
     if level >= LATIN1 and 0xA0 <= code <= 0xFF:
         return True
-    return level >= ANY_SCRIPT and code >= 0xA0 and unicode_data.is_text_letter(code)
+    if level < ANY_SCRIPT or code < 0xA0 or 0xD800 <= code <= 0xDFFF:
+        return False
+    noncharacter = 0xFDD0 <= code <= 0xFDEF or (code & 0xFFFE) == 0xFFFE
+    private = 0xE000 <= code <= 0xF8FF or code >= 0xF0000
+    return not noncharacter and not private
 
 
 def short_form(name: str, length: int = 31) -> bytes:

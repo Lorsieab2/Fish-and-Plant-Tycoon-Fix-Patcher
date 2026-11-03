@@ -21,7 +21,6 @@ SETTING_ID = "unicode_ingame_fonts"
 SYSTEM_ID = "unicode_system_font"          # Use Unicode Font (overrides in-game fonts)
 PASTE_ID = "copy_paste_text_boxes"          # Copy and Paste in Text Boxes
 DLL = "Unicode Text.dll"
-FONTS_TEXT = ("Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one.")
 
 GAMES = {
     "fish": {
@@ -71,26 +70,12 @@ def setting(game: dict) -> dict:
             "byte a letter, '?' for a letter Latin-1 has not), so its layout is unchanged, and the full name "
             "beside it (Fix Patcher Data\\Names <slot>.dat); the patcher's tools (Rename Players, Copy "
             "Player Slot, the Breeding Guide and Picture Studio) read and write such names too. "
-            f"{FONTS_TEXT} {game['older']}"
+            f"{game['older']}"
         ),
         "category": "main",
         "default": True,
         "separate_output": True,
     }
-
-
-def font_files(game: dict) -> list[dict]:
-    """The fallback fonts and their licenses (data/unicode/fonts.json), into "<Game> Fix Patcher
-    DLLs/Fonts" beside the DLL, which loads them for the game only (native/common/unicode_glyphs.h)."""
-    source = ROOT / game["source"]
-    fonts = json.loads((ROOT / "data" / "unicode" / "fonts.json").read_text(encoding="utf-8"))["fonts"]
-    names = [f["file"] for f in fonts] + sorted(dict.fromkeys(f["license_file"] for f in fonts))
-    files = []
-    for name in names:
-        data = (source / "Fonts" / name).read_bytes()
-        files.append({"path": f"Fonts/{name}", "destination": f"{game['folder']}/Fonts/{name}", "size": len(data),
-                      "sha256": hashlib.sha256(data).hexdigest().upper()})
-    return files
 
 
 def companion(game: dict) -> dict:
@@ -102,7 +87,7 @@ def companion(game: dict) -> dict:
         destination = f"{game['folder']}/{DLL}" if path.name == DLL else relative
         files.append({"path": relative, "destination": destination, "size": len(data),
                       "sha256": hashlib.sha256(data).hexdigest().upper()})
-    return {"source": game["source"], "loader_tail": DLL, "files": files + font_files(game)}
+    return {"source": game["source"], "loader_tail": DLL, "files": files}
 
 
 def system_setting(game: dict) -> dict:
@@ -118,8 +103,7 @@ def system_setting(game: dict) -> dict:
             "the font chosen beside this setting in the patcher (Segoe UI unless you pick another), then, for a "
             "letter it lacks, the fonts for other scripts (Yu Gothic, Meiryo, Microsoft YaHei, Malgun Gothic, "
             "Segoe UI Historic, Segoe UI Emoji ...), at the game fonts' line heights and in the game's colours "
-            f"(colour emoji in their own colours). {FONTS_TEXT} The game's own fonts and pictures are not changed. "
-            "Names are kept as with "
+            "(colour emoji in their own colours). The game's own fonts and pictures are not changed. Names are kept as with "
             "Render Unicode with In-Game Fonts (the first 31 letters in the save, the full name beside it), and "
             "the two settings cannot both be on. Runs as the same Unicode Text.dll, set by the "
             "\"Unicode Text.ini\" the patcher writes beside it."
@@ -131,12 +115,11 @@ def system_setting(game: dict) -> dict:
     }
 
 
-def system_companion(game: dict, fonts: bool = True) -> dict:
-    """The DLL alone (Copy and Paste in Text Boxes draws nothing), or with the fallback fonts."""
+def system_companion(game: dict) -> dict:
     data = (ROOT / game["source"] / DLL).read_bytes()
     return {"source": game["source"], "loader_tail": DLL, "files": [{
         "path": DLL, "destination": f"{game['folder']}/{DLL}", "size": len(data),
-        "sha256": hashlib.sha256(data).hexdigest().upper()}] + (font_files(game) if fonts else [])}
+        "sha256": hashlib.sha256(data).hexdigest().upper()}]}
 
 
 def paste_setting(game: dict) -> dict:
@@ -187,7 +170,7 @@ def main() -> int:
         system["companion"] = system_companion(game)
         put(manifest, system)
         paste = paste_setting(game)
-        paste["companion"] = system_companion(game, fonts=False)
+        paste["companion"] = system_companion(game)
         put(manifest, paste)
         path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print(f"{game_id}: {SETTING_ID} with {len(entry['companion']['files'])} files, {SYSTEM_ID}")

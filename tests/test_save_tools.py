@@ -412,3 +412,16 @@ class ToolsTabWiringTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NameLettersTests(unittest.TestCase):
+    def test_letters_newer_than_pythons_unicodedata_are_taken(self) -> None:
+        """Unicode 18.0 letters (Small Seal, Jurchen, an Armenian modifier letter, the Omani rial
+        sign) and 17.0 ones: Python's unicodedata may call them unassigned, the games take them."""
+        import save_tools
+        for cp in (0x3D000, 0x18E00, 0x0558, 0x20C4, 0x323B0, 0x0915, 0x1F600, 0x200D, 0xFE0F):
+            self.assertTrue(save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT), hex(cp))
+            self.assertEqual(save_tools.validate_name("fish", "Ab" + chr(cp), save_tools.ANY_SCRIPT), "Ab" + chr(cp))
+        for cp in (0x07, 0x7F, 0x85, 0xE000, 0xF0000, 0x10FFFD, 0xFDD0, 0xFFFE, 0x3FFFF):
+            self.assertFalse(save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT), hex(cp))
+        self.assertFalse(save_tools.name_allowed("\u3042", save_tools.LATIN1))
