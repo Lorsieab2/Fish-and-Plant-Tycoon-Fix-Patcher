@@ -738,6 +738,19 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
             (13, 83, 0xFF000000, FONT, GRAPHICS), (12, 82, 0xFFFFFFFF, FONT, GRAPHICS),
         ])
 
+    def test_the_buttons_translation_room(self) -> None:
+        """data/translation_limits.json's room for "Counts: On" / "Off" is what this draw leaves: from
+        the button's x, with its 1-pixel shadow, to the screen's right edge (the live check's
+        "Compteurs : oui" ran off it)."""
+        import translation_fit as tfit
+        self.fish(0, 0, 25)
+        self.frame()
+        [(x, _y)] = [(t[1], t[2]) for t in self.text_draws if t[3] == 0xFF40D0FF]
+        for key in ("mod/tank_counts.counts_on", "mod/tank_counts.counts_off"):
+            limit = tfit.limits("fish")[key]
+            self.assertTrue(limit.proven, key)
+            self.assertEqual(limit.width, 800 - x - 1, key)
+
     def test_the_screensaver_shows_nothing_and_its_clicks_are_the_games(self) -> None:
         self.fish(0, 0, 25)
         self.emu.write8(self.state + 0x1E4F9, 1)
@@ -961,6 +974,25 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
         self.click(*self.inside())
         self.frame()
         self.assertEqual(self.counts(), [], "the moved button still toggles")
+
+    def test_the_buttons_translation_room(self) -> None:
+        """data/translation_limits.json's room for "Counts: On" / "Off" is the tighter of this draw's
+        two places: from x 694 (with the 1-pixel shadow) to the screen's edge, and, under the Extra
+        Greenhouses arrows, from its x to its click box's right (the live check's "Compteurs : oui")."""
+        import translation_fit as tfit
+        owned = [0]
+        self.export("Extra Greenhouses.dll", "FtfpExtraGreenhousesOwned", lambda e: owned[0], 0)
+        self.pot(0, 25.0, infested=1)
+        rooms = []
+        for count in (0, 1):
+            owned[0] = count
+            self.frame()
+            [(x, _y)] = [(t[1], t[2]) for t in self.text_draws if t[3] == 0xFF40D0FF]
+            rooms.append(800 - x - 1 if count == 0 else self.box()[2] - x)
+        for key in ("mod/greenhouse_counts.counts_on", "mod/greenhouse_counts.counts_off"):
+            limit = tfit.limits("plant")[key]
+            self.assertTrue(limit.proven, key)
+            self.assertEqual(limit.width, min(rooms), key)
 
     def test_the_button_sits_on_the_wall_above_the_tables(self) -> None:
         self.startup()

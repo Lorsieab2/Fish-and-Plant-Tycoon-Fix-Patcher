@@ -201,6 +201,7 @@ class Run:
         self.watched: list[tuple[str, bytes, int]] = []
         self.texts: list[tuple[bytes, int, int, int]] = []
         self.pictures: list[tuple[int, int, int, int]] = []
+        self.backdrop: set = set()       # pictures words are drawn over: dialog tiles, rope bars, fills
         for address, kind in WATCHED[game].items():
             self.emu.uc.hook_add(UC_HOOK_CODE, lambda uc, _a, _s, _d, k=kind: self._watch(k),
                                  begin=address, end=address)
@@ -233,17 +234,25 @@ class Run:
                 elif not x.file.startswith("<"):
                     w, h = self.sizes(x.file)
                     if w and h:
-                        self.pictures.append((x.x, x.y, w // max(1, x.cols), h // max(1, x.rows)))
+                        rect = (x.x, x.y, w // max(1, x.cols), h // max(1, x.rows))
+                        self.pictures.append(rect)
+                        if x.file in BACKDROP_FILES:
+                            self.backdrop.add(rect)
         else:
             for x in d.draws:
                 if x[0] == "text":
                     self.texts.append((x[1], x[2], x[3], x[5]))
                 elif x[0] == "pic":
                     left, top, right, bottom = x[2]
-                    self.pictures.append((x[3], x[4], right - left, bottom - top))
+                    rect = (x[3], x[4], right - left, bottom - top)
+                    self.pictures.append(rect)
+                    if x[1] in BACKDROP_FILES:
+                        self.backdrop.add(rect)
                 elif x[0] == "fill":
                     left, top, right, bottom = x[1]
-                    self.pictures.append((left, top, right - left, bottom - top))
+                    rect = (left, top, right - left, bottom - top)
+                    self.pictures.append(rect)
+                    self.backdrop.add(rect)
         d.draws.clear()
 
     def run(self, function: int, args: tuple = (0, 0, 0, 0, 0, 0), size: int = 0x2000, at: int = 0) -> int:
@@ -274,8 +283,23 @@ class Run:
 
 # ------------------------------------------------------------------ rooms from the runs
 
-def text_room(x: int, w: int, shift: int, pictures_a: list, pictures_b: list, y: int, h: int) -> tuple:
-    """(room, kind) of a text drawn at x, w wide, that moved `shift` when every text grew by D."""
+# Pictures words are drawn over, never neighbours: Plant Tycoon's dialog tiles (0x40CDF0), Fish
+# Tycoon's rope box bars (0x423280) and its fills.
+BACKDROP_FILES = {"OrangeDlgTileGrid.png", "GreenDlgTileGrid.png",
+                  "custompopup_ftropestyle_bar_top.png", "custompopup_ftropestyle_bar_bottom.png",
+                  "custompopup_ftropestyle_bar_left.png", "custompopup_ftropestyle_bar_right.png"}
+NEIGHBOUR_GAP = 4                  # pixels kept clear between a line and the next thing drawn beside it
+NEIGHBOUR_MAX = 200                # a picture up to this big beside a line is a neighbour (a check box,
+#                                    a radio button, an icon); a bigger one is a backdrop
+
+
+def text_room(x: int, w: int, shift: int, pictures_a: list, pictures_b: list, y: int, h: int,
+              neighbours: list = ()) -> tuple:
+    """(room, kind) of a text drawn at x, w wide, that moved `shift` when every text grew by D.
+    `neighbours`: rectangles (left, top, right, bottom) of the other words and small pictures drawn
+    in the same run: on the line's row, the nearest one past the English's end (before its start,
+    for a right-placed line; either side, for a centred one) ends its room, so a longer translation
+    never runs into a check box or the next word (the live check's "Arreter le tempsLente")."""
     if shift == 0:
         kind = "left"
     elif shift == -D:
@@ -299,6 +323,18 @@ def text_room(x: int, w: int, shift: int, pictures_a: list, pictures_b: list, y:
         inside = {"left": px + pw - x, "right": x + w - px, "centre": int(2 * min(centre - px, px + pw - centre))}[kind]
         if inside < room:
             room, kind = inside, kind + " in a picture"
+    right_free, left_free = SCREEN_W, 0
+    for left, top, right, bottom in neighbours:
+        if bottom <= y or top >= y + h:
+            continue                                   # not on the line's row
+        if left >= x + w - 1:
+            right_free = min(right_free, left - NEIGHBOUR_GAP)
+        elif right <= x + 1:
+            left_free = max(left_free, right + NEIGHBOUR_GAP)
+    beside = {"left": right_free - x, "right": x + w - left_free,
+              "centre": int(2 * min(centre - left_free, right_free - centre))}[kind.split()[0]]
+    if beside < room:
+        room, kind = beside, kind.split()[0] + " up to its neighbour"
     return room, kind
 
 
@@ -342,6 +378,22 @@ class Census:
     def add(self, ident: int, room: int, kind: str, font: int, where: str) -> None:
         self.spots.setdefault(ident, []).append((room, kind, font, where))
 
+    def neighbours(self, a: "Run", data: bytes, x: int, y: int) -> list:
+        """The other words and the small pictures that do not move, drawn in run `a`."""
+        c = composer(self.game)
+        out = []
+        for d, tx, ty, font in a.texts:
+            if d == data and tx == x and ty == y:
+                continue
+            tw, th = c.text_size(font, d)
+            out.append((tx, ty, tx + tw, ty + th))
+        for px, py, pw, ph in a.pictures:
+            if (px, py, pw, ph) in a.backdrop:
+                continue
+            if 0 < pw <= NEIGHBOUR_MAX and 0 < ph <= NEIGHBOUR_MAX:
+                out.append((px, py, px + pw, py + ph))
+        return out
+
     def run_function(self, function: int) -> None:
         a, b = Run(self.game), Run(self.game, D)
         a.run(function)
@@ -368,7 +420,7 @@ class Census:
             w, h = composer(self.game).text_size(font, data)
             # a button's label: the screen here, its frame below (never another picture under it)
             pictures = ([], []) if data in buttons else (a.pictures, b.pictures)
-            room, kind = text_room(x, w, match[1] - x, *pictures, y, h)
+            room, kind = text_room(x, w, match[1] - x, *pictures, y, h, self.neighbours(a, data, x, y))
             if kind == "grown":
                 continue
             if moved and (data, y) in moved and "picture" not in kind:
@@ -652,6 +704,18 @@ def game_limits(game: str, verbose: bool = False) -> dict:
     return out
 
 
+# Patcher DLL texts each drawn by its DLL at a place of its own (the DLL's source; checked in
+# Unicorn by tests/test_tank_greenhouse_counts.py, which runs the DLL's own draw): mod id -> (room,
+# kind). The Counts button: "Counts: On" / "Off" from x 694 with a 1-pixel shadow (800 - 694 - 1 =
+# 105); Plant Tycoon's moves to x 646 under the Extra Greenhouses arrows, its box ending at 744 (98).
+MOD_SPOTS = {
+    "fish": {"tank_counts.counts_on": (105, "Counts button, from x 694"),
+             "tank_counts.counts_off": (105, "Counts button, from x 694")},
+    "plant": {"greenhouse_counts.counts_on": (98, "Counts button, from x 646 to 744"),
+              "greenhouse_counts.counts_off": (98, "Counts button, from x 646 to 744")},
+}
+
+
 def mod_limits(game: str) -> dict:
     """{"mod/<id>": {...}}: a Windows popup's text wraps itself (no limit); the rest the safe rule
     (the patcher DLLs place their texts in their own layouts, which no run here measures)."""
@@ -664,6 +728,11 @@ def mod_limits(game: str) -> dict:
                                    "proven": True, "format": e.is_format}
             continue
         w = _widest(c, 0, e.english)
+        if ident in MOD_SPOTS[game]:
+            room, kind = MOD_SPOTS[game][ident]
+            out[f"mod/{ident}"] = {"font": 0, "width": max(room, w), "multiline": False, "kind": kind,
+                                   "proven": True, "where": "DLL source", "format": e.is_format}
+            continue
         out[f"mod/{ident}"] = {"font": 0, "width": safe_limit(w), "multiline": "\n" in e.english,
                                "kind": "safe rule", "proven": False, "format": e.is_format}
     return out

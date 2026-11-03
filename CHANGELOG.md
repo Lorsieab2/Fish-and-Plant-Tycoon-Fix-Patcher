@@ -14,11 +14,22 @@
   box's own fields (the Unicode setting's `box_room` rule), or the widest text
   the game's message, question or tooltip box keeps on the 800 x 600 screen
   (Fish message 758 pixels; Plant message 696, question 708, tooltip 780).
-  This gives a measured room for 81 of Fish Tycoon's 248 lines and 121 of
-  Plant Tycoon's 391. Every other line, and every patcher DLL text, gets the
+  The next word or small picture on the same row (a check box, a radio
+  button, the cash amount) also ends a line's room, so a longer word no
+  longer runs into it. This gives a measured room for 81 of Fish Tycoon's 248
+  lines and 121 of Plant Tycoon's 391. The Counts button's label has its room
+  from the Counts DLLs' own place (105 pixels in Fish Tycoon, 98 in Plant
+  Tycoon). Every other line, and every other patcher DLL text, gets the
   safe rule: the English's widest line plus a quarter (at least 16 pixels),
   never past the screen. A Windows popup's text (Time Warp's dialog) has no
   limit: Windows wraps it.
+- **The first live check's French lines.** In Unicorn, with the French test
+  translation: "Morceaux de musique" no longer runs under the check boxes and
+  "Arrêter le temps" no longer runs into "Lente" (both cut with "..."),
+  "ARGENT" stays clear of the cash and "Poubelle" of its neighbour (cut),
+  "Pépinière" stays on the screen, and "Compteurs : oui" no longer runs off
+  the right edge, but it is cut to "Compteurs..." so On/Off is not shown: a
+  shorter translation ("Compt. : oui") is needed there.
 - **The editor and the validator warn.** A translated line wider than its
   room, measured with the game's font the way Wrap to fit measures (the Text
   Maker's layout, with the patcher-made and Windows-drawn letters), is shown
