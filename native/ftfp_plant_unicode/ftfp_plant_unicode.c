@@ -75,6 +75,7 @@
 #define CODE_ADDR(fn) ((const void *)(UINT_PTR)(fn))
 
 #include "../common/unicode_utf8.h"
+#include "../common/unicode_grapheme.h"
 #include "../common/unicode_names.h"
 #include "../common/unicode_text.h"
 #include "../common/unicode_hooks.h"

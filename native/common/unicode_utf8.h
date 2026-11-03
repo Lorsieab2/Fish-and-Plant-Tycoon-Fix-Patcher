@@ -67,16 +67,6 @@ static unsigned int utf_next(const unsigned char **p) {
     return *(*p)++;
 }
 
-/* The start of the letter before `end` in `text`. */
-static const char *letter_before(const char *text, const char *end) {
-    const unsigned char *p = (const unsigned char *)text, *last = p;
-    while (p < (const unsigned char *)end) {
-        last = p;
-        utf_next(&p);
-    }
-    return (const char *)last;
-}
-
 static int utf8_put(unsigned int cp, char *out, int room) {
     if (cp < 0x80) { if (room < 1) return 0; out[0] = (char)cp; return 1; }
     if (cp < 0x800) {

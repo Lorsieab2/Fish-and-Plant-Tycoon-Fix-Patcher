@@ -91,16 +91,15 @@ __declspec(noinline) static int clip_action(unsigned int vk, int ctrl, int shift
     return CLIP_NONE;
 }
 
-/* A letter that joins the one before it (a combining mark, a variation selector, a skin tone,
-   the zero-width joiner, an emoji tag), so the two go in together or not at all. */
-static int clip_joins(unsigned int cp) {
-    return (cp >= 0x0300 && cp <= 0x036F) || (cp >= 0x0483 && cp <= 0x0489) || (cp >= 0x0591 && cp <= 0x05BD)
-           || (cp >= 0x0610 && cp <= 0x061A) || (cp >= 0x064B && cp <= 0x065F) || (cp >= 0x0900 && cp <= 0x0903)
-           || (cp >= 0x093A && cp <= 0x094F) || (cp >= 0x0E31 && cp <= 0x0E3A && cp != 0x0E32 && cp != 0x0E33)
-           || (cp >= 0x1AB0 && cp <= 0x1AFF) || (cp >= 0x1DC0 && cp <= 0x1DFF) || (cp >= 0x200C && cp <= 0x200D)
-           || (cp >= 0x20D0 && cp <= 0x20FF) || (cp >= 0x3099 && cp <= 0x309A) || (cp >= 0xFE00 && cp <= 0xFE0F)
-           || (cp >= 0xFE20 && cp <= 0xFE2F) || (cp >= 0x1F3FB && cp <= 0x1F3FF) || (cp >= 0xE0020 && cp <= 0xE007F)
-           || (cp >= 0xE0100 && cp <= 0xE01EF);
+/* The end of the grapheme (unicode_grapheme.h, Unicode 18.0) that starts at cps[i]: a letter and
+   its marks, an emoji sequence, a flag go in together or not at all. */
+static int clip_grapheme_end(const unsigned int *cps, int i, int count) {
+    gb_state s;
+    int end = i + 1;
+    gb_start(&s);
+    gb_push(&s, cps[i]);
+    while (end < count && !gb_push(&s, cps[end])) ++end;
+    return end;
 }
 
 /* The clipboard's text, at most `cap` UTF-16 units (NUL-ended): the number read, -1 when the
@@ -175,16 +174,15 @@ static int clip_paste(char *box) {
         }
         if (cp == '\r' && i + 1 < n && units[i + 1] == '\n') ++i;
         if (cp == '\r' || cp == '\n' || cp == '\t') cp = ' ';
-        if (cp < 0x20 || (cp >= 0x7F && cp < 0xA0)) continue;
+        if (!letter_typable(cp)) continue;
         if (!utf8_drawing && cp > 0x7E) continue;    /* the stock box: printable ASCII */
         if (number && !((cp >= '0' && cp <= '9') || (cp == '-' && len + count == 0))) continue;
         cps[count++] = cp;
     }
-    /* whole letters (a base and what joins it) while they fit */
+    /* whole graphemes while they fit */
     for (i = 0; i < count;) {
-        int end = i + 1, bytes = 0, k;
+        int end = clip_grapheme_end(cps, i, count), bytes = 0, k;
         char tmp[4];
-        while (end < count && (clip_joins(cps[end]) || cps[end - 1] == 0x200D)) ++end;
         for (k = i; k < end; ++k) bytes += utf8_drawing ? utf8_put(cps[k], tmp, 4) : 1;
         if (bytes > room || end - i > letters_room) break;
         room -= bytes;
