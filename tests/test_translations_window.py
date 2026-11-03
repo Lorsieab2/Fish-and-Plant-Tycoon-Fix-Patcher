@@ -18,6 +18,7 @@ import urllib.parse
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+import text_wrap as twrap  # noqa: E402
 import translation_format as tfmt  # noqa: E402
 import translations as tr  # noqa: E402
 import translations_window as tw  # noqa: E402
@@ -263,6 +264,66 @@ class Window(unittest.TestCase):
         parsed = tfmt.parse_bytes(self.path.read_bytes(), "fish")
         self.assertEqual([r.english for r in parsed.rows][-1], "Status: ")
         self.assertEqual(parsed.translations()[ENTRIES[0].key], "Âge : ")
+        editor.close()
+
+    def _wrap_open(self, translations):
+        path = write_translation(self.folder, "Wrap", game="fish", translations=translations)
+        editor = self.window.open_editor(path)
+        editor.game_font = lambda: object()       # a fake font: 10 pixels a letter, 20 a CJK character
+        editor.measure_line = lambda text: sum(20 if ord(c) >= 0x3000 else 10 for c in tfmt.evaluate(text))
+        return editor
+
+    def _wrap_select(self, editor, english: str) -> None:
+        iid = next(i for i, r in editor.visible.items() if r.english == english)
+        editor.tree.selection_set(iid)
+        editor.show_row()
+
+    def test_wrap_selected_and_undo(self) -> None:
+        editor = self._wrap_open(("Âge:", "", "Vous avez vendu beaucoup de poissons"))
+        self._wrap_select(editor, "You have sold %d fish!")
+        editor.wrap_selected()
+        text = editor.translation_text.get("1.0", "end-1c")
+        room = len("You have sold %d fish!") * 10
+        self.assertGreater(text.count("\n"), 0)
+        self.assertTrue(all(editor.measure_line(line) <= room for line in text.split("\n")))
+        self.assertEqual(text.split(), "Vous avez vendu beaucoup de poissons".split())
+        self.assertEqual(editor.current.translation, text)
+        self.assertEqual(editor.undo_wrap(), 1)
+        self.assertEqual(editor.current.translation, "Vous avez vendu beaucoup de poissons")
+        self.assertEqual(editor.translation_text.get("1.0", "end-1c"), "Vous avez vendu beaucoup de poissons")
+        editor.close()
+
+    def test_wrap_selected_is_a_no_op_when_it_fits(self) -> None:
+        editor = self._wrap_open(("Âge:", "", "Vendu %d !"))
+        self._wrap_select(editor, "You have sold %d fish!")
+        editor.wrap_selected()
+        self.assertEqual(editor.current.translation, "Vendu %d !")
+        self.assertIn("Already fits", editor.preview_note.get())
+        editor.close()
+
+    def test_wrap_all_counts_asks_first_and_keeps_placeholders(self) -> None:
+        editor = self._wrap_open(("Âge:", "Malade", "Vous avez vendu %d poissons aujourd hui"))
+        self.assertEqual([r.english for r in editor.wide_rows()], ["Sick", "You have sold %d fish!"])
+        with mock.patch.object(tw.messagebox, "askyesno", return_value=False) as ask:
+            self.assertEqual(editor.wrap_all(), 0)
+        self.assertIn("2 line(s)", ask.call_args[0][1])
+        self.assertEqual([r.translation for r in editor.file.rows if r.english == "Sick"], ["Malade"])
+        with mock.patch.object(tw.messagebox, "askyesno", return_value=True):
+            self.assertEqual(editor.wrap_all(), 2)
+        rows = {r.english: r.translation for r in editor.file.rows}
+        self.assertIn("%d", rows["You have sold %d fish!"])
+        self.assertEqual(rows["Sick"], "Mala\nde")
+        self.assertEqual(editor.wide_rows(), [])
+        self.assertEqual(editor.undo_wrap(), 2)
+        self.assertEqual({r.english: r.translation for r in editor.file.rows}["Sick"], "Malade")
+        editor.close()
+
+    def test_warning_and_wrap_agree(self) -> None:
+        editor = self._wrap_open(("Âge:", "Malade", "Vous avez vendu %d poissons"))
+        for row in editor.file.rows:
+            if row.translation:
+                result = editor.wrap_row(row)
+                self.assertFalse(twrap.needs_wrap(result.text, row.english, editor.measure_line))
         editor.close()
 
 

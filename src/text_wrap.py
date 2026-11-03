@@ -106,7 +106,7 @@ def can_break(a: Atom, b: Atom) -> bool:
 
 def english_width(english: str, measure: Measure) -> int:
     """The widest line of the English: the room a translation is held to."""
-    return max((measure(line) for line in english.split("\n")), default=0)
+    return max((measure(line.rstrip(SPACE_CHARS)) for line in english.split("\n")), default=0)
 
 
 @dataclass

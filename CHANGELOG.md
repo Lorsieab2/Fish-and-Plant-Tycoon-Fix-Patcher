@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.0.27
+
+- **Wrap to fit in the translation editor.** The games break a line only at
+  a line break the text itself has, so a translation longer than the English,
+  or Chinese, Japanese or Thai (no spaces), did not fit unless the translator
+  broke it by hand. The editor now has **Wrap to fit** (the selected line) and
+  **Wrap all** (every line wider than its English; it shows the count first),
+  and **Undo wrap**. Each line is re-broken so none is wider than the widest
+  line of the English, measured with the game's own font (the Text Maker's
+  measuring, including the patcher-made and Windows-drawn letters). Breaks
+  follow the Unicode line-breaking rules: at spaces and after hyphens, between
+  Chinese, Japanese and kana characters with the kinsoku rules (no line starts
+  with 。、）」！？ and the like or ends with （「『【), never inside a letter
+  with its accents, an emoji or flag, or a placeholder (%d, %s, {name}, a
+  number choice); a word wider than the room is cut. Thai has no word list
+  here: it breaks at spaces only, and a long Thai run is reported as "cannot
+  wrap". Only line breaks and spaces change, never the words. The preview's
+  too-wide warning now uses the same rule.
+
 ## v1.0.26
 
 - **Long names, everywhere.** With Render Unicode with In-Game Fonts or Use
