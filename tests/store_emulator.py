@@ -108,7 +108,7 @@ class Emulator:
         self.uc.mem_write(THUNKS, b"\xC3" * THUNK_SIZE)
         self._map(exe.read_bytes())
         self.imports = self._map(dll.read_bytes(), resolve=True) if dll is not None else {}
-        self.uc.hook_add(UC_HOOK_CODE, self._on_code)
+        self.code_hook = self.uc.hook_add(UC_HOOK_CODE, self._on_code)   # every instruction
         self.hook_import("VirtualQuery", Emulator._virtual_query, 12)
 
     def _virtual_query(self) -> int:
@@ -227,7 +227,7 @@ class Emulator:
         uc.reg_write(X.UC_X86_REG_ESP, esp + 4 + pop)
         uc.reg_write(X.UC_X86_REG_EIP, back)
 
-    def call(self, address: int, *args: int, ecx: int = 0, edx: int = 0, esi: int = 0) -> int:
+    def call(self, address: int, *args: int, ecx: int = 0, edx: int = 0, esi: int = 0, count: int = 5_000_000) -> int:
         esp = STACK + STACK_SIZE - 0x1000
         for value in reversed(args):
             esp -= 4
@@ -239,7 +239,7 @@ class Emulator:
         self.uc.reg_write(X.UC_X86_REG_EDX, edx)
         self.uc.reg_write(X.UC_X86_REG_ESI, esi)
         self.uc.reg_write(X.UC_X86_REG_FPCW, 0x027F)          # Windows' x87 default: 53-bit doubles
-        self.uc.emu_start(address, RETURN, count=5_000_000)
+        self.uc.emu_start(address, RETURN, count=count)
         return self.uc.reg_read(X.UC_X86_REG_EAX)
 
     def run_until(self, start: int, stop: int, esi: int = 0) -> None:
