@@ -158,7 +158,8 @@ def game_entries(game: str, exe_variants: list[tuple[bytes, str]]) -> list[tfmt.
     for s, label in order:
         limit = game_limit(game, s)
         entries.append(tfmt.Entry(tfmt.make_key("strings", str(s.id), s.english), s.english,
-                                  _notes(game, s, limit, label), limit or ABSOLUTE_MAX))
+                                  _notes(game, s, limit, label), limit or ABSOLUTE_MAX,
+                                  is_format=is_format(s.english)))
     return entries
 
 
@@ -514,6 +515,15 @@ MOD_STRINGS: tuple[ModString, ...] = (
 )
 
 
+def is_format(english: str) -> bool:
+    """Whether a line reaches the game as a printf FORMAT: every line with a conversion in its
+    English (the game's own lines with %d/%s, Fish Tycoon's Goals lines, every DLL text it
+    sprintf's, every counted text). A translation's plain '%' ("50 % de") is then written "%%"
+    for it (translation_format.escape_percents; Translations.dll does the same); a line without
+    conversions is drawn as it is and never escaped."""
+    return bool(tfmt.parse_template(english).conversions)
+
+
 def mod_limit(m: ModString) -> int:
     if m.limit == GAME_RULE:
         return buffer_limit(len(m.english.encode("utf-8")))
@@ -603,7 +613,9 @@ def mod_entries(game: str) -> list[tfmt.Entry]:
             note.append(f"at most {limit} letters" + ("" if m.wide else " (accented letters count 2)"))
         if template.conversions:
             note.append("choices use the real numbers" if m.counted else "choices here always take o / other")
-        entries.append(tfmt.Entry(key, m.english, "; ".join(note), limit, m.wide))
+        if is_format(m.english):
+            note.append("a format: a % that is not a placeholder is written %% for it (counts in the limit)")
+        entries.append(tfmt.Entry(key, m.english, "; ".join(note), limit, m.wide, is_format(m.english)))
     order = list(_setting_order(game))
     rank = {name: k for k, name in enumerate(order)}
     entries.sort(key=lambda e: rank.get(group_of(e.notes), len(order)))

@@ -79,7 +79,11 @@ mod/tank_counts.n_adults~f892ea16	%d {%1: one=adult | other=adults}	%d {%1: one=
 ### Placeholders
 
 - **printf conversions** (`%d` a number, `%s` a text, `%i`...): keep the same ones in the same order.
-  Write `%%` for a percent sign.
+  Only the English's own conversions, exactly as written, are placeholders: any other `%` is plain text,
+  so French typography works as it is (`2 %`, `2 %`, `2 %`, `50 % de réduction`), and so does `%%`.
+  A line with conversions is a **format** (the game or a DLL hands it to sprintf: Fish Tycoon's Goals lines,
+  the patcher's formatted texts, the counted texts): there each plain `%` reaches sprintf as `%%` and shows
+  as one `%`, and that extra byte counts in the line's limit. A line without conversions is shown as written.
 - **Variables** (`{name}`): keep each one; any order.
 - `{{` and `}}` are literal braces.
 

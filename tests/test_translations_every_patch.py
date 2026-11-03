@@ -218,5 +218,40 @@ class CountedTexts(unittest.TestCase):
         self.assertEqual(self.counted(rt, m.english, True, [1, 2, 3][:_numbers_for(m.english)], 256)[0], -1)
 
 
+@unittest.skipUnless(te.ready(), "needs MSVC, the vanilla games and assets/translations/Translations.dll")
+class PercentSigns(unittest.TestCase):
+    """"2 %" (French typography): plain text, escaped "%%" only where the line is a format."""
+    TEXTS = ["2 %", "2\u00a0%", "2\u202f%", "50 % de r\u00e9duction"]
+
+    def test_fish_goals_line_is_a_format(self) -> None:
+        english = "You have sold %d fish!"
+        for text in self.TEXTS:
+            rt = runtime("fish", make("fish", [(69, english, f"%d vendus, {text}"), (1, "Age: ", text)]))
+            self.assertEqual(rt.start(), 1, rt.log)
+            # what the lookup hands the game's sprintf: every plain '%' as "%%"
+            self.assertEqual(rt.lookup(69), f"%d vendus, {text.replace('%', '%%')}".encode("cp1252", "replace"))
+            # which sprintf prints with one '%'
+            self.assertEqual(rt.lookup(69).decode("cp1252") % 5, f"5 vendus, {text}".replace("\u202f", "?"))
+            # a line that is not a format: as written
+            self.assertEqual(rt.lookup(1), text.encode("cp1252", "replace"))
+
+    def test_plant_dll_format_and_counted_text(self) -> None:
+        dll = "Store Upgrades and Items.dll"
+        data = (ROOT / "assets" / "plant_tycoon_upgrades" / dll).read_bytes()
+        fmt = _mod("plant", dll, "%sPrice: $ %i")
+        counted = next(m for m in ts.MOD_STRINGS if m.counted and m.dll == "Extra Chemical Slots.dll")
+        rows = [(ts.mod_key(fmt), fmt.english, "%s2 % $ %i"),
+                (ts.mod_key(counted), counted.english, "%d {%1: one=dose | other=doses} (50 % de r\u00e9duction)"),
+                GAME_LINE]
+        rt = runtime("plant", make("plant", rows), dlls={dll: (data, BASE)})
+        self.assertEqual(rt.start(), 1, rt.log)
+        slots = _pointer_slots(te.relocate(data, BASE), BASE, fmt.english.encode("cp1252") + b"\0")
+        self.assertTrue(slots)
+        for slot in slots:                                   # the DLL sprintf's it: "%%"
+            self.assertEqual(rt.emu.cstring(rt.emu.read32(slot)), b"%s2 %% $ %i")
+        got, out = CountedTexts.counted(self, rt, counted.english, False, [3], 96)
+        self.assertEqual(out, "3 doses (50 % de r\u00e9duction)".encode("cp1252"))   # one '%', as shown
+
+
 if __name__ == "__main__":
     unittest.main()

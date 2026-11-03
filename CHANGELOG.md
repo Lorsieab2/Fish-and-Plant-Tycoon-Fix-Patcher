@@ -21,6 +21,15 @@
   their own forms. Without a translation the English is exactly as before.
   These lines replace the v1.0.24 pieces ("adult"/"adults", "dose"/"doses",
   " price set."...): translate the new lines instead.
+- **"%" in translations.** A "%" is a placeholder only when it is one of the
+  line's English conversions as written; any other is plain text, so French
+  "2 %", "2 %", "2 %" and "50 % de réduction" validate. In a format line
+  (one with conversions, which the game or a DLL hands to sprintf) each plain
+  "%" is written "%%" by the editor's checks and by Translations.dll, so it
+  shows as one "%" and "% d" never reads an argument; the extra byte counts
+  in the line's limit. Lines without conversions are shown as written. A
+  conversion that is not the English's ("%i" for "%d", "%3d") is now text, so
+  the English's own one is reported missing.
 - Unused Flowers builds its species names again once the translation is
   applied (`FtfpTranslationApplied`).
 - New tests: `tests/test_translation_coverage.py` (every visible DLL text and

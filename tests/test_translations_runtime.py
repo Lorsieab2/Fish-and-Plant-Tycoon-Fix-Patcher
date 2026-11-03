@@ -74,7 +74,7 @@ class FishLookup(unittest.TestCase):
         self.assertIn("1 lines used", rt.log)
 
     def test_a_broken_line_falls_back_to_english(self) -> None:
-        rows = [(1, "Age: ", "Âge : "), (4, "Sick", "Malade %d")]              # a placeholder the English lacks
+        rows = [(1, "Age: ", "Âge : "), (4, "Sick", "Malade {name}")]          # a variable the English lacks
         rt = runtime("fish", make("fish", rows))
         self.assertEqual(rt.start(), 1)
         self.assertEqual(rt.lookup(4), b"Sick")
@@ -238,7 +238,7 @@ class Files(unittest.TestCase):
             self.assertIn(mode, rt.log)
 
     def test_never_an_email_or_path_in_the_log(self) -> None:
-        rt = runtime("fish", make("fish", [(1, "Age: ", "Âge : "), (4, "Sick", "Malade %d")]))
+        rt = runtime("fish", make("fish", [(1, "Age: ", "Âge : "), (4, "Sick", "Malade {name}")]))
         rt.start()
         self.assertNotIn("C:\\", rt.log)
         self.assertNotIn("@", rt.log)
@@ -356,6 +356,13 @@ VECTORS = [
     "  %d  ",
     "%d \u65e5\u672c\u8a9e \U00012000",
     "%d {%1: one=a | other=b} {%1: one=c | other=d}",
+    "%d 2 %",
+    "%d 2\u00a0%",
+    "%d 2\u202f%",
+    "%d 50 % de r\u00e9duction",
+    "%d % d",
+    "%d %%",
+    "%d {%1: one=1 % | other=2 %}",
     "%d {{%1: one=a}}",
     "%d {%1: one={x} | other=b}",
 ]
@@ -370,13 +377,13 @@ class Agreement(unittest.TestCase):
             parsed = tf.parse_bytes(data, "fish")
             python_ok = tf.key_hash(english) and any(
                 r.translation == vector for r in parsed.rows) and tf.make_key("strings", "69", english) in parsed.translations()
-            python_ok = python_ok and not tf.too_long(vector, ts.ABSOLUTE_MAX)
+            python_ok = python_ok and not tf.too_long(vector, ts.ABSOLUTE_MAX, english=english, is_format=True)
             rt = runtime("fish", data)
             self.assertEqual(rt.start(), 1, vector)
             c_ok = rt.lookup(69) != english.encode("cp1252")
             self.assertEqual(c_ok, python_ok, vector)
             if c_ok:
-                want = tf.evaluate(vector).encode("cp1252", "replace")
+                want = tf.escape_percents(tf.evaluate(vector), english).encode("cp1252", "replace")   # a format
                 self.assertEqual(rt.lookup(69), want, vector)
 
 

@@ -639,7 +639,7 @@ class TranslationEditor:
             return "new"
         errors, _w = tfmt.check_translation(row.english, row.translation, self.file.code)
         entry = self.entries.get(row.key)
-        if errors or (entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide)):
+        if errors or (entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide, entry.english, entry.is_format)):
             return "error"
         return "done"
 
@@ -758,7 +758,7 @@ class TranslationEditor:
             return []
         errors, warnings = tfmt.check_translation(row.english, row.translation, self.file.code)
         entry = self.entries.get(row.key)
-        if row.translation and entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide):
+        if row.translation and entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide, entry.english, entry.is_format):
             errors.append(tfmt.too_long_message(entry.max_length))
         if tfmt.contains_email(row.translation):
             errors.append(tfmt.EMAIL_MESSAGE)

@@ -72,6 +72,7 @@ def render() -> str:
         "    unsigned char wide;",
         "    short limit;",
         "    unsigned char counted;",
+        "    unsigned char format;           /* sprintf'd: a plain '%' of the translation is written %% */",
         "    unsigned int hash;",
         "    const char *dll;",
         "    const char *id;",
@@ -90,7 +91,7 @@ def render() -> str:
                 continue
             seen.add(key)
             ident, digest = key[len("mod/"):].rsplit("~", 1)
-            lines.append(f"    {{ {1 if game == 'fish' else 2}, {int(m.wide)}, {ts.mod_limit(m)}, {int(m.counted)}, 0x{digest}u, "
+            lines.append(f"    {{ {1 if game == 'fish' else 2}, {int(m.wide)}, {ts.mod_limit(m)}, {int(m.counted)}, {int(ts.is_format(m.english))}, 0x{digest}u, "
                          f"{c_string(m.dll)}, {c_string(ident)} }},")
             count += 1
     lines += [

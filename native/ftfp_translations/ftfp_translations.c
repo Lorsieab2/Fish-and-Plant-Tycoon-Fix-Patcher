@@ -605,6 +605,20 @@ static int read_rows(const char *text, int n) {
             log_refused(line_no, "the placeholders or choices do not match the English");
             continue;
         }
+        /* A format (a line with conversions: the game or a DLL hands it to sprintf, and counted texts):
+           a '%' that is not one of the English's conversions ("2 %") reaches it as "%%". */
+        if (r->kind == 1 ? tmpl_english.nconv > 0 : TR_MOD_TEXTS[r->id].format) {
+            char *escaped = (char *)tr_alloc((SIZE_T)r->translation_n * 2 + 8);
+            int escaped_n = escaped != NULL ? tt_escape_percents(r->translation, r->translation_n, &tmpl_english, escaped,
+                                                                 r->translation_n * 2 + 8) : -1;
+            if (escaped_n < 0 || !tt_translation_ok(r->english, r->english_n, escaped, escaped_n, &tmpl_english,
+                                                    &tmpl_translation)) {
+                log_refused(line_no, "could not be written");
+                continue;
+            }
+            r->translation = escaped;
+            r->translation_n = escaped_n;
+        }
         {
             int wide = r->kind == 2 && TR_MOD_TEXTS[r->id].wide;
             int limit = r->kind == 1 ? game_limit(r->id, r->english_n) : TR_MOD_TEXTS[r->id].limit;
