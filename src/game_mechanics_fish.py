@@ -656,8 +656,15 @@ CONSUMABLES = (
                   "medicines, chemicals and eggs still go back to their slot. The slots belong to no "
                   "tank, so this is the same on Tanks 4-6. The Moray Eel and its rock go together: "
                   "trashing either takes the other, from whichever tank it is in, Tanks 4-6 included."),
+                 ("fix_vanilla_bugs", "every medicine, chemical and egg (the starter eggs and the Unknown "
+                  "Chemical too) let go on the trash can is thrown away with everything left in its slot, "
+                  "with the trash sound and no question; only that slot is emptied, from any slot 2-4 or "
+                  "an extra slot. Off the can the hints are as stock, and in the tank it is used as stock. "
+                  "The fish food is never thrown away. A store ornament let go on the trash can goes after "
+                  "\"Delete this fish?\" (No keeps it where it was let go): its ownership goes with it, so it "
+                  "no longer brings a customer and can be bought again."),
                  ("multiple_ornaments", "the extra copies can be thrown away (see Ornaments); the "
-                  "original still cannot."),),
+                  "original cannot unless Fix Vanilla Bugs is on."),),
     ),
     Fact(
         "Ick Treatment ($30, 3 doses): every fish with ick in the tank you use it on, and the fish in "
@@ -884,7 +891,10 @@ PERMANENT_ITEMS = (
                   "\"Delete?\" question; the original still can never be thrown away. The effect stays "
                   "one customer per ornament owned: copies never add one, and trashing copies never takes "
                   "it away. Copies are kept per save slot in \"Fish Tycoon Fix Patcher Data\\Ornaments "
-                  "<slot>.dat\"; the save keeps its layout."),),
+                  "<slot>.dat\"; the save keeps its layout."),
+                 ("fix_vanilla_bugs", "an ornament let go on the trash can is thrown away after \"Delete this "
+                  "fish?\": its ownership goes too, so it no longer brings a customer and the store sells it "
+                  "again."),),
     ),
     Fact(
         "Second Tank ($450): unlocks Tank Two, a second full-size tank (21 fish) with its own fish, "
