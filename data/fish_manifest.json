@@ -69787,8 +69787,8 @@
           {
             "path": "Tank Counts.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Tank Counts.dll",
-            "size": 94720,
-            "sha256": "ECF3F7465CDA5AFA375D3DD50194783A1E36A135E891E9403E8BE49F4D54F6D8"
+            "size": 95232,
+            "sha256": "D2BFB2C8B4914F6FABEA756E8AA566600392CCF150CA725D7252B3CECEED7622"
           }
         ]
       }
@@ -69808,7 +69808,7 @@
             "path": "Optimize Prices.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Optimize Prices.dll",
             "size": 91648,
-            "sha256": "FD4D66C496F8B9BFCCA6928897CB14CDD773185C0AD2CC4E85D6DC257DD58E75"
+            "sha256": "006461067211EF9DC37BD3619B053EDED693E9768534CEC1FCD0BA1CB1DE864C"
           },
           {
             "path": "Images/MaxPricesButton.png",
@@ -70015,8 +70015,8 @@
           {
             "path": "DS Store Items.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Store Items.dll",
-            "size": 159744,
-            "sha256": "3B2F716E46DCC4ECAEDBF2D4A510242D98BBAFB99001998F4943A0E0F33EAE62"
+            "size": 160768,
+            "sha256": "AC816C45A9207ABF97EF650B2F71E9ADE8A410445D901D91F0927B1CFF0D7893"
           },
           {
             "path": "Images/DS_EEL_Grid.png",
@@ -70605,8 +70605,8 @@
           {
             "path": "Translations.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Translations.dll",
-            "size": 122880,
-            "sha256": "2D9CFC2591B480EB0C68EB82BDFD351CAB3A09E0F398F48F391A6F1E2F58571B"
+            "size": 131072,
+            "sha256": "05F41E220D8FC4017A59B38F50E448B2572FCD86DC2F5225A17AF7A42E3D1B5C"
           }
         ]
       }

@@ -82,9 +82,11 @@ class Runtime:
         self.handles: dict[int, tuple[str, int]] = {}
         self.modules: dict[str, int] = {}
         self.protect_calls = 0
+        self.exports: dict[int, dict[bytes, int]] = {}
         for name, (data, base) in (dlls or {}).items():
             self.emu._map(relocate(data, base))
             self.modules[name.lower()] = base
+            self.exports[base] = exports(data, base)
         e = self.emu
         e.hook_import("GetModuleFileNameW", self._module_file_name, 12)
         e.hook_import("CreateFileW", self._create_file, 28)
@@ -169,7 +171,7 @@ class Runtime:
         name = emu.cstring(emu.arg(1)) if emu.arg(1) >= 0x10000 else b""
         if self.unicode_active is not None and emu.arg(0) == 0x0C000000 and name == b"FtfpUnicodeTextActive":
             return self.active_thunk
-        return 0
+        return self.exports.get(emu.arg(0), {}).get(name, 0)          # a mapped patcher DLL's export
 
     def _module_handle(self, emu) -> int:
         name = emu.wstring(emu.arg(0)).lower() if emu.arg(0) else ""
@@ -216,6 +218,30 @@ class Runtime:
             ident = e.read32(entry)
             if 1 <= ident <= 0x1B2:
                 e.write32(0x493CC0 + 4 * ident, entry)
+
+
+def exports(data: bytes, base: int) -> dict[bytes, int]:
+    """A DLL's exports by name, at `base`."""
+    pe = struct.unpack_from("<I", data, 0x3C)[0]
+    rva, size = struct.unpack_from("<II", data, pe + 24 + 96)
+    if not rva:
+        return {}
+    _b, _s, sections, _i = se.pe_image(data)
+
+    def offset(r: int) -> int:
+        for s_rva, raw, raw_size in sections:
+            if s_rva <= r < s_rva + raw_size:
+                return raw + r - s_rva
+        raise ValueError(hex(r))
+    o = offset(rva)
+    _f, _t, _v, _n, _base, nfuncs, nnames, funcs, names, ordinals = struct.unpack_from("<IIIIIIIIII", data, o)
+    out = {}
+    for k in range(nnames):
+        name_at = offset(struct.unpack_from("<I", data, offset(names) + 4 * k)[0])
+        name = data[name_at:data.index(b"\0", name_at)]
+        ordinal = struct.unpack_from("<H", data, offset(ordinals) + 2 * k)[0]
+        out[name] = base + struct.unpack_from("<I", data, offset(funcs) + 4 * ordinal)[0]
+    return out
 
 
 def ini(path: str, language: str = "Test") -> bytes:

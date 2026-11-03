@@ -48,6 +48,7 @@
 #include <windows.h>
 #include <string.h>
 #include "../common/price_math.h"
+#include "../common/translated_count.h"
 
 #define AT(base, offset, type) (*(type *)((char *)(base) + (offset)))
 
@@ -250,9 +251,12 @@ static int append_text(char *out, int len, const char *text) {
 
 static void tell_count(void *scene, int set) {
     char en[48], de[48];
-    int n = append_int(en, 0, set);
-    n = append_text(en, n, set == 1 ? " price set." : " prices set.");
-    en[n] = '\0';
+    int n = 0;
+    if (!ftfp_counted("%d {%1: one=price | other=prices} set.", &set, 1, en, (int)sizeof en)) {
+        n = append_int(en, 0, set);
+        n = append_text(en, n, set == 1 ? " price set." : " prices set.");
+        en[n] = '\0';
+    }
     n = append_int(de, 0, set);
     n = append_text(de, n, set == 1 ? " Preis gesetzt." : " Preise gesetzt.");
     de[n] = '\0';

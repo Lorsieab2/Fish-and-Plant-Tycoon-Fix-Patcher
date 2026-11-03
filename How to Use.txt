@@ -451,8 +451,11 @@ selects all. "Delete..." moves the selected files to the Recycle Bin after
 one Yes/No (No changes nothing). "English (original)" is never deleted;
 ones that came with the patcher come back with the next patcher update; if
 the game used a deleted translation, it goes back to English (original).
-Any line that is missing or wrong stays in English. If you want to share your translation, consider going to the
-Patcher's GitHub page and adding it! How: press Share on GitHub..., drag
+Any line that is missing or wrong stays in English. Every patch's own texts are in
+the file too (store items, counts, popups, Time Warp, the DS fish's and new
+flowers' names...), grouped in the editor under "Patch: <the setting's name>".
+If you want to share your translation, consider going to the Patcher's GitHub
+page and adding it! How: press Share on GitHub..., drag
 the file in, press Submit. You need a free GitHub account
 (https://github.com/signup). Email addresses are never saved and are
 rejected from translation files. "Download from GitHub..." lists the

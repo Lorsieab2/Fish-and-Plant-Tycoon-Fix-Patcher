@@ -605,6 +605,20 @@ static int read_rows(const char *text, int n) {
             log_refused(line_no, "the placeholders or choices do not match the English");
             continue;
         }
+        /* A format (a line with conversions: the game or a DLL hands it to sprintf, and counted texts):
+           a '%' that is not one of the English's conversions ("2 %") reaches it as "%%". */
+        if (r->kind == 1 ? tmpl_english.nconv > 0 : TR_MOD_TEXTS[r->id].format) {
+            char *escaped = (char *)tr_alloc((SIZE_T)r->translation_n * 2 + 8);
+            int escaped_n = escaped != NULL ? tt_escape_percents(r->translation, r->translation_n, &tmpl_english, escaped,
+                                                                 r->translation_n * 2 + 8) : -1;
+            if (escaped_n < 0 || !tt_translation_ok(r->english, r->english_n, escaped, escaped_n, &tmpl_english,
+                                                    &tmpl_translation)) {
+                log_refused(line_no, "could not be written");
+                continue;
+            }
+            r->translation = escaped;
+            r->translation_n = escaped_n;
+        }
         {
             int wide = r->kind == 2 && TR_MOD_TEXTS[r->id].wide;
             int limit = r->kind == 1 ? game_limit(r->id, r->english_n) : TR_MOD_TEXTS[r->id].limit;
@@ -631,7 +645,7 @@ static int read_rows(const char *text, int n) {
             int k2, twice = 0;
             for (k2 = 0; k2 < row_count; ++k2) if (rows[k2].kind == 2 && rows[k2].id == r->id) twice = 1;
             if (twice) continue;
-            if (!TR_MOD_TEXTS[r->id].wide) {
+            if (!TR_MOD_TEXTS[r->id].wide && !TR_MOD_TEXTS[r->id].counted) {
                 unsigned int b = fnv(r->english_game, slen(r->english_game)) & 63u;
                 row **tail = &mod_rows[b];
                 while (*tail != NULL) tail = &(*tail)->next;
@@ -818,7 +832,7 @@ static void patch_dll(const char *name) {
                 const tr_mod_text *m;
                 if (r->kind != 2 || r->out == NULL) continue;
                 m = &TR_MOD_TEXTS[r->id];
-                if (strcmp(m->dll, name) != 0) continue;
+                if (m->counted || strcmp(m->dll, name) != 0) continue;     /* counted: FtfpTranslateCounted */
                 if (text_at(target, end, r->english_game, m->wide)) {
                     write_pointer(slot, (DWORD)(UINT_PTR)r->out);
                     break;
@@ -827,6 +841,94 @@ static void patch_dll(const char *name) {
         }
         at += block->SizeOfBlock;
     }
+    /* A DLL that built texts from its own before this DLL started (Unused Flowers' species names)
+       builds them again now, from the pointers as they are. */
+    {
+        typedef void (__stdcall *applied_fn)(void);
+        applied_fn applied = (applied_fn)GetProcAddress(module, "FtfpTranslationApplied");
+        if (applied != NULL) applied();
+    }
+}
+
+/* ----------------------------------------------------------------- counted texts
+
+   A patcher DLL that writes a text with numbers ("2 doses left", the Time Warp's questions) asks
+   here first (native/common/translated_count.h): `english` is the counted text's English exactly
+   as its key has it (UTF-16 when `wide`), numbers[] the values of its conversions in order.  The
+   translation is written into out[0..cap) (units, the terminator included) with every choice
+   made by the real numbers and every %d replaced by its number, as the game draws it; the
+   result is its length, or -1 (no such translated line, or it does not fit): the DLL then writes
+   its English as it always did. */
+static char counted_scratch[2][(TR_ABSOLUTE_MAX + 4) * 4];
+
+int __stdcall FtfpTranslateCounted(const void *english, int wide, const int *numbers, int count, void *out, int cap) {
+    int result = -1;
+    if (!installed || english == NULL || out == NULL || cap <= 0 || count < 0 || count > TT_MAX_CONV
+        || (count > 0 && numbers == NULL)) return -1;
+    __try {
+        char *key = counted_scratch[0];
+        int kn = 0, k, found = -1;
+        if (wide) {
+            const wchar_t *w = (const wchar_t *)english;
+            tt_out o;
+            int i = 0;
+            o.buf = key; o.cap = TR_ABSOLUTE_MAX * 2; o.mode = 1; o.at = 0; o.overflow = 0;
+            while (w[i] != 0 && i < TR_ABSOLUTE_MAX * 2) {
+                unsigned int cp = w[i++];
+                if (cp >= 0xD800 && cp < 0xDC00 && w[i] >= 0xDC00 && w[i] < 0xE000) cp = 0x10000 + ((cp - 0xD800) << 10) + (w[i++] - 0xDC00);
+                tt_put_cp(&o, cp);
+            }
+            kn = o.overflow ? -1 : o.at;
+        } else {
+            const char *a = (const char *)english;
+            while (a[kn] != 0 && kn < TR_ABSOLUTE_MAX * 2) { key[kn] = a[kn]; ++kn; }
+        }
+        for (k = 0; k < row_count && found < 0; ++k) {
+            const row *r = &rows[k];
+            if (r->kind == 2 && r->out != NULL && TR_MOD_TEXTS[r->id].counted && TR_MOD_TEXTS[r->id].wide == (wide != 0)
+                && TR_MOD_TEXTS[r->id].game == game && r->english_n == kn && memcmp(r->english, key, (size_t)kn) == 0) found = k;
+        }
+        if (found >= 0) {
+            const row *r = &rows[found];
+            tt_template e, t;
+            tt_out o;
+            if (tt_translation_ok(r->english, r->english_n, r->translation, r->translation_n, &e, &t)) {
+                char *made = counted_scratch[1];
+                int n, i = 0, number = 0;
+                o.buf = made; o.cap = (int)sizeof counted_scratch[1]; o.mode = 1;
+                n = tt_render(r->translation, r->translation_n, &t, plural_rule, numbers, count, 0, &o);
+                if (n >= 0) {
+                    o.buf = (char *)out; o.cap = cap; o.mode = wide ? 2 : text_mode; o.at = 0; o.overflow = 0;
+                    while (i < n) {
+                        if (made[i] == '%' && i + 1 < n && made[i + 1] == '%') { tt_put_cp(&o, '%'); i += 2; continue; }
+                        if (made[i] == '%') {
+                            tt_conv conv;
+                            int len = tt_conversion(made, n, i, &conv);
+                            if (len > 0) {
+                                char digits[12];
+                                int d = 0, v = number < count ? numbers[number] : 0;
+                                unsigned int u = v < 0 ? (unsigned int)(-(v + 1)) + 1u : (unsigned int)v;
+                                ++number;
+                                if (v < 0) tt_put_cp(&o, '-');
+                                do { digits[d++] = (char)('0' + u % 10u); u /= 10u; } while (u && d < 11);
+                                while (d) tt_put_cp(&o, (unsigned char)digits[--d]);
+                                i += len;
+                                continue;
+                            }
+                        }
+                        tt_put_cp(&o, tt_next_cp(made, n, &i));
+                    }
+                    if (!o.overflow && o.at < cap) {
+                        if (wide) ((unsigned short *)out)[o.at] = 0; else ((char *)out)[o.at] = 0;
+                        result = o.at;
+                    }
+                }
+            }
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        result = -1;
+    }
+    return result;
 }
 
 static void patch_dlls(void) {

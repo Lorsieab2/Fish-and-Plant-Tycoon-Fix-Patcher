@@ -45,6 +45,7 @@
 #include "../ftfp_ds_fish/install_sites.h"
 #include "greenhouse_sites.h"
 #include "../common/setting_file.h"
+#include "../common/translated_count.h"
 
 #define EXTRA 5
 #define GREENHOUSES (EXTRA + 1)
@@ -474,6 +475,10 @@ static const char *nursery_full(void) {
     const char *head = nurseries == 0 ? "Your nursery is full!\n\nOnly " : "Your nurseries are full!\n\nOnly ";
     const char *tail = " plants can be for sale at once,\ncounting every greenhouse.";
     int n = 0, i, limit = for_sale_limit();
+    if (ftfp_counted(nurseries == 0 ? "Your nursery is full!\n\nOnly %d plants can be for sale at once,\ncounting every "
+                                      "greenhouse."
+                                    : "Your nurseries are full!\n\nOnly %d plants can be for sale at once,\ncounting "
+                                      "every greenhouse.", &limit, 1, text, (int)sizeof text)) return text;
     for (i = 0; head[i]; ++i) text[n++] = head[i];
     if (limit >= 10) text[n++] = (char)('0' + limit / 10);
     text[n++] = (char)('0' + limit % 10);

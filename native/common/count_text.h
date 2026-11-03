@@ -5,6 +5,8 @@
 #ifndef FTFP_COUNT_TEXT_H
 #define FTFP_COUNT_TEXT_H
 
+#include "translated_count.h"
+
 #define COUNT_LINE 160
 
 typedef struct count_line {
@@ -52,6 +54,20 @@ static void ct_part(count_line *line, int n, const char *one, const char *many) 
     ct_number(line, n);
     ct_text(line, " ");
     ct_text(line, n == 1 ? one : many);
+    ++line->parts;
+}
+
+/* ct_part, in the player's translation when it has `counted` (the part's counted text,
+   "%d {%1: one=adult | other=adults}"; NULL: none, as in German mode). */
+static void ct_part_counted(count_line *line, int n, const char *counted, const char *one, const char *many) {
+    char part[48];
+    if (n <= 0) return;
+    if (counted == NULL || !ftfp_counted(counted, &n, 1, part, (int)sizeof part)) {
+        ct_part(line, n, one, many);
+        return;
+    }
+    ct_text(line, line->parts == 0 ? " (" : ", ");
+    ct_text(line, part);
     ++line->parts;
 }
 

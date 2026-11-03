@@ -836,6 +836,7 @@ class TranslationEditor:
         self.tree.tag_configure("error", foreground="#c00")
         self.tree.tag_configure("changed", foreground="#a60")
         self.tree.tag_configure("old", foreground="#888")
+        self.tree.tag_configure("group", foreground="#245a9a", font=("Segoe UI", 9, "bold"))
         self.tree.bind("<<TreeviewSelect>>", lambda _e: self.show_row())
         panes.add(table, weight=3)
 
@@ -886,7 +887,7 @@ class TranslationEditor:
             return "new"
         errors, _w = tfmt.check_translation(row.english, row.translation, self.file.code)
         entry = self.entries.get(row.key)
-        if errors or (entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide)):
+        if errors or (entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide, entry.english, entry.is_format)):
             return "error"
         return "done"
 
@@ -896,6 +897,7 @@ class TranslationEditor:
         query = self.search.get().casefold()
         self.tree.delete(*self.tree.get_children())
         self.visible: dict[str, tfmt.Row] = {}
+        shown: list[tuple[str, int, tfmt.Row, str]] = []
         for n, row in enumerate(self.file.rows):
             status = self.status(row)
             if self.untranslated_only.get() and status not in ("new", "error"):
@@ -903,6 +905,19 @@ class TranslationEditor:
             if query and query not in row.english.casefold() and query not in row.translation.casefold() \
                     and query not in row.key.casefold():
                 continue
+            entry = self.entries.get(row.key)
+            shown.append((tstr.group_of(entry.notes if entry else row.notes), n, row, status))
+        # Grouped by patch ("Patch: ..." in the notes), the game's own lines first, each group headed.
+        order: dict[str, int] = {"": -1}
+        for group, *_rest in shown:
+            order.setdefault(group, len(order))
+        shown.sort(key=lambda item: (order[item[0]], item[1]))
+        last = None
+        for group, n, row, status in shown:
+            if group != last:
+                last = group
+                self.tree.insert("", "end", iid=f"g{n}", tags=("group",),
+                                 values=("", f"— {('Patch: ' + group) if group else 'The game'} —", ""))
             iid = f"r{n}"
             self.visible[iid] = row
             self.tree.insert("", "end", iid=iid, values=(self.STATUS[status], _one_line(row.english),
@@ -991,7 +1006,7 @@ class TranslationEditor:
             return []
         errors, warnings = tfmt.check_translation(row.english, row.translation, self.file.code)
         entry = self.entries.get(row.key)
-        if row.translation and entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide):
+        if row.translation and entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide, entry.english, entry.is_format):
             errors.append(tfmt.too_long_message(entry.max_length))
         if tfmt.contains_email(row.translation):
             errors.append(tfmt.EMAIL_MESSAGE)

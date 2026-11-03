@@ -458,10 +458,18 @@ static void restore_sale(char *pot) {
         AT(pot, POT_FOR_SALE, unsigned char) = 1;
         return;
     }
-    swprintf_s(text, 256, L"This plant was for sale when it died, but your %s full: only %d plants can be "
-               L"for sale at once, counting every greenhouse.\n\nIt is alive again, not for sale. Make room "
-               L"in the nursery, then put it on sale again.", limit > NURSERY_SPOTS ? L"nurseries are"
-               : L"nursery is", limit);
+    if (!ftfp_counted_w(limit > NURSERY_SPOTS
+                        ? L"This plant was for sale when it died, but your nurseries are full: only %d plants can be "
+                          L"for sale at once, counting every greenhouse.\n\nIt is alive again, not for sale. Make room "
+                          L"in the nursery, then put it on sale again."
+                        : L"This plant was for sale when it died, but your nursery is full: only %d plants can be "
+                          L"for sale at once, counting every greenhouse.\n\nIt is alive again, not for sale. Make room "
+                          L"in the nursery, then put it on sale again.", &limit, 1, text, 256)) {
+        swprintf_s(text, 256, L"This plant was for sale when it died, but your %s full: only %d plants can be "
+                   L"for sale at once, counting every greenhouse.\n\nIt is alive again, not for sale. Make room "
+                   L"in the nursery, then put it on sale again.", limit > NURSERY_SPOTS ? L"nurseries are"
+                   : L"nursery is", limit);
+    }
     tw_tell_as(L"Revival Potion", text);
 }
 
@@ -921,6 +929,7 @@ static void time_warp(char *scene) {
     char *state = SCENE_STATE(scene);
     wchar_t text[256];
     unsigned int now, dt;
+    int numbers[3];
     int hours, k, cost = price(WARP_PRICE);
     if (state == NULL) return;
     if (AT(state, S_SPEED, int) > 100) {
@@ -931,13 +940,23 @@ static void time_warp(char *scene) {
         tw_tell(L"You can't afford to buy this yet! A Time Warp costs $500.");
         return;
     }
-    swprintf_s(text, 256, L"Costs $%d. Your plants grow, ripen seeds and need water, and the seed shop "
-               L"restocks if due, as if you had been away.", cost);
+    numbers[0] = cost;
+    if (!ftfp_counted_w(L"Costs $%d. Your plants grow, ripen seeds and need water, and the seed shop restocks if due, "
+                        L"as if you had been away.", numbers, 1, text, 256)) {
+        swprintf_s(text, 256, L"Costs $%d. Your plants grow, ripen seeds and need water, and the seed shop "
+                   L"restocks if due, as if you had been away.", cost);
+    }
     hours = tw_ask_hours(text);
     if (hours <= 0) return;
-    swprintf_s(text, 256, L"Warp %d hour%s for $%d?\n\nYour plants will age %d hour%s, as if you had been "
-               L"away that long. This cannot be undone.", hours, hours == 1 ? L"" : L"s", cost, hours,
-               hours == 1 ? L"" : L"s");
+    numbers[0] = hours;
+    numbers[1] = cost;
+    numbers[2] = hours;
+    if (!ftfp_counted_w(L"Warp %d {%1: one=hour | other=hours} for $%d?\n\nYour plants will age %d {%3: one=hour | "
+                        L"other=hours}, as if you had been away that long. This cannot be undone.", numbers, 3, text, 256)) {
+        swprintf_s(text, 256, L"Warp %d hour%s for $%d?\n\nYour plants will age %d hour%s, as if you had been "
+                   L"away that long. This cannot be undone.", hours, hours == 1 ? L"" : L"s", cost, hours,
+                   hours == 1 ? L"" : L"s");
+    }
     if (!tw_confirm(text)) return;
     if (AT(state, S_CASH, unsigned int) < (unsigned int)cost) return;
     add_cash(state, 0, -cost);
@@ -962,7 +981,9 @@ static void time_warp(char *scene) {
     update_plants(state, 0);
     /* One age unit per 60 x speed seconds, and the catch-up has no cap: every unit of dt was played. */
     tw_done(hours, AT(state, S_SPEED, int) > 0 ? dt / (60u * (unsigned int)AT(state, S_SPEED, int)) : 0,
-            L"age unit", cost);
+            L"age unit", cost,
+            L"Time Warp done: %d {%1: one=hour | other=hours} played (%d {%2: one=age unit | other=age units}). "
+            L"$%d paid.");
 }
 
 /* ------------------------------------------------------------ add money */

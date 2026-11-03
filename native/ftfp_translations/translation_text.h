@@ -180,7 +180,7 @@ static unsigned int tt_next_cp(const char *s, int n, int *at) {
 #define TT_MAX_SELECTS 16
 #define TT_MAX_BRANCHES 12
 
-typedef struct tt_conv { char type; char length[4]; int stars; int number; } tt_conv;
+typedef struct tt_conv { char type; char length[4]; int stars; int number; const char *text; int text_n; } tt_conv;
 
 typedef struct tt_branch { tt_span key; tt_span text; } tt_branch;
 
@@ -230,6 +230,8 @@ static int tt_conversion(const char *s, int n, int i, tt_conv *out) {
         for (k = 0; types[k]; ++k) {
             if (s[j] == types[k]) {
                 out->type = s[j] == 'i' ? 'd' : s[j];
+                out->text = s + i;
+                out->text_n = j + 1 - i;
                 out->stars = stars;
                 out->number = s[j] == 'd' || s[j] == 'i' || s[j] == 'o' || s[j] == 'u' || s[j] == 'x' || s[j] == 'X';
                 return j + 1 - i;
@@ -238,6 +240,14 @@ static int tt_conversion(const char *s, int n, int i, tt_conv *out) {
     }
     return 0;
 }
+
+/* The English's conversions while a translation is parsed (tt_translation_ok): a '%' of the
+   translation starts a conversion only when the conversion written there is one of them, as
+   written; any other '%' ("2 %", "50 % de", "% d" when the English has no "% d") is plain text.
+   NULL: every conversion counts (an English, or a file's own check). */
+static const struct tt_template *tt_tokens = 0;
+
+static int tt_is_token(const tt_conv *c);
 
 static int tt_is_name(tt_span t) {
     int i;
@@ -340,7 +350,7 @@ static int tt_select_body(const char *s, int n, int i, tt_template *t, tt_select
             int len;
             if (i + 1 < n && s[i + 1] == '%') { i += 2; continue; }
             len = tt_conversion(s, n, i, &conv);
-            if (len > 0) { t->errors++; i += len; continue; }
+            if (len > 0 && tt_is_token(&conv)) { t->errors++; i += len; continue; }
         }
         ++i;
     }
@@ -364,6 +374,49 @@ static int tt_select_body(const char *s, int n, int i, tt_template *t, tt_select
     return i;
 }
 
+static int tt_is_token(const tt_conv *c) {
+    int k, j;
+    if (tt_tokens == 0) return 1;
+    for (k = 0; k < tt_tokens->nconv; ++k) {
+        const tt_conv *e = &tt_tokens->conv[k];
+        if (e->text_n != c->text_n) continue;
+        for (j = 0; j < c->text_n && e->text[j] == c->text[j]; ++j) {}
+        if (j == c->text_n) return 1;
+    }
+    return 0;
+}
+
+/* A FORMAT line's translation as sprintf must get it (src/translation_format.py
+   escape_percents): every '%' that is not "%%" nor one of the English's conversions written
+   "%%".  Into out[0..cap); its length, or -1 when it does not fit. */
+static int tt_escape_percents(const char *s, int n, const tt_template *english, char *out, int cap) {
+    int i = 0, o = 0;
+    const tt_template *saved = tt_tokens;
+    tt_tokens = english;
+    while (i < n) {
+        int len = 1;
+        if (s[i] == '%') {
+            tt_conv conv;
+            int b = i - 1;
+            while (b >= 0 && tt_is_space((unsigned char)s[b])) --b;
+            if (i + 1 < n && s[i + 1] == '%') len = 2;
+            else if (b >= 0 && s[b] == '{' && i + 1 < n && tt_is_digit((unsigned char)s[i + 1])) len = 1;   /* {%1: */
+            else if ((len = tt_conversion(s, n, i, &conv)) > 0 && tt_is_token(&conv)) {}
+            else {
+                if (o + 2 >= cap) { tt_tokens = saved; return -1; }
+                out[o++] = '%'; out[o++] = '%';
+                ++i;
+                continue;
+            }
+        }
+        if (o + len >= cap) { tt_tokens = saved; return -1; }
+        while (len-- > 0) out[o++] = s[i++];
+    }
+    out[o] = 0;
+    tt_tokens = saved;
+    return o;
+}
+
 static void tt_parse_template(const char *s, int n, tt_template *t) {
     int i = 0;
     t->nconv = t->nvars = t->nselects = t->lone_percent = t->errors = 0;
@@ -375,13 +428,13 @@ static void tt_parse_template(const char *s, int n, tt_template *t) {
             int len;
             if (i + 1 < n && s[i + 1] == '%') { i += 2; continue; }
             len = tt_conversion(s, n, i, &conv);
-            if (len > 0) {
+            if (len > 0 && tt_is_token(&conv)) {
                 if (conv.type == 'n') t->errors++;
                 if (t->nconv < TT_MAX_CONV) t->conv[t->nconv++] = conv; else t->errors++;
                 i += len;
                 continue;
             }
-            t->lone_percent = 1;
+            if (tt_tokens == 0) t->lone_percent = 1;
             ++i;
             continue;
         }
@@ -423,7 +476,9 @@ static int tt_conv_same(const tt_conv *a, const tt_conv *b) {
 static int tt_translation_ok(const char *eng, int en, const char *tra, int tn, tt_template *te, tt_template *tt) {
     int k, j;
     tt_parse_template(eng, en, te);
+    tt_tokens = te;
     tt_parse_template(tra, tn, tt);
+    tt_tokens = 0;
     if (tt->errors) return 0;
     if (tt->lone_percent && !te->lone_percent) return 0;
     if (te->nconv != tt->nconv) return 0;

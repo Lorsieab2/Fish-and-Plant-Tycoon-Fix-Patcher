@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <wchar.h>
 #include "setting_file.h"
+#include "translated_count.h"
 
 #define TW_MIN_HOURS 1
 #define TW_MAX_HOURS 72
@@ -142,11 +143,18 @@ static void tw_tell(const wchar_t *text) { tw_tell_as(L"Time Warp", text); }
 
 /* After the warp has been played: the hours, the game time they made and the
    price taken, e.g. "Time Warp done: 12 hours played (72 age steps). $500
-   paid."  unit is the game's word in the singular ("age step" / "age unit"). */
-static void tw_done(int hours, unsigned int steps, const wchar_t *unit, int paid) {
+   paid."  unit is the game's word in the singular ("age step" / "age unit"); counted is the same
+   text as the translation's counted line (src/translation_strings.py), used when it has one. */
+static void tw_done(int hours, unsigned int steps, const wchar_t *unit, int paid, const wchar_t *counted) {
     wchar_t text[160];
-    swprintf_s(text, 160, L"Time Warp done: %d hour%s played (%d %s%s). $%d paid.", hours, hours == 1 ? L"" : L"s",
-               (int)steps, unit, steps == 1 ? L"" : L"s", paid);
+    int numbers[3];
+    numbers[0] = hours;
+    numbers[1] = (int)steps;
+    numbers[2] = paid;
+    if (!ftfp_counted_w(counted, numbers, 3, text, 160)) {
+        swprintf_s(text, 160, L"Time Warp done: %d hour%s played (%d %s%s). $%d paid.", hours, hours == 1 ? L"" : L"s",
+                   (int)steps, unit, steps == 1 ? L"" : L"s", paid);
+    }
     tw_tell(text);
 }
 

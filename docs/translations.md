@@ -110,7 +110,8 @@ Key	English	Translation	Notes
 @translator		Your credit name
 strings/1~4ece2634	Age: 	Âge : 
 strings/69~17a77e24	You have sold %d fish!	Vous avez vendu %d {%1: one=poisson | other=poissons} !	%1 (%d) = number
-mod/tank_counts.fish~1f0a2b3c	Fish: 	Poissons : 	Tank Counts.dll
+mod/tank_counts.fish~1f0a2b3c	Fish: 	Poissons : 	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.n_adults~f892ea16	%d {%1: one=adult | other=adults}	%d {%1: one=adulte | other=adultes}	Patch: Tank and greenhouse counts; ...
 ```
 
 - Columns are separated by tabs: **Key**, **English**, **Translation**, **Notes**. Never change the Key or
@@ -118,14 +119,21 @@ mod/tank_counts.fish~1f0a2b3c	Fish: 	Poissons : 	Tank Counts.dll
   English.
 - `\n` is a line break, `\t` a tab, `\\` a backslash. Spaces at the start or end count.
 - `strings/<id>` lines are the game's own string table (Fish Tycoon 248 lines, Plant Tycoon about 400);
-  `mod/<dll>.<name>` lines are the patcher's own texts (store items and their descriptions, the counts,
-  Time Warp's popups...).
+  `mod/<dll>.<name>` lines are the patcher's own texts: every text a patch shows (store items and their
+  descriptions, the counts, Time Warp's popups, the DS fish's and the unused flowers' species-name words...).
+  Every line's notes start with `Patch: <setting>`, the patch it belongs to; the editor shows the lines in
+  groups, the game's own lines first, then one group per patch. A game line whose English a patch changed
+  (Unknown Chemical: 3 uses, Universal supply slots) is a second line noted with that patch.
 - `#` starts a comment.
 
 ### Placeholders
 
 - **printf conversions** (`%d` a number, `%s` a text, `%i`...): keep the same ones in the same order.
-  Write `%%` for a percent sign.
+  Only the English's own conversions, exactly as written, are placeholders: any other `%` is plain text,
+  so French typography works as it is (`2 %`, `2 %`, `2 %`, `50 % de réduction`), and so does `%%`.
+  A line with conversions is a **format** (the game or a DLL hands it to sprintf: Fish Tycoon's Goals lines,
+  the patcher's formatted texts, the counted texts): there each plain `%` reaches sprintf as `%%` and shows
+  as one `%`, and that extra byte counts in the line's limit. A line without conversions is shown as written.
 - **Variables** (`{name}`): keep each one; any order.
 - `{{` and `}}` are literal braces.
 
@@ -152,8 +160,10 @@ number outside, as above.
 
 **Where the real number is known.** Fish Tycoon's counted lines (strings 69 to 75 on the Goals page,
 "You have sold %d fish!" and the rest) choose with the real number: the game's sprintf there goes through
-the translation first. Everywhere else a choice takes its `other` branch (the patcher's own formatted
-texts too). **Persons:** `{%1: m=... | f=... | o=...}` is part of the format, but neither game has a line
+the translation first. So do the patcher's **counted texts**, whose English already holds a choice:
+the counts' parts (`%d {%1: one=adult | other=adults}`), "%d doses left", "%d prices set.", the nursery
+limit, and the Time Warp's and Revival Potion's popups (`Warp %d {%1: one=hour | other=hours} for $%d?...`).
+Their notes say "choices use the real numbers". Everywhere else a choice takes its `other` branch. **Persons:** `{%1: m=... | f=... | o=...}` is part of the format, but neither game has a line
 about a person whose sex it knows (no player sex; fish have no shown sex), so no line declares a person,
 and a choice on a `%s` is refused. Plant Tycoon has no counted line at all: its counts are built from
 pieces ("Remaining uses" and a number).
@@ -186,7 +196,10 @@ Unicode.
 ### Not translated
 
 Fish species, fins and bodies, plant flowers and foliage, bug names and the like are names the games build
-from their own data, not from the string table: they stay as they are. Fish Tycoon has a German mode: a
+from their own data, not from the string table: they stay as they are. The patches' own names are
+translated: a DS species' name is its fin word and body word ("Tiger " + "Shark"; at most 15 and 16 letters,
+so the two always fit the game's 31), and a new flower's is its flower word and foliage word ("Nightingale" +
+" " + "Fern"; at most 24 each). The foliage words are used only for the new flowers. Fish Tycoon has a German mode: a
 chosen translation replaces the game's lines in either mode, while a patcher text that has a German
 version keeps it in German mode.
 
@@ -264,6 +277,17 @@ be downloaded at once with Download from GitHub... Every file sent in (a pull re
 - **Unicode contract.** Translations.dll writes Windows-1252 unless a DLL loaded before it exports
   `int __stdcall FtfpUnicodeTextActive(void)` returning nonzero ("Unicode Text.dll"); then it passes the
   translation on as UTF-8.
+- **Counted texts.** `Translations.dll` exports `int __stdcall FtfpTranslateCounted(const void *english,
+  int wide, const int *numbers, int count, void *out, int cap)`; `native/common/translated_count.h` is the
+  callers' side. The DLL passes the counted English exactly as its key has it and the numbers; the reply is
+  the translation with its choices made and each `%d` written, never past `cap`, or -1 (the DLL then writes
+  its English as before). Counted texts are never pointed at through relocations. After pointing a DLL's
+  texts, `Translations.dll` calls the DLL's `FtfpTranslationApplied` export if it has one (Unused Flowers
+  builds its species names again).
+- **Coverage.** `tests/test_translation_coverage.py` reads every string literal of every shipped patcher DLL
+  (its sources, kept when the DLL holds it) and every text an executable patch writes; each must be a key's
+  English, an English piece of a counted text (`COUNTED_FALLBACKS`) or in its allow-list with a reason (log
+  lines, file names, ini keys, function names, fonts, German-mode texts).
 - `scripts/pin_translations.py` pins the setting; `scripts/accept_translation.py` is the issue Action's
   check; `src/translation_public.py` holds the public folder's rules (names, pre-check, the data-only
   check), shared by `scripts/check_translation_pr.py` (the pull-request validator),
@@ -273,4 +297,5 @@ be downloaded at once with Download from GitHub... Every file sent in (a pull re
   request's files fetched through the API as data, never checked out; minimal permissions),
   `accept-translation.yml` (scan, then accept) and `scan-translations.yml` (push to main).
 - Tests: `tests/test_translation_format.py`, `tests/test_translations_runtime.py` (the DLL in Unicorn
-  against the real games), `tests/test_translations_window.py`, `tests/test_translation_sharing.py`.
+  against the real games), `tests/test_translations_every_patch.py` (every patcher DLL and every counted text
+  in Unicorn), `tests/test_translation_coverage.py`, `tests/test_translations_window.py`, `tests/test_translation_sharing.py`.

@@ -107,6 +107,7 @@ class Game:
                                      (0x00401C90, 8, 0), (0x0042AAA0, 0, 0)):
             emu.hook(address, lambda e, r=result: r, pop)
         emu.hook(0x0044CA70, lambda e: e.text("text"), 4)            # the string table
+        emu.hook_import("GetModuleHandleW", lambda e: 0, 4)         # no Translations.dll: the English texts
 
         def box(e):
             entry = e.read32(0x00493CC0 + 0x77 * 4)

@@ -3,3 +3,4 @@ EXPORTS
     FtfpStartup = _FtfpStartup@0
     FtfpNewFlowersInstalled = _FtfpNewFlowersInstalled@0
     FtfpNewFlowersSpecies = _FtfpNewFlowersSpecies@16
+    FtfpTranslationApplied = _FtfpTranslationApplied@0
