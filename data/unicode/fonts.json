@@ -1,0 +1,50 @@
+{
+  "note": "The fonts Unicode Text.dll and the Text Maker fall back to, after Windows' own fonts, in this order; downloaded on 2026-11-02 from the official sources into an empty folder.",
+  "fonts": [
+    {
+      "file": "unifont-18.0.01.otf",
+      "family": "Unifont",
+      "url": "https://ftp.gnu.org/gnu/unifont/unifont-18.0.01/unifont-18.0.01.otf",
+      "license": "OFL-1.1 (dual: GPL-2.0-or-later with the GNU Font Embedding Exception)",
+      "license_file": "LICENSE-Unifont.txt",
+      "size": 5320148,
+      "sha256": "88D0A14D4AA9A96419720B39BA5DA921A59560D76D4EC7D523ACC06ED85CD3C2"
+    },
+    {
+      "file": "unifont_upper-18.0.01.otf",
+      "family": "Unifont Upper",
+      "url": "https://ftp.gnu.org/gnu/unifont/unifont-18.0.01/unifont_upper-18.0.01.otf",
+      "license": "OFL-1.1 (dual: GPL-2.0-or-later with the GNU Font Embedding Exception)",
+      "license_file": "LICENSE-Unifont.txt",
+      "size": 5954156,
+      "sha256": "472201E45A050BFF4C7658208B8C73E34EBCE3764B287A5A46C7774038EF9391"
+    },
+    {
+      "file": "NotoSerifTangut-Regular.ttf",
+      "family": "Noto Serif Tangut",
+      "url": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/main/fonts/NotoSerifTangut/hinted/ttf/NotoSerifTangut-Regular.ttf",
+      "license": "OFL-1.1",
+      "license_file": "LICENSE-NotoSerifTangut.txt",
+      "size": 3065476,
+      "sha256": "EDCC5B7727FA4D1345D2FCA93305C8B90AD88D4975152D4AED79564C9117DB91"
+    },
+    {
+      "file": "NotoSansCuneiform-Regular.ttf",
+      "family": "Noto Sans Cuneiform",
+      "url": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/main/fonts/NotoSansCuneiform/hinted/ttf/NotoSansCuneiform-Regular.ttf",
+      "license": "OFL-1.1",
+      "license_file": "LICENSE-NotoSansCuneiform.txt",
+      "size": 819980,
+      "sha256": "AAD6F345A2F3150AEB51706ECF1D6F62EEC299EE215CB77E76F0C33E1419BBA2"
+    },
+    {
+      "file": "LastResort-Regular.ttf",
+      "family": "Last Resort",
+      "url": "https://github.com/unicode-org/last-resort-font/releases/download/18.000/LastResort-Regular.ttf",
+      "license": "OFL-1.1",
+      "license_file": "LICENSE-LastResort.txt",
+      "size": 9592228,
+      "sha256": "CA7DF8948CEC84240F19508A17A74DE037C98BA3A54E1AAA50EA6EDBBDC37F64"
+    }
+  ]
+}

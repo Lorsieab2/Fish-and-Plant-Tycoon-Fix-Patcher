@@ -235,13 +235,15 @@ def name_limit(game_id: str, folder: Path | None = None) -> int:
 
 
 def name_allowed(ch: str, unicode: int | bool) -> bool:
-    import unicodedata
+    """With ANY_SCRIPT, every assigned code point of Unicode 18.0 (src/unicode_data.py, not Python's
+    older unicodedata) but controls, surrogates, private use and noncharacters."""
+    import unicode_data
     code, level = ord(ch), int(unicode)
     if 0x20 <= code < 0x7F:
         return True
     if level >= LATIN1 and 0xA0 <= code <= 0xFF:
         return True
-    return level >= ANY_SCRIPT and code >= 0xA0 and unicodedata.category(ch) not in ("Cc", "Cs", "Co", "Cn")
+    return level >= ANY_SCRIPT and code >= 0xA0 and unicode_data.is_text_letter(code)
 
 
 def short_form(name: str, length: int = 31) -> bytes:

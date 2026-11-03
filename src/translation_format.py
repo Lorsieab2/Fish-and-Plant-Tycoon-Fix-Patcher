@@ -551,6 +551,17 @@ def subject_kind(subject: str, english: Template, declared: dict[str, str] | Non
     return (declared or {}).get(subject)
 
 
+def letter_allowed(ch: str) -> bool:
+    """A character a translation may hold: every assigned code point of Unicode 18.0 (src/unicode_data.py,
+    not Python's older unicodedata), private use and newer letters too; not a control character
+    (but tab and line break), a lone surrogate or a noncharacter."""
+    import unicode_data
+    cp = ord(ch)
+    if cp in (9, 10):
+        return True
+    return not (cp < 0x20 or 0x7F <= cp < 0xA0 or 0xD800 <= cp <= 0xDFFF or unicode_data.is_noncharacter(cp))
+
+
 def check_translation(english: str, translation: str, code: str = "en",
                       declared: dict[str, str] | None = None) -> tuple[list[str], list[str]]:
     """(errors, warnings) for one translated line. Any error means the line shows English."""
@@ -558,6 +569,10 @@ def check_translation(english: str, translation: str, code: str = "en",
     warnings: list[str] = []
     if translation == "":
         return errors, warnings
+    unshowable = sorted({c for c in translation if not letter_allowed(c)})
+    if unshowable:
+        errors.append("a character no game can show (a control character, a lone surrogate or a "
+                      "noncharacter): " + ", ".join(f"U+{ord(c):04X}" for c in unshowable[:5]))
     eng = parse_template(english)
     tra = parse_template(translation, english_tokens(english))
     errors.extend(tra.errors)
