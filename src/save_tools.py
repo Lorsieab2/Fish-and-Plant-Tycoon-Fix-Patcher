@@ -235,15 +235,18 @@ def name_limit(game_id: str, folder: Path | None = None) -> int:
 
 
 def name_allowed(ch: str, unicode: int | bool) -> bool:
-    """With ANY_SCRIPT, every assigned code point of Unicode 18.0 (src/unicode_data.py, not Python's
-    older unicodedata) but controls, surrogates, private use and noncharacters."""
-    import unicode_data
+    """With ANY_SCRIPT, every code point but the ones no name can hold (docs/UNICODE_SPEC.md section 6):
+    NUL, the C0 and C1 controls and DEL, a lone surrogate, the line and paragraph separators U+2028 and
+    U+2029, and U+FEFF. It decides by code point, never by Python's unicodedata (which is older than the
+    letters the games draw), so a letter newer than this Python is taken; private use, noncharacters and
+    unassigned code points are taken too, because the game stores them and draws a box."""
     code, level = ord(ch), int(unicode)
     if 0x20 <= code < 0x7F:
         return True
     if level >= LATIN1 and 0xA0 <= code <= 0xFF:
         return True
-    return level >= ANY_SCRIPT and code >= 0xA0 and unicode_data.is_text_letter(code)
+    return (level >= ANY_SCRIPT and code >= 0xA0 and not 0xD800 <= code <= 0xDFFF
+            and code not in (0x2028, 0x2029, 0xFEFF))
 
 
 def short_form(name: str, length: int = 31) -> bytes:

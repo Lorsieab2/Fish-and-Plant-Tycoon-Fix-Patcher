@@ -258,10 +258,25 @@ def enabled_settings(manifest: dict[str, Any], args: argparse.Namespace) -> set[
     enabled = {key for key, value in settings.items() if bool(value.get("default", False))}
     if getattr(args, "disable_all", False):
         enabled.clear()
-    for key in getattr(args, "enable", None) or []:
+    asked = list(getattr(args, "enable", None) or [])
+    for key in asked:
         if key not in settings:
             raise PatchError(f"Unknown setting: {key}")
         enabled.add(key)
+    # Settings that exclude each other (`conflicts_settings`, e.g. the two Unicode text settings): asking
+    # for one turns off the other it excludes when that one is only on by default; asking for both is refused.
+    clashes: dict[str, set[str]] = {}
+    for key, setting in settings.items():
+        for other in setting.get("conflicts_settings", []) or []:
+            clashes.setdefault(key, set()).add(other)
+            clashes.setdefault(other, set()).add(key)
+    for key in asked:
+        both = sorted(other for other in clashes.get(key, ()) if other in asked)
+        if both:
+            names = ", ".join(str(settings[other].get("name", other)) for other in both)
+            raise PatchError(f"{settings[key].get('name', key)} and {names} cannot both be on; choose one.")
+    for key in asked:
+        enabled -= clashes.get(key, set())
     for key in getattr(args, "disable", None) or []:
         if key not in settings:
             raise PatchError(f"Unknown setting: {key}")

@@ -281,12 +281,21 @@ class ToolTests(unittest.TestCase):
 
     def test_names_take_every_assigned_letter(self) -> None:
         import save_tools
-        bad = [cp for cp in assigned() if cp >= 0x20 and not save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT)]
+        banned = (0x2028, 0x2029, 0xFEFF)          # the three assigned code points no name can hold (spec section 6)
+        bad = [cp for cp in assigned() if cp >= 0x20 and cp not in banned
+               and not save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT)]
         self.assertEqual(bad, [])
         for cp in (0x3D000, 0x18E00, 0x0558, 0x20C2):           # new in 18.0
             self.assertEqual(save_tools.validate_name("fish", "Ab" + chr(cp), save_tools.ANY_SCRIPT), "Ab" + chr(cp))
-        for cp in (0x7, 0x85, 0xE000, 0xFDD0, 0x3FFFE):
+        for cp in (0x0, 0x7, 0x7F, 0x85, 0x2028, 0x2029, 0xFEFF):     # what no name can hold
             self.assertFalse(save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT), hex(cp))
+        # the spec keeps private use, noncharacters and unassigned code points (VF1 and VF2 allow them: the
+        # game stores them and draws a box)
+        for cp in (0xE000, 0xFDD0, 0xFFFE, 0x3FFFE, 0x10FFFF, 0x0378):
+            self.assertTrue(save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT), hex(cp))
+        # without Any script the tools keep the stock sets
+        self.assertFalse(save_tools.name_allowed("\u20ac", save_tools.LATIN1))
+        self.assertTrue(save_tools.name_allowed("\u00e9", save_tools.LATIN1))
 
     def test_translations_take_every_assigned_letter(self) -> None:
         import translation_format as F
