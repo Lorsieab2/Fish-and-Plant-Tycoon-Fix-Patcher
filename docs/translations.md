@@ -60,6 +60,17 @@ text, save it as tab-separated text or "Unicode Text").
 **Add translation file...** (or drag a `.txt` file onto the window) checks a file you were sent and adds
 it; **Check** shows coverage, errors and warnings with line numbers; **Export translation...** saves a copy.
 
+Adding a file never loses one you already have. It replaces an installed translation only when it is
+that translation's update: the same language, the same `@code` and the same `@translator` (a credit
+name; two uncredited files are never one update). The older version then goes to the Recycle Bin.
+Anything else is kept beside it under a name of its own (`Fish Tycoon - Français (by Zoe).txt`, then
+`(2)`...), and a name used by a translation that came with the patcher or from GitHub is never reused.
+**Edit...** on one of those keeps your copy as `<Game> - <its name> (own copy)`, one per game. The
+language the game uses is remembered by folder and name together (`fish/fr.tsv` is never your own
+`fr.tsv`). **Download from GitHub...** follows the same rule: a file already there under that name is
+replaced only by the same translator's update (the old one to the Recycle Bin); otherwise the download
+is saved as `<code>-<credit slug>.tsv` beside it.
+
 ## Managing the files
 
 The list under **Translations in the patcher** is for managing the files; the language the game uses is
@@ -204,6 +215,13 @@ request touching the folder is checked in two steps, and both comment their resu
 
 The owner accepts by merging (the `accept-translation` label runs both again). Files are scanned once
 more after they reach main.
+
+A check speaks only for the commit it checked, and its comment names that commit. A newer push
+cancels the older run, and the scripts ask GitHub again which commit the pull request is at after
+fetching, after scanning and just before commenting; when it moved, the older run comments nothing and
+fails. For Share on GitHub... the file committed is exactly the file scanned: the written file (with
+its credit row) is scanned again and committed only when its SHA-256 matches, and the issue is read
+again just before the pull request is pushed (edited, unlabelled or closed: nothing is pushed).
 
 Every file sent in (a pull request or Share on GitHub...) is also sent to VirusTotal, where VirusTotal's partners can see it: one more reason never to put private details in a translation.
 

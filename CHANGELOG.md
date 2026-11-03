@@ -2,6 +2,14 @@
 
 ## v1.0.25
 
+- **Translation safety.** A translation check speaks only for the commit it
+  checked: newer pushes cancel older runs, the head is asked again before
+  anything is posted, and a Share on GitHub... file is committed only when its
+  SHA-256 is the scanned file's, after the issue is read again. Adding or
+  downloading a translation replaces an installed one only when the language,
+  code and translator all match (the old one goes to the Recycle Bin); anyone
+  else's file is kept under a name of its own, never a name that came with the
+  patcher or from GitHub. Edit... copies are per game.
 - **Public translations folder.** `translations/fish/` and `translations/plant/`
   on GitHub hold every shared translation, one file per language named after
   its code (`fr.tsv`, `pt-BR.tsv`; `<code>-<credit slug>.tsv`, then `-2`, `-3`...

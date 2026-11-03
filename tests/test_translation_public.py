@@ -308,11 +308,15 @@ class PullRequest(unittest.TestCase):
     def event(self, association: str = "NONE") -> dict:
         return {"pull_request": {"number": 12, "head": {"sha": self.SHA}, "author_association": association}}
 
-    def fake_http(self, files: dict[str, bytes], listing: list[dict]):
+    def fake_http(self, files: dict[str, bytes], listing: list[dict], heads=None):
+        """`heads`: the pull request's head each time it is asked again (default: always SHA)."""
         calls = []
+        heads = list(heads or [])
 
         def http(method, url, token="", body=None, accept="", limit=0):
             calls.append((method, url))
+            if url.endswith("/pulls/12"):
+                return json.dumps({"head": {"sha": heads.pop(0) if heads else self.SHA}}).encode()
             if "/pulls/12/files" in url:
                 return json.dumps(listing).encode()
             if "/contents/" in url:

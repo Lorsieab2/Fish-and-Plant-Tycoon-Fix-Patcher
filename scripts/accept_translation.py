@@ -19,6 +19,14 @@ Before this runs, the workflow's "scan" job has sent the same attachment to Viru
 (scripts/virustotal_scan.py); its SHA-256 comes in the EXPECTED_SHA256 environment variable and a
 download that differs from what was scanned is refused.
 
+The file written here is not the attachment byte for byte (the @translator row becomes the typed
+credit name), so the workflow scans the WRITTEN file too (virustotal_scan.py --file) and commits it
+only when its SHA-256 is the one that scan reported. Just before pushing, it reads the issue again:
+
+    python -I scripts/accept_translation.py --recheck <event.json> <current issue.json>
+
+exits 1 when the issue was edited, unlabelled or closed during the run (still_current).
+
 Exit code 0 in both cases (2 = the event is not usable at all). <work>/result.txt holds
 "accepted" or "refused" and <work>/target.txt the added file's path.
 """
@@ -172,7 +180,43 @@ def accept(event: dict, work: Path, fetch=download, root: Path = ROOT, expected:
         return "refused"
 
 
+RECHECK_FIELDS = ("game", "credit name", "translation file", "licence")
+
+
+def still_current(event: dict, current: dict) -> str:
+    """"" when the issue, read again from GitHub just before the pull request is pushed, still asks
+    for exactly what this run scanned and checked (same form answers, still labelled
+    accept-translation, still open); otherwise why not. A stale run never acts on a changed issue."""
+    then = form_fields(str((event.get("issue") or {}).get("body") or ""))
+    now = form_fields(str((current or {}).get("body") or ""))
+    changed = [name for name in RECHECK_FIELDS if then.get(name, "") != now.get(name, "")]
+    if changed:
+        return "the issue was edited during the check (" + ", ".join(changed) + "); a newer run checks it"
+    labels = [str(label.get("name") or "") for label in (current or {}).get("labels") or []
+              if isinstance(label, dict)]
+    if "accept-translation" not in labels:
+        return "the accept-translation label was removed during the check"
+    if str((current or {}).get("state") or "") != "open":
+        return "the issue was closed during the check"
+    return ""
+
+
+def recheck_main(argv: list[str]) -> int:
+    """--recheck <event.json> <current issue.json>: exit 1 (and say why) when the issue changed."""
+    try:
+        event = json.loads(Path(argv[0]).read_text(encoding="utf-8"))
+        current = json.loads(Path(argv[1]).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"Could not read the issue again: {exc}")
+        return 1
+    why = still_current(event if isinstance(event, dict) else {}, current if isinstance(current, dict) else {})
+    print(why or "unchanged")
+    return 1 if why else 0
+
+
 def main() -> int:
+    if len(sys.argv) == 4 and sys.argv[1] == "--recheck":
+        return recheck_main(sys.argv[2:])
     if len(sys.argv) != 3:
         raise SystemExit(__doc__)
     try:

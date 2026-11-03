@@ -372,8 +372,10 @@ class TranslationsWindow:
             return
         path = item.path
         if item.shipped:
-            path = self.folder / item.path.name
+            # Never the shipped file's bare name: Fish's and Plant's fr.tsv would share one copy.
+            path = tr.own_copy_path(item, self.folder)
             if not path.exists():
+                self.folder.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(item.path.read_bytes())
             self.refresh()
         self.open_editor(path)

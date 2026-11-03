@@ -166,8 +166,30 @@ def local_path(remote: Remote, folder: Path | None = None) -> Path:
     return (folder or tr.TRANSLATIONS_DIR) / remote.game / remote.name
 
 
+def installed_copy(remote: Remote, folder: Path | None = None) -> Path | None:
+    """The local file that IS this GitHub file (the same git blob SHA), wherever it was saved: under
+    its own name, or under a name of its own when another translator's file already had that name."""
+    place = (folder or tr.TRANSLATIONS_DIR) / remote.game
+    exact = local_path(remote, folder)
+    try:
+        others = sorted(p for p in place.iterdir() if p != exact and p.name.lower().endswith(tp.EXTENSIONS))
+    except OSError:
+        others = []
+    for path in [exact, *others]:
+        try:
+            if path.is_file() and path.stat().st_size <= tr.MAX_FILE and tp.blob_sha(path.read_bytes()) == remote.sha:
+                return path
+        except OSError:
+            continue
+    return None
+
+
 def row(remote: Remote, folder: Path | None = None) -> Row:
     """Its line in the list: language and credit from the downloaded copy, and its status."""
+    copy = installed_copy(remote, folder)
+    if copy is not None:
+        info = tr.read_info(copy, remote.game)
+        return Row(remote, (info.language if info else "") or "?", (info.translator if info else "") or "", INSTALLED)
     path = local_path(remote, folder)
     try:
         data = path.read_bytes() if path.is_file() and path.stat().st_size <= tr.MAX_FILE else None
@@ -184,7 +206,13 @@ def row(remote: Remote, folder: Path | None = None) -> Row:
 
 
 def download(remote: Remote, folder: Path | None = None, opener=None) -> Path:
-    """Download one file, check it as data, and save it as translations/<game>/<name>."""
+    """Download one file, check it as data, and save it as translations/<game>/<name>.
+
+    A file already there under that name is replaced only when the download is its update: the same
+    language, @code and @translator. The old version then goes to the Recycle Bin (never deleted for
+    good). Anyone else's file with that name (one that came with an older patcher, or an earlier
+    GitHub file by someone else) is kept, and the download gets a name of its own
+    ("<code>-<credit slug>.tsv", then "-2"...), checked against every name in the folders."""
     if not tp.is_translation_name(remote.name) or remote.game not in tp.GAMES:
         raise GitHubProblem(f"{remote.name}: not a translation file.")
     data = get(remote.download_url, MAX_BYTES, accept="application/octet-stream", opener=opener)
@@ -194,14 +222,32 @@ def download(remote: Remote, folder: Path | None = None, opener=None) -> Path:
     result = tp.check_file(remote.path, data)
     if not result.ok:
         raise GitHubProblem(f"{remote.name} was not installed:\n" + "\n".join(result.problems[:20]))
+    already = installed_copy(remote, folder)
+    if already is not None:
+        return already                              # exactly these bytes are installed
     target = local_path(remote, folder)
+    replacing = False
+    if target.exists():
+        old = tr.read_info(target, remote.game)
+        if old is not None and tr.is_update(old, result.language, result.code, result.translator):
+            replacing = True
+        else:
+            taken = tr.taken_names(folder or tr.TRANSLATIONS_DIR)
+            try:
+                name = tp.public_name(result.code, taken, result.translator)
+            except ValueError:
+                name = tr.free_name(remote.name, taken)
+            target = target.parent / name
     target.parent.mkdir(parents=True, exist_ok=True)
     handle, temp = tempfile.mkstemp(dir=target.parent, suffix=".part")
     try:
         with os.fdopen(handle, "wb") as out:
             out.write(data)
+        if replacing:
+            tr.recycle([target])                    # the old version: Recycle Bin, never a plain delete
         os.replace(temp, target)
     except OSError as exc:
-        Path(temp).unlink(missing_ok=True)
-        raise GitHubProblem(f"{remote.name}: could not be saved ({exc.strerror or exc}).") from None
+        Path(temp).unlink(missing_ok=True)          # only our own unfinished download
+        raise GitHubProblem(f"{remote.name}: could not be saved ({exc.strerror or exc}); nothing was "
+                            "replaced.") from None
     return target

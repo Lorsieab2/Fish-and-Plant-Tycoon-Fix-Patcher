@@ -14,7 +14,12 @@ request's code is never checked out or run. Everything about the pull request is
   keys, placeholders, person and number choices, no email address; every refusal names its line),
   the same check scripts/accept_translation.py uses for the Share on GitHub issues;
 * the result is commented on the pull request through the API (GITHUB_TOKEN, issues: write) and
-  written to <work>/comment.md and the job summary. Exit code 1 when any file is refused.
+  written to <work>/comment.md and the job summary, naming the commit that was checked. Exit code 1
+  when any file is refused;
+* a run never speaks for a newer commit: the pull request's head is asked again (ensure_head) after
+  the files are listed and fetched, and again just before the comment. When someone pushed in the
+  meantime nothing is commented, the run fails ("not checked: the pull request changed") and the
+  newer commit's own run (the workflow cancels the older one) does the check.
 
 The owner accepts a translation by merging the pull request (the "accept-translation" label runs
 the checks again first). Nothing here ever prints a token.
@@ -45,6 +50,10 @@ TRUSTED_AUTHORS = ("OWNER", "MEMBER", "COLLABORATOR")
 
 class ApiError(Exception):
     pass
+
+
+class HeadMoved(ApiError):
+    """The pull request's head is no longer the commit this run checked."""
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -85,6 +94,23 @@ def pr_context(event: dict) -> tuple[int, str, str]:
     return number, sha, str(pr.get("author_association") or "")
 
 
+def current_head(repo: str, number: int, token: str) -> str:
+    """The pull request's head commit right now (asked again, never taken from the event)."""
+    reply = json.loads(http("GET", f"{API}/repos/{repo}/pulls/{number}", token).decode("utf-8"))
+    sha = str(((reply or {}).get("head") or {}).get("sha") or "") if isinstance(reply, dict) else ""
+    if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
+        raise ApiError("GitHub did not say which commit the pull request is at")
+    return sha
+
+
+def ensure_head(repo: str, number: int, sha: str, token: str) -> None:
+    """Raise HeadMoved unless the pull request is still at `sha`, the commit that was checked."""
+    now = current_head(repo, number, token)
+    if now != sha:
+        raise HeadMoved(f"not checked: the pull request changed during the check (it was at {sha[:12]}, it is "
+                        f"now at {now[:12]}); the newer commit's own run checks it")
+
+
 def changed_files(repo: str, number: int, token: str) -> list[dict]:
     files: list[dict] = []
     for page in range(1, 31):                         # GitHub lists at most 3,000 files
@@ -120,6 +146,9 @@ def collect(repo: str, event: dict, token: str) -> list[tuple[str, bytes | None,
             found.append((path, None, "a repository file changed by the owner (not a translation; not checked)"))
         else:
             found.append((path, fetch_file(repo, path, sha, token), ""))
+    # GitHub lists the pull request's files as they are NOW: that list belongs to `sha` only when
+    # nobody pushed meanwhile.
+    ensure_head(repo, number, sha, token)
     return found
 
 
@@ -132,10 +161,12 @@ def _plain(text: str) -> str:
     return " ".join(text.replace("`", "'").split())[:80]
 
 
-def validate(files: list[tuple[str, bytes | None, str]]) -> tuple[bool, str]:
-    """(every file passed, the comment)."""
+def validate(files: list[tuple[str, bytes | None, str]], sha: str = "") -> tuple[bool, str]:
+    """(every file passed, the comment). `sha`: the commit that was checked, named in the comment."""
     ok = True
     parts = [MARKER, "## Translation check", ""]
+    if sha:
+        parts += [f"Checked commit `{sha[:12]}` only; a newer push is checked again by its own run.", ""]
     if not files:
         parts.append("This pull request changes nothing under `translations/`.")
     for path, data, note in files:
@@ -182,8 +213,9 @@ def main() -> int:
     token = os.environ.get("GITHUB_TOKEN", "")
     try:
         event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
-        number, _sha, _who = pr_context(event)
-        ok, comment = validate(collect(repo, event, token))
+        number, sha, _who = pr_context(event)
+        ok, comment = validate(collect(repo, event, token), sha)
+        ensure_head(repo, number, sha, token)       # again, just before the result is posted
     except (ApiError, OSError, KeyError, ValueError) as exc:
         write_summary(f"Translation check could not run: {exc}")
         print(f"Translation check could not run: {exc}")

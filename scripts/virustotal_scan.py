@@ -3,6 +3,13 @@
     python -I scripts/virustotal_scan.py --pr <work folder>            (translation-pr.yml)
     python -I scripts/virustotal_scan.py --issue <event.json> <work>   (accept-translation.yml)
     python -I scripts/virustotal_scan.py --push <event.json> <work>    (scan-translations.yml)
+    python -I scripts/virustotal_scan.py --file <target.txt> <work>    (accept-translation.yml)
+
+--file scans the file scripts/accept_translation.py WROTE (its repository path is read from
+target.txt, never through a shell), so the bytes committed are exactly the bytes scanned: its
+SHA-256 goes to $GITHUB_OUTPUT and the workflow refuses to commit anything else. --pr asks GitHub
+again, after the scan, which commit the pull request is at; when someone pushed meanwhile the run
+fails without speaking for the newer commit (its own run scans it).
 
 The owner's rule: "PLEASE RUN EVERY SINGLE USER-SUBMITTED FILE THROUGH VIRUSTOTAL AND REJECT
 ANYTHING THAT IS FLAGGED." So, for each file, as DATA ONLY (nothing in a file is ever run):
@@ -242,6 +249,16 @@ def _pr_files(event: dict, repo: str, token: str) -> tuple[int, list[tuple[str, 
     return number, [(path, data) for path, data, _note in pr.collect(repo, event, token) if data is not None]
 
 
+def _written_file(target_txt: Path, root: Path = ROOT) -> list[tuple[str, bytes]]:
+    """The file accept_translation.py wrote: its path (translations/<game>/<name>) from target.txt."""
+    path = target_txt.read_text(encoding="utf-8").strip()
+    tp.game_of_path(path)                                  # translations/<game>/<a translation name>
+    target = (root / path).resolve()
+    if root.resolve() not in target.parents or not target.is_file():
+        raise ValueError(f"{path}: not a file in the repository")
+    return [(path, target.read_bytes()[: tp.MAX_BYTES + 1])]
+
+
 def _issue_file(event: dict) -> tuple[int, list[tuple[str, bytes]]]:
     import accept_translation as at
     issue = event.get("issue") or {}
@@ -282,7 +299,7 @@ def _output(name: str, value: str) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if len(argv) < 2 or argv[0] not in ("--pr", "--issue", "--push"):
+    if len(argv) < 2 or argv[0] not in ("--pr", "--issue", "--push", "--file"):
         raise SystemExit(__doc__)
     key = os.environ.get("VT_API_KEY", "").strip()
     if key and os.environ.get("GITHUB_ACTIONS"):
@@ -293,10 +310,15 @@ def main(argv: list[str] | None = None) -> int:
     work = Path(argv[-1])
     work.mkdir(parents=True, exist_ok=True)
     number = 0
+    event: dict = {}
     try:
         if mode == "--pr":
             event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
             number, files = _pr_files(event, repo, token)
+        elif mode == "--file":
+            files = _written_file(Path(argv[1]))
+            issue = os.environ.get("ISSUE_NUMBER", "")
+            number = int(issue) if issue.isdigit() else 0
         else:
             event = json.loads(Path(argv[1]).read_text(encoding="utf-8"))
             if mode == "--issue":
@@ -306,14 +328,23 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:  # noqa: BLE001 - anything at all fails the check, never passes it
         reason = str(exc).replace(key, "***") if key else str(exc)
         files, verdicts = [], [Verdict("(the submitted files)", "not scanned", detail=f"could not be fetched: {reason}")]
+        if type(exc).__name__ == "HeadMoved":
+            number = 0                                 # a newer commit: its own run speaks for it
     else:
         verdicts = scan_all(files, key)
+        if mode == "--pr":
+            import check_translation_pr as pr
+            try:                                   # the scan took a while: is the head still that commit?
+                pr.ensure_head(repo, number, pr.pr_context(event)[1], token)
+            except pr.ApiError as exc:
+                verdicts.append(Verdict("(the pull request)", "not scanned", detail=str(exc)))
+                number = 0 if isinstance(exc, pr.HeadMoved) else number   # never speak for a newer commit
     ok, text = report(verdicts, not key)
     (work / "comment.md").write_text(text, encoding="utf-8")
     _summary(text)
-    if mode == "--issue" and ok and verdicts:
+    if mode in ("--issue", "--file") and ok and len(verdicts) == 1:
         _output("sha256", verdicts[0].sha256)
-    if not ok and number and mode in ("--pr", "--issue"):
+    if not ok and number and mode in ("--pr", "--issue", "--file"):
         import check_translation_pr as pr
         try:
             pr.post_comment(repo, number, text, token)

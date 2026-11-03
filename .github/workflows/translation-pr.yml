@@ -17,6 +17,13 @@ name: Translation pull request
 # the GitHub API, as data, at most 2 MB each. Nothing from the pull request is ever put into a shell
 # command: the scripts read the event file themselves. The VirusTotal key reaches only the scan step,
 # as an environment variable.
+#
+# STALE RUNS. Each run checks one commit: the head commit named in its event. A newer push cancels
+# the older run (concurrency, cancel-in-progress), and both scripts ask GitHub again which commit
+# the pull request is at after fetching, after scanning and just before commenting; when it moved,
+# the older run comments nothing and fails ("not checked"), so a result never speaks for a commit
+# it did not check. Every comment names the commit it checked. Labels other than
+# accept-translation get a concurrency group of their own, so they never cancel a real check.
 
 on:
   pull_request_target:
@@ -30,8 +37,8 @@ permissions:
   issues: write
 
 concurrency:
-  group: translation-pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: false
+  group: translation-pr-${{ github.event.pull_request.number }}-${{ (github.event.action != 'labeled' || github.event.label.name == 'accept-translation') && 'check' || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   scan:
