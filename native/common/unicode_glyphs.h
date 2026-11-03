@@ -30,10 +30,23 @@
 
    The GDI, Uniscribe and window functions are looked up when first needed
    (LoadLibraryW / GetProcAddress), so a missing one only means that source is skipped. */
+/* UNICODE 18.0.  Text is drawn a grapheme at a time (unicode_grapheme.h): a cluster of more than
+   one code point (a letter with its marks, an Indic conjunct, an emoji ZWJ sequence, a flag, a
+   keycap) is shaped and drawn whole by the first font of the chain that has every glyph of it
+   (Segoe UI Emoji first for an RGI emoji sequence); when none has, by its visible code points
+   alone; else each code point by itself, as before. After Windows' own fonts the chain has the
+   fonts the patcher ships beside the DLL ("<Game> Fix Patcher DLLs\Fonts", loaded for this
+   process only with AddFontResourceExW(FR_PRIVATE)): GNU Unifont and Unifont Upper (bitmap
+   letters, the games' pixel look), Noto Serif Tangut and Noto Sans Cuneiform for what neither
+   Windows nor Unifont has, and Unicode's Last Resort font last, whose block placeholder stands
+   for any code point no other font has (a letter newer than every font). So every assigned code
+   point of Unicode 18.0 draws (tests/test_unicode18.py). A font that refuses a script
+   (USP_E_SCRIPT_NOT_IN_FONT) is asked again with no shaping (SCRIPT_UNDEFINED). */
 #ifndef FTFP_UNICODE_GLYPHS_H
 #define FTFP_UNICODE_GLYPHS_H
 
 #include <usp10.h>
+#include "unicode_grapheme.h"
 
 static int system_font;                     /* Use Unicode Font: every letter from Windows' fonts */
 static wchar_t chosen_font[64] = L"Segoe UI";
@@ -82,7 +95,9 @@ static int font_record_width(const char *inner, int b) {
 #define GLYPH_MAX_W 512
 
 typedef struct glyph {
-    unsigned int cp, colour;
+    unsigned int cp, colour;         /* cp: the code point, or a grapheme's hash (n > 1) */
+    unsigned int key2;               /* a grapheme's second hash */
+    int n;                           /* its code points */
     int height, used;
     void *surface;
     int w, xoff, adv;
@@ -101,6 +116,16 @@ typedef int (__cdecl *sdl_blit_fn)(void *, void *, void *, void *);
    inlined) so the tests can stand in for Windows' fonts. */
 __declspec(noinline) static int raster_glyph(unsigned int cp, int height, unsigned char *coverage,
                                              int *w, int *xoff, int *adv);
+/* The same for a whole grapheme of n > 1 code points, shaped together: 0 when no font has all of it. */
+__declspec(noinline) static int raster_cluster(const unsigned int *cps, int n, int height, unsigned char *coverage,
+                                               int *w, int *xoff, int *adv);
+
+static unsigned int piece_key2(const unsigned int *cps, int n) {
+    unsigned int h = 0x9E3779B9u ^ (unsigned int)n;
+    int k;
+    for (k = 0; k < n; ++k) h = (h ^ cps[k]) * 0x85EBCA6Bu + (h >> 13);
+    return h;
+}
 
 static void free_glyphs(void) {
     int i;
@@ -113,8 +138,10 @@ static void free_glyphs(void) {
     glyph_count = 0;
 }
 
-static const glyph *get_glyph(unsigned int cp, int height, unsigned int colour) {
+/* The drawn piece for one code point (n 1) or a whole grapheme (n > 1), NULL when no font has it. */
+static const glyph *get_piece(const unsigned int *cps, int n, int height, unsigned int colour) {
     static unsigned char coverage[GLYPH_MAX_W * GLYPH_MAX_H * 4];
+    unsigned int cp = n == 1 ? cps[0] : gb_fnv(cps, n), key2 = n == 1 ? 0 : piece_key2(cps, n);
     unsigned int at = (cp * 2654435761u ^ (unsigned int)height * 40503u ^ colour * 2246822519u) % GLYPH_CACHE;
     glyph *g;
     int w = 0, xoff = 0, adv = 0, x, y, pitch, kind;
@@ -125,20 +152,25 @@ static const glyph *get_glyph(unsigned int cp, int height, unsigned int colour) 
     for (;;) {
         g = &glyphs[at];
         if (!g->used) break;
-        if (g->cp == cp && g->height == height && g->colour == colour) return g->adv >= 0 ? g : NULL;
+        if (g->cp == cp && g->key2 == key2 && g->n == n && g->height == height && g->colour == colour) {
+            return g->adv >= 0 ? g : NULL;
+        }
         at = (at + 1) % GLYPH_CACHE;
     }
     if (glyph_count >= GLYPH_CACHE * 3 / 4) {
         free_glyphs();
-        return get_glyph(cp, height, colour);
+        return get_piece(cps, n, height, colour);
     }
     g->cp = cp;
+    g->key2 = key2;
+    g->n = n;
     g->height = height;
     g->colour = colour;
     g->used = 1;
     g->surface = NULL;
     ++glyph_count;
-    kind = raster_glyph(cp, height, coverage, &w, &xoff, &adv);
+    kind = n == 1 ? raster_glyph(cp, height, coverage, &w, &xoff, &adv)
+                  : raster_cluster(cps, n, height, coverage, &w, &xoff, &adv);
     if (!kind) {
         g->adv = -1;                         /* no font has it: kept, so it is looked for once */
         g->w = 0;
@@ -182,6 +214,10 @@ static const glyph *get_glyph(unsigned int cp, int height, unsigned int colour) 
         }
     }
     return g;
+}
+
+static const glyph *get_glyph(unsigned int cp, int height, unsigned int colour) {
+    return get_piece(&cp, 1, height, colour);
 }
 
 /* The advance of a letter drawn at run time (0 when none has it). */
@@ -235,6 +271,21 @@ static int all_font_bytes(const char *inner, const char *text, char *out, int ca
     return 1;
 }
 
+/* The width of one code point drawn alone: the font's letter, a run-time one, else '?'. */
+static int letter_width(const char *inner, unsigned int cp, int height) {
+    int b = font_byte(inner, cp), adv;
+    if (b >= 0) return font_record_width(inner, b);
+    adv = glyph_advance(cp, height);
+    if (adv >= 0) return adv;
+    b = font_byte(inner, '?');
+    return b >= 0 ? font_record_width(inner, b) : 0;
+}
+
+/* A grapheme that ends a line ("\n", or CR LF). */
+static int is_newline(const unsigned int *cps, int n) {
+    return cps[n - 1] == '\n';
+}
+
 static int unicode_width(void *font, const char *text, float scale) {
     static char bytes[RUN_BYTES];
     const char *inner = font_inner(font);
@@ -245,23 +296,24 @@ static int unicode_width(void *font, const char *text, float scale) {
     spacing = *(const int *)(inner + 8);
     height = *(const int *)(inner + 4);
     while (*p) {
-        unsigned int cp = utf8_next(&p);
-        int b, adv;
-        if (cp == '\n') {
+        unsigned int cps[GRAPHEME_MAX];
+        int n = next_grapheme(&p, cps, GRAPHEME_MAX), k;
+        const glyph *g = NULL;
+        if (n == 0) break;
+        if (is_newline(cps, n)) {
             if (line > widest) widest = line;
             line = 0;
             continue;
         }
-        b = font_byte(inner, cp);
-        if (b >= 0) adv = font_record_width(inner, b);
-        else {
-            adv = glyph_advance(cp, height);
-            if (adv < 0) {
-                b = font_byte(inner, '?');
-                adv = b >= 0 ? font_record_width(inner, b) : 0;
-            }
+        if (n > 1) g = get_piece(cps, n, height, 0xFFFFFFFFu);
+        if (g != NULL) {
+            line += (int)((double)(spacing + g->adv) * (double)scale);
+            continue;
         }
-        line += (int)((double)(spacing + adv) * (double)scale);
+        for (k = 0; k < n; ++k) {
+            if (n > 1 && gb_invisible(cps[k])) continue;
+            line += (int)((double)(spacing + letter_width(inner, cps[k], height)) * (double)scale);
+        }
     }
     if (line > widest) widest = line;
     return widest ? widest - spacing : 0;
@@ -273,7 +325,7 @@ static void unicode_draw(void *graphics, const char *text, int x, int y, unsigne
     const char *inner = font_inner(used);
     const unsigned char *p = (const unsigned char *)text;
     unsigned int shade = colour;
-    int n = 0, run_x = x, pen = x, spacing, height;
+    int count = 0, run_x = x, pen = x, spacing, height;
     if (text == NULL || inner == NULL || *(const int *)(inner + 0xC) == 0) {
         game_draw(graphics, text, x, y, colour, font);
         return;
@@ -286,30 +338,46 @@ static void unicode_draw(void *graphics, const char *text, int x, int y, unsigne
     spacing = *(const int *)(inner + 8);
     height = *(const int *)(inner + 4);
     while (*p) {
-        unsigned int cp = utf8_next(&p);
-        int b;
-        if (cp == '\n' || n >= RUN_BYTES - 1) {
-            if (n) { run[n] = '\0'; game_draw(graphics, run, run_x, y, colour, font); n = 0; }
-            if (cp == '\n') { y += height; pen = run_x = x; continue; }
+        unsigned int cps[GRAPHEME_MAX];
+        int n = next_grapheme(&p, cps, GRAPHEME_MAX), k;
+        const glyph *g = NULL;
+        if (n == 0) break;
+        if (is_newline(cps, n) || count >= RUN_BYTES - GRAPHEME_MAX) {
+            if (count) { run[count] = '\0'; game_draw(graphics, run, run_x, y, colour, font); count = 0; }
+            if (is_newline(cps, n)) { y += height; pen = run_x = x; continue; }
         }
-        b = font_byte(inner, cp);
-        if (b < 0) {
-            const glyph *g = get_glyph(cp, height, shade);
-            if (g != NULL) {
-                if (n) { run[n] = '\0'; game_draw(graphics, run, run_x, y, colour, font); n = 0; }
-                blit_glyph(graphics, g, pen + g->xoff, y);
-                pen += g->adv + spacing;
-                run_x = pen;
-                continue;
+        /* a grapheme of several code points: drawn whole when a font has all of it */
+        if (n > 1) g = get_piece(cps, n, height, shade);
+        if (g != NULL) {
+            if (count) { run[count] = '\0'; game_draw(graphics, run, run_x, y, colour, font); count = 0; }
+            blit_glyph(graphics, g, pen + g->xoff, y);
+            pen += g->adv + spacing;
+            run_x = pen;
+            continue;
+        }
+        for (k = 0; k < n; ++k) {
+            unsigned int cp = cps[k];
+            int b;
+            if (n > 1 && gb_invisible(cp)) continue;
+            b = font_byte(inner, cp);
+            if (b < 0) {
+                g = get_glyph(cp, height, shade);
+                if (g != NULL) {
+                    if (count) { run[count] = '\0'; game_draw(graphics, run, run_x, y, colour, font); count = 0; }
+                    blit_glyph(graphics, g, pen + g->xoff, y);
+                    pen += g->adv + spacing;
+                    run_x = pen;
+                    continue;
+                }
+                b = font_byte(inner, '?');
+                if (b < 0) continue;
             }
-            b = font_byte(inner, '?');
-            if (b < 0) continue;
+            if (count == 0) run_x = pen;
+            run[count++] = (char)b;
+            pen += font_record_width(inner, b) + spacing;
         }
-        if (n == 0) run_x = pen;
-        run[n++] = (char)b;
-        pen += font_record_width(inner, b) + spacing;
     }
-    if (n) { run[n] = '\0'; game_draw(graphics, run, run_x, y, colour, font); }
+    if (count) { run[count] = '\0'; game_draw(graphics, run, run_x, y, colour, font); }
 }
 
 /* ---- Windows' fonts */
@@ -358,12 +426,51 @@ static struct {
 #define DIB_W GLYPH_MAX_W
 #define DIB_H GLYPH_MAX_H
 
+/* Windows' fonts, then the patcher's own (BUNDLED_FONT_FILES, in data/unicode/fonts.json's order) */
 static const wchar_t *const CHAIN[] = {
     L"Segoe UI", L"Yu Gothic", L"Meiryo", L"Microsoft YaHei", L"Malgun Gothic", L"Nirmala UI", L"Leelawadee UI",
     L"Ebrima", L"Gadugi", L"Myanmar Text", L"Mongolian Baiti", L"Microsoft Himalaya", L"Javanese Text",
-    L"Segoe UI Historic", L"Segoe UI Emoji", L"Segoe UI Symbol", L"Sylfaen",
+    L"Microsoft Tai Le", L"Microsoft New Tai Lue", L"Microsoft Yi Baiti", L"Microsoft PhagsPa",
+    L"Segoe UI Historic", L"Segoe UI Emoji", L"Segoe UI Symbol", L"Sylfaen", L"Cambria Math", L"SimSun",
+    L"SimSun-ExtB", L"SimSun-ExtG", L"MingLiU-ExtB",
+    L"Unifont", L"Unifont Upper", L"Noto Serif Tangut", L"Noto Sans Cuneiform", L"Last Resort",
 };
 #define CHAIN_FONTS ((int)(sizeof CHAIN / sizeof CHAIN[0]))
+#define CHAIN_EMOJI 18                     /* Segoe UI Emoji */
+#define CHAIN_LAST_RESORT (CHAIN_FONTS - 1)
+
+/* The files beside the DLL, in "Fonts" (assets/<game>_tycoon_unicode/Fonts) */
+static const wchar_t *const BUNDLED_FONT_FILES[] = {
+    L"unifont-18.0.01.otf", L"unifont_upper-18.0.01.otf", L"NotoSerifTangut-Regular.ttf",
+    L"NotoSansCuneiform-Regular.ttf", L"LastResort-Regular.ttf",
+};
+
+typedef int (WINAPI *add_font_fn)(LPCWSTR, DWORD, PVOID);
+
+/* The patcher's fonts, for this process only (FR_PRIVATE): nothing is installed in Windows. A missing
+   file only means that font is left out (GDI then gives another font, which has not the letters). */
+static void load_bundled_fonts(HMODULE gdi32) {
+    add_font_fn add = (add_font_fn)(UINT_PTR)GetProcAddress(gdi32, "AddFontResourceExW");
+    HMODULE self = NULL;
+    wchar_t path[MAX_PATH + 64];
+    DWORD len;
+    int cut, i;
+    if (add == NULL || !GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+                                           | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                           (LPCWSTR)(UINT_PTR)load_bundled_fonts, &self)) {
+        return;
+    }
+    len = GetModuleFileNameW(self, path, MAX_PATH);
+    if (len == 0 || len >= MAX_PATH) return;
+    for (cut = (int)len; cut > 0 && path[cut - 1] != L'\\' && path[cut - 1] != L'/'; --cut) {}
+    for (i = 0; i < (int)(sizeof BUNDLED_FONT_FILES / sizeof BUNDLED_FONT_FILES[0]); ++i) {
+        path[cut] = L'\0';
+        if (wcslen(path) + 6 + wcslen(BUNDLED_FONT_FILES[i]) >= MAX_PATH + 64) continue;
+        wcscat_s(path, MAX_PATH + 64, L"Fonts\\");
+        wcscat_s(path, MAX_PATH + 64, BUNDLED_FONT_FILES[i]);
+        add(path, FR_PRIVATE, NULL);
+    }
+}
 
 typedef struct face {
     int chain, height;
@@ -373,7 +480,8 @@ typedef struct face {
     int colour;                      /* a colour font: COLR, CBDT, sbix or SVG */
 } face;
 
-static face faces[64];
+#define FACES 256
+static face faces[FACES];
 static int face_count;
 
 static int gdi_start(void) {
@@ -421,6 +529,7 @@ static int gdi_start(void) {
     gdi.bk_mode(gdi.dc, TRANSPARENT);
     gdi.align(gdi.dc, TA_TOP | TA_LEFT | TA_NOUPDATECP);
     gdi.bits = (unsigned char *)bits;
+    load_bundled_fonts(g);
     gdi.ready = 1;
     return 1;
 }
@@ -436,7 +545,7 @@ static face *get_face(int chain, int height) {
     for (i = 0; i < face_count; ++i) {
         if (faces[i].chain == chain && faces[i].height == height) return &faces[i];
     }
-    if (face_count >= 64) return NULL;
+    if (face_count >= FACES) return NULL;
     f = &faces[face_count];
     memset(f, 0, sizeof *f);
     f->chain = chain;
@@ -630,38 +739,41 @@ static int raster_colour(const WCHAR *units, int n, int chain, int height, int p
     return 1;
 }
 
-__declspec(noinline) static int raster_glyph(unsigned int cp, int height, unsigned char *coverage,
-                                             int *w, int *xoff, int *adv) {
-    WCHAR units[2];
-    int n = 1, c, first = system_font ? -1 : 0;
-    /* variation selectors (an emoji's U+FE0F) and the zero-width joiner: nothing drawn, no width */
-    if ((cp >= 0xFE00 && cp <= 0xFE0F) || cp == 0x200D || (cp >= 0xE0100 && cp <= 0xE01EF)) {
-        *w = *xoff = *adv = 0;
-        return 1;
-    }
+#define CLUSTER_UNITS 64
+
+/* `units` (n UTF-16 units: a code point or a whole grapheme) from the first font of the chain that
+   has a glyph for all of it: 1 (coverage) or 2 (a colour drawing) as raster_glyph, 0 when none.
+   `emoji`: Segoe UI Emoji is asked first; `last_resort`: Last Resort may answer. */
+static int raster_units(const WCHAR *units, int n, int emoji, int last_resort, int height, unsigned char *coverage,
+                        int *w, int *xoff, int *adv) {
+    int step, first = system_font ? -1 : 0;
     if (!gdi_start()) return 0;
-    if (cp >= 0x10000) {
-        units[0] = (WCHAR)(0xD800 + ((cp - 0x10000) >> 10));
-        units[1] = (WCHAR)(0xDC00 + ((cp - 0x10000) & 0x3FF));
-        n = 2;
-    } else {
-        units[0] = (WCHAR)cp;
-    }
-    for (c = first; c < CHAIN_FONTS; ++c) {
+    for (step = first - (emoji ? 1 : 0); step < CHAIN_FONTS; ++step) {
         SCRIPT_ITEM items[4];
-        WORD ids[8], clusters[2];
-        SCRIPT_VISATTR attrs[8];
-        int advances[8], items_n = 0, ids_n = 0, i, x, y, left = -1, right = -1, pad = height;
-        GOFFSET offsets[8];
+        WORD ids[CLUSTER_UNITS * 2], clusters[CLUSTER_UNITS];
+        SCRIPT_VISATTR attrs[CLUSTER_UNITS * 2];
+        int advances[CLUSTER_UNITS * 2], items_n = 0, ids_n = 0, i, x, y, left = -1, right = -1, pad = height;
+        int c = step;
+        GOFFSET offsets[CLUSTER_UNITS * 2];
         ABC abc;
-        face *f = get_face(c, height);
+        HRESULT hr;
+        face *f;
+        if (emoji) {
+            if (step == first - 1) c = CHAIN_EMOJI;
+            else if (step == CHAIN_EMOJI) continue;
+        }
+        if (c == CHAIN_LAST_RESORT && !last_resort) continue;
+        f = get_face(c, height);
         if (f == NULL) continue;
         gdi.select(gdi.dc, f->font);
-        if (gdi.itemize(units, n, 3, NULL, NULL, items, &items_n) != S_OK || items_n < 1) continue;
-        if (gdi.shape(gdi.dc, &f->cache, units, n, 8, &items[0].a, ids, clusters, attrs, &ids_n) != S_OK
-            || ids_n < 1) {
-            continue;
+        if (gdi.itemize(units, n, 3, NULL, NULL, items, &items_n) != S_OK || items_n != 1) continue;
+        hr = gdi.shape(gdi.dc, &f->cache, units, n, CLUSTER_UNITS * 2, &items[0].a, ids, clusters, attrs, &ids_n);
+        if (hr == USP_E_SCRIPT_NOT_IN_FONT) {
+            /* the font has no shaping for the script: its own letters, unshaped */
+            items[0].a.eScript = SCRIPT_UNDEFINED;
+            hr = gdi.shape(gdi.dc, &f->cache, units, n, CLUSTER_UNITS * 2, &items[0].a, ids, clusters, attrs, &ids_n);
         }
+        if (hr != S_OK || ids_n < 1) continue;
         for (i = 0; i < ids_n && ids[i] != f->missing; ++i) {}
         if (i < ids_n) continue;
         if (gdi.place(gdi.dc, &f->cache, ids, ids_n, attrs, &items[0].a, advances, offsets, &abc) != S_OK) continue;
@@ -695,6 +807,50 @@ __declspec(noinline) static int raster_glyph(unsigned int cp, int height, unsign
         return 1;
     }
     return 0;
+}
+
+/* `cps` as UTF-16 into `units` (at most CLUSTER_UNITS), skipping the invisible ones with `visible`:
+   the number of units, 0 when they do not fit or none is left. */
+static int to_units(const unsigned int *cps, int n, int visible, WCHAR *units) {
+    int k, u = 0;
+    for (k = 0; k < n; ++k) {
+        unsigned int cp = cps[k];
+        if (visible && gb_invisible(cp)) continue;
+        if (u + 2 > CLUSTER_UNITS) return 0;
+        if (cp >= 0x10000) {
+            units[u++] = (WCHAR)(0xD800 + ((cp - 0x10000) >> 10));
+            units[u++] = (WCHAR)(0xDC00 + ((cp - 0x10000) & 0x3FF));
+        } else {
+            units[u++] = (WCHAR)cp;
+        }
+    }
+    return u;
+}
+
+__declspec(noinline) static int raster_glyph(unsigned int cp, int height, unsigned char *coverage,
+                                             int *w, int *xoff, int *adv) {
+    WCHAR units[2];
+    /* variation selectors, joiners and tags alone: nothing drawn, no width */
+    if (gb_invisible(cp)) {
+        *w = *xoff = *adv = 0;
+        return 1;
+    }
+    return raster_units(units, to_units(&cp, 1, 0, units), gb_emoji(&cp, 1), 1, height, coverage, w, xoff, adv);
+}
+
+__declspec(noinline) static int raster_cluster(const unsigned int *cps, int n, int height, unsigned char *coverage,
+                                               int *w, int *xoff, int *adv) {
+    WCHAR units[CLUSTER_UNITS], seen[CLUSTER_UNITS];
+    int u = to_units(cps, n, 0, units), v, kind;
+    /* the whole grapheme, by a font that has every glyph of it (not Last Resort: its boxes would
+       stand for the marks too) */
+    if (u > 0 && (kind = raster_units(units, u, gb_emoji(cps, n), 0, height, coverage, w, xoff, adv)) != 0) {
+        return kind;
+    }
+    /* its visible code points alone (an emoji's U+FE0F, a joiner, a tag the font has not) */
+    v = to_units(cps, n, 1, seen);
+    if (v > 0 && v != u) return raster_units(seen, v, gb_emoji(cps, n), 0, height, coverage, w, xoff, adv);
+    return 0;                           /* drawn a code point at a time */
 }
 
 #endif
