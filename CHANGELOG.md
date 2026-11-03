@@ -2,6 +2,15 @@
 
 ## v1.0.27
 
+- **Game Mechanics explains the music.** Both games' pages have a new
+  "Music and sounds" part, read from each game's code. Fish Tycoon: its only
+  music, Tanked.xm, plays once when the first-time help question opens; the
+  sound that comes by itself on the tank screen is one of three long sound
+  clips (equal odds, every 3.5 minutes or so, skipped under Stop Time or when
+  you were away); the Sounds option is one switch for everything. Plant
+  Tycoon: the menu piece and four songs, which screens start them, the song
+  order, the Options check boxes and sliders, and the greenhouse wind-chimes.
+  All of it is cosmetic only: nothing in either game reads it back.
 - **Translations fit the screen.** Every line a translation can replace now
   has a room in pixels where the game draws it, in
   `data/translation_limits.json` (numbers only, no game text). It is measured

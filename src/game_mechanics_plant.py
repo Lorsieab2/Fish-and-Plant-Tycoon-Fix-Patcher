@@ -68,6 +68,7 @@ def page() -> GamePage:
             Group("Extra nurseries (patcher)", EXTRA_NURSERIES,
                   note="Only with the 5 extra nurseries setting (on by default), which also turns on the "
                        "store's Upgrades screen the nurseries are bought on."),
+            Group("Music and sounds", MUSIC),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Fish Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
@@ -130,8 +131,9 @@ CLOCKS = (
         subs=(
             "Plant update check: every 61 real-time seconds, only in the greenhouse, and at once "
             "on entering it. It still fires under Stop Time, but adds no age.",
-            "Greenhouse check every 3 real-time seconds: bug arrivals (none under Stop Time) and "
-            "the seed shop's reroll check.",
+            "Greenhouse check every 3 real-time seconds: bug arrivals (none under Stop Time), the "
+            "random wind-chimes and the music check (see Music and sounds), and the seed shop's "
+            "reroll check.",
             "Seed shop reroll: 86401 real-time seconds, counted with the game closed too, but "
             "checked only in the greenhouse, and only one reroll however long you were away.",
             "Nursery check every 2 real-time seconds, only in the nursery: visitors arrive and "
@@ -1266,6 +1268,86 @@ ALL_BUGS = (
     ),
 )
 
+MUSIC = (
+    Fact(
+        "Plant Tycoon has five music files, all Ogg Vorbis streamed through the FMOD sound library "
+        "from its Sounds folder: menu.ogg and song1.ogg to song4.ogg (Options calls the four songs "
+        "\"Music Tracks\" 1 to 4). Every piece plays once from start to end and never loops (loop "
+        "off, 0x4499F0 with 0x40BD80). Music is cosmetic only: no plant, bug, visitor, sale or "
+        "money ever reads it, and the only things the music code reads are the Options settings "
+        "below.",
+    ),
+    Fact(
+        "Lengths of the original files, read from the files and not from the game's code: menu.ogg "
+        "3:36, song1.ogg 3:10, song2.ogg 4:18, song3.ogg 4:00, song4.ogg 4:09.",
+        label="U",
+    ),
+    Fact(
+        "Which screen asks for which music (every caller of the music routine, 0x4499F0; one piece "
+        "plays at a time):",
+        subs=(
+            "The main menu (0x4297D1, every frame): if nothing is playing, menu.ogg starts. A piece "
+            "already playing is left alone, so the menu does not interrupt a song.",
+            "Story page 1 and Story page 2 (0x4217D0, 0x4217E6, 0x421F50, every frame): menu.ogg is "
+            "forced. If it is not the piece playing, whatever is playing stops at once and menu.ogg "
+            "starts from the beginning (0x449A19-0x449A5F).",
+            "The greenhouse (0x4289F1, with its check every 3 real-time seconds), the nursery "
+            "(0x437B78, every 2 real-time seconds), the Collections screen (0x419594), the seed box "
+            "(0x434252) and the Supplies store (0x447CCD), the last three every frame: if nothing is "
+            "playing, the next ticked song starts. They never interrupt a piece that is playing, so "
+            "a song carries on through every screen, and menu.ogg too.",
+            "No other screen asks for music; whatever plays carries on.",
+        ),
+    ),
+    Fact(
+        "The order: after menu.ogg, or when nothing has played yet, the cycle goes song 1, 2, 3, 4 "
+        "and back to 1, skipping the songs that are not ticked in Options; a piece that ends is "
+        "followed by the next ticked one at the next check (at most 3 real-time seconds in the "
+        "greenhouse, 2 in the nursery, one frame elsewhere). With one song ticked it repeats; with "
+        "none ticked nothing plays after the current piece, but the menu and Story screens still "
+        "play menu.ogg (0x449A79-0x449AE3).",
+    ),
+    Fact(
+        "Options, Music Tracks (four check boxes, 1 to 4, each one a song; all ticked in a new game, "
+        "0x41D200): ticking a box starts that song at once, from the start, and stops whatever else "
+        "is playing, unless that song is already the one playing (0x449B20, from 0x42B68D). "
+        "Unticking the song that is playing stops it, and the next ticked song starts at once. "
+        "Unticking another song changes nothing now; the cycle just skips it later.",
+    ),
+    Fact(
+        "Options has two sliders, Sounds and Music, both starting at half (a new game, 0x41D200). "
+        "The Music slider is the volume of the music: it changes the piece playing right now "
+        "(0x42C48D, 0x449C40) and every later piece; the menu piece and the songs share it, and "
+        "all the way to the left is silent. The Sounds slider is a multiplier on every later "
+        "sound effect (stored by 0x449EF0, used by 0x44A550); it does not touch the music and does "
+        "not change a sound effect already playing. There is no on/off switch for sound in "
+        "Plant Tycoon: the two \"disabled\" flags the sound code has (0x493B81, 0x493B82) are "
+        "never set. Both sliders and the four boxes are saved with the game (the block the save "
+        "writes, 0x41D156, holds +0x51C Music, +0x520 to +0x52C the four boxes and +0x530 "
+        "Sounds, so they are kept by the autosave like every other setting) and applied when the "
+        "game starts (0x41CA2F-0x41CA54).",
+    ),
+    Fact(
+        "While the game window is not the active window (another program in front, or minimised), "
+        "all sound is muted: the master sound volume and every playing track go to 0 and come back "
+        "when you return (0x41D030, 0x40BD20, 0x40BC70, 0x40BE70). The pieces keep playing "
+        "silently and the greenhouse checks keep running.",
+    ),
+    Fact(
+        "The opening splash screens play teachangelY.ogg (6.3 real-time seconds long, a sound effect, not one of "
+        "the music pieces) once when the first one appears, after the sound volume is set to half "
+        "(0x44A7E9-0x44A800). It is not music and it is not affected by the Music slider.",
+    ),
+    Fact(
+        "The sound that comes by itself in the greenhouse is not music either: every 3 real-time "
+        "seconds the greenhouse rolls "
+        f"{at_most(220, 2)}; if it hits, one of two wind-chime sound effects plays: windchimes_1.ogg "
+        f"{below(100, 50)}, otherwise windchimes_2.ogg, once, asked for at 10 times the Sounds "
+        "slider (0x4289B3-0x4289E7). That is on average one chime about every 220 real-time "
+        "seconds in the greenhouse.",
+    ),
+)
+
 HIDDEN = (
     Fact(
         "Greenhouse keys (lowercase letters only):",
@@ -1428,6 +1510,7 @@ OTHER_GAME = (
     Fact('Which tank counts: see Where things count (plants have no tanks; position never matters).'),
     Fact('Health: see Health and soil.'),
     Fact('Names and letters: the same here, see Names and letters.'),
+    Fact("Music and sounds: see Music and sounds. Fish Tycoon has one music file and one Sounds setting, no sliders."),
     Fact('Sickness: see Pests. Plants have no other disease.'),
     Fact('Food: not in Plant Tycoon. Plants need water instead (see Water).'),
     Fact('Breeding and babies: see Pollination and seeds.'),
@@ -1720,7 +1803,8 @@ INDEX = (
         subs=(
             "Age unit: 2, 10 or 15 real-time minutes (Fast, Normal, Slow).",
             "Plant update: every 61 real-time seconds in the greenhouse.",
-            "Bugs and shop reroll check: every 3 real-time seconds in the greenhouse.",
+            "Bugs, wind-chimes, music check and shop reroll check: every 3 real-time seconds in the "
+            "greenhouse.",
             "Nursery (visitors and sales): every 2 real-time seconds while in the nursery.",
             "Shop reroll: 86401 real-time seconds.",
             "Autosave: every 601 real-time seconds while the game is open (not while a message box is "
