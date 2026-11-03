@@ -14,3 +14,6 @@ assets/fish_tycoon_extra_tanks/** -text
 assets/fish_tycoon_supply_slots/** -text
 assets/plant_tycoon_greenhouses/*.ini -text
 assets/everything_free/** -text
+data/unicode/** -text
+assets/fish_tycoon_unicode/Fonts/** -text
+assets/plant_tycoon_unicode/Fonts/** -text
