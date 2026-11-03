@@ -198,6 +198,15 @@
   Counts.dll, DS Store Items.dll, Store Upgrades and Items.dll, Extra Chemical
   Slots.dll, both Optimize Prices.dll, Extra Greenhouses.dll, Unused
   Flowers.dll (companion pins only; no executable byte changes).
+- **(TEST) - French AI Translation** for both games, in the repository's
+  `translations/fish/fr.tsv` and `translations/plant/fr.tsv` (not in the
+  patcher's ZIP; get it with "Download from GitHub..."). Machine-made for
+  testing, credited "(TEST) AI translation": every line of both templates
+  (the games' own lines and every patch's text) in French, with French plural
+  choices (one = 0 and 1, many, other) and no-break spaces before : ; ! ?.
+  Species-name words (DS fish fins and bodies, new flower names) stay in
+  English like the games' own species names; "NEW PLAYER" is never
+  translated. `tests/test_test_french_translation.py` checks it.
 
 ## v1.0.24
 

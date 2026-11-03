@@ -95,3 +95,20 @@ strings/69~17a77e24	You have sold %d fish!	Vous avez vendu %d {%1: one=poisson |
 - A line left empty stays in English.
 
 The full guide is [docs/translations.md](../docs/translations.md).
+
+## (TEST) - French AI Translation
+
+- `fish/fr.tsv` (Fish Tycoon)
+- `plant/fr.tsv` (Plant Tycoon)
+
+**AI-made, for testing only.** These two files were machine-translated by an AI to test the
+translation feature; no French speaker has reviewed them, so expect mistakes. They are
+downloadable like any other translation. Credit: "(TEST) AI translation".
+
+Every line of both templates is translated (the games' own lines, read from the vanilla games, and
+every patch's text), with French plurals (`one` covers 0 and 1, `many` large round numbers,
+`other` the rest), the placeholders of the English, every length limit, and no-break spaces
+before `:` `;` `!` `?`. Kept in English on purpose: species-name words (the DS fish fin and body
+words and the new flowers' names, like the games' own species names, which are never translated)
+and words that are the same in French (OK, Normal, Options, Menu, Pollen, Stats, the version
+number). "NEW PLAYER" is never in a translation.

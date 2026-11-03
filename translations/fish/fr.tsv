@@ -1,0 +1,389 @@
+﻿# Fish Tycoon - (TEST) - French AI Translation (format 1). Machine-made (AI) French translation, for testing only: not reviewed by a French speaker. Species-name words (DS fish fins and bodies, new flower names) stay in English, like the games' own species names.
+# TEST FILE: made by an AI to test the translation feature; expect mistakes.
+# docs/translations.md (Fish and Plant Tycoon Fix Patcher) explains the format.
+Key	English	Translation	Notes
+@format	1	1
+@game	Fish Tycoon	
+@language	English	(TEST) - French AI Translation
+@code	en	fr
+@translator		(TEST) AI translation	Machine-made (AI) French translation, for testing only: not reviewed by a French speaker. Species-name words (DS fish fins and bodies, new flower names) stay in English, like the games' own species names.
+strings/0~3e4ce79c	TIME STOPPED	TEMPS ARRÊTÉ
+strings/1~4ece2634	Age: 	Âge : 
+strings/2~4889951f	Status: 	État : 
+strings/3~d4818f90	Pregnant	Enceinte
+strings/4~40a33876	Sick	Malade
+strings/5~ec9b10a4	Dead	Mort
+strings/6~b764cdc0	Unknown	Inconnu
+strings/7~4e565dbc	Your cash: $	Votre argent : $	at most 20 letters (accented letters count 2)
+strings/8~5f27067d	Player: 	Joueur : 	at most 16 letters (accented letters count 2)
+strings/9~449d701c	Please enter a nickname...	Entrez un pseudo...
+strings/10~b8d07162	Change Player	Changer de joueur
+strings/12~6f305c4b	Sounds	Sons
+strings/13~92c1cdfd	Enabled	Activés
+strings/14~75081b59	Disabled	Désactivés
+strings/15~be44133e	Difficulty	Difficulté
+strings/16~d6915875	Easy	Facile
+strings/17~8e588cd1	Medium	Moyen
+strings/18~9e73f8fa	Hard	Difficile
+strings/19~08e7f4a9	Game Speed	Vitesse du jeu
+strings/20~0a46232a	Stop Time	Arrêter le temps
+strings/21~a7248eeb	Normal	Normal
+strings/22~e555e88d	1/2 speed	Vitesse 1/2
+strings/23~59242999	2x speed	Vitesse x2
+strings/24~c461dbb2	Fullscreen	Plein écran
+strings/25~13001175	On	Oui
+strings/26~ca7981b4	Off	Non
+strings/27~f48968b9	Are you sure you want to start over?	Voulez-vous vraiment recommencer ?
+strings/28~b4d1cca9	Welcome to Fish Tycoon!\n\nYour goal is to breed and grow fish and find the 7 Magic Fish.\nYou can buy fish supplies, medicine, technologies and\nyou will finance your mission by selling the fish along the way.\n\nWe are starting you out with some teen fish. Why don't\nyou try to grab them and move them around?\n\n(Close these tips by clicking the 'OK' button)	Bienvenue dans Fish Tycoon !\n\nVotre but : élever des poissons et trouver les 7 Poissons Magiques.\nVous pouvez acheter des fournitures, des médicaments, des\ntechnologies, et vous financerez votre mission en vendant vos poissons.\n\nPour commencer, voici quelques jeunes poissons. Essayez\nde les attraper et de les déplacer !\n\n(Fermez ces conseils en cliquant sur le bouton 'OK')
+strings/29~c78d9154	That's great!\n\nNow let's hatch some eggs!\n\nDrag these eggs into the tank. They will disappear and soon\nyou will have new baby fish!\n	Très bien !\n\nFaisons maintenant éclore des œufs !\n\nFaites glisser ces œufs dans l'aquarium. Ils disparaîtront et vous\naurez bientôt des bébés poissons !\n
+strings/30~939f8691	Good! You now have new baby fish.\n\nThey sure look hungry. To feed your fish just drag the fish\nfood into the tank.\n	Bravo ! Vous avez maintenant des bébés poissons.\n\nIls ont l'air affamés. Pour nourrir vos poissons, faites glisser\nla nourriture dans l'aquarium.\n
+strings/31~2c1c7a7f	Excellent! You learned how to feed your fish!\n\nRemember, this game runs in real time, even when you are\nnot playing, so check in from time to time and care for your\nfish!\n\nLet's go to the Fish Supplies and see what you can buy.\nClick on the 'Supplies' button on the bottom left.\n\n(Close these tips by clicking the 'OK' button)	Excellent ! Vous savez nourrir vos poissons !\n\nN'oubliez pas : ce jeu se déroule en temps réel, même quand vous\nne jouez pas. Revenez de temps en temps prendre soin de vos\npoissons !\n\nAllons voir les fournitures pour poissons et ce que vous pouvez acheter.\nCliquez sur le bouton 'Supplies' en bas à gauche.\n\n(Fermez ces conseils en cliquant sur le bouton 'OK')
+strings/32~28bf0ef7	Welcome to the Fish Supplies!\n\nHere you can buy food, medicine, strange chemicals and more!\nFor now let's buy the shell. Click on the shell and then on\nthe 'Buy' button.\n\n\n\n(Exit this screen by clicking the 'Done' button)	Bienvenue dans la boutique de fournitures !\n\nIci, vous pouvez acheter nourriture, médicaments, étranges produits\nchimiques et plus encore ! Pour l'instant, achetons le coquillage.\nCliquez sur le coquillage, puis sur le bouton 'Buy'.\n\n\n\n(Quittez cet écran en cliquant sur le bouton 'Done')
+strings/33~1005dce4	You can see your ornament on the bottom of the tank.\n\nDrag it around and place it where you like!\n	Votre décoration est au fond de l'aquarium.\n\nDéplacez-la et placez-la où vous voulez !\n
+strings/34~f8358c8e	Good! You can customize your tanks as you like!\n\nNow let's experiment with another of the shop items:\nthe Growth Hormone.\n\nNormally it can take up to an hour or more for fish to grow up.\nDrop this into the tank and your fish will grow up in seconds!	Bravo ! Vous pouvez décorer vos aquariums comme vous le voulez !\n\nEssayons maintenant un autre article de la boutique :\nl'hormone de croissance.\n\nD'habitude, un poisson met une heure ou plus à grandir.\nVersez-la dans l'aquarium et vos poissons grandiront en secondes !
+strings/35~0dc1b840	Good job! Now you see that you have several fully grown fish!\n\nLet's drag an adult fish into the ISOLATION TANK.\n\n	Bon travail ! Vous avez maintenant plusieurs poissons adultes !\n\nFaites glisser un poisson adulte dans l'AQUARIUM D'ISOLEMENT.\n\n
+strings/36~384121e6	Now you can see additional details about the fish that is\ntrapped in the ISOLATION TANK.\n\nTo SET THE PRICE of this breed and learn even more about it,\nclick the 'Species' button.\n 	Vous voyez maintenant plus de détails sur le poisson\nplacé dans l'AQUARIUM D'ISOLEMENT.\n\nPour FIXER LE PRIX de cette espèce et en savoir plus,\ncliquez sur le bouton 'Species'.\n 
+strings/37~f1f8af67	Welcome to the Species Screen!\n\nThis screen shows you what species you have created. You\ncan also CHANGE THE PRICE of the fish before you sell them\nin your store, by using this keypad.\n\nWhen you discover a new species, the price will already be\nset to a fair price, but you can change it.	Bienvenue dans l'écran des espèces !\n\nCet écran montre les espèces que vous avez créées. Vous\npouvez aussi CHANGER LE PRIX des poissons avant de les vendre\ndans votre boutique, avec ce pavé numérique.\n\nQuand vous découvrez une espèce, son prix est déjà fixé\nà un prix juste, mais vous pouvez le changer.
+strings/38~30432fce	Oh, no! You have a sick fish!\n\nDo you see the small growth on one of your adult fish?\nThis will happen sometimes, but don't panic! You can cure it!\n\nLet's go back to the supplies area and buy the correct medicine!\n	Oh non ! Un de vos poissons est malade !\n\nVoyez-vous la petite excroissance sur un de vos poissons adultes ?\nCela arrive parfois, mais pas de panique ! Cela se soigne !\n\nRetournons aux fournitures acheter le bon médicament !\n
+strings/39~065b6b9e	\n\n\nSince your fish has a greenish-brown growth on its body,  it\nneeds Fungal Treatment.\n\nLet's buy the pink bottle and go back to the main tank.\n	\n\n\nComme votre poisson a une excroissance brun-vert sur le corps,\nil lui faut un traitement antifongique.\n\nAchetons le flacon rose et retournons à l'aquarium principal.\n
+strings/40~1c1f4ef5	Now you can see the Fungal Treatment in your toolbox.\n\nJust place a drop into the water and your fish will be cured!\n\nSometimes it takes more than one treatment.	Le traitement antifongique est dans votre boîte à outils.\n\nVersez-en une goutte dans l'eau et votre poisson sera guéri !\n\nIl faut parfois plus d'un traitement.
+strings/41~5365610e	Your fish is cured! You are doing a great job!\n\nNow let's make a fish pregnant!\n\nWhile an adult fish is in the isolation tank, drag another adult\nfish to it and release it.\n\nYou will hear a kissing sound!\n	Votre poisson est guéri ! Vous faites du très bon travail !\n\nRendons maintenant un poisson enceinte !\n\nPendant qu'un adulte est dans l'aquarium d'isolement, faites\nglisser un autre adulte jusqu'à lui et relâchez-le.\n\nVous entendrez un bisou !\n
+strings/42~406b82b9	Excellent! You are breeding fish.\n\nIn a little while, this pregnant fish will give birth. It does not\nmatter if you stay in the game, or exit the game...time will\ngo by just the same!\n\nDrag her back to the main tank and check back later to see\nif the little one has arrived.\n\nA new fish can take up to half an hour to be born.	Excellent ! Vous élevez des poissons.\n\nDans un moment, ce poisson enceinte va mettre bas. Peu importe\nque vous restiez dans le jeu ou que vous le quittiez... le temps\npasse de la même façon !\n\nRemettez-la dans l'aquarium principal et revenez plus tard voir\nsi le petit est arrivé.\n\nUn nouveau poisson peut mettre jusqu'à une demi-heure à naître.
+strings/43~1819a53d	Let's learn how to drag fish between tanks!\n\nLook at the icons on the top right of the screen.\nYou are in 'Tank One'.\n\nThe 'Sale Tank' is how we sell fish.\nDrag an adult fish to the 'Sale Tank' button. \n	Apprenons à déplacer les poissons d'un aquarium à l'autre !\n\nRegardez les icônes en haut à droite de l'écran.\nVous êtes dans l'aquarium 1 ('Tank One').\n\nL'aquarium de vente ('Sale Tank') sert à vendre les poissons.\nFaites glisser un poisson adulte sur le bouton 'Sale Tank'. \n
+strings/44~e8712da3	Good! That fish is now waiting to be sold!\n\nClick on the 'Sell Fish' button to go to your Fish Store and\nstart selling your fish.\n	Bravo ! Ce poisson attend maintenant d'être vendu !\n\nCliquez sur le bouton 'Sell Fish' pour aller dans votre boutique\net commencer à vendre vos poissons.\n
+strings/45~515057da	Welcome to your Fish Store!\n \nAny adult fish that you placed in your selling tank are for sale.\nWhen a fish is sold, you'll see which one below.\n\nClick around the shop for hidden tips!\n\nClick 'Done' when you have finished selling.\n	Bienvenue dans votre boutique de poissons !\n\nTous les adultes placés dans l'aquarium de vente sont à vendre.\nQuand un poisson est vendu, vous le verrez ci-dessous.\n\nCliquez un peu partout dans la boutique : il y a des conseils cachés !\n\nCliquez sur 'Done' quand vous avez fini de vendre.\n
+strings/46~86100394	Now you understand the basics.\nExperiment with some fish and explore the screens.\n\nA good starting strategy is to find a more expensive species\nand mass-produce it to make some cash.\n\nDon't forget to feed your fish!\n\n	Vous connaissez maintenant les bases.\nEssayez divers poissons et explorez les écrans.\n\nPour bien commencer, trouvez une espèce plus chère\net produisez-la en masse pour gagner de l'argent.\n\nN'oubliez pas de nourrir vos poissons !\n\n
+strings/47~70cf955a	Since the game continues even when it is turned off, it can\nbe fun to leave the game alone for a while, then come\nback and see what has changed, which fish have grown,\nand what new surprises are waiting.\n\nStaring at your fish will not make them grow faster - you\ncannot rush Mother Nature!\n	Le jeu continue même quand il est éteint : il peut donc être\namusant de le laisser un moment, puis de revenir\nvoir ce qui a changé, quels poissons ont grandi\net quelles surprises vous attendent.\n\nFixer vos poissons ne les fera pas grandir plus vite : on\nne peut pas brusquer Mère Nature !\n
+strings/48~4440843c	You have dead baby fish!\n\nThis is almost always caused by having inadequate water\nconditions for such a rare species.\n\nYou need to research FISH ENVIRONMENT for the more exotic\nspecies to survive.  Until then, look for species that\nDO survive and sell as many of those as possible.\n	Des bébés poissons sont morts !\n\nC'est presque toujours dû à une eau inadaptée\nà une espèce aussi rare.\n\nRecherchez l'ENVIRONNEMENT DES POISSONS pour que les espèces\nexotiques survivent. D'ici là, cherchez les espèces qui\nSURVIVENT et vendez-en le plus possible.\n
+strings/49~623cec04	One of your tanks is full!\n\nBaby fish born into an over-crowded tank will be eaten \nimmediately by other fish.\n\n You need to sell some fish or buy another tank \n(if you haven't already).\n	Un de vos aquariums est plein !\n\nLes bébés nés dans un aquarium surpeuplé sont aussitôt\nmangés par les autres poissons.\n\n Vous devez vendre des poissons ou acheter un autre aquarium\n(si ce n'est pas déjà fait).\n
+strings/50~cca62231	You have created a fragile hybrid!\n\nIf you see this fish's health steadily declining, it is because\nthis fish is too fragile for the water conditions in this tank.\nYou need to research FISH ENVIRONMENT in the supply shop.\n	Vous avez créé un hybride fragile !\n\nSi la santé de ce poisson baisse sans cesse, c'est qu'il est\ntrop fragile pour l'eau de cet aquarium.\nRecherchez l'ENVIRONNEMENT DES POISSONS dans la boutique.\n
+strings/51~cd9c69a2	You don't own a second breeding tank yet!\n\nYou have to sell some fish, save up your money, and buy\nthis tank from the supplies area.\n	Vous n'avez pas encore de second aquarium d'élevage !\n\nVendez des poissons, économisez votre argent et achetez\ncet aquarium dans la boutique de fournitures.\n
+strings/52~bc7e7726	You placed a baby or teen fish in your selling tank!\n\nThat's fine, but they cannot be sold until they are fully grown.\n	Vous avez mis un bébé ou un jeune dans l'aquarium de vente !\n\nPas de souci, mais il ne pourra être vendu qu'une fois adulte.\n
+strings/53~b0b66777	Any adult fish you see here are for sale!\n	Tous les poissons adultes que vous voyez ici sont à vendre !\n
+strings/54~7e0503be	There are hundreds of different species in Fish Tycoon!\n\nMost are not very valuable, but once you discover the rare\nones you can strike it rich!\n\nClicking this poster again will provide game tips!\n\n	Il existe des centaines d'espèces dans Fish Tycoon !\n\nLa plupart valent peu, mais une fois les espèces rares\ndécouvertes, vous pouvez faire fortune !\n\nCliquez à nouveau sur cette affiche pour des conseils de jeu !\n\n
+strings/55~3df14d07	Most hybrids that you create will be very fragile.\n\nIf you see your young fish's health steadily declining,\nyou probably need to research Fish Environment to progress\nfurther in the game.\n	La plupart des hybrides que vous créez seront très fragiles.\n\nSi la santé de vos jeunes poissons baisse sans cesse, vous\ndevez sans doute rechercher l'environnement des poissons\npour progresser dans le jeu.\n
+strings/56~46d9fa01	You discovered the Magic Fish of Fertility!\n\nWith this fish in your tank, pregnant fish tend to produce\nan extra baby.\nThis fish was added to your trophy case.\n	Vous avez découvert le Poisson Magique de la Fertilité !\n\nAvec ce poisson dans votre aquarium, les poissons enceintes\nont souvent un bébé de plus.\nCe poisson a été ajouté à votre vitrine de trophées.\n
+strings/57~7f349297	You discovered the Magic Fish of Sustenance!\n\nWith this fish in your tank, you won't need to feed as often.\nThis fish was added to your trophy case.\n	Vous avez découvert le Poisson Magique de la Subsistance !\n\nAvec ce poisson dans votre aquarium, il faut nourrir moins souvent.\nCe poisson a été ajouté à votre vitrine de trophées.\n
+strings/58~c8ce4c07	You discovered the Magic Fish of Curing!\n\nWith this fish in your tank, sick fish have a better chance of\nbeing cured.\nThis fish was added to your trophy case.\n	Vous avez découvert le Poisson Magique de la Guérison !\n\nAvec ce poisson dans votre aquarium, les poissons malades ont\nplus de chances de guérir.\nCe poisson a été ajouté à votre vitrine de trophées.\n
+strings/59~945a9ed1	You discovered the Magic Fish of Growth!\n\nWith this fish in your tank, young fish tend to grow more rapidly.\nThis fish was added to your trophy case.\n	Vous avez découvert le Poisson Magique de la Croissance !\n\nAvec ce poisson dans votre aquarium, les jeunes grandissent plus vite.\nCe poisson a été ajouté à votre vitrine de trophées.\n
+strings/60~0749fb6e	You discovered the Magic Fish of Health!\n\nWith this fish in your tank, your fish tend to be healthier.\nThis fish was added to your trophy case.\n	Vous avez découvert le Poisson Magique de la Santé !\n\nAvec ce poisson dans votre aquarium, vos poissons sont en meilleure santé.\nCe poisson a été ajouté à votre vitrine de trophées.\n
+strings/61~5e86234f	You discovered the Magic Fish of Mutation!\n\nWith this fish in your tank, pregnant fish have a chance of\nproducing a baby not related to either parent!\nThis fish was added to your trophy case.\n	Vous avez découvert le Poisson Magique de la Mutation !\n\nAvec ce poisson dans votre aquarium, un poisson enceinte peut\ndonner un bébé sans lien avec ses parents !\nCe poisson a été ajouté à votre vitrine de trophées.\n
+strings/62~cbc4aa3c	You discovered the Golden Guppy of Isola!\n\nThis ultra-rare fish is a legend. It's not fully understood, but\nwill most certainly make you a rich fish breeder.\nThis fish was added to your trophy case.\n	Vous avez découvert le Guppy doré d'Isola !\n\nCe poisson ultra-rare est une légende. Il reste mystérieux, mais\nfera sûrement de vous un riche éleveur de poissons.\nCe poisson a été ajouté à votre vitrine de trophées.\n
+strings/63~6f41dbcd	You completed a level of "Fish Environment" research.\nRarer species of fish can now survive and thrive in your tanks.\n	Vous avez terminé un niveau de recherche « Environnement ».\nDes espèces plus rares peuvent survivre dans vos aquariums.\n
+strings/64~926e8fb8	You completed a level of "Fish Food" research.\nFrom now on you have better fish food and won't need to \nfeed as often.\n	Vous avez terminé un niveau de recherche « Nourriture ».\nVotre nourriture est meilleure : il faudra nourrir\nvos poissons moins souvent.\n
+strings/65~40bf8136	You completed a level of "Advertising" research.\nFrom now on you'll have more visitors in your fish store.\n	Vous avez terminé un niveau de recherche « Publicité ».\nVous aurez désormais plus de visiteurs dans votre boutique.\n
+strings/66~888c9d9d	Congratulations!\nYou discovered the 7 Magic Fish of Isola!\nThe island is restored!\n          Behold...\n	Félicitations !\nVous avez découvert les 7 Poissons Magiques d'Isola !\nL'île est restaurée !\n          Admirez...\n
+strings/67~1d82e6c0	This shop item is only available in the full version.\n\nIt takes just a few moments to purchase, and all\nfeatures and limitations will be unlocked!\n\n	Cet article n'existe que dans la version complète.\n\nL'achat ne prend que quelques instants, et toutes les\nfonctions et limites seront débloquées !\n\n
+strings/68~89661563	There is no room in any of your tanks for the seahorse!\n\n	Il n'y a de place pour l'hippocampe dans aucun aquarium !\n\n
+strings/69~17a77e24	You have sold %d fish!	Vous avez vendu %d {%1: one=poisson | many=de poissons | other=poissons} !	%1 (%d) = number; at most 33 letters (accented letters count 2)
+strings/70~952e1e77	You have fed your fish %d times!	Vous avez nourri vos poissons %d {%1: one=fois | many=de fois | other=fois} !	%1 (%d) = number; at most 48 letters (accented letters count 2)
+strings/71~4e048ac3	You have cured %d fish!	%d {%1: one=poisson soigné | many=de poissons soignés | other=poissons soignés} !	%1 (%d) = number; at most 34 letters (accented letters count 2)
+strings/72~6c0a12ad	You have bought %d of the 4 Magic Plants!	Vous avez acheté %d des 4 Plantes Magiques !	%1 (%d) = number; at most 61 letters (accented letters count 2)
+strings/73~82ce4e91	You have earned %d Isola-bucks so far!	Vous avez gagné %d {%1: one=Isola-buck | many=d'Isola-bucks | other=Isola-bucks} !	%1 (%d) = number; at most 57 letters (accented letters count 2)
+strings/74~9014e549	You have trashed %d fish!	Vous avez jeté %d {%1: one=poisson | many=de poissons | other=poissons} !	%1 (%d) = number; at most 37 letters (accented letters count 2)
+strings/75~f3e427f8	You have discovered %d species!	Vous avez découvert %d {%1: one=espèce | many=d'espèces | other=espèces} !	%1 (%d) = number; at most 46 letters (accented letters count 2)
+strings/76~3d3044f1	Did you know there are over 400 species of fish?	Il existe plus de 400 espèces de poissons !	at most 72 letters (accented letters count 2)
+strings/77~40074eb5	If your baby fish are dying, \nresearch Fish Environment!	Si vos bébés poissons meurent,\nrecherchez l'environnement !	at most 84 letters (accented letters count 2)
+strings/78~d3fb9953	The fish's 'age' does not refer to years, but more like hours.	L'« âge » d'un poisson ne compte pas en années, plutôt en heures.	at most 93 letters (accented letters count 2)
+strings/79~de83b9e6	Most fish are inexpensive, but some are worth more than $300!	La plupart des poissons sont bon marché, certains valent plus de 300 $ !	at most 91 letters (accented letters count 2)
+strings/80~1ba51736	Meds don't always work in one try.	Un remède n'agit pas toujours du premier coup.	at most 51 letters (accented letters count 2)
+strings/81~a600d801	Breeding two identical fish produces offspring of the same species.	Deux poissons identiques donnent des petits de la même espèce.	at most 100 letters (accented letters count 2)
+strings/82~ff94bfad	New breeds start with a price somewhere near their true value.	Une nouvelle espèce a d'abord un prix proche de sa vraie valeur.	at most 93 letters (accented letters count 2)
+strings/83~a2b4bf5a	If you'd like to feed your fish less often, research better Food.	Pour nourrir vos poissons moins souvent, recherchez la nourriture.	at most 97 letters (accented letters count 2)
+strings/84~2abd0d37	Researching Fish Food makes fish get sick less often.	Rechercher la nourriture rend les poissons moins souvent malades.	at most 79 letters (accented letters count 2)
+strings/85~2ff25345	Any adult fish in your selling tank can be purchased by customers in the store.	Tout adulte dans votre aquarium de vente peut être acheté par les clients.	at most 118 letters (accented letters count 2)
+strings/86~ce39cdf9	Fish keep growing (and getting hungry!) even when the game is off.	Les poissons grandissent (et ont faim !) même quand le jeu est éteint.	at most 99 letters (accented letters count 2)
+strings/87~df32032e	One way to find the Magic Fish is to keep track of every species combination.	Pour trouver les Poissons Magiques, notez chaque croisement d'espèces.	at most 115 letters (accented letters count 2)
+strings/88~d4b62b8b	If you price your fish too high, they will sell slowly or not at all.	Si vos poissons sont trop chers, ils se vendront lentement ou pas du tout.	at most 103 letters (accented letters count 2)
+strings/89~20f530fd	If you price your fish too low, they will sell very fast but will make little money.	Si vos poissons sont trop bon marché, ils se vendront vite mais rapporteront peu.	at most 126 letters (accented letters count 2)
+strings/90~728407e2	Growth Hormone affects each fish a little differently.	L'hormone de croissance agit un peu différemment sur chaque poisson.	at most 81 letters (accented letters count 2)
+strings/91~71189a37	You cannot have more than 20 fish per tank.	Pas plus de 20 poissons par aquarium.	at most 64 letters (accented letters count 2)
+strings/92~1b237083	Fish from Isola don't die of old age!	Les poissons d'Isola ne meurent pas de vieillesse !	at most 55 letters (accented letters count 2)
+strings/93~c888f784	There is more than one approach to solving the game.	Il y a plus d'une façon de finir le jeu.	at most 78 letters (accented letters count 2)
+strings/94~0ecfdc71	Changing the price of a fish will change it for all fish of that species.	Changer le prix d'un poisson le change pour toute son espèce.	at most 109 letters (accented letters count 2)
+strings/95~422e9068	To change the price of a species, use the 'Species' button.	Pour changer le prix d'une espèce, utilisez le bouton 'Species'.	at most 88 letters (accented letters count 2)
+strings/96~b9177fbf	Diseases spread to other fish in the same tank!	Les maladies se transmettent dans un même aquarium !	at most 70 letters (accented letters count 2)
+strings/97~9afa8c04	Ornaments help bring people into your store.	Les décorations attirent du monde dans votre boutique.	at most 66 letters (accented letters count 2)
+strings/98~2c279064	Magic Fish help bring people into your store.	Les Poissons Magiques attirent du monde dans votre boutique.	at most 67 letters (accented letters count 2)
+strings/99~045ef14d	Having lots of fish for sale helps bringing people into your store.	Avoir beaucoup de poissons à vendre attire du monde dans votre boutique.	at most 100 letters (accented letters count 2)
+strings/100~5710b166	Sick fish cannot be impregnated.	Un poisson malade ne peut pas être fécondé.	at most 48 letters (accented letters count 2)
+strings/101~e8ecaadd	Compare your game stats with those of other players via the Statistics Screen.	Comparez vos statistiques à celles des autres joueurs dans l'écran Statistiques.	at most 117 letters (accented letters count 2)
+strings/102~6fff96c0	You can click on the Magic Fish in the trophy case.	Cliquez sur les Poissons Magiques dans la vitrine de trophées.	at most 76 letters (accented letters count 2)
+strings/103~422e9068	To change the price of a species, use the 'Species' button.	Pour changer le prix d'une espèce, utilisez le bouton 'Species'.	at most 88 letters (accented letters count 2)
+strings/104~749d6c5e	You can change the speed of time in the options menu.	Changez la vitesse du temps dans le menu des options.	at most 79 letters (accented letters count 2)
+strings/105~c2d2503f	The cleaning snails reduce disease in every tank.	Les escargots nettoyeurs réduisent les maladies partout.	at most 73 letters (accented letters count 2)
+strings/106~89f1346f	Here on Isola, we use Isola-bucks!	Ici, à Isola, on paie en Isola-bucks !	at most 51 letters (accented letters count 2)
+strings/107~b2b06931	Magic Fish only affect fish in the tank they are swimming in.	Les Poissons Magiques n'agissent que dans leur propre aquarium.	at most 91 letters (accented letters count 2)
+strings/108~97663a95	Dead Magic Fish are no longer beneficial.	Un Poisson Magique mort n'a plus d'effet.	at most 61 letters (accented letters count 2)
+strings/109~afeef544	Dead fish increase disease among your fish.	Les poissons morts propagent les maladies.	at most 64 letters (accented letters count 2)
+strings/110~ea3217eb	You can move ornaments between tanks.	Déplacez les décorations entre aquariums.	at most 55 letters (accented letters count 2)
+strings/111~e2faed90	Researching Advertising will have a huge effect on crowds in your store.	Rechercher la publicité attire beaucoup plus de clients dans votre boutique.	at most 108 letters (accented letters count 2)
+strings/112~4d3074a5	If you often have dead baby fish, research Fish Environment.	Si vos bébés poissons meurent souvent, recherchez l'environnement.	at most 90 letters (accented letters count 2)
+strings/113~ad59ace0	Often the more fragile fish are more valuable.	Souvent, les poissons fragiles valent plus cher.	at most 69 letters (accented letters count 2)
+strings/114~a2983b7c	Hybrids are very fragile. They need more advanced Environment.	Les hybrides sont très fragiles. Il leur faut un meilleur environnement.	at most 93 letters (accented letters count 2)
+strings/115~ea9e6cc0	Extremely rare hybrids are extremely fragile.	Les hybrides très rares sont très fragiles.	at most 67 letters (accented letters count 2)
+strings/116~ef9b74a3	Your Statistics	Vos statistiques
+strings/117~1de082b5	Internet Statistics	Statistiques Internet
+strings/118~4c9c8019	Real Hours Played	Heures réelles jouées
+strings/119~a658cfe5	Your rank:	Votre rang :
+strings/120~a814a612	Press Refresh	Appuyez sur Actualiser
+strings/121~c4df6fb6	Units of Food Given	Rations données
+strings/122~8316732a	Fish Trashed	Poissons jetés
+strings/123~f0977f6f	Fish Cured	Poissons soignés
+strings/124~f964b765	Fish Sold	Poissons vendus
+strings/125~73d8a8e9	Avg Price/Fish	Prix moyen/poisson
+strings/126~0714174c	Money Earned	Argent gagné
+strings/127~8aa720de	Money Spent	Argent dépensé
+strings/128~5b6d1596	Species Discovered	Espèces découvertes
+strings/129~c637d6f1	Magic Fish Found	Poissons Magiques trouvés
+strings/130~85257938	Average:	Moyenne :
+strings/131~c74e4368	Welcome to the Game.	Bienvenue dans le jeu.
+strings/132~c45043f9	You don't need this item!	Vous n'avez pas besoin de cet article !
+strings/133~aec7cef0	You can't afford to buy this yet!	Vous n'avez pas encore les moyens de l'acheter !
+strings/134~435c2611	Click anywhere to exit this screen.	Cliquez n'importe où pour quitter cet écran.
+strings/135~4e8617fa	Only available in registered version.	Disponible seulement dans la version enregistrée.
+strings/136~03881581	Visit www.LDW.com for tips and hints.	Astuces et conseils sur www.LDW.com.
+strings/137~f8da4adc	The tank is full!	L'aquarium est plein !
+strings/138~11ab5020	No fish in isolation!	Aucun poisson à l'isolement !
+strings/139~d0b4b289	You don't own a second tank yet!	Vous n'avez pas encore de second aquarium !
+strings/140~b4fcdefa	This fish is not old enough to examine.	Ce poisson est trop jeune pour être examiné.
+strings/141~1f8f6f8c	This fish is not old enough to breed.	Ce poisson est trop jeune pour se reproduire.
+strings/142~0d6ee446	This fish is not old enough to sell.	Ce poisson est trop jeune pour être vendu.
+strings/143~5e7ef9dc	This can't be used in the isolation tank.	Impossible de l'utiliser dans l'aquarium d'isolement.
+strings/144~074e8c22	This must be used directly in a tank.	À utiliser directement dans un aquarium.
+strings/145~49fbd777	This fish is dead! Throw it away!	Ce poisson est mort ! Jetez-le !
+strings/146~cb0311f9	Place a fish in the isolation tank to examine.	Placez un poisson à l'isolement pour l'examiner.
+strings/147~8bff6af0	Drag a fish to the isolation tank.	Faites glisser un poisson vers l'aquarium d'isolement.
+strings/148~49706f88	Tank Sell: these fish are for sale.	Aquarium de vente : ces poissons sont à vendre.
+strings/149~daf62f88	This fish is already pregnant!	Ce poisson est déjà enceinte !
+strings/150~6aa460ac	You are in Tank One.	Vous êtes dans l'aquarium 1.
+strings/151~97386670	You are in Tank Two.	Vous êtes dans l'aquarium 2.
+strings/152~314de770	Try Plant Tycoon at LDW.com!	Essayez Plant Tycoon sur LDW.com !
+strings/153~821a6c05	You are already in Tank One.	Vous êtes déjà dans l'aquarium 1.
+strings/154~7666ac4e	You are already in Tank Two.	Vous êtes déjà dans l'aquarium 2.
+strings/155~8eecce39	You are already in the Selling Tank.	Vous êtes déjà dans l'aquarium de vente.
+strings/156~79877158	Time Paused! Click options.	Temps en pause ! Cliquez sur Options.
+strings/157~d6848a86	Screensaver Mode	Mode économiseur d'écran
+strings/158~805c2143	Sick fish cannot get pregnant!	Un poisson malade ne peut pas être enceinte !
+strings/159~2c753a39	You already own this!	Vous l'avez déjà !
+strings/160~c795e33f	This is already being researched!	C'est déjà en cours de recherche !
+strings/161~ccfb44fa	Sending and receiving stats...	Envoi et réception des statistiques...
+strings/162~e5b761ec	Statistics succesfully updated!	Statistiques mises à jour !
+strings/163~61435985	Update failed. Are you online?	Échec de la mise à jour. Êtes-vous en ligne ?
+strings/164~7f0d3067	No stats to update yet!	Aucune statistique à mettre à jour !
+strings/165~bb215084	The Magic Fish of Fertility	Le Poisson Magique de la Fertilité
+strings/166~92d170ec	The Magic Fish of Sustenance	Le Poisson Magique de la Subsistance
+strings/167~b53afc62	The Magic Fish of Curing	Le Poisson Magique de la Guérison
+strings/168~de7c766a	The Magic Fish of Growth	Le Poisson Magique de la Croissance
+strings/169~2d3e12ce	The Magic Fish of Health	Le Poisson Magique de la Santé
+strings/170~d0d24314	The Magic Fish of Mutation	Le Poisson Magique de la Mutation
+strings/171~3b19deb9	The Golden Guppy	Le Guppy doré
+strings/172~b4f06628	Delete this fish?	Supprimer ce poisson ?
+strings/173~bfc89dd8	Price:	Prix :	at most 14 letters (accented letters count 2)
+strings/174~6d6a0aa0	Ick Treatment	Traitement points blancs
+strings/175~2fe444a7	Ick looks like white specks on your fish.\nOne drop every half hour until cured.\nContains 3 doses.	Les points blancs (ick) se voient sur vos poissons.\nUne goutte toutes les demi-heures jusqu'à guérison.\nContient 3 doses.
+strings/176~75405334	Fungal Treatment	Traitement antifongique
+strings/177~1f4949b4	Fungus looks like a green growth on a fish.\nOne drop every half hour until cured.\nContains 3 doses.	Le champignon ressemble à une excroissance verte.\nUne goutte toutes les demi-heures jusqu'à guérison.\nContient 3 doses.
+strings/178~6d351b7b	Fish Vitamins	Vitamines pour poissons
+strings/179~6817b89e	This stimulates the metabolism of fish.\nIt causes fish to temporarily thrive.\nContains 3 doses.	Stimule le métabolisme des poissons.\nIls se portent mieux pendant un temps.\nContient 3 doses.
+strings/180~a3c11295	Growth Hormone	Hormone de croissance
+strings/181~bde08fd3	This encourages vigorous growth in fish.\nCareful not to use too much!\nContains 3 doses.	Favorise une croissance vigoureuse.\nAttention à ne pas en abuser !\nContient 3 doses.
+strings/182~bfa9f4d4	Unknown Chemical	Produit chimique inconnu
+strings/183~fe3c1704	This rare chemical is from a genetic lab.\nThe supplier insists that it fell off a truck.\nContains one dose.	Ce produit rare vient d'un labo de génétique.\nLe fournisseur jure qu'il est tombé d'un camion.\nContient une dose.
+strings/183~37a55949	This rare chemical is from a genetic lab.\nThe supplier insists that it fell off a truck.\nContains 3 doses.	Ce produit rare vient d'un labo de génétique.\nLe fournisseur jure qu'il est tombé d'un camion.\nContient 3 doses.	Patch: Unknown Chemical: 3 uses
+strings/184~d68674e4	Common Fish Eggs	Œufs de poisson communs
+strings/185~39abf036	These eggs were found in the lagoon of Isola.\nJust drop them in water and wait.	Ces œufs ont été trouvés dans le lagon d'Isola.\nMettez-les dans l'eau et attendez.
+strings/186~d06d33d5	Unusual Fish Eggs	Œufs de poisson insolites
+strings/187~99ae5fda	These eggs will need more care to survive.\nResearch FISH ENVIRONMENT before\nyou try to hatch these.	Ces œufs demandent plus de soins pour survivre.\nRecherchez l'ENVIRONNEMENT DES POISSONS\navant d'essayer de les faire éclore.
+strings/188~8024cf88	Rare Fish Eggs	Œufs de poisson rares
+strings/189~53c4625f	These eggs will need expert care to survive.\nResearch FISH ENVIRONMENT before\nyou try to hatch these.	Ces œufs demandent des soins experts pour survivre.\nRecherchez l'ENVIRONNEMENT DES POISSONS\navant d'essayer de les faire éclore.
+strings/190~d21d5460	Aeration System	Système d'aération
+strings/191~9f726c3b	This item will help your fish survive by\nputting oxygen in the water.\nComes fully installed.	Cet appareil aide vos poissons à survivre\nen mettant de l'oxygène dans l'eau.\nLivré tout installé.
+strings/192~83033294	Temperature Regulator	Régulateur de température
+strings/193~143fcb6a	This item will help your fish survive by\nmaintaining the correct temperature.\nComes fully installed.	Cet appareil aide vos poissons à survivre\nen gardant la bonne température.\nLivré tout installé.
+strings/194~bb8f12ef	Cleaning Snail	Escargot nettoyeur
+strings/195~5c20a058	This cute tiny snail will never tire of\ncleaning and polishing your tanks.\nComes fully installed.	Ce mignon petit escargot ne se lasse jamais\nde nettoyer et faire briller vos aquariums.\nLivré tout installé.
+strings/196~e20a2447	Golden Seahorse	Hippocampe doré
+strings/197~2ae261bd	The seahorse magically enhances your\nenvironment and the life of your fish.\nComes fully installed.	L'hippocampe améliore par magie votre\nenvironnement et la vie de vos poissons.\nLivré tout installé.
+strings/198~96a0cb02	Plant of Incubation from Isola	Plante d'incubation d'Isola
+strings/199~b608c87c	Exposure to plants from Isola increases\nthe viability of purchased eggs.\nComes fully installed.	Les plantes d'Isola augmentent la\nviabilité des œufs achetés.\nLivrée toute installée.
+strings/200~fc2b1719	Plant of Nutrition from Isola	Plante de nutrition d'Isola
+strings/201~dae4ae7b	This plant releases nutritious fibers\nwhich can help prevent starvation.\nComes fully installed.	Cette plante libère des fibres nutritives\nqui aident à éviter la famine.\nLivrée toute installée.
+strings/202~17d453be	Plant of Curing from Isola	Plante de guérison d'Isola
+strings/203~1fddd268	This rare plant helps prevent diseases on\nfish that are exposed to the plant.\nComes fully installed.	Cette plante rare aide à prévenir les maladies\ndes poissons exposés à la plante.\nLivrée toute installée.
+strings/204~19bf02a2	Plant of Fertility from Isola	Plante de fertilité d'Isola
+strings/205~a4b26196	This plant encourages more live babies from\npregnant fish that are exposed to it.\nComes fully installed.	Cette plante favorise plus de bébés vivants\nchez les poissons enceintes qui y sont exposés.\nLivrée toute installée.
+strings/206~b277a766	Shell Ornament	Décoration coquillage
+strings/207~1673e54a	With this pretty shell in your tank,\nyou are sure to draw additional crowds.\nInstalls into your current tank.	Avec ce joli coquillage dans votre aquarium,\nvous attirerez sûrement plus de monde.\nS'installe dans l'aquarium actuel.
+strings/208~1d002744	Pagoda Ornament	Décoration pagode
+strings/209~f638ad3c	This charming pagoda will add style\nand elegance to your tank!\nInstalls into your current tank.	Cette charmante pagode ajoute style\net élégance à votre aquarium !\nS'installe dans l'aquarium actuel.
+strings/210~c59f8aec	Diver Ornament	Décoration plongeur
+strings/211~41285c09	It is the classic aquatic diver.\nNo tank is complete without one!\nInstalls into your current tank.	Le grand classique : le plongeur.\nPas d'aquarium complet sans lui !\nS'installe dans l'aquarium actuel.
+strings/212~f095f107	Fancy Coral Ornament	Décoration corail
+strings/213~aad152d4	Fish love coral, and so do your\ncustomers.\nInstalls into your current tank.	Les poissons adorent le corail, et vos\nclients aussi.\nS'installe dans l'aquarium actuel.
+strings/214~f8edabf0	Sunken Ship Ornament	Décoration épave
+strings/215~9d831671	Your fish, as well as your customers, will\nadmire the mysterious beauty of this ship.\nInstalls into your current tank.	Vos poissons, comme vos clients, admireront\nla beauté mystérieuse de ce navire.\nS'installe dans l'aquarium actuel.
+strings/216~c032c17f	Sunken Antique Column	Colonne antique engloutie
+strings/217~47fcd2c1	This column ornament will make your fish\nthink they are in the waters of Greece!\nInstalls into your current tank.	Avec cette colonne, vos poissons se croiront\ndans les eaux de la Grèce !\nS'installe dans l'aquarium actuel.
+strings/218~d231e1eb	Second Tank	Second aquarium
+strings/219~f95bf72f	An extra full sized fish tank will be very\nuseful for breeding and organizing.\nComes ready to use.	Un grand aquarium de plus sera très\nutile pour l'élevage et le rangement.\nPrêt à l'emploi.
+strings/220~cb20ec5e	Fish Food Research	Recherche : nourriture
+strings/221~ee505771	Better types of food help ward off disease\nand fish will have to be fed less often.	Une meilleure nourriture éloigne les maladies,\net il faut nourrir les poissons moins souvent.
+strings/222~1885403b	Fish Environment Research	Recherche : environnement
+strings/223~c2e64638	Researching fish environment allows rarer\nfish to survive and thrive in your tanks.	Rechercher l'environnement permet aux\npoissons plus rares de survivre et prospérer.
+strings/224~2b96caf5	Advertising Research	Recherche : publicité
+strings/225~f9c16a51	Advertising is critical to keep your shop\ncrowded and to keep the cash coming in.	La publicité est vitale pour garder la boutique\npleine de monde et l'argent qui rentre.
+strings/226~1c77189e	You have level one.	Vous avez le niveau un.
+strings/227~c9b6bb4f	You have level two.	Vous avez le niveau deux.
+strings/228~10a8ebb9	You have level three.	Vous avez le niveau trois.
+strings/229~907e9a55	You are researching level two.	Recherche du niveau deux en cours.
+strings/230~8da7167a	You are researching level three.	Recherche du niveau trois en cours.
+strings/231~95215409	Progress:	Progression :
+strings/232~0dc2e527	This is fully researched.	Recherche terminée.
+strings/233~0c928d90	This is in your inventory.	C'est dans votre inventaire.
+strings/234~40f10e47	Please register!	Veuillez vous enregistrer !
+strings/235~e1ef22ed	Begin research?	Lancer la recherche ?
+strings/236~b830e2dc	Buy this item?	Acheter cet article ?
+strings/237~065fc9ad	Replace eggs in slot #4?	Remplacer les œufs de l'emplacement 4 ?
+strings/237~83426058	Replace item in slot #4?	Remplacer l'article de l'emplacement 4 ?	Patch: Universal supply slots 2-4
+strings/238~1603ca67	Replace chemical in slot #3?	Remplacer le produit de l'emplacement 3 ?
+strings/238~9396d420	Replace item in slot #3?	Remplacer l'article de l'emplacement 3 ?	Patch: Universal supply slots 2-4
+strings/239~2550024f	Replace medication in slot #2?	Remplacer le remède de l'emplacement 2 ?
+strings/239~8941f3ab	Replace item in slot #2?	Remplacer l'article de l'emplacement 2 ?	Patch: Universal supply slots 2-4
+strings/240~2b4e8c72	Fish for sale: 	Poissons à vendre : 
+strings/241~2048983f	This copy of Fish Tycoon has expired.\n\nContact www.LDW.com	Cette copie de Fish Tycoon a expiré.\n\nContactez www.LDW.com
+strings/242~9ffa29f9	Are you sure you want to delete the player?	Voulez-vous vraiment supprimer ce joueur ?
+strings/243~8d6115f6	Type your name and key code to unlock the game.	Tapez votre nom et votre code pour débloquer le jeu.
+strings/244~2683cad4	Name:	Nom :
+strings/245~91832c83	Key Code:	Code :
+strings/246~8e1c1488	Don't have a key code yet?\nClick 'Buy Now' to get your key code and\nunlock all the features of Fish Tycoon!	Pas encore de code ?\nCliquez sur 'Buy Now' pour obtenir votre code et\ndébloquer toutes les fonctions de Fish Tycoon !
+strings/247~87d3c5fb	The name and key code didn't match.\n\nPlease check them and try again.	Le nom et le code ne correspondent pas.\n\nVérifiez-les et réessayez.
+strings/248~46e6f2d7	Success! The game is now unlocked.	Bravo ! Le jeu est maintenant débloqué.
+mod/tank_counts.fish~32d621a4	Fish: 	Poissons : 	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.of~a4282e4b	 of 	 sur 	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.dead~5a3663fa	Dead: 	Morts : 	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.sick~8e679fb8	Sick: 	Malades : 	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.fungus~f9f9c859	fungus	champignon	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.ick~2508d55f	ick	points blancs	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.low_health~35fdfa79	Low Health: 	Santé faible : 	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.creatures~10b29931	Creatures: 	Créatures : 	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.isolation_tank~bc027805	Isolation tank: 	Aquarium d'isolement : 	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.counts_on~4a10302c	Counts: On	Compteurs : oui	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.counts_off~0d37e4eb	Counts: Off	Compteurs : non	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.golden_seahorse~e20a2447	Golden Seahorse	Hippocampe doré	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.magic_pufferfish~cb5ba206	Magic Pufferfish	Poisson-globe magique	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.blue_spotted_stingray~3fd70cba	Blue-Spotted Stingray	Raie à points bleus	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.moray_eel~3c058c50	Moray Eel	Murène	Patch: Tank and greenhouse counts; Tank Counts.dll
+mod/tank_counts.n_adults~f892ea16	%d {%1: one=adult | other=adults}	%d {%1: one=adulte | many=d'adultes | other=adultes}	Patch: Tank and greenhouse counts; Tank Counts.dll; %1 (%d) = number; one part of the bracket, '(8 adults, 3 teens, 1 baby)'; at most 40 letters (accented letters count 2); choices use the real numbers
+mod/tank_counts.n_teens~c3dda291	%d {%1: one=teen | other=teens}	%d {%1: one=ado | many=d'ados | other=ados}	Patch: Tank and greenhouse counts; Tank Counts.dll; %1 (%d) = number; one part of the bracket, '(8 adults, 3 teens, 1 baby)'; at most 40 letters (accented letters count 2); choices use the real numbers
+mod/tank_counts.n_babies~844d78ba	%d {%1: one=baby | other=babies}	%d {%1: one=bébé | many=de bébés | other=bébés}	Patch: Tank and greenhouse counts; Tank Counts.dll; %1 (%d) = number; one part of the bracket, '(8 adults, 3 teens, 1 baby)'; at most 40 letters (accented letters count 2); choices use the real numbers
+mod/optimize_prices.set_every_discovered_species_to_its_best~91b94eb1	Set every discovered species\nto its best price per day?	Fixer chaque espèce découverte\nà son meilleur prix par jour ?	Patch: Optimize Prices button; Optimize Prices.dll
+mod/optimize_prices.set_every_discovered_species_to_its_high~0798d8e1	Set every discovered species\nto its highest selling price?\nFish at this price sell\nmuch more slowly.	Fixer chaque espèce découverte\nà son prix de vente maximal ?\nÀ ce prix, les poissons se vendent\nbeaucoup plus lentement.	Patch: Optimize Prices button; Optimize Prices.dll
+mod/optimize_prices.n_prices_set~863fec6b	%d {%1: one=price | other=prices} set.	%d {%1: one=prix fixé | many=de prix fixés | other=prix fixés}.	Patch: Optimize Prices button; Optimize Prices.dll; %1 (%d) = number; after Optimize Prices or Max Prices; at most 36 letters (accented letters count 2); choices use the real numbers
+mod/ds_exclusive_fish.silky~f1ab8f00	Silky 	Silky 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.tiger~8e91eeeb	Tiger 	Tiger 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.hornet~6fe4b718	Hornet 	Hornet 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.fanned~e4aba657	Fanned 	Fanned 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.pink~4fb2f8db	Pink 	Pink 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.snubbed~c47dc6e3	Snubbed 	Snubbed 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.wasp~328af572	Wasp 	Wasp 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.canary~4bb51a7b	Canary 	Canary 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.orange~0e49d54b	Orange 	Orange 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.oriental~ced9766e	Oriental 	Oriental 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.golden~d1780403	Golden 	Golden 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.crimson~9a0023a0	Crimson 	Crimson 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.spined~640ea7cf	Spined 	Spined 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.stubby~945cb83e	Stubby 	Stubby 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.speckled~c13c985f	Speckled 	Speckled 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.razorback~8aaca705	Razorback 	Razorback 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.greenfin~90245973	Greenfin 	Greenfin 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.great_sail~d2e8b6a8	Great-Sail 	Great-Sail 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.flagged~952472f6	Flagged 	Flagged 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.finless~477f1b97	Finless 	Finless 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.twin_fin~1ba57aca	Twin-Fin 	Twin-Fin 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.small_fin~dedeb3b5	Small-Fin 	Small-Fin 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.roundy~90482519	Roundy 	Roundy 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.angel~62b62277	Angel 	Angel 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.clown~45d425d4	Clown 	Clown 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.yellow~61928fbf	Yellow 	Yellow 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.blue~efe4edb6	Blue 	Blue 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.moorish~7c5a438f	Moorish 	Moorish 	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the first part of a DS species' name, e.g. 'Tiger ' in 'Tiger Shark' (keep the space at the end); at most 15 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.shark~3565f8ad	Shark	Shark	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.catfish~5deb3a52	Catfish	Catfish	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.arrowfish~4577f16a	Arrowfish	Arrowfish	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.snout~2b04c5f2	Snout	Snout	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.fatfish~e7e5261b	Fatfish	Fatfish	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.snooper~2a0cc9a9	Snooper	Snooper	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.goldshark~ff5ce57b	Goldshark	Goldshark	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.fire_arrow~66dd2933	Fire-Arrow	Fire-Arrow	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.fruitfish~4a9d79be	Fruitfish	Fruitfish	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.flashfish~a67ce6fb	Flashfish	Flashfish	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.goldbulb~0163bafd	Goldbulb	Goldbulb	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.comet~b8cdd253	Comet	Comet	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.stickfish~5e9b3a9d	Stickfish	Stickfish	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.grouper~560b1e43	Grouper	Grouper	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.leaffish~ab1fc11a	Leaffish	Leaffish	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.carp~fa417f55	Carp	Carp	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.beta~70339031	Beta	Beta	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.pigmy~d838a1d1	Pigmy	Pigmy	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.bananafish~c418ad20	Bananafish	Bananafish	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.quicksilver~e474235b	Quicksilver	Quicksilver	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.spotanus~cf2c35e1	Spotanus	Spotanus	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.clownfish~36540b1c	Clownfish	Clownfish	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.discus~81dfb187	Discus	Discus	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.bicolor~b69bb8a4	Bicolor	Bicolor	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.trigger~8b9c6437	Trigger	Trigger	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.surgeonfish~496402bb	Surgeonfish	Surgeonfish	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.tang~6cc87e80	Tang	Tang	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_exclusive_fish.idle~ab0171ca	Idle	Idle	Patch: DS Exclusive Fish; DS Exclusive Fish.dll; the last part of a DS species' name, e.g. 'Shark' in 'Tiger Shark'; at most 16 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/ds_store_items.exotic_fish_eggs~22494be6	Exotic Fish Eggs	Œufs de poisson exotiques	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.radioactive_growth_hormone~7b9e57cf	Radioactive Growth Hormone	Hormone de croissance radioactive	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.revival_potion~05232c13	Revival Potion	Potion de résurrection	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.clonafish~d23734e2	ClonaFish	ClonaPoisson	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.muta_fin~79ef44e9	Muta-Fin	Muta-Nageoire	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.muta_body~536ffa6e	Muta-Body	Muta-Corps	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.magic_pufferfish~cb5ba206	Magic Pufferfish	Poisson-globe magique	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.blue_spotted_stingray~3fd70cba	Blue-Spotted Stingray	Raie à points bleus	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.moray_eel~3c058c50	Moray Eel	Murène	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.the_puffer_fish_magically_enhances_your~8904b292	The puffer fish magically enhances your\nenvironment and the life of your fish.\nComes fully installed.	Le poisson-globe améliore par magie votre\nenvironnement et la vie de vos poissons.\nLivré tout installé.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.the_sting_ray_magically_enhances_your_en~b737c356	The sting ray magically enhances your\nenvironment and the life of your fish.\nComes fully installed.	La raie améliore par magie votre\nenvironnement et la vie de vos poissons.\nLivrée toute installée.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.the_moray_eel_magically_enhances_your_en~ba69fa14	The moray eel magically enhances your\nenvironment and the life of your fish.\nComes fully installed, with its rock.	La murène améliore par magie votre\nenvironnement et la vie de vos poissons.\nLivrée toute installée, avec son rocher.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.these_special_eggs_were_extremely_hard_t~5331f1e8	These special eggs were extremely hard\nto obtain. Research FISH ENVIRONMENT\nbefore you try to hatch these.	Ces œufs spéciaux ont été très durs\nà obtenir. Recherchez l'ENVIRONNEMENT\navant d'essayer de les faire éclore.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.this_magical_potion_instantly_revives_de~2e15baad	This magical potion instantly revives\ndead fish and restores them to full\nhealth. Contains 3 doses.	Cette potion magique ressuscite aussitôt\nles poissons morts et leur rend toute\nleur santé. Contient 3 doses.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.a_wonder_drug_that_instantly_clones_all~633ef230	A wonder drug that instantly clones all\nfish in the tank. Make sure there's\nenough space in the tank!\nContains 3 doses.	Un remède miracle qui clone aussitôt tous\nles poissons de l'aquarium. Vérifiez qu'il\ny a assez de place dans l'aquarium !\nContient 3 doses.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.auto_feeder~31f805a3	Auto-Feeder	Distributeur auto	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.automatically_feeds_all_your_fish_in_eve~7247f213	Automatically feeds all your fish in\nevery tank. No more starvation, ever!	Nourrit automatiquement tous vos poissons\ndans chaque aquarium. Fini la famine !	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.auto_healer~84018cb2	Auto-Healer	Guérisseur auto	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.magically_cures_all_diseases_from_fish_a~2ea615e8	Magically cures all diseases from fish\nand restores them to full health.\nWorks in every tank.	Guérit par magie toutes les maladies des\npoissons et leur rend toute leur santé.\nAgit dans chaque aquarium.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.mutates_the_fins_of_fish_contains_3_dose~4119f25a	Mutates the fins of fish.\nContains 3 doses.	Fait muter les nageoires des poissons.\nContient 3 doses.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.mutates_the_bodies_of_fish_contains_3_do~f595bf1a	Mutates the bodies of fish.\nContains 3 doses.	Fait muter le corps des poissons.\nContient 3 doses.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.fish_food~0e46aa7a	Fish Food	Nourriture pour poissons	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.golden_seahorse~e20a2447	Golden Seahorse	Hippocampe doré	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.owned_click_it_again_to_unpurchase~24b376d8	Owned. Click it again to unpurchase.	Acquis. Cliquez à nouveau pour annuler l'achat.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.treated~a5064132	Treated: $	Traité : $	Patch: DS Store Items; DS Store Items.dll; 'Treated: $475' under a price, in a 48-letter space; at most 36 letters (accented letters count 2)
+mod/ds_store_items.w.unpurchase~c703bacb	Unpurchase 	Annuler l'achat de 	Patch: DS Store Items; DS Store Items.dll (Windows popup); followed by the machine's name and the next line; at most 60 letters
+mod/ds_store_items.w.it_switches_off_there_is_no_refund_and_b~b247d23b	? It switches off. There is no refund, and buying it again costs the full price.	? Il s'éteint. Aucun remboursement, et le racheter coûte le prix plein.	Patch: DS Store Items; DS Store Items.dll (Windows popup); at most 170 letters
+mod/ds_store_items.every_fish_in_your_tank_gets_full_health~a057572b	Every fish in your tank gets full health and\nno sickness, young ones grow up at once, and\npregnant ones give birth to babies. Allows\ntreated fish to sell at max price, regardless\nof their set value. Contains 3 doses.	Chaque poisson de l'aquarium retrouve toute sa\nsanté, sans maladie ; les jeunes grandissent\nd'un coup et les poissons enceintes mettent bas.\nLes poissons traités se vendent au prix maximal,\nquel que soit leur prix fixé. Contient 3 doses.	Patch: DS Store Items; DS Store Items.dll
+mod/ds_store_items.n_batches_left~df24668e	%d {%1: one=batch | other=batches} left	%d {%1: one=lot restant | many=de lots restants | other=lots restants}	Patch: DS Store Items; DS Store Items.dll; %1 (%d) = number; under a supply's name in its slot's tooltip; at most 48 letters (accented letters count 2); choices use the real numbers
+mod/ds_store_items.n_uses_left~6077235f	%d {%1: one=use | other=uses} left	%d {%1: one=utilisation restante | many=d'utilisations restantes | other=utilisations restantes}	Patch: DS Store Items; DS Store Items.dll; %1 (%d) = number; under a supply's name in its slot's tooltip; at most 48 letters (accented letters count 2); choices use the real numbers
+mod/ds_store_items.n_doses_left~432e2433	%d {%1: one=dose | other=doses} left	%d {%1: one=dose restante | many=de doses restantes | other=doses restantes}	Patch: DS Store Items; DS Store Items.dll; %1 (%d) = number; under a supply's name in its slot's tooltip; at most 48 letters (accented letters count 2); choices use the real numbers
+mod/ds_store_items.time_warp~037ac90c	Time Warp	Saut dans le temps	Patch: Time Warp; DS Store Items.dll
+mod/ds_store_items.skip_ahead_in_time_choose_how_many_hours~7a8f6e8c	Skip ahead in time! Choose how many\nhours (1-72) pass, as if you had been\naway that long. Your fish age, eat and\nresearch goes on.	Avancez dans le temps ! Choisissez combien\nd'heures (1-72) passent, comme si vous étiez\nparti tout ce temps. Vos poissons vieillissent,\nmangent, et la recherche continue.	Patch: Time Warp; DS Store Items.dll
+mod/ds_store_items.w.time_warp~037ac90c	Time Warp	Saut dans le temps	Patch: Time Warp; DS Store Items.dll (Windows popup)
+mod/ds_store_items.w.please_type_a_whole_number_of_hours_from~8ebaf352	Please type a whole number of hours from 1 to 72.	Tapez un nombre entier d'heures entre 1 et 72.	Patch: Time Warp; DS Store Items.dll (Windows popup)
+mod/ds_store_items.w.how_many_hours_should_pass_1_72~25012881	How many hours should pass? (1-72)	Combien d'heures doivent passer ? (1-72)	Patch: Time Warp; DS Store Items.dll (Windows popup)
+mod/ds_store_items.w.ok~565339bc	OK	OK	Patch: Time Warp; DS Store Items.dll (Windows popup)
+mod/ds_store_items.w.cancel~19766ed6	Cancel	Annuler	Patch: Time Warp; DS Store Items.dll (Windows popup)
+mod/ds_store_items.w.time_is_stopped_turn_time_back_on_in_opt~eb90f3b7	Time is stopped. Turn time back on in Options, then warp.	Le temps est arrêté. Réactivez-le dans les Options, puis sautez.	Patch: Time Warp; DS Store Items.dll (Windows popup)
+mod/ds_store_items.w.open_a_tank_first_then_come_back_to_the~6b250e41	Open a tank first, then come back to the store to warp.	Ouvrez d'abord un aquarium, puis revenez à la boutique pour sauter.	Patch: Time Warp; DS Store Items.dll (Windows popup)
+mod/ds_store_items.w.costs_n_your_fish_age_eat_and_breed_and~3f568879	Costs $%d. Your fish age, eat and breed, and research goes on, as if you had been away.	Coût : %d $. Vos poissons vieillissent, mangent et se reproduisent, et la recherche continue, comme si vous étiez parti.	Patch: Time Warp; DS Store Items.dll (Windows popup); %1 (%d) = number; the question above the hours; at most 220 letters; choices use the real numbers
+mod/ds_store_items.w.warp_n_hours_for_n_your_fish_will_age_n~8dbe146f	Warp %d {%1: one=hour | other=hours} for $%d?\n\nYour fish will age %d {%3: one=hour | other=hours}, as if you had been away that long. This cannot be undone.	Avancer de %d {%1: one=heure | many=d'heures | other=heures} pour %d $ ?\n\nVos poissons vieilliront de %d {%3: one=heure | many=d'heures | other=heures}, comme si vous étiez parti tout ce temps. C'est irréversible.	Patch: Time Warp; DS Store Items.dll (Windows popup); %1 (%d) = number; %2 (%d) = number; %3 (%d) = number; %1 and %3 = hours, %2 = the price; at most 220 letters; choices use the real numbers
+mod/ds_store_items.w.time_warp_done_n_hours_played_n_age_step~89b3506c	Time Warp done: %d {%1: one=hour | other=hours} played (%d {%2: one=age step | other=age steps}). $%d paid.	Saut terminé : %d {%1: one=heure jouée | many=d'heures jouées | other=heures jouées} (%d {%2: one=étape d'âge | many=d'étapes d'âge | other=étapes d'âge}). %d $ payés.	Patch: Time Warp; DS Store Items.dll (Windows popup); %1 (%d) = number; %2 (%d) = number; %3 (%d) = number; %1 = hours, %2 = the fish's age steps, %3 = the price; at most 125 letters; choices use the real numbers
+mod/ds_store_items.add_1_000~371d3865	Add $1,000	+1 000 $	Patch: Add Money cheat ($1,000); DS Store Items.dll
+mod/ds_store_items.a_pile_of_gold_coins_each_one_you_buy_ad~0cd19391	A pile of gold coins! Each one you buy\nadds $1,000 to your money.\nBuy as many as you like.	Une pile de pièces d'or ! Chacune achetée\najoute 1 000 $ à votre argent.\nAchetez-en autant que vous voulez.	Patch: Add Money cheat ($1,000); DS Store Items.dll
+mod/ds_store_items.extra_tank~97b13f19	Extra Tank	Aquarium en plus	Patch: 3 extra tanks; DS Store Items.dll
+mod/ds_store_items.another_tank_for_breeding_each_one_you_b~aca9b767	Another tank for breeding! Each one\nyou buy opens the next of Tank 4,\nTank 5 and Tank 6.	Un autre aquarium d'élevage ! Chaque achat\nouvre le suivant : aquarium 4,\naquarium 5 puis aquarium 6.	Patch: 3 extra tanks; DS Store Items.dll
+mod/extra_tanks.you_don_t_own_this_tank_yet~9245ee5e	You don't own this tank yet!	Vous n'avez pas encore cet aquarium !	Patch: 3 extra tanks; Extra Tanks.dll
+mod/ds_store_items.extra_supply_slots~a771e9c9	Extra Supply Slots	Emplacements en plus	Patch: Extra supply slots; DS Store Items.dll
+mod/ds_store_items.seven_more_supply_slots_for_medicine_che~c08f9dfb	Seven more supply slots for medicine,\nchemicals and eggs, on two more pages.\nThe arrows beside the slots turn the\npage. One purchase opens all seven.	Sept emplacements de plus pour remèdes,\nproduits chimiques et œufs, sur deux pages.\nLes flèches à côté des emplacements\ntournent la page. Un achat ouvre les sept.	Patch: Extra supply slots; DS Store Items.dll
+mod/extra_supply_slots.you_don_t_own_the_extra_supply_slots_yet~41f41a57	You don't own the extra supply slots yet!	Vous n'avez pas encore les emplacements en plus !	Patch: Extra supply slots; Extra Supply Slots.dll

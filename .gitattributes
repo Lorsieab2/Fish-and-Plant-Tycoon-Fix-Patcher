@@ -17,3 +17,6 @@ assets/everything_free/** -text
 data/unicode/** -text
 assets/fish_tycoon_unicode/Fonts/** -text
 assets/plant_tycoon_unicode/Fonts/** -text
+# Translation files are downloaded byte-for-byte ("Download from GitHub..."): keep their CRLF.
+translations/**/*.txt -text
+translations/**/*.tsv -text
