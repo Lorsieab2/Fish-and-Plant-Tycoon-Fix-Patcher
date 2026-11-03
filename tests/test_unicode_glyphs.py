@@ -6,7 +6,8 @@ known picture), so what is checked is where each letter comes from and where it 
 * A letter the game's font has (ASCII, Latin-1 as UTF-8 or as its old byte, a Windows-1252
   letter such as €) is drawn by the game's own code, pixel for pixel as before.
 * Any other letter is a run-time glyph in the text's colour, placed at the pen and advanced by
-  its own width plus the font's spacing; the measure agrees. A letter no font has is '?'.
+  its own width plus the font's spacing; the measure agrees. A letter no font has is the
+  missing-glyph box in the font's style (never the game's '?').
 * In a text box a letter goes in by the shared write rule (a Windows-1252 letter one byte, any
   other UTF-8), whole or not at all; Backspace takes off a whole character; a name box stops at
   NAME_BOX_BYTES bytes as stored, with no character cap.
@@ -22,6 +23,21 @@ from test_unicode_text import E, needs
 import test_unicode_names as N
 
 NO_FONT = 0xE000          # the stand-in fonts have no letter for it
+
+
+def font_style(game: str, key: str) -> dict:
+    """A game font's style as native/ftfp_<game>_unicode/unicode_styles.h has it."""
+    import re
+    text = (T.ROOT / "native" / T.PROJECTS[game] / "unicode_styles.h").read_text(encoding="utf-8")
+    at = text.index(f"/* {key}:")
+    head = re.search(r"\{0x([0-9A-F]+)u, (\w+), ([-\d, ]+),\n", text[at:])
+    numbers = [int(v) for v in head.group(3).split(",") if v.strip()]
+    names = ("height", "cap_top", "baseline", "em", "weight", "left", "right", "stroke")
+    body = text[at + head.end(): text.index("},", at + head.end())]
+    style = dict(zip(names, numbers))
+    style["stock"] = int(head.group(1), 16)
+    style["levels"] = bytes(int(v) for v in body.replace("\n", " ").split(",") if v.strip())
+    return style
 
 
 def fake_glyph(cp: int) -> tuple[int, int, int]:
@@ -114,10 +130,29 @@ class GlyphCase:
                 self.assertEqual(shown, bytes(self.fde.screen_image.data))
                 self.assertEqual(self.width(text.encode("utf-8")), self.width(b"Ab", own=True) + adv + self.spacing)
 
-    def test_a_letter_no_font_has_is_a_question_mark(self) -> None:
+    def box_cells(self) -> tuple[int, set[tuple[int, int]]]:
+        """The missing-glyph box of this font's style: its advance and its inked (column, row) cells."""
+        s = font_style(self.game, T.FONT_SITES[self.game][0][1])
+        inner = max(4, (s["baseline"] - s["cap_top"]) * 2 // 3)
+        top, bottom, k = s["cap_top"], min(s["baseline"] - 1, self.height - 1), s["stroke"]
+        cells = {(x, y) for y in range(top, bottom + 1) for x in range(1, inner + 1)
+                 if y < top + k or y > bottom - k or x < 1 + k or x > inner - k}
+        return inner + 2, cells
+
+    def test_a_letter_no_font_has_is_the_missing_glyph_box(self) -> None:
         text = ("x" + chr(NO_FONT) + "y").encode("utf-8")
-        self.assertEqual(self.draw(text), self.draw(b"x?y", own=True))
-        self.assertEqual(self.width(text), self.width(b"x?y", own=True))
+        adv, cells = self.box_cells()
+        shown = self.draw(text)
+        pen = 5 + self.width(b"x", own=True) + self.spacing
+        self.fde.fill((10, 20, 30))
+        self.draw(b"x", own=True, fill=False)
+        self.draw(b"y", own=True, x=pen + adv + self.spacing, fill=False)
+        for x, y in cells:
+            self.paint(pen + x, 7 + y, 1, 1)
+        self.assertEqual(shown, bytes(self.fde.screen_image.data))
+        self.assertEqual(self.width(text), self.width(b"xy", own=True) + adv + self.spacing)
+        # never the game's "?"
+        self.assertNotEqual(shown, self.draw(b"x?y", own=True))
 
     def test_lines(self) -> None:
         text = ("a" + chr(0x3042) + "\nbc").encode("utf-8")

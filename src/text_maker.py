@@ -513,17 +513,21 @@ def clusters(text: str) -> list[str]:
 # --------------------------------------------------------------------------- Windows fonts
 
 FONT_DIR = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
+# The shared Unicode spec's fallback chain (UNICODE_SPEC.md row 3), in its order, as Unicode Text.dll
+# has it (native/common/unicode_glyphs.h CHAIN); then the Noto fonts if installed; then the faces this
+# chain had before (kept); then the fonts the patcher ships.
 FALLBACK_CHAIN = (
     ("segoeui.ttf", "Segoe UI"), ("seguihis.ttf", "Segoe UI Historic"), ("seguisym.ttf", "Segoe UI Symbol"),
-    ("seguiemj.ttf", "Segoe UI Emoji"), ("YuGothM.ttc", "Yu Gothic"), ("msgothic.ttc", "MS Gothic"),
-    ("msyh.ttc", "Microsoft YaHei"), ("simsun.ttc", "SimSun"), ("malgun.ttf", "Malgun Gothic"),
-    ("Nirmala.ttc", "Nirmala UI"), ("Nirmala.ttf", "Nirmala UI"), ("ebrima.ttf", "Ebrima"),
-    ("LeelawUI.ttf", "Leelawadee UI"), ("gadugi.ttf", "Gadugi"), ("javatext.ttf", "Javanese Text"),
-    ("mmrtext.ttf", "Myanmar Text"), ("taile.ttf", "Microsoft Tai Le"), ("ntailu.ttf", "Microsoft New Tai Lue"),
-    ("himalaya.ttf", "Microsoft Himalaya"), ("monbaiti.ttf", "Mongolian Baiti"), ("msyi.ttf", "Microsoft Yi Baiti"),
-    ("phagspa.ttf", "Microsoft PhagsPa"), ("sylfaen.ttf", "Sylfaen"), ("cambria.ttc", "Cambria Math"),
-    ("arialuni.ttf", "Arial Unicode MS"),
+    ("seguiemj.ttf", "Segoe UI Emoji"), ("YuGothM.ttc", "Yu Gothic"), ("meiryo.ttc", "Meiryo"),
+    ("msyh.ttc", "Microsoft YaHei"), ("msjh.ttc", "Microsoft JhengHei"), ("malgun.ttf", "Malgun Gothic"),
+    ("simsunb.ttf", "SimSun-ExtB"), ("Nirmala.ttc", "Nirmala UI"), ("Nirmala.ttf", "Nirmala UI"),
+    ("ebrima.ttf", "Ebrima"), ("gadugi.ttf", "Gadugi"), ("LeelawUI.ttf", "Leelawadee UI"),
+    ("mmrtext.ttf", "Myanmar Text"), ("javatext.ttf", "Javanese Text"), ("monbaiti.ttf", "Mongolian Baiti"),
+    ("himalaya.ttf", "Microsoft Himalaya"), ("msyi.ttf", "Microsoft Yi Baiti"),
+    ("ntailu.ttf", "Microsoft New Tai Lue"), ("taile.ttf", "Microsoft Tai Le"), ("phagspa.ttf", "Microsoft PhagsPa"),
+    ("sylfaen.ttf", "Sylfaen"), ("cambria.ttc", "Cambria Math"),
 )
+KEPT_CHAIN = (("msgothic.ttc", "MS Gothic"), ("simsun.ttc", "SimSun"), ("arialuni.ttf", "Arial Unicode MS"))
 EMOJI_FAMILY = "Segoe UI Emoji"
 
 # After Windows' fonts, the fonts the patcher ships (data/unicode/fonts.json), as Unicode Text.dll
@@ -615,6 +619,7 @@ def fallback_files() -> tuple[tuple[str, str], ...]:
         for path in sorted(FONT_DIR.glob("Noto*")):
             if path.suffix.lower() in (".ttf", ".otf", ".ttc"):
                 chain.append((path.name, _family_name(path) or path.stem))
+    chain += [(f, n) for f, n in KEPT_CHAIN if (FONT_DIR / f).is_file()]
     return tuple(chain) + bundled_fonts()
 
 
@@ -996,17 +1001,19 @@ def _space(font: GameFont, cluster: str) -> Glyph:
 
 
 def _missing_box(font: GameFont, cluster: str) -> Glyph:
+    """The missing-glyph box in the font's style, as Unicode Text.dll draws it (unicode_glyphs.h
+    missing_box): two thirds of the capital height wide, from the capital top to the baseline, a
+    stroke of half the font's stem, a column of room each side."""
     m = font.metrics
     w = max(4, m["cap"] * 2 // 3)
     px = Image(w + 2, font.line_height)
-    t, b = m["cap_top"], m["baseline"]
-    for x in range(1, w + 1):
-        for y in (t, b - 1):
-            px.data[(y * px.width + x) * 4:(y * px.width + x) * 4 + 4] = b"\xff\xff\xff\xff"
-    for y in range(t, b):
-        for x in (1, w):
-            px.data[(y * px.width + x) * 4:(y * px.width + x) * 4 + 4] = b"\xff\xff\xff\xff"
-    return Glyph(px, w + 2, "no font on this PC has it: an empty box")
+    t, b = m["cap_top"], min(m["baseline"] - 1, font.line_height - 1)
+    k = max(1, round(m["stem"] / 2))
+    for y in range(t, b + 1):
+        for x in range(1, w + 1):
+            if y < t + k or y > b - k or x < 1 + k or x > w - k:
+                px.data[(y * px.width + x) * 4:(y * px.width + x) * 4 + 4] = b"\xff\xff\xff\xff"
+    return Glyph(px, w + 2, "no font on this PC has it: the missing-glyph box")
 
 
 def make_glyph(font: GameFont, cluster: str) -> Glyph:
