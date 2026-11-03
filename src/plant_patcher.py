@@ -620,7 +620,7 @@ def apply_manifest(args: argparse.Namespace) -> int:
         if "translations" in enabled:          # the language chosen on the Tools tab (src/translations.py)
             translations.write_choice_into(staging, "plant")
         report["companion_files"] += fish_patcher.install_unicode_ini(
-            manifest, enabled, staging, getattr(args, "unicode_font", None))
+            manifest, enabled, staging, getattr(args, "unicode_font", None), getattr(args, "unicode_font_file", None))
         report["backup_dir"] = str(long_paths.plain(backup_dir))
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".plant_tycoon_fix_output.json", {
@@ -724,6 +724,8 @@ def build_parser() -> argparse.ArgumentParser:
     apply_cmd.add_argument("--dry-run", action="store_true")
     apply_cmd.add_argument("--enable", action="append")
     apply_cmd.add_argument("--unicode-font", help="Use Unicode Font: the Windows font family (default Segoe UI)")
+    apply_cmd.add_argument("--unicode-font-file", help="Use Unicode Font: a .ttf, .otf or .ttc font file, copied "
+                                                       "beside Unicode Text.dll and loaded for the game only")
     apply_cmd.add_argument("--disable", action="append")
     apply_cmd.add_argument("--disable-all", action="store_true")
     apply_cmd.set_defaults(func=apply_manifest)

@@ -300,10 +300,12 @@ def _namespace(
     enabled: Iterable[str],
     dry_run: bool,
     unicode_font: str | None = None,
+    unicode_font_file: str | None = None,
 ) -> argparse.Namespace:
     spec = game_spec(game_id)
     return argparse.Namespace(
         unicode_font=unicode_font,
+        unicode_font_file=unicode_font_file,
         game_dir=str(Path(vanilla_dir).expanduser()),
         manifest=str(spec.manifest_path),
         output_dir=str(Path(output_dir).expanduser()),
@@ -322,9 +324,10 @@ def run_game(
     *,
     dry_run: bool,
     unicode_font: str | None = None,
+    unicode_font_file: str | None = None,
 ) -> dict:
     spec = game_spec(game_id)
-    args = _namespace(game_id, vanilla_dir, output_dir, enabled, dry_run, unicode_font)
+    args = _namespace(game_id, vanilla_dir, output_dir, enabled, dry_run, unicode_font, unicode_font_file)
     try:
         result = int(spec.engine.apply_manifest(args))
     except Exception as exc:
@@ -358,6 +361,7 @@ def run_games(
                 config.get("enabled", ()),
                 dry_run=True,
                 unicode_font=config.get("unicode_font"),
+                unicode_font_file=config.get("unicode_font_file"),
             )
         )
     if dry_run:
@@ -374,6 +378,7 @@ def run_games(
                 config.get("enabled", ()),
                 dry_run=False,
                 unicode_font=config.get("unicode_font"),
+                unicode_font_file=config.get("unicode_font_file"),
             )
         )
     return results
@@ -415,6 +420,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--enable", action="append", default=[])
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--unicode-font", help="Use Unicode Font: the Windows font family (default Segoe UI)")
+    parser.add_argument("--unicode-font-file", help="Use Unicode Font: a .ttf, .otf or .ttc font file")
     return parser
 
 
@@ -429,6 +435,7 @@ def main(argv: list[str] | None = None) -> int:
                     "output_dir": output,
                     "enabled": args.enable,
                     "unicode_font": args.unicode_font,
+                    "unicode_font_file": args.unicode_font_file,
                 }
             },
             dry_run=not args.apply,

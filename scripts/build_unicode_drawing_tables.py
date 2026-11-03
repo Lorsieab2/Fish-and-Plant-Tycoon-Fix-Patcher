@@ -39,17 +39,9 @@ C_TABLES = {"paddington_tt_18": "table_paddington_18", "paddington_tt_30": "tabl
 
 
 def font_style(font) -> dict:
-    """A game font's style, as src/text_maker.py draw_windows uses it."""
+    """A game font's style (src/text_maker.py unicode_style, as the Text Maker draws its letters)."""
     import text_maker as tm
-    m = font.metrics
-    cap_ratio, _stem = tm._family_measures("Segoe UI", 400)
-    size = m["cap"] / cap_ratio
-    weight = min(tm.WEIGHTS, key=lambda w: abs(tm._family_measures("Segoe UI", w)[1] * size - m["stem"]))
-    return {
-        "height": font.line_height, "cap_top": m["cap_top"], "baseline": m["baseline"], "cap": m["cap"],
-        "em": max(1, round(size)), "weight": weight, "left": m["left"], "right": m["right"],
-        "stroke": max(1, round(m["stem"] / 2)), "levels": font.quantise,
-    }
+    return tm.unicode_style(font)
 
 
 def style_header(game: str, folder: Path) -> str:

@@ -171,6 +171,12 @@ def chosen_unicode_font(app) -> str:
     return (variable.get().strip() if variable is not None else "") or DEFAULT_UNICODE_FONT
 
 
+def chosen_unicode_font_file(app) -> str:
+    """The font file chosen in the Tools tab's "Unicode Font..." window ("" for none)."""
+    variable = vars(app).get("unicode_font_file")
+    return variable.get().strip() if variable is not None else ""
+
+
 def conflicts(game_id: str) -> dict[str, set[str]]:
     """Each setting's `conflicts_settings` (both ways round): settings that are never on together,
     such as the two Unicode text settings. Ticking one unticks the other."""
@@ -248,6 +254,7 @@ class App(tk.Tk):
         self.output_parent = tk.StringVar(master=self)
         # Use Unicode Font's font, one for both games (written into "Unicode Text.ini")
         self.unicode_font = tk.StringVar(master=self, value=DEFAULT_UNICODE_FONT)
+        self.unicode_font_file = tk.StringVar(master=self, value="")   # the Unicode Font window's file
         self.path_vars = {
             game_id: {
                 "vanilla": tk.StringVar(master=self),
@@ -1162,6 +1169,7 @@ class App(tk.Tk):
                 "output_dir": output,
                 "enabled": self._selected_settings(game_id),
                 "unicode_font": chosen_unicode_font(self),
+                "unicode_font_file": chosen_unicode_font_file(self),
             }
         return configs
 
@@ -1326,6 +1334,8 @@ class App(tk.Tk):
         self.output_parent.set(str(data.get("output_parent", "")))
         if "unicode_font" in vars(self):
             self.unicode_font.set(str(data.get("unicode_font", "")).strip() or DEFAULT_UNICODE_FONT)
+        if "unicode_font_file" in vars(self):
+            self.unicode_font_file.set(str(data.get("unicode_font_file", "")).strip())
         breeding = data.get("breeding_guide")
         if isinstance(breeding, dict):
             self.breeding_settings = {"show_spoilers": bool(breeding.get("show_spoilers", False))}
@@ -1368,8 +1378,9 @@ class App(tk.Tk):
         box.pack(side="left", padx=(6, 0))
         box.bind("<<ComboboxSelected>>", lambda _e: self._save_settings())
         box.bind("<FocusOut>", lambda _e: self._save_settings())
-        ttk.Label(row, text="then Yu Gothic, Meiryo, Microsoft YaHei, Malgun Gothic, Segoe UI Historic, "
-                            "Segoe UI Emoji ... for letters it lacks").pack(side="left", padx=(8, 0))
+        ttk.Label(row, text="then Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji, the CJK fonts ... "
+                            "for letters it lacks (Tools tab: Unicode Font... for any font or a font file, "
+                            "with previews)").pack(side="left", padx=(8, 0))
 
     def _save_settings(self) -> str:
         """Save the remembered paths and choices; return why not, or ""."""
@@ -1388,6 +1399,7 @@ class App(tk.Tk):
             },
             "breeding_guide": {"show_spoilers": bool(getattr(self, "breeding_settings", {}).get("show_spoilers", False))},
             "unicode_font": chosen_unicode_font(self),
+            "unicode_font_file": chosen_unicode_font_file(self),
         }
         try:
             SETTINGS_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")

@@ -125,6 +125,7 @@ FILES = [
     "docs/game-mechanics-window.md",
     "src/text_maker.py",
     "src/text_maker_window.py",
+    "src/unicode_font_window.py",
     "src/text_raster.py",
     "src/unicode_data.py",
     "src/translation_format.py",

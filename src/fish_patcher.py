@@ -486,12 +486,34 @@ def clean_font_name(font: str | None) -> str:
     return name or DEFAULT_UNICODE_FONT
 
 
-def unicode_ini(manifest: dict[str, Any], enabled: set[str], font: str | None = None) -> tuple[str, bytes] | None:
+FONT_FILE_SUFFIXES = (".ttf", ".otf", ".ttc")
+
+
+def unicode_font_file(font_file: str | Path | None) -> Path | None:
+    """The font file chosen in the Tools tab's "Unicode Font..." window, when it is a .ttf, .otf or
+    .ttc that is there; else None (the family name alone is used)."""
+    if not font_file:
+        return None
+    path = Path(str(font_file)).expanduser()
+    return path if path.suffix.lower() in FONT_FILE_SUFFIXES and path.is_file() else None
+
+
+def font_file_name(path: Path) -> str:
+    """The name the font file gets beside the DLL (File= in Unicode Text.ini): one line, no "=",
+    at most 120 characters, its suffix kept."""
+    stem = " ".join(path.stem.replace("=", " ").split())[:116] or "font"
+    return stem + path.suffix.lower()
+
+
+def unicode_ini(manifest: dict[str, Any], enabled: set[str], font: str | None = None,
+                font_file: str | Path | None = None) -> tuple[str, bytes] | None:
     """(destination, text) of the "Unicode Text.ini" written beside "Unicode Text.dll" when one of
     its settings is on (native/common/unicode_config.h): "Mode=ingame" for Render Unicode with
     In-Game Fonts, "Mode=system" and the chosen font for Use Unicode Font, "Mode=none" when only
-    Copy and Paste in Text Boxes ships it; "Paste=1" with Copy and Paste in Text Boxes. Always
-    written with the DLL, so a copy patched again with other settings does not keep the old mode."""
+    Copy and Paste in Text Boxes ships it; "Paste=1" with Copy and Paste in Text Boxes; "File=" the
+    font file chosen in the "Unicode Font..." window, copied beside the DLL (install_unicode_ini) and
+    loaded for the game only. Always written with the DLL, so a copy patched again with other
+    settings does not keep the old mode."""
     settings = manifest_settings(manifest)
     for setting_id in sorted(enabled):
         companion = settings.get(setting_id, {}).get("companion")
@@ -511,14 +533,18 @@ def unicode_ini(manifest: dict[str, Any], enabled: set[str], font: str | None = 
                  if isinstance(settings.get(s, {}).get("companion"), dict)
                  and settings[s]["companion"].get("loader_tail") == UNICODE_DLL]
         paste = 1 if COPY_PASTE_SETTING in enabled else 0
+        chosen = unicode_font_file(font_file)
         text = (f"; Written by the patcher for {', '.join(names)}.\r\n"
                 f"[Unicode Text]\r\nMode={mode}\r\nFont={clean_font_name(font)}\r\nPaste={paste}\r\n")
+        if chosen is not None:
+            text += f"File={font_file_name(chosen)}\r\n"
         return f"{folder}/{UNICODE_INI}", text.encode("utf-8")
     return None
 
 
-def install_unicode_ini(manifest: dict[str, Any], enabled: set[str], staging: Path, font: str | None) -> list[dict[str, Any]]:
-    found = unicode_ini(manifest, enabled, font)
+def install_unicode_ini(manifest: dict[str, Any], enabled: set[str], staging: Path, font: str | None,
+                        font_file: str | Path | None = None) -> list[dict[str, Any]]:
+    found = unicode_ini(manifest, enabled, font, font_file)
     if found is None:
         return []
     destination, data = found
@@ -526,7 +552,17 @@ def install_unicode_ini(manifest: dict[str, Any], enabled: set[str], staging: Pa
     target.parent.mkdir(parents=True, exist_ok=True)
     replaced = target.exists()
     target.write_bytes(data)
-    return [{"setting": "unicode", "path": destination, "action": "replaced" if replaced else "added"}]
+    summary = [{"setting": "unicode", "path": destination, "action": "replaced" if replaced else "added"}]
+    chosen = unicode_font_file(font_file)
+    if chosen is not None:
+        # the chosen font file beside the DLL (the DLL loads it with AddFontResourceExW(FR_PRIVATE))
+        name = font_file_name(chosen)
+        copy = target.parent / name
+        replaced = copy.exists()
+        shutil.copyfile(chosen, copy)
+        summary.append({"setting": "unicode", "path": f"{Path(destination).parent.as_posix()}/{name}",
+                        "action": "replaced" if replaced else "added"})
+    return summary
 
 
 def install_companion_files(plan: list[dict[str, Any]], staging: Path) -> list[dict[str, Any]]:
@@ -772,7 +808,8 @@ def apply_manifest(args: argparse.Namespace) -> int:
         report["companion_files"] = install_companion_files(companions, staging)
         if "translations" in enabled:          # the language chosen on the Tools tab (src/translations.py)
             translations.write_choice_into(staging, "fish")
-        report["companion_files"] += install_unicode_ini(manifest, enabled, staging, getattr(args, "unicode_font", None))
+        report["companion_files"] += install_unicode_ini(manifest, enabled, staging, getattr(args, "unicode_font", None),
+                                                         getattr(args, "unicode_font_file", None))
         report["backup_dir"] = str(long_paths.plain(backup_dir))
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".fish_tycoon_bug_fix_output.json", {
@@ -876,6 +913,8 @@ def build_parser() -> argparse.ArgumentParser:
     apply_cmd.add_argument("--dry-run", action="store_true")
     apply_cmd.add_argument("--enable", action="append")
     apply_cmd.add_argument("--unicode-font", help="Use Unicode Font: the Windows font family (default Segoe UI)")
+    apply_cmd.add_argument("--unicode-font-file", help="Use Unicode Font: a .ttf, .otf or .ttc font file, copied "
+                                                       "beside Unicode Text.dll and loaded for the game only")
     apply_cmd.add_argument("--disable", action="append")
     apply_cmd.add_argument("--disable-all", action="store_true")
     apply_cmd.set_defaults(func=apply_manifest)

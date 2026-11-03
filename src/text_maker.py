@@ -799,6 +799,72 @@ def _scaled_to_line(font: GameFont, text: str, family: str, size: float, weight:
     return _missing_box(font, text)
 
 
+# --------------------------------------------------------------------------- Unicode Text.dll's styles
+
+FIT_SENTENCE = "The quick brown fox jumps over the lazy dog 0123456789"
+
+
+def unicode_style(font: GameFont) -> dict:
+    """The style Unicode Text.dll draws a game font's new letters in (native/ftfp_<game>_unicode/
+    unicode_styles.h, written from this by scripts/build_unicode_drawing_tables.py): the em at which
+    Segoe UI's capital H is as tall as the font's, the weight whose stem is nearest its stem, its
+    capital top and baseline, side bearings, the stroke of its missing-glyph box and its alpha steps."""
+    m = font.metrics
+    cap_ratio, _stem = _family_measures("Segoe UI", 400)
+    size = m["cap"] / cap_ratio
+    weight = min(WEIGHTS, key=lambda w: abs(_family_measures("Segoe UI", w)[1] * size - m["stem"]))
+    return {
+        "height": font.line_height, "cap_top": m["cap_top"], "baseline": m["baseline"], "cap": m["cap"],
+        "em": max(1, round(size)), "weight": weight, "left": m["left"], "right": m["right"],
+        "stroke": max(1, round(m["stem"] / 2)), "levels": font.quantise,
+    }
+
+
+def fit_unicode_em(font: GameFont, face: str, files=()) -> int:
+    """Use Unicode Font's em for `font` in `face` (Unicode Text.dll fit_em, the same arithmetic): the em
+    at which FIT_SENTENCE is as wide in `face` (GDI) as the game font draws it, within 60%..130% of the
+    style's em."""
+    style = unicode_style(font)
+    em0 = style["em"]
+    game = sum(font.record_for_byte(ord(c))[3] - font.record_for_byte(ord(c))[1] for c in FIT_SENTENCE)
+    try:
+        width = round(text_raster.raster_gdi(FIT_SENTENCE, face, em0, style["weight"], files).advance)
+    except text_raster.RasterError:
+        return em0
+    if width <= 0 or game <= 0:
+        return em0
+    em = (em0 * game * 2 + width) // (2 * width)
+    return max(em0 * 6 // 10, min(em0 * 13 // 10, em))
+
+
+def render_unicode_font(font: GameFont, text: str, face: str, files=(), colour: int = 0xFFFFFF) -> Image:
+    """`text` as Use Unicode Font draws it in place of `font`: in `face` (then Windows' fallback for a
+    letter it lacks) at the fitted em and the style's weight, on the font's baseline, one line of the
+    font's height, coverage taken to the font's alpha steps, in `colour`."""
+    style = unicode_style(font)
+    em = fit_unicode_em(font, face, files)
+    r = text_raster.raster_gdi(text, face, em, style["weight"], files)
+    h = font.line_height
+    top = round(r.baseline) - style["baseline"]
+    width = max(1, round(r.advance) + 2)
+    out = Image(width, h)
+    rgb = bytes(((colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF))
+    x0 = round(r.origin_x)
+    for y in range(h):
+        sy = top + y
+        if not 0 <= sy < r.height:
+            continue
+        for x in range(width):
+            sx = x0 + x
+            if not 0 <= sx < r.width:
+                continue
+            a = r.bgra[(sy * r.width + sx) * 4 + 3]
+            if a:
+                at = (y * width + x) * 4
+                out.data[at:at + 4] = rgb + bytes((style["levels"][a],))
+    return out
+
+
 # combining mark -> (name, the spacing forms to look for in the font, a spacing form for Windows)
 MARKS = {
     "\u0300": ("grave", "`", "\u02cb"), "\u0301": ("acute", "\u00b4", "\u02ca"),
