@@ -24,6 +24,12 @@
   screensaver is the stock one. No executable pin changes; the DLL is
   re-pinned. Unicorn tests run the game's own slide-off frame, click and key
   handlers against the rebuilt DLL (tests/test_fish_window.py).
+  While the screensaver runs, a click or key only ends it with every
+  companion too: Extra Tanks, Extra Supply Slots, Multiple Ornaments and DS
+  Store Items hook the tank's clicks only inside the handler the stock mouse
+  (0x421F80) calls when the screensaver flag is clear, and Tank Counts' mouse
+  wrapper checks the flag; tests/test_screensaver_clicks.py traces the stock
+  click and key handlers with the flag set and checks none of their sites runs.
 
 ## v1.0.24
 
