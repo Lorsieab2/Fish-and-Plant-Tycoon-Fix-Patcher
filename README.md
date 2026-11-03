@@ -38,6 +38,15 @@ never needs the internet.
   lowers its meters, so it stays full. A save whose game speed is 0 (the game
   never saves that, but an edited or damaged save can hold it) crashed the
   game with a divide by zero as its fish aged; it now loads at Normal speed.
+  The trash can takes supplies and ornaments (the game took only fish: a
+  medicine, chemical or egg let go on it said "This must be used directly in
+  a tank." and went back, and an ornament just rested on it). A medicine,
+  chemical or egg picked up from any supply slot (the extra slots' pages and
+  the patcher's items too) and let go on the trash can is thrown away, the
+  whole slot with every dose or hatch left, with the trash sound and no
+  question; a store ornament goes after "Delete this fish?" (the trash can's
+  question) and can then be bought again (it no longer brings a customer).
+  The fish food is a tool and stays.
 - Crimson Comet 20% curing fix.
 - Unknown Chemical: 3 uses.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and
@@ -250,8 +259,8 @@ never needs the internet.
   Exotic Fish Eggs and the five chemicals can be thrown away: let go on the
   trash can, the whole slot (every dose or hatch left) goes, with the trash
   sound and no question (the game only asks about a fish). The stock game
-  throws no supply away, so the food and the stock medicines, chemicals and
-  eggs still go back to their slot.
+  throws no supply away; with Fix Vanilla Bugs the stock medicines,
+  chemicals and eggs go the same way (the food never does).
   The Auto-Feeder and the Auto-Healer ($10,000 each, bought once; $0 with Free
   upgrades), the owner's green feeder and the same machine in hot pink, beside
   ClonaFish: in every tank (Tanks 1-2, the Sale Tank, the isolation tank, and
@@ -343,8 +352,8 @@ never needs the internet.
   Radioactive Growth Hormone, Revival Potion, ClonaFish, Muta-Fin, Muta-Body
   and Exotic Fish Eggs
   -- is used from it on the tank by the game's own code, with the same doses
-  and hatches; the trash takes the patcher's supplies as from slots 2-4 and
-  never the stock ones. Drag a supply onto any slot, on any page, to move
+  and hatches; the trash takes the patcher's supplies as from slots 2-4, and
+  the stock ones too with Fix Vanilla Bugs. Drag a supply onto any slot, on any page, to move
   it: onto an empty slot it moves, onto the same item it stacks (with
   Universal supply slots), onto another item the two change places. Without
   Universal supply slots, slots 2-4 keep their kind (medicine, chemicals,
@@ -372,7 +381,8 @@ never needs the internet.
   them, at their normal price, up to 10 extra copies per tank. The copies are
   only for decorating: they are drawn, fall, and are dragged, placed and
   moved to another tank's button by the game's own ornament code, exactly
-  like the original, and the trash can takes them (never the original). The
+  like the original, and the trash can takes them (the original too with
+  Fix Vanilla Bugs, which also gives up its effect). The
   ornament's effect comes from owning it, once, game-wide, as in the stock
   game: copies never add to it, and throwing copies away never removes it.
   The copies are kept beside each save slot in `Fish Tycoon Fix Patcher
@@ -447,6 +457,13 @@ never needs the internet.
   that price, those species get normal prices, the 322 Unused Flowers too.
   Discovered species keep their prices (you may have set them), and a save
   with any other undiscovered price is left alone.
+  The Trash bin takes chemicals: a bottle held from the chemical tray (either
+  page with Extra Chemical Slots) and let go or clicked on the bin is thrown
+  away with every dose left, with the bin's sound and no question, as a seed
+  packet is (the game kept it in your hand, and a click with a plant selected
+  asked to delete that plant). A selected plant is left alone. The tools (the
+  watering can, the shears, the net and the rest of the rack) still never go
+  in the bin.
 - No old-age plant deaths. The original age check and `Random(1000)` call remain;
   the eligible death range is empty.
 - R refreshes the seed shop (on by default). Pressing R (or r) in the Supplies
@@ -537,7 +554,8 @@ never needs the internet.
     in the Trash bin: held from the chemical tray and let go or clicked on
     the bin, the bottle goes with every dose left, with the bin's sound and
     no question, as a seed packet does (no money back). A selected plant is
-    not asked about. The stock game never bins a chemical or a tool, and
+    not asked about. The stock game never bins a chemical (Fix Vanilla Bugs
+    bins the stock ones the same way) or a tool, and
     still doesn't for its own. Legendary Seeds and new-flower seeds go in the
     bin like any seed (sold for their value).
   - Automatic Sprinklers on the tool shelf under the Extra Greenhouse, and the
@@ -727,7 +745,7 @@ never needs the internet.
   page, else the first free slot of page 1, then of page 2, and says the tray
   is full only when all 12 are; every chemical (the game's and the Upgrades
   screen's) is used from it with its doses; the Upgrades screen's chemicals
-  go in the trash from it. A chemical in your hand can be put on any other
+  (and with Fix Vanilla Bugs every chemical) go in the trash from it. A chemical in your hand can be put on any other
   slot of either page (moved, stacked onto the same chemical, or swapped).
   Every chemical slot of both pages shows a tooltip with the chemical's name
   and the doses left ("Revival Potion / 2 doses left"), nothing over an

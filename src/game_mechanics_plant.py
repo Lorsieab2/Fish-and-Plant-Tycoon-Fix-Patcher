@@ -705,7 +705,11 @@ CHEMICALS = (
                   "as a seed packet is (no money back: chemicals have no trash value). Only that bottle "
                   "goes: another bottle of the same chemical stays, and a selected plant is not asked "
                   "about or deleted. The game's own chemicals and the tools still never go in the bin. "
-                  "The tray is shared by every greenhouse, so this is the same in Greenhouses 2-6."),),
+                  "The tray is shared by every greenhouse, so this is the same in Greenhouses 2-6."),
+                 ("fix_vanilla_bugs", "every chemical bottle held from the tray (the game's own too, either "
+                  "page with Extra Chemical Slots) let go or clicked on the bin is thrown away with every dose "
+                  "left, with the bin's sound and no question, as a seed packet is; a selected plant is not "
+                  "asked about or deleted. The tools still never reach the bin."),),
     ),
     Fact("Most chemicals act on the one pot you use them on, which must hold a plant (a plant for "
          "sale too). The Fertilizer Bomb and the Insta-Grow Vaporbomb act on every pot with a live "

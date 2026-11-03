@@ -80,7 +80,7 @@ SETTING = {
     "id": SETTING_ID,
     "name": "Fix Vanilla Bugs",
     "summary": "Fixes stock bugs: a new game no longer starts at the Flower of Knowledge (Nox Orchid) prices, "
-               "and saves that did are re-priced.",
+               "saves that did are re-priced, and the Trash bin takes chemicals.",
     "description": (
         "Fixes bugs in the base game. A new game sets every plant's asking price before it forgets the "
         "magic plants of the save that was open (and the game opens your last save when it starts), so "
@@ -91,7 +91,11 @@ SETTING = {
         "found the Flower of Knowledge and every species it has not discovered is at that price, those "
         "species get normal prices (V -+ Random(V/2), as a new game gives). Discovered species keep their "
         "prices, which you may have set, and a save with any other undiscovered price, or that has found "
-        "the Flower of Knowledge, stays as it is."
+        "the Flower of Knowledge, stays as it is. The Trash bin took only seeds and plants: a chemical bottle let "
+        "go on it stayed in the hand, and one clicked on it with a plant selected asked to delete that plant. Now a "
+        "bottle held from the chemical tray (either page with Extra Chemical Slots) and let go or clicked on the bin "
+        "is thrown away with every dose left, with the bin's sound and no question, as a seed packet; a selected "
+        "plant is left alone. The tools (watering can, shears, net and the rest) still never go in the bin."
     ),
     "category": "main",
     "default": True,
@@ -229,6 +233,100 @@ def repair_bytes() -> bytes:
     return c.done()
 
 
+# The Trash bin takes chemical bottles (stock: seeds and plants only). A held item is state + 0x56C:
+# 1-4 the tools (never trashed: 0x425FCC and 0x42730D skip the trash for them), 5-8 chemical-tray
+# slot 0-3, whose record is state + 0x53F84 + slot * 0xC (present byte, chemical id, doses).
+HELD = 0x56C
+CHEM_TRAY = 0x53F84
+TRASH_HIT = 0x4246EB               # mov eax, [edi + 0x56C]: the trash 0x424680, the bin hit (edi = the state)
+TRASH_HIT_NEXT = 0x4246F1          # cmp eax, 0xA (the seeds' test)
+TRASH_TAKEN = 0x42476A             # the seed trash's end: the bin's sound, nothing held (ebx = 0), al = 1
+PRESS_OFF_POTS = 0x4272E5          # cmp eax, 0x63; je 0x42734C: the press off the pots (eax = the selected pot)
+PRESS_SELECTED = 0x4272EA          # cdq: a plant is selected
+PRESS_NONE = 0x42734C              # no plant selected: the put-back
+PRESS_DONE = 0x42739C              # the press's exit, al = 1
+HIT_RECT = 0x435FF0                # thiscall (x, y, left, top, w, h) -> al
+TRASH_RECT = (0xAE, 0x20D, 0x38, 0x4B)      # the bin: left, top, width, height (0x4246BA)
+SOUND = 0x44A580                   # thiscall sound manager (id)
+SOUND_TRASH_BIN = 0x23             # close_trash_bin.ogg
+TRASH_DROP_VA = 0x464A60           # after the load repair (0x464970..0x464A4C)
+TRASH_PRESS_VA = 0x464AA0
+
+
+def trash_drop_bytes() -> bytes:
+    """VA 0x464A60, from the trash 0x424680 once the bin is hit (0x4246EB): a held chemical bottle
+    (held 5-8, its tray record present) is thrown away with every dose left, as the trash takes a
+    seed packet: the record's present byte 0 (as the tray empties a used-up bottle, 0x416500), then
+    the seed trash's own end (0x42476A with ebx = 0: the bin's sound 0x23, nothing held, the drag
+    flag off, al = 1). Anything else goes on to the stock test at 0x4246F1 with eax = held, as
+    before. This comes before the stock trash looks at a selected plant, so a bottle let go on the
+    bin never deletes the plant."""
+    c = _Code(TRASH_DROP_VA)
+    c.emit(b"\x8B\x87" + struct.pack("<I", HELD))           # mov eax, [edi + 0x56C]  (the stock instruction)
+    c.emit(b"\x83\xF8\x05")                                 # cmp eax, 5
+    c.branch(JL, "stock")
+    c.emit(b"\x83\xF8\x08")                                 # cmp eax, 8
+    c.branch(JG, "stock")
+    c.emit(b"\x8D\x0C\x40")                                 # lea ecx, [eax + eax*2]
+    c.emit(b"\x8D\x8C\x8F" + struct.pack("<I", CHEM_TRAY - 5 * 0xC))   # lea ecx, [edi + ecx*4 + 0x53F48]
+    c.emit(b"\x80\x39\x00")                                 # cmp byte [ecx], 0
+    c.branch(JE, "stock")
+    c.emit(b"\xC6\x01\x00")                                 # mov byte [ecx], 0       (the bottle is gone)
+    c.emit(b"\x33\xDB")                                     # xor ebx, ebx
+    c.branch(JMP, TRASH_TAKEN)
+    c.label("stock")
+    c.branch(JMP, TRASH_HIT_NEXT)
+    return c.done()
+
+
+def trash_press_bytes() -> bytes:
+    """VA 0x464AA0, from the press off the pots (0x4272E5: esi = the greenhouse, ebx = x, ebp = y,
+    ecx = the state, eax = the selected pot or 0x63). A held chemical bottle pressed on the bin (the
+    stock trash's own hit test) is thrown away as above and the press ends through its exit
+    (0x42739C), so a selected plant is never asked about ("Delete this plant?") or emptied, and the
+    bottle is not put back. Else the stock test of the selected pot, as before. Store Upgrades and
+    Items' own stub (0x4272DC) comes back here at 0x4272E5 for every other item."""
+    c = _Code(TRASH_PRESS_VA)
+    c.emit(b"\x50")                                         # push eax                (the selected pot)
+    c.emit(b"\x8B\x81" + struct.pack("<I", HELD))           # mov eax, [ecx + 0x56C]
+    c.emit(b"\x83\xF8\x05")                                 # cmp eax, 5
+    c.branch(JL, "stock")
+    c.emit(b"\x83\xF8\x08")                                 # cmp eax, 8
+    c.branch(JG, "stock")
+    c.emit(b"\x8D\x14\x40")                                 # lea edx, [eax + eax*2]
+    c.emit(b"\x8D\x94\x91" + struct.pack("<I", CHEM_TRAY - 5 * 0xC))   # lea edx, [ecx + edx*4 + 0x53F48]
+    c.emit(b"\x80\x3A\x00")                                 # cmp byte [edx], 0
+    c.branch(JE, "stock")
+    c.emit(b"\x52")                                         # push edx
+    left, top, w, h = TRASH_RECT
+    c.emit(b"\x6A" + bytes([h]) + b"\x6A" + bytes([w]))     # push 0x4B; push 0x38
+    c.emit(b"\x68" + struct.pack("<I", top) + b"\x68" + struct.pack("<I", left))   # push 0x20D; push 0xAE
+    c.emit(b"\x55\x53")                                     # push ebp; push ebx      (y, x)
+    c.emit(b"\x8B\xCE")                                     # mov ecx, esi
+    c.branch(CALL, HIT_RECT)
+    c.emit(b"\x5A")                                         # pop edx
+    c.emit(b"\x8B\x4E\x68")                                 # mov ecx, [esi + 0x68]   (the state again)
+    c.emit(b"\x84\xC0")                                     # test al, al
+    c.branch(JE, "stock")
+    c.emit(b"\xC6\x02\x00")                                 # mov byte [edx], 0       (the bottle is gone)
+    c.emit(b"\xC7\x81" + struct.pack("<I", HELD) + bytes(4))   # mov dword [ecx + 0x56C], 0  (nothing held)
+    c.emit(b"\xC6\x86\x05\x01\x00\x00\x00")                 # mov byte [esi + 0x105], 0   (not dragging)
+    c.emit(b"\x8B\x4E\x74")                                 # mov ecx, [esi + 0x74]   (the sound manager)
+    c.emit(b"\x85\xC9")                                     # test ecx, ecx
+    c.branch(JE, "silent")
+    c.emit(b"\x6A" + bytes([SOUND_TRASH_BIN]))              # push 0x23
+    c.branch(CALL, SOUND)
+    c.label("silent")
+    c.emit(b"\x58")                                         # pop eax
+    c.branch(JMP, PRESS_DONE)
+    c.label("stock")
+    c.emit(b"\x58")                                         # pop eax
+    c.emit(b"\x83\xF8\x63")                                 # cmp eax, 0x63           (the stock bytes)
+    c.branch(JE, PRESS_NONE)
+    c.branch(JMP, PRESS_SELECTED)
+    return c.done()
+
+
 def records(vanilla: bytes) -> list[dict]:
     hb = seed.hex_bytes
     cave = cave_bytes()
@@ -238,6 +336,9 @@ def records(vanilla: bytes) -> list[dict]:
     assert CAVE_VA + len(cave) <= REPAIR_VA and REPAIR_VA + len(repair) <= 0x465000
     stock_fixup = b"\xE8" + struct.pack("<i", LOAD_FIXUP - (LOAD_FIXUP_CALL + 5))
     new_fixup = b"\xE8" + struct.pack("<i", REPAIR_VA - (LOAD_FIXUP_CALL + 5))
+    drop, press = trash_drop_bytes(), trash_press_bytes()
+    assert REPAIR_VA + len(repair) <= TRASH_DROP_VA and TRASH_DROP_VA + len(drop) <= TRASH_PRESS_VA
+    assert TRASH_PRESS_VA + len(press) <= 0x465000
     vso = seed.text_vsize_offset(vanilla)
     out = [
         {"id": "fix_new_game_knowledge_text_size", "file_path": EXE, "offset": hex(vso),
@@ -267,6 +368,28 @@ def records(vanilla: bytes) -> list[dict]:
          "expected": hb(stock_fixup), "replacement": hb(new_fixup), "requires": [SETTING_ID],
          "note": "The load's call at 0x41EEF9 (to 0x41ED70, just after the save is copied into the state) "
                  "goes through 0x464970 first."},
+        {"id": "fix_trash_chemicals_drop_code", "file_path": EXE, "offset": hex(offset(TRASH_DROP_VA)),
+         "expected": hb(bytes(len(drop))), "replacement": hb(drop), "requires": [SETTING_ID],
+         "note": "VA 0x464A60 (the zero tail of .text): a chemical bottle held from the tray (held 5-8) on the "
+                 "Trash bin is thrown away with every dose left (its tray record emptied), with the bin's sound, "
+                 "as a seed packet; a selected plant is never asked about. Anything else: the stock trash."},
+        {"id": "fix_trash_chemicals_drop_jump", "file_path": EXE, "offset": hex(offset(TRASH_HIT)),
+         "expected": "8B 87 6C 05 00 00",
+         "replacement": hb(b"\xE9" + struct.pack("<i", TRASH_DROP_VA - (TRASH_HIT + 5)) + b"\x90"),
+         "requires": [SETTING_ID],
+         "note": "The trash 0x424680, once the bin is hit (0x4246EB), goes through 0x464A60 first; it does the "
+                 "stock load of the held item and jumps back to 0x4246F1."},
+        {"id": "fix_trash_chemicals_press_code", "file_path": EXE, "offset": hex(offset(TRASH_PRESS_VA)),
+         "expected": hb(bytes(len(press))), "replacement": hb(press), "requires": [SETTING_ID],
+         "note": "VA 0x464AA0 (the zero tail of .text): a held chemical bottle clicked on the Trash bin is thrown "
+                 "away the same way and the press ends, so a selected plant is not asked about or deleted. "
+                 "Anything else, or off the bin: the stock test of the selected plant."},
+        {"id": "fix_trash_chemicals_press_jump", "file_path": EXE, "offset": hex(offset(PRESS_OFF_POTS)),
+         "expected": "83 F8 63 74 62",
+         "replacement": hb(b"\xE9" + struct.pack("<i", TRASH_PRESS_VA - (PRESS_OFF_POTS + 5))),
+         "requires": [SETTING_ID],
+         "note": "The press off the pots (0x4272E5, where Store Upgrades and Items' stub at 0x4272DC comes back) "
+                 "goes through 0x464AA0 first; it does the stock compare and branch."},
     ]
     for record in out:
         at, raw = int(record["offset"], 16), bytes.fromhex(record["expected"].replace(" ", ""))

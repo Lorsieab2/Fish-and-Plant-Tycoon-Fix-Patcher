@@ -1,5 +1,62 @@
 # Changelog
 
+## v1.0.25
+
+- **The trash takes chemicals, eggs, medicines and ornaments** (Fix Vanilla
+  Bugs, both games). The owner: "I can't trash any chemicals, eggs or
+  decorations in fish tycoon", and "Check plant tycoon too (do not trash
+  tools)". This was the stock game, not a patch: every build behaved the same.
+  - Fish Tycoon, the cause: a supply let go goes through the release
+    0x421B20 to the use 0x420B70, which tests only the tank (impl +
+    0xA8..0xB4); outside it, 0x42165C tests only the isolation tank and
+    otherwise shows hint 0xD, "This must be used directly in a tank." (the
+    hint table at 0x457A04), the trash can included, and the supply goes
+    back to its slot. The ornament drop 0x41F660 tests only the tank buttons
+    and then settles the ornament where it was let go (0x41F7BF), so on the
+    trash can it just rested there. DS Store Items (0x421B52) and Multiple
+    Ornaments (0x421D43) threw away only their own supplies and copies.
+  - Fish Tycoon, the fix: 0x42165C jumps to 0x43F900 (the zero tail of
+    .text). A medicine, chemical or egg picked up from slot 2, 3 or 4 and
+    let go on the trash can (the same rectangle the fish trash tests) is
+    thrown away: the whole slot, every dose or hatch left, emptied as the
+    game empties a used-up slot, with the fish trash's sound and no question
+    (the game asks only about a live fish, and DS Store Items' supplies
+    already went this way). The stock items, the Unknown Chemical, the
+    starter eggs and the patcher's items all go, from the stock slots and
+    from Extra Supply Slots' pages 2 and 3 (lent to a stock slot while held),
+    with or without Universal supply slots. Anywhere else the hints are as
+    before, and a supply let go in the tank is used exactly as before. The
+    fish food is a tool and is never thrown away.
+  - Fish Tycoon, ornaments: 0x41F7BF jumps to 0x43F9A0. A store ornament
+    (Shell, Pagoda, Diver, Fancy Coral, Sunken Antique Column, Sunken Ship)
+    let go on the trash can goes after the game's "Delete this fish?" (the
+    trash can's question, which Multiple Ornaments already asks for a copy):
+    its record and its store ownership are cleared, so it no longer brings a
+    customer and can be bought again; the fish trash's sound plays. No, or
+    anywhere else: it settles as before. The eel's rock stays DS Store
+    Items' (with its eel), the copies Multiple Ornaments'.
+  - Plant Tycoon, the cause: the trash 0x424680 sells seeds and deletes
+    plants only; a chemical bottle (held 5-8) let go on the bin stayed in
+    the hand, and one clicked on the bin with a plant selected asked
+    "Delete this plant?" about that plant.
+  - Plant Tycoon, the fix: the trash once the bin is hit (0x4246EB, to
+    0x464A60) and the press off the pots (0x4272E5, to 0x464AA0, where Store
+    Upgrades and Items' own stub comes back) throw a held bottle away with
+    every dose left, with the bin's sound and no question, as a seed packet;
+    a selected plant is not asked about or deleted. Every chemical (the
+    fertilizers too), from either page of Extra Chemical Slots. The tools
+    (the watering can, the shears, the net and the rest of the rack) are
+    still refused: they never reach the bin, as stock. Seeds and plants are
+    unchanged.
+  - Tests: tests/test_trash_stock_items.py runs the games' own release,
+    drop, trash and press code in Unicorn on the vanilla and patched
+    executables: the stock hint and the kept item without the fix (vanilla,
+    Universal supply slots, DS Store Items, Extra Supply Slots, Store
+    Upgrades and Items), every item kind thrown away whole with it (every
+    slot kind, the trash can's corners, a maximized window), the hints and
+    the use on the tank unchanged, the fish food and the Plant tools
+    refused, ornaments after the question and kept on No.
+
 ## v1.0.24
 
 - **Copy and Paste in Text Boxes** (new setting, both games; on by default and
