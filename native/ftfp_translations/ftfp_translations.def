@@ -3,3 +3,4 @@ EXPORTS
     FtfpStartup = _FtfpStartup@0
     FtfpTranslationsInstalled = _FtfpTranslationsInstalled@0
     FtfpTranslateCounted = _FtfpTranslateCounted@24
+    FtfpTranslationsFitted = _FtfpTranslationsFitted@0

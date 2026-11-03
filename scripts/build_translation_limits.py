@@ -246,8 +246,13 @@ class Run:
                     self.pictures.append((left, top, right - left, bottom - top))
         d.draws.clear()
 
-    def run(self, function: int, args: tuple = (0, 0, 0, 0, 0, 0), size: int = 0x2000) -> int:
+    def run(self, function: int, args: tuple = (0, 0, 0, 0, 0, 0), size: int = 0x2000, at: int = 0) -> int:
+        """The function run on a zeroed object (thiscall); `at`: the object placed `at` pixels right
+        and down (Plant Tycoon's dialogs keep their place at +0x14 / +0x18)."""
         this = self.d._zeroed(size)
+        if at and self.game == "plant":
+            for offset in PLACE[self.game]:
+                self.emu.write32(this + offset, at)
         try:
             self.emu.call(function, *args, ecx=this)
         except Exception:  # noqa: BLE001  a run that stops part way still tells what it built
@@ -341,9 +346,17 @@ class Census:
         a, b = Run(self.game), Run(self.game, D)
         a.run(function)
         b.run(function)
-        self.collect(a, b, f"{function:#x}")
+        moved = None
+        if PLACE[self.game]:
+            # a third run with the object placed elsewhere: words that move with it are placed on a
+            # dialog whose place on the screen this run does not know
+            c = Run(self.game)
+            c.run(function, at=PLACE_SHIFT)
+            moved = {(data, y) for data, x, y, _f in a.texts
+                     if any(t[0] == data and t[1] == x + PLACE_SHIFT for t in c.texts)}
+        self.collect(a, b, f"{function:#x}", moved)
 
-    def collect(self, a: "Run", b: "Run", where: str) -> None:
+    def collect(self, a: "Run", b: "Run", where: str, moved: set | None = None) -> None:
         texts_b = list(b.texts)
         drawn = set()
         buttons = {data for kind, data, _this in a.watched if kind == "button"}
@@ -358,6 +371,8 @@ class Census:
             room, kind = text_room(x, w, match[1] - x, *pictures, y, h)
             if kind == "grown":
                 continue
+            if moved and (data, y) in moved and "picture" not in kind:
+                continue                    # its room from the screen's edge is not known here
             for ident, part in self.owners(data):
                 drawn.add(part)
                 extra = w - self.width(font, part) if part != data else 0
@@ -559,8 +574,24 @@ def _fish_screen(ctor: int, *args: int, size: int = 0x400, page: int | None = No
     return run
 
 
+PLACE = {"fish": (), "plant": (0x14, 0x18)}
+PLACE_SHIFT = 100
+
+
+def _plant_options(r: "Run") -> None:
+    """The Options dialog as the main menu opens it, placed by the game (0x42AF10, 0x42B710)."""
+    d = r.d
+    dialog = d._zeroed(0x200)
+    d.run(0x42AF10, d.emu.text(d.strings[0x192]), 1, this=dialog)
+    d.vcall(d.emu.read32(dialog + 0x3C), 3, d.emu.read32(dialog + 0x14), d.emu.read32(dialog + 0x18), 0x3F800000)
+    d.run(0x42B710, this=dialog)
+    for widget, _id in d.widgets:
+        d.vcall(widget, 5, 1)
+        d.vcall(widget, 6)
+
+
 SCENARIOS = {
-    "plant": [(f"help page {k + 1}", _plant_help(k)) for k in range(6)]
+    "plant": [("options", _plant_options)] + [(f"help page {k + 1}", _plant_help(k)) for k in range(6)]
     + [(f"tutorial {i:#x}", _plant_tutorial(i)) for i in range(0xA0, 0xC8)],
     "fish": [("tank", _fish_screen(0x41EB00)), ("menu", _fish_screen(0x41C380)), ("trophy", _fish_screen(0x428340)),
              ("help", _fish_screen(0x41B810)), ("intro", _fish_screen(0x41BFD0)), ("supplies", _fish_screen(0x427830)),

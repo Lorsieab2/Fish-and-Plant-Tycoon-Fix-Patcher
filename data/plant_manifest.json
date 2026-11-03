@@ -11296,8 +11296,8 @@
           {
             "path": "Translations.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Translations.dll",
-            "size": 131072,
-            "sha256": "05F41E220D8FC4017A59B38F50E448B2572FCD86DC2F5225A17AF7A42E3D1B5C"
+            "size": 142848,
+            "sha256": "D608184A49B9B3769933427F89E400AB5BA39768F613D73447952869D71BEC79"
           }
         ]
       }
