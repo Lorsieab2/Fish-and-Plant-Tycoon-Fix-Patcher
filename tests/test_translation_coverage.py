@@ -31,7 +31,7 @@ ALLOWED_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"\r\n", "a line of the DLL's own log file (<DLL>.log beside it), never shown in the game"),
     (r"^[\w ]+: NOT installed; the code at $", "the start of a log line (the address follows)"),
     (r"^0123456789ABCDEF$", "hex digits for an address in the log"),
-    (r"\.(png|dll|ini|log|dat|txt)$|\\", "a file or folder name"),
+    (r"\.(png|dll|ini|log|dat|txt|ttf|otf)$|\\", "a file or folder name (font files included)"),
     (r"^\.(tmp|previous|unreadable-?)$", "the ending of a temporary or set-aside data file's name"),
     (r"^(Ftfp|SDL_)\w+$", "an export another DLL (or SDL) looks up by name"),
 )
@@ -49,10 +49,14 @@ ALLOWED: dict[str, tuple[set[str], str]] = {
              "CreateCompatibleDC", "CreateDIBSection", "SelectObject", "CreateFontW", "SetTextColor", "SetBkMode",
              "ExtTextOutW", "GdiFlush", "SetTextAlign", "ScriptItemize", "ScriptShape", "ScriptPlace",
              "ScriptGetFontProperties", "GetFontData", "GetTextMetricsW", "D2D1CreateFactory", "DWriteCreateFactory",
-             "ScreenToClient"}, _API),
+             "ScreenToClient", "AddFontResourceExW"}, _API),
     "fonts": ({"Segoe UI", "Yu Gothic", "Meiryo", "Microsoft YaHei", "Malgun Gothic", "Nirmala UI", "Leelawadee UI",
                "Ebrima", "Gadugi", "Myanmar Text", "Mongolian Baiti", "Microsoft Himalaya", "Javanese Text",
-               "Segoe UI Historic", "Segoe UI Emoji", "Segoe UI Symbol", "Sylfaen"}, _FONT),
+               "Segoe UI Historic", "Segoe UI Emoji", "Segoe UI Symbol", "Sylfaen",
+               # the Unicode 18.0 fallback chain (unicode_glyphs.h): Windows faces and the bundled open fonts
+               "Cambria Math", "Microsoft New Tai Lue", "Microsoft PhagsPa", "Microsoft Tai Le",
+               "Microsoft Yi Baiti", "MingLiU-ExtB", "SimSun", "SimSun-ExtB", "SimSun-ExtG", "Unifont",
+               "Unifont Upper", "Noto Sans Cuneiform", "Noto Serif Tangut", "Last Resort"}, _FONT),
     "locale": ({"en-us"}, "the locale DirectWrite measures text in"),
     "font pictures": ({"paddington_tt_18_unicode", "paddington_tt_30_unicode",
                        "FONT_TRIPLEX_SANSLIGHTLIN_BOLD_16PT_unicode", "PTfontsmall_unicode"},
@@ -120,6 +124,7 @@ EXE_ALLOWED: dict[tuple[str, str], str] = {
     ("install_universal_slots_payload_unknown_one", "SVWU"): "machine code bytes that happen to be letters",
     ("install_universal_slots_payload_unknown_three", "RPWS"): "machine code bytes that happen to be letters",
     ("install_universal_slots_payload_unknown_three", "SVWU"): "machine code bytes that happen to be letters",
+    ("fix_trash_chemicals_press_code", "RjKj8h"): "machine code bytes that happen to be letters",
 }
 _EXE_GERMAN = ("the German column of a string-table line (German mode), translated through the same "
                "strings/<id> key as its English")

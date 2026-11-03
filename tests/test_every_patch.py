@@ -1008,7 +1008,7 @@ class World:
         if self.frames:
             raise AssertionError(f"startups that never returned: {self.frames}")
 
-    def run(self, start: int, stop: int, what: str, count: int = 100_000_000) -> None:
+    def run(self, start: int, stop: int, what: str, count: int = 2_000_000_000) -> None:
         try:
             self.uc.emu_start(start, stop, count=count)
         except UcError as exc:
