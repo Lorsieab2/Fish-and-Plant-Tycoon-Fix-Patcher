@@ -103,7 +103,13 @@ never needs the internet.
   shape, with black bars where it does not fit, and smoothed (on a very large
   window where smoothing would slow the game, nearest pixel instead); the
   mouse lands where you point. Restored, the window is its normal size and
-  drawn exactly as before; fullscreen is unchanged. It runs as a companion
+  drawn exactly as before; fullscreen is unchanged. The tank screen's
+  Screensaver button works on Windows 10 and 11 with it: the stock game
+  switches the whole display to 800x600 for the screensaver, which Windows'
+  display scaling enlarges past the screen and cuts off; in windowed mode the
+  window itself now covers its monitor, without a border, the tank scaled to
+  fit, and the display mode never changes. A click or key ends it and the
+  window comes back exactly as it was. It runs as a companion
   DLL the game loads at start
   (`Fish Tycoon Fix Patcher DLLs\Maximizable Window.dll`), in the plain
   "Fish Tycoon - Modded" copy; nothing is saved. How it works, with every
