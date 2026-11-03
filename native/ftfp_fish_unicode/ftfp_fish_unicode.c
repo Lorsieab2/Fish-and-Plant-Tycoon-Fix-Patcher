@@ -58,6 +58,8 @@
 #define GAME_NEW_NAME_RETURN 0x00417D77u  /* getText of the new player's box (the game copies it to row 1) */
 #define GAME_DEFAULT_FONT 0x34             /* the graphics' default font */
 #define GAME_SET_TEXT_RESUME 0x0040B976u
+#define GAME_SAVE_RESUME 0x00419169u
+#define GAME_SAVE_SIZE 0x1E3C8
 #define GAME_SET_LIMIT_TARGET 0x0040B8B0u
 #define GAME_DRAW_FRAME 0x34
 #define GAME_DRAW_RESUME 0x004087E7u
@@ -289,10 +291,6 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     if (reason == DLL_PROCESS_ATTACH) {
         self_module = instance;
         DisableThreadLibraryCalls(instance);
-    } else if (reason == DLL_PROCESS_DETACH && installed) {
-        /* the game quits: a name typed since the last draw, or a record whose write failed, still
-           goes beside the save */
-        names_sync_now(1);
     }
     return TRUE;
 }
