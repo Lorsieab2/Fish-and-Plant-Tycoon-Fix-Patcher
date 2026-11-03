@@ -44,12 +44,12 @@ GAMES = {
                  state_global=0x45ABDC, rows=0x1E3D8, stride=0x2A, set_text=0x40B970, new=0x42A793,
                  free=0x42A6B1, draw=0x4087E0, width=0x4023D0, box_cut=0x40B7ED,
                  sites=((0x40B970, 6), (0x40BC90, 6), (0x40BC30, 8), (0x40B7A3, 5), (0x40B7ED, 2),
-                        (0x40B829, 5), (0x4087E0, 7), (0x4023D0, 7), (0x419161, 8)), save=0x419161, save_end=0x419169),
+                        (0x40B829, 5), (0x4087E0, 7), (0x4023D0, 7), (0x41916A, 5)), save=0x41916A, save_end=0x403520),
     "plant": dict(new_call=0x41B018, new_dst=8, limit_call=0x415B6C, other_limit_call=0x4304C9, other_limit=6, text_call=0x416198,
                   state_global=0x49333C, rows=0x53FC2, stride=0x21, set_text=0x40C380, new=0x44E894,
                   free=0x44E7B3, draw=0x408E20, width=0x402380, box_cut=0x40C1FD,
                   sites=((0x40C380, 6), (0x40C740, 6), (0x40C6E0, 8), (0x40C1B3, 5), (0x40C1FD, 2),
-                         (0x40C239, 5), (0x408E20, 7), (0x402380, 7), (0x41D157, 8)), save=0x41D157, save_end=0x41D15F),
+                         (0x40C239, 5), (0x408E20, 7), (0x402380, 7), (0x41D160, 5)), save=0x41D160, save_end=0x403690),
 }
 TITLE_OF = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
 # The text the games make their name rows with (Fish 0x442220, Plant 0x467790), and their box makers:
@@ -416,13 +416,14 @@ class NamesCase:
         self.assertEqual(g.names_file(4), HEADER + record(short, name))
 
     def run_save(self, g: Game) -> None:
-        """The game's own save path, from its patched site to the instruction after it (no draw)."""
+        """The game's own save path, from its patched site to the game's writer it calls (no draw)."""
         emu = g.emu
         esp = E.STACK + E.STACK_SIZE - 0x2000
         emu.uc.reg_write(E.X.UC_X86_REG_ESP, esp)
         emu.uc.reg_write(E.X.UC_X86_REG_ECX, g.state)
+        emu.uc.reg_write(E.X.UC_X86_REG_EAX, g.state + 8)
         emu.uc.emu_start(GAMES[self.game]["save"], GAMES[self.game]["save_end"], count=2_000_000)
-        self.assertEqual(emu.uc.reg_read(E.X.UC_X86_REG_EAX), g.state + 8)   # the displaced lea ran
+        self.assertEqual(emu.uc.reg_read(E.X.UC_X86_REG_ECX), g.state)       # ecx survived the sync
 
     def test_pending_records_are_written_by_the_games_save_path(self) -> None:
         """A name whose slot is unknown, and one whose first write failed, are pending; the game's

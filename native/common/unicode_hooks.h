@@ -146,8 +146,8 @@ __declspec(naked) static void stub_width(void) {
     }
 }
 
-/* The game's own save: just before it copies its state block out to write the save, the pending
-   long-name records are written (names_sync_now), the displaced lea/push done, and on. */
+/* The game's own save: at its call that writes the state block out (the call's arguments already pushed), the
+   pending long-name records are written (names_sync_now), then on to the game's writer as the call would. */
 __declspec(naked) static void stub_save(void) {
     __asm {
         push ecx
@@ -157,9 +157,7 @@ __declspec(naked) static void stub_save(void) {
         add esp, 4
         pop edx
         pop ecx
-        lea eax, [ecx + 8]
-        push GAME_SAVE_SIZE
-        push GAME_SAVE_RESUME
+        push GAME_SAVE_TARGET
         ret
     }
 }
@@ -184,7 +182,7 @@ static ftfp_site_write *name_site_writes(ftfp_site_write *w) {
     ftfp_site_branch(w++, SITE_DRAW_VA, SITE_DRAW_LEN, SITE_DRAW_EXPECT, 0xE9, CODE_ADDR(stub_draw));
     ftfp_site_branch(w++, SITE_WIDTH_VA, SITE_WIDTH_LEN, SITE_WIDTH_EXPECT, 0xE9, CODE_ADDR(stub_width));
     ftfp_site_branch(w++, SITE_BOX_CHAR_VA, SITE_BOX_CHAR_LEN, SITE_BOX_CHAR_EXPECT, 0xE9, CODE_ADDR(stub_box_char));
-    ftfp_site_branch(w++, SITE_SAVE_VA, SITE_SAVE_LEN, SITE_SAVE_EXPECT, 0xE9, CODE_ADDR(stub_save));
+    ftfp_site_branch(w++, SITE_SAVE_VA, SITE_SAVE_LEN, SITE_SAVE_EXPECT, 0xE8, CODE_ADDR(stub_save));
     return w;
 }
 

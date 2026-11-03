@@ -53,8 +53,7 @@
 #define GAME_NEW_NAME_RETURN 0x0041B01Du  /* getText of the new player's box (the game copies it to row 1) */
 #define GAME_DEFAULT_FONT 0x5C             /* the graphics' default font */
 #define GAME_SET_TEXT_RESUME 0x0040C386u
-#define GAME_SAVE_RESUME 0x0041D15Fu
-#define GAME_SAVE_SIZE 0x53FB0
+#define GAME_SAVE_TARGET 0x00403690u  /* what the save's call at SITE_SAVE_VA goes to */
 #define GAME_SET_LIMIT_TARGET 0x0040C2C0u
 #define GAME_DRAW_FRAME 0x44
 #define GAME_DRAW_RESUME 0x00408E27u
