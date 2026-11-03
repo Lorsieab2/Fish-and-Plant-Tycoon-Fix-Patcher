@@ -80,6 +80,10 @@ Fish Tycoon options:
   (Tank 3) hold 30 fish instead of 21, Tanks 4-6 too with 3 extra tanks,
   each fish selling with the stock odds; the isolation tank still holds one.
   Sell or move fish down to 21 per tank before turning it off.)
+- Maximizable window (on by default; in windowed mode the window can be
+  maximized or resized and the picture scales to fit. The tank screen's
+  Screensaver button works on Windows 10 and 11: the window covers the
+  screen without changing the display's resolution; a click or key ends it.)
 - Tank and greenhouse counts (on by default; at the top left of the water:
   "Fish: 12 of 21 (8 adults, 3 teens, 1 baby)" for the tank on screen, of 30
   with Bigger tanks, Tanks 4-6 too, "Sick: 2 fungus, 1 ick  Low Health: 3"

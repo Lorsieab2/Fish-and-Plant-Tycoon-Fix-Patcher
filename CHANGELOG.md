@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.0.25
+
+- **Fish Tycoon's Screensaver works on Windows 10 and 11** (Maximizable
+  window, on by default). The tank screen's Screensaver button slides the
+  interface off and, in windowed mode, switches the whole display to 800x600
+  (SDL_SetVideoMode with SDL_FULLSCREEN, from 0x41E3DD through 0x408CB0;
+  ChangeDisplaySettings in SDL.dll). The game is not DPI aware, so with
+  Windows display scaling above 100% that 800x600 picture is enlarged past
+  the screen and cut off; the mode change also blanks the screen for a
+  moment and moves other windows to fit 800x600. The game has no .scr file,
+  command line or registry use: the screensaver is only this in-game mode.
+  Maximizable Window.dll now takes the jump at 0x41E3DD: the game window
+  becomes a borderless window over the monitor it is on (MonitorFromWindow,
+  so a second monitor too) and the tank is drawn scaled with its shape kept,
+  and the display mode never changes. A click or a key ends it as before
+  (0x421F80, 0x41ED10), and at the screensaver's end (its call of 0x407B70 at
+  0x421FCD) the window's style, size, place and maximized state are put back
+  exactly (GetWindowPlacement / SetWindowPlacement). Both sites are checked
+  for their stock bytes and written together or not at all (the maximize
+  part installs either way); if the window cannot be used, the game's own
+  fullscreen switch runs as before, and with the Fullscreen option on the
+  screensaver is the stock one. No executable pin changes; the DLL is
+  re-pinned. Unicorn tests run the game's own slide-off frame, click and key
+  handlers against the rebuilt DLL (tests/test_fish_window.py).
+
 ## v1.0.24
 
 - **Copy and Paste in Text Boxes** (new setting, both games; on by default and

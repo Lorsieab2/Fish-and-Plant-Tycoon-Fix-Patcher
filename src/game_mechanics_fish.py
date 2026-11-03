@@ -1548,7 +1548,9 @@ HIDDEN = (
         "Ordinary keys nobody mentions:",
         subs=(
             "Tank screen: Escape opens the main menu. In screensaver mode any key or click ends "
-            "it and updates the fish at once.",
+            "it and updates the fish at once. The Screensaver button slides the interface off and, "
+            "in windowed mode, switches the display to 800x600 fullscreen until it ends (with Maximizable "
+            "window, the window covers its monitor instead and the display is not changed).",
             "Species screen: number keys (top row or keypad) type the selected species' price, "
             "like the on-screen keypad, up to 4 digits; Escape is Done.",
             "Selling scene and Supplies store: Escape is Done. Trophy Case: Escape goes back.",
