@@ -52,6 +52,14 @@ GAMES = {
                          (0x40C239, 5), (0x408E20, 7), (0x402380, 7))),
 }
 TITLE_OF = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
+# The text the games make their name rows with (Fish 0x442220, Plant 0x467790), and their box makers:
+# the constructor (thiscall wrapper, 9 arguments), setLimit and setText of the wrapper, and the rows'
+# x and text as the player list passes them.
+PLACEHOLDER = {"fish": b"_" * 26, "plant": b" " * 26}
+BOX_MAKER = {
+    "fish": dict(make=0x40C1E0, limit=0x40BC30, set_text=0x40BC40, row_x=0xE3, row_text=0x442220),
+    "plant": dict(make=0x40CCB0, limit=0x40C6E0, set_text=0x40C6F0, row_x=200, row_text=0x467790),
+}
 
 
 def names_path(game: str, slot: int) -> str:
@@ -535,7 +543,7 @@ class DrawNamesCase:
         return piece(lo)
 
     def test_a_short_form_is_drawn_as_the_full_name_fitted(self) -> None:
-        placeholder = self.game_width(b"_" * 26)
+        placeholder = self.game_width(PLACEHOLDER[self.game])
         for name in ("Wilhelmina Charlotte Ångström-Lindqvist", "Bartholomew Montgomery Fitzgerald the Third "
                      "of the Northern Reaches of Ørsted"):
             with self.subTest(name=name):
@@ -551,15 +559,94 @@ class DrawNamesCase:
             self.assertEqual(self.hooked_width(text), self.game_width(text))
 
     def test_a_name_within_the_games_text_is_the_full_name(self) -> None:
-        """The main menu's "Player: <name>": the short form in it is the full name, the whole text
-        fitted to the wider of itself and itself with the game's name placeholder for the name."""
+        """Text drawn outside a box: the short form in it is the full name, the whole text fitted to
+        the wider of itself and itself with the game's name placeholder for the name."""
         name = "Bartholomew Montgomery Fitzgerald the Third of the Northern Reaches"
         short = self.g.type_name(name, slot=1).rstrip(b"\0")
         text = b"Player: " + short
-        budget = max(self.game_width(text), self.game_width(b"Player: " + b"_" * 26))
+        budget = max(self.game_width(text), self.game_width(b"Player: " + PLACEHOLDER[self.game]))
         shown = self.expected_fit(b"Player: " + name.encode("cp1252"), budget, tail=False)
         self.assertEqual(self.screen(text, own=False), self.screen(shown, own=True))
         self.assertEqual(self.hooked_width(text), self.game_width(shown))
+
+    def game_box(self, x: int, y: int, text_va: int, align: int) -> tuple[int, int]:
+        """(wrapper, box): a box made by the game's own constructor, with the arguments its screens
+        pass (Fish 0x40C1E0, Plant 0x40CCB0: parent, id, x, y, text, font, alignment, 0, scale)."""
+        emu = self.fde.emu
+        parent = emu.alloc(0x400)
+        emu.uc.mem_write(parent, bytes(0x400))
+        wrapper = emu.alloc(0x40)
+        emu.uc.mem_write(wrapper, bytes(0x40))
+        emu.call(BOX_MAKER[self.game]["make"], parent, 0x64, x, y, text_va, self.font, align, 0, f32(1.0), ecx=wrapper)
+        return wrapper, emu.read32(wrapper + 0x10)
+
+    def box_shows(self, wrapper: int, box: int) -> tuple[int, bytes]:
+        """The box's measure and draw of its own text (the DLL's box_width and box_draw, where the
+        game's box draw calls them)."""
+        emu = self.fde.emu
+        text_at = emu.read32(box + 0x30)
+        width = emu.call(self.symbols["_box_width"], self.font, box, 0, text_at, f32(1.0))
+        self.fde.fill((10, 20, 30))
+        graphics = emu.alloc(4)
+        emu.write32(graphics, self.fde.impl)
+        emu.call(self.symbols["_box_draw"], graphics, box, 0, text_at, 4, 6, 0xFFFFFFFF, self.font)
+        return width, bytes(self.fde.screen_image.data)
+
+    def test_a_player_row_fits_the_name_to_its_real_room(self) -> None:
+        """The player list's rows, made by the game's own code as its screen makes them (Fish
+        0x4170E2: centred on x 0xE3 with 26 underscores; Plant 0x415B04: 26 spaces), then made
+        fixed by the game's setLimit(1, 0x20): a long name is fitted to the row's own room."""
+        emu = self.fde.emu
+        maker = BOX_MAKER[self.game]
+        wrapper, box = self.game_box(maker["row_x"], 0x42, maker["row_text"], 1)
+        left, right, margin = emu.read32(box + 8), emu.read32(box + 0x10), emu.read32(box + 0x44)
+        room = right - left - margin
+        # the game made the row as wide as its own text: the placeholder, by the game's own measure
+        self.assertEqual(room, self.game_width(PLACEHOLDER[self.game]))
+        emu.call(maker["limit"], 1, 0x20, ecx=wrapper)
+        self.assertEqual(emu.uc.mem_read(box + 0x24, 1), b"\x01")
+        for name in ("Wilhelmina Charlotte Ångström-Lindqvist of Malmö and Stockholm", "Ann Lee"):
+            with self.subTest(name=name):
+                short = self.g.type_name(name, slot=2).rstrip(b"\0")
+                at = emu.alloc(len(short) + 1)
+                emu.uc.mem_write(at, short + b"\0")
+                emu.call(maker["set_text"], at, ecx=wrapper)
+                width, drawn = self.box_shows(wrapper, box)
+                shown = self.expected_fit(name.encode("cp1252"), room, tail=False)
+                self.assertEqual(width, self.game_width(shown))
+                self.assertLessEqual(width, room)
+                self.assertEqual(drawn, self.screen(shown, own=True))
+                if len(name) > 10:
+                    self.assertTrue(shown.endswith(b"\x85"))
+                    # the old estimate (Plant: underscores, wider than its 26 spaces) would not fit
+                    if self.game == "plant":
+                        self.assertGreater(self.game_width(b"_" * 26), room)
+
+    def test_the_main_menu_player_label_fits_to_its_side_of_the_screen(self) -> None:
+        """Fish Tycoon's main menu label (0x41C6DC: x 0x280, y 0x23C, "xxxxxx", aligned right; the game
+        sets "<Player:> <name>" in it at 0x41C9C2): a long name is fitted to the room from the screen's
+        left edge to the label's right edge."""
+        if self.game != "fish":
+            self.skipTest("Plant Tycoon shows names only in its player rows")
+        emu = self.fde.emu
+        wrapper, box = self.game_box(0x280, 0x23C, 0x4438CC, 2)
+        self.assertEqual(emu.read32(box + 0x40), 2)                 # right-aligned
+        emu.write32(self.symbols["_screen_right"], 800)
+        right, margin = emu.read32(box + 0x10), emu.read32(box + 0x44)
+        room = right - margin
+        name = ("Bartholomew Montgomery Fitzgerald the Third of the Northern Reaches of Ørsted and the "
+                "Southern Isles, Keeper of the Great Aquarium")
+        short = self.g.type_name(name, slot=1).rstrip(b"\0")
+        at = emu.alloc(len(short) + 16)
+        emu.uc.mem_write(at, b"Player: " + short + b"\0")
+        emu.call(BOX_MAKER["fish"]["set_text"], at, ecx=wrapper)
+        width, drawn = self.box_shows(wrapper, box)
+        shown = self.expected_fit(b"Player: " + name.encode("cp1252"), room, tail=False)
+        self.assertEqual(width, self.game_width(shown))
+        self.assertLessEqual(width, room)
+        self.assertEqual(drawn, self.screen(shown, own=True))
+        # wider than the old estimate allowed
+        self.assertGreater(width, self.game_width(b"Player: " + b"_" * 26))
 
     def test_boxes_fit_their_text(self) -> None:
         emu = self.fde.emu

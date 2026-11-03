@@ -70567,7 +70567,7 @@
             "path": "Unicode Text.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
             "size": 173056,
-            "sha256": "B9FF412F9EE7A4680B72D88A6A79FEF21766F46B74CFB0033A4AA8C52BF03865"
+            "sha256": "F1A5FE57F4FE29E962E6556C92936E7F0A3A7E6096A81F68C643E3F2E8B42C53"
           },
           {
             "path": "Images/FONT_TRIPLEX_SANSLIGHTLIN_BOLD_16PT_unicode.png",
@@ -70684,7 +70684,7 @@
             "path": "Unicode Text.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
             "size": 173056,
-            "sha256": "B9FF412F9EE7A4680B72D88A6A79FEF21766F46B74CFB0033A4AA8C52BF03865"
+            "sha256": "F1A5FE57F4FE29E962E6556C92936E7F0A3A7E6096A81F68C643E3F2E8B42C53"
           },
           {
             "path": "Fonts/unifont-18.0.01.otf",
@@ -70759,7 +70759,7 @@
             "path": "Unicode Text.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
             "size": 173056,
-            "sha256": "B9FF412F9EE7A4680B72D88A6A79FEF21766F46B74CFB0033A4AA8C52BF03865"
+            "sha256": "F1A5FE57F4FE29E962E6556C92936E7F0A3A7E6096A81F68C643E3F2E8B42C53"
           }
         ]
       }

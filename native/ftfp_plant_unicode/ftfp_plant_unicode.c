@@ -56,6 +56,7 @@
 #define GAME_SET_LIMIT_TARGET 0x0040C2C0u
 #define GAME_DRAW_FRAME 0x44
 #define GAME_DRAW_RESUME 0x00408E27u
+#define GAME_NAME_PLACEHOLDER "                          "  /* the text the name rows are made with (0x415AF3) */
 #define GAME_DEFAULT_COLOUR 0x0047A27Cu  /* the colour of text drawn with colour 0 */
 #define GAME_CLIP 0x60                     /* the graphics' clip rectangle: left, top, right, bottom */
 #define GAME_SDL2 1
