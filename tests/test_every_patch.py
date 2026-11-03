@@ -1280,7 +1280,7 @@ class PlantScreen:
         emu = w.emu
         for address, name in self.PRIMITIVES.items():
             if address not in emu.hooks:
-                w.stand_in(address, name, w.pops(address), 0x00C0FFEE if address == 0x407A90 else 0)
+                w.stand_in(address, name, w.pops(address), self.graphics() if address == 0x407A90 else 0)
         if 0x44CA70 not in emu.hooks:
             w.stand_in(0x44CA70, "string", 4, lambda e: e.text("text"))
             w.stand_in(0x44F30B, "sprintf", 0, 0)
@@ -1298,6 +1298,15 @@ class PlantScreen:
         self.state = state
         self.scene = w.screen(self.TABLE, self.SIZE)
         emu.write32(self.scene + self.STATE_AT, state)
+
+    def graphics(self) -> int:
+        """The game's graphics, as the game lays it out: a pointer to the object (+0x5C: the default font) that
+        the draw calls read; the font has no glyph table (+4: 0), so the game's measure gives 0."""
+        w = self.w
+        impl, graphics = alloc_zero(w, 0x100), alloc_zero(w, 8)
+        w.emu.write32(graphics, impl)
+        w.emu.write32(impl + 0x5C, alloc_zero(w, 0x40))
+        return graphics
 
     def tick(self) -> None:
         self.w.call(self.UPDATE, ecx=self.scene, what=f"the {self.WHAT}'s update")
