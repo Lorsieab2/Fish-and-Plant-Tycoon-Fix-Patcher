@@ -7,14 +7,23 @@
    letter of SDL 2's UTF-8 text, so an input method's whole text arrives). The box's
    character path (from Fish 0x40BFF9, Plant 0x40CAC9) is box_char:
 
-     - a letter goes in as its UTF-8 bytes, only whole: while the box's byte limit (+0x28)
-       has room for all of them and, in a name box (limit NAME_BOX_BYTES), it has fewer than
-       NAME_LETTERS letters;
-     - Backspace takes off the last whole grapheme (unicode_grapheme.h: a letter with its marks,
-       an emoji sequence, a flag; the game took one byte);
+     - the box keeps its text by the shared write rule (unicode_utf8.h game_encode: a
+       Windows-1252 letter as its one byte, any other as UTF-8), so its byte limit (+0x28; a
+       name box NAME_BOX_BYTES, no character cap) counts the bytes the save will hold; a letter
+       goes in only whole, while the text it makes still fits;
+     - a letter that would join the box's last character (a combining mark, a skin tone, the
+       letter after a ZWJ: unicode_grapheme.h) right after a letter refused for room is refused
+       too, so it never lands on the character before (docs/UNICODE_SPEC.md section 4, from VF2);
+     - Backspace takes off the last whole character (a grapheme cluster: a letter with its
+       marks, an emoji sequence, a flag; the game took one byte);
      - Enter and Tab do what they did (the box's own "done", Fish 0x40BA30, Plant 0x40C4D0);
      - control characters, C1 controls and lone surrogates are dropped;
-     - a number box (+0x2D) or a box keeping a number (+0x2F) goes on the game's own way.
+     - a number box (+0x2D) or a box keeping a number (+0x2F) goes on the game's own way;
+     - in a box that is not a name box (Fish Tycoon's registration boxes, Plant Tycoon's price
+       box) a letter is refused when the text would be wider than the widest text the stock
+       game allows there: its byte limit times its font's widest plain letter (the shared spec's
+       "wide characters in non-name boxes", from Virtual Families 2's "wide scripts fit"). The
+       font is the one the box last measured its text with (box_width). Name boxes scroll.
 
    Fish Tycoon's window gets letters SDL 1.2 never reports: SDL takes a key's letter with
    ToUnicode on the key-down and never translates messages, so a letter from the emoji panel
@@ -47,26 +56,60 @@ static void box_changed(char *box) {
     ((post2_fn)(UINT_PTR)GAME_EVENTS_POST2)(queue, NULL, 0xC, *(int *)(box + 4));
 }
 
-static int letters_in(const char *text) {
-    const unsigned char *p = (const unsigned char *)text;
-    int n = 0;
-    while (*p) {
-        utf8_next(&p);
-        ++n;
+/* The most letters a box's text is read as (a name box holds at most NAME_BOX_BYTES). */
+#define BOX_LETTERS (2 * NAME_BOX_BYTES)
+
+static unsigned int box_cps[BOX_LETTERS + 1];
+static char box_bytes[4 * BOX_LETTERS + 8];
+static const char *refused_box;            /* the box whose last typed letter was refused for room */
+
+/* The widest plain letter (0x21-0x7E) of a game font: its record's width. */
+static int widest_plain(const char *inner) {
+    int b, most = 0;
+    if (inner == NULL || *(const int *const *)(inner + 0x18) == NULL) return 0;
+    for (b = 0x21; b < 0x7F; ++b) {
+        int w = font_record_width(inner, b);
+        if (w > most) most = w;
     }
-    return n;
+    return most;
+}
+
+/* 1 when `bytes` is wider than the widest text the stock game allows in `box` (not a name box). */
+static int too_wide(const char *box, const char *bytes, int limit) {
+    int most;
+    if (limit >= NAME_BOX_BYTES || measured_box != box || measured_font == NULL) return 0;
+    most = limit * widest_plain(font_inner(measured_font));
+    return most > 0 && measure(measured_font, bytes, 1.0f) > most;
+}
+
+/* 1 when `ch` would join the last letter of cps[0..n) (no grapheme boundary before it). */
+static int joins_last(const unsigned int *cps, int n, unsigned int ch) {
+    gb_state s;
+    int i;
+    if (n == 0) return 0;
+    gb_start(&s);
+    for (i = 0; i < n; ++i) gb_push(&s, cps[i]);
+    return !gb_push(&s, ch);
 }
 
 /* The box's character event: 1 when done here, 0 for the game's own code. */
 static int __cdecl box_char(char *box, unsigned int ch) {
     char *text = *(char **)(box + 0x30);
-    int len, limit = *(int *)(box + 0x28), n;
-    char bytes[4];
+    int len, limit = *(int *)(box + 0x28), n, out;
     if (!utf8_drawing || box[0x2D] || box[0x2F] || text == NULL) return 0;
     len = s_len(text);
+    n = game_decode(text, box_cps, BOX_LETTERS + 1);
     if (ch == 8) {
+        refused_box = NULL;
         if (len > 0) {
-            text[grapheme_before(text, text + len) - text] = '\0';
+            if (n > BOX_LETTERS) {
+                text[grapheme_before(text, text + len) - text] = '\0';
+            } else {
+                /* the text without its last whole character, by the write rule again (never longer) */
+                out = game_encode(box_cps, last_grapheme(box_cps, n), box_bytes, len + 1);
+                if (out < 0) text[grapheme_before(text, text + len) - text] = '\0';
+                else memcpy(text, box_bytes, (size_t)out + 1);
+            }
             box_changed(box);
         }
         return 1;
@@ -75,12 +118,16 @@ static int __cdecl box_char(char *box, unsigned int ch) {
         ((box_done_fn)(UINT_PTR)GAME_BOX_DONE)(box, NULL);
         return 1;
     }
-    if (!letter_typable(ch)) return 1;
-    n = utf8_put(ch, bytes, 4);
-    if (len + n > limit) return 1;
-    if (limit == NAME_BOX_BYTES && letters_in(text) >= NAME_LETTERS) return 1;
-    memcpy(text + len, bytes, (size_t)n);
-    text[len + n] = '\0';
+    if (!letter_typable(ch) || n > BOX_LETTERS - 1) return 1;
+    if (refused_box == box && joins_last(box_cps, n, ch)) return 1;   /* a mark of a refused letter */
+    refused_box = NULL;
+    box_cps[n] = ch;
+    out = game_encode(box_cps, n + 1, box_bytes, limit + 1);
+    if (out < 0 || too_wide(box, box_bytes, limit)) {   /* no room: the letter is refused, whole */
+        refused_box = box;
+        return 1;
+    }
+    memcpy(text, box_bytes, (size_t)out + 1);
     box_changed(box);
     return 1;
 }
@@ -153,7 +200,7 @@ static void unit_in(WCHAR unit) {
 }
 
 static LRESULT CALLBACK text_window(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
-    if (message == WM_KEYDOWN && clip_key((unsigned int)wparam)) return 0;
+    if (message == WM_KEYDOWN && clip_key((unsigned int)wparam, lparam)) return 0;
     if (message == WM_CHAR && utf8_drawing && wparam >= 0xD800 && wparam <= 0xDFFF) {
         unit_in((WCHAR)wparam);              /* half of a letter past U+FFFF: joined here */
         return 0;

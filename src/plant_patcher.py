@@ -259,10 +259,25 @@ def enabled_settings(manifest: dict[str, Any], args: argparse.Namespace) -> set[
     enabled = {key for key, value in settings.items() if bool(value.get("default", False))}
     if getattr(args, "disable_all", False):
         enabled.clear()
-    for key in getattr(args, "enable", None) or []:
+    asked = list(getattr(args, "enable", None) or [])
+    for key in asked:
         if key not in settings:
             raise PatchError(f"Unknown setting: {key}")
         enabled.add(key)
+    # Settings that exclude each other (`conflicts_settings`, e.g. the two Unicode text settings): asking
+    # for one turns off the other it excludes when that one is only on by default; asking for both is refused.
+    clashes: dict[str, set[str]] = {}
+    for key, setting in settings.items():
+        for other in setting.get("conflicts_settings", []) or []:
+            clashes.setdefault(key, set()).add(other)
+            clashes.setdefault(other, set()).add(key)
+    for key in asked:
+        both = sorted(other for other in clashes.get(key, ()) if other in asked)
+        if both:
+            names = ", ".join(str(settings[other].get("name", other)) for other in both)
+            raise PatchError(f"{settings[key].get('name', key)} and {names} cannot both be on; choose one.")
+    for key in asked:
+        enabled -= clashes.get(key, set())
     for key in getattr(args, "disable", None) or []:
         if key not in settings:
             raise PatchError(f"Unknown setting: {key}")
@@ -605,7 +620,7 @@ def apply_manifest(args: argparse.Namespace) -> int:
         if "translations" in enabled:          # the language chosen on the Tools tab (src/translations.py)
             translations.write_choice_into(staging, "plant")
         report["companion_files"] += fish_patcher.install_unicode_ini(
-            manifest, enabled, staging, getattr(args, "unicode_font", None))
+            manifest, enabled, staging, getattr(args, "unicode_font", None), getattr(args, "unicode_font_file", None))
         report["backup_dir"] = str(long_paths.plain(backup_dir))
         report["output_exe"] = str(output_dir / output_exe_name)
         write_json(staging / ".plant_tycoon_fix_output.json", {
@@ -709,6 +724,8 @@ def build_parser() -> argparse.ArgumentParser:
     apply_cmd.add_argument("--dry-run", action="store_true")
     apply_cmd.add_argument("--enable", action="append")
     apply_cmd.add_argument("--unicode-font", help="Use Unicode Font: the Windows font family (default Segoe UI)")
+    apply_cmd.add_argument("--unicode-font-file", help="Use Unicode Font: a .ttf, .otf or .ttc font file, copied "
+                                                       "beside Unicode Text.dll and loaded for the game only")
     apply_cmd.add_argument("--disable", action="append")
     apply_cmd.add_argument("--disable-all", action="store_true")
     apply_cmd.set_defaults(func=apply_manifest)

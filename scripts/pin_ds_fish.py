@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import sys
 
@@ -93,7 +94,7 @@ def main() -> int:
     # (fish_patcher.pin_settings), so they get no combinations here either.
     others = [s["id"] for s in manifest["settings"] if s["id"] != SETTING_ID and not s.get("requires_settings")
               and not (s.get("companion") or {}).get("loader_tail")]
-    pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items() if SETTING_ID not in k.split(",")}
+    pins = dict(manifest["patched_sha256_by_settings"])   # keep every pin (scripts/pin_keys.py)
     for count in range(len(others) + 1):
         for combo in itertools.combinations(others, count):
             enabled = set(combo) | {SETTING_ID}
@@ -101,7 +102,7 @@ def main() -> int:
             patched, _ = fish_patcher.apply_patch_bytes(vanilla, patches)
             patched, _ = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.fish_profile(enabled))
             pins[fish_patcher.settings_key(enabled)] = hashlib.sha256(patched).hexdigest().upper()
-    manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+    manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
     MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Pinned {len(setting['companion']['files'])} companion files and "
           f"{2 ** len(others)} DS Fish executable combinations")

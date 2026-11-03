@@ -513,17 +513,21 @@ def clusters(text: str) -> list[str]:
 # --------------------------------------------------------------------------- Windows fonts
 
 FONT_DIR = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
+# The shared Unicode spec's fallback chain (UNICODE_SPEC.md row 3), in its order, as Unicode Text.dll
+# has it (native/common/unicode_glyphs.h CHAIN); then the Noto fonts if installed; then the faces this
+# chain had before (kept); then the fonts the patcher ships.
 FALLBACK_CHAIN = (
     ("segoeui.ttf", "Segoe UI"), ("seguihis.ttf", "Segoe UI Historic"), ("seguisym.ttf", "Segoe UI Symbol"),
-    ("seguiemj.ttf", "Segoe UI Emoji"), ("YuGothM.ttc", "Yu Gothic"), ("msgothic.ttc", "MS Gothic"),
-    ("msyh.ttc", "Microsoft YaHei"), ("simsun.ttc", "SimSun"), ("malgun.ttf", "Malgun Gothic"),
-    ("Nirmala.ttc", "Nirmala UI"), ("Nirmala.ttf", "Nirmala UI"), ("ebrima.ttf", "Ebrima"),
-    ("LeelawUI.ttf", "Leelawadee UI"), ("gadugi.ttf", "Gadugi"), ("javatext.ttf", "Javanese Text"),
-    ("mmrtext.ttf", "Myanmar Text"), ("taile.ttf", "Microsoft Tai Le"), ("ntailu.ttf", "Microsoft New Tai Lue"),
-    ("himalaya.ttf", "Microsoft Himalaya"), ("monbaiti.ttf", "Mongolian Baiti"), ("msyi.ttf", "Microsoft Yi Baiti"),
-    ("phagspa.ttf", "Microsoft PhagsPa"), ("sylfaen.ttf", "Sylfaen"), ("cambria.ttc", "Cambria Math"),
-    ("arialuni.ttf", "Arial Unicode MS"),
+    ("seguiemj.ttf", "Segoe UI Emoji"), ("YuGothM.ttc", "Yu Gothic"), ("meiryo.ttc", "Meiryo"),
+    ("msyh.ttc", "Microsoft YaHei"), ("msjh.ttc", "Microsoft JhengHei"), ("malgun.ttf", "Malgun Gothic"),
+    ("simsunb.ttf", "SimSun-ExtB"), ("Nirmala.ttc", "Nirmala UI"), ("Nirmala.ttf", "Nirmala UI"),
+    ("ebrima.ttf", "Ebrima"), ("gadugi.ttf", "Gadugi"), ("LeelawUI.ttf", "Leelawadee UI"),
+    ("mmrtext.ttf", "Myanmar Text"), ("javatext.ttf", "Javanese Text"), ("monbaiti.ttf", "Mongolian Baiti"),
+    ("himalaya.ttf", "Microsoft Himalaya"), ("msyi.ttf", "Microsoft Yi Baiti"),
+    ("ntailu.ttf", "Microsoft New Tai Lue"), ("taile.ttf", "Microsoft Tai Le"), ("phagspa.ttf", "Microsoft PhagsPa"),
+    ("sylfaen.ttf", "Sylfaen"), ("cambria.ttc", "Cambria Math"),
 )
+KEPT_CHAIN = (("msgothic.ttc", "MS Gothic"), ("simsun.ttc", "SimSun"), ("arialuni.ttf", "Arial Unicode MS"))
 EMOJI_FAMILY = "Segoe UI Emoji"
 
 # After Windows' fonts, the fonts the patcher ships (data/unicode/fonts.json), as Unicode Text.dll
@@ -615,6 +619,7 @@ def fallback_files() -> tuple[tuple[str, str], ...]:
         for path in sorted(FONT_DIR.glob("Noto*")):
             if path.suffix.lower() in (".ttf", ".otf", ".ttc"):
                 chain.append((path.name, _family_name(path) or path.stem))
+    chain += [(f, n) for f, n in KEPT_CHAIN if (FONT_DIR / f).is_file()]
     return tuple(chain) + bundled_fonts()
 
 
@@ -792,6 +797,72 @@ def _scaled_to_line(font: GameFont, text: str, family: str, size: float, weight:
             return Glyph(pixels, pixels.width, f"drawn by Windows ({family}) in the font's style, made smaller "
                          "to fit the line" + (", colour emoji" if coloured else ""), coloured=coloured)
     return _missing_box(font, text)
+
+
+# --------------------------------------------------------------------------- Unicode Text.dll's styles
+
+FIT_SENTENCE = "The quick brown fox jumps over the lazy dog 0123456789"
+
+
+def unicode_style(font: GameFont) -> dict:
+    """The style Unicode Text.dll draws a game font's new letters in (native/ftfp_<game>_unicode/
+    unicode_styles.h, written from this by scripts/build_unicode_drawing_tables.py): the em at which
+    Segoe UI's capital H is as tall as the font's, the weight whose stem is nearest its stem, its
+    capital top and baseline, side bearings, the stroke of its missing-glyph box and its alpha steps."""
+    m = font.metrics
+    cap_ratio, _stem = _family_measures("Segoe UI", 400)
+    size = m["cap"] / cap_ratio
+    weight = min(WEIGHTS, key=lambda w: abs(_family_measures("Segoe UI", w)[1] * size - m["stem"]))
+    return {
+        "height": font.line_height, "cap_top": m["cap_top"], "baseline": m["baseline"], "cap": m["cap"],
+        "em": max(1, round(size)), "weight": weight, "left": m["left"], "right": m["right"],
+        "stroke": max(1, round(m["stem"] / 2)), "levels": font.quantise,
+    }
+
+
+def fit_unicode_em(font: GameFont, face: str, files=()) -> int:
+    """Use Unicode Font's em for `font` in `face` (Unicode Text.dll fit_em, the same arithmetic): the em
+    at which FIT_SENTENCE is as wide in `face` (GDI) as the game font draws it, within 60%..130% of the
+    style's em."""
+    style = unicode_style(font)
+    em0 = style["em"]
+    game = sum(font.record_for_byte(ord(c))[3] - font.record_for_byte(ord(c))[1] for c in FIT_SENTENCE)
+    try:
+        width = round(text_raster.raster_gdi(FIT_SENTENCE, face, em0, style["weight"], files).advance)
+    except text_raster.RasterError:
+        return em0
+    if width <= 0 or game <= 0:
+        return em0
+    em = (em0 * game * 2 + width) // (2 * width)
+    return max(em0 * 6 // 10, min(em0 * 13 // 10, em))
+
+
+def render_unicode_font(font: GameFont, text: str, face: str, files=(), colour: int = 0xFFFFFF) -> Image:
+    """`text` as Use Unicode Font draws it in place of `font`: in `face` (then Windows' fallback for a
+    letter it lacks) at the fitted em and the style's weight, on the font's baseline, one line of the
+    font's height, coverage taken to the font's alpha steps, in `colour`."""
+    style = unicode_style(font)
+    em = fit_unicode_em(font, face, files)
+    r = text_raster.raster_gdi(text, face, em, style["weight"], files)
+    h = font.line_height
+    top = round(r.baseline) - style["baseline"]
+    width = max(1, round(r.advance) + 2)
+    out = Image(width, h)
+    rgb = bytes(((colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF))
+    x0 = round(r.origin_x)
+    for y in range(h):
+        sy = top + y
+        if not 0 <= sy < r.height:
+            continue
+        for x in range(width):
+            sx = x0 + x
+            if not 0 <= sx < r.width:
+                continue
+            a = r.bgra[(sy * r.width + sx) * 4 + 3]
+            if a:
+                at = (y * width + x) * 4
+                out.data[at:at + 4] = rgb + bytes((style["levels"][a],))
+    return out
 
 
 # combining mark -> (name, the spacing forms to look for in the font, a spacing form for Windows)
@@ -996,17 +1067,19 @@ def _space(font: GameFont, cluster: str) -> Glyph:
 
 
 def _missing_box(font: GameFont, cluster: str) -> Glyph:
+    """The missing-glyph box in the font's style, as Unicode Text.dll draws it (unicode_glyphs.h
+    missing_box): two thirds of the capital height wide, from the capital top to the baseline, a
+    stroke of half the font's stem, a column of room each side."""
     m = font.metrics
     w = max(4, m["cap"] * 2 // 3)
     px = Image(w + 2, font.line_height)
-    t, b = m["cap_top"], m["baseline"]
-    for x in range(1, w + 1):
-        for y in (t, b - 1):
-            px.data[(y * px.width + x) * 4:(y * px.width + x) * 4 + 4] = b"\xff\xff\xff\xff"
-    for y in range(t, b):
-        for x in (1, w):
-            px.data[(y * px.width + x) * 4:(y * px.width + x) * 4 + 4] = b"\xff\xff\xff\xff"
-    return Glyph(px, w + 2, "no font on this PC has it: an empty box")
+    t, b = m["cap_top"], min(m["baseline"] - 1, font.line_height - 1)
+    k = max(1, round(m["stem"] / 2))
+    for y in range(t, b + 1):
+        for x in range(1, w + 1):
+            if y < t + k or y > b - k or x < 1 + k or x > w - k:
+                px.data[(y * px.width + x) * 4:(y * px.width + x) * 4 + 4] = b"\xff\xff\xff\xff"
+    return Glyph(px, w + 2, "no font on this PC has it: the missing-glyph box")
 
 
 def make_glyph(font: GameFont, cluster: str) -> Glyph:
@@ -1172,6 +1245,35 @@ def generated_in(font: GameFont, text: str) -> list[tuple[str, str]]:
         if g is not None and g.generated and cluster not in seen:
             seen.add(cluster)
             out.append((cluster, g.source))
+    return out
+
+
+def source_label(font: GameFont, cluster: str) -> str:
+    """Where a character's picture comes from, as the shared spec's Game Text tool labels it: "(game)",
+    "(patcher-made)", "(drawn by Windows: <face>)" or "(missing)"; "" for one that draws nothing."""
+    g = glyph_for(font, cluster)
+    if g is None:
+        return ""
+    if g.source == "game":
+        return "(game)"
+    if g.source.startswith("drawn by Windows ("):
+        return f"(drawn by Windows: {g.source[len('drawn by Windows ('):].split(')', 1)[0]})"
+    if g.source.startswith("no font on this PC"):
+        return "(missing)"
+    return "(patcher-made)"
+
+
+def characters_in(font: GameFont, text: str) -> list[tuple[str, str, str]]:
+    """Every character a text uses, once: (cluster, its label, how it was made)."""
+    seen, out = set(), []
+    for cluster in clusters(text):
+        if cluster in seen or cluster in ("\n", "\r\n", "\r"):
+            continue
+        seen.add(cluster)
+        label = source_label(font, cluster)
+        if label:
+            g = glyph_for(font, cluster)
+            out.append((cluster, label, "the game's own letter" if g.source == "game" else g.source))
     return out
 
 

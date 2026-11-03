@@ -7,7 +7,13 @@ They are read as plain text only, when first needed, and kept.
 
 * category(ch), name(ch), lookup(name), is_assigned(cp), assigned_code_points();
 * graphemes(text): user-perceived characters, UAX #29 (18.0) extended grapheme clusters, the
-  GB9c conjunct rule as changed for 18.0 included (tested against GraphemeBreakTest.txt);
+  GB9c conjunct rule as changed for 18.0 included (tested against GraphemeBreakTest.txt), with the
+  shared spec's two joins on top (docs/UNICODE_SPEC.md section 2): every mark (Mn, Mc, Me) joins
+  the character before it, and so does the character after a ZWJ (unless either is a control);
+* NAME_BOX_BYTES: THE name limit of every name box, in bytes as stored (written only here;
+  scripts/build_unicode18_tables.py writes the DLL's copy);
+* decode_game_text / encode_game_text: the shared read and write rule for the games' bytes
+  (Windows-1252 bytes and UTF-8 mixed, per sequence);
 * blocks(), block_of(cp), age(cp), east_asian_width(cp);
 * emoji_sequences(): every RGI emoji sequence (emoji-sequences.txt, emoji-zwj-sequences.txt).
 
@@ -24,6 +30,15 @@ import re
 from typing import Iterator
 
 VERSION = "18.0.0"
+
+# THE name limit (docs/UNICODE_SPEC.md section 2, the owner's "All games: up to 1,200"): every
+# name box takes up to this many bytes as stored (encode_game_text), with no separate character
+# cap. It is the games' own text box cap (their setLimit clamps there). This is the only place
+# the number is written: scripts/build_unicode18_tables.py writes it into the DLL's header
+# (native/common/unicode_grapheme_table.h), and tests/test_name_limit.py fails if another file
+# spells it.
+NAME_BOX_BYTES = 1200
+
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data" / "unicode"
 
@@ -276,6 +291,15 @@ def incb_map() -> RangeMap:
 
 
 @functools.lru_cache(maxsize=None)
+def mark_map() -> RangeMap:
+    """True for a mark (General_Category Mn, Mc or Me): it joins the character before it."""
+    single, ranges = _unicode_data()
+    out = [(cp, cp, True) for cp, (_n, gc) in single.items() if gc in ("Mn", "Mc", "Me")]
+    out += [(a, b, True) for a, b, _l, gc in ranges if gc in ("Mn", "Mc", "Me")]
+    return RangeMap(out, False)
+
+
+@functools.lru_cache(maxsize=None)
 def _emoji_property(prop: str) -> RangeMap:
     return RangeMap([(a, b, True) for a, b, f in _records("emoji-data.txt") if f[0] == prop], False)
 
@@ -334,6 +358,8 @@ class GraphemeState:
         i = incb_map()(cp)
         pict = extended_pictographic(cp)
         brk = self.prev < 0 or _breaks(self.prev, g, i, pict, self.emoji, self.incb, self.ri)
+        if brk and spec_join(self.prev, g, cp):
+            brk = False
         self.emoji = 1 if pict else (1 if self.emoji == 1 and g == _EXTEND else
                                      (2 if self.emoji == 1 and g == _ZWJ else 0))
         self.incb = 1 if i == 3 or (self.incb and i == 2) else 0
@@ -364,6 +390,16 @@ def _breaks(prev: int, g: int, i: int, pict: bool, emoji: int, incb: int, ri: in
     return True                                        # GB999
 
 
+def spec_join(prev: int, g: int, cp: int) -> bool:
+    """The shared spec's joins on top of UAX #29 (docs/UNICODE_SPEC.md section 2, from VF1 and VF2):
+    a mark (Mn, Mc, Me) joins the character before it, and the character after a ZWJ joins it,
+    unless the one before or this one is a control (CR, LF or another control). `prev` is the
+    previous code point's Grapheme_Cluster_Break (-1: none), `g` this one's."""
+    if prev < 0 or prev in _CONTROLS or g in _CONTROLS:
+        return False
+    return prev == _ZWJ or mark_map()(cp)
+
+
 def graphemes(text: str) -> list[str]:
     """The text's extended grapheme clusters (UAX #29, Unicode 18.0)."""
     out: list[str] = []
@@ -388,4 +424,107 @@ def cut_graphemes(text: str, limit: int) -> str:
             break
         out.append(g)
         n += len(g)
+    return "".join(out)
+
+
+# --------------------------------------------------------------------------- the games' bytes
+
+# Windows-1252's 0x80-0x9F (0: one of the five bytes it leaves undefined, read as the Latin-1
+# control with the same number). The DLL's copy is CP1252_HIGH in native/common/unicode_utf8.h.
+CP1252_HIGH = (
+    0x20AC, 0, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0, 0x017D, 0,
+    0, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0, 0x017E,
+    0x0178,
+)
+_BYTE_OF = {(c if c else 0x80 + i): 0x80 + i for i, c in enumerate(CP1252_HIGH)}
+
+
+def _utf8_at(raw: bytes, k: int) -> tuple[int, int] | None:
+    """(code point, length) of a whole, shortest UTF-8 sequence at raw[k] (Unicode Table 3-7: no
+    overlong form, no surrogate, nothing past U+10FFFF), or None."""
+    c = raw[k]
+    if c < 0x80:
+        return c, 1
+    if 0xC2 <= c <= 0xDF:
+        n, cp = 2, c & 0x1F
+    elif 0xE0 <= c <= 0xEF:
+        n, cp = 3, c & 0x0F
+    elif 0xF0 <= c <= 0xF4:
+        n, cp = 4, c & 0x07
+    else:
+        return None
+    if k + n > len(raw):
+        return None
+    for b in raw[k + 1:k + n]:
+        if b & 0xC0 != 0x80:
+            return None
+        cp = (cp << 6) | (b & 0x3F)
+    if (n == 3 and cp < 0x800) or (n == 4 and not 0x10000 <= cp <= 0x10FFFF) or 0xD800 <= cp <= 0xDFFF:
+        return None
+    return cp, n
+
+
+def byte_char(b: int) -> int:
+    """The character a single byte stands for: Windows-1252, its five undefined bytes as Latin-1."""
+    if 0x80 <= b <= 0x9F:
+        return CP1252_HIGH[b - 0x80] or b
+    return b
+
+
+def decode_game_text(raw: bytes) -> str:
+    """The read rule (docs/UNICODE_SPEC.md section 2, one decoder for the DLL and the tools): each
+    whole, shortest UTF-8 sequence is its character; every other byte is its Windows-1252
+    character (the five undefined bytes 81 8D 8F 90 9D as the Latin-1 control). Per sequence, not
+    per string, so mixed text reads correctly. The DLL's copy is utf8_next."""
+    out, k = [], 0
+    while k < len(raw):
+        hit = _utf8_at(raw, k)
+        if hit is None:
+            out.append(chr(byte_char(raw[k])))
+            k += 1
+        else:
+            out.append(chr(hit[0]))
+            k += hit[1]
+    return "".join(out)
+
+
+def game_byte(ch: str) -> int | None:
+    """The one byte a character is written as, when Windows-1252 (or Latin-1, for the five) has it."""
+    cp = ord(ch)
+    if cp < 0x80 or 0xA0 <= cp <= 0xFF:
+        return cp
+    return _BYTE_OF.get(cp)
+
+
+def encode_game_text(text: str) -> bytes:
+    """The write rule (docs/UNICODE_SPEC.md section 2, from VV): a character Windows-1252 has is its
+    one byte, any other its UTF-8 bytes, both mixed in one string; when the mixed bytes would read
+    back as different text (a "\u00c3" byte then a "\u00a9" byte spell the UTF-8 of "\u00e9"),
+    every non-ASCII character is written as UTF-8 instead. A UTF-8 Windows-1252 character met on
+    input (decode_game_text) is so written back as its byte. The DLL's copy is game_encode
+    (native/common/unicode_utf8.h)."""
+    parts = []
+    for ch in text:
+        b = game_byte(ch)
+        parts.append(bytes((b,)) if b is not None else ch.encode("utf-8", "surrogatepass"))
+    mixed = b"".join(parts)
+    if decode_game_text(mixed) == text:
+        return mixed
+    return text.encode("utf-8", "surrogatepass")
+
+
+def game_bytes_len(text: str) -> int:
+    """How many bytes a name box stores for `text` (what NAME_BOX_BYTES counts)."""
+    return len(encode_game_text(text))
+
+
+def cut_game_bytes(text: str, limit: int) -> str:
+    """The longest start of `text`, whole graphemes only, that the games store in `limit` bytes."""
+    if game_bytes_len(text) <= limit:
+        return text
+    out: list[str] = []
+    for g in graphemes(text):
+        if game_bytes_len("".join(out) + g) > limit:
+            break
+        out.append(g)
     return "".join(out)

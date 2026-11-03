@@ -124,6 +124,28 @@ class SaveBackupTests(unittest.TestCase):
                              (backup / f"Plant Tycoon{2 + extra}.ldw").read_bytes())
         self.assertIsNotNone(result.before_restore)
 
+    def test_back_up_and_restore_carry_the_names_file(self) -> None:
+        """A long name's short form and its record in "Names <slot>.dat" go into the backup and come
+        back with the slot, byte for byte (a UTF-8 short form included); the backup lists the whole name."""
+        data = self.folder / "Plant Tycoon Fix Patcher Data"
+        data.mkdir(exist_ok=True)
+        (data / "Unicode Text.ini").write_text("names in any script (UTF-8).")
+        whole = "山田 太郎 Bartholomew Montgomery 🐟"
+        save_tools.rename_slot("plant", self.folder, 2, whole, FakeProcesses())
+        field = save_tools.read_slot_fields("plant", self.folder)[1]
+        self.assertEqual(field, "山田 太郎 Bartholomew Mo...".encode("utf-8"))
+        names_file = (data / "Names 2.dat").read_bytes()
+        backup = self.back_up().backup_folder
+        self.assertEqual(save_backup.players_in("plant", backup)[2], whole)
+        save_tools.rename_slot("plant", self.folder, 2, "Bea", FakeProcesses())
+        (data / "Names 2.dat").write_bytes(b"FTFP Names 1\n")
+        plan = save_backup.plan_restore("plant", self.folder, backup, 2)
+        self.assertEqual((plan.player_name, plan.player_field), (whole, field))
+        save_backup.restore_backup("plant", self.folder, backup, 2, FakeProcesses())
+        self.assertEqual(save_tools.read_slot_fields("plant", self.folder)[1], field)
+        self.assertEqual((data / "Names 2.dat").read_bytes(), names_file)
+        self.assertEqual(dict(save_tools.players("plant", self.folder))[2], whole)
+
     def test_restore_is_refused_while_the_game_runs(self) -> None:
         backup = self.back_up().backup_folder
         (self.folder / "Plant Tycoon1.ldw").write_bytes(b"ldwg changed")

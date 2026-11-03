@@ -31,10 +31,12 @@ import picture_studio
 import save_backup
 import save_tools
 import text_maker_window
+import unicode_font_window
 import translations_window
 
 GAMES = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
-LINK = {"foreground": "#0057c2", "cursor": "hand2", "font": ("Segoe UI", 9, "underline")}
+LIMIT = save_tools.NAME_BOX_BYTES          # every name box's limit, bytes as stored
+LINK ={"foreground": "#0057c2", "cursor": "hand2", "font": ("Segoe UI", 9, "underline")}
 
 # The "?" guides, one per tool (VV: data/how_to_use.json).
 HELP = {
@@ -72,11 +74,14 @@ HELP = {
             "Changes a player's name in the game's player list and inside that player's own save files.",
             "Only players with a saved game can be renamed, and \"NEW PLAYER\" is not a name (the game "
             "uses it for empty slots). Up to 31 plain characters, as in the game; where the copy of the "
-            "game has Render Unicode with In-Game Fonts or Use Unicode Font, up to 300 letters (the "
-            "same limit as every name box in that copy) in the letters it takes. The game's own fields "
-            "then keep the name's first 31 letters (\"?\" for a letter Latin-1 has not), so a copy of "
-            "the game without it still loads the save, and the full name is kept beside the save, in "
-            "<Game> Fix Patcher Data\\Names <slot>.dat.",
+            f"game has Render Unicode with In-Game Fonts or Use Unicode Font, up to {LIMIT:,} bytes as the "
+            "game stores them (the same limit as every name box in that copy, and in the other Fun "
+            f"Patchers: up to {LIMIT:,} plain letters, fewer when letters need more bytes) in the "
+            "characters it takes. The counter shows the bytes and the characters. A name that fits "
+            "the game's own 31-byte field is kept there as it is; a longer one is kept there as its "
+            "short form (its start and \"...\", or \"2...\", \"3...\" when two would start alike), "
+            "so a copy of the game without it still loads the save, and the whole name is kept beside "
+            "the save, in <Game> Fix Patcher Data\\Names <slot>.dat.",
             "The game must be closed: it saves when you quit, which would put the old name back. The "
             "save folder is backed up first, as \"Backup <date> (before rename)\".",
         ],
@@ -94,8 +99,9 @@ HELP = {
             "files, or anything an earlier player left on an empty slot, are not deleted but moved into "
             "Backups\\Replaced by copy <date> - Player <n> - <name>, so nothing of them mixes in. The new "
             "name follows the "
-            "game's rules: up to 31 plain characters (300 letters where the copy has Render Unicode with "
-            "In-Game Fonts or Use Unicode Font, its full name copied too), not \"NEW PLAYER\".",
+            f"game's rules: up to 31 plain characters ({LIMIT:,} bytes where the copy has Render Unicode "
+            "with In-Game Fonts or Use Unicode Font, the Names file copied with the new name's record), "
+            "not \"NEW PLAYER\".",
             "The game must be closed. The save folder is backed up first, as \"Backup <date> (before "
             "copy)\", so Restore Saves can undo it.",
         ],
@@ -115,6 +121,7 @@ HELP = {
     "breeding_guide": breeding_guide.HELP,
     "picture_studio": picture_studio.HELP,
     "text_maker": text_maker_window.HELP,
+    "unicode_font": unicode_font_window.HELP,
     "translations": translations_window.HELP,
 }
 
@@ -152,7 +159,8 @@ class ToolsTab:
             ("Game Mechanics...", "game_mechanics", lambda: self.mechanics(self.app.game_choice.get())),
             ("Breeding Guide...", "breeding_guide", lambda: self.breeding(self.app.game_choice.get())),
             ("Picture Studio...", "picture_studio", lambda: self.studio(self.app.game_choice.get())),
-            ("Text Maker...", "text_maker", lambda: self.text_maker(self.app.game_choice.get())),
+            ("Game Text...", "text_maker", lambda: self.text_maker(self.app.game_choice.get())),
+            ("Unicode Font...", "unicode_font", self.unicode_font),
             ("Translations...", "translations", lambda: self.translations(self.app.game_choice.get())),
         )):
             self._link(links, text, command).pack(side="left", padx=(0 if index == 0 else 18, 0))
@@ -170,7 +178,7 @@ class ToolsTab:
             ("game_mechanics", "Game mechanics...", self.mechanics),
             ("breeding_guide", "Breeding guide...", self.breeding),
             ("picture_studio", "Picture studio...", self.studio),
-            ("text_maker", "Text maker...", self.text_maker),
+            ("text_maker", "Game text...", self.text_maker),
             ("translations", "Translations...", self.translations),
         )
         for column, (key, _text, _command) in enumerate(columns, start=1):
@@ -189,7 +197,8 @@ class ToolsTab:
             ("Game Mechanics...", "game_mechanics", lambda: self.mechanics(None)),
             ("Breeding Guide...", "breeding_guide", lambda: self.breeding(None)),
             ("Picture Studio...", "picture_studio", lambda: self.studio(None)),
-            ("Text Maker...", "text_maker", lambda: self.text_maker(None)),
+            ("Game Text...", "text_maker", lambda: self.text_maker(None)),
+            ("Unicode Font...", "unicode_font", self.unicode_font),
             ("Translations...", "translations", lambda: self.translations(None)),
         )):
             ttk.Button(buttons, text=text, command=command).pack(side="left", padx=(0 if index == 0 else 8, 0))
@@ -553,10 +562,12 @@ class ToolsTab:
 
         def check(*_args) -> None:
             name = name_var.get()
-            limit = save_tools.name_limit(game(), state["folders"][folder_box.current()]
-                                          if state["folders"] and folder_box.current() >= 0 else None)
-            counter_var.set(f"{len(name)} / {limit} characters")
-            counter.configure(foreground="#a01010" if len(name) > limit else "")
+            text, over = save_tools.counter_text(
+                game(), state["folders"][folder_box.current()]
+                if state["folders"] and folder_box.current() >= 0 else None, name,
+                chosen()[0] if chosen() else None)
+            counter_var.set(text)
+            counter.configure(foreground="#a01010" if over else "")
             item = chosen()
             problem = None
             if not state["folders"]:
@@ -717,10 +728,12 @@ class ToolsTab:
 
         def check(*_args) -> None:
             name = name_var.get()
-            limit = save_tools.name_limit(game(), state["folders"][folder_box.current()]
-                                          if state["folders"] and folder_box.current() >= 0 else None)
-            counter_var.set(f"{len(name)} / {limit} characters")
-            counter.configure(foreground="#a01010" if len(name) > limit else "")
+            text, over = save_tools.counter_text(
+                game(), state["folders"][folder_box.current()]
+                if state["folders"] and folder_box.current() >= 0 else None, name,
+                target()[0] if target() else None)
+            counter_var.set(text)
+            counter.configure(foreground="#a01010" if over else "")
             problem = None
             if not state["folders"]:
                 problem = "No save folder was found for this game."
@@ -878,6 +891,15 @@ class ToolsTab:
         app = self.app
         folders = {game: [app.path_vars[game][key].get() for key in ("vanilla", "output")] for game in GAMES}
         text_maker_window.open_window(app, game_id or app.game_choice.get(), folders)
+
+    # ------------------------------------------------------------ unicode font
+
+    def unicode_font(self) -> None:
+        """The Unicode Font window (src/unicode_font_window.py): Use Unicode Font's font, one for both
+        games, previewed in every game font the patcher can find."""
+        app = self.app
+        folders = {game: [app.path_vars[game][key].get() for key in ("vanilla", "output")] for game in GAMES}
+        unicode_font_window.open_window(app, folders)
 
     # ------------------------------------------------------------ translations
 

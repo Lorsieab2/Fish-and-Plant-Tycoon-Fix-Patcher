@@ -61,6 +61,7 @@
 #define GAME_SET_LIMIT_TARGET 0x0040B8B0u
 #define GAME_DRAW_FRAME 0x34
 #define GAME_DRAW_RESUME 0x004087E7u
+#define GAME_NAME_PLACEHOLDER "__________________________"  /* the text the name rows are made with (0x4170D1) */
 #define GAME_DEFAULT_COLOUR 0x0045427Cu  /* the colour of text drawn with colour 0 */
 #define GAME_CLIP 0x38                     /* the graphics' clip rectangle: left, top, right, bottom */
 #define GAME_SDL2 0
@@ -286,8 +287,9 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
         self_module = instance;
         DisableThreadLibraryCalls(instance);
     } else if (reason == DLL_PROCESS_DETACH && installed) {
-        /* the game quits: a name typed since the last draw still goes beside the save */
-        names_sync();
+        /* the game quits: a name typed since the last draw, or a record whose write failed, still
+           goes beside the save */
+        names_sync_now(1);
     }
     return TRUE;
 }

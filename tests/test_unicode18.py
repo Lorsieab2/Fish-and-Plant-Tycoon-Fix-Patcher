@@ -37,8 +37,8 @@ SDK = Path(r"C:\Program Files (x86)\Windows Kits\10")
 SDK_VERSION = "10.0.26100.0"
 
 
-def break_tests() -> list[list[str]]:
-    """GraphemeBreakTest.txt: each line's expected graphemes."""
+def uax29_tests() -> list[list[str]]:
+    """GraphemeBreakTest.txt: each line's expected graphemes (UAX #29 alone)."""
     out = []
     for line in (DATA / "GraphemeBreakTest.txt").read_text(encoding="utf-8").splitlines():
         line = line.split("#", 1)[0].strip()
@@ -53,6 +53,29 @@ def break_tests() -> list[list[str]]:
                 cur += chr(int(tok, 16))
         out.append(want)
     return out
+
+
+def with_spec_joins(want: list[str]) -> list[str]:
+    """UAX #29's graphemes with the shared spec's joins on top (docs/UNICODE_SPEC.md section 2): no
+    boundary where a mark follows, or where anything follows a ZWJ, unless a control is next to
+    it. The joins change no other boundary (the rules' memory runs on per code point)."""
+    out: list[str] = []
+    for g in want:
+        if out and U.spec_join(U.gcb_map()(ord(out[-1][-1])), U.gcb_map()(ord(g[0])), ord(g[0])):
+            out[-1] += g
+        else:
+            out.append(g)
+    return out
+
+
+def break_tests() -> list[list[str]]:
+    """GraphemeBreakTest.txt with the spec's joins: what the patcher and the DLL cut."""
+    return [with_spec_joins(want) for want in uax29_tests()]
+
+
+# Lines of GraphemeBreakTest.txt 18.0 whose graphemes the spec's joins change (ZWJ + next, a mark
+# that is neither Extend nor SpacingMark): pinned, so a data change is noticed.
+SPEC_JOIN_LINES = 20
 
 
 ASSIGNED = None
@@ -108,8 +131,26 @@ class GraphemeTests(unittest.TestCase):
     def test_grapheme_break_test(self) -> None:
         cases = break_tests()
         self.assertEqual(len(cases), 853)
+        self.assertEqual(sum(a != b for a, b in zip(cases, uax29_tests())), SPEC_JOIN_LINES)
         for want in cases:
             self.assertEqual(U.graphemes("".join(want)), want, [hex(ord(c)) for c in "".join(want)])
+
+    def test_spec_joins(self) -> None:
+        """The shared cluster rule on top of UAX #29: ZWJ + next, every mark (Mn, Mc, Me), never next
+        to a control; the rest as UAX #29 (VS, skin tones, tags, ZWNJ, flags, CR LF)."""
+        cases = {
+            "a\u200db": ["a\u200db"],                                  # ZWJ joins what follows
+            "a\u200d\n": ["a\u200d", "\n"],                          # not a line break
+            "\u1000\u102b": ["\u1000\u102b"],                        # Myanmar Mc (UAX #29 breaks)
+            "e\u0301\u0302x": ["e\u0301\u0302", "x"],
+            "a\u200cb": ["a\u200c", "b"],                              # ZWNJ joins the one before
+            "\U0001F44D\U0001F3FD!": ["\U0001F44D\U0001F3FD", "!"],
+            "\U0001F1EF\U0001F1F5\U0001F1EF": ["\U0001F1EF\U0001F1F5", "\U0001F1EF"],
+            "\r\n\u0301": ["\r\n", "\u0301"],
+            "x\uFE0F\U000E0067": ["x\uFE0F\U000E0067"],
+        }
+        for text, want in cases.items():
+            self.assertEqual(U.graphemes(text), want, ascii(text))
 
     def test_every_rgi_emoji_sequence_is_one_grapheme(self) -> None:
         seqs = U.emoji_sequences()
@@ -187,6 +228,15 @@ class NativeTests(unittest.TestCase):
     @staticmethod
     def hexes(text: str) -> str:
         return " ".join(f"{ord(c):X}" for c in text)
+
+    def test_spec_joins_match_python(self) -> None:
+        """The DLL cuts where the tools cut, the spec's joins included."""
+        texts = ["a\u200db", "a\u200d\n", "\u1000\u102b\u102c", "e\u0301\u0302x", "a\u200cb",
+                 "\U0001F44D\U0001F3FD!", "\U0001F1EF\U0001F1F5\U0001F1EF", "\r\n\u0301",
+                 "\u0915\u094d\u0937\u093f", "\u1a20\u1a61\u1a63"]
+        got = self.run_lines(["g " + self.hexes(t) for t in texts])
+        for text, line in zip(texts, got):
+            self.assertEqual(line, " ".join(str(len(g)) for g in U.graphemes(text)), ascii(text))
 
     def test_grapheme_break_test(self) -> None:
         # the games' text ends at its first NUL, so the lines with U+0000 are checked without it:
@@ -281,12 +331,21 @@ class ToolTests(unittest.TestCase):
 
     def test_names_take_every_assigned_letter(self) -> None:
         import save_tools
-        bad = [cp for cp in assigned() if cp >= 0x20 and not save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT)]
+        banned = (0x2028, 0x2029, 0xFEFF)          # the three assigned code points no name can hold (spec section 6)
+        bad = [cp for cp in assigned() if cp >= 0x20 and cp not in banned
+               and not save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT)]
         self.assertEqual(bad, [])
         for cp in (0x3D000, 0x18E00, 0x0558, 0x20C2):           # new in 18.0
             self.assertEqual(save_tools.validate_name("fish", "Ab" + chr(cp), save_tools.ANY_SCRIPT), "Ab" + chr(cp))
-        for cp in (0x7, 0x85, 0xE000, 0xFDD0, 0x3FFFE):
+        for cp in (0x0, 0x7, 0x7F, 0x85, 0x2028, 0x2029, 0xFEFF):     # what no name can hold
             self.assertFalse(save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT), hex(cp))
+        # the spec keeps private use, noncharacters and unassigned code points (VF1 and VF2 allow them: the
+        # game stores them and draws a box)
+        for cp in (0xE000, 0xFDD0, 0xFFFE, 0x3FFFE, 0x10FFFF, 0x0378):
+            self.assertTrue(save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT), hex(cp))
+        # without Any script the tools keep the stock sets
+        self.assertFalse(save_tools.name_allowed("\u20ac", save_tools.LATIN1))
+        self.assertTrue(save_tools.name_allowed("\u00e9", save_tools.LATIN1))
 
     def test_translations_take_every_assigned_letter(self) -> None:
         import translation_format as F

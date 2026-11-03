@@ -47,6 +47,7 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import re
 import struct
@@ -307,9 +308,9 @@ def main() -> int:
                 })
 
         old = manifest["patched_sha256_by_settings"]
-        pins = {k: v for k, v in old.items() if SETTING_ID not in k.split(",")}
+        pins = dict(old)                     # keep every pin (scripts/pin_keys.py)
         added = 0
-        for key in [""] + list(pins):
+        for key in [""] + pin_keys.sources(manifest, pins, {SETTING_ID}):
             enabled = set(key.split(",")) - {""}
             if enabled & REPINNED_LATER:
                 continue
@@ -325,7 +326,7 @@ def main() -> int:
         for key, value in old.items():
             if SETTING_ID not in key.split(","):
                 assert pins[key] == value, key
-        manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+        manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
         game["manifest"].write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print(f"{game_id}: {len(records)} patches, {2 ** len(settings) - 1} checksum records, {added} pins with the setting")
     return 0

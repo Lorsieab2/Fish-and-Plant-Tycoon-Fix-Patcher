@@ -2,7 +2,8 @@
    clusters), Unicode 18.0.
 
    The rules of UAX #29 for extended grapheme clusters (GB3-GB13 with GB9c as changed for 18.0:
-   InCB=Linker InCB=Extend* x InCB=Consonant), over the tables scripts/build_unicode18_tables.py
+   InCB=Linker InCB=Extend* x InCB=Consonant), plus the shared spec's two joins (a mark joins the
+   character before it; the character after a ZWJ joins it; never next to a control), over the tables scripts/build_unicode18_tables.py
    makes from data/unicode (unicode_grapheme_table.h). The same state machine as the patcher's own
    tools (src/unicode_data.py, GraphemeState), and both pass all of GraphemeBreakTest.txt 18.0
    (tests/test_unicode18.py; this file natively, through native/common/unicode_grapheme_harness.c).
@@ -23,7 +24,7 @@ enum {
 #define INCB_EXTEND 2
 #define INCB_LINKER 3
 
-/* GCB | InCB << 4 | Extended_Pictographic << 6 of `cp` */
+/* GCB | InCB << 4 | Extended_Pictographic << 6 | mark << 7 of `cp` */
 static unsigned int gb_props(unsigned int cp) {
     int lo = 0, hi = GB_RANGE_COUNT - 1;
     while (lo < hi) {
@@ -64,6 +65,9 @@ static int gb_push(gb_state *s, unsigned int cp) {
     else if (i == INCB_CONSONANT && s->incb) brk = 0;
     else if (prev == GB_ZWJ && s->emoji == 2 && pict) brk = 0;
     else if (prev == GB_RI && g == GB_RI && (s->ri & 1)) brk = 0;
+    /* the shared spec's joins on top (src/unicode_data.py spec_join): a mark (Mn, Mc, Me) joins the
+       character before it, and the character after a ZWJ joins it, neither next to a control */
+    if (brk && prev >= 0 && !gb_control(prev) && !gb_control(g) && (prev == GB_ZWJ || ((p >> 7) & 1))) brk = 0;
     if (pict) s->emoji = 1;
     else if (s->emoji == 1 && g == GB_EXTEND) s->emoji = 1;
     else if (s->emoji == 1 && g == GB_ZWJ) s->emoji = 2;
@@ -72,6 +76,17 @@ static int gb_push(gb_state *s, unsigned int cp) {
     s->ri = g == GB_RI ? s->ri + 1 : 0;
     s->prev = g;
     return brk;
+}
+
+/* Where the last grapheme of cps[0..n) starts. */
+static int last_grapheme(const unsigned int *cps, int n) {
+    gb_state s;
+    int i, start = 0;
+    gb_start(&s);
+    for (i = 0; i < n; ++i) {
+        if (gb_push(&s, cps[i])) start = i;
+    }
+    return start;
 }
 
 /* ---- emoji */

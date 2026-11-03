@@ -6,9 +6,11 @@ known picture), so what is checked is where each letter comes from and where it 
 * A letter the game's font has (ASCII, Latin-1 as UTF-8 or as its old byte, a Windows-1252
   letter such as €) is drawn by the game's own code, pixel for pixel as before.
 * Any other letter is a run-time glyph in the text's colour, placed at the pen and advanced by
-  its own width plus the font's spacing; the measure agrees. A letter no font has is '?'.
-* In a text box a letter goes in as its UTF-8 bytes, whole or not at all; Backspace takes off a
-  whole letter; a name box stops at 300 letters.
+  its own width plus the font's spacing; the measure agrees. A letter no font has is the
+  missing-glyph box in the font's style (never the game's '?').
+* In a text box a letter goes in by the shared write rule (a Windows-1252 letter one byte, any
+  other UTF-8), whole or not at all; Backspace takes off a whole character; a name box stops at
+  NAME_BOX_BYTES bytes as stored, with no character cap.
 """
 
 from __future__ import annotations
@@ -21,6 +23,21 @@ from test_unicode_text import E, needs
 import test_unicode_names as N
 
 NO_FONT = 0xE000          # the stand-in fonts have no letter for it
+
+
+def font_style(game: str, key: str) -> dict:
+    """A game font's style as native/ftfp_<game>_unicode/unicode_styles.h has it."""
+    import re
+    text = (T.ROOT / "native" / T.PROJECTS[game] / "unicode_styles.h").read_text(encoding="utf-8")
+    at = text.index(f"/* {key}:")
+    head = re.search(r"\{0x([0-9A-F]+)u, (\w+), ([-\d, ]+),\n", text[at:])
+    numbers = [int(v) for v in head.group(3).split(",") if v.strip()]
+    names = ("height", "cap_top", "baseline", "em", "weight", "left", "right", "stroke")
+    body = text[at + head.end(): text.index("},", at + head.end())]
+    style = dict(zip(names, numbers))
+    style["stock"] = int(head.group(1), 16)
+    style["levels"] = bytes(int(v) for v in body.replace("\n", " ").split(",") if v.strip())
+    return style
 
 
 def fake_glyph(cp: int) -> tuple[int, int, int]:
@@ -113,10 +130,29 @@ class GlyphCase:
                 self.assertEqual(shown, bytes(self.fde.screen_image.data))
                 self.assertEqual(self.width(text.encode("utf-8")), self.width(b"Ab", own=True) + adv + self.spacing)
 
-    def test_a_letter_no_font_has_is_a_question_mark(self) -> None:
+    def box_cells(self) -> tuple[int, set[tuple[int, int]]]:
+        """The missing-glyph box of this font's style: its advance and its inked (column, row) cells."""
+        s = font_style(self.game, T.FONT_SITES[self.game][0][1])
+        inner = max(4, (s["baseline"] - s["cap_top"]) * 2 // 3)
+        top, bottom, k = s["cap_top"], min(s["baseline"] - 1, self.height - 1), s["stroke"]
+        cells = {(x, y) for y in range(top, bottom + 1) for x in range(1, inner + 1)
+                 if y < top + k or y > bottom - k or x < 1 + k or x > inner - k}
+        return inner + 2, cells
+
+    def test_a_letter_no_font_has_is_the_missing_glyph_box(self) -> None:
         text = ("x" + chr(NO_FONT) + "y").encode("utf-8")
-        self.assertEqual(self.draw(text), self.draw(b"x?y", own=True))
-        self.assertEqual(self.width(text), self.width(b"x?y", own=True))
+        adv, cells = self.box_cells()
+        shown = self.draw(text)
+        pen = 5 + self.width(b"x", own=True) + self.spacing
+        self.fde.fill((10, 20, 30))
+        self.draw(b"x", own=True, fill=False)
+        self.draw(b"y", own=True, x=pen + adv + self.spacing, fill=False)
+        for x, y in cells:
+            self.paint(pen + x, 7 + y, 1, 1)
+        self.assertEqual(shown, bytes(self.fde.screen_image.data))
+        self.assertEqual(self.width(text), self.width(b"xy", own=True) + adv + self.spacing)
+        # never the game's "?"
+        self.assertNotEqual(shown, self.draw(b"x?y", own=True))
 
     def test_lines(self) -> None:
         text = ("a" + chr(0x3042) + "\nbc").encode("utf-8")
@@ -130,8 +166,9 @@ def box_with(emu, limit: int, text: bytes = b"") -> tuple[int, int]:
     emu.uc.mem_write(box, bytes(0x60))
     focus = emu.alloc(0x10)
     emu.write8(focus + 8, 1)
-    buffer = emu.alloc(limit + 8)
+    buffer = emu.alloc(max(limit, len(text)) + 8)
     emu.uc.mem_write(buffer, text + b"\0")
+    emu.uc.mem_write(buffer + max(limit, len(text)) + 1, b"\xA5" * 7)    # guard bytes past the box's room
     emu.write8(box + 0x25, 1)
     emu.write32(box + 0x1C, focus)
     emu.write32(box + 0x28, limit)
@@ -152,11 +189,13 @@ class TypingCase:
         box, buffer = box_with(emu, limit, text)
         for ch in chars:
             self.assertEqual(emu.call(handler, 5, 0, ch, ecx=box) & 0xFF, 1)
+        room = max(limit, len(text))
+        self.assertEqual(bytes(emu.uc.mem_read(buffer + room + 1, 7)), b"\xA5" * 7, "nothing past the box's room")
         return emu.cstring(buffer)
 
     def test_letters_go_in_whole(self) -> None:
         name = "山田 Ölçer 🐟 𒀀 İstanbul"
-        self.assertEqual(self.type([ord(c) for c in name], limit=200), name.encode("utf-8"))
+        self.assertEqual(self.type([ord(c) for c in name], limit=200), T.unicode_data.encode_game_text(name))
         # a letter that does not fit whole stays out
         self.assertEqual(self.type([0x61, 0x62, 0x3042], limit=4), b"ab")
         self.assertEqual(self.type([0x61, 0x3042], limit=4), "aあ".encode("utf-8"))
@@ -170,9 +209,10 @@ class TypingCase:
         # an old one-byte name loses one letter (its byte) too
         self.assertEqual(self.type([8], limit=40, text=b"Ren\xe9"), b"Ren")
 
-    def test_a_name_box_stops_at_300_letters(self) -> None:
-        stored = self.type([0x3042] * 301, limit=1200)
-        self.assertEqual(stored, "あ".encode("utf-8") * 300)
+    def test_a_name_box_stops_at_its_bytes(self) -> None:
+        limit = T.unicode_data.NAME_BOX_BYTES
+        stored = self.type([0x3042] * (limit // 3 + 1), limit=limit)
+        self.assertEqual(stored, "あ".encode("utf-8") * (limit // 3))
 
 
 INI = "Unicode Text.ini"

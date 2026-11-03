@@ -6,6 +6,10 @@
        Mode=ingame        Render Unicode with In-Game Fonts (also with no file at all)
        Mode=system        Use Unicode Font (overrides in-game fonts)
        Font=<name>        the font chosen in the patcher (UTF-8), first in the chain
+       File=<file>        a font file the patcher's "Unicode Font..." window copied beside this
+                          DLL (a file name, UTF-8), loaded for the game only (FR_PRIVATE)
+       File=<file>        a font file the patcher's "Unicode Font..." window copied beside this
+                          DLL (a file name, UTF-8), loaded for the game only (FR_PRIVATE)
        Mode=none          neither: only Copy and Paste in Text Boxes (the box draw's site alone)
        Paste=1            Copy and Paste in Text Boxes (text_clipboard.h) is on
 
@@ -65,6 +69,17 @@ static void read_unicode_config(const wchar_t *folder) {
             chosen_font[n++] = (wchar_t)cp;
         }
         chosen_font[n] = L'\0';
+    }
+    if (ini_value(data, "File", value, sizeof value) && value[0]) {
+        const unsigned char *p = (const unsigned char *)value;
+        int n = 0, bad = 0;
+        while (*p && n < 127) {
+            unsigned int cp = utf8_next(&p);
+            /* a file name beside the DLL: no folder, no drive */
+            if (cp >= 0x10000 || cp < 0x20 || cp == '\\' || cp == '/' || cp == ':') { bad = 1; break; }
+            chosen_file[n++] = (wchar_t)cp;
+        }
+        chosen_file[bad ? 0 : n] = L'\0';
     }
 }
 

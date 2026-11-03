@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import sys
 
@@ -125,15 +126,15 @@ def pin_game(game: str, setting_base: dict, source: str, profile: ds_fish_loader
     at = next(i for i, s in enumerate(settings) if s["id"] == after) + 1
     manifest["settings"] = settings[:at] + [setting] + settings[at:]
 
-    pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items() if SETTING_ID not in k.split(",")}
-    keys = list(dict.fromkeys([""] + list(pins)))
+    pins = dict(manifest["patched_sha256_by_settings"])   # keep every pin (scripts/pin_keys.py)
+    keys = list(dict.fromkeys([""] + pin_keys.sources(manifest, pins, {SETTING_ID})))
     for key in keys:
         enabled = {s for s in key.split(",") if s} | {SETTING_ID}
         patched, _ = patcher.apply_patch_bytes(vanilla, patcher.active_patch_records(manifest, enabled))
         patched, _ = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.plant_profile(enabled)
                                                           if game == "plant" else ds_fish_loader.fish_profile(enabled))
         pins[key_of(enabled, manifest)] = sha256(patched)
-    manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+    manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return len(keys)
 
