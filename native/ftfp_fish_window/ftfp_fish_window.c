@@ -33,10 +33,33 @@
        drawn where the click lands.
    Fullscreen is left entirely to SDL.  Sizes are the window's own client
    rectangle in the units the window procedure sees, so Windows display
-   scaling needs no special case.  Nothing is saved anywhere. */
+   scaling needs no special case.  Nothing is saved anywhere.
+
+   THE SCREENSAVER.  The tank screen's Screensaver button (0x41EE2A) slides
+   the interface off (0x41E3A0), sets state+0x1E4F9 and, in windowed mode,
+   jumps to 0x408CB0, which calls SDL_SetVideoMode(800, 600, 32,
+   SDL_FULLSCREEN): SDL changes the display itself to 800x600
+   (ChangeDisplaySettings).  Any click or key (0x421F80, 0x41ED10) clears
+   the flag, switches back to windowed (0x408CA0) unless the Fullscreen
+   option is on, and shows the cursor again (0x407B70).  The game has no
+   .scr file, no command line and no registry use: the screensaver is only
+   this mode.  On Windows 10 and 11 that display-mode change is what goes
+   wrong: the game is not DPI aware, so with display scaling above 100% the
+   800x600 picture is enlarged past the screen and cut off; the screen
+   blanks while the mode changes, and other windows are moved to fit
+   800x600.  So, when this DLL is installed and the game is windowed, the
+   jump at 0x41E3DD comes here instead and the window itself becomes a
+   borderless window covering its monitor, with the picture drawn scaled as
+   above -- the display mode never changes.  The call of 0x407B70 at
+   0x421FCD (the screensaver's end) comes here first and puts the window's
+   style, size, place and maximized state back exactly.  Both sites are
+   checked and written together, or neither (the maximize part still
+   installs), and if the window cannot be made borderless the game's own
+   fullscreen switch runs as before. */
 
 #include <windows.h>
 #include <windowsx.h>
+#include "../ftfp_ds_fish/install_sites.h"
 
 #pragma comment(lib, "gdi32.lib")
 
@@ -348,8 +371,102 @@ static void make_resizable(int w, int h) {
     }
 }
 
+/* ------------------------------------------------------- the screensaver */
+
+#define SCREENSAVER_FULLSCREEN_SITE 0x0041E3DDu   /* jmp 0x408CB0 (the switch to fullscreen) */
+#define SCREENSAVER_END_SITE 0x00421FCDu          /* call 0x407B70 (cursor shown again) */
+#define GAME_FULLSCREEN 0x00408CB0u               /* thiscall (video holder) */
+#define GAME_SHOW_CURSOR 0x00407B70u              /* thiscall (video holder; show), ret 4 */
+
+static const BYTE screensaver_fullscreen_stock[5] = {0xE9, 0xCE, 0xA8, 0xFE, 0xFF};
+static const BYTE screensaver_end_stock[5] = {0xE8, 0x9E, 0x5B, 0xFE, 0xFF};
+
+typedef void (__fastcall *game_fullscreen_fn)(void *video);
+typedef void (__fastcall *game_show_cursor_fn)(void *video, void *edx, int show);
+
+static int screensaver_installed;
+static int borderless;                  /* the screensaver covers the monitor */
+static LONG saved_style;
+static WINDOWPLACEMENT saved_place;
+
+#define FRAME_STYLES (WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
+
+/* The windowed game window becomes a borderless window over its whole
+   monitor; 0 (nothing changed) when it cannot. */
+static int enter_borderless(void) {
+    MONITORINFO monitor;
+    HMONITOR on;
+    WINDOWPLACEMENT place;
+    LONG style;
+    if (borderless) return 1;
+    if (screen == NULL || fullscreen || game_window == NULL || !drawable()) return 0;
+    ZeroMemory(&place, sizeof(place));
+    place.length = sizeof(place);
+    if (!GetWindowPlacement(game_window, &place)) return 0;
+    on = MonitorFromWindow(game_window, MONITOR_DEFAULTTONEAREST);
+    ZeroMemory(&monitor, sizeof(monitor));
+    monitor.cbSize = sizeof(monitor);
+    if (on == NULL || !GetMonitorInfoA(on, &monitor)) return 0;
+    if (monitor.rcMonitor.right <= monitor.rcMonitor.left || monitor.rcMonitor.bottom <= monitor.rcMonitor.top) return 0;
+    style = GetWindowLongA(game_window, GWL_STYLE);
+    saved_style = style;
+    saved_place = place;
+    borderless = 1;
+    /* A maximized window would be put back in the work area by Windows. */
+    if (IsZoomed(game_window)) ShowWindow(game_window, SW_RESTORE);
+    SetWindowLongA(game_window, GWL_STYLE, (style & ~FRAME_STYLES) | WS_POPUP);
+    SetWindowPos(game_window, HWND_TOP, monitor.rcMonitor.left, monitor.rcMonitor.top,
+                 monitor.rcMonitor.right - monitor.rcMonitor.left,
+                 monitor.rcMonitor.bottom - monitor.rcMonitor.top,
+                 SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+    return 1;
+}
+
+/* Puts back the window's style, size, place and maximized state. */
+static void leave_borderless(void) {
+    if (!borderless) return;
+    borderless = 0;
+    if (game_window == NULL) return;
+    SetWindowLongA(game_window, GWL_STYLE, saved_style);
+    SetWindowPos(game_window, NULL, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    saved_place.length = sizeof(saved_place);
+    SetWindowPlacement(game_window, &saved_place);
+}
+
+/* From 0x41E3DD (jmp, so this returns to the frame's caller): the
+   screensaver starts in windowed mode. */
+static void __fastcall screensaver_fullscreen(void *video) {
+    int done = 0;
+    __try {
+        done = enter_borderless();
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        done = 0;
+    }
+    if (!done) ((game_fullscreen_fn)(UINT_PTR)GAME_FULLSCREEN)(video);
+}
+
+/* From 0x421FCD: the screensaver has ended (a click or a key). */
+static void __fastcall screensaver_end(void *video, void *edx, int show) {
+    __try {
+        leave_borderless();
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+    ((game_show_cursor_fn)(UINT_PTR)GAME_SHOW_CURSOR)(video, edx, show);
+}
+
+static void install_screensaver(void) {
+    ftfp_site_write writes[2];
+    ftfp_site_branch(&writes[0], SCREENSAVER_FULLSCREEN_SITE, 5, screensaver_fullscreen_stock, 0xE9,
+                     (const void *)(UINT_PTR)screensaver_fullscreen);
+    ftfp_site_branch(&writes[1], SCREENSAVER_END_SITE, 5, screensaver_end_stock, 0xE8,
+                     (const void *)(UINT_PTR)screensaver_end);
+    screensaver_installed = ftfp_install_sites(writes, 2);
+}
+
 static sdl_surface *__cdecl hook_set_video_mode(int width, int height, int bpp, DWORD flags) {
     sdl_surface *result;
+    leave_borderless();
     /* SDL sizes the window for the new mode from a normal (not maximized) one. */
     if (game_window != NULL && IsZoomed(game_window)) ShowWindow(game_window, SW_RESTORE);
     screen = NULL;
@@ -429,6 +546,13 @@ int __stdcall FtfpStartup(void) {
         installed = install();
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         installed = 0;
+    }
+    if (installed) {
+        __try {
+            install_screensaver();
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+            screensaver_installed = 0;
+        }
     }
     return installed;
 }
