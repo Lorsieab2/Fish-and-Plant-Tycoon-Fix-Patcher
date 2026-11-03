@@ -6,7 +6,7 @@ game's own test with its exact odds (game_mechanics.chance).
 
 from __future__ import annotations
 
-from game_mechanics import Fact, GamePage, Group, at_most, below, chance
+from game_mechanics import Fact, GamePage, Group, at_most, below, chance, each
 from unicode_data import NAME_BOX_BYTES
 
 STEP = "one age step (5, 10 or 15 real-time minutes at 2x speed, Normal and 1/2 speed)"
@@ -60,6 +60,7 @@ def page() -> GamePage:
                        "store's Upgrades screen they are sold on."),
             Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (on by default), which also turns on the store's Upgrades screen it lives on."),
             Group("Names and letters", TEXT_ENTRY),
+            Group("Music and sounds", MUSIC),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Plant Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
@@ -91,8 +92,9 @@ CLOCKS = (
             "while a message box is open.",
             "Thought bubbles and the shop's click texts stay 4-5 real-time seconds; tank hints 2 "
             "real-time seconds.",
-            "Ambient tank sounds: every 210 real-time seconds on the tank screen (the first 630 "
-            "real-time seconds after the intro); skipped under Stop Time.",
+            "Random tank sounds: due 210 real-time seconds after the last check, on the tank screen "
+            "only (the first 630 real-time seconds after the intro); skipped under Stop Time (see "
+            "Music and sounds).",
             "Tutorial waits (real-time): the next tip 25 seconds after a mating, 500 seconds (shown "
             "at the first fish update after that, so 500-801 seconds) after the \"basics\" tip, "
             "7 seconds after returning from the species screen. The three share one timer, so a "
@@ -1445,6 +1447,82 @@ EXTRA_TANKS = (
     ),
 )
 
+MUSIC = (
+    Fact(
+        "Everything the game plays is a file in its Sounds folder, played through the FMOD sound "
+        "library: one music file (Tanked.xm) and 21 sound effects. None of it changes the game: fish, "
+        "health, growth, breeding, customers, sales, money, research and the magic fish never read a "
+        "sound. The only things the sound code reads or writes are the Sounds option, an unsaved "
+        "timer for the random tank sound and \"is it still playing?\" checks that only decide "
+        "whether to start another sound (0x423E4B, 0x416453). All of it is cosmetic only.",
+    ),
+    Fact(
+        "The music: Tanked.xm is the game's only music. It plays once, at half volume, when the "
+        "\"Would you like HELP the first time?\" screen opens (0x41C1F0, started at 0x41C241), and "
+        "only if Sounds is Enabled. It does not loop, and nothing stops it when you answer, so it "
+        "keeps playing over the tank until it ends (or you set Sounds to Disabled, or quit). That "
+        "screen opens when you press Play on a game whose help question has not been answered yet "
+        "(a new game); a game that has answered goes straight to the tank (0x41CC04), so you hear "
+        "the music once per game, not at every start. No other code starts it.",
+    ),
+    Fact(
+        "Tanked.xm plays for about 3 minutes 20 real-time seconds, worked out from the file's own tempo and "
+        "pattern changes (an estimate; the file is a tracker module of 56 patterns that plays once).",
+        label="U",
+    ),
+    Fact(
+        "The sound that comes by itself while you play is not the music file. It is one of three "
+        "long sound effects, clip1.wav (15.1 seconds), clip3.wav (11.4 seconds) or clip5.wav (24.6 "
+        "seconds), played once at 30% volume, never looped (0x42211E-0x422168). The tank screen "
+        "checks every frame:",
+        subs=(
+            "It is due at a stored time (real-time seconds, not saved). The check runs when the "
+            "clock is later than that time (0x422105), so the real gap is 211 real-time seconds.",
+            "If the check is less than 180 real-time seconds late (so 1 to 179 seconds after the due "
+            "time, 0x422118) and Stop Time is not on (speed 9999, 0x422107), one clip plays: "
+            f"clip1.wav {each(3, 0)}, clip3.wav {each(3, 1)}, clip5.wav {each(3, 2)} "
+            "(Random(3), 0x42211E).",
+            "Either way the next due time is now + 210 real-time seconds (0x422171-0x422177). Under "
+            "Stop Time nothing plays but the time keeps being moved on.",
+            "It only runs on the tank screen. If you were anywhere else (the store, the selling "
+            "scene, the species screen, the menu) for 180 real-time seconds or more past the due "
+            "time, that clip is skipped and the next is 210 real-time seconds after you come back.",
+            "The first one: 630 real-time seconds after the help screen opened (0x41C24F), so 631 to "
+            "809 real-time seconds on the tank. A saved game that skips the help screen starts with "
+            "a due time of 0, which is more than 180 seconds late: nothing plays at once, and the "
+            "first clip is 210 real-time seconds after you first open the tank (0x41AFEE).",
+            "Nothing checks whether Tanked.xm is playing, so a clip can play over it. A closed game "
+            "forgets the timer; every launch starts it again.",
+        ),
+    ),
+    Fact(
+        "The selling scene has a background sound too: fishstorefullfx.wav (13.7 real-time seconds long) loops at "
+        "30% volume the whole time the scene is open. It starts when you enter (0x423E00 with arg "
+        "true), unless Tanked.xm is still playing or it is already playing (0x423E4B-0x423E78), "
+        "and stops when you leave (0x423FFF).",
+    ),
+    Fact(
+        "At launch the splash screen plays ldwintro1.wav (5.7 real-time seconds long) once, at full volume "
+        "(0x426033). The saved Sounds option is applied first (0x4185B7-0x4185D2), so Disabled "
+        "silences it.",
+    ),
+    Fact(
+        "Options has one sound setting, Sounds: Enabled or Disabled (Enabled is the default for a "
+        "new game, 0x418AF0). It controls the music and every sound effect together; there is no "
+        "volume control and no separate music setting. OK applies it at once (0x422F41-0x422F72): "
+        "Disabled stops every sound and song playing right now and every later one is refused "
+        "(0x40AE40, 0x40B220, 0x40AD69, 0x40B37F); Enabled starts nothing by itself. Cancel changes "
+        "nothing. The setting is part of the save (the game state's byte +0x10, inside the block "
+        "the save writes, 0x419161) and is applied when the game loads (0x4185B7).",
+    ),
+    Fact(
+        "While the game window is not the active window (another program in front, or minimised), "
+        "all sound is muted: the master sound volume and every playing track go to 0 and come back "
+        "when you return (0x418490, 0x40B310, 0x40B460). The sounds keep playing silently and the "
+        "random sound's timer keeps running; a change of mouse focus alone does not count (0x403E0A).",
+    ),
+)
+
 HIDDEN = (
     Fact(
         "Hidden typed cheats on the tank screen (lowercase letters only; Shift or Caps Lock stops "
@@ -1610,6 +1688,7 @@ OTHER_GAME = (
     Fact('Mutation Liquid: see the Unknown Chemical (Medicines and chemicals) and the Mutation fish (Magic fish).'),
     Fact("Shop seeds: see Eggs. Fish Tycoon's store has no daily stock (see Hidden keys, clicks and cheats)."),
     Fact('Selling and visitors: see Selling and customers.'),
+    Fact("Music and sounds: Fish Tycoon has one music file and one Sounds setting (see Music and sounds); Plant Tycoon has five music files and volume sliders."),
     Fact('Prices: see Species and prices.'),
     Fact('Tools and shears (upgrades): not in Fish Tycoon; its permanent items and research take their place (see Permanent store items and Research).'),
     Fact('Chemicals: see Medicines and chemicals.'),
@@ -1758,6 +1837,9 @@ INDEX = (
             "Selling: one sale roll per real-time second; none for 5 real-time seconds after a "
             "sale; customers decide every quarter real-time second.",
             "Autosave: every 30 real-time minutes.",
+            "Random tank sound: checked every frame on the tank screen, due 210 real-time seconds "
+            "after the last check, played only if less than 180 real-time seconds late (see Music "
+            "and sounds).",
         ),
     ),
 )
