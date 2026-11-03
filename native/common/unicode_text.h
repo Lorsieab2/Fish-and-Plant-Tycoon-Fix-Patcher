@@ -187,6 +187,9 @@ static int __cdecl width_hook(void *font, unsigned int ret, const char *text, fl
 
 /* ---- text boxes */
 
+static const char *measured_box;           /* the box that last measured its text, and its font (typing) */
+static void *measured_font;
+
 static struct {
     const char *box;
     const char *text;
@@ -201,6 +204,8 @@ static int __cdecl box_width(void *font, const char *box, unsigned int ret, cons
     box_fit.box = box;
     box_fit.text = text;
     box_fit.fitted = 0;
+    measured_box = box;                         /* typing: the font this box draws with */
+    measured_font = font;
     if (text != NULL) {
         const char *named = name_shown(font, text, box_fit.shown, sizeof box_fit.shown, box_room(box));
         if (named != text) {

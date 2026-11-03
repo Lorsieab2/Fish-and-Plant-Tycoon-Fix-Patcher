@@ -18,7 +18,12 @@
        marks, an emoji sequence, a flag; the game took one byte);
      - Enter and Tab do what they did (the box's own "done", Fish 0x40BA30, Plant 0x40C4D0);
      - control characters, C1 controls and lone surrogates are dropped;
-     - a number box (+0x2D) or a box keeping a number (+0x2F) goes on the game's own way.
+     - a number box (+0x2D) or a box keeping a number (+0x2F) goes on the game's own way;
+     - in a box that is not a name box (Fish Tycoon's registration boxes, Plant Tycoon's price
+       box) a letter is refused when the text would be wider than the widest text the stock
+       game allows there: its byte limit times its font's widest plain letter (the shared spec's
+       "wide characters in non-name boxes", from Virtual Families 2's "wide scripts fit"). The
+       font is the one the box last measured its text with (box_width). Name boxes scroll.
 
    Fish Tycoon's window gets letters SDL 1.2 never reports: SDL takes a key's letter with
    ToUnicode on the key-down and never translates messages, so a letter from the emoji panel
@@ -57,6 +62,25 @@ static void box_changed(char *box) {
 static unsigned int box_cps[BOX_LETTERS + 1];
 static char box_bytes[4 * BOX_LETTERS + 8];
 static const char *refused_box;            /* the box whose last typed letter was refused for room */
+
+/* The widest plain letter (0x21-0x7E) of a game font: its record's width. */
+static int widest_plain(const char *inner) {
+    int b, most = 0;
+    if (inner == NULL || *(const int *const *)(inner + 0x18) == NULL) return 0;
+    for (b = 0x21; b < 0x7F; ++b) {
+        int w = font_record_width(inner, b);
+        if (w > most) most = w;
+    }
+    return most;
+}
+
+/* 1 when `bytes` is wider than the widest text the stock game allows in `box` (not a name box). */
+static int too_wide(const char *box, const char *bytes, int limit) {
+    int most;
+    if (limit >= NAME_BOX_BYTES || measured_box != box || measured_font == NULL) return 0;
+    most = limit * widest_plain(font_inner(measured_font));
+    return most > 0 && measure(measured_font, bytes, 1.0f) > most;
+}
 
 /* 1 when `ch` would join the last letter of cps[0..n) (no grapheme boundary before it). */
 static int joins_last(const unsigned int *cps, int n, unsigned int ch) {
@@ -99,7 +123,7 @@ static int __cdecl box_char(char *box, unsigned int ch) {
     refused_box = NULL;
     box_cps[n] = ch;
     out = game_encode(box_cps, n + 1, box_bytes, limit + 1);
-    if (out < 0) {                          /* no room: the letter is refused, whole */
+    if (out < 0 || too_wide(box, box_bytes, limit)) {   /* no room: the letter is refused, whole */
         refused_box = box;
         return 1;
     }

@@ -158,6 +158,52 @@ class PieceCase:
         self.assertIn((ord("न"), b.height), b.rasters)
 
 
+    def type_into(self, limit: int, chars: list[int], measured: bool = True) -> bytes:
+        """Letters typed into a box of `limit` bytes through the game's own key handler, the box
+        having measured its text with the game font first (as its draw does)."""
+        b = self.base
+        emu = b.fde.emu
+        handler, events, changed = G.TypingCase.HANDLER[self.game]
+        emu.hook(events, lambda e: 0x0BAD0000, 0)
+        emu.hook(changed, lambda e: 0, 8)
+        box, buffer = G.box_with(emu, limit)
+        if measured:
+            emu.call(b.symbols["_box_width"], b.font, box, 0, buffer, G.N.f32(1.0))
+        for ch in chars:
+            emu.call(handler, 5, 0, ch, ecx=box)
+        return emu.cstring(buffer)
+
+    def widest(self) -> int:
+        b = self.base
+        return max(b.width(bytes([c]), own=True) for c in range(0x21, 0x7F))
+
+    def test_wide_letters_are_refused_in_a_box_that_is_not_a_name(self) -> None:
+        """A registration or price box (8 bytes here): a letter is refused when the text would be
+        wider than 8 of the font's widest plain letters, even with bytes to spare; plain letters,
+        and a name box, are as before."""
+        limit = 8
+        most = limit * self.widest()
+        self.base.fde.emu.hook(self.base.symbols["_raster_glyph"], self._wide_raster, 0)   # 100 px a letter
+        self.assertTrue(100 <= most < 200 + self.base.spacing)
+        # two letters are 6 bytes (room for them) but wider than the stock box allows: the second is refused
+        self.assertEqual(self.type_into(limit, [0x3042, 0x3042]), "あ".encode("utf-8"))
+        self.assertEqual(self.type_into(limit, [ord(c) for c in "WWWWWWWW"]), b"WWWWWWWW")
+        # without a measure (no font known) the byte limit alone
+        self.assertEqual(self.type_into(limit, [0x3042, 0x3042, 0x3042], measured=False),
+                         "あ".encode("utf-8") * 2)
+        # a name box scrolls instead
+        name = self.type_into(G.T.unicode_data.NAME_BOX_BYTES, [0x3042] * 12)
+        self.assertEqual(name, "あ".encode("utf-8") * 12)
+
+    def _wide_raster(self, e) -> int:
+        cp, height, coverage, w_at, xoff_at, adv_at = (e.arg(i) for i in range(6))
+        e.uc.mem_write(coverage, b"\xFF" * (8 * height))
+        e.write32(w_at, 8)
+        e.write32(xoff_at, 0)
+        e.write32(adv_at, 100)
+        return 1
+
+
 @needs("fish")
 class FishPieceTests(PieceCase, unittest.TestCase):
     game = "fish"

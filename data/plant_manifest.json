@@ -11216,7 +11216,7 @@
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
             "size": 162304,
-            "sha256": "4247C55A8F1CCB9CE2D7188C25E0C8646B06763E599DD47D6D41A3A58F56AB8B"
+            "sha256": "29CC5016146D784ABF8C644C020F3D84DA2457A41218B63436684211E8FB51BE"
           },
           {
             "path": "Images/PTfontsmall_unicode.png",
@@ -11321,7 +11321,7 @@
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
             "size": 162304,
-            "sha256": "4247C55A8F1CCB9CE2D7188C25E0C8646B06763E599DD47D6D41A3A58F56AB8B"
+            "sha256": "29CC5016146D784ABF8C644C020F3D84DA2457A41218B63436684211E8FB51BE"
           },
           {
             "path": "Fonts/unifont-18.0.01.otf",
@@ -11396,7 +11396,7 @@
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
             "size": 162304,
-            "sha256": "4247C55A8F1CCB9CE2D7188C25E0C8646B06763E599DD47D6D41A3A58F56AB8B"
+            "sha256": "29CC5016146D784ABF8C644C020F3D84DA2457A41218B63436684211E8FB51BE"
           }
         ]
       }
