@@ -14,3 +14,5 @@ assets/fish_tycoon_extra_tanks/** -text
 assets/fish_tycoon_supply_slots/** -text
 assets/plant_tycoon_greenhouses/*.ini -text
 assets/everything_free/** -text
+# Translation files are downloaded byte-for-byte ("Download from GitHub..."): keep their CRLF.
+translations/**/*.txt -text
