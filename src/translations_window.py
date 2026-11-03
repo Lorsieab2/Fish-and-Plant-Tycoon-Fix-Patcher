@@ -1,5 +1,6 @@
 """The Translations window (Tools tab): choose the game's language, make a translation in a built-in
-editor, add one you were sent (button or drag and drop), export it, and share it on GitHub.
+editor, add one you were sent (button or drag and drop), export it, share it on GitHub, and download
+the ones shared there (Download from GitHub..., translations_github.py).
 
 The work is in translations.py (files, the choice, sharing) and translation_format.py (the format);
 the game side is Translations.dll. Nothing here asks for, stores or sends an email address: the
@@ -11,8 +12,10 @@ from __future__ import annotations
 import ctypes
 from ctypes import wintypes
 from pathlib import Path
+import queue
 import re
 import subprocess
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 import webbrowser
@@ -20,6 +23,7 @@ import webbrowser
 import translation_format as tfmt
 import translation_strings as tstr
 import translations as tr
+import translations_github as tgh
 
 TITLE = "Translations"
 GAMES = tfmt.GAME_TITLES
@@ -206,6 +210,8 @@ class TranslationsWindow:
         share_row.pack(anchor="w")
         ttk.Button(share_row, text="Share on GitHub...", command=self.share).pack(side="left")
         ttk.Button(share_row, text="?", width=2, command=self.show_guide).pack(side="left", padx=(4, 0))
+        ttk.Button(share_row, text="Download from GitHub...", command=self.download_from_github).pack(side="left",
+                                                                                                    padx=(8, 0))
 
         ttk.Button(frame, text="Close", command=self.close).pack(anchor="e", pady=(10, 0))
         win.protocol("WM_DELETE_WINDOW", self.close)
@@ -223,14 +229,14 @@ class TranslationsWindow:
     def refresh(self) -> None:
         game = self.game
         self.items = tr.installed(game, self.folder)
-        labels = [ENGLISH] + [i.label + ("  (came with the patcher)" if i.shipped else "") for i in self.items]
+        labels = [ENGLISH] + [i.label + ("  (came with the patcher or GitHub)" if i.shipped else "") for i in self.items]
         self.language_box.configure(values=labels)
         chosen = tr.chosen_path(game, tr.load_choices(self.choices_path), self.folder)
         index = next((n + 1 for n, i in enumerate(self.items) if chosen and i.path.resolve() == chosen.resolve()), 0)
         self.language_var.set(labels[index])
         self.listbox.delete(0, "end")
         for item in self.items:
-            self.listbox.insert("end", f"{item.label}   [{item.path.name}]" + ("   (came with the patcher)" if item.shipped else ""))
+            self.listbox.insert("end", f"{item.label}   [{item.path.name}]" + ("   (came with the patcher or GitHub)" if item.shipped else ""))
         copies = tr.game_copies(game, self.game_folders(game))
         if copies:
             self.choice_status.set(f"Applies from the next game start ({len(copies)} copy/copies of {GAMES[game]} "
@@ -447,6 +453,10 @@ class TranslationsWindow:
                                    "opened, drag the file into the form and press Submit.", parent=self.window)
         return url
 
+    def download_from_github(self) -> "DownloadDialog":
+        """Download from GitHub...: the translations shared in the public folder, read-only."""
+        return DownloadDialog(self.window, self.game, self.folder, on_done=self.refresh)
+
     @staticmethod
     def _show_in_folder(path: Path) -> None:
         try:
@@ -516,6 +526,121 @@ class CreditDialog:
             self.error.set(str(exc))
             return
         self.window.destroy()
+
+
+class DownloadDialog:
+    """Download from GitHub...: every translation in translations/<game>/ on the patcher's GitHub
+    (the default branch), with its language and credit (read from the file once downloaded), the
+    date it last changed there, and whether it is installed or has an update. Several can be chosen;
+    each is checked as data before it is installed (translations_github.download)."""
+
+    COLUMNS = (("language", "Language", 170), ("credit", "Credit", 150), ("changed", "Last changed", 100),
+               ("status", "Status", 120), ("file", "File", 110))
+
+    def __init__(self, master, game: str, folder: Path, on_done=None, threaded: bool = True, opener=None) -> None:
+        self.game = game
+        self.folder = folder
+        self.on_done = on_done
+        self.threaded = threaded
+        self.opener = opener
+        self.rows: list[tgh.Row] = []
+        self.results: queue.Queue = queue.Queue()
+        win = self.window = tk.Toplevel(master)
+        win.title(f"Download from GitHub - {GAMES[game]}")
+        win.transient(master)
+        win.geometry("720x380")
+        frame = ttk.Frame(win, padding=12)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, wraplength=690, justify="left", text=(
+            f"Translations shared on the patcher's GitHub (translations/{game}/). Choose one or more (Ctrl or "
+            "Shift click) and press Download: each file is checked before it is installed. Nothing about you "
+            "is sent and no GitHub account is needed.")).pack(anchor="w")
+        self.tree = ttk.Treeview(frame, columns=[c for c, _t, _w in self.COLUMNS], show="headings",
+                                 selectmode="extended", height=10)
+        for column, title, width in self.COLUMNS:
+            self.tree.heading(column, text=title)
+            self.tree.column(column, width=width, stretch=True)
+        self.tree.pack(fill="both", expand=True, pady=(8, 0))
+        self.status = tk.StringVar(master=win, value="")
+        ttk.Label(frame, textvariable=self.status, wraplength=690, foreground="#245a9a").pack(anchor="w", pady=(6, 0))
+        row = ttk.Frame(frame)
+        row.pack(fill="x", pady=(8, 0))
+        ttk.Button(row, text="Download", command=self.download_selected).pack(side="left")
+        ttk.Button(row, text="Refresh", command=self.refresh).pack(side="left", padx=(8, 0))
+        ttk.Button(row, text="Close", command=win.destroy).pack(side="right")
+        win.bind("<Escape>", lambda _e: win.destroy())
+        self.refresh()
+
+    def load(self):
+        """The list from GitHub (run in a thread): rows, or the problem to show."""
+        try:
+            remotes = tgh.list_remote(self.game, opener=self.opener)
+            for remote in remotes:
+                remote.changed = tgh.last_changed(remote, opener=self.opener)
+            return remotes
+        except tgh.GitHubProblem as exc:
+            return exc
+
+    def refresh(self) -> None:
+        self.status.set("Asking GitHub...")
+        if not self.threaded:
+            self.loaded(self.load())
+            return
+        threading.Thread(target=lambda: self.results.put(self.load()), daemon=True).start()
+        self.window.after(100, self._poll)
+
+    def _poll(self) -> None:
+        if not self.window.winfo_exists():
+            return
+        try:
+            result = self.results.get_nowait()
+        except queue.Empty:
+            self.window.after(100, self._poll)
+            return
+        self.loaded(result)
+
+    def loaded(self, result) -> None:
+        if not self.window.winfo_exists():
+            return
+        if isinstance(result, Exception):
+            self.status.set(str(result))
+            return
+        self.rows = [tgh.row(remote, self.folder) for remote in result]
+        self.fill()
+        self.status.set(f"{len(self.rows)} translation(s) for {GAMES[self.game]} on GitHub." if self.rows else
+                        f"No translation for {GAMES[self.game]} has been shared on GitHub yet.")
+
+    def fill(self) -> None:
+        self.tree.delete(*self.tree.get_children())
+        for n, item in enumerate(self.rows):
+            self.tree.insert("", "end", iid=str(n), values=(item.language, item.credit or "-",
+                                                            item.remote.changed or "unknown", item.status,
+                                                            item.remote.name))
+
+    def download_selected(self) -> list[Path]:
+        chosen = [self.rows[int(i)] for i in self.tree.selection() if i.isdigit() and int(i) < len(self.rows)]
+        if not chosen:
+            messagebox.showinfo(TITLE, "Choose one or more translations in the list first.", parent=self.window)
+            return []
+        saved: list[Path] = []
+        messages: list[str] = []
+        self.window.configure(cursor="watch")
+        self.window.update_idletasks()
+        try:
+            for item in chosen:
+                try:
+                    saved.append(tgh.download(item.remote, self.folder, opener=self.opener))
+                    messages.append(f"{item.remote.name}: installed.")
+                except tgh.GitHubProblem as exc:
+                    messages.append(str(exc))
+        finally:
+            self.window.configure(cursor="")
+        self.rows = [tgh.row(item.remote, self.folder) for item in self.rows]
+        self.fill()
+        if self.on_done is not None:
+            self.on_done()
+        messagebox.showinfo(TITLE, "\n\n".join(messages)[:6000], parent=self.window)
+        return saved
 
 
 # --------------------------------------------------------------------------- the editor

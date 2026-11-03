@@ -1,13 +1,22 @@
 name: Accept translation
 
 # When the owner adds the "accept-translation" label to a translation issue
-# (.github/ISSUE_TEMPLATE/translation.yml), this downloads the attached file, checks it as DATA
-# ONLY with the patcher's own validator (scripts/accept_translation.py, src/translation_format.py;
-# nothing in the file is ever executed), and opens a pull request adding it to
-# translations/<game>/, credited to the typed credit name only -- or comments the problems.
+# (.github/ISSUE_TEMPLATE/translation.yml), two jobs run in order:
+#
+# 1. "scan": the attached file is pre-checked (a UTF-8 .tsv or .txt of at most 2 MB, nothing else)
+#    and sent to VirusTotal (scripts/virustotal_scan.py --issue). Any engine that flags it, or no
+#    answer at all, fails the job, comments on the issue naming the engines, and no pull request is
+#    opened. Its SHA-256 is passed to the next job.
+# 2. "accept" (needs: scan): downloads the attachment again, refuses it unless it is the very file
+#    that was scanned, checks it as DATA ONLY with the patcher's own validator
+#    (scripts/accept_translation.py, src/translation_public.py, src/translation_format.py; nothing
+#    in the file is ever executed), and opens a pull request adding it to the public folder,
+#    translations/<game>/<language code>.tsv, credited to the typed credit name only -- or comments
+#    the problems.
 #
 # Everything in the issue is untrusted: no issue field is ever put into a shell command. The
-# script reads the issue from the event file itself; the shell sees only the issue NUMBER.
+# scripts read the issue from the event file themselves; the shell sees only the issue NUMBER. The
+# VirusTotal key reaches only the scan step, as an environment variable.
 
 on:
   issues:
@@ -23,15 +32,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  accept:
+  scan:
     if: >-
       github.event.label.name == 'accept-translation'
       && contains(github.event.issue.labels.*.name, 'translation')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+    outputs:
+      sha256: ${{ steps.scan.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Scan the attached file with VirusTotal (as data only, at most 2 MB)
+        id: scan
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python -I scripts/virustotal_scan.py --issue "$GITHUB_EVENT_PATH" "$RUNNER_TEMP/scan"
+
+  accept:
+    needs: scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      EXPECTED_SHA256: ${{ needs.scan.outputs.sha256 }}
     steps:
       - uses: actions/checkout@v4
         with:
