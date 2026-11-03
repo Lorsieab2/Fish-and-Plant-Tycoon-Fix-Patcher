@@ -1224,6 +1224,14 @@ folder never fails with "path too long".
     translations through their relocations. Lines the games copy into fixed
     buffers have a length limit, so a translation can never overflow one.
     `tests/test_translations_runtime.py` runs it in Unicorn against both games.
+  - Every patch's own text can be translated: every patcher DLL's visible text
+    (store items, descriptions, counts, popups, Time Warp, the DS fish's and
+    the unused flowers' species-name words...) and every text an executable
+    patch writes has a key; the editor groups the lines by patch.
+    Texts with a number ("2 doses left", "Warp 5 hours for $500?") choose
+    their words by the real number in any language: the DLLs ask
+    `Translations.dll` (`FtfpTranslateCounted`). `tests/test_translation_coverage.py`
+    fails if a DLL text a player can see has no key.
 
 ## Safety
 

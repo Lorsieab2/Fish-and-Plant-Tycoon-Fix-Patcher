@@ -1,5 +1,37 @@
 # Changelog
 
+## v1.0.25
+
+- **Translations: every patch can be translated.** Every text a patch shows
+  now has a line in "Make a translation": besides the store items, counts and
+  popups of v1.0.24, the DS Exclusive Fish species-name words (28 fin and 28
+  body words, at most 15 and 16 letters so a name always fits), the unused
+  flowers' names (14 flower and 23 foliage words), the Radioactive Growth
+  Hormone's, Radioactive Plant Formula's and Formula Bomb's descriptions, the
+  Time Warp's price question, confirmation and "done" boxes and the Revival
+  Potion's full-nursery box. The editor groups the lines by patch (the notes
+  start "Patch: <setting>"), the game's own lines first.
+- **Plurals in any language for the patches' numbers.** "2 doses left", the
+  counts' parts ("8 adults"), "3 prices set.", the nursery limit and the Time
+  Warp's hours and age steps are counted texts whose English holds the choice
+  (`%d {%1: one=dose | other=doses} left`); Tank Counts, Greenhouse Counts, DS
+  Store Items, Store Upgrades and Items, Extra Chemical Slots, Optimize Prices
+  (both games) and Extra Greenhouses ask Translations.dll for them with the
+  real numbers (`FtfpTranslateCounted`), so Russian, Polish, Arabic... get
+  their own forms. Without a translation the English is exactly as before.
+  These lines replace the v1.0.24 pieces ("adult"/"adults", "dose"/"doses",
+  " price set."...): translate the new lines instead.
+- Unused Flowers builds its species names again once the translation is
+  applied (`FtfpTranslationApplied`).
+- New tests: `tests/test_translation_coverage.py` (every visible DLL text and
+  executable-patch text has a key; a commented allow-list says why the rest
+  is never shown) and `tests/test_translations_every_patch.py` (every patcher
+  DLL and every counted text in Unicorn: translated, too long, missing).
+- Rebuilt and re-pinned: Translations.dll, Tank Counts.dll, Greenhouse
+  Counts.dll, DS Store Items.dll, Store Upgrades and Items.dll, Extra Chemical
+  Slots.dll, both Optimize Prices.dll, Extra Greenhouses.dll, Unused
+  Flowers.dll (companion pins only; no executable byte changes).
+
 ## v1.0.24
 
 - **Copy and Paste in Text Boxes** (new setting, both games; on by default and

@@ -439,8 +439,10 @@ saves by itself and shows how much is done). Keep placeholders such as %d
 and %s; the editor says when one is missing. "Add translation file..." (or
 drag the file onto the window) adds one someone sent you; "Export
 translation..." saves a copy. Any line that is missing or wrong stays in
-English. If you want to share your translation, consider going to the
-Patcher's GitHub page and adding it! How: press Share on GitHub..., drag
+English. Every patch's own texts are in the file too (store items, counts,
+popups, Time Warp, the DS fish's and new flowers' names...), grouped in the
+editor under "Patch: <the setting's name>". If you want to share your
+translation, consider going to the Patcher's GitHub page and adding it! How: press Share on GitHub..., drag
 the file in, press Submit. You need a free GitHub account
 (https://github.com/signup). Email addresses are never saved and are
 rejected from translation files. docs\translations.md has everything else.
