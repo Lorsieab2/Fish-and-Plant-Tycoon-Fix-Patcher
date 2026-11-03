@@ -42,6 +42,7 @@
 #include <windows.h>
 #include <string.h>
 #include "../common/price_math.h"
+#include "../common/translated_count.h"
 
 #define AT(base, offset, type) (*(type *)((char *)(base) + (offset)))
 
@@ -241,6 +242,10 @@ static void tell_count(void *scene, int set) {
     char digits[12];
     int n = 0, d = 0, value = set;
     const char *tail = set == 1 ? " price set." : " prices set.";
+    if (ftfp_counted("%d {%1: one=price | other=prices} set.", &set, 1, text, (int)sizeof text)) {
+        ask(scene, text, 0);
+        return;
+    }
     do { digits[d++] = (char)('0' + value % 10); value /= 10; } while (value && d < 11);
     while (d) text[n++] = digits[--d];
     while (*tail) text[n++] = *tail++;

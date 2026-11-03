@@ -49,6 +49,10 @@ GWL_STYLE, GWLP_WNDPROC = -16 & 0xFFFFFFFF, -4 & 0xFFFFFFFF
 WM_GETMINMAXINFO, WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_RBUTTONUP = 0x24, 0x200, 0x201, 0x205
 HALFTONE, COLORONCOLOR, SW_RESTORE = 4, 3, 9
 HWND, OLD_PROC, DC = 0x1234, 0x0BAD0000, 0xDC
+MONITOR, MONITOR_RECT = 0x4D0, (0, 0, 1707, 1067)    # 2560x1600 at 150%, as a DPI-unaware game sees it
+SW_SHOWNORMAL, SW_SHOWMAXIMIZED = 1, 3
+WS_POPUP, HWND_TOP = 0x80000000, 0
+SWP_FRAMECHANGED, SWP_SHOWWINDOW = 0x20, 0x40
 
 
 def fit(client_w: int, client_h: int, w: int = 800, h: int = 600) -> tuple[int, int, int, int]:
@@ -198,6 +202,7 @@ class EmulatedDllTests(unittest.TestCase):
         self.client = [800, 600]
         self.outer = [800 + 6, 600 + 29]       # a fixed-border window around an 800x600 client
         self.zoomed = 0
+        self.positions: list[tuple] = []
         self.ticks = 0
         self.tick_step = 0
         self.surface_flags = 0
@@ -233,6 +238,15 @@ class EmulatedDllTests(unittest.TestCase):
         emu.hook_import("StretchDIBits", self._log("StretchDIBits", 13, 600), 52)
         emu.hook_import("QueryPerformanceCounter", self._qpc, 4)
         emu.hook_import("QueryPerformanceFrequency", self._qpf, 4)
+        # the screensaver's two sites in the game's code, and its borderless window
+        emu.hook_import("GetCurrentProcess", lambda e: 0xFFFFFFFF, 0)
+        emu.hook_import("FlushInstructionCache", self._log("FlushInstructionCache", 3, 1), 12)
+        emu.hook_import("GetWindowPlacement", self._get_placement, 8)
+        emu.hook_import("SetWindowPlacement", self._set_placement, 8)
+        emu.hook_import("MonitorFromWindow", self._log("MonitorFromWindow", 2, MONITOR), 8)
+        emu.hook_import("GetMonitorInfoA", self._monitor_info, 8)
+        self.placement = (0, SW_SHOWNORMAL, (120, 80, 120 + 806, 80 + 629))
+        self.monitor = MONITOR_RECT
         emu.hook(self.sdl["SDL_SetVideoMode"], self._sdl_set_video_mode)
         emu.hook(self.sdl["SDL_Flip"], self._log("SDL_Flip", 1, 0))
         emu.hook(self.sdl["SDL_LockSurface"], lambda e: 0)
@@ -283,6 +297,8 @@ class EmulatedDllTests(unittest.TestCase):
         return 1
 
     def _frame(self) -> tuple[int, int]:
+        if self.style & WS_POPUP:
+            return (0, 0)
         return (16, 39) if self.style & WS_THICKFRAME else (6, 29)
 
     def _set_window_long(self, e) -> int:
@@ -297,10 +313,31 @@ class EmulatedDllTests(unittest.TestCase):
     def _set_window_pos(self, e) -> int:
         cx, cy, flags = e.arg(4), e.arg(5), e.arg(6)
         self.calls.append(("SetWindowPos", cx, cy, flags))
+        self.positions.append(tuple(e.arg(i) for i in range(7)))
         if not flags & 0x1:                     # SWP_NOSIZE not set
             self.outer = [cx, cy]
         fw, fh = self._frame()
         self.client = [self.outer[0] - fw, self.outer[1] - fh]
+        return 1
+
+    def _get_placement(self, e) -> int:
+        at = e.arg(1)
+        length = e.read32(at)
+        flags, show, rect = self.placement
+        self.calls.append(("GetWindowPlacement", e.arg(0), length))
+        e.uc.mem_write(at, struct.pack("<3I4i4i", length, flags, show, -1, -1, -1, -1, *rect))
+        return 1
+
+    def _set_placement(self, e) -> int:
+        length, flags, show = struct.unpack("<3I", e.uc.mem_read(e.arg(1), 12))
+        rect = struct.unpack("<4i", e.uc.mem_read(e.arg(1) + 28, 16))
+        self.calls.append(("SetWindowPlacement", e.arg(0), length, flags, show, rect))
+        return 1
+
+    def _monitor_info(self, e) -> int:
+        at = e.arg(1)
+        self.calls.append(("GetMonitorInfoA", e.arg(0), e.read32(at)))
+        e.uc.mem_write(at + 4, struct.pack("<4i4iI", *self.monitor, *self.monitor, 1))
         return 1
 
     def _set_rect(self, e) -> int:
@@ -617,6 +654,197 @@ class EmulatedDllTests(unittest.TestCase):
         for cx, cy in ((0, 0), (513, 20), (799, 599)):
             self.sdl_message(WM_LBUTTONDOWN, cx, cy)
             self.assertEqual(self.mouse_state(), (cx, cy))
+
+
+    # ------------------------------------------------------------ the screensaver
+    # The game's own code runs: the tank screen's slide-off frame (0x41E3A0), which in windowed
+    # mode jumps to the fullscreen switch from 0x41E3DD, and the tank screen's mouse (0x421F80,
+    # the click that ends it) and keys (0x41ED10, a key ends it the same way). Only the state
+    # getter (0x41B070) and two screen redraw helpers are Python.
+    FULLSCREEN_SITE, END_SITE = 0x41E3DD, 0x421FCD
+    FULLSCREEN_STOCK, END_STOCK = b"\xE9\xCE\xA8\xFE\xFF", b"\xE8\x9E\x5B\xFE\xFF"
+    S_SCREENSAVER, S_STARTING, S_FULLSCREEN_OPTION = 0x1E4F9, 0x1E4FA, 0x1E3A4
+    TANK_SCREEN_VTABLE = 0x443A54          # +4: the mouse (0x421F80), +8: the keys (0x41ED10)
+
+    def game_ready(self, windowed: int = 1) -> None:
+        emu = self.emu
+        self.state = emu.alloc(0x1E600)
+        emu.uc.mem_write(self.state, bytes(0x1E600))
+        self.video = emu.alloc(0x60)
+        emu.uc.mem_write(self.video, bytes(0x60))
+        emu.uc.mem_write(self.video, struct.pack("<4I", 0, 32, 800, 600))   # flags, bpp, width, height
+        emu.write8(self.video + 0x1E, windowed)
+        self.holder = emu.alloc(4)
+        emu.write32(self.holder, self.video)
+        emu.write32(0x45AFE8, self.holder)                                  # the video singleton (0x407900)
+        self.scene = emu.alloc(0x100)
+        emu.uc.mem_write(self.scene, bytes(0x100))
+        emu.write32(self.scene, self.TANK_SCREEN_VTABLE)
+        emu.write32(self.scene + 0x08, emu.alloc(0x40))
+        emu.write32(self.scene + 0x10, 0x258)                              # the interface has slid off
+        emu.write32(self.scene + 0x34, self.state)
+        emu.write32(self.scene + 0x54, self.holder)
+        emu.write8(self.state + self.S_STARTING, 1)                        # the Screensaver button
+        emu.hook(0x41B070, lambda e: self.state)
+        emu.hook(0x40AAC0, self._log("redraw", 1, 0), 4)
+        emu.hook(0x421940, self._log("relayout", 0, 0))
+
+    def start_screensaver(self) -> None:
+        self.emu.call(0x41E3A0, ecx=self.scene)
+
+    def click(self) -> int:
+        return self.emu.call(0x421F80, 2, 400, 300, ecx=self.scene) & 0xFF
+
+    def key(self) -> int:
+        return self.emu.call(0x41ED10, 0x61, 0x61, 0, ecx=self.scene) & 0xFF
+
+    def branch_target(self, site: int) -> tuple[int, int]:
+        raw = bytes(self.emu.uc.mem_read(site, 5))
+        return raw[0], (site + 5 + struct.unpack("<i", raw[1:])[0]) & 0xFFFFFFFF
+
+    def test_the_stock_sites_are_what_the_dll_expects(self) -> None:
+        self.assertEqual(bytes(self.emu.uc.mem_read(self.FULLSCREEN_SITE - 4, 9)),
+                         b"\x8B\x4E\x54\x5E" + self.FULLSCREEN_STOCK)           # mov ecx,[esi+0x54]; pop esi
+        self.assertEqual(self.branch_target(self.FULLSCREEN_SITE), (0xE9, 0x408CB0))
+        self.assertEqual(self.branch_target(self.END_SITE), (0xE8, 0x407B70))
+        self.assertEqual(bytes(self.emu.uc.mem_read(0x41EE2A, 7)), b"\xC6\x80\xFA\xE4\x01\x00\x01")  # the button
+        self.assertEqual(self.emu.read32(self.TANK_SCREEN_VTABLE + 4), 0x421F80)
+        self.assertEqual(self.emu.read32(self.TANK_SCREEN_VTABLE + 8), 0x41ED10)
+
+    def test_install_points_the_screensaver_sites_here(self) -> None:
+        self.assertEqual(self.startup(), 1)
+        self.assertEqual(self.branch_target(self.FULLSCREEN_SITE),
+                         (0xE9, self.symbols["@screensaver_fullscreen@4"]))
+        self.assertEqual(self.branch_target(self.END_SITE), (0xE8, self.symbols["@screensaver_end@12"]))
+        flushed = [call[2:4] for call in self.named("FlushInstructionCache")]
+        self.assertEqual(flushed, [(self.FULLSCREEN_SITE, 5), (self.END_SITE, 5)])
+
+    def test_a_changed_screensaver_site_leaves_both_and_the_window_still_installs(self) -> None:
+        self.emu.uc.mem_write(self.END_SITE, b"\xE8\0\0\0\0")
+        self.assertEqual(self.startup(), 1)
+        self.assertEqual(bytes(self.emu.uc.mem_read(self.FULLSCREEN_SITE, 5)), self.FULLSCREEN_STOCK)
+        self.assertEqual(self.named("FlushInstructionCache"), [])
+        self.windowed()
+        self.assertEqual(self.style, SDL_WINDOWED_STYLE | WS_MAXIMIZEBOX | WS_THICKFRAME)
+
+    def test_nothing_is_written_when_the_window_part_does_not_install(self) -> None:
+        self.missing.add("SDL_Flip")
+        self.assertEqual(self.startup(), 0)
+        self.assertEqual(bytes(self.emu.uc.mem_read(self.FULLSCREEN_SITE, 5)), self.FULLSCREEN_STOCK)
+        self.assertEqual(bytes(self.emu.uc.mem_read(self.END_SITE, 5)), self.END_STOCK)
+
+    def test_the_screensaver_covers_the_monitor_without_changing_the_display_mode(self) -> None:
+        self.windowed()
+        self.game_ready()
+        self.calls.clear()
+        self.positions.clear()
+        self.start_screensaver()
+        self.assertEqual(self.emu.uc.mem_read(self.state + self.S_SCREENSAVER, 2), b"\x01\x00")
+        self.assertEqual(self.named("SDL_SetVideoMode"), [])                 # no display-mode change
+        self.assertEqual(self.emu.uc.mem_read(self.video + 0x1E, 1), b"\x01")  # the game still windowed
+        self.assertEqual(self.named("MonitorFromWindow"), [("MonitorFromWindow", HWND, 2)])  # NEAREST
+        self.assertEqual(self.style, (SDL_WINDOWED_STYLE & ~0x00CF0000) | WS_POPUP)
+        self.assertEqual(self.positions, [(HWND, HWND_TOP, 0, 0, 1707, 1067, SWP_FRAMECHANGED | SWP_SHOWWINDOW)])
+        self.assertEqual(self.named("ShowWindow"), [])                       # it was not maximized
+        # the picture is drawn over the whole monitor, its shape kept, and clicks map to it
+        self.calls.clear()
+        self.flip()
+        [draw] = self.named("StretchDIBits")
+        self.assertEqual(draw[2:6], fit(1707, 1067))
+        self.assertEqual(self.named("SDL_Flip"), [])
+        x, y, w, h = fit(1707, 1067)
+        self.assertEqual(self.message(WM_LBUTTONDOWN, ((y + h - 1) << 16) | (x + w - 1))[5], (599 << 16) | 799)
+
+    def test_a_click_ends_it_and_puts_the_window_back_exactly(self) -> None:
+        self.windowed()
+        style = self.style
+        self.game_ready()
+        self.start_screensaver()
+        self.calls.clear()
+        self.positions.clear()
+        self.assertEqual(self.click(), 0)
+        self.assertEqual(self.emu.uc.mem_read(self.state + self.S_SCREENSAVER, 1), b"\x00")
+        self.assertEqual(self.style, style)
+        self.assertEqual(self.positions, [(HWND, 0, 0, 0, 0, 0, 0x1 | 0x2 | 0x4 | 0x10 | SWP_FRAMECHANGED)])
+        self.assertEqual(self.named("SetWindowPlacement"),
+                         [("SetWindowPlacement", HWND, 44, 0, SW_SHOWNORMAL, (120, 80, 926, 709))])
+        self.assertEqual(self.named("SDL_SetVideoMode"), [])                 # never a mode change
+        # then the game's own end: the cursor shown again (0x407B70) and the screen redrawn
+        self.assertEqual(self.emu.uc.mem_read(self.video + 0x1F, 1), b"\x01")
+        self.assertEqual([c[0] for c in self.calls if c[0] in ("redraw", "relayout")], ["redraw", "relayout"])
+        names = [c[0] for c in self.calls]
+        self.assertLess(names.index("SetWindowPlacement"), names.index("redraw"))
+        # the next end of a screensaver (the game's own call) has nothing more to put back
+        self.calls.clear()
+        self.emu.call(self.symbols["@screensaver_end@12"], 1, ecx=self.holder)
+        self.assertEqual(self.named("SetWindowPlacement"), [])
+
+    def test_a_key_ends_it_the_same_way(self) -> None:
+        self.windowed()
+        style = self.style
+        self.game_ready()
+        self.start_screensaver()
+        self.calls.clear()
+        self.assertEqual(self.key(), 1)
+        self.assertEqual(self.emu.uc.mem_read(self.state + self.S_SCREENSAVER, 1), b"\x00")
+        self.assertEqual(self.style, style)
+        self.assertEqual(len(self.named("SetWindowPlacement")), 1)
+
+    def test_a_maximized_window_comes_back_maximized(self) -> None:
+        self.windowed()
+        self.game_ready()
+        self.zoomed = 1
+        self.placement = (2, SW_SHOWMAXIMIZED, (40, 30, 846, 659))
+        self.calls.clear()
+        self.start_screensaver()
+        names = [c[0] for c in self.calls]
+        self.assertEqual(self.named("ShowWindow"), [("ShowWindow", HWND, SW_RESTORE)])
+        self.assertLess(names.index("ShowWindow"), names.index("SetWindowLongA"))
+        self.zoomed = 0
+        self.calls.clear()
+        self.click()
+        self.assertEqual(self.named("SetWindowPlacement"),
+                         [("SetWindowPlacement", HWND, 44, 2, SW_SHOWMAXIMIZED, (40, 30, 846, 659))])
+
+    def test_on_a_second_monitor_it_covers_that_monitor(self) -> None:
+        self.windowed()
+        self.game_ready()
+        self.monitor = (-1920, 0, 0, 1080)
+        self.positions.clear()
+        self.start_screensaver()
+        self.assertEqual(self.positions, [(HWND, HWND_TOP, -1920 & 0xFFFFFFFF, 0, 1920, 1080,
+                                           SWP_FRAMECHANGED | SWP_SHOWWINDOW)])
+
+    def test_with_the_fullscreen_option_on_nothing_changes(self) -> None:
+        self.windowed()
+        self.set_video_mode(SDL_FULLSCREEN)          # the game is fullscreen already
+        self.game_ready(windowed=0)
+        self.emu.write8(self.state + self.S_FULLSCREEN_OPTION, 1)
+        self.calls.clear()
+        self.start_screensaver()
+        self.assertEqual(self.emu.uc.mem_read(self.state + self.S_SCREENSAVER, 1), b"\x01")
+        self.click()
+        for name in ("SetWindowLongA", "SetWindowPos", "SetWindowPlacement", "SDL_SetVideoMode"):
+            self.assertEqual(self.named(name), [], name)
+
+    def test_without_a_window_the_games_own_fullscreen_switch_runs(self) -> None:
+        self.assertEqual(self.startup(), 1)           # no video mode set yet: nothing to make borderless
+        self.game_ready()
+        self.start_screensaver()
+        self.assertEqual(self.named("SDL_SetVideoMode"), [("SDL_SetVideoMode", 800, 600, 32, SDL_FULLSCREEN)])
+        self.assertEqual(self.emu.uc.mem_read(self.video + 0x1E, 1), b"\x00")
+        self.assertEqual(self.named("SetWindowPlacement"), [])
+
+    def test_a_video_mode_change_while_borderless_puts_the_window_back_first(self) -> None:
+        self.windowed()
+        style = self.style
+        self.game_ready()
+        self.start_screensaver()
+        self.calls.clear()
+        self.set_video_mode()
+        names = [c[0] for c in self.calls]
+        self.assertLess(names.index("SetWindowPlacement"), names.index("SDL_SetVideoMode"))
+        self.assertEqual(self.style, style)
 
 
 if __name__ == "__main__":

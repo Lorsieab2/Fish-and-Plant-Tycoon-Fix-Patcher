@@ -6,9 +6,10 @@ the PC game's own code; the breeding results from the DS game's own code.
 ## The new types
 
 Every fish is a body plus a fin. The DS adds 7 of each. A fish's rarity tier
-is the higher of its two parts' tiers. Most new fish are tier 3, so keep
-them in a tank at **environment level 3**: a tier 3 fish loses 19 health per
-tick at level 1 and 6 at level 2.
+is the higher of its two parts' tiers. For health, every fish with a DS body
+or a DS fin counts as tier 3, whatever the table below says, so keep them in
+a tank at **environment level 3**: they lose 19 health per tick at level 1
+and 6 at level 2, exactly like the PC's rare fish.
 
 | Step | Body | Fin | Tier |
 |---|---|---|---|
@@ -113,8 +114,8 @@ push one step deeper.
   first discovered, and customers buy it.
 - DS fish turn, grow from baby to teen to adult, and die with the correct
   sprites, and their fins stay attached through the turn.
-- Tier 3 DS fish lose health at environment levels 1-2 and hold steady at
-  level 3.
+- Every DS fish (any DS body or DS fin, Trigger and Clown included) loses
+  health at environment levels 1-2 and holds steady at level 3.
 - Saving, quitting and reloading keeps DS fish and DS species data (the file
   `Fish Tycoon Fix Patcher Data\DS Fish <slot>.dat` beside the saves).
 - A Wasp Grouper in the tank occasionally gives a DS baby from Spotanus or

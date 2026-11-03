@@ -107,19 +107,36 @@ static int price[FOLIAGE_ROWS][NEW_COUNT];
 static unsigned char discovered[FOLIAGE_ROWS][NEW_COUNT];
 static char names[FOLIAGE_ROWS][NEW_COUNT][0x60];
 
-static void build_tables(void) {
+/* "<flower> <foliage>", from ADJECTIVE and NOUN as they are (Translations.dll may point them at a
+   translation: it calls FtfpTranslationApplied, which builds the names again). */
+static void build_names(void) {
     int f, k;
     for (f = 1; f <= FOLIAGES; ++f) {
         for (k = 0; k < NEW_COUNT; ++k) {
             char *name = names[f][k];
             size_t n = 0;
             const char *s;
-            value[f][k] = FOLIAGE_BASE[f] + FLOWER_ADD[k];
             for (s = ADJECTIVE[k]; *s && n < 0x5E; ) name[n++] = *s++;
             name[n++] = ' ';
             for (s = NOUN[f]; *s && n < 0x5F; ) name[n++] = *s++;
             name[n] = '\0';
         }
+    }
+}
+
+static void build_tables(void) {
+    int f, k;
+    for (f = 1; f <= FOLIAGES; ++f) {
+        for (k = 0; k < NEW_COUNT; ++k) value[f][k] = FOLIAGE_BASE[f] + FLOWER_ADD[k];
+    }
+    build_names();
+}
+
+/* Translations.dll, after pointing this DLL's names at the player's translation. */
+void __stdcall FtfpTranslationApplied(void) {
+    __try {
+        build_names();
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
 }
 

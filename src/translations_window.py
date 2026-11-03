@@ -1,5 +1,7 @@
 """The Translations window (Tools tab): choose the game's language, make a translation in a built-in
-editor, add one you were sent (button or drag and drop), export it, and share it on GitHub.
+editor, add one you were sent (button or drag and drop), export or delete (to the Recycle Bin) one or
+several, share one on GitHub, and download the ones shared there (Download from GitHub...,
+translations_github.py).
 
 The work is in translations.py (files, the choice, sharing) and translation_format.py (the format);
 the game side is Translations.dll. Nothing here asks for, stores or sends an email address: the
@@ -11,8 +13,10 @@ from __future__ import annotations
 import ctypes
 from ctypes import wintypes
 from pathlib import Path
+import queue
 import re
 import subprocess
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 import webbrowser
@@ -20,11 +24,14 @@ import webbrowser
 import translation_format as tfmt
 import translation_strings as tstr
 import translations as tr
+import translations_github as tgh
 
 TITLE = "Translations"
 GAMES = tfmt.GAME_TITLES
 ENGLISH = tfmt.ENGLISH_ORIGINAL
 OTHER_LANGUAGE = "Other language..."
+ENGLISH_ROW = ENGLISH + "   (built into the game; cannot be deleted)"
+CHOOSE_ONE = "Choose one translation in the list first."
 AUTOSAVE_MS = 800
 
 HELP = (
@@ -44,10 +51,23 @@ HELP = (
         "other=poissons}\". docs/translations.md explains everything.",
         "Add translation file... (or drag a .txt file onto this window) checks a file you were sent and adds "
         "it to the list. Export translation... saves a copy anywhere.",
+        "The list is for managing the files; the language the game uses is chosen above, under \"Language in "
+        "the game\". Click a translation to select it, Ctrl+click to add or remove one, Shift+click to select "
+        "a range, and Ctrl+A or Select All for all of them. Export translation... with several selected saves "
+        "one file each into a folder you choose. Delete... moves the selected files to the Recycle Bin (it "
+        "asks first, and No changes nothing; you can restore them from there). \"English (original)\" is "
+        "built into the game and is never deleted. A translation that came with the patcher can be deleted "
+        "from your copy too; it comes back with the next patcher update. If the game uses a translation you "
+        "delete, it goes back to English (original).",
         "After a patcher update, new lines appear untranslated in the editor and your translation keeps "
         "working; a line whose English changed shows the new English until you translate it again.",
         tr.SHARE_INVITE + " " + tr.SHARE_HOW + " You need a free GitHub account (" + tr.SIGNUP_URL + "). "
         + tfmt.EMAIL_MESSAGE,
+        "Download from GitHub... lists the translations shared in the patcher's public GitHub folder, with "
+        "their language, credit, last change and whether an update is available. Choose one or more and press "
+        "Download: each is checked before it is installed. No account is needed and nothing about you is sent. "
+        "Every shared file is sent to VirusTotal, where its partners can see it, so never put private details "
+        "in a translation.",
     ],
 )
 
@@ -185,16 +205,27 @@ class TranslationsWindow:
 
         group = ttk.LabelFrame(frame, text="Translations in the patcher", padding=10)
         group.pack(fill="both", expand=True, pady=(10, 0))
-        self.listbox = tk.Listbox(group, height=7, activestyle="none")
+        # The list manages the files (several at once); the language the game uses is the dropdown above.
+        # Row 0 is English (original), built into the game: it can be selected but is never deleted.
+        self.listbox = tk.Listbox(group, height=7, activestyle="none", selectmode=tk.EXTENDED, exportselection=False)
         self.listbox.pack(fill="both", expand=True)
         self.listbox.bind("<Double-Button-1>", lambda _e: self.edit())
+        for key in ("<Control-a>", "<Control-A>"):
+            self.listbox.bind(key, self._select_all_key)
+        self.listbox.bind("<Delete>", self._delete_key)
+        ttk.Label(group, text="Ctrl+click adds or removes one, Shift+click selects a range, Ctrl+A selects all.",
+                  foreground="#666666").pack(anchor="w", pady=(2, 0))
         buttons = ttk.Frame(group)
         buttons.pack(fill="x", pady=(6, 0))
         ttk.Button(buttons, text="Add translation file...", command=self.add_dialog).pack(side="left")
         ttk.Button(buttons, text="Edit...", command=self.edit).pack(side="left", padx=(8, 0))
         ttk.Button(buttons, text="Check", command=self.check).pack(side="left", padx=(8, 0))
-        ttk.Button(buttons, text="Export translation...", command=self.export).pack(side="left", padx=(8, 0))
         ttk.Button(buttons, text="Open folder", command=self.open_folder).pack(side="left", padx=(8, 0))
+        buttons = ttk.Frame(group)
+        buttons.pack(fill="x", pady=(6, 0))
+        ttk.Button(buttons, text="Select All", command=self.select_all).pack(side="left")
+        ttk.Button(buttons, text="Export translation...", command=self.export).pack(side="left", padx=(8, 0))
+        ttk.Button(buttons, text="Delete...", command=self.delete).pack(side="left", padx=(8, 0))
         self.drop_hint = tk.StringVar(master=win, value="")
         ttk.Label(group, textvariable=self.drop_hint, foreground="#666666").pack(anchor="w", pady=(4, 0))
 
@@ -206,6 +237,8 @@ class TranslationsWindow:
         share_row.pack(anchor="w")
         ttk.Button(share_row, text="Share on GitHub...", command=self.share).pack(side="left")
         ttk.Button(share_row, text="?", width=2, command=self.show_guide).pack(side="left", padx=(4, 0))
+        ttk.Button(share_row, text="Download from GitHub...", command=self.download_from_github).pack(side="left",
+                                                                                                    padx=(8, 0))
 
         ttk.Button(frame, text="Close", command=self.close).pack(anchor="e", pady=(10, 0))
         win.protocol("WM_DELETE_WINDOW", self.close)
@@ -223,14 +256,15 @@ class TranslationsWindow:
     def refresh(self) -> None:
         game = self.game
         self.items = tr.installed(game, self.folder)
-        labels = [ENGLISH] + [i.label + ("  (came with the patcher)" if i.shipped else "") for i in self.items]
+        labels = [ENGLISH] + [i.label + ("  (came with the patcher or GitHub)" if i.shipped else "") for i in self.items]
         self.language_box.configure(values=labels)
         chosen = tr.chosen_path(game, tr.load_choices(self.choices_path), self.folder)
         index = next((n + 1 for n, i in enumerate(self.items) if chosen and i.path.resolve() == chosen.resolve()), 0)
         self.language_var.set(labels[index])
         self.listbox.delete(0, "end")
+        self.listbox.insert("end", ENGLISH_ROW)
         for item in self.items:
-            self.listbox.insert("end", f"{item.label}   [{item.path.name}]" + ("   (came with the patcher)" if item.shipped else ""))
+            self.listbox.insert("end", f"{item.label}   [{item.path.name}]" + ("   (came with the patcher or GitHub)" if item.shipped else ""))
         copies = tr.game_copies(game, self.game_folders(game))
         if copies:
             self.choice_status.set(f"Applies from the next game start ({len(copies)} copy/copies of {GAMES[game]} "
@@ -242,13 +276,30 @@ class TranslationsWindow:
     def game_folders(self, game: str) -> list[str]:
         return self.folders.get(game, [])
 
+    def selected_items(self) -> list[tr.Installed]:
+        """The selected translation files, in list order (row 0, English (original), is not a file)."""
+        return [self.items[n - 1] for n in self.listbox.curselection() if 0 < n <= len(self.items)]
+
     def selected(self) -> tr.Installed | None:
-        chosen = self.listbox.curselection()
-        if chosen:
-            return self.items[chosen[0]]
-        if len(self.items) == 1:
+        """The one translation Edit, Check and Share act on: the only one selected, or the only one there is."""
+        chosen = self.selected_items()
+        if len(chosen) == 1:
+            return chosen[0]
+        if not self.listbox.curselection() and len(self.items) == 1:
             return self.items[0]
         return None
+
+    def select_all(self) -> None:
+        self.listbox.selection_set(0, "end")
+        self.listbox.focus_set()
+
+    def _select_all_key(self, _event=None) -> str:
+        self.select_all()
+        return "break"
+
+    def _delete_key(self, _event=None) -> str:
+        self.delete()
+        return "break"
 
     # ---------------------------------------------------------------- choosing
     def choose(self) -> list[Path]:
@@ -314,15 +365,17 @@ class TranslationsWindow:
     def edit(self) -> None:
         item = self.selected()
         if item is None:
-            messagebox.showinfo(TITLE, "Choose a translation in the list first.", parent=self.window)
+            messagebox.showinfo(TITLE, CHOOSE_ONE, parent=self.window)
             return
         if item.shipped and not messagebox.askyesno(
                 TITLE, "This translation came with the patcher. Edit a copy of it as your own?", parent=self.window):
             return
         path = item.path
         if item.shipped:
-            path = self.folder / item.path.name
+            # Never the shipped file's bare name: Fish's and Plant's fr.tsv would share one copy.
+            path = tr.own_copy_path(item, self.folder)
             if not path.exists():
+                self.folder.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(item.path.read_bytes())
             self.refresh()
         self.open_editor(path)
@@ -384,23 +437,99 @@ class TranslationsWindow:
     def check(self) -> str:
         item = self.selected()
         if item is None:
-            messagebox.showinfo(TITLE, "Choose a translation in the list first.", parent=self.window)
+            messagebox.showinfo(TITLE, CHOOSE_ONE, parent=self.window)
             return ""
         parsed = tfmt.parse_bytes(item.path.read_bytes(), self.game)
         summary = tfmt.validate(parsed, self.entries(self.game, ask=False)).summary()
         messagebox.showinfo(TITLE, summary[:6000], parent=self.window)
         return summary
 
-    def export(self) -> Path | None:
-        item = self.selected()
-        if item is None:
-            messagebox.showinfo(TITLE, "Choose a translation in the list first.", parent=self.window)
-            return None
-        name = filedialog.asksaveasfilename(parent=self.window, title="Export translation", initialfile=item.path.name,
-                                            defaultextension=".txt", filetypes=(("Translation files", "*.txt"),))
-        if not name:
-            return None
-        return tr.export_file(item.path, Path(name))
+    def export(self) -> list[Path]:
+        """Export translation...: one selected file to a name of the player's choice; several, one file
+        each (under their own names) into a folder the player chooses."""
+        items = self.selected_items()
+        if not items and not self.listbox.curselection() and len(self.items) == 1:
+            items = list(self.items)
+        if not items:
+            messagebox.showinfo(TITLE, "Choose the translation(s) to export in the list first.", parent=self.window)
+            return []
+        if len(items) == 1:
+            name = filedialog.asksaveasfilename(parent=self.window, title="Export translation",
+                                                initialfile=items[0].path.name, defaultextension=".txt",
+                                                filetypes=(("Translation files", "*.txt"),))
+            return [tr.export_file(items[0].path, Path(name))] if name else []
+        folder = filedialog.askdirectory(parent=self.window, title=f"Export {len(items)} translations into")
+        if not folder:
+            return []
+        targets = [(item.path, Path(folder) / item.path.name) for item in items]
+        targets = [(s, t) for s, t in targets if t.resolve() != s.resolve()]
+        existing = [t.name for _s, t in targets if t.exists()]
+        if existing and not messagebox.askyesno(
+                TITLE, "These files are already in that folder:\n\n" + "\n".join(existing)
+                + "\n\nReplace them? (No exports only the others.)", default="no", parent=self.window):
+            targets = [(s, t) for s, t in targets if t.name not in existing]
+        exported: list[Path] = []
+        problems: list[str] = []
+        for source, target in targets:
+            try:
+                exported.append(tr.export_file(source, target))
+            except OSError as exc:
+                problems.append(f"{source.name}: {exc.strerror or exc}")
+        message = f"Exported {len(exported)} file(s) into {folder}."
+        if problems:
+            message += "\n\nNot exported:\n" + "\n".join(problems)
+        messagebox.showinfo(TITLE, message, parent=self.window)
+        return exported
+
+    # ---------------------------------------------------------------- deleting
+    def delete_prompt(self, items: list[tr.Installed], english: bool, active: tr.Installed | None) -> str:
+        game = GAMES[self.game]
+        lines = [f"Move {len(items)} translation file(s) for {game} to the Recycle Bin?", ""]
+        lines += [f"  {item.path.name}" + ("   (came with the patcher)" if item.shipped else "") for item in items]
+        if english:
+            lines += ["", f"{ENGLISH} is built into the game and cannot be deleted: it is skipped."]
+        if any(item.shipped for item in items):
+            lines += ["", "Translations that came with the patcher are deleted from your copy only: they come "
+                          "back with the next patcher update."]
+        if active is not None:
+            lines += ["", f"{game} uses {active.label} now: it goes back to {ENGLISH}."]
+        lines += ["", "You can restore the files from the Recycle Bin."]
+        return "\n".join(lines)
+
+    def delete(self) -> list[Path]:
+        """Delete...: the selected files go to the Recycle Bin after one Yes/No (No, the default, does
+        nothing). English (original) is skipped; if the game uses a deleted file it goes back to English,
+        exactly as choosing English does."""
+        english = 0 in self.listbox.curselection()
+        items = self.selected_items()
+        if not items:
+            text = "Choose the translation(s) to delete in the list first."
+            if english:
+                text = f"{ENGLISH} is built into the game and cannot be deleted. " + text
+            messagebox.showinfo(TITLE, text, parent=self.window)
+            return []
+        game = self.game
+        chosen = tr.chosen_path(game, tr.load_choices(self.choices_path), self.folder)
+        active = next((i for i in items if chosen is not None and i.path.resolve() == chosen.resolve()), None)
+        if not messagebox.askyesno(TITLE, self.delete_prompt(items, english, active), default="no", icon="warning",
+                                   parent=self.window):
+            return []
+        try:
+            removed = tr.recycle([item.path for item in items])
+        except OSError as exc:
+            messagebox.showerror(TITLE, f"Could not move the files to the Recycle Bin: {exc}\n\nNothing was deleted.",
+                                 parent=self.window)
+            self.refresh()
+            return []
+        gone = {Path(p).resolve() for p in removed}
+        for editor in [e for e in self.editors if e.path.resolve() in gone]:
+            editor.discard()                    # saving it later would bring the file back
+            self.editors.remove(editor)
+        self.refresh()
+        if active is not None:                  # exactly what choosing English (original) does
+            self.language_var.set(ENGLISH)
+            self.choose()
+        return list(removed)
 
     def open_folder(self) -> None:
         self.folder.mkdir(parents=True, exist_ok=True)
@@ -446,6 +575,10 @@ class TranslationsWindow:
         messagebox.showinfo(TITLE, f"{target.name} is ready in its folder (now open). On the GitHub page that "
                                    "opened, drag the file into the form and press Submit.", parent=self.window)
         return url
+
+    def download_from_github(self) -> "DownloadDialog":
+        """Download from GitHub...: the translations shared in the public folder, read-only."""
+        return DownloadDialog(self.window, self.game, self.folder, on_done=self.refresh)
 
     @staticmethod
     def _show_in_folder(path: Path) -> None:
@@ -518,6 +651,121 @@ class CreditDialog:
         self.window.destroy()
 
 
+class DownloadDialog:
+    """Download from GitHub...: every translation in translations/<game>/ on the patcher's GitHub
+    (the default branch), with its language and credit (read from the file once downloaded), the
+    date it last changed there, and whether it is installed or has an update. Several can be chosen;
+    each is checked as data before it is installed (translations_github.download)."""
+
+    COLUMNS = (("language", "Language", 170), ("credit", "Credit", 150), ("changed", "Last changed", 100),
+               ("status", "Status", 120), ("file", "File", 110))
+
+    def __init__(self, master, game: str, folder: Path, on_done=None, threaded: bool = True, opener=None) -> None:
+        self.game = game
+        self.folder = folder
+        self.on_done = on_done
+        self.threaded = threaded
+        self.opener = opener
+        self.rows: list[tgh.Row] = []
+        self.results: queue.Queue = queue.Queue()
+        win = self.window = tk.Toplevel(master)
+        win.title(f"Download from GitHub - {GAMES[game]}")
+        win.transient(master)
+        win.geometry("720x380")
+        frame = ttk.Frame(win, padding=12)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, wraplength=690, justify="left", text=(
+            f"Translations shared on the patcher's GitHub (translations/{game}/). Choose one or more (Ctrl or "
+            "Shift click) and press Download: each file is checked before it is installed. Nothing about you "
+            "is sent and no GitHub account is needed.")).pack(anchor="w")
+        self.tree = ttk.Treeview(frame, columns=[c for c, _t, _w in self.COLUMNS], show="headings",
+                                 selectmode="extended", height=10)
+        for column, title, width in self.COLUMNS:
+            self.tree.heading(column, text=title)
+            self.tree.column(column, width=width, stretch=True)
+        self.tree.pack(fill="both", expand=True, pady=(8, 0))
+        self.status = tk.StringVar(master=win, value="")
+        ttk.Label(frame, textvariable=self.status, wraplength=690, foreground="#245a9a").pack(anchor="w", pady=(6, 0))
+        row = ttk.Frame(frame)
+        row.pack(fill="x", pady=(8, 0))
+        ttk.Button(row, text="Download", command=self.download_selected).pack(side="left")
+        ttk.Button(row, text="Refresh", command=self.refresh).pack(side="left", padx=(8, 0))
+        ttk.Button(row, text="Close", command=win.destroy).pack(side="right")
+        win.bind("<Escape>", lambda _e: win.destroy())
+        self.refresh()
+
+    def load(self):
+        """The list from GitHub (run in a thread): rows, or the problem to show."""
+        try:
+            remotes = tgh.list_remote(self.game, opener=self.opener)
+            for remote in remotes:
+                remote.changed = tgh.last_changed(remote, opener=self.opener)
+            return remotes
+        except tgh.GitHubProblem as exc:
+            return exc
+
+    def refresh(self) -> None:
+        self.status.set("Asking GitHub...")
+        if not self.threaded:
+            self.loaded(self.load())
+            return
+        threading.Thread(target=lambda: self.results.put(self.load()), daemon=True).start()
+        self.window.after(100, self._poll)
+
+    def _poll(self) -> None:
+        if not self.window.winfo_exists():
+            return
+        try:
+            result = self.results.get_nowait()
+        except queue.Empty:
+            self.window.after(100, self._poll)
+            return
+        self.loaded(result)
+
+    def loaded(self, result) -> None:
+        if not self.window.winfo_exists():
+            return
+        if isinstance(result, Exception):
+            self.status.set(str(result))
+            return
+        self.rows = [tgh.row(remote, self.folder) for remote in result]
+        self.fill()
+        self.status.set(f"{len(self.rows)} translation(s) for {GAMES[self.game]} on GitHub." if self.rows else
+                        f"No translation for {GAMES[self.game]} has been shared on GitHub yet.")
+
+    def fill(self) -> None:
+        self.tree.delete(*self.tree.get_children())
+        for n, item in enumerate(self.rows):
+            self.tree.insert("", "end", iid=str(n), values=(item.language, item.credit or "-",
+                                                            item.remote.changed or "unknown", item.status,
+                                                            item.remote.name))
+
+    def download_selected(self) -> list[Path]:
+        chosen = [self.rows[int(i)] for i in self.tree.selection() if i.isdigit() and int(i) < len(self.rows)]
+        if not chosen:
+            messagebox.showinfo(TITLE, "Choose one or more translations in the list first.", parent=self.window)
+            return []
+        saved: list[Path] = []
+        messages: list[str] = []
+        self.window.configure(cursor="watch")
+        self.window.update_idletasks()
+        try:
+            for item in chosen:
+                try:
+                    saved.append(tgh.download(item.remote, self.folder, opener=self.opener))
+                    messages.append(f"{item.remote.name}: installed.")
+                except tgh.GitHubProblem as exc:
+                    messages.append(str(exc))
+        finally:
+            self.window.configure(cursor="")
+        self.rows = [tgh.row(item.remote, self.folder) for item in self.rows]
+        self.fill()
+        if self.on_done is not None:
+            self.on_done()
+        messagebox.showinfo(TITLE, "\n\n".join(messages)[:6000], parent=self.window)
+        return saved
+
+
 # --------------------------------------------------------------------------- the editor
 
 PLACEHOLDER_RE = re.compile(tfmt.CONVERSION_RE.pattern + r"|\{[^{}]*\}")
@@ -588,6 +836,7 @@ class TranslationEditor:
         self.tree.tag_configure("error", foreground="#c00")
         self.tree.tag_configure("changed", foreground="#a60")
         self.tree.tag_configure("old", foreground="#888")
+        self.tree.tag_configure("group", foreground="#245a9a", font=("Segoe UI", 9, "bold"))
         self.tree.bind("<<TreeviewSelect>>", lambda _e: self.show_row())
         panes.add(table, weight=3)
 
@@ -638,7 +887,7 @@ class TranslationEditor:
             return "new"
         errors, _w = tfmt.check_translation(row.english, row.translation, self.file.code)
         entry = self.entries.get(row.key)
-        if errors or (entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide)):
+        if errors or (entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide, entry.english, entry.is_format)):
             return "error"
         return "done"
 
@@ -648,6 +897,7 @@ class TranslationEditor:
         query = self.search.get().casefold()
         self.tree.delete(*self.tree.get_children())
         self.visible: dict[str, tfmt.Row] = {}
+        shown: list[tuple[str, int, tfmt.Row, str]] = []
         for n, row in enumerate(self.file.rows):
             status = self.status(row)
             if self.untranslated_only.get() and status not in ("new", "error"):
@@ -655,6 +905,19 @@ class TranslationEditor:
             if query and query not in row.english.casefold() and query not in row.translation.casefold() \
                     and query not in row.key.casefold():
                 continue
+            entry = self.entries.get(row.key)
+            shown.append((tstr.group_of(entry.notes if entry else row.notes), n, row, status))
+        # Grouped by patch ("Patch: ..." in the notes), the game's own lines first, each group headed.
+        order: dict[str, int] = {"": -1}
+        for group, *_rest in shown:
+            order.setdefault(group, len(order))
+        shown.sort(key=lambda item: (order[item[0]], item[1]))
+        last = None
+        for group, n, row, status in shown:
+            if group != last:
+                last = group
+                self.tree.insert("", "end", iid=f"g{n}", tags=("group",),
+                                 values=("", f"— {('Patch: ' + group) if group else 'The game'} —", ""))
             iid = f"r{n}"
             self.visible[iid] = row
             self.tree.insert("", "end", iid=iid, values=(self.STATUS[status], _one_line(row.english),
@@ -743,7 +1006,7 @@ class TranslationEditor:
             return []
         errors, warnings = tfmt.check_translation(row.english, row.translation, self.file.code)
         entry = self.entries.get(row.key)
-        if row.translation and entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide):
+        if row.translation and entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide, entry.english, entry.is_format):
             errors.append(tfmt.too_long_message(entry.max_length))
         if tfmt.contains_email(row.translation):
             errors.append(tfmt.EMAIL_MESSAGE)
@@ -811,6 +1074,18 @@ class TranslationEditor:
     def close(self) -> None:
         self.save()
         self.window.destroy()
+
+    def discard(self) -> None:
+        """Its file was deleted: close without saving (saving would bring the file back)."""
+        self.dirty = False
+        if self._after is not None:
+            try:
+                self.window.after_cancel(self._after)
+            except tk.TclError:
+                pass
+            self._after = None
+        if self.window.winfo_exists():
+            self.window.destroy()
 
 
 def open_window(master, game: str | None, folders: dict[str, list]) -> TranslationsWindow:

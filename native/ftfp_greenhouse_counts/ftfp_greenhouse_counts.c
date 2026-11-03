@@ -143,9 +143,9 @@ static void count_greenhouse(char *state, greenhouse_count *out) {
 static void plant_line(count_line *line, const greenhouse_count *c) {
     ct_start(line);
     ct_count(line, "Plants: ", c->plants, " of ", POTS);
-    ct_part(line, c->mature, "mature", "mature");
-    ct_part(line, c->buds, "with buds", "with buds");
-    ct_part(line, c->seedlings, "seedling", "seedlings");
+    ct_part_counted(line, c->mature, "%d mature", "mature", "mature");
+    ct_part_counted(line, c->buds, "%d with buds", "with buds", "with buds");
+    ct_part_counted(line, c->seedlings, "%d {%1: one=seedling | other=seedlings}", "seedling", "seedlings");
     ct_close(line);
     ct_dead(line, "Dead: ", c->dead);
 }

@@ -1,0 +1,542 @@
+﻿# Plant Tycoon - (TEST) - French AI Translation (format 1). Machine-made (AI) French translation, for testing only: not reviewed by a French speaker. Species-name words (DS fish fins and bodies, new flower names) stay in English, like the games' own species names.
+# TEST FILE: made by an AI to test the translation feature; expect mistakes.
+# docs/translations.md (Fish and Plant Tycoon Fix Patcher) explains the format.
+Key	English	Translation	Notes
+@format	1	1
+@game	Plant Tycoon	
+@language	English	(TEST) - French AI Translation
+@code	en	fr
+@translator		(TEST) AI translation	Machine-made (AI) French translation, for testing only: not reviewed by a French speaker. Species-name words (DS fish fins and bodies, new flower names) stay in English, like the games' own species names.
+strings/1~3e4ce79c	TIME STOPPED	TEMPS ARRÊTÉ	eTIME_STOPPED
+strings/2~572b8d9e	Internal Error, No Available String	Erreur interne, aucun texte disponible	eSayInternalError
+strings/3~5f27067d	Player: 	Joueur : 	ePlayer
+strings/4~449d701c	Please enter a nickname...	Entrez un pseudo...	ePleaseEnterANickName
+strings/5~c0bf75bd	Change	Changer	eChangePlayer; at most 14 letters (accented letters count 2)
+strings/7~436e6101	Play	Jouer	ePlay
+strings/8~09d37c7e	Start Over	Recommencer	eStartOver
+strings/9~d0db8b5e	Options	Options	eOptions
+strings/10~b79cac92	Help	Aide	eHelp
+strings/11~b3eb37ac	Quit	Quitter	eQuit
+strings/12~99af6606	Menu	Menu	eMenu
+strings/13~69d09a05	Version 1.02 date limited	Version 1.02 à durée limitée	eVersionLimited
+strings/14~a468c29d	Version 1.0.3.1 DEMO	Version 1.0.3.1 DÉMO	eVersionDemo
+strings/15~28cd592f	Version 1.0.3.1	Version 1.0.3.1	eVersion; at most 23 letters (accented letters count 2)
+strings/16~85a39ab3	Yes	Oui	eYes
+strings/17~1ea442a1	No	Non	eNo
+strings/18~565339bc	OK	OK	eOK
+strings/19~19766ed6	Cancel	Annuler	eCancel
+strings/20~e2d0a549	Delete	Supprimer	eDelete
+strings/21~0e916101	Refresh	Actualiser	eRefresh
+strings/22~9ffa29f9	Are you sure you want to delete the player?	Voulez-vous vraiment supprimer ce joueur ?	eDeletePlayerConfirm
+strings/23~ccfb44fa	Sending and receiving stats...	Envoi et réception des statistiques...	eAttemptingConnect
+strings/24~aef212a1	Statistics successfully updated!	Statistiques mises à jour !	eStatsUpdated
+strings/25~e2e823bf	Update failed. Can't connect to server.	Échec de la mise à jour. Connexion au serveur impossible.	eUpdateFailed
+strings/26~7f0d3067	No stats to update yet!	Aucune statistique à mettre à jour !	eNoStats
+strings/27~3db75c30	YOUR STATISTICS	VOS STATISTIQUES	eYourStatistics
+strings/28~0751dc18	INTERNET RANK	CLASSEMENT INTERNET	eInternetStatistics
+strings/29~4c9c8019	Real Hours Played	Heures réelles jouées	eRealHoursPlayed
+strings/30~a658cfe5	Your rank:	Votre rang :	eYourRank
+strings/31~a683c5c5	n/a	N/D	ePressRefresh
+strings/32~85257938	Average:	Moyenne :	eAverage
+strings/33~0714174c	Money Earned	Argent gagné	eMoneyEarned
+strings/34~ef7b9cc3	Plants Sold	Plantes vendues	ePlantsSold
+strings/35~342b3a7c	Average Price	Prix moyen	eAveragePrice
+strings/36~511e59e7	Plants Cured	Plantes soignées	ePlantsCured
+strings/37~9c73da60	Seeds Planted	Graines plantées	eSeedsPlanted
+strings/38~aa651b0f	Liters Water Used	Litres d'eau utilisés	eWaterPoured
+strings/39~77de5b35	Branches Pruned	Branches taillées	eBranchesPruned
+strings/40~1df76bbf	Net Swung	Coups de filet	eNetSwung
+strings/41~c0824c3d	Bugs Caught	Insectes attrapés	eBugsCaptured
+strings/42~3ba6f03e	Nursery Visitors	Visiteurs de la pépinière	eVisitorsInNursery
+strings/43~dea44ddf	Magic Plants Found	Plantes Magiques trouvées	eMagicPlantFound
+strings/44~5b6d1596	Species Discovered	Espèces découvertes	eSpeciesFound
+strings/45~6f305c4b	Sounds	Sons	eSounds
+strings/46~6eb00b4b	Music	Musique	eMusic
+strings/47~e8d29731	Music Tracks	Morceaux de musique	eMusicTracks
+strings/48~92c1cdfd	Enabled	Activés	eEnabled
+strings/49~75081b59	Disabled	Désactivés	eDisabled
+strings/50~be44133e	Difficulty	Difficulté	eDifficulty
+strings/51~d6915875	Easy	Facile	eEasy
+strings/52~8e588cd1	Medium	Moyen	eMedium
+strings/53~9e73f8fa	Hard	Difficile	eHard
+strings/54~08e7f4a9	Game Speed	Vitesse du jeu	eGameSpeed
+strings/55~0a46232a	Stop Time	Arrêter le temps	eStopTime
+strings/56~a7248eeb	Normal	Normal	eNormal
+strings/57~4b2bebbf	Slow	Lente	eHalfSpeed
+strings/58~6c582b62	Fast	Rapide	e2xSpeed
+strings/59~c461dbb2	Fullscreen	Plein écran	eFullscreen
+strings/60~13001175	On	Oui	eOn
+strings/61~ca7981b4	Off	Non	eOff
+strings/62~dc7e4feb	Are you sure you want to restart the current game?	Voulez-vous vraiment recommencer la partie en cours ?	eSayConfirmRestart
+strings/63~49ee8852	CASH	ARGENT	eYourCash
+strings/64~f45aa5a5	Age:	Âge :	eAge
+strings/65~03b9f7a8	Price: $	Prix : $	ePrice; at most 16 letters (accented letters count 2)
+strings/84~40f10e47	Please register!	Veuillez vous enregistrer !	ePleaseRegister
+strings/85~59f48aca	You already have it!	Vous l'avez déjà !	eYouAlreadyHaveIt
+strings/86~a4282e4b	 of 	 sur 	eCollectionsOf
+strings/87~ec9b10a4	Dead	Morte	eDead
+strings/88~1ca3c11d	Infested	Infestée	eInfested
+strings/89~317b1fbc	Unhealthy	Malade	eUnhealthy
+strings/90~7f1e323b	Healthy	En bonne santé	eHealthy
+strings/91~910e30fa	Pollinated	Pollinisée	ePollinated
+strings/92~1b5a6d55	Depleted	Épuisée	eDepleted
+strings/93~ecc06e9f	This plant is still too young!	Cette plante est encore trop jeune !	eTooYoung
+strings/94~2cc08418	Mature	Mûre	eMature
+strings/95~20ef0f0c	NA	N/D	eNA
+strings/96~5f1c7c43	 of 4 common butterflies found.	 sur 4 papillons communs trouvés.	eSayCommonButterflies
+strings/97~5b361697	 of 4 uncommon butterflies found.	 sur 4 papillons peu communs trouvés.	eSayUncommonButterflies
+strings/98~df80409b	 of 4 rare butterflies found.	 sur 4 papillons rares trouvés.	eSayRareButterflies
+strings/99~f92c23fe	 of 4 common shells found.	 sur 4 coquillages communs trouvés.	eSayCommonShells
+strings/100~62f75e8f	 of 4 uncommon shells found.	 sur 4 coquillages peu communs trouvés.	eSayUncommonShells
+strings/101~b6dfeb49	 of 4 rare shells found.	 sur 4 coquillages rares trouvés.	eSayRareShells
+strings/102~fbe6fa68	 of 4 common pebbles found.	 sur 4 cailloux communs trouvés.	eSayCommonPebbles
+strings/103~287dd791	 of 4 uncommon pebbles found.	 sur 4 cailloux peu communs trouvés.	eSayUncommonPebbles
+strings/104~a53bca7d	 of 4 rare pebbles found.	 sur 4 cailloux rares trouvés.	eSayRarePebbles
+strings/105~ea862ea9	 of 4 common beetles found.	 sur 4 scarabées communs trouvés.	eSayCommonBeetles
+strings/106~c8b431da	 of 4 uncommon beetles found.	 sur 4 scarabées peu communs trouvés.	eSayUncommonBeetles
+strings/107~07a93621	 of 4 rare beetles found.	 sur 4 scarabées rares trouvés.	eSayRareBeetles
+strings/108~c74e4368	Welcome to the Game.	Bienvenue dans le jeu.	eSayWelcome
+strings/109~16852e2d	You can't water empty pots!	Impossible d'arroser un pot vide !	eSayNoSoil
+strings/110~d2c00fad	This pot already has soil.	Ce pot contient déjà du terreau.	eSayAlreadyHaveSoil
+strings/111~88a9e58e	Drag the pollen to a target plant!	Faites glisser le pollen sur une plante cible !	eSayPollinatePlant
+strings/112~337a18c2	Pollination complete.	Pollinisation terminée.	eSayPollinated
+strings/113~3153994a	This plant is not yet mature.	Cette plante n'est pas encore mûre.	eSayNotMature
+strings/114~b7743477	This plant has already been pollinated.	Cette plante a déjà été pollinisée.	eSayAlreadyPollinated
+strings/115~1d291796	Plant selected.	Plante sélectionnée.	eSayPlantSelected
+strings/116~29a598a8	This plant has not been pollinated.	Cette plante n'a pas été pollinisée.	eSayNotPollinated
+strings/117~fac834d7	This plant is finished producing seeds.	Cette plante ne produit plus de graines.	eSaySeedsTaken
+strings/118~b66501f3	This plant's seeds are not yet ripe.	Les graines de cette plante ne sont pas encore mûres.	eSaySeedsNotRipe
+strings/119~272a430e	Your seed box is already full!	Votre boîte à graines est déjà pleine !	eSaySeedBoxFull
+strings/120~69a887d2	Seed moved to seed box.	Graine rangée dans la boîte à graines.	eSaySeedMovedToBox
+strings/121~ac56a6db	Pot selected.	Pot sélectionné.	eSayPotSelected
+strings/122~755732d5	You already have this item!	Vous avez déjà cet article !	eSayDontNeed
+strings/123~aec7cef0	You can't afford to buy this yet!	Vous n'avez pas encore les moyens de l'acheter !	eSayNeedCash
+strings/124~435c2611	Click anywhere to exit this screen.	Cliquez n'importe où pour quitter cet écran.	eSayClickAnywhere
+strings/125~0ceb5f4e	You sold a plant!	Vous avez vendu une plante !	eSayPlantSold
+strings/126~40f1753f	You just ran out of plant food.	Vous n'avez plus d'engrais.	eSayNoPlantFood
+strings/127~43bbac5e	Select a living plant to price!	Choisissez une plante vivante pour fixer son prix !	eSayNoPlantToPrice
+strings/128~194db4fb	Your Seed Tray already has 8 seeds!	Votre plateau de graines contient déjà 8 graines !	eSayNoRoomOnTray
+strings/129~012d66f0	That plant is dead!	Cette plante est morte !	eSayDeadPlant
+strings/130~dace74d1	This plant is still too young to sell.	Cette plante est encore trop jeune pour être vendue.	eSayTooYoung
+strings/131~fdd0efb3	There is no plant there.	Il n'y a pas de plante ici.	eSayNoPlant
+strings/132~22e93520	Put soil in this pot first!	Mettez d'abord du terreau dans ce pot !	eSayNoPlantSoil
+strings/133~d406c308	That soil is too hard. Add water.	Ce terreau est trop dur. Ajoutez de l'eau.	eSaySoilToHard
+strings/134~4e8f61ea	There is already a plant growing there!	Une plante pousse déjà ici !	eSayAlreadyPlant
+strings/135~4e8617fa	Only available in registered version.	Disponible seulement dans la version enregistrée.	eSayOnlyRegistered
+strings/136~210eefd4	You can't mutate unfertilized plants!	Impossible de faire muter une plante non fécondée !	eSayNoSeeds
+strings/137~4f0dcde4	Too late! This plant made seeds!	Trop tard ! Cette plante a fait des graines !	eSayAlreadySeeds
+strings/138~03881581	Visit www.LDW.com for tips and hints.	Astuces et conseils sur www.LDW.com.	eSayVisitLDW
+strings/139~88382382	This needs to be applied to younger plants.	À appliquer sur des plantes plus jeunes.	eNeedYoungerPlant
+strings/140~641a1d7a	You already have this common bug. It sold for $5.	Vous avez déjà cet insecte commun. Il a été vendu 5 $.	eCommonInsectSold
+strings/141~8d96e9a7	You already have this uncommon bug. It sold for $20.	Vous avez déjà cet insecte peu commun. Il a été vendu 20 $.	eUncommonInsectSold
+strings/142~6aea4b77	You already have this rare bug. It sold for $40.	Vous avez déjà cet insecte rare. Il a été vendu 40 $.	eRareInsectSold
+strings/143~ffe959dc	Bug added to collection!	Insecte ajouté à la collection !	eInsectCollected
+strings/144~45773981	There is no plant there!	Il n'y a pas de plante ici !	eNoPlantThere
+strings/145~0b6db497	Replay Tutorial Instruction	Revoir le tutoriel	eReplayTutorialInstruction
+strings/146~591a94b6	Long have there been tales of a village on a remote island\n	On parle depuis longtemps d'un village sur une île lointaine\n	eIntro1Line1
+strings/147~650ae3dc	called Isola. There are rumors of six Magic Plants that \n	appelée Isola. On dit que six Plantes Magiques y \n	eIntro1Line2
+strings/148~6900524a	impart great powers unto the villagers...\n	confèrent de grands pouvoirs aux villageois...\n	eIntro1Line3
+strings/152~8ad8a468	With only a few plants and seeds from Isola, you will not rest until\n	Avec seulement quelques plantes et graines d'Isola, vous n'aurez de cesse\n	eIntro2Line1
+strings/153~ff71eba3	you have found the key to these Magic Plants. Would you like some help?\n	de percer le secret de ces Plantes Magiques. Voulez-vous un peu d'aide ?\n	eIntro2Line2
+strings/158~877ad902	Amazing! With the restoration of the Magic Plants,\n	Incroyable ! En restaurant les Plantes Magiques,\n	eGamewinLine1
+strings/159~fd3069d4	you have uncovered an important key to the ecology and magic of Isola.\n	vous avez découvert une clé de l'écologie et de la magie d'Isola.\n	eGamewinLine2
+strings/160~d38f4bb8	While there still may be other rare varieties in need of discovery,\n	D'autres variétés rares restent peut-être à découvrir, mais\n	eGamewinLine3
+strings/161~f0df6e83	the return of these native and mysterious plants to the fabled island\n	le retour de ces plantes indigènes et mystérieuses sur l'île légendaire\n	eGamewinLine4
+strings/162~2ec0aa5e	of Isola is certain to have lasting impact on the villagers...\n	d'Isola aura sans aucun doute un effet durable sur les villageois...\n	eGamewinLine5
+strings/164~b3b98b48	We have started you with a few seedlings.\nClick on a plant to learn more about it.\n	Voici quelques jeunes pousses pour commencer.\nCliquez sur une plante pour en savoir plus.\n	eTTipInstruct1
+strings/165~04197030	Perfect! A white circle shows which \nplant is selected. You can see important\ndetails about this plant -- like its name,\nage, and health -- on the left side of the\nscreen.\n	Parfait ! Un cercle blanc montre la plante\nsélectionnée. Vous voyez des détails\nimportants sur cette plante -- son nom,\nson âge et sa santé -- à gauche de\nl'écran.\n	eTTipInfo2
+strings/166~578fb292	Let's get ready to plant a seed.\nPick up the soil bag from the Tool Tray \nand drop some soil into an empty pot.\n	Préparons-nous à planter une graine.\nPrenez le sac de terreau dans le plateau\nd'outils et versez du terreau dans un pot vide.\n	eTTipInstruct3
+strings/167~15ff510c	Good! The pot is now \nfilled with soil.   \n	Bravo ! Le pot est maintenant\nrempli de terreau.   \n	eTTipInfo4
+strings/168~229509ff	There is soil in the pot, but it's too dry. \nLet's water it. Pick up the watering can from \nthe Tool Tray, take it to the pot you want to\nwater, and hold down the left mouse button \nuntil the plant's water meter on the left is\nalmost full.\n	Il y a du terreau, mais il est trop sec.\nArrosons-le. Prenez l'arrosoir dans le\nplateau d'outils, amenez-le sur le pot à\narroser et maintenez le bouton gauche de la\nsouris jusqu'à ce que la jauge d'eau à gauche\nsoit presque pleine.\n	eTTipInstruct5
+strings/169~5c83e1b9	Good! Your soil is damp enough.\nPlants need to stay moist, and most \nof them need to be watered daily. Be  \ncareful not to overwater them, though!\n	Bravo ! Le terreau est assez humide.\nLes plantes doivent rester humides, et la\nplupart doivent être arrosées chaque jour.\nAttention à ne pas trop les arroser !\n	eTTipInfo6
+strings/170~e6e1849a	Now drag a seed from the Seed Tray\nto the wet soil that you prepared. \n	Faites maintenant glisser une graine du\nplateau de graines vers le terreau humide. \n	eTTipInstruct7
+strings/171~af17d101	Excellent! You planted your first seed!\nThis plant will be mature and ready to \npollinate within a few hours.\n	Excellent ! Vous avez planté votre 1re graine !\nCette plante sera mûre et prête à être\npollinisée d'ici quelques heures.\n	eTTipInfo8
+strings/172~50613f40	You can't rush Mother Nature...\nbut, in case you are impatient, we started you \nout with some expensive growth hormone. Grab \nthe blue flask in your Tool Tray and apply it \nto a plant of your choice.\n	On ne peut pas brusquer Mère Nature...\nmais si vous êtes impatient, voici un peu\nd'hormone de croissance (chère !). Prenez\nle flacon bleu dans le plateau d'outils et\nversez-le sur la plante de votre choix.\n	eTTipInstruct9
+strings/173~628babc3	Wow! The growth hormone \nmade the plant grow faster! \n	Waouh ! L'hormone de croissance\na fait pousser la plante plus vite ! \n	eTTipInfo10
+strings/174~4b54ded0	Continue applying more growth\nhormone to the same plant until \nsome flowers or fruit appear.\n	Continuez à verser de l'hormone\nsur la même plante jusqu'à\nvoir des fleurs ou des fruits.\n	eTTipInstruct11
+strings/175~897e28c4	Good! You now have a mature plant. You \ncan see your plant's status on the left, and \nthe species name is now displayed. Mature \nplants can be pollinated, so that they will\nproduce seeds of their own.\n	Bravo ! Votre plante est mûre. Son état\ns'affiche à gauche, et le nom de l'espèce\napparaît maintenant. Une plante mûre peut\nêtre pollinisée pour produire ses propres\ngraines.\n	eTTipInfo12
+strings/176~db58baf1	Let's pollinate a mature plant.\nGrab the sparkling pollen from the pollen  \narea on the left and drag it to your mature  \nplant. If you don't see any pollen, make sure\nthat you have selected a mature plant.\n	Pollinisons une plante mûre.\nPrenez le pollen scintillant dans la zone\nde pollen à gauche et amenez-le sur votre\nplante mûre. Si vous ne voyez pas de pollen,\nvérifiez qu'une plante mûre est sélectionnée.\n	eTTipInstruct13
+strings/177~56a7cd81	Well done! In less than half an hour \nyour plant should start producing \nseeds for you to harvest.\n	Bien joué ! En moins d'une demi-heure,\nvotre plante devrait produire des\ngraines à récolter.\n	eTTipInfo14
+strings/178~c2c829a8	Oh no! One of your plants is infested!\nInfested plants have small black insects\nswarming around them. Let's go to the  \nsupplies store and buy some insect poison.  \nClick the Supplies button at the bottom \nof the screen. \n	Oh non ! Une de vos plantes est infestée !\nLes plantes infestées sont entourées de\npetits insectes noirs. Allons à la boutique\nacheter de l'insecticide.\nCliquez sur le bouton Fournitures en bas\nde l'écran. \n	eTTipInstruct15
+strings/179~b30fecaf	Welcome to the Gardening Supplies Screen.\nThis is where you shop for tool upgrades, chemicals, \nseeds, and nursery improvements. While you are here, \nclick the Insect Poison bottle and buy it. You will need \nit sooner or later. Click the Main button to return to \nthe greenhouse. \n	Bienvenue dans la boutique de jardinage.\nAchetez ici outils, produits chimiques, graines\net améliorations de la pépinière. Pendant que\nvous y êtes, cliquez sur l'insecticide et\nachetez-le : il vous servira tôt ou tard. Cliquez\nsur Principal pour revenir à la serre. \n	eTTipInfo16
+strings/180~ce1fe6cb	Now let's help the infested plant.\nCheck your Tool Tray for some insect poison.\nIf you don't have any, go buy some from the\nsupplies store. Spray the infested plant once \nand wait a few seconds for it to work. \n	Soignons maintenant la plante infestée.\nCherchez l'insecticide dans le plateau d'outils.\nSi vous n'en avez pas, achetez-en à la\nboutique. Vaporisez une fois la plante\ninfestée et attendez quelques secondes. \n	eTTipInstruct17
+strings/181~01d42965	Well done! Your plant feels much\nbetter now, and the infestation has\ndisappeared.\n	Bien joué ! Votre plante va beaucoup\nmieux, et l'infestation a\ndisparu.\n	eTTipInfo18
+strings/182~3b15d961	One of your plants has produced seeds! \nThe seeds appear in the seed area on the \nleft side of the screen. Now pick up a seed \nand drop it on the Seed Tray at the top of\nthe screen.\n	Une de vos plantes a produit des graines !\nElles apparaissent dans la zone des graines\nà gauche de l'écran. Prenez une graine et\nposez-la sur le plateau de graines en haut\nde l'écran.\n	eTTipInstruct19
+strings/183~d58dc8db	Great! You harvested a seed.\nWhen your Seed Tray fills up, seeds are moved to the \nSeed Storage screen as you add seeds to the Tray.\n	Super ! Vous avez récolté une graine.\nQuand le plateau de graines est plein, les graines\npartent dans la réserve à mesure que vous en ajoutez.\n	eTTipInfo20
+strings/184~0f15d5cf	Let's check out the Seed Storage Screen.\nClick the Seeds button at the bottom of \nthe screen. \n	Allons voir l'écran de la réserve de graines.\nCliquez sur le bouton Graines en bas\nde l'écran. \n	eTTipInstruct21
+strings/185~f92b25c2	Welcome to the Seed Storage Screen!\nThis is where you store and organize your seeds. \nYou start with one seed box, and you can buy \ntwo additional boxes later. As you move the \ncursor over a seed, you can see its parents. \nIf the parents show question marks, it means \nthat the seed was purchased from the shop. \nClick Main to go back to the greenhouse.\n	Bienvenue dans la réserve de graines !\nIci, vous rangez et organisez vos graines.\nVous commencez avec une boîte à graines et\npourrez en acheter deux de plus. En passant\nle curseur sur une graine, vous voyez ses parents.\nS'ils affichent des points d'interrogation, la\ngraine a été achetée à la boutique.\nCliquez sur Principal pour revenir à la serre.\n	eTTipInfo22
+strings/186~7886e93b	Let's learn how to prune and customize\nyour plants. Well-groomed plants can sell \nfor more money. Grab the pruning shears \nfrom your Tool Tray. It's best to look for a\nbrown or dead leaf, then hold the shears \nover it until it's highlighted, and carefully \nsnip it off with the shears.\n	Apprenons à tailler et façonner vos\nplantes. Une plante bien soignée se vend\nplus cher. Prenez le sécateur dans le\nplateau d'outils. Cherchez une feuille brune\nou morte, maintenez le sécateur dessus\njusqu'à ce qu'elle soit en surbrillance,\npuis coupez-la délicatement.\n	eTTipInstruct23
+strings/187~1b7b859b	Good! It is fun to shape the plants however\nyou want them. Lovingly pruned plants can \nsell for more money. Be careful, though! \nYour cheap shears can harm plants, so you \nshould keep an eye on the plant's health \nwhile pruning and upgrade to better shears \nas soon as you can.\n	Bravo ! C'est amusant de façonner les plantes\nà votre goût. Une plante taillée avec soin\nse vend plus cher. Mais attention ! Votre\nsécateur bon marché peut abîmer les plantes :\nsurveillez leur santé pendant la taille et\nachetez un meilleur sécateur dès que\npossible.\n	eTTipInfo24
+strings/188~9ef651e3	Oh look! A bug! Quick! Grab\nyour net and try to catch it! Move \nyour net close to the bug and click \nthe left mouse button to swing it.\n	Oh, regardez ! Un insecte ! Vite ! Prenez\nvotre filet et essayez de l'attraper !\nApprochez le filet de l'insecte et cliquez\navec le bouton gauche pour le lancer.\n	eTTipInstruct25
+strings/189~b6a0bbaa	Excellent! You collected a fascinating \ncritter, and it has been added to your \nbug collection. Don't worry, though. \nCollecting bugs is optional.\n	Excellent ! Vous avez attrapé une bestiole\nfascinante, ajoutée à votre collection\nd'insectes. Pas d'inquiétude : la collection\nd'insectes est facultative.\n	eTTipInfo26
+strings/190~ca034e38	Let's check out the Bug Collection Screen.\nClick the Collect button at the bottom of \nthe screen.\n	Allons voir l'écran de la collection d'insectes.\nCliquez sur le bouton Collection en bas\nde l'écran.\n	eTTipInstruct27
+strings/191~d1c94770	Welcome to the Bug Collection Screen! \nHere you can see which bugs you have \ncollected. When you catch a duplicate \nbug, it is converted into cash.  \nClick Main to go back to the greenhouse. \n	Bienvenue dans la collection d'insectes !\nIci, vous voyez les insectes que vous avez\nattrapés. Un insecte en double est\nconverti en argent.\nCliquez sur Principal pour revenir à la serre. \n	eTTipInfo28
+strings/192~cd5548ea	It's time to sell one of your creations.\nSelect a mature plant that you want to sell, \nthen click the Price button on the left if \nyou want to adjust its price. Next, click \nthe Sell button to put it up for sale. \n	Il est temps de vendre une de vos créations.\nChoisissez une plante mûre à vendre, puis\ncliquez sur le bouton Prix à gauche pour\najuster son prix. Cliquez ensuite sur\nle bouton Vendre pour la mettre en vente. \n	eTTipInstruct29
+strings/193~33d99d3b	Good! A sale tag has been placed on\nthe plant. This plant will be on display\nin your nursery and marked 'For Sale.' \n	Bravo ! Une étiquette de vente est posée\nsur la plante. Elle sera exposée dans\nvotre pépinière et marquée « À vendre ». \n	eTTipInfo30
+strings/194~ae1884c4	Everything is ready. It's finally time to \nopen your doors to the public. Click\nthe Nursery button at the bottom of \nthe screen. \n	Tout est prêt. Il est enfin temps d'ouvrir\nvos portes au public. Cliquez sur\nle bouton Pépinière en bas de\nl'écran. \n	eTTipInstruct31
+strings/195~beb3cd46	Welcome to the Nursery Screen.\nOnly mature plants that are marked 'For Sale' \nappear here. You can increase the crowds \nby improving your nursery and buying new \nornaments. Plants are sold only while you \nare in the nursery. Let's wait and see if \nanyone is interested in buying your plant. \n	Bienvenue dans la pépinière.\nSeules les plantes mûres marquées « À vendre »\napparaissent ici. Attirez plus de monde en\naméliorant votre pépinière et en achetant des\ndécorations. Les plantes ne se vendent que si\nvous êtes dans la pépinière. Voyons si quelqu'un\nveut acheter votre plante. \n	eTTipInfo32
+strings/196~1dfc3c8c	Welcome to Plant Tycoon!\n\nStarting with just a few seeds and seedlings, your\nchallenge is to breed and nurture new plant species  \nwhile you search for the six Magic Plants of Isola. \nYou will sell your creations along the way to fund\nyour experiments and research. Have fun!\n	Bienvenue dans Plant Tycoon !\n\nAvec seulement quelques graines et jeunes pousses, votre\ndéfi est de créer et cultiver de nouvelles espèces\nen cherchant les six Plantes Magiques d'Isola.\nVous vendrez vos créations pour financer\nvos expériences et vos recherches. Amusez-vous bien !\n	eTTipStandAloneWelcome
+strings/197~8628ac2b	I'm sorry. One of your plants is dead.\nThis is usually caused by trying to grow an \nexotic hybrid in cheap soil. You probably \nneed to save money for better soil that will \nsupport these more advanced species.\n	Désolé. Une de vos plantes est morte.\nC'est souvent dû à un hybride exotique\ncultivé dans un terreau bon marché. Il faut\nsans doute économiser pour un meilleur terreau\nadapté à ces espèces plus avancées.\n	eTTipStandAloneFirstDeath
+strings/198~b6334781	Oh! You pruned a plant to death.\nRemember, the starting shears are very dull,\nand it is traumatic for plants to be pruned with\ndull shears. Keep in mind, also, that pruning\nhealthy, green leaves is much more damaging\nthan pruning brown, dead leaves and branches.\n	Oh ! Vous avez taillé une plante à mort.\nN'oubliez pas : le sécateur de départ est très\némoussé, et c'est traumatisant pour les plantes.\nSachez aussi que tailler des feuilles vertes\net saines est bien plus nocif que tailler\ndes feuilles et branches brunes et mortes.\n	eTTipStandAloneFirstPruningDeath
+strings/199~365a42cf	Congratulations! You sold your first plant! You \ncan begin to save money to buy experimental \nchemicals, soil and water upgrades, nursery \nimprovements, and more. Click the Main button \nto return to the greenhouse. \n	Félicitations ! Vous avez vendu votre 1re plante !\nÉconomisez pour acheter des produits chimiques\nexpérimentaux, de meilleurs terreau et eau,\ndes améliorations de pépinière... Cliquez sur\nPrincipal pour revenir à la serre. \n	eTTipStandAloneFirstSoldPlant
+strings/200~a45881e7	Congratulations! You found all the bugs and completed \nyour collection. You have been awarded a $5,000 grant \nfrom the Bug Collectors Society of Isola, and part of your \ncollection will be displayed in your nursery. You will see\nbigger crowds in your nursery with this new attraction.\n	Félicitations ! Vous avez trouvé tous les insectes et complété\nvotre collection. La Société des collectionneurs d'insectes\nd'Isola vous offre 5 000 $, et une partie de votre collection\nsera exposée dans votre pépinière. Cette nouvelle attraction\ny attirera plus de monde.\n	eTTipStandAloneCollectedBugs
+strings/201~a6afee60	Congratulations! You found the Golden Berries of Wealth!\nThese magical berries cause customers in your \nnursery to more eagerly spend money... not just  \non this plant, but on all plants. This effect is auto-\nmatic and permanent. The plant has been repotted \nin a golden pot and moved to your nursery.\n	Félicitations ! Vous avez trouvé les Baies dorées de la Richesse !\nCes baies magiques poussent les clients de votre\npépinière à dépenser plus volontiers... pas seulement\npour cette plante, mais pour toutes. Cet effet est\nautomatique et permanent. La plante a été rempotée\ndans un pot doré et placée dans votre pépinière.\n	eTTipStandAloneMP1
+strings/202~e8fba10b	You found the Flower of Knowledge!\nThe essence of this flower gives you great insight and \nwisdom. Now you know exactly what each plant is worth. \nFrom now on your plants are automatically priced to \nmaximize their value when sold. This effect is automatic \nand permanent. The plant has been repotted in a golden \npot and moved to your nursery.\n	Vous avez trouvé la Fleur de la Connaissance !\nL'essence de cette fleur vous donne une grande sagesse.\nVous savez maintenant ce que vaut chaque plante.\nDésormais, vos plantes ont automatiquement le prix\nqui maximise leur valeur. Cet effet est automatique\net permanent. La plante a été rempotée dans un pot\ndoré et placée dans votre pépinière.\n	eTTipStandAloneMP2
+strings/203~cca958e2	You found the Rose of Joy!\nThis breathtaking plant bears roses so beautiful that \npeople come from miles to behold its wonder. Your \nnursery will always have a crowd from now on. This \neffect is automatic and permanent. The plant has been \nrepotted in a golden pot and moved to your nursery.\n	Vous avez trouvé la Rose de la Joie !\nCette plante porte des roses si belles que l'on\nvient de loin pour les admirer. Votre pépinière\naura toujours du monde désormais. Cet effet\nest automatique et permanent. La plante a été\nrempotée dans un pot doré et placée dans votre pépinière.\n	eTTipStandAloneMP3
+strings/204~f887c5d3	You found the Fruit of Life!\nThe presence of this magic plant makes your other plants \nrobust, resistant to infestation, and bloom vigorously.\nThis effect is automatic and permanent. The plant has\nbeen repotted in a golden pot and moved to your nursery.\n	Vous avez trouvé le Fruit de la Vie !\nCette plante magique rend vos autres plantes\nrobustes, résistantes aux infestations, et en pleine floraison.\nCet effet est automatique et permanent. La plante a été\nrempotée dans un pot doré et placée dans votre pépinière.\n	eTTipStandAloneMP4
+strings/205~727c3cbd	You found the Fabled Rose of Isola!\nUntil now this plant existed only in myth. This rare rose \nwill surely bring you great fame and riches. This effect is\nautomatic and permanent. The plant has been repotted\nin a golden pot and moved to your nursery.\n	Vous avez trouvé la Rose légendaire d'Isola !\nJusqu'ici, cette plante n'existait que dans les mythes. Cette\nrose rare vous apportera gloire et richesse. Cet effet est\nautomatique et permanent. La plante a été rempotée\ndans un pot doré et placée dans votre pépinière.\n	eTTipStandAloneMP5
+strings/206~dffce3a9	You found the Magic Tree of Fragrance!\nThe intoxicating fragrance from this plant is universally\npleasant and exotic. The wonderful aroma influences \nvisitors in the nursery and attracts rare insects. This\neffect is automatic and permanent. The plant has been\nrepotted in a golden pot and moved to your nursery.\n	Vous avez trouvé l'Arbre magique du Parfum !\nLe parfum enivrant de cette plante plaît à tous\npar son exotisme. Ce merveilleux arôme séduit\nles visiteurs de la pépinière et attire des insectes rares.\nCet effet est automatique et permanent. La plante a été\nrempotée dans un pot doré et placée dans votre pépinière.\n	eTTipStandAloneMP6
+strings/207~272e9e09	Plant Tycoon is a true real-time game.\nYour plants continue to grow and live even \nwhen the computer is off or you stop playing,\nbut remember to check back often to care for \nyour creations!\nYou can change the game speed in Options.\n	Plant Tycoon se joue vraiment en temps réel.\nVos plantes continuent de pousser et de vivre\nmême ordinateur éteint ou quand vous ne jouez pas,\nmais revenez souvent prendre soin de\nvos créations !\nChangez la vitesse du jeu dans les Options.\n	eTTipStandAloneRealTime
+strings/208~b9afc380	You have mastered the basics! Now you can experiment\nand explore the game on your own. Click on the faucet for \nhelpful tips. The game speed is currently set to fast \nspeed. Since the game runs in true real-time, even when\nit is turned off, you might set a slower speed if you\nplan to leave your plants growing overnight. Your plants\nwill thank you! Have fun!\n	Vous maîtrisez les bases ! À vous d'expérimenter\net d'explorer le jeu. Cliquez sur le robinet pour\ndes conseils utiles. La vitesse du jeu est réglée sur\nrapide. Comme le jeu tourne en temps réel, même\néteint, choisissez une vitesse plus lente si vous\nlaissez vos plantes pousser toute la nuit. Elles\nvous remercieront ! Amusez-vous bien !\n	eTTipStandAloneFinal
+strings/209~adc30990	Click the faucet to see helpful\ntips at the bottom of the screen.\n	Cliquez sur le robinet pour voir des\nconseils utiles en bas de l'écran.\n	eTTipStandAloneMaskTips
+strings/213~2c5df628	Time passes whether you're playing the game or not.	Le temps passe, que vous jouiez ou non.	eRandomTip1
+strings/214~32a6e70c	Duplicate bugs are turned into cash.	Les insectes en double sont convertis en argent.	eRandomTip2
+strings/215~7ef7c555	Careful! Pruning cannot be undone.	Attention ! Une taille est irréversible.	eRandomTip3
+strings/216~4e7bd26d	Ornaments attract more visitors to your nursery.	Les décorations attirent plus de visiteurs.	eRandomTip4
+strings/217~58e93913	Some exotic plants survive only in special soil.	Certaines plantes exotiques ne vivent que dans un terreau spécial.	eRandomTip5
+strings/218~09d90e20	Plants can be damaged by pruning.	La taille peut abîmer les plantes.	eRandomTip6
+strings/219~8f1aa25f	Pause the game if you go away for very long.	Mettez le jeu en pause si vous partez longtemps.	eRandomTip7
+strings/220~f7b74459	Upgraded nets help you catch the faster bugs.	Un meilleur filet attrape les insectes rapides.	eRandomTip8
+strings/221~48dddfa8	Only mature plants display their name.	Seules les plantes mûres affichent leur nom.	eRandomTip9
+strings/222~a44e16ff	Mature plants produce pollen.	Les plantes mûres produisent du pollen.	eRandomTip10
+strings/223~7dc51a89	Plants produce seeds after you pollinate them.	Les plantes pollinisées produisent des graines.	eRandomTip11
+strings/224~6418f4f4	Infested plants have small black insects around them.	Les plantes infestées sont entourées de petits insectes noirs.	eRandomTip12
+strings/225~92fbf1fb	Plants keep growing even when the game is off.	Les plantes poussent même quand le jeu est éteint.	eRandomTip13
+strings/226~fe8fa9f2	Isola is pronounced ee-zoh-lah!	Isola se prononce « i-zo-la » !	eRandomTip14
+strings/227~20c91dab	Each Magic Plant has a unique effect.	Chaque Plante Magique a un effet unique.	eRandomTip15
+strings/228~a03567c6	There are over 500 different species of Plants!	Il existe plus de 500 espèces de plantes !	eRandomTip16
+strings/229~86864979	You can drag seeds directly to the Seeds button.	Faites glisser les graines sur le bouton Graines.	eRandomTip17
+strings/230~e0b31436	Magic Plants attract visitors to your store.	Les Plantes Magiques attirent des visiteurs.	eRandomTip18
+strings/231~8849d5e3	You can breed and sell Magic Plants that you've found.	Vous pouvez croiser et vendre vos Plantes Magiques.	eRandomTip19
+strings/232~8d33233a	If your plants are dying, buy better soil.	Si vos plantes meurent, achetez un meilleur terreau.	eRandomTip20
+strings/233~5781f4a6	There are many approaches to solving the game.	Il y a plusieurs façons de finir le jeu.	eRandomTip21
+strings/234~85502bea	Infested plants cannot be pollinated.	Une plante infestée ne peut pas être pollinisée.	eRandomTip22
+strings/235~5e40103c	Some plants can sell for more than $400.	Certaines plantes se vendent plus de 400 $.	eRandomTip23
+strings/236~32a86bf6	Pricing your plants too high inhibits sales.	Des prix trop élevés freinent les ventes.	eRandomTip24
+strings/237~2a20f888	Double-clicking a pot will show what seed you planted.	Double-cliquez sur un pot pour voir la graine plantée.	eRandomTip25
+strings/238~586de68d	The supply shop's seed inventory changes once a day.	Le stock de graines de la boutique change chaque jour.	eRandomTip26
+strings/239~cfe318d3	Mutation Liquid changes the DNA of the plant.	Le liquide de mutation modifie l'ADN de la plante.	eRandomTip27
+strings/240~f193b4cd	If your plants sell quickly, the price may be too low.	Si vos plantes partent vite, le prix est peut-être trop bas.	eRandomTip28
+strings/241~50c8c7ff	The effect of Magic Plants is automatic and permanent.	L'effet des Plantes Magiques est automatique et permanent.	eRandomTip29
+strings/242~de859c57	Magic Plants are automatically repotted in golden pots.	Les Plantes Magiques sont rempotées dans des pots dorés.	eRandomTip30
+strings/243~389dcb76	You can't rush Mother Nature!	On ne peut pas brusquer Mère Nature !	eRandomTip31
+strings/244~376621e2	The 'ESC' key will take you back one screen.	La touche Échap ramène à l'écran précédent.	eRandomTip32
+strings/245~16afcbc1	There are hotkeys for moving between screens.	Des raccourcis clavier permettent de changer d'écran.	eRandomTip33
+strings/246~c5759fce	Dead plants may still have seeds on them.	Les plantes mortes ont parfois encore des graines.	eRandomTip34
+strings/247~1aa4f078	Soil upgrades immediately benefit your plants.	Un meilleur terreau profite tout de suite aux plantes.	eRandomTip35
+strings/248~0ebd07a0	The number keys navigate from screen to screen.	Les touches numériques passent d'un écran à l'autre.	eRandomTip36
+strings/249~19740286	'm', 'c', 'p', 's', and 'n' keys will change screens.	Les touches 'm', 'c', 'p', 's' et 'n' changent d'écran.	eRandomTip37
+strings/250~58e8526a	Trashing a pot containing dirt gives you a new pot.	Jeter un pot avec du terreau vous donne un pot neuf.	eRandomTip38
+strings/251~b3c54514	Pruning dead foliage can improve plant health.	Tailler le feuillage mort peut améliorer la santé.	eRandomTip39
+strings/252~fbc84537	Moving your hand too quickly scares bugs.	Bouger la main trop vite fait fuir les insectes.	eRandomTip40
+strings/253~f8293563	Sneaking up on bugs with your net helps you catch them.	Approchez les insectes en douceur avec le filet.	eRandomTip41
+strings/254~c7ac49ff	Plants sell better if flowers are visible.	Les plantes en fleurs se vendent mieux.	eRandomTip42
+strings/255~e41ff383	You can share snapshots of your plants.	Vous pouvez partager des photos de vos plantes.	eRandomTip43
+strings/256~87d80879	Catching bugs can help finance your purchases.	Attraper des insectes aide à financer vos achats.	eRandomTip44
+strings/257~90aadd6b	Trashing unwanted seeds turns them into cash.	Jeter des graines inutiles rapporte de l'argent.	eRandomTip45
+strings/258~5831c3e8	Plants with dead foliage don't sell well.	Les plantes au feuillage mort se vendent mal.	eRandomTip46
+strings/259~5cacf4d4	Certain chemicals can advance your breeding program.	Certains produits chimiques font avancer vos croisements.	eRandomTip47
+strings/260~8053359f	You can rearrange your plants in the nursery.	Vous pouvez réarranger les plantes de la pépinière.	eRandomTip48
+strings/261~68857543	You can take snapshots of your favorite plants.	Prenez des photos de vos plantes préférées.	eRandomTip49
+strings/262~c8d7943d	The speed of time can be changed from Options.	La vitesse du temps se règle dans les Options.	eRandomTip50
+strings/263~2351ee99	Registered	Enregistré	eRegistered
+strings/264~346d4492	Unregistered	Non enregistré	eUnregistered
+strings/265~ea837328	Please buy at: 	Achetez sur : 	ePleaseBuyAt
+strings/266~b1427635	Delete this plant?	Supprimer cette plante ?	eAskDeletePlant
+strings/267~69033344	Delete this seed?	Supprimer cette graine ?	eAskDeleteSeed
+strings/268~ed23189a	Replace current plant food?	Remplacer l'engrais actuel ?	eAskReplaceFood
+strings/269~83426058	Replace item in slot #4?	Remplacer l'article de l'emplacement 4 ?	eAskReplaceSlot4
+strings/270~b830e2dc	Buy this item?	Acheter cet article ?	eAskBuyItem
+strings/271~05689598	Set Price of Plant	Prix de la plante	eSetPlantPrice
+strings/272~d56b52ad	Price: $ 	Prix : $ 	ePlantPriceLabel
+strings/273~77458e97	For Sale!	À vendre !	eForSale
+strings/274~dbe80cfb	Purchase Item?	Acheter l'article ?	ePurchaseTitle
+strings/275~81bc1b09	This is your basic soil. Robust\nplants do fine in this soil, but \nmore exotic plants require\nhigher quality soil.\n	Votre terreau de base. Les plantes\nrobustes s'y plaisent, mais les\nplantes plus exotiques demandent\nun terreau de meilleure qualité.\n	ePurchaseDescSoil1
+strings/276~0b9b6f6b	Common Soil\n	Terreau commun\n	eShortDescSoil1; at most 20 letters (accented letters count 2)
+strings/277~ee742086	This ecologically pure soil\nsupports a wide variety\nof sensitive plants.	Ce terreau écologique et pur\nconvient à une grande variété\nde plantes fragiles.	ePurchaseDescSoil2
+strings/278~ede2d9d3	Bio-organic Soil\n	Terreau bio\n	eShortDescSoil2; at most 25 letters (accented letters count 2)
+strings/279~d64855b5	This rare and exotic soil was\nimported from Isola at great\nexpense. It is said that some \nplants survive only in this soil.\n	Ce terreau rare et exotique a été\nimporté d'Isola à grands frais.\nOn dit que certaines plantes ne\nsurvivent que dans ce terreau.\n	ePurchaseDescSoil3
+strings/280~1caff991	Soil from Isola\n	Terreau d'Isola\n	eShortDescSoil3; at most 24 letters (accented letters count 2)
+strings/281~b6ab7dc6	Common Seeds\n	Graines communes\n	eShortDescSeed1; at most 21 letters (accented letters count 2)
+strings/282~17564798	These seeds come from the\nmost abundant and robust \nplants found on Isola.\n	Ces graines viennent des plantes\nles plus abondantes et robustes\nd'Isola.\n	ePurchaseDescSeed1
+strings/283~7747aa7e	Endangered Seeds\n	Graines menacées\n	eShortDescSeed2; at most 25 letters (accented letters count 2)
+strings/284~a9cdc700	These seeds come from endangered \nplants and require higher quality soil \nto survive.\n	Ces graines viennent de plantes menacées\net demandent un terreau de meilleure\nqualité pour survivre.\n	ePurchaseDescSeed2
+strings/285~1d111ee1	Extinct Seeds\n	Graines éteintes\n	eShortDescSeed3; at most 22 letters (accented letters count 2)
+strings/286~b77e493e	These seeds come from extraordinary\nand exotic plants that were believed \nto be extinct on Isola.	Ces graines viennent de plantes\nextraordinaires et exotiques qu'on\ncroyait éteintes sur Isola.	ePurchaseDescSeed3
+strings/287~3ff8e92b	This is just water from the faucet,\nbut it's better than nothing.	Ce n'est que l'eau du robinet,\nmais c'est mieux que rien.	ePurchaseDescWater1
+strings/288~afd5f1ad	Tap Water\n	Eau du robinet\n	eShortDescWater1; at most 18 letters (accented letters count 2)
+strings/289~7806ace9	This specially filtered water allows you \nto water less frequently and makes your \nplants more resistant to disease.	Cette eau spécialement filtrée permet\nd'arroser moins souvent et rend vos\nplantes plus résistantes aux maladies.	ePurchaseDescWater2
+strings/290~7ae1d727	Filtered Water\n	Eau filtrée\n	eShortDescWater2; at most 23 letters (accented letters count 2)
+strings/291~363798c3	This special water comes from a\nhidden spring on Isola. It evaporates \nmore slowly and helps plants thrive.	Cette eau spéciale vient d'une source\ncachée d'Isola. Elle s'évapore plus\nlentement et aide les plantes à prospérer.	ePurchaseDescWater3
+strings/292~e315daa5	Water from Isola\n	Eau d'Isola\n	eShortDescWater3; at most 25 letters (accented letters count 2)
+strings/293~a3453fdb	These cheap, dull pruning shears are \nthe bare minimum for pruning and \ngrooming plants. They may cause some \ndamage to the plants, so be careful.\n	Ce sécateur bon marché et émoussé est\nle strict minimum pour tailler et\nsoigner les plantes. Il peut les\nabîmer un peu : soyez prudent.\n	ePurchaseDescShears1
+strings/294~ff4316fe	Dull Pruning Shears\n	Sécateur émoussé\n	eShortDescShears1; at most 30 letters (accented letters count 2)
+strings/295~25405130	These stronger, sharper shears are \nless traumatic to plants. Carefully \nand lovingly pruned plants are more \nattractive to buyers.\n	Ce sécateur plus solide et plus affûté\nest moins traumatisant. Les plantes\ntaillées avec soin et amour plaisent\nplus aux acheteurs.\n	ePurchaseDescShears2
+strings/296~303da86f	Sharp Pruning Shears\n	Sécateur affûté\n	eShortDescShears2; at most 31 letters (accented letters count 2)
+strings/297~4fa6e974	These razor-sharp shears cut\nthrough just about anything and \ncause minimal damage to your  \nplants.\n	Ce sécateur tranchant comme un rasoir\ncoupe presque tout et abîme\nà peine vos\nplantes.\n	ePurchaseDescShears3
+strings/298~e59a3b1c	Golden Pruning Shears\n	Sécateur doré\n	eShortDescShears3; at most 33 letters (accented letters count 2)
+strings/299~1e256f2f	This crude net will catch any bugs\nthat you see in your greenhouse, but \nyou have to be very accurate with it.\n	Ce filet rudimentaire attrape tous les\ninsectes de votre serre, mais il\nfaut viser très juste.\n	ePurchaseDescNet1
+strings/300~053f7767	Crude Butterfly Net\n	Filet rudimentaire\n	eShortDescNet1; at most 30 letters (accented letters count 2)
+strings/301~b20f110e	When using this net, you don't have to\nbe quite as accurate to catch those\nsneaky bugs.\n	Avec ce filet, inutile de viser\naussi juste pour attraper ces\ninsectes sournois.\n	ePurchaseDescNet2
+strings/302~ae842589	Large Butterfly Net\n	Grand filet\n	eShortDescNet2; at most 30 letters (accented letters count 2)
+strings/303~0a3a7d64	This golden net is made from translucent\nmesh. The bugs won't even see it coming!\n	Ce filet doré est fait d'une maille\ntranslucide. Les insectes ne le verront pas venir !\n	ePurchaseDescNet3
+strings/304~803ee69d	Golden Butterfly Net\n	Filet doré\n	eShortDescNet3; at most 31 letters (accented letters count 2)
+strings/305~e771ec0c	This seed box provides space \nto help you organize your seeds.\n	Cette boîte à graines vous aide\nà organiser vos graines.\n	ePurchaseDescBox1
+strings/306~a26768e6	First Seed Box\n	1re boîte à graines\n	eShortDescBox1; at most 23 letters (accented letters count 2)
+strings/307~75182257	This box provides additional \nspace to organize your seeds.\n	Cette boîte offre plus de\nplace pour ranger vos graines.\n	ePurchaseDescBox2
+strings/308~7437c890	Second Seed Box\n	2e boîte à graines\n	eShortDescBox2; at most 24 letters (accented letters count 2)
+strings/309~95061482	This box provides even more \nspace to organize your seeds.\n	Cette boîte offre encore plus de\nplace pour ranger vos graines.\n	ePurchaseDescBox3
+strings/310~45aed33f	Third Seed Box\n	3e boîte à graines\n	eShortDescBox3; at most 23 letters (accented letters count 2)
+strings/311~b9aa2d8e	Stone Turtle\n	Tortue en pierre\n	eShortDescTurtle; at most 21 letters (accented letters count 2)
+strings/312~0a62b4ee	This ornamental turtle is a delightful\naddition to any nursery and attracts\nmore visitors to your nursery!\n	Cette tortue décorative embellit\ntoute pépinière et attire plus de\nvisiteurs dans votre pépinière !\n	ePurchaseDescTurtle
+strings/313~554906c4	Sundial\n	Cadran solaire\n	eShortDescSundial; at most 16 letters (accented letters count 2)
+strings/314~1d546f2b	This elegant sundial adds a touch\nof class to any nursery and attracts\nmore visitors to your nursery!\n	Ce cadran solaire élégant donne de la\nclasse à toute pépinière et attire plus\nde visiteurs dans votre pépinière !\n	ePurchaseDescSundial
+strings/315~349d28b2	Weather Vane\n	Girouette\n	eShortDescWeatherVane; at most 21 letters (accented letters count 2)
+strings/316~a810f1c8	This rustic weather vane adds charm\nto any nursery and attracts more\nvisitors to your nursery!\n	Cette girouette rustique a du charme\ndans toute pépinière et attire plus de\nvisiteurs dans votre pépinière !\n	ePurchaseDescWeatherVane
+strings/317~0ee0cfd0	Charming Lantern\n	Lanterne\n	eShortDescBugZap; at most 25 letters (accented letters count 2)
+strings/318~3026754e	This appealing lantern brings country \ncharm to any nursery and attracts \nmore visitors to your nursery!\n	Cette jolie lanterne apporte un charme\nchampêtre et attire plus de\nvisiteurs dans votre pépinière !\n	ePurchaseDescBugZap
+strings/319~09bd3cb1	Owl Statuette\n	Statuette hibou\n	eShortDescOwl; at most 22 letters (accented letters count 2)
+strings/320~441714d3	This dignified owl statuette adds \ngrace to any nursery and attracts \nmore visitors to your nursery!\n	Cette digne statuette de hibou ajoute\nde la grâce et attire plus de\nvisiteurs dans votre pépinière !\n	ePurchaseDescOwl
+strings/321~c6833ca7	Country Wheelbarrow\n	Brouette rustique\n	eShortDescBuddha; at most 30 letters (accented letters count 2)
+strings/322~b5751182	This wheelbarrow is filled with\nwildflowers. It looks and smells\ngreat and will delight your visitors.\n	Cette brouette est pleine de fleurs\nsauvages. Elle sent bon, elle est belle\net ravira vos visiteurs.\n	ePurchaseDescBuddha
+strings/323~5dcc39f5	Bird House\n	Nichoir\n	eShortDescBirdHouse; at most 19 letters (accented letters count 2)
+strings/324~29f27705	This bird house attracts enchanting\nsongbirds to any nursery and helps \ndraw more visitors to your nursery!\n	Ce nichoir attire de charmants oiseaux\nchanteurs et aide à attirer plus de\nvisiteurs dans votre pépinière !\n	ePurchaseDescBirdHouse
+strings/325~c6fe5b0a	Cherub Statuette\n	Statuette d'ange\n	eShortDescCherub; at most 25 letters (accented letters count 2)
+strings/326~6cbeb9bb	This classic statuette is a mainstay\nin any respectable nursery and will \nattract more visitors to your nursery!\n	Cette statuette classique est un incontournable\nde toute pépinière qui se respecte et attire\nplus de visiteurs dans votre pépinière !\n	ePurchaseDescCherub
+strings/327~376d8cd5	Bench\n	Banc\n	eShortDescBench; at most 14 letters (accented letters count 2)
+strings/328~ab271559	This delightful bench provides respite\nto weary shoppers and will attract \nmore visitors to your nursery!\n	Ce joli banc offre une pause aux\nclients fatigués et attire plus de\nvisiteurs dans votre pépinière !\n	ePurchaseDescBench
+strings/329~6438bc80	Fountain\n	Fontaine\n	eShortDescFountain; at most 17 letters (accented letters count 2)
+strings/330~8fd9bcf1	This fountain is the centerpiece of any \nnursery. Children will be delighted and \nadults soothed by the splashing water. \nThis ornament is sure to attract more\nvisitors to your nursery!\n	Cette fontaine est le clou de toute\npépinière. Les enfants seront ravis et\nles adultes apaisés par le bruit de l'eau.\nCette décoration attirera sûrement plus\nde visiteurs dans votre pépinière !\n	ePurchaseDescFountain
+strings/331~48167a73	Sign\n	Enseigne\n	eShortDescSign; at most 13 letters (accented letters count 2)
+strings/332~ff015eb2	This larger and fancier sign is \nsure to attract more customers!\n	Cette enseigne plus grande et plus belle\nattirera sûrement plus de clients !\n	ePurchaseDescSign
+strings/333~7c50e6b4	Fence\n	Clôture\n	eShortDescFence; at most 14 letters (accented letters count 2)
+strings/334~3067309e	This upgrade will replace your fence\nwith a beautiful, new one that provides\nan aesthetic improvement inside and\noutside your nursery.\n	Cette amélioration remplace votre clôture\npar une belle clôture neuve, plus jolie\nà l'intérieur comme à l'extérieur\nde votre pépinière.\n	ePurchaseDescFence
+strings/335~dc18884d	Gate\n	Portail\n	eShortDescGate; at most 13 letters (accented letters count 2)
+strings/336~7dfbf793	First impressions are everything!\nWhy not dazzle your visitors with a\nfancy new gate at the entrance?\n	La première impression compte !\nÉblouissez vos visiteurs avec un\nbeau portail neuf à l'entrée.\n	ePurchaseDescGate
+strings/337~0035922b	Cash Register\n	Caisse\n	eShortDescCashReg; at most 22 letters (accented letters count 2)
+strings/338~94a53700	Maybe it's time to replace grandpa's\nold cash register with something more\nmodern and functional.\n	Il est peut-être temps de remplacer la\nvieille caisse de grand-père par une\ncaisse plus moderne et pratique.\n	ePurchaseDescCashReg
+strings/339~813072e2	Refurbishment\n	Rénovation\n	eShortDescPaint; at most 22 letters (accented letters count 2)
+strings/340~48cb3e57	The greenhouse could really use some fresh \npaint and new windows. This upgrade will make\nyour greenhouse look much more appealing to \nthe visitors in your nursery.\n	La serre aurait bien besoin d'un coup de\npeinture et de fenêtres neuves. Elle aura\nbien plus d'attrait aux yeux des\nvisiteurs de votre pépinière.\n	ePurchaseDescPaint
+strings/341~374bb746	Plant Food\n	Engrais\n	eShortDescPlantFood; at most 19 letters (accented letters count 2)
+strings/342~92c6a808	This generic plant food will produce larger,\nmore vigorous plants. Must be applied to\nimmature plants. \nContains 15 doses.\n	Cet engrais ordinaire donne des plantes\nplus grandes et vigoureuses. À appliquer\nsur des plantes non mûres.\nContient 15 doses.\n	ePurchaseDescPlantFood
+strings/343~b48b6b8d	Vitamins\n	Vitamines\n	eShortDescVitamins; at most 17 letters (accented letters count 2)
+strings/344~60c4d71f	These emergency vitamins can boost the \nhealth of injured or weakened plants.\nContains 3 doses.\n	Ces vitamines d'urgence relancent la\nsanté des plantes blessées ou affaiblies.\nContient 3 doses.\n	ePurchaseDescVitamins
+strings/345~70684324	Insect Poison\n	Insecticide\n	eShortDescInsecticide; at most 22 letters (accented letters count 2)
+strings/346~fbca0bfd	This aerosol spray eliminates\ninfestations from most plants.\nContains 5 doses.\n	Ce spray aérosol élimine les\ninfestations de la plupart des plantes.\nContient 5 doses.\n	ePurchaseDescInsecticide
+strings/347~10f7d520	Bio-organic Plant Food\n	Engrais bio\n	eShortDescBioFood; at most 34 letters (accented letters count 2)
+strings/348~3fbd9894	This all-natural formula encourages  \nyour plants to produce more flowers! \nMust be applied to immature plants!\nContains 25 doses.\n	Cette formule toute naturelle aide vos\nplantes à produire plus de fleurs !\nÀ appliquer sur des plantes non mûres !\nContient 25 doses.\n	ePurchaseDescBioFood
+strings/349~d7da5464	Plant Rescue Formula\n	Formule de sauvetage\n	eShortDescRescue; at most 31 letters (accented letters count 2)
+strings/350~eac46e1d	This amazing formula gives an enormous \nhealth boost to a single plant.\nContains 1 dose.\n	Cette formule étonnante donne un énorme\nregain de santé à une seule plante.\nContient 1 dose.\n	ePurchaseDescRescue
+strings/351~3d0e4aed	Fertilizer Bomb\n	Bombe d'engrais\n	eShortDescFertility; at most 24 letters (accented letters count 2)
+strings/352~268f2ed3	This chemical works best on newly \nplanted seeds. It will make every \nplant in your greenhouse grow larger \nand produce more flowers.\nContains 1 dose.	Ce produit agit mieux sur les graines\nfraîchement plantées. Chaque plante de\nvotre serre grandira davantage et\nproduira plus de fleurs.\nContient 1 dose.	ePurchaseDescFertility
+strings/353~c7bff7cf	Insta-Grow Formula\n	Formule Insta-Pousse\n	eShortDescInstaGrow; at most 28 letters (accented letters count 2)
+strings/354~3ad47071	This formula temporarily accelerates\nplant growth so much that you can see\na plant grow right before your eyes!\nContains 5 doses.\n	Cette formule accélère tant la croissance\npour un temps que vous verrez la plante\npousser sous vos yeux !\nContient 5 doses.\n	ePurchaseDescInstaGrow
+strings/355~1d61e63a	Mutation Liquid\n	Liquide de mutation\n	eShortDescMutation; at most 24 letters (accented letters count 2)
+strings/356~c12caeeb	This chemical shifts a plant's DNA.\nApplication of this chemical will cause\na mutation of the foliage or flowers.\nContains 3 doses.\n	Ce produit modifie l'ADN d'une plante.\nSon application provoque une mutation\ndu feuillage ou des fleurs.\nContient 3 doses.\n	ePurchaseDescMutation
+strings/357~e4cf591e	Insta-Grow Vaporbomb\n	Insta-Pousse vapeur\n	eShortDescDew; at most 31 letters (accented letters count 2)
+strings/358~716c9ac7	This rare, magical liquid has a powerful\neffect on the growth of any plants exposed\nto its vapor. Use it on any plant, and it\nwill affect every plant in your greenhouse.\nContains 2 doses.\n	Ce liquide rare et magique agit fortement\nsur la croissance des plantes exposées\nà sa vapeur. Utilisé sur une plante, il\nagit sur toutes les plantes de votre serre.\nContient 2 doses.\n	ePurchaseDescDew
+strings/365~dc0ce822	This chemical treatment\nhelps plants grow strong\nand healthy.\n	Ce traitement chimique\naide les plantes à pousser\nfortes et saines.\n	ePurchaseDescChems1
+strings/373~5af37f79	  Price: $	  Prix : $	ePurchasePriceLabel
+strings/374~c433cb29	This item requires the FULL version of Plant Tycoon.	Cet article demande la version COMPLÈTE de Plant Tycoon.	eOnlyFullVersion
+strings/375~1fd72664	There is no space in your seed box.\n	Il n'y a plus de place dans votre boîte à graines.\n	eNoRoomInTrayMsg
+strings/376~64e3cb0e	Buy	Acheter	eBuyButtonTxt
+strings/377~f9545c51	There is no room in your Chemical Tray.\n	Il n'y a plus de place dans votre plateau de produits.\n	eSayNoSpaceInTray
+strings/378~45a19545	Seeds	Graines	eMainSeedsLabel
+strings/379~076d13b3	Pollen	Pollen	eMainPollenLabel
+strings/380~ea93d6a2	Tools	Outils	eMainToolsLabel
+strings/381~08a0c33f	Collect	Collection	eMainCollectLabel
+strings/382~99af6606	Menu	Menu	eMainMenuLabel
+strings/383~b05fc009	Return to main menu	Retour au menu principal	eMainReturnLabel
+strings/384~8efe9605	Nursery	Pépinière	eMainNurseryLabel
+strings/385~6be75605	Supplies	Fournitures	eMainSuppliesLabel
+strings/386~f0457773	Sell your plants in the nursery	Vendez vos plantes dans la pépinière	eMainSellUrPlantsLabel
+strings/387~68a820b3	Set species price	Fixer le prix de l'espèce	eMainEditPriceLabel
+strings/388~2ec1e281	Sell	Vendre	eMainSellLabel
+strings/389~a58f4da8	Sell All	Tout vendre	eMainSellAllLabel
+strings/390~c7236925	Toggle sell/don't sell	Vendre / ne pas vendre	eMainSellToggleLabel
+strings/391~05e9f781	Selling	En vente	eMainSellingLabel
+strings/392~2bf6a44e	Time Paused	Temps en pause	eMainTimePausedLabel
+strings/393~3dffb667	Unpaused	En marche	eMainTimeUnPausedLabel; at most 16 letters (accented letters count 2)
+strings/394~3178a3c5	Buds	Boutons	eMainBudsLabel; at most 12 letters (accented letters count 2)
+strings/395~2cc08418	Mature	Mûre	eMainMatureLabel; at most 14 letters (accented letters count 2)
+strings/396~1f694829	Producing Seeds	Produit des graines	eMainProducingLabel; at most 23 letters (accented letters count 2)
+strings/397~1e9d8241	No plant selected	Aucune plante choisie	eMainNoPlantLabel; at most 25 letters (accented letters count 2)
+strings/398~6b209c6c	Unknown Species	Espèce inconnue	eMainUnknSpediesLabel; at most 23 letters (accented letters count 2)
+strings/399~2c0d6c2d	Displaying seed in this pot...	Affichage de la graine de ce pot...	eMainShowPlantedSeed; at most 45 letters (accented letters count 2)
+strings/400~c560122a	Trash	Poubelle	eMainTrashLabel; at most 13 letters (accented letters count 2)
+strings/401~eb814be3	Main	Principal	eUniversalMainLabel; at most 12 letters (accented letters count 2)
+strings/402~11a6767d	Done	Terminé	eUniversalDoneLabel; at most 12 letters (accented letters count 2)
+strings/403~47d2a515	Loading...	Chargement...	eUniversalLoadingLabel; at most 18 letters (accented letters count 2)
+strings/404~f37e444e	Gardening Supplies	Jardinage	eShopGardeningLabel; at most 27 letters (accented letters count 2)
+strings/405~9de44cae	Tool Upgrades	Outils	eShopToolUpgdLabel; at most 21 letters (accented letters count 2)
+strings/406~73fda182	Chemicals	Produits chim.	eShopChemsLabel; at most 17 letters (accented letters count 2)
+strings/407~db0e8f4b	Imported Seeds	Graines importées	eShopImportSeedsLabel; at most 22 letters (accented letters count 2)
+strings/408~94ba4fae	Seed Storage	Réserve graines	eSeedsSeedStorageLabel; at most 20 letters (accented letters count 2)
+strings/409~e4aad4c5	Additional seed boxes can be bought in the shop	D'autres boîtes à graines sont en vente à la boutique	eSeedsSeedBoxUpgdLabel; at most 70 letters (accented letters count 2)
+strings/410~beeeb38c	My Bugs	Mes insectes	eCollectionMyBugsLabel; at most 15 letters (accented letters count 2)
+strings/411~e93a7b66	Butterflies	Papillons	eCollectionButterfliesLabel; at most 19 letters (accented letters count 2)
+strings/412~b4a73657	Stats	Stats	eCollectionStatsLabel; at most 13 letters (accented letters count 2)
+strings/413~b79cac92	Help	Aide	eHelpHelpLabel; at most 12 letters (accented letters count 2)
+strings/414~2a6b24ad	Credits	Crédits	eHelpCreditsLabel; at most 15 letters (accented letters count 2)
+strings/415~e78b7e85	Asking Price: 	Prix demandé : 	eAskingPriceLabel; at most 22 letters (accented letters count 2)
+strings/416~b2b87500	Plant sold! Price: 	Plante vendue ! Prix : 	eSoldPlantLabel; at most 28 letters (accented letters count 2)
+strings/417~760230b8	Seed sold! Price: $	Graine vendue ! Prix : $	eSoldSeedLabel; at most 28 letters (accented letters count 2)
+strings/418~293ce137	Snapshot Sent To Desktop	Photo envoyée sur le Bureau	ePictureTakenMsg; at most 36 letters (accented letters count 2)
+strings/419~a53bac83	Click here to change player!	Cliquez ici pour changer de joueur !	eChangePlayerName; at most 42 letters (accented letters count 2)
+strings/420~5366797a	Plant Food	Engrais	eChemicalName1; at most 18 letters (accented letters count 2)
+strings/421~4249f305	Vitamins	Vitamines	eChemicalName2; at most 16 letters (accented letters count 2)
+strings/422~7b41107d	Insect Poison	Insecticide	eChemicalName3; at most 21 letters (accented letters count 2)
+strings/423~d598a747	Bio-organic plant food	Engrais bio	eChemicalName4; at most 33 letters (accented letters count 2)
+strings/424~0a1df0e5	Plant Rescue Formula	Formule de sauvetage	eChemicalName5; at most 30 letters (accented letters count 2)
+strings/425~b1583786	Fertilizer Bomb	Bombe d'engrais	eChemicalName6; at most 23 letters (accented letters count 2)
+strings/426~7b6e270e	Insta-Grow	Insta-Pousse	eChemicalName7; at most 18 letters (accented letters count 2)
+strings/427~4cb67d50	Mutation Liquid	Liquide de mutation	eChemicalName8; at most 23 letters (accented letters count 2)
+strings/428~c055a5fc	Insta-Grow Vaporbomb	Insta-Pousse vapeur	eChemicalName9; at most 30 letters (accented letters count 2)
+strings/429~22c778b1	Remaining uses	Utilisations restantes	eRemainingUses; at most 22 letters (accented letters count 2)
+strings/430~ccac492d	That is a common 	Commun : 	eThatIsCommonBug; at most 25 letters (accented letters count 2)
+strings/431~b800381c	That is an uncommon 	Peu commun : 	eThatIsUncommonBug; at most 30 letters (accented letters count 2)
+strings/432~5831fb69	That is a rare 	Rare : 	eThatIsRareBug; at most 23 letters (accented letters count 2)
+strings/433~c5fa132a	You need the previous upgrade first!	Il vous faut d'abord l'amélioration précédente !	eSayNeedPrereq
+strings/434~3a1e58cf	Take Snapshot	Prendre une photo	eTakeSnapShot
+mod/greenhouse_counts.of~a4282e4b	 of 	 sur 	Patch: Tank and greenhouse counts; Greenhouse Counts.dll
+mod/greenhouse_counts.plants~9f7aa7ab	Plants: 	Plantes : 	Patch: Tank and greenhouse counts; Greenhouse Counts.dll
+mod/greenhouse_counts.dead~5a3663fa	Dead: 	Mortes : 	Patch: Tank and greenhouse counts; Greenhouse Counts.dll
+mod/greenhouse_counts.infested~37eb3f17	Infested: 	Infestées : 	Patch: Tank and greenhouse counts; Greenhouse Counts.dll
+mod/greenhouse_counts.unhealthy~44f92c27	Unhealthy: 	Malades : 	Patch: Tank and greenhouse counts; Greenhouse Counts.dll
+mod/greenhouse_counts.counts_on~4a10302c	Counts: On	Compteurs : oui	Patch: Tank and greenhouse counts; Greenhouse Counts.dll
+mod/greenhouse_counts.counts_off~0d37e4eb	Counts: Off	Compteurs : non	Patch: Tank and greenhouse counts; Greenhouse Counts.dll
+mod/greenhouse_counts.n_mature~3228655b	%d mature	%d {%1: one=mûre | many=de mûres | other=mûres}	Patch: Tank and greenhouse counts; Greenhouse Counts.dll; %1 (%d) = number; one part of the bracket, '(3 mature, 2 with buds, 1 seedling)'; at most 40 letters (accented letters count 2); choices use the real numbers
+mod/greenhouse_counts.n_with_buds~ce775d05	%d with buds	%d en boutons	Patch: Tank and greenhouse counts; Greenhouse Counts.dll; %1 (%d) = number; one part of the bracket, '(3 mature, 2 with buds, 1 seedling)'; at most 40 letters (accented letters count 2); choices use the real numbers
+mod/greenhouse_counts.n_seedlings~c3fc4f20	%d {%1: one=seedling | other=seedlings}	%d {%1: one=jeune pousse | many=de jeunes pousses | other=jeunes pousses}	Patch: Tank and greenhouse counts; Greenhouse Counts.dll; %1 (%d) = number; one part of the bracket, '(3 mature, 2 with buds, 1 seedling)'; at most 40 letters (accented letters count 2); choices use the real numbers
+mod/unused_flowers.nightingale~dbcf1a61	Nightingale	Nightingale	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.rosetta~2b296928	Rosetta	Rosetta	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.lilac~e3233c69	Lilac	Lilac	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.veronica~38a94814	Veronica	Veronica	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.violetta~73cb08a4	Violetta	Violetta	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.stella~e1df3d77	Stella	Stella	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.silvermist~734cc21f	Silvermist	Silvermist	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.anagallis~94820761	Anagallis	Anagallis	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.buttercup~fd0e1c17	Buttercup	Buttercup	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.cerulean~d52340a4	Cerulean	Cerulean	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.phalaena~ca0c7c8f	Phalaena	Phalaena	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.mirabilis~697ca7d2	Mirabilis	Mirabilis	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.indigoberry~b9196058	Indigoberry	Indigoberry	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.prunus~76d7148e	Prunus	Prunus	Patch: Add unused flowers; Unused Flowers.dll; the first word of a new flower's species name, e.g. 'Nightingale' in 'Nightingale Fern'; at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.reptans~355c8b0f	Reptans	Reptans	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.scandens~a6bfca05	Scandens	Scandens	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.grass~84573c57	Grass	Grass	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.orchid~baf5d820	Orchid	Orchid	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.astera~5fe8788d	Astera	Astera	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.gladiatus~935b559d	Gladiatus	Gladiatus	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.fern~2a6118aa	Fern	Fern	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.ananas~5616070b	Ananas	Ananas	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.maranta~8530b895	Maranta	Maranta	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.fanleaf~4a85ceae	Fanleaf	Fanleaf	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.lemonbush~5728f846	Lemonbush	Lemonbush	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.bamboo~4d31f753	Bamboo	Bamboo	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.maple~18a91bde	Maple	Maple	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.rare_oak~16336aec	Rare Oak	Rare Oak	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.pipe_cactus~70339509	Pipe Cactus	Pipe Cactus	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.pear_cactus~f552e1e7	Pear Cactus	Pear Cactus	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.ball_cactus~92ee96e7	Ball Cactus	Ball Cactus	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.glaber~72b679ac	Glaber	Glaber	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.tigerfern~45efae35	Tigerfern	Tigerfern	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.pitcher~a6bcd33a	Pitcher	Pitcher	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.weeper~05eb4330	Weeper	Weeper	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.multiflora~0ebd7936	Multiflora	Multiflora	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/unused_flowers.ridgeball~b6d26a1a	Ridgeball	Ridgeball	Patch: Add unused flowers; Unused Flowers.dll; the second word of a new flower's species name, e.g. 'Fern' in 'Nightingale Fern' (only the new flowers' names use it); at most 24 letters (accented letters count 2); FR: kept in English (species name, like the game's own species names)
+mod/extra_seed_boxes.boxes_1_3~73107105	Boxes 1-3	Boîtes 1-3	Patch: Add new store upgrades and items; Extra Seed Boxes.dll
+mod/extra_seed_boxes.boxes_4_6~1ec83cd9	Boxes 4-6	Boîtes 4-6	Patch: Add new store upgrades and items; Extra Seed Boxes.dll
+mod/extra_seed_boxes.boxes_7_9~445449c2	Boxes 7-9	Boîtes 7-9	Patch: Add new store upgrades and items; Extra Seed Boxes.dll
+mod/store_upgrades_and_items.legendary_seeds~1947d9ae	Legendary Seeds\n	Graines légendaires\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the store's title line; at most 40 letters (accented letters count 2)
+mod/store_upgrades_and_items.radioactive_plant_formula~fd6533ba	Radioactive Plant Formula\n	Formule radioactive\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the store's title line; at most 40 letters (accented letters count 2)
+mod/store_upgrades_and_items.revival_potion~7d851ec7	Revival Potion\n	Potion de résurrection\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the store's title line; at most 40 letters (accented letters count 2)
+mod/store_upgrades_and_items.revita_seed~3429f51d	Revita-Seed\n	Revita-Graine\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the store's title line; at most 40 letters (accented letters count 2)
+mod/store_upgrades_and_items.radioactive_plant_formula_bomb~d68104c1	Radioactive Plant Formula Bomb\n	Bombe de formule radioactive\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the store's title line; at most 40 letters (accented letters count 2)
+mod/store_upgrades_and_items.muta_flower~20e208ed	Muta-Flower\n	Muta-Fleur\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the store's title line; at most 40 letters (accented letters count 2)
+mod/store_upgrades_and_items.muta_foliage~cb72c9dd	Muta-Foliage\n	Muta-Feuillage\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the store's title line; at most 40 letters (accented letters count 2)
+mod/store_upgrades_and_items.radioactive_plant_formula_2~44172aef	Radioactive Plant Formula	Formule radioactive	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the chemical's name; at most 37 letters (accented letters count 2)
+mod/store_upgrades_and_items.revival_potion_2~05232c13	Revival Potion	Potion résurrection	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the chemical's name; at most 22 letters (accented letters count 2)
+mod/store_upgrades_and_items.revita_seed_2~d1fbbd93	Revita-Seed	Revita-Graine	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the chemical's name; at most 19 letters (accented letters count 2)
+mod/store_upgrades_and_items.radioactive_plant_formula_bomb_2~a9347d94	Radioactive Plant Formula Bomb	Bombe de formule radioactive	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the chemical's name; at most 45 letters (accented letters count 2)
+mod/store_upgrades_and_items.muta_flower_2~ba9970e4	Muta-Flower	Muta-Fleur	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the chemical's name; at most 19 letters (accented letters count 2)
+mod/store_upgrades_and_items.muta_foliage_2~47f8f7d6	Muta-Foliage	Muta-Feuillage	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the chemical's name; at most 20 letters (accented letters count 2)
+mod/store_upgrades_and_items.these_ultra_rare_seeds_were_only_recentl~a675e8be	These ultra-rare seeds were only recently\nrediscovered on Isola and require the\nbest of care to survive.	Ces graines ultra-rares ont été retrouvées\nrécemment sur Isola et demandent les\nmeilleurs soins pour survivre.	Patch: Add new store upgrades and items; Store Upgrades and Items.dll
+mod/store_upgrades_and_items.this_magical_potion_instantly_revives_de~f6bd1097	This magical potion instantly revives\ndead plants and restores them to full\nhealth. Contains 3 doses.\n	Cette potion magique ressuscite aussitôt\nles plantes mortes et leur rend toute\nleur santé. Contient 3 doses.\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll
+mod/store_upgrades_and_items.revitalizes_depleted_plants_so_they_can~a25fb07d	Revitalizes depleted plants so they\ncan produce more seeds.\nContains 3 doses.\n	Revitalise les plantes épuisées pour\nqu'elles produisent plus de graines.\nContient 3 doses.\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll
+mod/store_upgrades_and_items.mutates_the_flowering_parts_of_plants_co~e79bed3f	Mutates the flowering parts of plants.\nContains 3 doses.\n	Fait muter les fleurs des plantes.\nContient 3 doses.\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll
+mod/store_upgrades_and_items.mutates_the_leafy_parts_of_plants_contai~2f93e143	Mutates the leafy parts of plants.\nContains 3 doses.\n	Fait muter le feuillage des plantes.\nContient 3 doses.\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll
+mod/store_upgrades_and_items.sprice_i~72170fc4	%sPrice: $ %i	%sPrix : $ %i	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; %1 (%s) = text; %2 (%i) = number; %1 = the title, %2 = number; at most 16 letters (accented letters count 2); choices here always take o / other
+mod/store_upgrades_and_items.extra_seed_box~96255a70	Extra Seed Box	Boîte sup.	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; at most 14 letters (accented letters count 2)
+mod/store_upgrades_and_items.s_sold_out~70e90f6d	%s\nSold out	%s\nÉpuisé	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; %1 (%s) = text; at most 11 letters (accented letters count 2); choices here always take o / other
+mod/store_upgrades_and_items.s_i_of_i_price_i~2c92189c	%s %i of %i\nPrice: $ %i	%s %i/%i\nPrix : $ %i	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; %1 (%s) = text; %2 (%i) = number; %3 (%i) = number; %4 (%i) = number; at most 24 letters (accented letters count 2); choices here always take o / other
+mod/store_upgrades_and_items.automatic_sprinklers~5b1bf0c9	Automatic Sprinklers	Arrosage automatique	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; at most 40 letters (accented letters count 2)
+mod/store_upgrades_and_items.auto_healer~84018cb2	Auto-Healer	Guérisseur auto	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; at most 40 letters (accented letters count 2)
+mod/store_upgrades_and_items.s_owned_click_to_unpurchase~2528d5cc	%s\nOwned, click to unpurchase	%s\nAcquis, cliquez pour annuler	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; %1 (%s) = text; at most 40 letters (accented letters count 2); choices here always take o / other
+mod/store_upgrades_and_items.s_price_i~f7b8ce27	%s\nPrice: $ %i	%s\nPrix : $ %i	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; %1 (%s) = text; %2 (%i) = number; at most 40 letters (accented letters count 2); choices here always take o / other
+mod/store_upgrades_and_items.treated_d~f3dfc033	Treated: $%d	Traitée : $%d	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; %1 (%d) = number; at most 20 letters (accented letters count 2); choices here always take o / other
+mod/store_upgrades_and_items.w.you_already_have_all_six_extra_seed_boxe~7775b803	You already have all six extra seed boxes!	Vous avez déjà les six boîtes à graines en plus !	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.you_already_have_all_three_extra_seed_bo~d9513515	You already have all three extra seed boxes!	Vous avez déjà les trois boîtes à graines en plus !	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.you_can_t_afford_to_buy_this_yet_an_extr_3~c3c9cda6	You can't afford to buy this yet! An extra seed box costs $1,000.	Vous n'avez pas encore les moyens ! Une boîte à graines en plus coûte 1 000 $.	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.automatic_sprinklers~5b1bf0c9	Automatic Sprinklers	Arrosage automatique	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); a popup's title; at most 60 letters
+mod/store_upgrades_and_items.w.auto_healer~84018cb2	Auto-Healer	Guérisseur auto	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); a popup's title; at most 60 letters
+mod/store_upgrades_and_items.w.revival_potion~05232c13	Revival Potion	Potion de résurrection	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); a popup's title; at most 60 letters
+mod/store_upgrades_and_items.w.extra_seed_box~96255a70	Extra Seed Box	Boîte à graines en plus	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); a popup's title; at most 60 letters
+mod/store_upgrades_and_items.w.fourth~c737c0b3	Fourth	quatrième	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); 'the Fourth Seed Box'; at most 20 letters
+mod/store_upgrades_and_items.w.fifth~b612a401	Fifth	cinquième	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); 'the Fourth Seed Box'; at most 20 letters
+mod/store_upgrades_and_items.w.sixth~ac4def91	Sixth	sixième	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); 'the Fourth Seed Box'; at most 20 letters
+mod/store_upgrades_and_items.w.seventh~7fc5a1c3	Seventh	septième	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); 'the Fourth Seed Box'; at most 20 letters
+mod/store_upgrades_and_items.w.eighth~163c861e	Eighth	huitième	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); 'the Fourth Seed Box'; at most 20 letters
+mod/store_upgrades_and_items.w.ninth~ca2981d0	Ninth	neuvième	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); 'the Fourth Seed Box'; at most 20 letters
+mod/store_upgrades_and_items.w.automatically_waters_all_pots_in_the_gre~5cc209f9	Automatically waters all pots in the greenhouse. Optimizes water levels for minimal pest infestations and problems.	Arrose automatiquement tous les pots de la serre. Optimise l'eau pour réduire les infestations et les problèmes.	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); at most 200 letters
+mod/store_upgrades_and_items.w.magically_cures_all_diseases_from_plants~ee4a5d68	Magically cures all diseases from plants and restores them to full health. Works in every greenhouse.	Guérit par magie toutes les maladies des plantes et leur rend toute leur santé. Agit dans chaque serre.	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); at most 200 letters
+mod/store_upgrades_and_items.w.unpurchase_s_it_switches_off_there_is_no~273bdfc1	Unpurchase %s? It switches off. There is no refund, and buying it again costs the full price.	Annuler l'achat de %s ? Il s'éteint. Aucun remboursement, et le racheter coûte le prix plein.	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); %1 (%s) = text; %1 = the machine's name; at most 300 letters; choices here always take o / other
+mod/store_upgrades_and_items.w.you_can_t_afford_to_buy_this_yet_s_costs~ee99b603	You can't afford to buy this yet! %s costs $10,000.	Vous n'avez pas encore les moyens ! %s coûte 10 000 $.	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); %1 (%s) = text; %1 = the machine's name; at most 300 letters; choices here always take o / other
+mod/store_upgrades_and_items.w.buy_s_for_d_s~c4d7bbd6	Buy %s for $%d?\n\n%s	Acheter %s pour %d $ ?\n\n%s	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); %1 (%s) = text; %2 (%d) = number; %3 (%s) = text; %1 = the machine's name, %2 = number, %3 = its description; at most 100 letters; choices here always take o / other
+mod/store_upgrades_and_items.w.buy_the_s_seed_box_for_d_even_more_space~c07be40d	Buy the %s Seed Box for $%d?\n\nEven more space for your seeds! It opens a 40-seed drawer in Seed Storage (Boxes %s).	Acheter la %s boîte à graines pour %d $ ?\n\nEncore plus de place pour vos graines ! Elle ouvre un tiroir de 40 graines dans la réserve (boîtes %s).	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); %1 (%s) = text; %2 (%d) = number; %3 (%s) = text; %1 = Fourth...Ninth, %2 = number, %3 = 4-6 or 7-9; at most 180 letters; choices here always take o / other
+mod/store_upgrades_and_items.causes_maximum_flower_and_plant_growth_a~2355bf29	Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves! Always 5 seeds! Allows\ntreated plants to sell at max price, regardless\nof their set value. Contains 3 doses.\n	Croissance maximale des fleurs et des plantes,\net toute la santé rendue aux plantes.\nPlus de feuilles mortes ! Toujours 5 graines !\nLes plantes traitées se vendent au prix maximal,\nquel que soit leur prix fixé. Contient 3 doses.\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll
+mod/store_upgrades_and_items.the_radioactive_plant_formula_for_every~08f30e9d	The Radioactive Plant Formula for\nevery plant in the greenhouse.\nAllows treated plants to sell at max\nprice, regardless of their set value.\nContains 3 doses.\n	La formule radioactive pour\nchaque plante de la serre.\nLes plantes traitées se vendent au prix\nmaximal, quel que soit leur prix fixé.\nContient 3 doses.\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll
+mod/store_upgrades_and_items.w.this_plant_was_for_sale_when_it_died_but~548cd71d	This plant was for sale when it died, but your nursery is full: only %d plants can be for sale at once, counting every greenhouse.\n\nIt is alive again, not for sale. Make room in the nursery, then put it on sale again.	Plante en vente à sa mort, mais votre pépinière est pleine : %d plantes au plus en vente à la fois, toutes serres comprises.\n\nElle revit, hors vente. Faites de la place dans la pépinière, puis remettez-la en vente.	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); %1 (%d) = number; a Revival Potion's popup; %1 = how many plants can be for sale; at most 240 letters; choices use the real numbers
+mod/store_upgrades_and_items.w.this_plant_was_for_sale_when_it_died_but_2~d2fb3a24	This plant was for sale when it died, but your nurseries are full: only %d plants can be for sale at once, counting every greenhouse.\n\nIt is alive again, not for sale. Make room in the nursery, then put it on sale again.	Plante en vente à sa mort, mais vos pépinières sont pleines : %d plantes au plus en vente à la fois, toutes serres comprises.\n\nElle revit, hors vente. Faites de la place dans la pépinière, puis remettez-la en vente.	Patch: Add new store upgrades and items; Store Upgrades and Items.dll (Windows popup); %1 (%d) = number; a Revival Potion's popup; %1 = how many plants can be for sale; at most 240 letters; choices use the real numbers
+mod/sort_seeds.sort_seeds_in_seed_boxes_this_will_rearr~3249a3e6	Sort Seeds in Seed Boxes?\n\nThis will rearrange all seeds throughout\nyour available seed boxes. Some may move\nto other pages.\nClick YES to Confirm, NO to Cancel.	Trier les graines des boîtes ?\n\nToutes les graines seront réparties dans\nvos boîtes à graines. Certaines peuvent\nchanger de page.\nCliquez sur OUI pour confirmer, NON pour annuler.	Patch: Sort Seeds button; Sort Seeds.dll
+mod/optimize_prices.set_every_discovered_species_to_its_best~91b94eb1	Set every discovered species\nto its best price per day?	Fixer chaque espèce découverte\nà son meilleur prix par jour ?	Patch: Optimize Prices button; Optimize Prices.dll
+mod/optimize_prices.set_every_discovered_species_to_its_high~f08fba2c	Set every discovered species\nto its highest selling price?\nPlants at this price sell\nmuch more slowly.	Fixer chaque espèce découverte\nà son prix de vente maximal ?\nÀ ce prix, les plantes se vendent\nbeaucoup plus lentement.	Patch: Optimize Prices button; Optimize Prices.dll
+mod/optimize_prices.n_prices_set~863fec6b	%d {%1: one=price | other=prices} set.	%d {%1: one=prix fixé | many=de prix fixés | other=prix fixés}.	Patch: Optimize Prices button; Optimize Prices.dll; %1 (%d) = number; after Optimize Prices or Max Prices; at most 36 letters (accented letters count 2); choices use the real numbers
+mod/store_upgrades_and_items.time_warp_price_i~533034c8	Time Warp\nPrice: $ %i	Saut temporel\nPrix : $ %i	Patch: Time Warp; Store Upgrades and Items.dll; %1 (%i) = number; at most 50 letters (accented letters count 2); choices here always take o / other
+mod/store_upgrades_and_items.w.time_warp~037ac90c	Time Warp	Saut dans le temps	Patch: Time Warp; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.please_type_a_whole_number_of_hours_from~8ebaf352	Please type a whole number of hours from 1 to 72.	Tapez un nombre entier d'heures entre 1 et 72.	Patch: Time Warp; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.how_many_hours_should_pass_1_72~25012881	How many hours should pass? (1-72)	Combien d'heures doivent passer ? (1-72)	Patch: Time Warp; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.ok~565339bc	OK	OK	Patch: Time Warp; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.cancel~19766ed6	Cancel	Annuler	Patch: Time Warp; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.time_is_stopped_turn_time_back_on_in_opt~eb90f3b7	Time is stopped. Turn time back on in Options, then warp.	Le temps est arrêté. Réactivez-le dans les Options, puis sautez.	Patch: Time Warp; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.you_can_t_afford_to_buy_this_yet_a_time~2d2b7374	You can't afford to buy this yet! A Time Warp costs $500.	Vous n'avez pas encore les moyens ! Un saut dans le temps coûte 500 $.	Patch: Time Warp; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.costs_n_your_plants_grow_ripen_seeds_and~d0be17fa	Costs $%d. Your plants grow, ripen seeds and need water, and the seed shop restocks if due, as if you had been away.	Coût : %d $. Vos plantes poussent, leurs graines mûrissent, elles ont soif, et la boutique se réapprovisionne si c'est l'heure, comme si vous étiez parti.	Patch: Time Warp; Store Upgrades and Items.dll (Windows popup); %1 (%d) = number; the question above the hours; at most 220 letters; choices use the real numbers
+mod/store_upgrades_and_items.w.warp_n_hours_for_n_your_plants_will_age~44d17261	Warp %d {%1: one=hour | other=hours} for $%d?\n\nYour plants will age %d {%3: one=hour | other=hours}, as if you had been away that long. This cannot be undone.	Avancer de %d {%1: one=heure | many=d'heures | other=heures} pour %d $ ?\n\nVos plantes vieilliront de %d {%3: one=heure | many=d'heures | other=heures}, comme si vous étiez parti tout ce temps. C'est irréversible.	Patch: Time Warp; Store Upgrades and Items.dll (Windows popup); %1 (%d) = number; %2 (%d) = number; %3 (%d) = number; %1 and %3 = hours, %2 = the price; at most 220 letters; choices use the real numbers
+mod/store_upgrades_and_items.w.time_warp_done_n_hours_played_n_age_unit~e9c48809	Time Warp done: %d {%1: one=hour | other=hours} played (%d {%2: one=age unit | other=age units}). $%d paid.	Saut terminé : %d {%1: one=heure jouée | many=d'heures jouées | other=heures jouées} (%d {%2: one=unité d'âge | many=d'unités d'âge | other=unités d'âge}). %d $ payés.	Patch: Time Warp; Store Upgrades and Items.dll (Windows popup); %1 (%d) = number; %2 (%d) = number; %3 (%d) = number; %1 = hours, %2 = the plants' age units, %3 = the price; at most 125 letters; choices use the real numbers
+mod/store_upgrades_and_items.add_1_000_price_i~b01fe418	Add $1,000\nPrice: $ %i	+1 000 $\nPrix : $ %i	Patch: Add Money cheat ($1,000); Store Upgrades and Items.dll; %1 (%i) = number; at most 50 letters (accented letters count 2); choices here always take o / other
+mod/store_upgrades_and_items.w.you_can_t_afford_to_buy_this_yet_1_000_c~071afe73	You can't afford to buy this yet! +$1,000 costs $950.	Vous n'avez pas encore les moyens ! +1 000 $ coûte 950 $.	Patch: Add Money cheat ($1,000); Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.add_1_000~371d3865	Add $1,000	+1 000 $	Patch: Add Money cheat ($1,000); Store Upgrades and Items.dll (Windows popup); a popup's title; at most 60 letters
+mod/store_upgrades_and_items.w.buy_1_000_for_d~b5d9f5a8	Buy +$1,000 for $%d?	Acheter +1 000 $ pour %d $ ?	Patch: Add Money cheat ($1,000); Store Upgrades and Items.dll (Windows popup); %1 (%d) = number; at most 100 letters; choices here always take o / other
+mod/extra_greenhouses.greenhouse~669a2e7d	Greenhouse 	Serre 	Patch: 5 extra greenhouses; Extra Greenhouses.dll; then the greenhouse's number; at most 40 letters (accented letters count 2)
+mod/extra_greenhouses.is_full_there_is_no_empty_pot_to_move_th~4539c77d	 is full!\n\nThere is no empty pot to move\nthis plant to.	 est pleine !\n\nIl n'y a aucun pot vide où\ndéplacer cette plante.	Patch: 5 extra greenhouses; Extra Greenhouses.dll; at most 110 letters (accented letters count 2)
+mod/extra_greenhouses.greenhouse_2~d5150bb6	Greenhouse	Serre	Patch: 5 extra greenhouses; Extra Greenhouses.dll; the screen's name: 'Greenhouse 2 of 3'; at most 24 letters (accented letters count 2)
+mod/store_upgrades_and_items.extra_greenhouse~78734b6d	Extra Greenhouse	Serre sup.	Patch: 5 extra greenhouses; Store Upgrades and Items.dll; at most 16 letters (accented letters count 2)
+mod/store_upgrades_and_items.w.you_already_have_all_five_extra_greenhou~b36abebd	You already have all five extra greenhouses!	Vous avez déjà les cinq serres en plus !	Patch: 5 extra greenhouses; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.you_can_t_afford_to_buy_this_yet_an_extr~17adea5b	You can't afford to buy this yet! An extra greenhouse costs $10,000.	Vous n'avez pas encore les moyens ! Une serre en plus coûte 10 000 $.	Patch: 5 extra greenhouses; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.extra_greenhouse~78734b6d	Extra Greenhouse	Serre en plus	Patch: 5 extra greenhouses; Store Upgrades and Items.dll (Windows popup); a popup's title; at most 60 letters
+mod/store_upgrades_and_items.w.buy_greenhouse_d_for_d_it_has_15_empty_p~bca736e8	Buy Greenhouse %d for $%d?\n\nIt has 15 empty pots. The arrows on the greenhouse screen lead to it.	Acheter la serre %d pour %d $ ?\n\nElle a 15 pots vides. Les flèches de l'écran de la serre y mènent.	Patch: 5 extra greenhouses; Store Upgrades and Items.dll (Windows popup); %1 (%d) = number; %2 (%d) = number; %1 = number, %2 = number; at most 200 letters; choices here always take o / other
+mod/extra_greenhouses.nursery~8efe9605	Nursery	Pépinière	Patch: 5 extra nurseries; Extra Greenhouses.dll; the screen's name: 'Nursery 2 of 3'; at most 24 letters (accented letters count 2)
+mod/store_upgrades_and_items.extra_nursery~ef19b1aa	Extra Nursery	Pépin. sup.	Patch: 5 extra nurseries; Store Upgrades and Items.dll; at most 13 letters (accented letters count 2)
+mod/store_upgrades_and_items.w.you_already_have_all_five_extra_nurserie~1f6fff05	You already have all five extra nurseries!	Vous avez déjà les cinq pépinières en plus !	Patch: 5 extra nurseries; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.you_can_t_afford_to_buy_this_yet_an_extr_2~7cc5cf0f	You can't afford to buy this yet! An extra nursery costs $10,000.	Vous n'avez pas encore les moyens ! Une pépinière en plus coûte 10 000 $.	Patch: 5 extra nurseries; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.extra_nursery~ef19b1aa	Extra Nursery	Pépinière en plus	Patch: 5 extra nurseries; Store Upgrades and Items.dll (Windows popup); a popup's title; at most 60 letters
+mod/store_upgrades_and_items.w.buy_nursery_d_for_d_it_holds_15_more_pla~af751eb4	Buy Nursery %d for $%d?\n\nIt holds 15 more plants for sale. The arrows on the nursery screen lead to it.	Acheter la pépinière %d pour %d $ ?\n\nElle accueille 15 plantes à vendre de plus. Les flèches de l'écran de la pépinière y mènent.	Patch: 5 extra nurseries; Store Upgrades and Items.dll (Windows popup); %1 (%d) = number; %2 (%d) = number; %1 = number, %2 = number; at most 200 letters; choices here always take o / other
+mod/extra_greenhouses.your_nursery_is_full_only_n_plants_can_b~7b2651c5	Your nursery is full!\n\nOnly %d plants can be for sale at once,\ncounting every greenhouse.	Votre pépinière est pleine !\n\n%d plantes au plus peuvent être en vente,\ntoutes serres comprises.	Patch: 5 extra nurseries; Extra Greenhouses.dll; %1 (%d) = number; %1 = how many plants can be for sale; at most 140 letters (accented letters count 2); choices use the real numbers
+mod/extra_greenhouses.your_nurseries_are_full_only_n_plants_ca~c1c15db0	Your nurseries are full!\n\nOnly %d plants can be for sale at once,\ncounting every greenhouse.	Vos pépinières sont pleines !\n\n%d plantes au plus peuvent être en vente,\ntoutes serres comprises.	Patch: 5 extra nurseries; Extra Greenhouses.dll; %1 (%d) = number; %1 = how many plants can be for sale; at most 140 letters (accented letters count 2); choices use the real numbers
+mod/store_upgrades_and_items.extra_chemical_slots_sold_out~a35251f8	Extra Chemical Slots\nSold out	Emplacements chimiques\nÉpuisé	Patch: Extra chemical slots; Store Upgrades and Items.dll; at most 50 letters (accented letters count 2)
+mod/store_upgrades_and_items.extra_chemical_slots_price_i~83a9a240	Extra Chemical Slots\nPrice: $ %i	Emplacements chimiques\nPrix : $ %i	Patch: Extra chemical slots; Store Upgrades and Items.dll; %1 (%i) = number; at most 50 letters (accented letters count 2); choices here always take o / other
+mod/store_upgrades_and_items.w.you_already_have_the_extra_chemical_slot~c3338383	You already have the extra chemical slots!	Vous avez déjà les emplacements chimiques en plus !	Patch: Extra chemical slots; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.you_can_t_afford_to_buy_this_yet_the_ext~41ac7ea2	You can't afford to buy this yet! The extra chemical slots cost $10,000.	Vous n'avez pas encore les moyens ! Les emplacements chimiques en plus coûtent 10 000 $.	Patch: Extra chemical slots; Store Upgrades and Items.dll (Windows popup)
+mod/store_upgrades_and_items.w.extra_chemical_slots~9a202f97	Extra Chemical Slots	Emplacements chimiques en plus	Patch: Extra chemical slots; Store Upgrades and Items.dll (Windows popup); a popup's title; at most 60 letters
+mod/store_upgrades_and_items.w.buy_the_extra_chemical_slots_for_d_a_gol~f7d4e5b4	Buy the extra chemical slots for $%d?\n\nA gold arrow in the greenhouse's Tools box turns to a second page of 8 chemical slots.	Acheter les emplacements chimiques en plus pour %d $ ?\n\nUne flèche dorée dans la boîte à outils de la serre ouvre une 2e page de 8 emplacements chimiques.	Patch: Extra chemical slots; Store Upgrades and Items.dll (Windows popup); %1 (%d) = number; at most 200 letters; choices here always take o / other
+mod/extra_chemical_slots.n_doses_left~432e2433	%d {%1: one=dose | other=doses} left	%d {%1: one=dose restante | many=de doses restantes | other=doses restantes}	Patch: Extra chemical slots; Extra Chemical Slots.dll; %1 (%d) = number; under the chemical's name in its slot's tooltip; at most 40 letters (accented letters count 2); choices use the real numbers

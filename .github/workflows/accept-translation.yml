@@ -1,13 +1,29 @@
 name: Accept translation
 
 # When the owner adds the "accept-translation" label to a translation issue
-# (.github/ISSUE_TEMPLATE/translation.yml), this downloads the attached file, checks it as DATA
-# ONLY with the patcher's own validator (scripts/accept_translation.py, src/translation_format.py;
-# nothing in the file is ever executed), and opens a pull request adding it to
-# translations/<game>/, credited to the typed credit name only -- or comments the problems.
+# (.github/ISSUE_TEMPLATE/translation.yml), two jobs run in order:
+#
+# 1. "scan": the attached file is pre-checked (a UTF-8 .tsv or .txt of at most 2 MB, nothing else)
+#    and sent to VirusTotal (scripts/virustotal_scan.py --issue). Any engine that flags it, or no
+#    answer at all, fails the job, comments on the issue naming the engines, and no pull request is
+#    opened. Its SHA-256 is passed to the next job.
+# 2. "accept" (needs: scan): downloads the attachment again, refuses it unless it is the very file
+#    that was scanned, checks it as DATA ONLY with the patcher's own validator
+#    (scripts/accept_translation.py, src/translation_public.py, src/translation_format.py; nothing
+#    in the file is ever executed), and opens a pull request adding it to the public folder,
+#    translations/<game>/<language code>.tsv, credited to the typed credit name only -- or comments
+#    the problems.
+#
+# The file committed must be exactly the bytes that were scanned. Writing the credit name changes
+# the attachment, so the WRITTEN file is scanned too (virustotal_scan.py --file) and only a staged
+# file whose SHA-256 is that scan's is committed. A stale run never acts: a newer accept run for
+# the same issue cancels it (concurrency, cancel-in-progress), and just before pushing the issue is
+# read again (accept_translation.py --recheck) -- edited, unlabelled or closed means no pull request.
+# Labels other than accept-translation get a group of their own, so they never cancel a real run.
 #
 # Everything in the issue is untrusted: no issue field is ever put into a shell command. The
-# script reads the issue from the event file itself; the shell sees only the issue NUMBER.
+# scripts read the issue from the event file themselves; the shell sees only the issue NUMBER. The
+# VirusTotal key reaches only the scan step, as an environment variable.
 
 on:
   issues:
@@ -19,19 +35,45 @@ permissions:
   issues: write
 
 concurrency:
-  group: accept-translation-${{ github.event.issue.number }}
-  cancel-in-progress: false
+  group: accept-translation-${{ github.event.issue.number }}-${{ github.event.label.name == 'accept-translation' && 'accept' || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
-  accept:
+  scan:
     if: >-
       github.event.label.name == 'accept-translation'
       && contains(github.event.issue.labels.*.name, 'translation')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+    outputs:
+      sha256: ${{ steps.scan.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Scan the attached file with VirusTotal (as data only, at most 2 MB)
+        id: scan
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python -I scripts/virustotal_scan.py --issue "$GITHUB_EVENT_PATH" "$RUNNER_TEMP/scan"
+
+  accept:
+    needs: scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      EXPECTED_SHA256: ${{ needs.scan.outputs.sha256 }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,7 +86,21 @@ jobs:
       - name: Check the translation (as data only, at most 2 MB)
         run: python -I scripts/accept_translation.py "$GITHUB_EVENT_PATH" "$RUNNER_TEMP/translation"
 
+      - name: Scan the file that will be committed (the written bytes, with VirusTotal)
+        id: final
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/translation"
+          if [ "$(cat "$work/result.txt")" = "accepted" ]; then
+            python -I scripts/virustotal_scan.py --file "$work/target.txt" "$RUNNER_TEMP/final"
+          fi
+
       - name: Open a pull request
+        env:
+          FINAL_SHA256: ${{ steps.final.outputs.sha256 }}
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/translation"
@@ -53,12 +109,23 @@ jobs:
             exit 0
           fi
           case "$ISSUE_NUMBER" in (*[!0-9]*|"") echo "bad issue number"; exit 1;; esac
+          case "$FINAL_SHA256" in (*[!0-9a-f]*|"") echo "the written file was not scanned"; exit 1;; esac
+          target="$(cat "$work/target.txt")"
           branch="translation/issue-$ISSUE_NUMBER"
           git config user.name "github-actions[bot]"
           # No email address anywhere (the owner): the commit's address is left empty.
           git config user.email ""
           git checkout -b "$branch"
-          git add -- "$(cat "$work/target.txt")"
+          git add -- "$target"
+          # Exactly the bytes that were scanned, or nothing.
+          staged="$(git show ":$target" | sha256sum | cut -d' ' -f1)"
+          if [ "$staged" != "$FINAL_SHA256" ]; then
+            echo "The staged file is not the file VirusTotal scanned; nothing is committed."
+            exit 1
+          fi
           git commit -m "Translations: add the translation shared in issue #$ISSUE_NUMBER"
+          # Just before acting: the issue must still ask for exactly what was scanned and checked.
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER" > "$work/current.json"
+          python -I scripts/accept_translation.py --recheck "$GITHUB_EVENT_PATH" "$work/current.json"
           git push --force origin "$branch"
           gh pr create --head "$branch" --title "Translation from issue #$ISSUE_NUMBER" --body-file "$work/pr_body.md"

@@ -220,7 +220,10 @@ HEALTH = (
         "Common genes are 0, 4, 8, 12, 16 and 20; half-rare genes are 2, 6, 10, 14 and 18; every odd "
         "gene is rare.",
         patched=(("ds_fish", "the DS genes follow the DS game's rarity: 23, 25, 27 and 29 are rare, "
-                  "24 and 28 half-rare, 26 common."),),
+                  "24 and 28 half-rare, 26 common. For health, though, every fish with a DS body or a "
+                  "DS fin is rare, whatever its other part: -19 / -6 / 0 a step at Fish Environment "
+                  "level 1 / 2 / 3, exactly like the stock rare fish, so it keeps its health only at "
+                  "level 3 (the DLL's tier at 0x41DF68). Sickness keeps the body's own DS tier."),),
     ),
     Fact(
         "There is no survival roll: a fish whose health reaches 0 dies.",
@@ -656,8 +659,15 @@ CONSUMABLES = (
                   "medicines, chemicals and eggs still go back to their slot. The slots belong to no "
                   "tank, so this is the same on Tanks 4-6. The Moray Eel and its rock go together: "
                   "trashing either takes the other, from whichever tank it is in, Tanks 4-6 included."),
+                 ("fix_vanilla_bugs", "every medicine, chemical and egg (the starter eggs and the Unknown "
+                  "Chemical too) let go on the trash can is thrown away with everything left in its slot, "
+                  "with the trash sound and no question; only that slot is emptied, from any slot 2-4 or "
+                  "an extra slot. Off the can the hints are as stock, and in the tank it is used as stock. "
+                  "The fish food is never thrown away. A store ornament let go on the trash can goes after "
+                  "\"Delete this fish?\" (No keeps it where it was let go): its ownership goes with it, so it "
+                  "no longer brings a customer and can be bought again."),
                  ("multiple_ornaments", "the extra copies can be thrown away (see Ornaments); the "
-                  "original still cannot."),),
+                  "original cannot unless Fix Vanilla Bugs is on."),),
     ),
     Fact(
         "Ick Treatment ($30, 3 doses): every fish with ick in the tank you use it on, and the fish in "
@@ -884,7 +894,10 @@ PERMANENT_ITEMS = (
                   "\"Delete?\" question; the original still can never be thrown away. The effect stays "
                   "one customer per ornament owned: copies never add one, and trashing copies never takes "
                   "it away. Copies are kept per save slot in \"Fish Tycoon Fix Patcher Data\\Ornaments "
-                  "<slot>.dat\"; the save keeps its layout."),),
+                  "<slot>.dat\"; the save keeps its layout."),
+                 ("fix_vanilla_bugs", "an ornament let go on the trash can is thrown away after \"Delete this "
+                  "fish?\": its ownership goes too, so it no longer brings a customer and the store sells it "
+                  "again."),),
     ),
     Fact(
         "Second Tank ($450): unlocks Tank Two, a second full-size tank (21 fish) with its own fish, "
@@ -968,6 +981,8 @@ RESEARCH = (
             "(dies in about 6 steps without help); level 3 makes rare fish safe.",
             "It does not change sickness, food, breeding, prices or customers.",
         ),
+        patched=(("ds_fish", "every fish with a DS body or a DS fin counts as rare here: -19 / -6 / 0, "
+                  "so DS fish need level 3."),),
     ),
     Fact(
         "Advertising research ($350 then $1500): three effects, all in the selling scene:",
@@ -1548,7 +1563,9 @@ HIDDEN = (
         "Ordinary keys nobody mentions:",
         subs=(
             "Tank screen: Escape opens the main menu. In screensaver mode any key or click ends "
-            "it and updates the fish at once.",
+            "it and updates the fish at once. The Screensaver button slides the interface off and, "
+            "in windowed mode, switches the display to 800x600 fullscreen until it ends (with Maximizable "
+            "window, the window covers its monitor instead and the display is not changed).",
             "Species screen: number keys (top row or keypad) type the selected species' price, "
             "like the on-screen keypad, up to 4 digits; Escape is Done.",
             "Selling scene and Supplies store: Escape is Done. Trophy Case: Escape goes back.",

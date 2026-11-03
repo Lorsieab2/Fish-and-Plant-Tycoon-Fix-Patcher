@@ -125,6 +125,11 @@ class PatchedBytesTests(unittest.TestCase):
                    | set(range(file_at(CAVE), file_at(CAVE) + 19))
                    # the load's price repair (tests/test_knowledge_price_load_repair.py)
                    | set(range(0x1EEF9, 0x1EEFE)) | set(range(0x64970, 0x64A4D)))
+        # the trash can's own records (Fix Vanilla Bugs: tests/test_trash_stock_items.py)
+        for patch in combined.load_manifest("plant")["patches"]:
+            if "trash" in str(patch["id"]):
+                at = int(str(patch["offset"]), 0)
+                allowed |= set(range(at, at + len(bytes.fromhex("".join(str(patch["replacement"]).split())))))
         changed = [i for i in range(len(vanilla)) if vanilla[i] != data[i]]
         self.assertTrue(set(changed) <= allowed, [hex(i) for i in changed if i not in allowed])
         for at in range(0x1EE00, 0x1EF30):           # the load 0x41EE00..0x41EF2F never calls the new game

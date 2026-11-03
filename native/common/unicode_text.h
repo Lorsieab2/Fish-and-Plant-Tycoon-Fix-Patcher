@@ -43,7 +43,8 @@ static const char *ellipsis(void) {
 static int measure(void *font, const char *text, float scale);
 
 /* `text` cut to fit `budget`: at its end (`tail` 0: its start and an ellipsis) or at its start
-   (`tail` 1: an ellipsis and its end), whole letters only, as many as fit (a binary search: a
+   (`tail` 1: an ellipsis and its end), whole graphemes only (never a letter cut from its marks or
+   an emoji sequence cut in half), as many as fit (a binary search: a
    longer piece is never narrower). Returns `text` itself when it fits. */
 static const char *fit(void *font, const char *text, int budget, int tail, char *out, int cap) {
     static int starts[NAME_BOX_BYTES + 2];
@@ -53,7 +54,12 @@ static const char *fit(void *font, const char *text, int budget, int tail, char 
     if (measure(font, text, 1.0f) <= budget) return text;
     while (*p && count <= NAME_BOX_BYTES) {
         starts[count++] = (int)((const char *)p - text);
-        utf_next(&p);
+        if (utf8_drawing) {
+            unsigned int cps[GRAPHEME_MAX];
+            next_grapheme(&p, cps, GRAPHEME_MAX);
+        } else {
+            utf_next(&p);
+        }
     }
     starts[count] = (int)((const char *)p - text);
     /* the most letters k (0..count) that fit */

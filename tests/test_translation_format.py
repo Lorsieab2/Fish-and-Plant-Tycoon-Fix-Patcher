@@ -46,6 +46,51 @@ class Keys(unittest.TestCase):
             tf.make_key("bad source", "1", "x")
 
 
+PERCENTS = ["2 %", "2\u00a0%", "2\u202f%", "50 % de r\u00e9duction"]
+
+
+class PercentSigns(unittest.TestCase):
+    """A '%' is a placeholder only when it is one of the English's conversions; any other is text."""
+
+    def test_french_percent_signs_validate(self) -> None:
+        for text in PERCENTS:
+            self.assertEqual(tf.check_translation("Sick", text)[0], [], text)                  # not a format
+            self.assertEqual(tf.check_translation("You have sold %d fish!", f"%d vendus, {text}")[0], [], text)
+            self.assertEqual(tf.check_translation("%d {%1: one=dose | other=doses} left",
+                                                  f"%d {{%1: one=dose | other=doses}} ({text})")[0], [], text)
+
+    def test_a_conversion_the_english_lacks_is_text_not_a_placeholder(self) -> None:
+        # "% d" is a printf conversion (the space flag) but not the English's: plain text, kept in order
+        self.assertEqual(tf.check_translation("You have sold %d fish!", "%d poissons, 2 % de plus")[0], [])
+        self.assertEqual(tf.parse_template("2 % de", tf.english_tokens("%d")).conversions, [])
+        # the English's own conversions still have to be there, in order
+        self.assertTrue(tf.check_translation("You have sold %d fish!", "2 % de poissons")[0])
+
+    def test_format_lines_reach_sprintf_escaped(self) -> None:
+        english = "You have sold %d fish!"
+        for text in PERCENTS:
+            translation = f"%d vendus, {text}"
+            escaped = tf.escape_percents(translation, english)
+            self.assertEqual(escaped, "%d vendus, " + text.replace("%", "%%"))
+            self.assertEqual(escaped % 5, "5 vendus, " + text)                  # sprintf: a single '%'
+        self.assertEqual(tf.escape_percents("%d 100%% s\u00fbr", english), "%d 100%% s\u00fbr")   # "%%" stays
+        self.assertEqual(tf.escape_percents("100 % d", english), "100 %% d")
+
+    def test_lines_that_are_not_formats_are_never_escaped(self) -> None:
+        for text in PERCENTS:
+            self.assertEqual(tf.evaluate(text), text)
+        self.assertFalse(ts.is_format("Sick"))
+        self.assertTrue(ts.is_format("You have sold %d fish!"))
+        for m in ts.MOD_STRINGS:
+            entry = next(e for e in ts.mod_entries(m.game) if e.key == ts.mod_key(m))
+            self.assertEqual(entry.is_format, bool(tf.parse_template(m.english).conversions), m.english)
+
+    def test_escaping_counts_in_the_limit(self) -> None:
+        english = "%d"
+        self.assertFalse(tf.too_long("%d % % % %", 10, english=english, is_format=False))
+        self.assertTrue(tf.too_long("%d % % % %", 10, english=english, is_format=True))     # 10 + 4 > 10
+
+
 class Escapes(unittest.TestCase):
     def test_round_trip(self) -> None:
         for text in ("a\nb", "tab\there", "back\\slash", "\\n literal", "end\\", "x\\|y", "\r\nwin"):
@@ -98,7 +143,7 @@ class Reading(unittest.TestCase):
         self.assertEqual(tf.parse_text(text, "fish").language, "Français")
 
     def test_bad_rows_fall_back_and_name_their_line(self) -> None:
-        text = tf.to_text(sample(("Âge : %d", "Vous avez vendu %s !", "")))
+        text = tf.to_text(sample(("Âge : {name}", "Vous avez vendu %s !", "")))
         parsed = tf.parse_text(text, "fish")
         lines = text.split("\r\n")
         bad = {p.line for p in parsed.errors}
@@ -130,13 +175,17 @@ class Placeholders(unittest.TestCase):
 
     def test_printf_same_conversions_same_order(self) -> None:
         self.assertEqual(self.check("%s has %d", "%s a %d")[0], [])
-        self.assertEqual(self.check("%d", "%3d")[0], [])                  # width may change
-        self.assertEqual(self.check("%d", "%i")[0], [])
+        # only the English's own tokens are placeholders: "%3d" is text here, so %d is missing
+        self.assertTrue(self.check("%d", "%3d")[0])
+        self.assertEqual(self.check("%3d", "%3d")[0], [])
+        self.assertTrue(self.check("%d", "%i")[0])                        # "%i" is not the English's token
         self.assertTrue(self.check("%s has %d", "%d a %s")[0])
         self.assertTrue(self.check("%d", "")[0] == [])                    # empty: untranslated, not an error
         self.assertTrue(self.check("%d", "rien")[0])
-        self.assertTrue(self.check("%d", "%d %n")[0])
-        self.assertTrue(self.check("%d", "%d 50%")[0])                    # lone %: write %%
+        self.assertEqual(self.check("%d", "%d %n")[0], [])                # not a token: text...
+        self.assertEqual(tf.escape_percents("%d %n", "%d"), "%d %%n")         # ...that sprintf never reads
+        self.assertTrue(self.check("%n", "%n")[0])                        # %n is never allowed
+        self.assertEqual(self.check("%d", "%d 50%")[0], [])               # a plain % is text (escaped for sprintf)
         self.assertEqual(self.check("%d", "%d 50%%")[0], [])
         self.assertEqual(self.check("Save 50%! %d", "50% !%d")[0], [])     # the English has one too
         self.assertTrue(self.check("50% of %d", "50% de %d")[0])           # "% o" and "% d" are conversions

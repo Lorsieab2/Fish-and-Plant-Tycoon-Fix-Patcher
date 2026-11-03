@@ -1,5 +1,213 @@
 # Changelog
 
+## v1.0.25
+
+- **Translation safety.** A translation check speaks only for the commit it
+  checked: newer pushes cancel older runs, the head is asked again before
+  anything is posted, and a Share on GitHub... file is committed only when its
+  SHA-256 is the scanned file's, after the issue is read again. Adding or
+  downloading a translation replaces an installed one only when the language,
+  code and translator all match (the old one goes to the Recycle Bin); anyone
+  else's file is kept under a name of its own, never a name that came with the
+  patcher or from GitHub. Edit... copies are per game.
+- **Public translations folder.** `translations/fish/` and `translations/plant/`
+  on GitHub hold every shared translation, one file per language named after
+  its code (`fr.tsv`, `pt-BR.tsv`; `<code>-<credit slug>.tsv`, then `-2`, `-3`...
+  when that language is already there, so nobody's file is overwritten; the
+  older `<Game> - <language>.txt` names still work). `translations/README.md`
+  explains downloading, translating, the credit row and uploading with Add
+  file, Upload files (a pull request is opened automatically without write
+  access), with the Share on GitHub... warning word for word.
+- **Download from GitHub...** in the Translations window lists that folder
+  (default branch, GitHub's public read-only API, no login): language and
+  credit, the date each file last changed, and Not installed / Installed /
+  Update available (by the file's git blob SHA). Several can be chosen; each
+  is checked as data, at most 2 MB, before it goes into `translations\<game>`.
+  Only api.github.com and raw.githubusercontent.com are contacted; no
+  internet, GitHub's rate limit and bad files are reported plainly.
+- **VirusTotal.** Every user-submitted translation file (pull requests,
+  Share on GitHub... issues, and again after it reaches main) must be a UTF-8
+  `.tsv` / `.txt` of at most 2 MB under `translations/<game>/`, and is then
+  looked up or uploaded on VirusTotal. Any engine reporting it malicious or
+  suspicious fails the check (the engines are named in a comment); no
+  answer, a timeout or no `VT_API_KEY` secret fails it too ("not scanned").
+  Submitted files are therefore visible to VirusTotal's partners.
+- **Pull-request validator** (`translation-pr.yml`, pull_request_target): the
+  base branch's own check runs on the changed files, fetched through the API
+  as data and never checked out; format, keys, placeholders, person and
+  number choices and email addresses are checked, each problem with its line,
+  and the result is commented. The owner accepts by merging.
+- **Share on GitHub...** accepts now go to the same folder as `<code>.tsv`,
+  and only after the VirusTotal scan (the file accepted must be the file
+  scanned).
+- **Release**: accepted translations still ship, now `.tsv` as well as `.txt`;
+  "(TEST)" files (language or credit starting with "(TEST)", or "test" in the
+  name) never do and come only from the public folder.
+- **The trash takes chemicals, eggs, medicines and ornaments** (Fix Vanilla
+  Bugs, both games). The owner: "I can't trash any chemicals, eggs or
+  decorations in fish tycoon", and "Check plant tycoon too (do not trash
+  tools)". This was the stock game, not a patch: every build behaved the same.
+  - Fish Tycoon, the cause: a supply let go goes through the release
+    0x421B20 to the use 0x420B70, which tests only the tank (impl +
+    0xA8..0xB4); outside it, 0x42165C tests only the isolation tank and
+    otherwise shows hint 0xD, "This must be used directly in a tank." (the
+    hint table at 0x457A04), the trash can included, and the supply goes
+    back to its slot. The ornament drop 0x41F660 tests only the tank buttons
+    and then settles the ornament where it was let go (0x41F7BF), so on the
+    trash can it just rested there. DS Store Items (0x421B52) and Multiple
+    Ornaments (0x421D43) threw away only their own supplies and copies.
+  - Fish Tycoon, the fix: 0x42165C jumps to 0x43F900 (the zero tail of
+    .text). A medicine, chemical or egg picked up from slot 2, 3 or 4 and
+    let go on the trash can (the same rectangle the fish trash tests) is
+    thrown away: the whole slot, every dose or hatch left, emptied as the
+    game empties a used-up slot, with the fish trash's sound and no question
+    (the game asks only about a live fish, and DS Store Items' supplies
+    already went this way). The stock items, the Unknown Chemical, the
+    starter eggs and the patcher's items all go, from the stock slots and
+    from Extra Supply Slots' pages 2 and 3 (lent to a stock slot while held),
+    with or without Universal supply slots. Anywhere else the hints are as
+    before, and a supply let go in the tank is used exactly as before. The
+    fish food is a tool and is never thrown away.
+  - Fish Tycoon, ornaments: 0x41F7BF jumps to 0x43F9A0. A store ornament
+    (Shell, Pagoda, Diver, Fancy Coral, Sunken Antique Column, Sunken Ship)
+    let go on the trash can goes after the game's "Delete this fish?" (the
+    trash can's question, which Multiple Ornaments already asks for a copy):
+    its record and its store ownership are cleared, so it no longer brings a
+    customer and can be bought again; the fish trash's sound plays. No, or
+    anywhere else: it settles as before. The eel's rock stays DS Store
+    Items' (with its eel), the copies Multiple Ornaments'.
+  - Plant Tycoon, the cause: the trash 0x424680 sells seeds and deletes
+    plants only; a chemical bottle (held 5-8) let go on the bin stayed in
+    the hand, and one clicked on the bin with a plant selected asked
+    "Delete this plant?" about that plant.
+  - Plant Tycoon, the fix: the trash once the bin is hit (0x4246EB, to
+    0x464A60) and the press off the pots (0x4272E5, to 0x464AA0, where Store
+    Upgrades and Items' own stub comes back) throw a held bottle away with
+    every dose left, with the bin's sound and no question, as a seed packet;
+    a selected plant is not asked about or deleted. Every chemical (the
+    fertilizers too), from either page of Extra Chemical Slots. The tools
+    (the watering can, the shears, the net and the rest of the rack) are
+    still refused: they never reach the bin, as stock. Seeds and plants are
+    unchanged.
+  - Tests: tests/test_trash_stock_items.py runs the games' own release,
+    drop, trash and press code in Unicorn on the vanilla and patched
+    executables: the stock hint and the kept item without the fix (vanilla,
+    Universal supply slots, DS Store Items, Extra Supply Slots, Store
+    Upgrades and Items), every item kind thrown away whole with it (every
+    slot kind, the trash can's corners, a maximized window), the hints and
+    the use on the tank unchanged, the fish food and the Plant tools
+    refused, ornaments after the question and kept on No.
+- **Translations window: select several, Delete..., Export several.** The
+  "Translations in the patcher" list now selects several at once: click
+  selects one, Ctrl+click adds or removes one, Shift+click selects a range,
+  and Ctrl+A or the new **Select All** button selects them all. Its first row
+  is "English (original)"; the language the game uses is still chosen in the
+  "Language in the game" dropdown above, as before. Edit..., Check and Share
+  on GitHub... act on one translation, as before.
+- **Delete...** (or the Delete key in the list) moves the selected
+  translation files to the Windows Recycle Bin after one Yes/No that lists
+  them (No is the default and changes nothing). It is never a plain delete:
+  the files go through SHFileOperationW with FOF_ALLOWUNDO,
+  FOF_NOCONFIRMATION and FOF_SILENT (and FOF_WANTNUKEWARNING, so on a drive
+  without a Recycle Bin Windows asks instead of destroying the file); if the
+  Recycle Bin call fails, the error is shown and nothing else is tried.
+  "English (original)" is built into the game and is always skipped (the
+  question says so). Translations that came with the patcher can be deleted
+  from your copy too; they come back with the next patcher update. If the
+  game uses a translation you delete, it goes back to English (original)
+  exactly as choosing English does (Translation.ini and Translation.txt are
+  removed from the game copies), and an open editor of a deleted file closes
+  without saving.
+- **Export translation...** with several selected saves one file each, under
+  its own name, into a folder you choose (it asks before replacing a file
+  already there, No by default). With one selected it works as before.
+- **Fish Tycoon's Screensaver works on Windows 10 and 11** (Maximizable
+  window, on by default). The tank screen's Screensaver button slides the
+  interface off and, in windowed mode, switches the whole display to 800x600
+  (SDL_SetVideoMode with SDL_FULLSCREEN, from 0x41E3DD through 0x408CB0;
+  ChangeDisplaySettings in SDL.dll). The game is not DPI aware, so with
+  Windows display scaling above 100% that 800x600 picture is enlarged past
+  the screen and cut off; the mode change also blanks the screen for a
+  moment and moves other windows to fit 800x600. The game has no .scr file,
+  command line or registry use: the screensaver is only this in-game mode.
+  Maximizable Window.dll now takes the jump at 0x41E3DD: the game window
+  becomes a borderless window over the monitor it is on (MonitorFromWindow,
+  so a second monitor too) and the tank is drawn scaled with its shape kept,
+  and the display mode never changes. A click or a key ends it as before
+  (0x421F80, 0x41ED10), and at the screensaver's end (its call of 0x407B70 at
+  0x421FCD) the window's style, size, place and maximized state are put back
+  exactly (GetWindowPlacement / SetWindowPlacement). Both sites are checked
+  for their stock bytes and written together or not at all (the maximize
+  part installs either way); if the window cannot be used, the game's own
+  fullscreen switch runs as before, and with the Fullscreen option on the
+  screensaver is the stock one. No executable pin changes; the DLL is
+  re-pinned. Unicorn tests run the game's own slide-off frame, click and key
+  handlers against the rebuilt DLL (tests/test_fish_window.py).
+  While the screensaver runs, a click or key only ends it with every
+  companion too: Extra Tanks, Extra Supply Slots, Multiple Ornaments and DS
+  Store Items hook the tank's clicks only inside the handler the stock mouse
+  (0x421F80) calls when the screensaver flag is clear, and Tank Counts' mouse
+  wrapper checks the flag; tests/test_screensaver_clicks.py traces the stock
+  click and key handlers with the flag set and checks none of their sites runs.
+- **DS Exclusive Fish: every DS fish needs Fish Environment level 3.** A fish
+  with a DS body or a DS fin now keeps its health only at Fish Environment
+  level 3, exactly like the game's own rare fish: -19 / -6 / 0 health a step
+  at level 1 / 2 / 3. Before, the health tick used each DS gene's own DS
+  tier, so a Trigger body or Clown fin fish (DS tier 1) gained health at
+  level 1 and a Discus, Roundy, Tang or Blue fish (DS tier 2) at level 2.
+  `DS Exclusive Fish.dll`'s existing health-tier hook (`0x41DF68`, byte-checked
+  and all-or-nothing as before) now gives any fish with a DS part tier 3;
+  PC fish are unchanged. Eggs, breeding, the Unknown Chemical, prices, art,
+  labels, the sickness odds and the tutorial goal are unchanged. Game
+  Mechanics (Health, Research), the README and the DS fish docs say so.
+- **Translations: every patch can be translated.** Every text a patch shows
+  now has a line in "Make a translation": besides the store items, counts and
+  popups of v1.0.24, the DS Exclusive Fish species-name words (28 fin and 28
+  body words, at most 15 and 16 letters so a name always fits), the unused
+  flowers' names (14 flower and 23 foliage words), the Radioactive Growth
+  Hormone's, Radioactive Plant Formula's and Formula Bomb's descriptions, the
+  Time Warp's price question, confirmation and "done" boxes and the Revival
+  Potion's full-nursery box. The editor groups the lines by patch (the notes
+  start "Patch: <setting>"), the game's own lines first.
+- **Plurals in any language for the patches' numbers.** "2 doses left", the
+  counts' parts ("8 adults"), "3 prices set.", the nursery limit and the Time
+  Warp's hours and age steps are counted texts whose English holds the choice
+  (`%d {%1: one=dose | other=doses} left`); Tank Counts, Greenhouse Counts, DS
+  Store Items, Store Upgrades and Items, Extra Chemical Slots, Optimize Prices
+  (both games) and Extra Greenhouses ask Translations.dll for them with the
+  real numbers (`FtfpTranslateCounted`), so Russian, Polish, Arabic... get
+  their own forms. Without a translation the English is exactly as before.
+  These lines replace the v1.0.24 pieces ("adult"/"adults", "dose"/"doses",
+  " price set."...): translate the new lines instead.
+- **"%" in translations.** A "%" is a placeholder only when it is one of the
+  line's English conversions as written; any other is plain text, so French
+  "2 %", "2 %", "2 %" and "50 % de réduction" validate. In a format line
+  (one with conversions, which the game or a DLL hands to sprintf) each plain
+  "%" is written "%%" by the editor's checks and by Translations.dll, so it
+  shows as one "%" and "% d" never reads an argument; the extra byte counts
+  in the line's limit. Lines without conversions are shown as written. A
+  conversion that is not the English's ("%i" for "%d", "%3d") is now text, so
+  the English's own one is reported missing.
+- Unused Flowers builds its species names again once the translation is
+  applied (`FtfpTranslationApplied`).
+- New tests: `tests/test_translation_coverage.py` (every visible DLL text and
+  executable-patch text has a key; a commented allow-list says why the rest
+  is never shown) and `tests/test_translations_every_patch.py` (every patcher
+  DLL and every counted text in Unicorn: translated, too long, missing).
+- Rebuilt and re-pinned: Translations.dll, Tank Counts.dll, Greenhouse
+  Counts.dll, DS Store Items.dll, Store Upgrades and Items.dll, Extra Chemical
+  Slots.dll, both Optimize Prices.dll, Extra Greenhouses.dll, Unused
+  Flowers.dll (companion pins only; no executable byte changes).
+- **(TEST) - French AI Translation** for both games, in the repository's
+  `translations/fish/fr.tsv` and `translations/plant/fr.tsv` (not in the
+  patcher's ZIP; get it with "Download from GitHub..."). Machine-made for
+  testing, credited "(TEST) AI translation": every line of both templates
+  (the games' own lines and every patch's text) in French, with French plural
+  choices (one = 0 and 1, many, other) and no-break spaces before : ; ! ?.
+  Species-name words (DS fish fins and bodies, new flower names) stay in
+  English like the games' own species names; "NEW PLAYER" is never
+  translated. `tests/test_test_french_translation.py` checks it.
+
 ## v1.0.24
 
 - **Copy and Paste in Text Boxes** (new setting, both games; on by default and

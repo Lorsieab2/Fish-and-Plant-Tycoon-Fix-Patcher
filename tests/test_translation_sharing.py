@@ -55,7 +55,8 @@ class Workflow(unittest.TestCase):
     def test_runs_only_on_the_owners_label(self) -> None:
         on = self.flow[True] if True in self.flow else self.flow["on"]          # YAML 1.1 reads "on" as True
         self.assertEqual(on, {"issues": {"types": ["labeled"]}})
-        condition = self.flow["jobs"]["accept"]["if"]
+        condition = self.flow["jobs"]["scan"]["if"]
+        self.assertEqual(self.flow["jobs"]["accept"]["needs"], "scan")
         self.assertIn("github.event.label.name == 'accept-translation'", condition)
         self.assertIn("'translation'", condition)
 
@@ -109,7 +110,7 @@ class Accept(unittest.TestCase):
         self.assertEqual(self.run_event(body(), translation("someone else")), "accepted")
         path = self.added[0]
         self.assertEqual(path.parent, self.root / "translations" / "fish")
-        self.assertEqual(path.name, "Fish Tycoon - Français.txt")
+        self.assertEqual(path.name, "fr.tsv")
         parsed = tfmt.parse_bytes(path.read_bytes(), "fish")
         self.assertEqual(parsed.translator, "Ann Lee")
         pr = (self.work / "pr_body.md").read_text(encoding="utf-8")

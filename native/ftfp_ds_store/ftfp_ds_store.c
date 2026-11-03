@@ -1608,6 +1608,9 @@ static void left_line(char *out, int item, int n, int de) {
     int d = 0, at = 0;
     unsigned int v = n < 0 ? 0u : (unsigned int)n;
     const char *s;
+    /* The player's translation, its words chosen by n (German mode keeps the German). */
+    if (!de && ftfp_counted(egg ? "%d {%1: one=batch | other=batches} left" : item == 4 ? "%d {%1: one=use | other=uses} left"
+                            : "%d {%1: one=dose | other=doses} left", &n, 1, out, 61)) return;
     if (de) for (s = "Noch "; *s; ++s) out[at++] = *s;
     do { digits[d++] = (char)('0' + v % 10); v /= 10; } while (v && d < 11);
     while (d) out[at++] = digits[--d];
@@ -2200,6 +2203,7 @@ static void warp_chunk(char *state, unsigned int seconds) {
 static void time_warp(char *impl, char *state) {
     wchar_t text[256];
     unsigned int left;
+    int numbers[3];
     int hours, price = price_of(&ITEM[ITEM_WARP]);
     if (*I(state, S_SPEED_FISH) > 100) {
         tw_tell(L"Time is stopped. Turn time back on in Options, then warp.");
@@ -2213,13 +2217,23 @@ static void time_warp(char *impl, char *state) {
         tw_tell(L"Open a tank first, then come back to the store to warp.");
         return;
     }
-    swprintf_s(text, 256, L"Costs $%d. Your fish age, eat and breed, and research goes on, as if you had "
-               L"been away.", price);
+    numbers[0] = price;
+    if (!ftfp_counted_w(L"Costs $%d. Your fish age, eat and breed, and research goes on, as if you had been away.",
+                        numbers, 1, text, 256)) {
+        swprintf_s(text, 256, L"Costs $%d. Your fish age, eat and breed, and research goes on, as if you had "
+                   L"been away.", price);
+    }
     hours = tw_ask_hours(text);
     if (hours <= 0) return;
-    swprintf_s(text, 256, L"Warp %d hour%s for $%d?\n\nYour fish will age %d hour%s, as if you had been "
-               L"away that long. This cannot be undone.", hours, hours == 1 ? L"" : L"s", price, hours,
-               hours == 1 ? L"" : L"s");
+    numbers[0] = hours;
+    numbers[1] = price;
+    numbers[2] = hours;
+    if (!ftfp_counted_w(L"Warp %d {%1: one=hour | other=hours} for $%d?\n\nYour fish will age %d {%3: one=hour | "
+                        L"other=hours}, as if you had been away that long. This cannot be undone.", numbers, 3, text, 256)) {
+        swprintf_s(text, 256, L"Warp %d hour%s for $%d?\n\nYour fish will age %d hour%s, as if you had been "
+                   L"away that long. This cannot be undone.", hours, hours == 1 ? L"" : L"s", price, hours,
+                   hours == 1 ? L"" : L"s");
+    }
     if (!tw_confirm(text)) return;
     if (*I(state, S_MONEY) < price) return;
     charge(state, price);
@@ -2234,7 +2248,9 @@ static void time_warp(char *impl, char *state) {
     }
     /* What the update made of those seconds: one age step per 60 x speed seconds (0x41FFE9); a
        chunk plus a fish's banked part of a step stays under every cap, so none of it was cut. */
-    tw_done(hours, (unsigned int)hours * 3600u / (60u * (unsigned int)*I(state, S_SPEED_FISH)), L"age step", price);
+    tw_done(hours, (unsigned int)hours * 3600u / (60u * (unsigned int)*I(state, S_SPEED_FISH)), L"age step", price,
+            L"Time Warp done: %d {%1: one=hour | other=hours} played (%d {%2: one=age step | other=age steps}). "
+            L"$%d paid.");
 }
 
 /* Add Money: the price is paid as for any item, then $1,000 goes into the

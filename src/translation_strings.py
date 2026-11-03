@@ -158,7 +158,8 @@ def game_entries(game: str, exe_variants: list[tuple[bytes, str]]) -> list[tfmt.
     for s, label in order:
         limit = game_limit(game, s)
         entries.append(tfmt.Entry(tfmt.make_key("strings", str(s.id), s.english), s.english,
-                                  _notes(game, s, limit, label), limit or ABSOLUTE_MAX))
+                                  _notes(game, s, limit, label), limit or ABSOLUTE_MAX,
+                                  is_format=is_format(s.english)))
     return entries
 
 
@@ -173,6 +174,8 @@ class ModString:
     limit: int | None = None     # bytes (ANSI) or UTF-16 units (wide); None: ABSOLUTE_MAX
     wide: bool = False           # a UTF-16 text (Windows popups)
     note: str = ""
+    patch: str = ""              # the setting (manifest id) it belongs to; "": its DLL's (DLL_PATCH)
+    counted: bool = False        # a text with numbers its DLL asks Translations.dll for (COUNTED_STRINGS)
 
     @property
     def slug(self) -> str:
@@ -196,14 +199,166 @@ _DS, _PRICES = "DS Store Items.dll", "Optimize Prices.dll"
 _UP = "Store Upgrades and Items.dll"
 
 
-def _m(game, dll, english, limit=None, wide=False, note=""):
-    return ModString(game, dll, english, limit, wide, note)
+def _m(game, dll, english, limit=None, wide=False, note="", patch=""):
+    return ModString(game, dll, english, limit, wide, note, patch)
+
+
+# The setting (manifest id) each DLL's texts belong to: the editor groups the lines by the
+# setting's name. PATCH_OF names the texts of a DLL that belong to another setting.
+DLL_PATCH = {
+    ("fish", "Tank Counts.dll"): "tank_greenhouse_counts",
+    ("fish", "DS Exclusive Fish.dll"): "ds_fish",
+    ("fish", "DS Store Items.dll"): "ds_store",
+    ("fish", "Extra Tanks.dll"): "extra_tanks",
+    ("fish", "Extra Supply Slots.dll"): "extra_supply_slots",
+    ("fish", "Optimize Prices.dll"): "optimize_prices",
+    ("plant", "Greenhouse Counts.dll"): "tank_greenhouse_counts",
+    ("plant", "Extra Chemical Slots.dll"): "extra_chemical_slots",
+    ("plant", "Extra Greenhouses.dll"): "extra_greenhouses",
+    ("plant", "Optimize Prices.dll"): "optimize_prices",
+    ("plant", "Sort Seeds.dll"): "sort_seeds",
+    ("plant", "Extra Seed Boxes.dll"): "plant_upgrades",
+    ("plant", "Store Upgrades and Items.dll"): "plant_upgrades",
+    ("plant", "Unused Flowers.dll"): "new_flowers",
+}
+
+PATCH_OF: dict[tuple[str, str, str], str] = {}
+
+
+def _texts_of(setting: str, game: str, dll: str, *texts: str) -> None:
+    for t in texts:
+        PATCH_OF[(game, dll, t)] = setting
+
+
+_texts_of("time_warp", "fish", "DS Store Items.dll", "Time Warp", "Skip ahead in time! Choose how many\nhours (1-72) "
+          "pass, as if you had been\naway that long. Your fish age, eat and\nresearch goes on.",
+          "Please type a whole number of hours from 1 to 72.", "How many hours should pass? (1-72)", "OK", "Cancel",
+          "Time is stopped. Turn time back on in Options, then warp.",
+          "Open a tank first, then come back to the store to warp.")
+_texts_of("add_money", "fish", "DS Store Items.dll", "Add $1,000",
+          "A pile of gold coins! Each one you buy\nadds $1,000 to your money.\nBuy as many as you like.")
+_texts_of("extra_tanks", "fish", "DS Store Items.dll", "Extra Tank",
+          "Another tank for breeding! Each one\nyou buy opens the next of Tank 4,\nTank 5 and Tank 6.")
+_texts_of("extra_supply_slots", "fish", "DS Store Items.dll", "Extra Supply Slots",
+          "Seven more supply slots for medicine,\nchemicals and eggs, on two more pages.\nThe arrows beside the slots "
+          "turn the\npage. One purchase opens all seven.")
+_texts_of("time_warp", "plant", "Store Upgrades and Items.dll", "Time Warp\nPrice: $ %i", "Time Warp",
+          "Please type a whole number of hours from 1 to 72.", "How many hours should pass? (1-72)", "OK", "Cancel",
+          "Time is stopped. Turn time back on in Options, then warp.",
+          "You can't afford to buy this yet! A Time Warp costs $500.")
+_texts_of("add_money", "plant", "Store Upgrades and Items.dll", "Add $1,000\nPrice: $ %i", "Add $1,000",
+          "You can't afford to buy this yet! +$1,000 costs $950.", "Buy +$1,000 for $%d?")
+_texts_of("extra_greenhouses", "plant", "Store Upgrades and Items.dll", "Extra Greenhouse",
+          "You already have all five extra greenhouses!",
+          "You can't afford to buy this yet! An extra greenhouse costs $10,000.",
+          "Buy Greenhouse %d for $%d?\n\nIt has 15 empty pots. The arrows on the greenhouse screen lead to it.")
+_texts_of("extra_nurseries", "plant", "Store Upgrades and Items.dll", "Extra Nursery",
+          "You already have all five extra nurseries!", "You can't afford to buy this yet! An extra nursery costs "
+          "$10,000.", "Buy Nursery %d for $%d?\n\nIt holds 15 more plants for sale. The arrows on the nursery "
+          "screen lead to it.")
+_texts_of("extra_chemical_slots", "plant", "Store Upgrades and Items.dll", "Extra Chemical Slots\nSold out",
+          "Extra Chemical Slots\nPrice: $ %i", "You already have the extra chemical slots!",
+          "You can't afford to buy this yet! The extra chemical slots cost $10,000.", "Extra Chemical Slots",
+          "Buy the extra chemical slots for $%d?\n\nA gold arrow in the greenhouse's Tools box turns to a second "
+          "page of 8 chemical slots.")
+_texts_of("extra_nurseries", "plant", "Extra Greenhouses.dll", "Nursery")
+
+
+
+# Texts with numbers whose words depend on the number ("2 doses left"): the DLL asks
+# Translations.dll (FtfpTranslateCounted, native/common/translated_count.h) with the real numbers,
+# so a translation's choices ({%1: one=... | few=... | other=...}) pick the right form. The
+# English is the key's, choices and all; the limit leaves room for the numbers in the DLL's buffer
+# (the runtime also refuses anything that does not fit). Without a translation the DLL writes its
+# English exactly as before, from the pieces in COUNTED_FALLBACKS.
+_TW_DONE = ("Time Warp done: %d {%1: one=hour | other=hours} played (%d {%2: one={unit} | other={units}}). "
+            "$%d paid.")
+_TW_ASK = ("Warp %d {%1: one=hour | other=hours} for $%d?\n\nYour {what} will age %d {%3: one=hour | "
+           "other=hours}, as if you had been away that long. This cannot be undone.")
+_NURSERY = ("This plant was for sale when it died, but your {which} full: only %d plants can be for sale at once, "
+            "counting every greenhouse.\n\nIt is alive again, not for sale. Make room in the nursery, then put it "
+            "on sale again.")
+_EG_FULL = "Your {which} full!\n\nOnly %d plants can be for sale at once,\ncounting every greenhouse."
+
+
+def _c(game, dll, english, limit, wide=False, note="", patch=""):
+    return ModString(game, dll, english, limit, wide, note, patch, True)
+
+
+COUNTED_STRINGS: tuple[ModString, ...] = (
+    *(_c(_F, _COUNTS_F, t, 40, note="one part of the bracket, '(8 adults, 3 teens, 1 baby)'") for t in (
+        "%d {%1: one=adult | other=adults}", "%d {%1: one=teen | other=teens}", "%d {%1: one=baby | other=babies}")),
+    *(_c(_F, _DS, t, 48, note="under a supply's name in its slot's tooltip") for t in (
+        "%d {%1: one=batch | other=batches} left", "%d {%1: one=use | other=uses} left",
+        "%d {%1: one=dose | other=doses} left")),
+    _c(_F, _DS, "Costs $%d. Your fish age, eat and breed, and research goes on, as if you had been away.", 220, True,
+       "the question above the hours", "time_warp"),
+    _c(_F, _DS, _TW_ASK.replace("{what}", "fish"), 220, True, "%1 and %3 = hours, %2 = the price", "time_warp"),
+    _c(_F, _DS, _TW_DONE.replace("{unit}", "age step").replace("{units}", "age steps"), 125, True,
+       "%1 = hours, %2 = the fish's age steps, %3 = the price", "time_warp"),
+    _c(_F, _PRICES, "%d {%1: one=price | other=prices} set.", 36, note="after Optimize Prices or Max Prices"),
+    # ---------------------------------------------------------------- Plant Tycoon
+    *(_c(_P, _COUNTS_P, t, 40, note="one part of the bracket, '(3 mature, 2 with buds, 1 seedling)'") for t in (
+        "%d mature", "%d with buds", "%d {%1: one=seedling | other=seedlings}")),
+    _c(_P, "Extra Chemical Slots.dll", "%d {%1: one=dose | other=doses} left", 40,
+       note="under the chemical's name in its slot's tooltip"),
+    _c(_P, _PRICES, "%d {%1: one=price | other=prices} set.", 36, note="after Optimize Prices or Max Prices"),
+    *(_c(_P, "Extra Greenhouses.dll", _EG_FULL.replace("{which}", w), 140, patch="extra_nurseries",
+         note="%1 = how many plants can be for sale") for w in ("nursery is", "nurseries are")),
+    _c(_P, _UP, "Costs $%d. Your plants grow, ripen seeds and need water, and the seed shop restocks if due, as if "
+                "you had been away.", 220, True, "the question above the hours", "time_warp"),
+    _c(_P, _UP, _TW_ASK.replace("{what}", "plants"), 220, True, "%1 and %3 = hours, %2 = the price", "time_warp"),
+    _c(_P, _UP, _TW_DONE.replace("{unit}", "age unit").replace("{units}", "age units"), 125, True,
+       "%1 = hours, %2 = the plants' age units, %3 = the price", "time_warp"),
+    *(_c(_P, _UP, _NURSERY.replace("{which}", w), 240, True, "a Revival Potion's popup; %1 = how many plants can "
+         "be for sale") for w in ("nursery is", "nurseries are")),
+)
+
+# The English pieces a DLL still holds to write a counted text when there is no translation:
+# (game, DLL, piece) -> the counted text that translates it (tests/test_translation_coverage.py).
+COUNTED_FALLBACKS: dict[tuple[str, str, str], str] = {}
+
+
+def _fallback(game: str, dll: str, counted: str, *pieces: str) -> None:
+    for piece in pieces:
+        COUNTED_FALLBACKS[(game, dll, piece)] = counted
+
+
+for _w in ("adult", "teen", "baby"):
+    _fallback(_F, _COUNTS_F, next(c.english for c in COUNTED_STRINGS if c.dll == _COUNTS_F and f"={_w}" in c.english),
+              _w, {"adult": "adults", "teen": "teens", "baby": "babies"}[_w])
+_fallback(_F, _DS, "%d {%1: one=batch | other=batches} left", " batch left", " batches left")
+_fallback(_F, _DS, "%d {%1: one=use | other=uses} left", " use left", " uses left")
+_fallback(_F, _DS, "%d {%1: one=dose | other=doses} left", " dose left", " doses left")
+_fallback(_F, _DS, _TW_ASK.replace("{what}", "fish"), "Warp %d hour%s for $%d?\n\nYour fish will age %d hour%s, "
+          "as if you had been away that long. This cannot be undone.")
+_fallback(_F, _DS, _TW_DONE.replace("{unit}", "age step").replace("{units}", "age steps"),
+          "Time Warp done: %d hour%s played (%d %s%s). $%d paid.", "age step")
+_fallback(_F, _PRICES, "%d {%1: one=price | other=prices} set.", " price set.", " prices set.")
+_fallback(_P, _COUNTS_P, "%d mature", "mature")
+_fallback(_P, _COUNTS_P, "%d with buds", "with buds")
+_fallback(_P, _COUNTS_P, "%d {%1: one=seedling | other=seedlings}", "seedling", "seedlings")
+_fallback(_P, "Extra Chemical Slots.dll", "%d {%1: one=dose | other=doses} left", "dose", "doses",
+          "%s\n%d %s left")
+_fallback(_P, _PRICES, "%d {%1: one=price | other=prices} set.", " price set.", " prices set.")
+_fallback(_P, "Extra Greenhouses.dll", _EG_FULL.replace("{which}", "nursery is"), "Your nursery is full!\n\nOnly ",
+          " plants can be for sale at once,\ncounting every greenhouse.")
+_fallback(_P, "Extra Greenhouses.dll", _EG_FULL.replace("{which}", "nurseries are"),
+          "Your nurseries are full!\n\nOnly ")
+_fallback(_P, _UP, _TW_ASK.replace("{what}", "plants"), "Warp %d hour%s for $%d?\n\nYour plants will age %d "
+          "hour%s, as if you had been away that long. This cannot be undone.")
+_fallback(_P, _UP, _TW_DONE.replace("{unit}", "age unit").replace("{units}", "age units"),
+          "Time Warp done: %d hour%s played (%d %s%s). $%d paid.", "age unit")
+_fallback(_P, _UP, _NURSERY.replace("{which}", "nursery is"), "This plant was for sale when it died, but your %s "
+          "full: only %d plants can be for sale at once, counting every greenhouse.\n\nIt is alive again, not for "
+          "sale. Make room in the nursery, then put it on sale again.", "nursery is")
+_fallback(_P, _UP, _NURSERY.replace("{which}", "nurseries are"), "nurseries are")
 
 
 MOD_STRINGS: tuple[ModString, ...] = (
     # Tank Counts (built in a bounded 160-byte line, drawn)
     *(_m(_F, _COUNTS_F, t) for t in (
-        "Fish: ", " of ", "adult", "adults", "teen", "teens", "baby", "babies", "Dead: ", "Sick: ", "fungus",
+        "Fish: ", " of ", "Dead: ", "Sick: ", "fungus",
         "ick", "Low Health: ", "Creatures: ", "Isolation tank: ", "Counts: On", "Counts: Off",
         "Golden Seahorse", "Magic Pufferfish", "Blue-Spotted Stingray", "Moray Eel")),
     # DS Store Items: names and descriptions (drawn), the supply slots' tooltips (bounded)
@@ -233,8 +388,7 @@ MOD_STRINGS: tuple[ModString, ...] = (
         "Seven more supply slots for medicine,\nchemicals and eggs, on two more pages.\nThe arrows beside the "
         "slots turn the\npage. One purchase opens all seven.",
         "Mutates the fins of fish.\nContains 3 doses.", "Mutates the bodies of fish.\nContains 3 doses.",
-        "Fish Food", " batch left", " batches left", " use left", " uses left", " dose left", " doses left",
-        "Golden Seahorse", "Owned. Click it again to unpurchase.")),
+        "Fish Food", "Golden Seahorse", "Owned. Click it again to unpurchase.")),
     _m(_F, _DS, "Treated: $", 36, note="'Treated: $475' under a price, in a 48-letter space"),
     *(_m(_F, _DS, t, wide=True) for t in (
         "Time Warp", "Please type a whole number of hours from 1 to 72.", "How many hours should pass? (1-72)",
@@ -249,20 +403,11 @@ MOD_STRINGS: tuple[ModString, ...] = (
     _m(_F, _PRICES, "Set every discovered species\nto its best price per day?"),
     _m(_F, _PRICES, "Set every discovered species\nto its highest selling price?\nFish at this price sell\n"
                     "much more slowly."),
-    _m(_F, _PRICES, " price set.", 36, note="after the number"),
-    _m(_F, _PRICES, " prices set.", 36, note="after the number"),
 
     # ---------------------------------------------------------------- Plant Tycoon
     *(_m(_P, _COUNTS_P, t) for t in (
-        " of ", "Plants: ", "mature", "with buds", "seedlings", "seedling", "Dead: ", "Infested: ", "Unhealthy: ",
+        " of ", "Plants: ", "Dead: ", "Infested: ", "Unhealthy: ",
         "Counts: On", "Counts: Off")),
-    _m(_P, "Extra Chemical Slots.dll", "dose", 4),
-    _m(_P, "Extra Chemical Slots.dll", "doses", 5),
-    _m(_P, "Extra Chemical Slots.dll", "%s\n%d %s left", 14, note="%1 = the chemical's name, %2 = number, "
-                                                                     "%3 = 'dose' or 'doses'"),
-    _m(_P, "Extra Greenhouses.dll", "Your nursery is full!\n\nOnly ", 40, note="then the number"),
-    _m(_P, "Extra Greenhouses.dll", "Your nurseries are full!\n\nOnly ", 40, note="then the number"),
-    _m(_P, "Extra Greenhouses.dll", " plants can be for sale at once,\ncounting every greenhouse.", 110),
     _m(_P, "Extra Greenhouses.dll", "Greenhouse ", 40, note="then the greenhouse's number"),
     _m(_P, "Extra Greenhouses.dll", " is full!\n\nThere is no empty pot to move\nthis plant to.", 110),
     _m(_P, "Extra Greenhouses.dll", "Greenhouse", 24, note="the screen's name: 'Greenhouse 2 of 3'"),
@@ -270,8 +415,6 @@ MOD_STRINGS: tuple[ModString, ...] = (
     _m(_P, _PRICES, "Set every discovered species\nto its best price per day?"),
     _m(_P, _PRICES, "Set every discovered species\nto its highest selling price?\nPlants at this price sell\n"
                     "much more slowly."),
-    _m(_P, _PRICES, " price set.", 36, note="after the number"),
-    _m(_P, _PRICES, " prices set.", 36, note="after the number"),
     _m(_P, "Sort Seeds.dll", "Sort Seeds in Seed Boxes?\n\nThis will rearrange all seeds throughout\nyour available "
                              "seed boxes. Some may move\nto other pages.\nClick YES to Confirm, NO to Cancel."),
     *(_m(_P, "Extra Seed Boxes.dll", t) for t in ("Boxes 1-3", "Boxes 4-6", "Boxes 7-9")),
@@ -332,13 +475,65 @@ MOD_STRINGS: tuple[ModString, ...] = (
                 "second page of 8 chemical slots.", 200, True),
     _m(_P, _UP, "Buy the %s Seed Box for $%d?\n\nEven more space for your seeds! It opens a 40-seed drawer in "
                 "Seed Storage (Boxes %s).", 180, True, "%1 = Fourth...Ninth, %2 = number, %3 = 4-6 or 7-9"),
+
+    # ---------------------------------------------------------------- added in v1.0.25 (every patch)
+    # New entries go here, after the older ones: a text's id is numbered "_2"... in this order.
+    # DS Exclusive Fish: the parts of a DS species' name, "<fin><body>" ("Tiger Shark"), copied into
+    # the species' 32-letter name (bounded): fin at most 15, body at most 16, so both always fit.
+    *(_m(_F, "DS Exclusive Fish.dll", t, 15, note="the first part of a DS species' name, e.g. 'Tiger ' in "
+                                                    "'Tiger Shark' (keep the space at the end)") for t in (
+        "Silky ", "Tiger ", "Hornet ", "Fanned ", "Pink ", "Snubbed ", "Wasp ", "Canary ", "Orange ", "Oriental ",
+        "Golden ", "Crimson ", "Spined ", "Stubby ", "Speckled ", "Razorback ", "Greenfin ", "Great-Sail ",
+        "Flagged ", "Finless ", "Twin-Fin ", "Small-Fin ", "Roundy ", "Angel ", "Clown ", "Yellow ", "Blue ",
+        "Moorish ")),
+    *(_m(_F, "DS Exclusive Fish.dll", t, 16, note="the last part of a DS species' name, e.g. 'Shark' in "
+                                                    "'Tiger Shark'") for t in (
+        "Shark", "Catfish", "Arrowfish", "Snout", "Fatfish", "Snooper", "Goldshark", "Fire-Arrow", "Fruitfish",
+        "Flashfish", "Goldbulb", "Comet", "Stickfish", "Grouper", "Leaffish", "Carp", "Beta", "Pigmy", "Bananafish",
+        "Quicksilver", "Spotanus", "Clownfish", "Discus", "Bicolor", "Trigger", "Surgeonfish", "Tang", "Idle")),
+    _m(_F, _DS, "Every fish in your tank gets full health and\nno sickness, young ones grow up at once, and\n"
+                "pregnant ones give birth to babies. Allows\ntreated fish to sell at max price, regardless\nof "
+                "their set value. Contains 3 doses."),
+    # Store Upgrades and Items: the formula's and the bomb's descriptions (drawn)
+    _m(_P, _UP, "Causes maximum flower and plant growth\nand restores full health to plants.\nNo more dead leaves! "
+                "Always 5 seeds! Allows\ntreated plants to sell at max price, regardless\nof their set value. "
+                "Contains 3 doses.\n"),
+    _m(_P, _UP, "The Radioactive Plant Formula for\nevery plant in the greenhouse.\nAllows treated plants to sell "
+                "at max\nprice, regardless of their set value.\nContains 3 doses.\n"),
+    # Unused Flowers: the new species' names, "<flower> <foliage>" ("Nightingale Fern"), built into a
+    # 96-letter name (bounded) when the translation is applied
+    *(_m(_P, "Unused Flowers.dll", t, 24, note="the first word of a new flower's species name, e.g. "
+                                                 "'Nightingale' in 'Nightingale Fern'") for t in (
+        "Nightingale", "Rosetta", "Lilac", "Veronica", "Violetta", "Stella", "Silvermist", "Anagallis", "Buttercup",
+        "Cerulean", "Phalaena", "Mirabilis", "Indigoberry", "Prunus")),
+    *(_m(_P, "Unused Flowers.dll", t, 24, note="the second word of a new flower's species name, e.g. 'Fern' in "
+                                                 "'Nightingale Fern' (only the new flowers' names use it)") for t in (
+        "Reptans", "Scandens", "Grass", "Orchid", "Astera", "Gladiatus", "Fern", "Ananas", "Maranta", "Fanleaf",
+        "Lemonbush", "Bamboo", "Maple", "Rare Oak", "Pipe Cactus", "Pear Cactus", "Ball Cactus", "Glaber",
+        "Tigerfern", "Pitcher", "Weeper", "Multiflora", "Ridgeball")),
+    *COUNTED_STRINGS,
 )
+
+
+def is_format(english: str) -> bool:
+    """Whether a line reaches the game as a printf FORMAT: every line with a conversion in its
+    English (the game's own lines with %d/%s, Fish Tycoon's Goals lines, every DLL text it
+    sprintf's, every counted text). A translation's plain '%' ("50 % de") is then written "%%"
+    for it (translation_format.escape_percents; Translations.dll does the same); a line without
+    conversions is drawn as it is and never escaped."""
+    return bool(tfmt.parse_template(english).conversions)
 
 
 def mod_limit(m: ModString) -> int:
     if m.limit == GAME_RULE:
         return buffer_limit(len(m.english.encode("utf-8")))
     return ABSOLUTE_MAX if m.limit is None else m.limit
+
+
+def _plain(english: str) -> str:
+    """A counted text's words for its id: each choice as its "other" branch, each %d as "n"."""
+    text = re.sub(r"\{%\d+:[^{}]*\bother=([^|{}]*)\}", lambda m: m.group(1).strip(), english)
+    return re.sub(r"%[di]", "n", text)
 
 
 def _mod_ids() -> dict[tuple[str, str, str, bool], str]:
@@ -350,7 +545,7 @@ def _mod_ids() -> dict[tuple[str, str, str, bool], str]:
         ident = (m.game, m.dll, m.english, m.wide)
         if ident in ids:
             continue
-        stem = f"{m.slug}.{'w.' if m.wide else ''}{_text_slug(m.english)}"
+        stem = f"{m.slug}.{'w.' if m.wide else ''}{_text_slug(_plain(m.english) if m.counted else m.english)}"
         name, n = stem, 1
         while (m.game, name) in taken:
             n += 1
@@ -367,7 +562,37 @@ def mod_key(m: ModString) -> str:
     return tfmt.make_key("mod", _MOD_IDS[(m.game, m.dll, m.english, m.wide)], m.english)
 
 
+_SETTING_NAMES: dict[str, dict[str, str]] = {}
+
+
+def setting_name(game: str, setting: str) -> str:
+    """A setting's name as the patcher shows it (data/<game>_manifest.json)."""
+    if game not in _SETTING_NAMES:
+        import json
+        root = Path(__file__).resolve().parents[1]
+        manifest = json.loads((root / "data" / f"{game}_manifest.json").read_text(encoding="utf-8"))
+        _SETTING_NAMES[game] = {x["id"]: x.get("name", x["id"]) for x in manifest.get("settings", [])}
+    return _SETTING_NAMES[game].get(setting, setting)
+
+
+def patch_of(m: ModString) -> str:
+    """The setting (manifest id) a DLL text belongs to."""
+    return m.patch or PATCH_OF.get((m.game, m.dll, m.english)) or DLL_PATCH[(m.game, m.dll)]
+
+
+PATCH_NOTE = "Patch: "        # notes start "Patch: <setting>"; the editor groups the lines by it
+
+
+def group_of(notes: str) -> str:
+    """The editor's group for a line, from its notes: the patch's name, or "" for the game's own."""
+    for part in (notes or "").split("; "):
+        if part.startswith(PATCH_NOTE):
+            return part[len(PATCH_NOTE):].strip()
+    return ""
+
+
 def mod_entries(game: str) -> list[tfmt.Entry]:
+    """The patcher DLLs' lines, grouped by patch (the settings' order in the manifest)."""
     entries = []
     seen = set()
     for m in MOD_STRINGS:
@@ -378,7 +603,7 @@ def mod_entries(game: str) -> list[tfmt.Entry]:
             continue
         seen.add(key)
         limit = mod_limit(m)
-        note = [f"{m.dll}" + (" (Windows popup)" if m.wide else "")]
+        note = [PATCH_NOTE + setting_name(game, patch_of(m)), f"{m.dll}" + (" (Windows popup)" if m.wide else "")]
         template = tfmt.parse_template(m.english)
         for n, conv in enumerate(template.conversions, start=1):
             note.append(f"%{n} ({conv.text}) = {'number' if conv.is_number else 'text'}")
@@ -387,9 +612,19 @@ def mod_entries(game: str) -> list[tfmt.Entry]:
         if m.limit is not None:
             note.append(f"at most {limit} letters" + ("" if m.wide else " (accented letters count 2)"))
         if template.conversions:
-            note.append("choices here always take o / other")
-        entries.append(tfmt.Entry(key, m.english, "; ".join(note), limit, m.wide))
+            note.append("choices use the real numbers" if m.counted else "choices here always take o / other")
+        if is_format(m.english):
+            note.append("a format: a % that is not a placeholder is written %% for it (counts in the limit)")
+        entries.append(tfmt.Entry(key, m.english, "; ".join(note), limit, m.wide, is_format(m.english)))
+    order = list(_setting_order(game))
+    rank = {name: k for k, name in enumerate(order)}
+    entries.sort(key=lambda e: rank.get(group_of(e.notes), len(order)))
     return entries
+
+
+def _setting_order(game: str):
+    setting_name(game, "")
+    return _SETTING_NAMES[game].values()
 
 
 # --------------------------------------------------------------------------- everything
@@ -415,7 +650,7 @@ def patched_variants(game: str, vanilla: bytes) -> list[tuple[bytes, str]]:
         except Exception:
             continue
         if changed:
-            variants.append((patched, f"with the patcher's \"{setting.get('name', setting['id'])}\""))
+            variants.append((patched, PATCH_NOTE + setting.get("name", setting["id"])))
     return variants
 
 

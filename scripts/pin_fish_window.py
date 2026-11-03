@@ -39,13 +39,20 @@ INSERT_AFTER = "bigger_tanks"
 SETTING = {
     "id": SETTING_ID,
     "name": "Maximizable window",
-    "summary": "In windowed mode the game's window can be maximized or resized; the picture scales to fit, keeping its shape.",
+    "summary": "In windowed mode the game's window can be maximized or resized; the picture scales to fit, keeping its shape. The Screensaver button works on Windows 10 and 11.",
     "description": (
         "Turns on the Maximize button on Fish Tycoon's window in windowed mode, and lets you drag its edges "
         "to resize it. At any size other than the game's own, the picture is scaled to fill the window with "
         "its shape kept (black bars where it does not fit) and smoothed, and the mouse lands where you "
         "point. Restore the window and it is the normal size again, drawn exactly as before. Fullscreen "
-        "is unchanged. Runs as a companion DLL the game loads at start; saves are unchanged."
+        "is unchanged. The tank screen's Screensaver button also works on Windows 10 and 11: the stock "
+        "game switches the whole display to 800x600 for it, which Windows' display scaling enlarges past "
+        "the screen and cuts off (and which blanks the screen and moves other windows); in windowed mode "
+        "the window itself now covers its monitor, without a border, with the tank scaled to fit and its "
+        "shape kept, and the display is never changed. A click or key ends it as before and the window "
+        "comes back exactly where and as it was (maximized too). With the game's Fullscreen option on, "
+        "the screensaver is the stock one. Runs as a companion DLL the game loads at start; saves are "
+        "unchanged."
     ),
     "category": "main",
     "default": True,

@@ -256,7 +256,8 @@ PROJECTS = {
 SOURCE_SITES = {
     "ftfp_tank_counts": (("OVERLAY_SLOT_VA", 4), ("MOUSE_SLOT_VA", 4)),
     "ftfp_greenhouse_counts": (("HELD_SITE_VA", 9), ("MOUSE_SLOT_VA", 4)),
-    "ftfp_fish_window": (("SET_VIDEO_MODE_SLOT", 4), ("FLIP_SLOT", 4)),
+    "ftfp_fish_window": (("SET_VIDEO_MODE_SLOT", 4), ("FLIP_SLOT", 4),
+                         ("SCREENSAVER_FULLSCREEN_SITE", 5), ("SCREENSAVER_END_SITE", 5)),
     "ftfp_fish_prices": (("SPECIES_VT_COMMAND", 4), ("SPECIES_VT_ACTIVATE", 4),
                          ("SALE_VT_COMMAND", 4), ("SALE_VT_ACTIVATE", 4)),
     "ftfp_plant_prices": (("SELL_VT_COMMAND", 4), ("SELL_VT_ACTIVATE", 4)),
@@ -1007,7 +1008,7 @@ class World:
         if self.frames:
             raise AssertionError(f"startups that never returned: {self.frames}")
 
-    def run(self, start: int, stop: int, what: str, count: int = 100_000_000) -> None:
+    def run(self, start: int, stop: int, what: str, count: int = 2_000_000_000) -> None:
         try:
             self.uc.emu_start(start, stop, count=count)
         except UcError as exc:

@@ -204,6 +204,14 @@ colours in the user's spreadsheet):
 With exe numbering 23-29 (DS idx + 2), parity is kept but `% 4` is not, so
 the tier comes from a DLL table keyed on the gene.
 
+The health tick is the exception (owner's rule, v1.0.25): `stub_tier_health`
+(site `0x41DF68`) calls `health_tier`, which gives every fish with a DS body
+or a DS fin tier 3, so it takes the stock rare branch `0x41E059` (-19 / -6 /
+0 at environment level 1 / 2 / 3) and keeps its health only at level 3, like
+the PC's rare fish. PC x PC fish still get `fish_tier`. The sickness odds
+(`0x41E157`, the body's tier) and the tutorial goal (`0x41FC0F`) keep the DS
+tiers above. Pinned in Unicorn by `tests/test_ds_fish_environment.py`.
+
 ## Sprites
 
 Resource table `0x4552F0`, 197 entries of `0x24` bytes `{id, filename, cols,
