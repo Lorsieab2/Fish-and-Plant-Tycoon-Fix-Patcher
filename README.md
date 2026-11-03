@@ -481,8 +481,13 @@ never needs the internet.
   letter with a combining accent that has a precomposed form is that letter
   (the game's own é for e + U+0301); Arabic, Hebrew, the Indic scripts, Thai
   and the other scripts that join or reorder are shaped and ordered by Windows
-  a whole run at a time; a letter no font has is an empty box in the font's
-  style, never "?". A name is fitted to the room the game's layout gives it
+  a whole run at a time, and a line that mixes left-to-right and right-to-left
+  text ("Fish مرحبا 123 שלום") is put in visual order as a whole (the Unicode
+  bidi algorithm, by Windows' Uniscribe), numbers in right-to-left text
+  reading left to right and drawn in the game's own digits; a flag (🇯🇵, 🇺🇸,
+  England's 🏴) is drawn as a flag in colour, not as its two letters, from
+  Twemoji Mozilla (shipped beside the DLL, loaded for the game only); a letter
+  no font has is an empty box in the font's style, never "?". A name is fitted to the room the game's layout gives it
   (a player row's own width, the main menu label's side of the screen). In a
   box that is not a name (the registration boxes, Plant Tycoon's price box),
   a letter is refused when the text would be wider than the stock game allows
@@ -1370,6 +1375,14 @@ asset merge.
   Lorsieab2.
 - Plant Tycoon's new flower names (Add unused flowers): credit to
   **Virtual_Lady** and **Lorsieab2**.
+- Flags (and the emoji Windows' emoji font lacks) in Render Unicode with
+  In-Game Fonts and Use Unicode Font are drawn with **Twemoji Mozilla** 0.7.0
+  (https://github.com/mozilla/twemoji-colr), shipped unchanged: emoji artwork
+  from **Twemoji** (https://github.com/twitter/twemoji), Copyright 2019
+  Twitter, Inc and other contributors, licensed under CC-BY 4.0
+  (https://creativecommons.org/licenses/by/4.0/); the font built by Mozilla.
+  Its license is in `Fonts\LICENSE-TwemojiMozilla.txt` beside Unicode
+  Text.dll.
 
 ## Tests
 

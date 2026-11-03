@@ -192,7 +192,10 @@ style, from the first font of the shared fallback chain (Segoe UI, Segoe UI Hist
 Segoe UI Emoji, the CJK fonts, Nirmala UI, Ebrima ... Cambria Math, Noto if installed, then the fonts the
 patcher ships) that has every code point; else an empty box, never "?". Arabic, Hebrew, the Indic
 scripts, Thai and the other scripts that join or reorder are shaped and ordered by Windows a whole run
-at a time. Neither game has a word wrapper: a long line is broken only where the translation has
+at a time, and a line that mixes left-to-right and right-to-left text is put in visual order as a whole
+(the Unicode bidi algorithm, by Uniscribe, with the games' left-to-right base), numbers in
+right-to-left text reading left to right. A flag is drawn as a flag (Twemoji Mozilla, shipped beside
+the DLL). Neither game has a word wrapper: a long line is broken only where the translation has
 `\n`, so keep lines as short as the English. Not yet seen in a running game.
 
 The game draws bytes with its own fonts. Until the patcher's Unicode font settings draw more, a
