@@ -270,7 +270,8 @@ class Window(unittest.TestCase):
         path = write_translation(self.folder, "Wrap", game="fish", translations=translations)
         editor = self.window.open_editor(path)
         editor.game_font = lambda: object()       # a fake font: 10 pixels a letter, 20 a CJK character
-        editor.measure_line = lambda text: sum(20 if ord(c) >= 0x3000 else 10 for c in tfmt.evaluate(text))
+        editor.measure_line = lambda text, font=0: sum(20 if ord(c) >= 0x3000 else 10 for c in tfmt.evaluate(text))
+        editor.limit = lambda row: None           # no recorded room: the English's widest line (the default)
         return editor
 
     def _wrap_select(self, editor, english: str) -> None:
@@ -316,6 +317,49 @@ class Window(unittest.TestCase):
         self.assertEqual(editor.wide_rows(), [])
         self.assertEqual(editor.undo_wrap(), 2)
         self.assertEqual({r.english: r.translation for r in editor.file.rows}["Sick"], "Malade")
+        editor.close()
+
+    def _with_room(self, translations, width: int, multiline: bool = False):
+        """The editor with every line given a recorded room (data/translation_limits.json's shape)."""
+        import translation_fit as tfit
+        editor = self._wrap_open(translations)
+        editor.limit = lambda row: tfit.Limit(width, 0, multiline, True, "left")
+        return editor
+
+    def test_too_wide_for_its_room_is_red_and_still_translated(self) -> None:
+        editor = self._with_room(("Âge:", "", "Vendu %d poissons"), 120)
+        self._wrap_select(editor, "You have sold %d fish!")
+        row = editor.current
+        self.assertEqual(editor.status(row), "wide")
+        self.assertEqual(editor.STATUS["wide"], "too wide")
+        message = editor.message.get()
+        self.assertIn("too wide for its spot", message)
+        self.assertIn("170 pixels", message)          # "Vendu %d poissons": 17 letters x 10
+        self.assertIn("room is 120 pixels", message)
+        self.assertIn(row.key, message)
+        self.assertEqual(str(editor.message_label.cget("foreground")), "#c00")
+        self.assertIn("2 of 3", editor.progress.get())   # counted as translated: never refused for width
+        editor.close()
+
+    def test_wrap_uses_the_recorded_room(self) -> None:
+        editor = self._with_room(("Âge:", "", "Vous avez vendu %d beaux poissons ce matin"), 130, True)
+        self._wrap_select(editor, "You have sold %d fish!")
+        editor.wrap_selected()
+        text = editor.current.translation
+        self.assertTrue(all(editor.measure_line(line) <= 130 for line in text.split("\n")), text)
+        self.assertGreater(max(editor.measure_line(line) for line in text.split("\n")), 100)
+        self.assertEqual(text.split(), "Vous avez vendu %d beaux poissons ce matin".split())
+        self.assertEqual(editor.status(editor.current), "done")
+        editor.close()
+
+    def test_a_windows_popup_has_no_room(self) -> None:
+        import translation_fit as tfit
+        editor = self._wrap_open(("Âge:", "", "Vous avez vendu beaucoup de poissons"))
+        editor.limit = lambda row: tfit.Limit(None, 0, True, True, "windows popup")
+        self._wrap_select(editor, "You have sold %d fish!")
+        self.assertIsNone(editor.too_wide(editor.current))
+        self.assertEqual(editor.wrap_selected(), "Vous avez vendu beaucoup de poissons")
+        self.assertEqual(editor.wide_rows(), [])
         editor.close()
 
     def test_warning_and_wrap_agree(self) -> None:
