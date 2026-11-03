@@ -2,6 +2,8 @@
 
 ## v1.0.27
 
+- **Long names are saved the moment the game saves.** A name that was still waiting to be written beside the save (its slot not known yet, or the first write failed) is now written when the game saves, so quitting right after setting a name can no longer lose it. This is in Unicode Text for both games.
+
 - **Game Mechanics explains the music.** Both games' pages have a new
   "Music and sounds" part, read from each game's code. Fish Tycoon: its only
   music, Tanked.xm, plays once when the first-time help question opens; the
