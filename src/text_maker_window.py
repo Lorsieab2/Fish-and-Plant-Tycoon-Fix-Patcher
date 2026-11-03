@@ -21,11 +21,13 @@ HELP = (
         "Pick the colour (the games' own or any other), a shadow or outline, the size (1x, 2x...) and the "
         "background, then Export PNG..., with a transparent background if you like.",
         "Accents and any Unicode: the Insert Character list has the common accented letters by language, "
-        "and the Any Unicode box takes a code (U+00E9, 1F41F), a name (LATIN SMALL LETTER E WITH ACUTE) or "
-        "the characters themselves: Japanese, Chinese, Korean, Greek, Cyrillic, cuneiform, emoji...",
+        "the Any Unicode box takes a code (U+00E9, 1F41F), a name (LATIN SMALL LETTER E WITH ACUTE) or "
+        "the characters themselves: Japanese, Chinese, Korean, Greek, Cyrillic, cuneiform, emoji..., and "
+        "Blocks... browses every block of Unicode 18.0 (172,808 characters, the newest included).",
         "Letters a font lacks are made for it and listed as \"patcher-made\": accented letters from the "
         "font's own letters and accents, everything else drawn from a Windows font (Segoe UI and its "
-        "Historic, Symbol and Emoji fonts, Yu Gothic, Microsoft YaHei, Malgun Gothic, Nirmala UI...) at the "
+        "Historic, Symbol and Emoji fonts, Yu Gothic, Microsoft YaHei, Malgun Gothic, Nirmala UI..., then the "
+        "fonts the patcher ships: Unifont, Noto Serif Tangut, Noto Sans Cuneiform and Last Resort) at the "
         "game font's size, baseline and stroke weight. Untick \"Make missing letters\" to see what the game "
         "itself would draw.",
         "It reads the fonts from a copy of the game (the folders on the Game tabs, or one you choose) and "
@@ -156,6 +158,7 @@ class TextMakerWindow:
         entry.pack(side="left", padx=(4, 4))
         entry.bind("<Return>", lambda _e: self._insert_unicode())
         ttk.Button(any_row, text="Insert", command=self._insert_unicode).pack(side="left")
+        ttk.Button(any_row, text="Blocks...", command=self._open_blocks).pack(side="left", padx=(4, 0))
         self.unicode_note = tk.StringVar(master=win, value="U+00E9, 1F41F, a name, or the characters")
         ttk.Label(helper, textvariable=self.unicode_note, foreground="#555555", wraplength=300).pack(anchor="w")
         self._fill_letters()
@@ -307,6 +310,52 @@ class TextMakerWindow:
         self.insert(chars)
         self.unicode_note.set(tm.describe(chars)[:200])
         self.unicode_var.set("")
+
+    def _open_blocks(self) -> None:
+        """Every block of Unicode 18.0, a page of its letters at a time: a click inserts one."""
+        win = tk.Toplevel(self.text.winfo_toplevel())
+        win.title("Unicode 18.0 blocks")
+        blocks = tm.picker_blocks()
+        block_var = tk.StringVar(master=win, value=blocks[0][0])
+        box = ttk.Combobox(win, textvariable=block_var, state="readonly", width=70, values=[b[0] for b in blocks])
+        box.pack(fill="x", padx=8, pady=(8, 4))
+        grid = ttk.Frame(win)
+        grid.pack(padx=8)
+        nav = ttk.Frame(win)
+        nav.pack(fill="x", padx=8, pady=4)
+        page_var = tk.StringVar(master=win)
+        note = tk.StringVar(master=win, value="Click a letter to insert it; it is drawn as the game draws it.")
+        state = {"page": 0}
+        per = 16 * 12
+
+        def letters() -> tuple[int, ...]:
+            label = block_var.get()
+            _l, first, last = next(b for b in blocks if b[0] == label)
+            return tm.block_letters(first, last)
+
+        def show() -> None:
+            for child in grid.winfo_children():
+                child.destroy()
+            cps = letters()
+            pages = max(1, -(-len(cps) // per))
+            state["page"] = min(state["page"], pages - 1)
+            page_var.set(f"Page {state['page'] + 1} of {pages} ({len(cps)} letters)")
+            for i, cp in enumerate(cps[state["page"] * per:(state["page"] + 1) * per]):
+                b = tk.Button(grid, text=chr(cp), width=2, font=("Segoe UI", 11), relief="groove",
+                              command=lambda c=cp: (self.insert(chr(c)), note.set(tm.describe(chr(c)))))
+                b.grid(row=i // 16, column=i % 16)
+                b.bind("<Enter>", lambda _e, c=cp: note.set(tm.describe(chr(c))))
+
+        def turn(step: int) -> None:
+            state["page"] = max(0, state["page"] + step)
+            show()
+
+        ttk.Button(nav, text="< Previous", command=lambda: turn(-1)).pack(side="left")
+        ttk.Label(nav, textvariable=page_var).pack(side="left", padx=8)
+        ttk.Button(nav, text="Next >", command=lambda: turn(1)).pack(side="left")
+        ttk.Label(win, textvariable=note, wraplength=520, foreground="#555555").pack(anchor="w", padx=8, pady=(0, 8))
+        box.bind("<<ComboboxSelected>>", lambda _e: (state.update(page=0), show()))
+        show()
 
     def _modified(self, _event=None) -> None:
         if self.text.edit_modified():
