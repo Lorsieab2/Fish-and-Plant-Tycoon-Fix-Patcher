@@ -214,6 +214,63 @@ class PlantPieceTests(PieceCase, unittest.TestCase):
     game = "plant"
 
 
+# Item 16 (line breaking): neither game has a word wrapper. The engine's text measure (Fish 0x4023D0,
+# Plant 0x402380) is called only by the layout of buttons, labels and text boxes, none of which looks at
+# a space or a newline; the draw (Fish 0x4087E0, Plant 0x408E20) breaks a line only at "\n" (Fish
+# 0x408874 cmp al, 0xA). So translations and names are broken only where their text has "\n", and the
+# patcher's Time Warp popup is a Windows dialog, which Windows breaks itself. There is nothing to hook
+# with UAX #14 line breaking.
+MEASURES = {"fish": 0x4023D0, "plant": 0x402380}
+
+
+def _callers_of(exe: bytes, target: int) -> list[tuple[int, int]]:
+    """(start, end) file offsets of every function holding a call to `target` (bounded by int3 padding)."""
+    import struct
+    pe = struct.unpack_from("<I", exe, 0x3C)[0]
+    count, opt = struct.unpack_from("<H", exe, pe + 6)[0], struct.unpack_from("<H", exe, pe + 20)[0]
+    sections = [struct.unpack_from("<IIII", exe, pe + 24 + opt + 40 * i + 8) for i in range(count)]
+
+    def va(o: int) -> int | None:
+        for _vs, rva, size, raw in sections:
+            if raw <= o < raw + size:
+                return 0x400000 + rva + o - raw
+        return None
+    out = set()
+    at = exe.find(b"\xE8")
+    while at >= 0:
+        here = va(at)
+        if here is not None and here + 5 + struct.unpack_from("<i", exe, at + 1)[0] == target:
+            start = at
+            while start > 2 and not (exe[start - 1] == 0xCC and exe[start - 2] == 0xCC):
+                start -= 1
+            end = at
+            while end < len(exe) - 1 and not (exe[end] == 0xCC and exe[end + 1] == 0xCC):
+                end += 1
+            out.add((start, end, va(start)))
+        at = exe.find(b"\xE8", at + 1)
+    return sorted(out)
+
+
+class NoWordWrapperTests(unittest.TestCase):
+    def test_neither_game_has_a_word_wrapper(self) -> None:
+        try:
+            import capstone
+        except ImportError:
+            self.skipTest("needs capstone")
+        md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+        for game in ("fish", "plant"):
+            if not T.EXES[game].is_file():
+                continue
+            exe = T.EXES[game].read_bytes()
+            functions = _callers_of(exe, MEASURES[game])
+            self.assertGreater(len(functions), 3)
+            for start, end, address in functions:
+                with self.subTest(game=game, function=hex(address)):
+                    body = list(md.disasm(exe[start:end], address))
+                    compares = [i for i in body if i.mnemonic == "cmp" and i.op_str.endswith((", 0x20", ", 0xa"))]
+                    self.assertEqual(compares, [], "a measure next to a space or newline test: a wrapper?")
+
+
 def _native_ready() -> bool:
     return NG is not None and NG.available() and T._ready("fish") and T._ready("plant")
 
