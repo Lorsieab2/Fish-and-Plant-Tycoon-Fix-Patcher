@@ -52,6 +52,11 @@ HELP = (
         "working; a line whose English changed shows the new English until you translate it again.",
         tr.SHARE_INVITE + " " + tr.SHARE_HOW + " You need a free GitHub account (" + tr.SIGNUP_URL + "). "
         + tfmt.EMAIL_MESSAGE,
+        "Download from GitHub... lists the translations shared in the patcher's public GitHub folder, with "
+        "their language, credit, last change and whether an update is available. Choose one or more and press "
+        "Download: each is checked before it is installed. No account is needed and nothing about you is sent. "
+        "Every shared file is sent to VirusTotal, where its partners can see it, so never put private details "
+        "in a translation.",
     ],
 )
 

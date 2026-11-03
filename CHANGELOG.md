@@ -1,5 +1,41 @@
 # Changelog
 
+## v1.0.25
+
+- **Public translations folder.** `translations/fish/` and `translations/plant/`
+  on GitHub hold every shared translation, one file per language named after
+  its code (`fr.tsv`, `pt-BR.tsv`; `<code>-<credit slug>.tsv`, then `-2`, `-3`...
+  when that language is already there, so nobody's file is overwritten; the
+  older `<Game> - <language>.txt` names still work). `translations/README.md`
+  explains downloading, translating, the credit row and uploading with Add
+  file, Upload files (a pull request is opened automatically without write
+  access), with the Share on GitHub... warning word for word.
+- **Download from GitHub...** in the Translations window lists that folder
+  (default branch, GitHub's public read-only API, no login): language and
+  credit, the date each file last changed, and Not installed / Installed /
+  Update available (by the file's git blob SHA). Several can be chosen; each
+  is checked as data, at most 2 MB, before it goes into `translations\<game>`.
+  Only api.github.com and raw.githubusercontent.com are contacted; no
+  internet, GitHub's rate limit and bad files are reported plainly.
+- **VirusTotal.** Every user-submitted translation file (pull requests,
+  Share on GitHub... issues, and again after it reaches main) must be a UTF-8
+  `.tsv` / `.txt` of at most 2 MB under `translations/<game>/`, and is then
+  looked up or uploaded on VirusTotal. Any engine reporting it malicious or
+  suspicious fails the check (the engines are named in a comment); no
+  answer, a timeout or no `VT_API_KEY` secret fails it too ("not scanned").
+  Submitted files are therefore visible to VirusTotal's partners.
+- **Pull-request validator** (`translation-pr.yml`, pull_request_target): the
+  base branch's own check runs on the changed files, fetched through the API
+  as data and never checked out; format, keys, placeholders, person and
+  number choices and email addresses are checked, each problem with its line,
+  and the result is commented. The owner accepts by merging.
+- **Share on GitHub...** accepts now go to the same folder as `<code>.tsv`,
+  and only after the VirusTotal scan (the file accepted must be the file
+  scanned).
+- **Release**: accepted translations still ship, now `.tsv` as well as `.txt`;
+  "(TEST)" files (language or credit starting with "(TEST)", or "test" in the
+  name) never do and come only from the public folder.
+
 ## v1.0.24
 
 - **Copy and Paste in Text Boxes** (new setting, both games; on by default and

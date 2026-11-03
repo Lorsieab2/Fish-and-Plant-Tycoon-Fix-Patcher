@@ -1214,9 +1214,17 @@ folder never fails with "path too long".
   translation. If you want to share your translation, consider going to the
   Patcher's GitHub page and adding it! How: press Share on GitHub..., drag
   the file in, press Submit (a free GitHub account is needed). Email
-  addresses are never saved and are rejected from translation files. The
-  format is the one all of the owner's patchers share; see
-  [docs/translations.md](docs/translations.md).
+  addresses are never saved and are rejected from translation files.
+  **Download from GitHub...** lists the public translations folder
+  ([translations/](translations/README.md): `fish/fr.tsv`, `plant/ja.tsv`...)
+  with each file's language, credit, last change and whether an update is
+  available, and installs the chosen ones after checking them as data
+  (read-only, no login). Anyone can also upload a file there with GitHub's
+  Add file, Upload files; every submitted file is sent to VirusTotal (where
+  its partners can see it) and checked automatically before the owner
+  merges it. Accepted translations come with the patcher, "(TEST)" ones only
+  from the folder. The format is the one all of the owner's patchers share;
+  see [docs/translations.md](docs/translations.md).
   - How: `Translations.dll`, loaded last, hooks the game's own string lookup
     (Fish 0x426FD0, Plant 0x44CA70, chaining onto Store Upgrades and Items'
     jump), lets Fish Tycoon's Goals lines choose by their real number at

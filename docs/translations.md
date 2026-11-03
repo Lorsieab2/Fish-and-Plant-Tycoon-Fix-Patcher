@@ -22,6 +22,22 @@ Translations that came with the patcher (accepted on GitHub) are in its `transla
 `translations\plant` folders and are listed with their translator's credit name. Yours are in
 `translations` itself.
 
+### Download from GitHub...
+
+Every shared translation is in the patcher's public folder on GitHub, `translations/fish/` and
+`translations/plant/` ([translations/README.md](../translations/README.md)). Accepted translations come
+with the patcher too; files marked "(TEST)" never do, and come only from the public folder.
+
+**Download from GitHub...** (in the Share box) lists the folder for the chosen game: each file's language
+and credit (read from the file once you have it, "(not downloaded yet)" before that; when one language
+has several files, the credit in the file name tells them apart), the date it last changed on GitHub, and
+its status: **Not installed**, **Installed**, or **Update available** when the GitHub copy's content
+differs from yours (compared by the git blob SHA of the file). Choose one or more and press **Download**:
+each file is checked as data (format, game, placeholders, choices, no email address) before it is saved
+into `translations\<game>`. It uses GitHub's public, read-only API with no login and sends nothing about
+you; it only ever contacts api.github.com and raw.githubusercontent.com, and lists only the default
+branch. Without an account GitHub allows 60 requests an hour, and the window says when that runs out.
+
 ## Making a translation
 
 Tools tab, **Translations...**, **Make a translation**: choose the language (or **Other language...**
@@ -142,6 +158,34 @@ version keeps it in German mode.
 
 ## Sharing
 
+### The public folder
+
+Translations live in `translations/fish/` and `translations/plant/` on GitHub, one file per language,
+named after its language code: `fr.tsv`, `ja.tsv`, `pt-BR.tsv` (the name all of the owner's patchers
+use). When that language is already there, a new file is `<code>-<credit slug>.tsv` (`fr-ann-lee.tsv`,
+then `fr-ann-lee-2.tsv`...): the slug is the credit name in lower-case ASCII letters, digits and hyphens,
+at most 40 letters, so nobody's file is overwritten. Older `<Game title> - <language>.txt` files are still
+read everywhere.
+
+Anyone can add one with GitHub's **Add file**, **Upload files** (without write access GitHub opens a pull
+request automatically); [translations/README.md](../translations/README.md) walks through it. Each pull
+request touching the folder is checked in two steps, and both comment their result on it:
+
+1. **VirusTotal** (`scripts/virustotal_scan.py`): each file must be a UTF-8 `.tsv` (or `.txt`) of at most
+   2 MB in `fish/` or `plant/`; anything else is refused. Then its SHA-256 is looked up on VirusTotal, or
+   the file is uploaded and the analysis awaited. Any engine reporting it malicious or suspicious fails
+   the check and is named; no answer, a timeout or no key also fails ("not scanned").
+2. **The translation check** (`scripts/check_translation_pr.py`): format, keys, placeholders, person
+   and number choices, email addresses, and that the name matches the `@code` row, each problem with
+   its line.
+
+The owner accepts by merging (the `accept-translation` label runs both again). Files are scanned once
+more after they reach main.
+
+Every file sent in (a pull request or Share on GitHub...) is also sent to VirusTotal, where VirusTotal's partners can see it: one more reason never to put private details in a translation.
+
+### Share on GitHub...
+
 The Translations window says: "If you want to share your translation, consider going to the Patcher's
 GitHub page and adding it!" -- How: press **Share on GitHub...**, drag the file in, press **Submit**.
 
@@ -154,10 +198,14 @@ language filled in: drag the file into the form and press Submit.
 
 You need a free GitHub account: https://github.com/signup
 
-When the owner accepts it (the `accept-translation` label), a GitHub Action downloads the file, checks it
-as data only with the patcher's own validator, and opens a pull request adding it to `translations/<game>/`
-credited only to the typed credit name; if something is wrong it comments the problems instead. Accepted
-translations ship in the next release and appear in every player's language list.
+When the owner accepts it (the `accept-translation` label), a GitHub Action first sends the file to
+VirusTotal (a flagged or unscanned file is refused with a comment naming the engines, and no pull request
+is opened), then downloads it again, checks it is the file that was scanned, checks it as data only with
+the patcher's own validator, and opens a pull request adding it to the public folder as
+`translations/<game>/<code>.tsv` (or `<code>-<credit slug>.tsv`), credited only to the typed credit name;
+if something is wrong it comments the problems instead. Accepted translations ship in the next release
+(except "(TEST)" files: a language or credit starting with "(TEST)", or "test" in the file name) and can
+be downloaded at once with Download from GitHub... Every file sent in (a pull request or Share on GitHub...) is also sent to VirusTotal, where VirusTotal's partners can see it: one more reason never to put private details in a translation.
 
 ## For developers
 
@@ -175,6 +223,13 @@ translations ship in the next release and appear in every player's language list
 - **Unicode contract.** Translations.dll writes Windows-1252 unless a DLL loaded before it exports
   `int __stdcall FtfpUnicodeTextActive(void)` returning nonzero ("Unicode Text.dll"); then it passes the
   translation on as UTF-8.
-- `scripts/pin_translations.py` pins the setting; `scripts/accept_translation.py` is the Action's check.
+- `scripts/pin_translations.py` pins the setting; `scripts/accept_translation.py` is the issue Action's
+  check; `src/translation_public.py` holds the public folder's rules (names, pre-check, the data-only
+  check), shared by `scripts/check_translation_pr.py` (the pull-request validator),
+  `scripts/virustotal_scan.py` (the scan; its key only from the `VT_API_KEY` secret) and
+  `src/translations_github.py` (Download from GitHub...).
+- Workflows: `.github/workflows/translation-pr.yml` (pull_request_target: base-branch code only, the pull
+  request's files fetched through the API as data, never checked out; minimal permissions),
+  `accept-translation.yml` (scan, then accept) and `scan-translations.yml` (push to main).
 - Tests: `tests/test_translation_format.py`, `tests/test_translations_runtime.py` (the DLL in Unicorn
   against the real games), `tests/test_translations_window.py`, `tests/test_translation_sharing.py`.
