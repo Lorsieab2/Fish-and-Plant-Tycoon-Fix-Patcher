@@ -274,3 +274,42 @@ class CoverageTests(unittest.TestCase):
         except ImportError:
             self.skipTest("needs fontTools (pip install fonttools)")
         self.assertEqual(C.build(), self.doc)
+
+
+class ToolTests(unittest.TestCase):
+    """The patcher's tools take every assigned code point of Unicode 18.0."""
+
+    def test_names_take_every_assigned_letter(self) -> None:
+        import save_tools
+        bad = [cp for cp in assigned() if cp >= 0x20 and not save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT)]
+        self.assertEqual(bad, [])
+        for cp in (0x3D000, 0x18E00, 0x0558, 0x20C2):           # new in 18.0
+            self.assertEqual(save_tools.validate_name("fish", "Ab" + chr(cp), save_tools.ANY_SCRIPT), "Ab" + chr(cp))
+        for cp in (0x7, 0x85, 0xE000, 0xFDD0, 0x3FFFE):
+            self.assertFalse(save_tools.name_allowed(chr(cp), save_tools.ANY_SCRIPT), hex(cp))
+
+    def test_translations_take_every_assigned_letter(self) -> None:
+        import translation_format as F
+        cps = [cp for cp in assigned() if cp >= 0x20]
+        for i in range(0, len(cps), 4000):
+            text = "".join(chr(cp) for cp in cps[i:i + 4000] if chr(cp) not in "%{}")
+            errors, _warnings = F.check_translation("x", text)
+            self.assertEqual(errors, [], hex(cps[i]))
+        self.assertTrue(F.check_translation("x", "a\x07b")[0])
+        self.assertTrue(F.check_translation("x", "a﷐b")[0])
+
+    def test_text_maker(self) -> None:
+        import text_maker as tm
+        family = "\U0001F468‍\U0001F469‍\U0001F467"
+        self.assertEqual(tm.clusters("a" + family + "क्ष\r\n"),
+                         ["a", family, "क्ष", "\r\n"])
+        self.assertEqual(tm.parse_unicode("SMALL SEAL CHARACTER-3D000"), "\U0003D000")
+        self.assertEqual(tm.parse_unicode("U+0558"), "՘")
+        self.assertIn("MODIFIER LETTER ARMENIAN SMALL EH", tm.describe("՘"))
+        labels = [b[0] for b in tm.picker_blocks()]
+        self.assertIn("Seal (U+3D000-U+3FC3F), new in 18.0", labels)
+        self.assertEqual(sum(len(tm.block_letters(a, b)) for _l, a, b in tm.picker_blocks()), len(assigned()))
+        bundled = [n for _f, n in tm.bundled_fonts()]
+        self.assertEqual(bundled, ["Unifont", "Unifont Upper", "Noto Serif Tangut", "Noto Sans Cuneiform",
+                                   "Last Resort"])
+        self.assertEqual(tm.family_for("\U0003D000"), "Last Resort")       # no other font has Small Seal yet
