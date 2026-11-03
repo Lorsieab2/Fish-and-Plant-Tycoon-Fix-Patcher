@@ -34,7 +34,8 @@ import text_maker_window
 import translations_window
 
 GAMES = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
-LINK = {"foreground": "#0057c2", "cursor": "hand2", "font": ("Segoe UI", 9, "underline")}
+LIMIT = save_tools.NAME_BOX_BYTES          # every name box's limit, bytes as stored
+LINK ={"foreground": "#0057c2", "cursor": "hand2", "font": ("Segoe UI", 9, "underline")}
 
 # The "?" guides, one per tool (VV: data/how_to_use.json).
 HELP = {
@@ -72,9 +73,9 @@ HELP = {
             "Changes a player's name in the game's player list and inside that player's own save files.",
             "Only players with a saved game can be renamed, and \"NEW PLAYER\" is not a name (the game "
             "uses it for empty slots). Up to 31 plain characters, as in the game; where the copy of the "
-            "game has Render Unicode with In-Game Fonts or Use Unicode Font, up to 1,200 bytes as the "
+            f"game has Render Unicode with In-Game Fonts or Use Unicode Font, up to {LIMIT:,} bytes as the "
             "game stores them (the same limit as every name box in that copy, and in the other Fun "
-            "Patchers: up to 1,200 plain letters, fewer when letters need more bytes) in the "
+            f"Patchers: up to {LIMIT:,} plain letters, fewer when letters need more bytes) in the "
             "characters it takes. The counter shows the bytes and the characters. A name that fits "
             "the game's own 31-byte field is kept there as it is; a longer one is kept there as its "
             "short form (its start and \"...\", or \"2...\", \"3...\" when two would start alike), "
@@ -97,7 +98,7 @@ HELP = {
             "files, or anything an earlier player left on an empty slot, are not deleted but moved into "
             "Backups\\Replaced by copy <date> - Player <n> - <name>, so nothing of them mixes in. The new "
             "name follows the "
-            "game's rules: up to 31 plain characters (1,200 bytes where the copy has Render Unicode "
+            f"game's rules: up to 31 plain characters ({LIMIT:,} bytes where the copy has Render Unicode "
             "with In-Game Fonts or Use Unicode Font, the Names file copied with the new name's record), "
             "not \"NEW PLAYER\".",
             "The game must be closed. The save folder is backed up first, as \"Backup <date> (before "

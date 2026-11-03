@@ -191,7 +191,10 @@ translation is shown in Windows-1252: Latin-1 (French, German, Spanish, Portugue
 Nordic...) plus the usual quotes and dashes; any other letter shows as `?`. The editor warns about such
 letters. With the Unicode setting on, Translations.dll passes the text on as UTF-8 (see below), so
 Turkish, Polish, Russian, Japanese, Chinese... appear. Windows popups (Time Warp's) always get full
-Unicode.
+Unicode. "Unicode Text.dll" reads every text by one rule (the same as the patcher's tools): each whole
+UTF-8 sequence is its character, any other byte its Windows-1252 character, one sequence at a time, so
+a translated line holding a player's name (which the game keeps one byte for a Windows-1252 character,
+UTF-8 for any other) draws correctly too.
 
 ### Not translated
 

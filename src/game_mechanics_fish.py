@@ -7,6 +7,7 @@ game's own test with its exact odds (game_mechanics.chance).
 from __future__ import annotations
 
 from game_mechanics import Fact, GamePage, Group, at_most, below, chance
+from unicode_data import NAME_BOX_BYTES
 
 STEP = "one age step (5, 10 or 15 real-time minutes at 2x speed, Normal and 1/2 speed)"
 
@@ -1632,12 +1633,15 @@ TEXT_ENTRY = (
         "Copy and paste: none. The game's text boxes take only typed keys; Ctrl+V, Ctrl+C and the like do "
         "nothing.",
         patched=(("copy_paste_text_boxes", "while a text box has the typing cursor (a player's name, the new player's box, the registration boxes), Ctrl+V or "
-                  "Shift+Insert pastes the Windows clipboard's text at the cursor as if typed letter by letter "
-                  "(line breaks and tabs become spaces, other control characters are left out, the box keeps "
-                  "its limit, 300 letters for a name, and its own letters, digits only in a price box; a "
-                  "letter with its accents or a joined emoji goes in whole or not at all), Ctrl+C or "
-                  "Ctrl+Insert copies the box's whole text (a player's full name) and Ctrl+X cuts it. Any "
-                  "script with Render Unicode with In-Game Fonts or Use Unicode Font; without them only plain "
+                  "Shift+Insert pastes the Windows clipboard's text at the cursor as if typed character by "
+                  "character (composed first, NFC; line breaks and tabs become spaces, other control "
+                  "characters are left out, the box keeps its limit, "
+                  f"{NAME_BOX_BYTES:,} bytes for a name counted over its text and the paste, and its own "
+                  "characters, digits only in a price box; a letter with its accents or a joined emoji goes "
+                  "in whole or not at all; at most 8,192 UTF-16 units are read), Ctrl+C or Ctrl+Insert "
+                  "copies the box's whole text (a player's whole name) and Ctrl+X cuts it; a held key does "
+                  "it once. Any script with Render Unicode with In-Game Fonts or Use Unicode Font; with both "
+                  "off only what the stock fonts draw, plain "
                   "ASCII (0x20-0x7E), what the stock game takes from the keyboard."),)
     ),
     Fact(
@@ -1645,12 +1649,15 @@ TEXT_ENTRY = (
         "as the game typed it. A text box whose text is wider than the box loses its last letters until it "
         "fits.",
         patched=(("unicode_ingame_fonts", "every name box (the player list's rows, the new player's) takes "
-                  "up to 300 letters, the box's own 1200 bytes at up to 4 bytes a letter. The save's own "
-                  "field keeps the first 31 letters ('?' for any letter Latin-1 has not), so the stock game "
-                  "still loads it, and the full name is kept beside the save (Fix Patcher Data\\Names "
-                  "<slot>.dat). The game shows the full name wherever it shows the player's, ending in an "
-                  "ellipsis where it is wider than the game's space for a name, and a text box shows its "
-                  "text fitted instead of cutting it."),
+                  f"up to {NAME_BOX_BYTES:,} bytes as the save stores them (the box's own cap; one byte for a "
+                  "Windows-1252 character, UTF-8 for any other), with no character limit, counted in whole "
+                  "characters (a letter with its accents, an emoji sequence, a flag). A name that fits the "
+                  "save's own 31-byte field is kept there as it is; a longer one as its short form (its start "
+                  "of whole characters and \"...\", or \"2...\", \"3...\" so that no two names share one), "
+                  "so the stock game still loads it, and the whole name is kept beside the save (Fix Patcher "
+                  "Data\\Names <slot>.dat: one checked record a name, never removed). The game shows the "
+                  "whole name wherever it shows the player's, ending in an ellipsis where it is wider than the "
+                  "game's space for a name, and a text box shows its text fitted instead of cutting it."),
                  ("unicode_system_font", "the same as Render Unicode with In-Game Fonts."),)
     ),
     Fact(

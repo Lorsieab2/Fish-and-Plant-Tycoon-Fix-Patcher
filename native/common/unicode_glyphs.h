@@ -57,10 +57,7 @@ static char *font_inner(void *font) {
     return font != NULL ? *(char **)((char *)font + 4) : NULL;
 }
 
-static const unsigned short CP1252_HIGH[32] = {
-    0x20AC, 0, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0, 0x017D, 0,
-    0, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0, 0x017E, 0x0178,
-};
+/* CP1252_HIGH (Windows-1252's 0x80-0x9F) is in unicode_utf8.h, shared with the read rule. */
 
 /* The byte the game's font draws `cp` with, or -1 when it has no letter for it. */
 static int font_byte(const char *inner, unsigned int cp) {

@@ -22,6 +22,7 @@ from pathlib import Path
 import struct
 import sys
 import tempfile
+import unicodedata
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +32,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from picture_image import Image  # noqa: E402
 import text_maker as tm  # noqa: E402
+import unicode_data  # noqa: E402
 
 try:
     import store_emulator as E
@@ -134,9 +136,14 @@ def hook_windows(emu, game: str, present: set[str] | None = None, existing: dict
     def create(e) -> int:
         path = e.wstring(e.arg(0))
         if e.arg(1) & 0x80000000 and e.arg(4) == 3:                # GENERIC_READ, OPEN_EXISTING
-            if path not in files["existing"]:
+            # what the DLL wrote this session, else what was there
+            if path in files["raw"]:
+                body = files["raw"][path]
+            elif path in files["existing"]:
+                body = files["existing"][path]
+            else:
                 return 0xFFFFFFFF
-            files["reading"][0x44 + 4 * len(handles)] = bytearray(files["existing"][path])
+            files["reading"][0x44 + 4 * len(handles)] = bytearray(body)
         if path.endswith(".log"):
             files["log"] = path
         handle = 0x44 + 4 * len(handles)
@@ -196,6 +203,21 @@ def hook_windows(emu, game: str, present: set[str] | None = None, existing: dict
     emu.hook_import("CreateDirectoryW", make_folder, 8)
     emu.hook_import("MoveFileExW", move, 12)
     emu.hook_import("DeleteFileW", delete, 4)
+    emu.hook_import("GetTickCount", lambda e: files["tick"], 0)
+
+    def fold(e) -> int:                       # FoldStringW(MAP_PRECOMPOSED, src, n, dst, cap): Windows' NFC
+        n = e.arg(2)
+        text = bytes(e.uc.mem_read(e.arg(1), 2 * n)).decode("utf-16-le", "surrogatepass")
+        out = unicodedata.normalize("NFC", text).encode("utf-16-le", "surrogatepass")
+        if len(out) // 2 > e.arg(4):
+            return 0
+        e.uc.mem_write(e.arg(3), out)
+        files["folds"] += 1
+        return len(out) // 2
+
+    emu.hook_import("FoldStringW", fold, 20)
+    files["tick"] = 100000
+    files["folds"] = 0
     return files
 
 
@@ -430,7 +452,8 @@ class FishTypingTests(unittest.TestCase):
                 posted += [post[2] for post in keys.key(byte, byte, KMOD_SHIFT if chr(byte).isupper() else 0)]
             with self.subTest(name=name):
                 stored = text_box(keys.emu, 0x0040BFC0, FISH_EVENTS_GET, 0x00402030, posted)
-                self.assertEqual(stored, name.encode("utf-8"))          # the box keeps UTF-8 now
+                # the box keeps the shared write rule's bytes: a Windows-1252 letter is its one byte
+                self.assertEqual(stored, unicode_data.encode_game_text(name))
         # the stock path's sign-extended byte (what 0x403F3A would post) is refused by the box
         self.assertEqual(text_box(keys.emu, 0x0040BFC0, FISH_EVENTS_GET, 0x00402030, [0xFFFFFFE9]), b"")
 
@@ -467,7 +490,8 @@ class PlantTypingTests(unittest.TestCase):
             for ch in name:
                 posted += [post[2] for post in text.text(ch.encode("utf-8"))]
             with self.subTest(name=name):
-                self.assertEqual(text_box(text.emu, 0x0040CA90, PLANT_EVENTS_GET, 0x00402020, posted), name.encode("utf-8"))
+                self.assertEqual(text_box(text.emu, 0x0040CA90, PLANT_EVENTS_GET, 0x00402020, posted),
+                                 unicode_data.encode_game_text(name))
 
 
 # ------------------------------------------------------------------ drawing

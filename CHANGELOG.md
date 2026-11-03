@@ -1,5 +1,73 @@
 # Changelog
 
+## v1.0.26
+
+- **Long names, everywhere.** With Render Unicode with In-Game Fonts or Use
+  Unicode Font on, every name box takes names up to 1,200 bytes (up to 1,200
+  plain letters; fewer when letters need more bytes): the five player rows and
+  the new player's box; Rename Players and Copy Player Slot take the same. It
+  is one limit, shared with the other Fun Patchers, and the 300-character cap
+  is gone. Characters are counted as you see them (a letter with its accents,
+  an emoji with its skin tone or a flag is one), and Backspace removes one
+  whole character. A long name scrolls in its box while you type it. The save
+  itself is not changed: a name that fits its field is kept there exactly as
+  before; a longer one is kept there as its short form (its start and "...",
+  or "2...", "3..." when two would start alike) and the whole name is kept
+  beside the save, in `<Game> Fix Patcher Data\Names`. The game shows the
+  whole name wherever it shows that name, fitted with an ellipsis (…) only
+  where the game leaves room for a name's usual length. Back Up Saves, Restore
+  Saves and Copy Player Slot carry the Names files with the saves. With both
+  settings off the game still loads and plays such a save and shows the short
+  form.
+- **The shared text rules** (docs/UNICODE_SPEC.md section 2, the same in the
+  game and in the patcher's tools):
+  - characters are grapheme clusters by one table, `NAME_BOX_BYTES` and the
+    cluster data written once in `src/unicode_data.py` and generated into the
+    DLL's header (`scripts/build_unicode18_tables.py`): UAX #29 (Unicode 18.0)
+    plus the spec's joins (every mark Mn/Mc/Me, and the character after a
+    ZWJ, join the one before; never next to a line break);
+  - the write rule: a Windows-1252 character is its one byte, any other its
+    UTF-8 bytes (all UTF-8 when the mix would read back as other text), in
+    the save's fields and in a text box, so the 1,200 bytes are what the save
+    keeps;
+  - the read rule: each UTF-8 sequence is its character, any other byte its
+    Windows-1252 character (not Latin-1: a box holding 0x80 copies as €).
+- **Short forms** replace the old "first 31 letters, `?` for others": the
+  longest start of whole characters that fits with "...", unique across the
+  five slots ("2...", "3..."), the same short form again for the same name.
+  Names saved as "?" short forms by v1.0.25 still show their whole names.
+  The stock games use these fields only as text (save files are named by
+  slot number; neither game reads or writes the registry), so UTF-8 bytes
+  there are safe.
+- **Names files, the shared format.** `Names <slot>.dat` now has a header
+  line, then one `short<TAB>room<TAB>whole<TAB>CRC-32` record a name. Records
+  are never removed (older autosave copies stay readable), the first record
+  of a short form wins, and a record that is cut short, merged, has a wrong
+  CRC, no "..." mark, a control character or more than 1,200 bytes is
+  skipped. A record is written at once through `Names <slot>.dat.tmp` and
+  `MoveFileEx(REPLACE_EXISTING | WRITE_THROUGH)`; if the write fails it stays
+  pending and is written again at a draw (every 2 s) and at exit. v1.0.25's
+  "short NUL full NUL" files are read and become the new format, their
+  record first, when a name is added. A failed rename puts every file back.
+- **Typing.** Backspace removes one whole character; an accent typed right
+  after a character the box refused (no room) is refused too, so it never
+  lands on the box's last character.
+- **Copy and Paste in Text Boxes.** A paste is put in NFC first (an "e" and a
+  combining accent become "é"), cut at whole characters counted over the
+  box's text and the paste together (an accent that would join the box's last
+  character and no longer fits is not pasted), and up to 8,192 UTF-16 units
+  are read from the clipboard (was 2,408). A held Ctrl+V pastes once (key
+  repeats are swallowed). With both Unicode settings off a paste still keeps
+  only printable ASCII, what the games' stock fonts draw.
+- **Rename Players / Copy Player Slot** count "N / 1,200 bytes" and the
+  characters, and say which short form the save will keep.
+- Tests (all in the games' own code under Unicorn, and against the Python
+  tools): the DLL's rows and Names files equal `src/save_tools.py`'s for the
+  same names; guard bytes after the 32-byte field, the box's buffer and the
+  getText destination at 1,200 bytes; Python and C agree on GraphemeBreakTest
+  18.0 with the spec's joins; `tests/test_name_limit.py` fails if any other
+  file spells the limit.
+
 ## v1.0.25
 
 - **Translation safety.** A translation check speaks only for the commit it

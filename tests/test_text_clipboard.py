@@ -2,16 +2,21 @@
 text box run in Unicorn against the vanilla executables, the Windows clipboard stood in for.
 
 * Paste posts the clipboard's letters as the game's own "character" events, and the game's box
-  (with Unicode: box_char; without: the game's own path) takes them as if typed: CR, LF and Tab
-  become spaces, other control characters and lone surrogates are left out, the box keeps its
-  byte limit and a name box its 300 letters, a letter with its combining marks or joined emoji
-  goes in whole or not at all, a number box (Plant's price box) takes digits only.
+  (with Unicode: box_char; without: the game's own path) takes them as if typed: the text in NFC
+  first, CR, LF and Tab become spaces, other control characters and lone surrogates are left out,
+  the box keeps its byte limit (a name box NAME_BOX_BYTES bytes as the save stores them, no
+  character cap), counted over its text and the paste in whole characters: a letter with its
+  combining marks or joined emoji goes in whole or not at all, and a mark that would join the
+  box's last character and no longer fits is not pasted; a number box (Plant's price box) takes
+  digits only. At most 8,192 UTF-16 units are read.
+* Typing: Backspace takes off a whole character; a mark typed right after a letter refused for
+  room is refused too (it never lands on the box's last character).
 * Without either Unicode setting (Mode=none) only printable ASCII is pasted, the stock boxes' set;
   the DLL then changes only the box draw's site.
 * Copy puts the box's whole text on the clipboard (a player's full name, not its short form); cut
   also empties the box. A busy clipboard does nothing; it is always closed.
 * The keys: Ctrl+V / Shift+Insert, Ctrl+C / Ctrl+Insert, Ctrl+X, not with AltGr, only while a box
-  has typing focus, and they never reach the game. A letter past U+FFFF sent as two WM_CHARs is
+  has typing focus, and they never reach the game; a held key's repeats are swallowed. A letter past U+FFFF sent as two WM_CHARs is
   posted as its one letter.
 """
 
@@ -22,6 +27,9 @@ import unittest
 
 import test_unicode_text as T
 from test_unicode_text import E, needs
+import unicode_data
+
+NAME_BOX_BYTES = unicode_data.NAME_BOX_BYTES
 
 try:
     import test_unicode_names as N
@@ -153,23 +161,34 @@ class ClipboardCase:
         box, _ = c.box(b"Hi ", limit=1200)
         c.clipboard = "Zoë\r\nline\ttab\x07\x1b\u0085 山田 \U0001F41F é \ud800x"
         c.paste(box)
-        self.assertEqual(c.text(box), "Hi Zoë line tab 山田 \U0001F41F é x".encode("utf-8"))
+        # the box keeps the write rule's bytes: a Windows-1252 letter one byte, any other UTF-8
+        self.assertEqual(c.text(box), unicode_data.encode_game_text("Hi Zoë line tab 山田 \U0001F41F é x"))
         self.assertEqual((c.opened, c.closed), (1, 1))
 
-    def test_a_name_box_stops_at_300_letters_and_letters_stay_whole(self) -> None:
+    def test_a_name_box_stops_at_its_bytes_and_letters_stay_whole(self) -> None:
+        """NAME_BOX_BYTES bytes as stored, no character cap; whole characters only."""
         c = Clip(self.game)
-        box, _ = c.box(("あ" * 298).encode("utf-8"), limit=1200)
+        box, _ = c.box(("あ" * (NAME_BOX_BYTES // 3 - 1)).encode("utf-8"), limit=NAME_BOX_BYTES)
         c.clipboard = "ab\U0001F41Fcd"
         c.paste(box)
-        self.assertEqual(c.text(box), ("あ" * 298 + "ab").encode("utf-8"))
-        # bytes: a 10-byte box with 8 used takes the two-byte é, not the e and its accent (3 bytes)
+        self.assertEqual(c.text(box), ("あ" * (NAME_BOX_BYTES // 3 - 1) + "ab").encode("utf-8"))
+        # far more than the old 300 letters: plain letters up to the byte cap
+        box, _ = c.box(b"", limit=NAME_BOX_BYTES)
+        c.clipboard = "Zoë" * NAME_BOX_BYTES
+        c.paste(box)
+        self.assertEqual(c.text(box), ("Zoë" * NAME_BOX_BYTES).encode("cp1252")[:NAME_BOX_BYTES])
+        # NFC first: e + combining acute (3 bytes as two letters) goes in as the one-byte é
         box, _ = c.box(b"abcdefgh", limit=10)
-        c.clipboard = "éé"
+        c.clipboard = "e\u0301e\u0301"
+        folds = c.g.files["folds"]
+        c.paste(box)
+        self.assertEqual(c.text(box), b"abcdefgh\xe9\xe9")
+        self.assertEqual(c.g.files["folds"], folds + 1)
+        # bytes: a 10-byte box with 8 used takes no three-byte letter
+        box, _ = c.box(b"abcdefgh", limit=10)
+        c.clipboard = "山山"
         c.paste(box)
         self.assertEqual(c.text(box), b"abcdefgh")
-        c.clipboard = "éé"
-        c.paste(box)
-        self.assertEqual(c.text(box), "abcdefghé".encode("utf-8"))
         # a joined emoji (family: ZWJ) goes in whole or not at all
         box, _ = c.box(b"", limit=12)
         c.clipboard = "\U0001F468‍\U0001F469‍\U0001F467 x"
@@ -178,6 +197,66 @@ class ClipboardCase:
         c.clipboard = "\U0001F44D\U0001F3FD!"
         c.paste(box)
         self.assertEqual(c.text(box), "\U0001F44D\U0001F3FD!".encode("utf-8"))
+
+    def test_the_cut_counts_the_box_text_and_the_paste_together(self) -> None:
+        """A mark that would join the box's last character goes with it: pasted when it still fits,
+        else not (nor anything after it); a regional indicator completes the box's flag."""
+        c = Clip(self.game)
+        box, _ = c.box(b"abcdefghi", limit=10)
+        c.clipboard = "\u0301x"                       # no precomposed i-acute here: the mark alone
+        self.assertEqual(c.paste(box), 0)
+        self.assertEqual(c.text(box), b"abcdefghi")
+        box, _ = c.box(b"abcdefg", limit=10)
+        c.clipboard = "\u0361x"                       # a mark with no precomposed form: 2 bytes
+        c.paste(box)
+        self.assertEqual(c.text(box), "abcdefg\u0361x".encode("utf-8"))
+        box, _ = c.box("ab\U0001F1EF".encode("utf-8"), limit=10)
+        c.clipboard = "\U0001F1F5x"
+        c.paste(box)
+        self.assertEqual(c.text(box), "ab\U0001F1EF\U0001F1F5".encode("utf-8"))
+        box, _ = c.box("ab\U0001F1EF".encode("utf-8"), limit=9)
+        c.clipboard = "\U0001F1F5x"
+        c.paste(box)
+        self.assertEqual(c.text(box), "ab\U0001F1EF".encode("utf-8"), "the flag's half and what follows")
+
+    def test_typing_backspace_and_marks_after_a_refused_letter(self) -> None:
+        """Backspace takes off a whole character; a mark typed right after a letter refused for room
+        is refused too, so it never lands on the box's last letter; a new letter types again."""
+        c = Clip(self.game)
+        box, _ = c.box(b"", limit=16)
+        for ch in "ab\U0001F468\u200d\U0001F469":
+            c.emu.call(c.handler, 5, 0, ord(ch), ecx=box)
+        self.assertEqual(c.text(box), "ab\U0001F468\u200d\U0001F469".encode("utf-8"))
+        c.emu.call(c.handler, 5, 0, 8, ecx=box)
+        self.assertEqual(c.text(box), b"ab", "the whole joined emoji")
+        for ch in "e\u0301\u0302":
+            c.emu.call(c.handler, 5, 0, ord(ch), ecx=box)
+        c.emu.call(c.handler, 5, 0, 8, ecx=box)
+        self.assertEqual(c.text(box), b"ab")
+        # 12 bytes: "abcdefghij" (10), then a 3-byte letter is refused, and its marks with it
+        box, _ = c.box(b"abcdefghij", limit=12)
+        for ch in "山\u0301\u0302":
+            c.emu.call(c.handler, 5, 0, ord(ch), ecx=box)
+        self.assertEqual(c.text(box), b"abcdefghij", "the marks did not land on the j")
+        c.emu.call(c.handler, 5, 0, ord("k"), ecx=box)
+        c.emu.call(c.handler, 5, 0, 0x301, ecx=box)
+        self.assertEqual(c.text(box), b"abcdefghijk", "k fits, its mark (2 bytes) no more")
+        c.emu.call(c.handler, 5, 0, 0x302, ecx=box)
+        self.assertEqual(c.text(box), b"abcdefghijk")
+        c.emu.call(c.handler, 5, 0, ord("l"), ecx=box)
+        self.assertEqual(c.text(box), b"abcdefghijkl", "a new letter types again")
+        box, _ = c.box(b"abcdefghij", limit=12)
+        c.emu.call(c.handler, 5, 0, ord("k"), ecx=box)
+        c.emu.call(c.handler, 5, 0, ord("\u00e9"), ecx=box)
+        self.assertEqual(c.text(box), b"abcdefghijk\xe9", "a Windows-1252 letter is one byte")
+        # the write rule's fallback: "\u00c3" then "\u00a9" would read as UTF-8 "\u00e9", so the box
+        # keeps both as UTF-8
+        box, _ = c.box(b"", limit=12)
+        for ch in "\u00c3\u00a9":
+            c.emu.call(c.handler, 5, 0, ord(ch), ecx=box)
+        self.assertEqual(c.text(box), "\u00c3\u00a9".encode("utf-8"))
+        c.emu.call(c.handler, 5, 0, 8, ecx=box)
+        self.assertEqual(c.text(box), b"\xc3", "one byte again once it reads back right")
 
     def test_a_number_box_takes_digits_only(self) -> None:
         c = Clip(self.game)
@@ -202,10 +281,10 @@ class ClipboardCase:
         c.clipboard = "x" * 100
         c.paste(box)
         self.assertEqual(c.text(box), b"x" * 0x20)
-        # copy of a stock box: its Latin-1 bytes
-        box, _ = c.box(b"Ren\xe9", limit=0x20)
+        # copy of a stock box: its Windows-1252 bytes (0x80 is the euro sign)
+        box, _ = c.box(b"Ren\xe9 \x80\x81", limit=0x20)
         c.emu.call(self.symbols_of(c)["_clip_copy"], box, 0)
-        self.assertEqual(c.clipboard, "René")
+        self.assertEqual(c.clipboard, "René €\x81")
 
     def symbols_of(self, c: Clip) -> dict:
         return c.symbols
@@ -261,6 +340,15 @@ class ClipboardCase:
         box, _ = c.box(b"", limit=0x20)
         c.paste(box)
         self.assertEqual(c.text(box), b"abc")
+        c.size_override = None
+        # 8,192 UTF-16 units are read (VF1's cap), not one more
+        box, _ = c.box(b"", limit=0x20)
+        c.clipboard = "\x07" * 3000 + "abc"
+        c.paste(box)
+        self.assertEqual(c.text(box), b"abc")
+        box, _ = c.box(b"", limit=0x20)
+        c.clipboard = "\x07" * 8191 + "abc"
+        self.assertEqual(c.paste(box), 0)
 
     def test_copy_and_cut_the_whole_text(self) -> None:
         c = Clip(self.game)
@@ -274,8 +362,9 @@ class ClipboardCase:
         self.assertEqual(c.clipboard, "Zoë \U0001F41F")
         # a player's short form: the full name
         long_name = "Wilhelmina Charlotte Ångström-Lindqvist \U0001F33B of Malmö"
-        c.g.type_name(long_name, slot=2)
-        box, _ = c.box(N.short_form(long_name), limit=0x20)
+        short = c.g.type_name(long_name, slot=2).rstrip(b"\0")
+        self.assertTrue(short.endswith(b"..."))
+        box, _ = c.box(short, limit=0x20)
         c.emu.call(c.symbols["_clip_copy"], box, 0)
         self.assertEqual(c.clipboard, long_name)
         # a busy clipboard: nothing happens, the box keeps its text
@@ -327,6 +416,16 @@ class ClipboardCase:
         reached.clear()
         c.emu.call(window_proc, 0x1234, WM_KEYDOWN, ord("V"), 0)
         self.assertEqual((c.posted, reached), ([], [WM_KEYDOWN]))
+        # a held Ctrl+V: the first key-down pastes, its repeats (lParam bit 30) are swallowed
+        c.emu.call(c.symbols["_clip_seen"], box)
+        reached.clear()
+        opened = c.opened
+        self.assertEqual(c.emu.call(window_proc, 0x1234, WM_KEYDOWN, ord("V"), 0x00000001), 0)
+        self.assertEqual(c.posted, [ord(ch) for ch in "pasted \U0001F600"])
+        for _ in range(3):
+            self.assertEqual(c.emu.call(window_proc, 0x1234, WM_KEYDOWN, ord("V"), 0x40000001), 0)
+        self.assertEqual(c.posted, [ord(ch) for ch in "pasted \U0001F600"])
+        self.assertEqual((reached, c.opened), ([], opened + 1))
 
     def test_a_letter_past_ffff_as_two_wm_chars(self) -> None:
         c = Clip(self.game)

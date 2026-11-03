@@ -4,9 +4,11 @@ draws text with, from the same data/unicode files the patcher's tools read (src/
     python scripts/build_unicode18_tables.py           # write the header
     python scripts/build_unicode18_tables.py --check   # exit 1 when the header is not up to date
 
+* NAME_BOX_BYTES: the one name limit, from src/unicode_data.py (the only place it is written).
 * GB_RANGES: every code point's grapheme properties, as the first code point of each run of equal
   values: (first << 8) | Grapheme_Cluster_Break (bits 0-3) | InCB << 4 (bits 4-5) |
-  Extended_Pictographic << 6. Sorted, so the DLL finds a code point by binary search.
+  Extended_Pictographic << 6 | mark (Mn, Mc, Me: the spec's join) << 7. Sorted, so the DLL finds
+  a code point by binary search.
 * EMOJI_PRESENTATION: the (first, last) ranges of Emoji_Presentation=Yes.
 * EMOJI_SEQUENCES: the FNV-1a hash (32 bits, over each code point's 4 little-endian bytes) of every
   RGI emoji sequence of more than one code point (keycaps, flags, tags, modifiers, ZWJ), sorted.
@@ -27,15 +29,17 @@ HEADER = ROOT / "native" / "common" / "unicode_grapheme_table.h"
 
 
 def props(cp: int) -> int:
-    return U.gcb_map()(cp) | (U.incb_map()(cp) << 4) | (int(U.extended_pictographic(cp)) << 6)
+    return (U.gcb_map()(cp) | (U.incb_map()(cp) << 4) | (int(U.extended_pictographic(cp)) << 6)
+            | (int(U.mark_map()(cp)) << 7))
 
 
 def runs() -> list[tuple[int, int]]:
     """(first, value) of each run of equal props over 0..0x10FFFF (only the edges of the source
     ranges can start a run, so only those are looked at)."""
     edges = {0}
-    for m in (U.gcb_map(), U.incb_map(), U.RangeMap([(a, b, True) for a, b, f in U._records("emoji-data.txt")
-                                                      if f[0] == "Extended_Pictographic"])):
+    for m in (U.gcb_map(), U.incb_map(), U.mark_map(),
+              U.RangeMap([(a, b, True) for a, b, f in U._records("emoji-data.txt")
+                          if f[0] == "Extended_Pictographic"])):
         for first, last, _v in m:
             edges.add(first)
             if last + 1 <= 0x10FFFF:
@@ -86,7 +90,10 @@ def render() -> str:
         f"   (Unicode {U.VERSION}); do not edit. See native/common/unicode_grapheme.h. */\n"
         "#ifndef FTFP_UNICODE_GRAPHEME_TABLE_H\n#define FTFP_UNICODE_GRAPHEME_TABLE_H\n\n"
         f"#define UNICODE_VERSION_TEXT \"{U.VERSION}\"\n\n"
-        "/* (first << 8) | GCB | InCB << 4 | Extended_Pictographic << 6, one per run */\n"
+        "/* THE name limit: every name box takes up to this many bytes as stored (the write rule,\n"
+        "   unicode_utf8.h game_encode), no character cap (src/unicode_data.py NAME_BOX_BYTES) */\n"
+        f"#define NAME_BOX_BYTES {U.NAME_BOX_BYTES}\n\n"
+        "/* (first << 8) | GCB | InCB << 4 | Extended_Pictographic << 6 | mark << 7, one per run */\n"
         f"#define GB_RANGE_COUNT {len(r)}\n"
         "static const unsigned int GB_RANGES[GB_RANGE_COUNT] = {\n"
         + _rows([f"0x{(cp << 8) | v:08X}," for cp, v in r]) + "\n};\n\n"

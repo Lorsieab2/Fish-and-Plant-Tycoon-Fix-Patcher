@@ -160,8 +160,10 @@ Fish Tycoon options:
   and Add Money costs $0 and still adds $1,000. Limits stay.
 - Copy and Paste in Text Boxes (on by default): in any text box of the
   game, Ctrl+V or Shift+Insert pastes, Ctrl+C or Ctrl+Insert copies the
-  whole text (a player's full name) and Ctrl+X cuts. A paste is typed in
-  letter by letter: line breaks become spaces, the box keeps its limit.
+  whole text (a player's whole name) and Ctrl+X cuts. A paste is typed in
+  character by character: line breaks become spaces, the box keeps its
+  limit (1,200 bytes for a name). With both Unicode settings off a paste
+  keeps only printable ASCII, what the game's own fonts draw.
 - Use Unicode Font (overrides in-game fonts) (off by default, Owner's
   Defaults too; it replaces Render Unicode with In-Game Fonts): all
   game text in one Windows font you pick beside the setting (Segoe UI
@@ -169,9 +171,12 @@ Fish Tycoon options:
 - Render Unicode with In-Game Fonts (on by default and in Owner's
   Defaults): type accented letters (é ñ ü ß Æ ¿ £ ...) in names, drawn in the
   game's own fonts; letters a font lacks are made for it in its style.
-  Names can be up to 300 letters, in any script (letters the game's fonts
-  lack come from Windows' fonts); the full name is kept beside the save
-  and shown fitted where the game has less room.
+  Names can be up to 1,200 bytes (up to 1,200 plain letters, fewer when
+  letters need more bytes), in any script (letters the game's fonts lack
+  come from Windows' fonts). A name too long for the save's own field is
+  kept there as its start and "..." ("2...", "3..." when two start alike),
+  and the whole name beside the save (Names <slot>.dat), shown fitted
+  where the game has less room.
 
 Moving things between tanks (Fish Tycoon, with 3 extra tanks on):
 - What moves: fish of any age, healthy or sick (a pregnant fish keeps her
@@ -287,16 +292,19 @@ Plant Tycoon options:
   rest wait in the slot's Extra Chemical Slots file for when you turn it on.)
 - Copy and Paste in Text Boxes (on by default): in any text box of the
   game, Ctrl+V or Shift+Insert pastes, Ctrl+C or Ctrl+Insert copies the
-  whole text (a player's full name) and Ctrl+X cuts. A paste is typed in
-  letter by letter: line breaks become spaces, the box keeps its limit.
+  whole text (a player's whole name) and Ctrl+X cuts. A paste is typed in
+  character by character: line breaks become spaces, the box keeps its
+  limit (1,200 bytes for a name). With both Unicode settings off a paste
+  keeps only printable ASCII, what the game's own fonts draw.
 - Use Unicode Font (overrides in-game fonts) (off by default, Owner's
   Defaults too; it replaces Render Unicode with In-Game Fonts): all
   game text in one Windows font you pick beside the setting (Segoe UI
   unless you choose another), any script, at the game's sizes and colours.
 - Render Unicode with In-Game Fonts (on by default and in Owner's
   Defaults): type accented letters (é ñ ü ß Æ ¿ £ ...) in names; the game's font
-  gets the few it lacks, made in its style. Names can be up to 300 letters,
-  in any script, the full name kept beside the save.
+  gets the few it lacks, made in its style. Names can be up to 1,200 bytes,
+  in any script; a long one is kept in the save as its start and "..." and
+  whole beside the save (Names <slot>.dat).
 
 Moving things between greenhouses (5 extra greenhouses):
 - A plant: drag it onto the left or right arrow, as you would drag it to

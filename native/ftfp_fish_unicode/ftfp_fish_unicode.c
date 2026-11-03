@@ -286,8 +286,9 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
         self_module = instance;
         DisableThreadLibraryCalls(instance);
     } else if (reason == DLL_PROCESS_DETACH && installed) {
-        /* the game quits: a name typed since the last draw still goes beside the save */
-        names_sync();
+        /* the game quits: a name typed since the last draw, or a record whose write failed, still
+           goes beside the save */
+        names_sync_now(1);
     }
     return TRUE;
 }

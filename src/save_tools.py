@@ -477,7 +477,7 @@ def full_name(game_id: str, folder: Path, slot: int, listed: str) -> str:
 
 
 def counter_text(game_id: str, folder: Path | None, name: str, slot: int | None = None) -> tuple[str, bool]:
-    """The Rename and Copy tools' counter, and whether the name is over the limit: "N / 1200 bytes"
+    """The Rename and Copy tools' counter, and whether the name is over the limit: "N / <limit> bytes"
     (and its characters) where the copy has Unicode Text.dll, saying when the save will keep a
     short form; the stock game's "N / 31 characters" elsewhere."""
     limit = name_limit(game_id, folder)

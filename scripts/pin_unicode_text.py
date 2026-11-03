@@ -17,6 +17,8 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+from unicode_data import NAME_BOX_BYTES as LIMIT  # noqa: E402
 SETTING_ID = "unicode_ingame_fonts"
 SYSTEM_ID = "unicode_system_font"          # Use Unicode Font (overrides in-game fonts)
 PASTE_ID = "copy_paste_text_boxes"          # Copy and Paste in Text Boxes
@@ -30,7 +32,7 @@ GAMES = {
         "folder": "Fish Tycoon Fix Patcher DLLs",
         "typing": "Typing in the game (a player's name, any text box), any letter of any script goes in "
                   "(AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. "
-                  "Names can be up to 300 letters.",
+                  f"Names can be up to {LIMIT:,} bytes as the save stores them, with no character limit (up to {LIMIT:,} plain letters, fewer when letters need more bytes; the same limit as the other Fun Patchers), counted in characters as you see them (a letter with its accents, an emoji with its skin tone or a flag is one), and Backspace removes one whole character.",
         "fonts": "All three of the game's fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every Latin-1 "
                  "letter and symbol they lack, and paddington's empty boxes for % * + < = > [ \\ ] ^ { | } ~ "
                  "become real letters: accented letters are made from each font's own letters and accents, "
@@ -45,8 +47,8 @@ GAMES = {
         "source": "assets/plant_tycoon_unicode",
         "folder": "Plant Tycoon Fix Patcher DLLs",
         "typing": "Typing in the game (a player's name, any text box), any letter of any script goes in "
-                  "(an input method's text too); the game dropped everything but plain ASCII. Names can be up "
-                  "to 300 letters.",
+                  "(an input method's text too); the game dropped everything but plain ASCII. "
+                  f"Names can be up to {LIMIT:,} bytes as the save stores them, with no character limit (up to {LIMIT:,} plain letters, fewer when letters need more bytes; the same limit as the other Fun Patchers), counted in characters as you see them (a letter with its accents, an emoji with its skin tone or a flag is one), and Backspace removes one whole character.",
         "fonts": "The game's font already has most of Latin-1; the no-break space and the inverted "
                  "exclamation mark (¡) are made for it in its style, in a copy of its picture in the Images "
                  "folder (the game's own picture is not changed).",
@@ -61,16 +63,20 @@ def setting(game: dict) -> dict:
     return {
         "id": SETTING_ID,
         "name": "Render Unicode with In-Game Fonts",
-        "summary": "Type and show names in any script (é ñ ß, Ç ğ İ, 山田, emoji ...) up to 300 letters, drawn in "
+        "summary": f"Type and show names in any script (é ñ ß, Ç ğ İ, 山田, emoji ...) up to {LIMIT:,} bytes, drawn in "
                    "the game's own fonts; letters a font lacks are made for it in its style or drawn from "
                    "Windows' fonts.",
         "description": (
             f"{game['typing']} {game['fonts']} Any other letter (Turkish, Japanese, Chinese, Korean, "
             "cuneiform, emoji ...) is drawn from Windows' fonts at the font's size and in the text's colour "
-            "(colour emoji in their own colours). The save keeps each name's first 31 letters as the game keeps names (one "
-            "byte a letter, '?' for a letter Latin-1 has not), so its layout is unchanged, and the full name "
-            "beside it (Fix Patcher Data\\Names <slot>.dat); the patcher's tools (Rename Players, Copy "
-            "Player Slot, the Breeding Guide and Picture Studio) read and write such names too. "
+            "(colour emoji in their own colours). The save itself is not changed: a name that fits the game's "
+            "31-byte field is kept there as it is (one byte for a Windows-1252 character, UTF-8 for any other); "
+            "a longer one is kept there as its short form (its start of whole characters and \"...\", or "
+            "\"2...\", \"3...\" when two would start alike), so a copy of the game without the setting still "
+            "loads and plays the save and shows the short form; the whole name is kept beside the save, in Fix "
+            "Patcher Data\\Names <slot>.dat (the Names format the Fun Patchers share: one checked record a "
+            "name, never removed). The patcher's tools (Rename Players, Copy Player Slot, Back Up and Restore "
+            "Saves, the Breeding Guide and Picture Studio) read, write and carry such names too. "
             f"{FONTS_TEXT} {game['older']}"
         ),
         "category": "main",
@@ -120,7 +126,8 @@ def system_setting(game: dict) -> dict:
             "Segoe UI Historic, Segoe UI Emoji ...), at the game fonts' line heights and in the game's colours "
             f"(colour emoji in their own colours). {FONTS_TEXT} The game's own fonts and pictures are not changed. "
             "Names are kept as with "
-            "Render Unicode with In-Game Fonts (the first 31 letters in the save, the full name beside it), and "
+            "Render Unicode with In-Game Fonts (the name or its short form with \"...\" in the save, the whole "
+            "name beside it in Names <slot>.dat), and "
             "the two settings cannot both be on. Runs as the same Unicode Text.dll, set by the "
             "\"Unicode Text.ini\" the patcher writes beside it."
         ),
@@ -150,12 +157,16 @@ def paste_setting(game: dict) -> dict:
         "description": (
             "While one of the game's text boxes has the typing cursor (a player's name, the new player's box, "
             f"{game['boxes']}), Ctrl+V or Shift+Insert pastes the Windows clipboard's text at the cursor, "
-            "Ctrl+C or Ctrl+Insert copies the box's whole text (a player's full name) and Ctrl+X copies it "
-            "and empties the box. A paste goes in as if typed letter by letter: line breaks and tabs become "
-            "spaces, other control characters are left out, the box keeps its own limit (300 letters for a "
-            "name) and its own letters (digits only in a price box), and a letter is never cut in half. With "
-            "Render Unicode with In-Game Fonts or Use Unicode Font any script goes in; without them only "
-            "what the game's own box takes from the keyboard (plain ASCII letters, digits and symbols). "
+            "Ctrl+C or Ctrl+Insert copies the box's whole text (a player's whole name) and Ctrl+X copies it "
+            "and empties the box once the copy succeeded; a held key does it once. A paste goes in as if typed "
+            "character by character: it is composed first (NFC: a letter and its accent become the one "
+            "accented letter), line breaks and tabs become spaces, other control characters are left out, the "
+            f"box keeps its own limit ({LIMIT:,} bytes for a name, counted over the box's text and the paste) and "
+            "its own characters (digits only in a price box), and a character is never cut in half (an accent "
+            "that would join the box's last character and no longer fits is left out). At most 8,192 UTF-16 "
+            "units are read from the clipboard. With Render Unicode with In-Game Fonts or Use Unicode Font any "
+            "script goes in; with both off only what the game's own fonts draw and its box takes from the "
+            "keyboard: printable ASCII (plain letters, digits and symbols). "
             "Runs as Unicode Text.dll (alone it changes only the text box's draw, to know which box has the "
             "cursor); the keys do nothing else in the game."
         ),

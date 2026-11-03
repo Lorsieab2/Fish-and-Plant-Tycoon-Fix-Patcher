@@ -1,30 +1,43 @@
-"""Long names (Unicode Text.dll, both games): one name limit for every name box, the short Latin-1
-form in the save's fixed fields, the full name in "Names <slot>.dat", and long names fitted on
-screen. The DLL's own code and the game's run in Unicorn against the vanilla executables
-(tests/test_unicode_text.py builds the DLL from its committed source).
+"""Long names (Unicode Text.dll, both games; docs/UNICODE_SPEC.md section 2): one name limit for every
+name box, the short form in the save's fixed fields, the whole name in "Names <slot>.dat", and long
+names fitted on screen. The DLL's own code and the game's run in Unicorn against the vanilla
+executables (tests/test_unicode_text.py builds the DLL from its committed source).
 
 * The name boxes' setLimit(1, 0x20) (the five player rows and the new player's box) gives the
-  shared limit; every other box keeps the game's.
-* getText into a player's name writes the short form (31 letters, Latin-1, '?' for any other
-  letter) and the full name goes into the save folder's "Names <slot>.dat" at once (a rename, or
-  the new player's box, which the game copies into row 1 next), written to "Names <slot>.dat.tmp"
-  and moved over the old file; setText of that row gives the box the full name again, also after a restart (the file
-  is read at start) but not once the stock game has renamed the player.
-* The text draw and measure show a player's short form as the full name, fitted to the width the
+  shared limit, NAME_BOX_BYTES bytes as stored with no character cap; every other box keeps the game's.
+* getText into a player's name writes the name as it is when it fits the 31-byte field (the write
+  rule: a Windows-1252 letter one byte, any other UTF-8), else its short form (whole characters and
+  "...", "2..." when taken), exactly as src/save_tools.py makes it (the Python tools are the oracle
+  here), and its record goes into "Names <slot>.dat" (the shared format: header, then
+  short<TAB>room<TAB>whole<TAB>CRC-32) at once, through "Names <slot>.dat.tmp"; a failed write stays
+  pending and is written at a later draw or the exit.
+* setText of that row gives the box the whole name again, also after a restart; records are never
+  removed, the first of a short form wins, invalid ones are skipped, v1.0.25's files are read.
+* Guard bytes: no fixed buffer is written past at NAME_BOX_BYTES.
+* The text draw and measure show a player's short form as the whole name, fitted to the width the
   game left for a name; the boxes fit their own text and no longer cut it.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 import struct
+import sys
+import tempfile
 import unittest
 
 import test_unicode_text as T
 from test_unicode_text import E, needs
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+import save_tools  # noqa: E402
+import unicode_data  # noqa: E402
+
 SLOTS_PATH = "{docs}\\LDW\\{title} - Modded Upgrades\\{title} Fix Patcher Data\\Names {slot}.dat"
-NAME_LETTERS = 300
+NAME_BOX_BYTES = unicode_data.NAME_BOX_BYTES
 SHORT_BYTES = 32
+HEADER = b"FTFP Names 1\n"
+GUARD = b"\xA5" * 16
 
 GAMES = {
     "fish": dict(new_call=0x417D72, new_dst=0x1E3A5, limit_call=0x417124, other_limit_call=0x4290E7, other_limit=8, text_call=0x417833,
@@ -38,14 +51,15 @@ GAMES = {
                   sites=((0x40C380, 6), (0x40C740, 6), (0x40C6E0, 8), (0x40C1B3, 5), (0x40C1FD, 2),
                          (0x40C239, 5), (0x408E20, 7), (0x402380, 7))),
 }
+TITLE_OF = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
 
 
 def names_path(game: str, slot: int) -> str:
     return SLOTS_PATH.format(docs=T.DOCUMENTS, title=T.tm.GAME_TITLES[game], slot=slot)
 
 
-def short_form(name: str) -> bytes:
-    return bytes(ord(c) if 0x20 <= ord(c) <= 0xFF and not 0x7F <= ord(c) < 0xA0 else 0x3F for c in name)[:31]
+def record(short: bytes, whole: str) -> bytes:
+    return save_tools.record_line(save_tools.NameRecord(unicode_data.decode_game_text(short), 31, whole))
 
 
 def f32(value: float) -> int:
@@ -74,21 +88,30 @@ class Game:
     def row(self, slot: int) -> int:
         return self.state + self.a["rows"] + (slot - 1) * self.a["stride"]
 
+    def row_bytes(self, slot: int) -> bytes:
+        return bytes(self.emu.uc.mem_read(self.row(slot), 32)).split(b"\0", 1)[0]
+
     def set_row(self, slot: int, raw: bytes) -> None:
         self.emu.uc.mem_write(self.row(slot), raw.ljust(32, b"\0"))
 
     def box(self, text: bytes = b"", limit: int = 0x20) -> tuple[int, int]:
-        """(wrapper, box): a box (vtable aside) holding `text`."""
+        """(wrapper, box): a box (vtable aside) holding `text`, its buffer limit + 1 bytes and guard bytes."""
         emu = self.emu
         box = emu.alloc(0x60)
         emu.uc.mem_write(box, bytes(0x60))
-        buffer = emu.alloc(NAME_LETTERS * 4 + 8)
+        size = max(limit, len(text)) + 1
+        buffer = emu.alloc(size + len(GUARD))
         emu.uc.mem_write(buffer, text + b"\0")
+        emu.uc.mem_write(buffer + size, GUARD)
         emu.write32(box + 0x30, buffer)
         emu.write32(box + 0x28, limit)
         wrapper = emu.alloc(0x20)
         emu.write32(wrapper + 0x10, box)
+        self.guards = getattr(self, "guards", []) + [(buffer + size, GUARD)]
         return wrapper, box
+
+    def guards_intact(self) -> bool:
+        return all(bytes(self.emu.uc.mem_read(at, len(g))) == g for at, g in self.guards)
 
     def text(self, box: int) -> bytes:
         return self.emu.cstring(self.emu.read32(box + 0x30))
@@ -105,17 +128,36 @@ class Game:
         assert emu.uc.reg_read(E.X.UC_X86_REG_ESP) == esp + 4 * len(stack), "stack unbalanced"
 
     def type_name(self, name: str, slot: int = 1) -> bytes:
-        """The name in a name box, its getText into player row 1 (the game's own call): the row."""
-        if all(ord(c) < 0x100 for c in name):
-            wrapper, _box = self.box(name.encode("latin-1"), limit=NAME_LETTERS)
-        else:                                       # any script: the box holds it as UTF-8
-            wrapper, _box = self.box(name.encode("utf-8"), limit=4 * NAME_LETTERS)
+        """The name in a name box (as the box keeps it: the write rule), its getText into player row
+        `slot` (the game's own call): the row's 32 bytes."""
+        wrapper, _box = self.box(unicode_data.encode_game_text(name), limit=NAME_BOX_BYTES)
         dst = self.row(slot)
         self.run_call(self.a["text_call"], wrapper, dst, 0x20)
         return bytes(self.emu.uc.mem_read(dst, 0x20))
 
     def set_text(self, box: int, text_at: int) -> None:
         self.emu.call(self.a["set_text"], text_at, ecx=box)
+
+    def names_file(self, slot: int) -> bytes | None:
+        return self.files["raw"].get(names_path(self.game, slot))
+
+    def python_field(self, name: str, slot: int) -> bytes:
+        """What src/save_tools.py stores for `name` in `slot`, given the DLL's Names files and rows
+        as they are now (the oracle the DLL must agree with)."""
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            data = folder / f"{TITLE_OF[self.game]} Fix Patcher Data"
+            data.mkdir()
+            for n in range(1, 6):
+                body = self.names_file(n)
+                if body is None:
+                    body = self.files["existing"].get(names_path(self.game, n))
+                if body is not None:
+                    (data / f"Names {n}.dat").write_bytes(body)
+            book = save_tools.NameBook(self.game, folder)
+            fields = {n: self.row_bytes(n) for n in range(1, 6)}
+            field, _record = book.store(slot, name, fields, exclude=slot)
+            return field
 
 
 class NamesCase:
@@ -147,112 +189,267 @@ class NamesCase:
                                  T.code_bytes(stock, T.site_ranges(self.game)))
 
     def test_name_boxes_get_the_shared_limit(self) -> None:
+        """NAME_BOX_BYTES (the generated header's, from src/unicode_data.py), no character cap."""
         g = Game(self.game)
         wrapper, box = g.box(b"Ann")
         g.run_call(GAMES[self.game]["limit_call"], wrapper, 1, 0x20)
-        self.assertEqual(g.emu.read32(box + 0x28), 4 * NAME_LETTERS)   # UTF-8: up to 4 bytes a letter
+        self.assertEqual(g.emu.read32(box + 0x28), NAME_BOX_BYTES)
         self.assertEqual(g.text(box), b"Ann")
         wrapper, box = g.box(b"")
         a = GAMES[self.game]
         g.run_call(a["other_limit_call"], wrapper, 1, a["other_limit"])
         self.assertEqual(g.emu.read32(box + 0x28), a["other_limit"])
 
-    def test_short_form_in_the_row_and_the_full_name_beside_the_save(self) -> None:
+    def test_the_row_and_the_names_file_agree_with_the_tools(self) -> None:
+        """Each name's field is what src/save_tools.py stores (the same rule, run in Python), and a
+        name that does not fit has its record in the shared format beside the save."""
         g = Game(self.game)
-        cases = ["Renée", "A" * 31, "Bartholomew Montgomery Fitzgerald the Third of Ørsted", "é" * NAME_LETTERS]
-        for name in cases:
-            with self.subTest(name=name[:40]):
-                row = g.type_name(name)
-                self.assertEqual(row, short_form(name).ljust(32, b"\0"))
-                path = names_path(self.game, 1)
-                self.assertEqual(g.files["raw"][path], short_form(name) + b"\0" + name.encode("utf-8") + b"\0")
+        cases = [("Renée", 1), ("A" * 31, 2), ("Bartholomew Montgomery Fitzgerald the Third of Ørsted", 3),
+                 ("é" * NAME_BOX_BYTES, 4), ("山田 🐟 Ölçer", 5), ("山田 太郎 山田 太郎 🐟 Ölçer", 5),
+                 ("x" * NAME_BOX_BYTES, 1), ("Abcdefghijklmnopqrstuvwxyz1 3456789", 2),
+                 ("é" * 20 + " \U0001F468‍\U0001F469‍\U0001F467", 3), ("Ã©" * 20, 4),
+                 ("€uro — „Grüße“ " * 3, 1)]
+        for name, slot in cases:
+            with self.subTest(name=name[:30]):
+                want = g.python_field(name, slot)
+                before = g.names_file(slot)
+                row = g.type_name(name, slot=slot)
+                self.assertEqual(row, want.ljust(32, b"\0"))
+                self.assertLessEqual(len(want), 31)
+                if want == unicode_data.encode_game_text(name):
+                    self.assertEqual(g.names_file(slot), before, "a name that fits needs no record")
+                else:
+                    self.assertTrue(unicode_data.decode_game_text(want).endswith("..."))
+                    self.assertEqual(g.names_file(slot), (before or HEADER) + record(want, name))
+                    self.assertIn(save_tools.NameRecord(unicode_data.decode_game_text(want), 31, name),
+                                  save_tools.parse_names(g.names_file(slot)))
+        self.assertTrue(g.guards_intact())
+
+    def test_short_forms_are_unique_across_the_slots(self) -> None:
+        """Names starting alike: "...", "2...", "3..." (the tools' rule); typing a name again gives its own
+        short form again, and no second record."""
+        g = Game(self.game)
+        a = "Wilhelmina Charlotte Augusta of Anhalt"
+        b = "Wilhelmina Charlotte Augusta of Brandenburg"
+        c = "Wilhelmina Charlotte Augusta of Coburg"
+        for name, slot, short in ((a, 1, b"Wilhelmina Charlotte Augusta..."), (b, 2, b"Wilhelmina Charlotte August2..."),
+                                  (c, 3, b"Wilhelmina Charlotte August3...")):
+            self.assertEqual(g.python_field(name, slot), short)
+            self.assertEqual(g.type_name(name, slot), short.ljust(32, b"\0"))
+        file1 = g.names_file(1)
+        self.assertEqual(g.type_name(a, 1), b"Wilhelmina Charlotte Augusta...".ljust(32, b"\0"))
+        self.assertEqual(g.names_file(1), file1)
+        # a plain name equal to a taken short form becomes a short form itself
+        name = "Wilhelmina Charlotte Augusta..."
+        self.assertEqual(g.python_field(name, 4), b"Wilhelmina Charlotte August4...")
+        self.assertEqual(g.type_name(name, 4), b"Wilhelmina Charlotte August4...".ljust(32, b"\0"))
+
+    def test_records_are_never_removed_and_the_first_wins(self) -> None:
+        g = Game(self.game)
+        a, b = "Bartholomew Montgomery Fitzgerald Alpha", "Bartholomew Montgomery Fitzgerald Beta"
+        g.type_name(a, 1)
+        self.assertEqual(g.type_name(b, 1), b"Bartholomew Montgomery Fitz2...".ljust(32, b"\0"))
+        path = names_path(self.game, 1)
+        self.assertEqual(g.files["raw"][path], HEADER + record(b"Bartholomew Montgomery Fitzg...", a)
+                         + record(b"Bartholomew Montgomery Fitz2...", b))
+        # a restart: the file is read; each short form shows its own whole name
+        g2 = Game(self.game, existing={path: g.files["raw"][path]})
+        for short, whole in ((b"Bartholomew Montgomery Fitz2...", b), (b"Bartholomew Montgomery Fitzg...", a)):
+            g2.set_row(1, short)
+            _wrapper, box = g2.box()
+            g2.set_text(box, g2.row(1))
+            self.assertEqual(g2.text(box), unicode_data.encode_game_text(whole))
+        # the same short form twice in a file: the first record wins
+        doubled = HEADER + record(b"Same...", "Same first whole name") + record(b"Same...", "Same second whole name")
+        g3 = Game(self.game, existing={names_path(self.game, 2): doubled})
+        g3.set_row(2, b"Same...")
+        _wrapper, box = g3.box()
+        g3.set_text(box, g3.row(2))
+        self.assertEqual(g3.text(box), b"Same first whole name")
+
+    def test_invalid_records_are_skipped(self) -> None:
+        """Cut short, merged, a wrong CRC, no mark, too long for its room, a control character, more
+        than NAME_BOX_BYTES bytes: skipped, as src/save_tools.py parse_names skips them."""
+        good = record(b"Good...", "Good whole name here")
+        bad_crc = good[:-3] + (b"0\n" if not good.endswith(b"0\n") else b"1\n")
+        nomark = save_tools.record_line(save_tools.NameRecord("Nomark", 31, "Nomark and more"))
+        control = save_tools.record_line(save_tools.NameRecord("Ctl...", 31, "Ctl\x07name"))
+        huge = save_tools.record_line(save_tools.NameRecord("Big...", 31, "x" * (NAME_BOX_BYTES + 1)))
+        toolong = save_tools.record_line(save_tools.NameRecord("L" * 40 + "...", 31, "L" * 60))
+        cut = record(b"Cut...", "Cut whole name")[:-12] + b"\n"
+        merged = record(b"Mer...", "Merged whole name")[:15] + record(b"Ged...", "Second merged")
+        body = HEADER + bad_crc + nomark + control + huge + toolong + cut + merged + good
+        self.assertEqual(save_tools.parse_names(body), [save_tools.NameRecord("Good...", 31, "Good whole name here")])
+        g = Game(self.game, existing={names_path(self.game, 1): body})
+        for short, expect in ((b"Good...", b"Good whole name here"), (b"Abc...", b"Abc..."), (b"Nomark", b"Nomark"),
+                              (b"Ctl...", b"Ctl..."), (b"Big...", b"Big..."), (b"Cut...", b"Cut..."),
+                              (b"Ged...", b"Ged...")):
+            g.set_row(1, short)
+            _wrapper, box = g.box()
+            g.set_text(box, g.row(1))
+            self.assertEqual(g.text(box), expect, short)
+
+    def test_a_v1025_names_file_is_read_and_kept(self) -> None:
+        """"short NUL full NUL" with v1.0.25's short form ("?" for letters Latin-1 has not): used while the
+        row holds it; a new record turns the file into the shared format with the old record first."""
+        legacy = "Maximilian Alexander 山田 von Hohenstein-Waldburg"
+        old = save_tools.old_short_form(legacy).encode("latin-1")
+        path = names_path(self.game, 3)
+        raw = old + b"\0" + legacy.encode("utf-8") + b"\0"
+        g = Game(self.game, existing={path: raw})
+        g.set_row(3, old)
+        _wrapper, box = g.box()
+        g.set_text(box, g.row(3))
+        self.assertEqual(g.text(box), unicode_data.encode_game_text(legacy))
+        # the stock game renamed the player: the old record is not used
+        g.set_row(3, b"Someone Else")
+        _wrapper, box = g.box()
+        g.set_text(box, g.row(3))
+        self.assertEqual(g.text(box), b"Someone Else")
+        copy = g.emu.text(old.decode("latin-1"))
+        _wrapper, box = g.box()
+        g.set_text(box, copy)
+        self.assertEqual(g.text(box), old, "a v1.0.25 short form is no short form once its row is renamed")
+        # a new name for slot 3
+        name = "Konstantin Friedrich Wilhelm von Preussen"
+        g.type_name(name, 3)
+        want = save_tools.render_names(raw, [save_tools.NameRecord("Konstantin Friedrich Wilhelm...", 31, name)])
+        self.assertEqual(g.files["raw"][path], want)
 
     def test_the_new_players_name_is_written_at_once(self) -> None:
         """The new player's box accepted: Names 1.dat is written before the game copies the name
         into row 1 (no draw, no exit needed), even while row 1 still holds an older typed name."""
         g = Game(self.game)
-        g.type_name("Older Name \u2713 one", slot=1)
+        g.type_name("Older Name ✓ one and some more letters", slot=1)
         path = names_path(self.game, 1)
-        name = "\u041d\u043e\u0432\u044b\u0439 \U0001F41F Yeni oyuncu \U0001202D"
-        wrapper, _box = g.box(name.encode("utf-8"), limit=4 * NAME_LETTERS)
+        before = g.files["raw"][path]
+        name = "Новый \U0001F41F Yeni oyuncu \U0001202D"
+        want = g.python_field(name, 1)
+        wrapper, _box = g.box(unicode_data.encode_game_text(name), limit=NAME_BOX_BYTES)
         dst = g.state + GAMES[self.game]["new_dst"]
         g.files["moves"].clear()
         g.run_call(GAMES[self.game]["new_call"], wrapper, dst, 0x20)
-        self.assertEqual(bytes(g.emu.uc.mem_read(dst, 0x20)), short_form(name).ljust(32, b"\0"))
-        self.assertEqual(g.files["raw"][path], short_form(name) + b"\0" + name.encode("utf-8") + b"\0")
+        self.assertEqual(bytes(g.emu.uc.mem_read(dst, 0x20)), want.ljust(32, b"\0"))
+        self.assertEqual(g.files["raw"][path], before + record(want, name))
         # REPLACE_EXISTING | WRITE_THROUGH, from the temporary file
         self.assertEqual(g.files["moves"], [(path + ".tmp", path, 0x1 | 0x8)])
         self.assertNotIn(path + ".tmp", g.files["raw"])
-        # the game copies it into row 1: the row shows the full name
-        g.set_row(1, short_form(name))
+        # the game copies it into row 1: the row shows the whole name
+        g.set_row(1, want)
         _wrapper, box = g.box()
         g.set_text(box, g.row(1))
-        self.assertEqual(g.text(box), name.encode("utf-8"))
+        self.assertEqual(g.text(box), unicode_data.encode_game_text(name))
 
     def test_a_rename_is_written_at_once_through_a_temporary_file(self) -> None:
         g = Game(self.game)
-        name = "\u00c7a\u011fr\u0131 Y\u0131lmaz \u5c71\u7530 \U0001F600 rename"
+        name = "Çağrı Yılmaz 山田 \U0001F600 rename"
         path = names_path(self.game, 3)
-        g.type_name(name, slot=3)
-        self.assertEqual(g.files["raw"][path], short_form(name) + b"\0" + name.encode("utf-8") + b"\0")
+        short = g.type_name(name, slot=3).rstrip(b"\0")
+        self.assertEqual(g.files["raw"][path], HEADER + record(short, name))
         self.assertIn((path + ".tmp", path, 0x9), g.files["moves"])
         # a move Windows refuses: the file is written in place, as before, the temporary removed
         g.emu.hook_import("MoveFileExW", lambda e: 0, 12)
-        other = "Second name, \u00fcn\u00efc\u00f6d\u00e9 \u2728"
-        g.type_name(other, slot=3)
-        self.assertEqual(g.files["raw"][path], short_form(other) + b"\0" + other.encode("utf-8") + b"\0")
+        other = "Second name, ünïcödé ✨ and more"
+        short2 = g.type_name(other, slot=3).rstrip(b"\0")
+        self.assertEqual(g.files["raw"][path], HEADER + record(short, name) + record(short2, other))
         self.assertNotIn(path + ".tmp", g.files["raw"])
 
+    def test_a_record_whose_write_failed_is_pending_and_written_later(self) -> None:
+        """No file can be made: the row still gets the short form, the record waits; at a draw two
+        seconds later (names_sync) it is written; the exit writes what is still pending."""
+        g = Game(self.game)
+        path = names_path(self.game, 2)
+        real_create = g.emu.hooks[g.emu.imports["CreateFileW"]][0]
+        blocked = {"on": True}
+
+        def create(e) -> int:
+            if blocked["on"] and not e.arg(1) & 0x80000000 and "Names" in e.wstring(e.arg(0)):
+                return 0xFFFFFFFF
+            return real_create(e)
+
+        g.emu.hook_import("CreateFileW", create, 28)
+        name = "Pending Name That Is Longer Than Its Field"
+        short = g.type_name(name, 2).rstrip(b"\0")
+        self.assertEqual(short, b"Pending Name That Is Longer...")
+        self.assertNotIn(path, g.files["raw"])
+        # the whole name is still shown while it waits
+        _wrapper, box = g.box()
+        g.set_text(box, g.row(2))
+        self.assertEqual(g.text(box), name.encode())
+        blocked["on"] = False
+        g.files["tick"] += 500
+        g.emu.call(g.symbols["_names_sync"])
+        self.assertNotIn(path, g.files["raw"], "retried at most every 2 s")
+        g.files["tick"] += 2000
+        g.emu.call(g.symbols["_names_sync"])
+        self.assertEqual(g.files["raw"][path], HEADER + record(short, name))
+        # the exit: what is pending is written at once
+        blocked["on"] = True
+        other = "Another Pending Name, Longer Than Its Field"
+        short2 = g.type_name(other, 2).rstrip(b"\0")
+        blocked["on"] = False
+        g.emu.call(g.symbols["_names_sync_now"], 1)
+        self.assertEqual(g.files["raw"][path], HEADER + record(short, name) + record(short2, other))
+
     def test_viewing_a_long_name_never_shortens_it(self) -> None:
-        """A box set up with the game's 32-byte limit (no name site's setLimit) shown a 300-letter
-        name: setText keeps it whole (the game's setText grows the limit to the text), and the
-        getText that follows writes the same full name back, in the row and in Names <slot>.dat."""
-        name = ("Å山\U0001F41F" * 100)[:300]
+        """A box set up with the game's 32-byte limit (no name site's setLimit) shown a name of
+        NAME_BOX_BYTES bytes: setText keeps it whole (the game's setText grows the limit to the
+        text), and the getText that follows writes the same short form back and no new record."""
+        name = "Å山\U0001F41F" * (NAME_BOX_BYTES // 8)
+        self.assertEqual(save_tools.name_bytes(name), NAME_BOX_BYTES)
         g = Game(self.game)
         g.type_name(name, slot=4)
         path = names_path(self.game, 4)
         before = g.files["raw"][path]
+        short = g.row_bytes(4)
         wrapper, box = g.box(b"", limit=0x20)
         g.set_text(box, g.row(4))
-        self.assertEqual(g.text(box), name.encode("utf-8"))
+        self.assertEqual(g.text(box), unicode_data.encode_game_text(name))
         dst = g.row(4)
         g.run_call(GAMES[self.game]["text_call"], wrapper, dst, 0x20)
-        self.assertEqual(bytes(g.emu.uc.mem_read(dst, 0x20)), short_form(name).ljust(32, b"\0"))
+        self.assertEqual(g.row_bytes(4), short)
         self.assertEqual(g.files["raw"][path], before)
-        self.assertEqual(g.files["raw"][path], short_form(name) + b"\0" + name.encode("utf-8") + b"\0")
+        self.assertEqual(before, HEADER + record(short, name))
 
-    def test_set_text_of_a_row_gives_the_full_name(self) -> None:
+    def test_no_fixed_buffer_is_overrun_at_the_limit(self) -> None:
+        """Guard bytes after the game's 32-byte field, the box's buffer and the getText destination: a
+        name of NAME_BOX_BYTES bytes (and a box the game grew past them) writes none of them."""
+        g = Game(self.game)
+        for name in ("山" * (NAME_BOX_BYTES // 3), "x" * NAME_BOX_BYTES, "\U0001F41F" * (NAME_BOX_BYTES // 4),
+                     "é" * (NAME_BOX_BYTES // 3)):
+            with self.subTest(name=name[:4]):
+                dst = g.emu.alloc(0x20 + len(GUARD))
+                g.emu.uc.mem_write(dst, bytes(0x20) + GUARD)
+                wrapper, _box = g.box(unicode_data.encode_game_text(name), limit=NAME_BOX_BYTES)
+                g.run_call(GAMES[self.game]["text_call"], wrapper, dst, 0x20)
+                self.assertEqual(bytes(g.emu.uc.mem_read(dst + 0x20, len(GUARD))), GUARD)
+                self.assertEqual(bytes(g.emu.uc.mem_read(dst + 0x1F, 1)), b"\0")
+                self.assertTrue(g.guards_intact())
+        # a box the game's setText grew past the limit: the whole name is cut at whole characters
+        long_text = ("é" * (NAME_BOX_BYTES + 40)).encode("cp1252")
+        wrapper, _box = g.box(long_text, limit=NAME_BOX_BYTES)
+        g.run_call(GAMES[self.game]["text_call"], wrapper, g.row(5), 0x20)
+        records = save_tools.parse_names(g.names_file(5))
+        self.assertEqual(records[-1].whole, "é" * NAME_BOX_BYTES)
+        self.assertTrue(g.guards_intact())
+
+    def test_set_text_of_a_row_gives_the_whole_name(self) -> None:
         g = Game(self.game)
         long_name = "Wilhelmina Charlotte Ångström-Lindqvist of Malmö"
-        g.type_name(long_name, slot=1)
+        short = g.type_name(long_name, slot=1).rstrip(b"\0")
         _wrapper, box = g.box()
         g.set_text(box, g.row(1))
-        self.assertEqual(g.text(box), long_name.encode("utf-8"))
+        self.assertEqual(g.text(box), long_name.encode("cp1252"))
         # the short form as text (not the row itself) too
-        copy = g.emu.text(short_form(long_name).decode("latin-1"))
+        copy = g.emu.text(short.decode("cp1252"))
         _wrapper, box = g.box()
         g.set_text(box, copy)
-        self.assertEqual(g.text(box), long_name.encode("utf-8"))
-        # a short name is its own full name: nothing changes
+        self.assertEqual(g.text(box), long_name.encode("cp1252"))
+        # a short name is its own whole name: nothing changes
         g.set_row(2, b"Bob")
         _wrapper, box = g.box()
         g.set_text(box, g.row(2))
         self.assertEqual(g.text(box), b"Bob")
-
-    def test_the_file_is_read_at_start_and_checked_against_the_row(self) -> None:
-        long_name = "Maximilian Alexander von Hohenstein-Waldburg"
-        short = short_form(long_name)
-        existing = {names_path(self.game, 3): short + b"\0" + long_name.encode("utf-8") + b"\0"}
-        g = Game(self.game, existing=existing)
-        g.set_row(3, short)
-        _wrapper, box = g.box()
-        g.set_text(box, g.row(3))
-        self.assertEqual(g.text(box), long_name.encode("utf-8"))
-        # the stock game renamed the player: the file is not used
-        g.set_row(3, b"Someone Else")
-        _wrapper, box = g.box()
-        g.set_text(box, g.row(3))
-        self.assertEqual(g.text(box), b"Someone Else")
 
     def test_other_boxes_get_their_text_as_the_game_copies_it(self) -> None:
         g = Game(self.game)
@@ -326,15 +523,14 @@ class DrawNamesCase:
         for name in ("Wilhelmina Charlotte Ångström-Lindqvist", "Bartholomew Montgomery Fitzgerald the Third "
                      "of the Northern Reaches of Ørsted"):
             with self.subTest(name=name):
-                self.g.type_name(name, slot=2)
-                self.g.emu.uc.mem_write(self.g.row(1), short_form(name).ljust(32, b"\0"))
-                short = short_form(name)
+                short = self.g.type_name(name, slot=2).rstrip(b"\0")
+                self.g.emu.uc.mem_write(self.g.row(1), short.ljust(32, b"\0"))
                 budget = max(self.game_width(short), placeholder)
-                shown = self.expected_fit(name.encode("latin-1"), budget, tail=False)
+                shown = self.expected_fit(name.encode("cp1252"), budget, tail=False)
                 self.assertEqual(self.screen(short, own=False), self.screen(shown, own=True))
                 self.assertEqual(self.hooked_width(short), self.game_width(shown))
         # any other text is the game's own, pixel for pixel
-        for text in (b"Hello, world", b"Renee", b"__________________________", short_form("x" * 40)):
+        for text in (b"Hello, world", b"Renee", b"__________________________", b"x" * 31):
             self.assertEqual(self.screen(text, own=False), self.screen(text, own=True))
             self.assertEqual(self.hooked_width(text), self.game_width(text))
 
@@ -342,21 +538,20 @@ class DrawNamesCase:
         """The main menu's "Player: <name>": the short form in it is the full name, the whole text
         fitted to the wider of itself and itself with the game's name placeholder for the name."""
         name = "Bartholomew Montgomery Fitzgerald the Third of the Northern Reaches"
-        self.g.type_name(name, slot=1)
-        short = short_form(name)
+        short = self.g.type_name(name, slot=1).rstrip(b"\0")
         text = b"Player: " + short
         budget = max(self.game_width(text), self.game_width(b"Player: " + b"_" * 26))
-        shown = self.expected_fit(b"Player: " + name.encode("latin-1"), budget, tail=False)
+        shown = self.expected_fit(b"Player: " + name.encode("cp1252"), budget, tail=False)
         self.assertEqual(self.screen(text, own=False), self.screen(shown, own=True))
         self.assertEqual(self.hooked_width(text), self.game_width(shown))
 
     def test_boxes_fit_their_text(self) -> None:
         emu = self.fde.emu
-        long_name = "Wilhelmina Charlotte Ångström-Lindqvist of Malmö and Stockholm".encode("latin-1")
+        long_name = "Wilhelmina Charlotte Ångström-Lindqvist of Malmö and Stockholm".encode("cp1252")
         for focused in (0, 1):
             for name in (b"Ann", long_name):
                 with self.subTest(focused=focused, name=name[:10]):
-                    _wrapper, box = self.g.box(name, limit=NAME_LETTERS)
+                    _wrapper, box = self.g.box(name, limit=NAME_BOX_BYTES)
                     for off, value in ((8, 100), (0xC, 50), (0x10, 340), (0x14, 80), (0x44, 6)):
                         emu.write32(box + off, value)
                     emu.write8(box + 0x25, focused)

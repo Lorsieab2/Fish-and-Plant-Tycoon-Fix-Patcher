@@ -37,8 +37,8 @@ SDK = Path(r"C:\Program Files (x86)\Windows Kits\10")
 SDK_VERSION = "10.0.26100.0"
 
 
-def break_tests() -> list[list[str]]:
-    """GraphemeBreakTest.txt: each line's expected graphemes."""
+def uax29_tests() -> list[list[str]]:
+    """GraphemeBreakTest.txt: each line's expected graphemes (UAX #29 alone)."""
     out = []
     for line in (DATA / "GraphemeBreakTest.txt").read_text(encoding="utf-8").splitlines():
         line = line.split("#", 1)[0].strip()
@@ -53,6 +53,29 @@ def break_tests() -> list[list[str]]:
                 cur += chr(int(tok, 16))
         out.append(want)
     return out
+
+
+def with_spec_joins(want: list[str]) -> list[str]:
+    """UAX #29's graphemes with the shared spec's joins on top (docs/UNICODE_SPEC.md section 2): no
+    boundary where a mark follows, or where anything follows a ZWJ, unless a control is next to
+    it. The joins change no other boundary (the rules' memory runs on per code point)."""
+    out: list[str] = []
+    for g in want:
+        if out and U.spec_join(U.gcb_map()(ord(out[-1][-1])), U.gcb_map()(ord(g[0])), ord(g[0])):
+            out[-1] += g
+        else:
+            out.append(g)
+    return out
+
+
+def break_tests() -> list[list[str]]:
+    """GraphemeBreakTest.txt with the spec's joins: what the patcher and the DLL cut."""
+    return [with_spec_joins(want) for want in uax29_tests()]
+
+
+# Lines of GraphemeBreakTest.txt 18.0 whose graphemes the spec's joins change (ZWJ + next, a mark
+# that is neither Extend nor SpacingMark): pinned, so a data change is noticed.
+SPEC_JOIN_LINES = 20
 
 
 ASSIGNED = None
@@ -108,8 +131,26 @@ class GraphemeTests(unittest.TestCase):
     def test_grapheme_break_test(self) -> None:
         cases = break_tests()
         self.assertEqual(len(cases), 853)
+        self.assertEqual(sum(a != b for a, b in zip(cases, uax29_tests())), SPEC_JOIN_LINES)
         for want in cases:
             self.assertEqual(U.graphemes("".join(want)), want, [hex(ord(c)) for c in "".join(want)])
+
+    def test_spec_joins(self) -> None:
+        """The shared cluster rule on top of UAX #29: ZWJ + next, every mark (Mn, Mc, Me), never next
+        to a control; the rest as UAX #29 (VS, skin tones, tags, ZWNJ, flags, CR LF)."""
+        cases = {
+            "a\u200db": ["a\u200db"],                                  # ZWJ joins what follows
+            "a\u200d\n": ["a\u200d", "\n"],                          # not a line break
+            "\u1000\u102b": ["\u1000\u102b"],                        # Myanmar Mc (UAX #29 breaks)
+            "e\u0301\u0302x": ["e\u0301\u0302", "x"],
+            "a\u200cb": ["a\u200c", "b"],                              # ZWNJ joins the one before
+            "\U0001F44D\U0001F3FD!": ["\U0001F44D\U0001F3FD", "!"],
+            "\U0001F1EF\U0001F1F5\U0001F1EF": ["\U0001F1EF\U0001F1F5", "\U0001F1EF"],
+            "\r\n\u0301": ["\r\n", "\u0301"],
+            "x\uFE0F\U000E0067": ["x\uFE0F\U000E0067"],
+        }
+        for text, want in cases.items():
+            self.assertEqual(U.graphemes(text), want, ascii(text))
 
     def test_every_rgi_emoji_sequence_is_one_grapheme(self) -> None:
         seqs = U.emoji_sequences()
@@ -187,6 +228,15 @@ class NativeTests(unittest.TestCase):
     @staticmethod
     def hexes(text: str) -> str:
         return " ".join(f"{ord(c):X}" for c in text)
+
+    def test_spec_joins_match_python(self) -> None:
+        """The DLL cuts where the tools cut, the spec's joins included."""
+        texts = ["a\u200db", "a\u200d\n", "\u1000\u102b\u102c", "e\u0301\u0302x", "a\u200cb",
+                 "\U0001F44D\U0001F3FD!", "\U0001F1EF\U0001F1F5\U0001F1EF", "\r\n\u0301",
+                 "\u0915\u094d\u0937\u093f", "\u1a20\u1a61\u1a63"]
+        got = self.run_lines(["g " + self.hexes(t) for t in texts])
+        for text, line in zip(texts, got):
+            self.assertEqual(line, " ".join(str(len(g)) for g in U.graphemes(text)), ascii(text))
 
     def test_grapheme_break_test(self) -> None:
         # the games' text ends at its first NUL, so the lines with U+0000 are checked without it:

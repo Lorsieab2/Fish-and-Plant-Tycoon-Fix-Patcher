@@ -7,8 +7,9 @@ known picture), so what is checked is where each letter comes from and where it 
   letter such as €) is drawn by the game's own code, pixel for pixel as before.
 * Any other letter is a run-time glyph in the text's colour, placed at the pen and advanced by
   its own width plus the font's spacing; the measure agrees. A letter no font has is '?'.
-* In a text box a letter goes in as its UTF-8 bytes, whole or not at all; Backspace takes off a
-  whole letter; a name box stops at 300 letters.
+* In a text box a letter goes in by the shared write rule (a Windows-1252 letter one byte, any
+  other UTF-8), whole or not at all; Backspace takes off a whole character; a name box stops at
+  NAME_BOX_BYTES bytes as stored, with no character cap.
 """
 
 from __future__ import annotations
@@ -130,8 +131,9 @@ def box_with(emu, limit: int, text: bytes = b"") -> tuple[int, int]:
     emu.uc.mem_write(box, bytes(0x60))
     focus = emu.alloc(0x10)
     emu.write8(focus + 8, 1)
-    buffer = emu.alloc(limit + 8)
+    buffer = emu.alloc(max(limit, len(text)) + 8)
     emu.uc.mem_write(buffer, text + b"\0")
+    emu.uc.mem_write(buffer + max(limit, len(text)) + 1, b"\xA5" * 7)    # guard bytes past the box's room
     emu.write8(box + 0x25, 1)
     emu.write32(box + 0x1C, focus)
     emu.write32(box + 0x28, limit)
@@ -152,11 +154,13 @@ class TypingCase:
         box, buffer = box_with(emu, limit, text)
         for ch in chars:
             self.assertEqual(emu.call(handler, 5, 0, ch, ecx=box) & 0xFF, 1)
+        room = max(limit, len(text))
+        self.assertEqual(bytes(emu.uc.mem_read(buffer + room + 1, 7)), b"\xA5" * 7, "nothing past the box's room")
         return emu.cstring(buffer)
 
     def test_letters_go_in_whole(self) -> None:
         name = "山田 Ölçer 🐟 𒀀 İstanbul"
-        self.assertEqual(self.type([ord(c) for c in name], limit=200), name.encode("utf-8"))
+        self.assertEqual(self.type([ord(c) for c in name], limit=200), T.unicode_data.encode_game_text(name))
         # a letter that does not fit whole stays out
         self.assertEqual(self.type([0x61, 0x62, 0x3042], limit=4), b"ab")
         self.assertEqual(self.type([0x61, 0x3042], limit=4), "aあ".encode("utf-8"))
@@ -170,9 +174,10 @@ class TypingCase:
         # an old one-byte name loses one letter (its byte) too
         self.assertEqual(self.type([8], limit=40, text=b"Ren\xe9"), b"Ren")
 
-    def test_a_name_box_stops_at_300_letters(self) -> None:
-        stored = self.type([0x3042] * 301, limit=1200)
-        self.assertEqual(stored, "あ".encode("utf-8") * 300)
+    def test_a_name_box_stops_at_its_bytes(self) -> None:
+        limit = T.unicode_data.NAME_BOX_BYTES
+        stored = self.type([0x3042] * (limit // 3 + 1), limit=limit)
+        self.assertEqual(stored, "あ".encode("utf-8") * (limit // 3))
 
 
 INI = "Unicode Text.ini"
