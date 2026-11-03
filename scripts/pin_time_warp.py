@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import sys
 
@@ -75,14 +76,14 @@ def main() -> int:
         entry = setting(game)
         entry["companion"] = companion(game)
         manifest["settings"] = [s for s in manifest["settings"] if s["id"] != SETTING_ID] + [entry]
-        pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items() if SETTING_ID not in k.split(",")}
+        pins = dict(manifest["patched_sha256_by_settings"])   # keep every pin (scripts/pin_keys.py)
         added = 0
-        for key, value in list(pins.items()):
+        for key, value in [(k, pins[k]) for k in pin_keys.sources(manifest, pins, {SETTING_ID})]:
             enabled = set(key.split(","))
             if set(game["requires"]) <= enabled:
                 pins[",".join(sorted(enabled | {SETTING_ID}))] = value
                 added += 1
-        manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+        manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
         game["manifest"].write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print(f"{game_id}: {added} Time Warp pins")
     return 0

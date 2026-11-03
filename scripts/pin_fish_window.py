@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import sys
 
@@ -79,8 +80,8 @@ def main() -> int:
         if entry["path"] == ds_fish_loader.DLL_NAME:
             entry.update(record(ds_fish["companion"]["source"], entry["path"], entry["destination"]))
 
-    pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items() if SETTING_ID not in k.split(",")}
-    keys = [""] + list(pins)
+    pins = dict(manifest["patched_sha256_by_settings"])   # keep every pin (scripts/pin_keys.py)
+    keys = [""] + pin_keys.sources(manifest, pins, {SETTING_ID})
     added = 0
     for key in keys:
         enabled = {s for s in key.split(",") if s} | {SETTING_ID}
@@ -92,7 +93,7 @@ def main() -> int:
             value = sha256(patched)
         pins[fish_patcher.settings_key(enabled)] = value
         added += 1
-    manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+    manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
     MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Pinned the Maximizable window DLL, re-pinned DS Exclusive Fish.dll and {added} executable combinations")
     return 0

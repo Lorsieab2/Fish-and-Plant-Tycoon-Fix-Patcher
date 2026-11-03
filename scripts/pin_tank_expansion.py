@@ -35,6 +35,7 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 import struct
 import sys
 from pathlib import Path
@@ -247,7 +248,7 @@ def main() -> int:
             })
             final, _ = fish_patcher.apply_patch_bytes(vanilla, fish_patcher.active_patch_records(manifest, enabled))
             pins[fish_patcher.settings_key(enabled)] = hashlib.sha256(final).hexdigest().upper()
-    manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+    manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
     MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{len(TANK_PATCHES) + 1} tank patches; {2 ** len(settings) - 1} checksum records and byte-combination pins")
     return 0
