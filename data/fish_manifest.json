@@ -69841,7 +69841,7 @@
       "id": "ds_fish",
       "name": "DS Exclusive Fish",
       "summary": "Adds the Nintendo DS version's 7 extra fish bodies and 7 extra fins: 343 new species, reached through the Unknown Chemical and the Magic Fish of Mutation.",
-      "description": "Adds the seven bodies and seven fins only the Nintendo DS version has: Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang and Idle bodies, and Small Fin, Roundy, Angel, Clown, Yellow, Blue and Moorish fins, 343 new species in all. Eggs, the store and breeding two PC fish never give them. The Unknown Chemical, and the Magic Fish of Mutation at hatching, can now step a Spotanus body or a Twin-Fin fin one place further, into the DS ones, with the same odds as before. Breeding a DS fish follows the DS game: the parents' average, an odd total rounded up or down at random. Prices, rarity (most need environment level 3), names and fin placement follow the DS game. Runs as a companion DLL the game loads at start; new sprites go in Images, and each save slot keeps its DS species data in a separate file beside the save. See docs/fish-tycoon-ds-fish-testing-guide.md.",
+      "description": "Adds the seven bodies and seven fins only the Nintendo DS version has: Clownfish, Discus, Bicolor, Trigger, Surgeonfish, Tang and Idle bodies, and Small Fin, Roundy, Angel, Clown, Yellow, Blue and Moorish fins, 343 new species in all. Eggs, the store and breeding two PC fish never give them. The Unknown Chemical, and the Magic Fish of Mutation at hatching, can now step a Spotanus body or a Twin-Fin fin one place further, into the DS ones, with the same odds as before. Breeding a DS fish follows the DS game: the parents' average, an odd total rounded up or down at random. Prices, rarity, names and fin placement follow the DS game; every DS fish needs Fish Environment level 3 to keep its health, like the PC's rare fish. Runs as a companion DLL the game loads at start; new sprites go in Images, and each save slot keeps its DS species data in a separate file beside the save. See docs/fish-tycoon-ds-fish-testing-guide.md.",
       "warning": "Turning this off after DS fish are in a save leaves those fish with genes the game cannot draw or name. Sell or trash every DS fish before switching it off.",
       "category": "main",
       "default": true,
@@ -69853,8 +69853,8 @@
           {
             "path": "DS Exclusive Fish.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/DS Exclusive Fish.dll",
-            "size": 105984,
-            "sha256": "A695E1EF2C6EC1E38C9D4352659C2E7B6E3A8DDE963557BCF91A9ECA21A6D80E"
+            "size": 106496,
+            "sha256": "D34F30A14884EE34656616E26E499784FF288C64D13A337D19FE30597761725E"
           },
           {
             "path": "Images/FISH_23_body_Grid.png",

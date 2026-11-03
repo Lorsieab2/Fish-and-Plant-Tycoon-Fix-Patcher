@@ -183,7 +183,8 @@ never needs the internet.
   them. The Unknown Chemical, and the Magic Fish of Mutation at hatching, can
   step a Spotanus body or Twin-Fin fin one place further into them, with the
   same odds as before. Breeding a DS fish, prices, rarity, names and fin
-  placement follow the DS game. It runs as a companion DLL the game loads at
+  placement follow the DS game; every DS fish needs Fish Environment level 3
+  to keep its health, like the PC's rare fish. It runs as a companion DLL the game loads at
   start (`Fish Tycoon Fix Patcher DLLs\DS Exclusive Fish.dll`), its sprites go
   in `Images`, and each save slot keeps its DS species data in
   `Fish Tycoon Fix Patcher Data\DS Fish <slot>.dat` beside the saves; the
