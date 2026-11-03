@@ -1398,6 +1398,11 @@ asset merge.
   (https://creativecommons.org/licenses/by/4.0/); the font built by Mozilla.
   Its license is in `Fonts\LICENSE-TwemojiMozilla.txt` beside Unicode
   Text.dll.
+- The Thai, Lao, Khmer, Burmese, Chinese and Japanese word lists used to wrap
+  translated lines are from **ICU** (https://github.com/unicode-org/icu,
+  release 77.1), shipped unchanged, including ICU's lists from Libtabe and
+  IPADIC; their licenses are in `word-lists\ICU-LICENSE.txt` beside
+  Translations.dll.
 
 ## Tests
 
