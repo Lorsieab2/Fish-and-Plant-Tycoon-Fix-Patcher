@@ -46,5 +46,17 @@
       "size": 9592228,
       "sha256": "CA7DF8948CEC84240F19508A17A74DE037C98BA3A54E1AAA50EA6EDBBDC37F64"
     }
+  ],
+  "colour_fonts_note": "Colour fonts Unicode Text.dll asks for emoji before the chain: Twemoji Mozilla draws flags (Segoe UI Emoji draws a flag as its two letters) and the emoji Segoe UI Emoji lacks; downloaded on 2026-11-03 into an empty folder, the same file (SHA-256) as Firefox's browser/fonts/TwemojiMozilla.ttf.",
+  "colour_fonts": [
+    {
+      "file": "Twemoji.Mozilla.ttf",
+      "family": "Twemoji Mozilla",
+      "url": "https://github.com/mozilla/twemoji-colr/releases/download/v0.7.0/Twemoji.Mozilla.ttf",
+      "license": "CC-BY-4.0 (Twemoji artwork, Twitter, Inc and other contributors; build code Apache-2.0, Mozilla)",
+      "license_file": "LICENSE-TwemojiMozilla.txt",
+      "size": 1474284,
+      "sha256": "6D90152EE0D29E82FE2A87793AF5AA4B7AD13E6538360889E141E81ED299EE8E"
+    }
   ]
 }

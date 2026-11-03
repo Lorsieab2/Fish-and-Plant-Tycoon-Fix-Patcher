@@ -47,7 +47,7 @@ ALLOWED: dict[str, tuple[set[str], str]] = {
     "api": ({"SHGetSpecialFolderPathW", "SetWindowLongW", "CallWindowProcW", "TranslateMessage", "EnumThreadWindows",
              "IsWindowVisible", "PeekMessageW", "ImmGetContext", "ImmGetCompositionStringW", "ImmReleaseContext",
              "CreateCompatibleDC", "CreateDIBSection", "SelectObject", "CreateFontW", "SetTextColor", "SetBkMode",
-             "ExtTextOutW", "GdiFlush", "SetTextAlign", "ScriptItemize", "ScriptShape", "ScriptPlace",
+             "ExtTextOutW", "GdiFlush", "SetTextAlign", "ScriptItemize", "ScriptShape", "ScriptPlace", "ScriptShapeOpenType",
              "ScriptGetFontProperties", "GetFontData", "GetTextMetricsW", "D2D1CreateFactory", "DWriteCreateFactory",
              "ScreenToClient", "AddFontResourceExW"}, _API),
     "fonts": ({"Segoe UI", "Yu Gothic", "Meiryo", "Microsoft YaHei", "Malgun Gothic", "Nirmala UI", "Leelawadee UI",
@@ -56,7 +56,8 @@ ALLOWED: dict[str, tuple[set[str], str]] = {
                # the Unicode 18.0 fallback chain (unicode_glyphs.h): Windows faces and the bundled open fonts
                "Cambria Math", "Microsoft New Tai Lue", "Microsoft PhagsPa", "Microsoft Tai Le",
                "Microsoft Yi Baiti", "MingLiU-ExtB", "SimSun", "SimSun-ExtB", "SimSun-ExtG", "Unifont",
-               "Unifont Upper", "Noto Sans Cuneiform", "Noto Serif Tangut", "Last Resort"}, _FONT),
+               "Unifont Upper", "Noto Sans Cuneiform", "Noto Serif Tangut", "Last Resort",
+               "Twemoji Mozilla"}, _FONT),
     "locale": ({"en-us"}, "the locale DirectWrite measures text in"),
     "font pictures": ({"paddington_tt_18_unicode", "paddington_tt_30_unicode",
                        "FONT_TRIPLEX_SANSLIGHTLIN_BOLD_16PT_unicode", "PTfontsmall_unicode"},

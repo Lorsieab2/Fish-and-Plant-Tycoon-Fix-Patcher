@@ -57,6 +57,10 @@ class GlyphCase:
         self.g = N.Game(self.game, emu=self.fde.emu)
         self.rasters = []
         self.fde.emu.hook(symbols["_raster_glyph"], self._raster, 0)
+        # whole-line bidi: Uniscribe's levels (Windows' own ScriptItemize; none elsewhere, and the line
+        # is then drawn in its logical order as without Uniscribe)
+        self.bidi_lines: list[list[int]] = []
+        self.fde.emu.hook(symbols["_line_levels"], self._line_levels, 0)
         va = T.FONT_SITES[self.game][0][0]
         push = bytes(self.fde.emu.uc.mem_read(va, 10))
         table, name_at = struct.unpack_from("<I", push, 1)[0], struct.unpack_from("<I", push, 6)[0]
@@ -76,6 +80,17 @@ class GlyphCase:
         e.write32(w_at, w)
         e.write32(xoff_at, xoff)
         e.write32(adv_at, adv)
+        return 1
+
+    def _line_levels(self, e) -> int:
+        import native_glyphs
+        units_at, n, levels_at = e.arg(0), e.arg(1), e.arg(2)
+        units = list(struct.unpack(f"<{n}H", bytes(e.uc.mem_read(units_at, 2 * n))))
+        self.bidi_lines.append(units)
+        levels = native_glyphs.uniscribe_levels(units)
+        if levels is None:
+            return 0
+        e.uc.mem_write(levels_at, bytes(levels))
         return 1
 
     def text_at(self, raw: bytes) -> int:
