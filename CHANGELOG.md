@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.0.25
+
+- **Translations window: select several, Delete..., Export several.** The
+  "Translations in the patcher" list now selects several at once: click
+  selects one, Ctrl+click adds or removes one, Shift+click selects a range,
+  and Ctrl+A or the new **Select All** button selects them all. Its first row
+  is "English (original)"; the language the game uses is still chosen in the
+  "Language in the game" dropdown above, as before. Edit..., Check and Share
+  on GitHub... act on one translation, as before.
+- **Delete...** (or the Delete key in the list) moves the selected
+  translation files to the Windows Recycle Bin after one Yes/No that lists
+  them (No is the default and changes nothing). It is never a plain delete:
+  the files go through SHFileOperationW with FOF_ALLOWUNDO,
+  FOF_NOCONFIRMATION and FOF_SILENT (and FOF_WANTNUKEWARNING, so on a drive
+  without a Recycle Bin Windows asks instead of destroying the file); if the
+  Recycle Bin call fails, the error is shown and nothing else is tried.
+  "English (original)" is built into the game and is always skipped (the
+  question says so). Translations that came with the patcher can be deleted
+  from your copy too; they come back with the next patcher update. If the
+  game uses a translation you delete, it goes back to English (original)
+  exactly as choosing English does (Translation.ini and Translation.txt are
+  removed from the game copies), and an open editor of a deleted file closes
+  without saving.
+- **Export translation...** with several selected saves one file each, under
+  its own name, into a folder you choose (it asks before replacing a file
+  already there, No by default). With one selected it works as before.
+
 ## v1.0.24
 
 - **Copy and Paste in Text Boxes** (new setting, both games; on by default and
