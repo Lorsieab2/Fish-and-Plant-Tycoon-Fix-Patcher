@@ -3,8 +3,9 @@ exporting and sharing. The window is src/translations_window.py; the format is
 src/translation_format.py; the game side is Translations.dll (native/ftfp_translations).
 
 * Every translation lives in the patcher's "translations" folder, one flat folder of
-  "<Game title> - <language>.txt" files; the ones that came with the patcher (accepted on GitHub)
-  are in its "fish" and "plant" subfolders. Only the English template is ever generated.
+  "<Game title> - <language>.txt" files; the ones that came with the patcher or were downloaded with
+  "Download from GitHub..." (the public folder, translations/<game>/<code>.tsv on GitHub; the older
+  .txt names are read too) are in its "fish" and "plant" subfolders. Only the English template is ever generated.
 * The choice per game is remembered in "translation_choice.json" beside the patcher and written into
   every copy of the game the patcher knows: "<copy>\\<Game> Tycoon Fix Patcher DLLs\\Translation.ini"
   (language=, file=<full path>) and a copy of the file, Translation.txt, beside it (used when the
@@ -22,6 +23,7 @@ import shutil
 import urllib.parse
 
 import translation_format as tfmt
+import translation_public as tfmt_public
 
 ROOT = Path(__file__).resolve().parents[1]
 TRANSLATIONS_DIR = ROOT / "translations"
@@ -110,7 +112,8 @@ def installed(game: str, folder: Path | None = None) -> list[Installed]:
     """Every translation for this game: the ones that came with the patcher, then the player's."""
     folder = folder or TRANSLATIONS_DIR
     found: list[Installed] = []
-    for path in sorted(list((folder / game).glob("*.txt")) + list(folder.glob("*.txt"))):
+    paths = [p for ext in tfmt_public.EXTENSIONS for p in [*(folder / game).glob("*" + ext), *folder.glob("*" + ext)]]
+    for path in sorted(paths):
         info = read_info(path, game)
         if info is not None:
             found.append(info)

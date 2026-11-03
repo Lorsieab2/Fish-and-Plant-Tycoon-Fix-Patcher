@@ -7,11 +7,17 @@ untrusted DATA: the issue form is read from the event JSON file (never through a
 attachment is downloaded only from GitHub's own attachment hosts, at most MAX_BYTES, and it is
 only ever parsed as text by src/translation_format.py -- nothing in it is executed. Then:
 
-* accepted: the file goes to translations/<fish|plant>/<Game title> - <language>.txt with its
-  @translator row set to the typed credit name (and nothing else personal), and <work>/pr_body.md
-  is written; the workflow commits it as github-actions[bot] and opens a pull request;
+* accepted: the file goes to the public folder, translations/<fish|plant>/<language code>.tsv
+  (src/translation_public.py; <code>-<credit slug>.tsv when that language is already there, so
+  nobody's file is overwritten), with its @translator row set to the typed credit name (and nothing
+  else personal), and <work>/pr_body.md is written; the workflow commits it as github-actions[bot]
+  and opens a pull request;
 * refused: <work>/comment.md says why (the validator's report, with line numbers), and the
   workflow posts it on the issue.
+
+Before this runs, the workflow's "scan" job has sent the same attachment to VirusTotal
+(scripts/virustotal_scan.py); its SHA-256 comes in the EXPECTED_SHA256 environment variable and a
+download that differs from what was scanned is refused.
 
 Exit code 0 in both cases (2 = the event is not usable at all). <work>/result.txt holds
 "accepted" or "refused" and <work>/target.txt the added file's path.
@@ -20,6 +26,7 @@ Exit code 0 in both cases (2 = the event is not usable at all). <work>/result.tx
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -30,8 +37,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import translation_format as tfmt  # noqa: E402
+import translation_public as tp  # noqa: E402
 
-MAX_BYTES = 2 * 1024 * 1024
+MAX_BYTES = tp.MAX_BYTES
 ALLOWED_HOSTS = ("github.com", "user-images.githubusercontent.com", "objects.githubusercontent.com",
                  "private-user-images.githubusercontent.com")
 ATTACHMENT_RE = re.compile(r"https://(?:github\.com/(?:user-attachments/files/\d+/|[\w.-]+/[\w.-]+/files/\d+/)"
@@ -75,9 +83,9 @@ def credit_name(text: str) -> str:
 
 def attachment_url(text: str) -> str:
     found = ATTACHMENT_RE.findall(text or "")
-    txt = [u for u in found if urllib.parse.urlparse(u).path.lower().endswith(".txt")]
+    txt = [u for u in found if urllib.parse.urlparse(u).path.lower().endswith(tp.EXTENSIONS)]
     if not txt:
-        raise Refused("No translation file (.txt) is attached in the \"Translation file\" field.")
+        raise Refused("No translation file (.tsv or .txt) is attached in the \"Translation file\" field.")
     return txt[0]
 
 
@@ -98,19 +106,24 @@ def download(url: str, limit: int = MAX_BYTES) -> bytes:
     return data
 
 
-def check(data: bytes, game: str) -> tuple[tfmt.TranslationFile, tfmt.Report]:
+def check(data: bytes, game: str, extension: str = tp.DOCUMENTED_EXTENSION) -> tuple[tfmt.TranslationFile, tfmt.Report]:
+    """The public folder's check (src/translation_public.py: UTF-8, at most 2 MB, format, game, keys,
+    placeholders, choices, no email address), the same one the pull-request validator uses."""
+    result = tp.check_file(f"{tp.FOLDER}/{game}/upload{extension}", data)
+    problems = [p for p in result.problems if not p.startswith("upload" + extension)]   # the name is ours
+    if problems:
+        raise Refused("The file cannot be used:\n" + "\n".join(problems))
     parsed = tfmt.parse_bytes(data, game)
-    report = tfmt.validate(parsed)
-    if parsed.fatal:
-        raise Refused("The file cannot be used: " + parsed.fatal)
-    if not report.usable:
-        raise Refused("The file has an email address. " + tfmt.EMAIL_MESSAGE + "\n\n" + report.summary())
-    if report.translated == 0:
-        raise Refused("The file has no translated line.\n\n" + report.summary())
-    return parsed, report
+    return parsed, tfmt.validate(parsed)
 
 
-def accept(event: dict, work: Path, fetch=download, root: Path = ROOT) -> str:
+def expected_sha256() -> str:
+    """The SHA-256 the scan job checked (empty when run outside the workflow)."""
+    value = os.environ.get("EXPECTED_SHA256", "").strip().lower()
+    return value if re.fullmatch(r"[0-9a-f]{64}", value) else ""
+
+
+def accept(event: dict, work: Path, fetch=download, root: Path = ROOT, expected: str | None = None) -> str:
     issue = event.get("issue") or {}
     fields = form_fields(str(issue.get("body") or ""))
     number = int(issue.get("number") or 0)
@@ -121,13 +134,22 @@ def accept(event: dict, work: Path, fetch=download, root: Path = ROOT) -> str:
         if "[x]" not in fields.get("licence", "").lower():
             raise Refused("The licence box is not ticked.")
         name = credit_name(fields.get("credit name", ""))
-        data = fetch(attachment_url(fields.get("translation file", "")))
-        parsed, report = check(data, game)
-        language = parsed.language.strip() or tfmt.normalise_credit(fields.get("language", ""))
+        url = attachment_url(fields.get("translation file", ""))
+        data = fetch(url)
+        if expected is not None and tp.sha256(data) != expected:
+            raise Refused("The attachment is not the file VirusTotal scanned; please share it again.")
+        parsed, report = check(data, game, "." + urllib.parse.urlparse(url).path.rsplit(".", 1)[-1].lower())
+        language = parsed.language.strip()
         if not language or tfmt.contains_email(language):
             raise Refused("The file has no @language row (the language's own name).")
+        folder = root / tp.FOLDER / game
+        taken = [p.name for p in folder.iterdir()] if folder.is_dir() else []
+        try:
+            file_name = tp.public_name(parsed.value("@code"), taken, name)
+        except ValueError:
+            raise Refused("The file has no usable @code row (the language code, like fr or pt-BR).") from None
         parsed.set_info("@translator", "", name)
-        target = root / "translations" / game / tfmt.file_name(tfmt.GAME_TITLES[game], language)
+        target = folder / file_name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(tfmt.to_bytes(parsed))
         recheck = tfmt.parse_bytes(target.read_bytes(), game)
@@ -159,7 +181,9 @@ def main() -> int:
         return 2
     work = Path(sys.argv[2])
     work.mkdir(parents=True, exist_ok=True)
-    print(accept(event, work))
+    # In the Action, the scan job's SHA-256 is required: no scan, no pull request.
+    expected = expected_sha256() or ("" if os.environ.get("GITHUB_ACTIONS") else None)
+    print(accept(event, work, expected=expected))
     return 0
 
 

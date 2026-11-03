@@ -114,6 +114,8 @@ FILES = [
     "src/text_maker_window.py",
     "src/text_raster.py",
     "src/translation_format.py",
+    "src/translation_public.py",
+    "src/translations_github.py",
     "src/translation_strings.py",
     "src/translations.py",
     "src/translations_window.py",
@@ -148,10 +150,24 @@ def bundled_asset_files() -> list[str]:
     return list(dict.fromkeys(relative for relative, _size, _digest in pinned_assets()))
 
 
-def shipped_translations() -> list[str]:
-    """Every accepted community translation (translations/<game>/*.txt): shipped in the ZIP, so it is
-    in every player's language list, credited from its @translator row."""
-    return sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "translations").glob("*/*.txt"))
+def shipped_translations(root: Path | None = None) -> list[str]:
+    """Every accepted community translation in the public folder (translations/<game>/<code>.tsv, and
+    the older *.txt names): shipped in the ZIP, so it is in every player's language list, credited
+    from its @translator row. A "(TEST)" file is never shipped (the owner): one whose language or
+    credit starts with "(TEST)" (the header, the main rule) or whose file name contains "test" (a
+    backstop); players get those only through Download from GitHub... translations/README.md and
+    the .gitkeep files are not shipped either."""
+    import sys
+    if str(ROOT / "src") not in sys.path:
+        sys.path.insert(0, str(ROOT / "src"))
+    import translation_public as tp
+    root = root or ROOT
+    found = []
+    for game in tp.GAMES:
+        for path in sorted((root / tp.FOLDER / game).glob("*")):
+            if path.is_file() and tp.is_translation_name(path.name) and not tp.is_test_translation(path.name, path.read_bytes()):
+                found.append(path.relative_to(root).as_posix())
+    return sorted(found)
 
 
 def imported_modules(entry: str = "tycoon_fix_patcher_gui") -> set[str]:
