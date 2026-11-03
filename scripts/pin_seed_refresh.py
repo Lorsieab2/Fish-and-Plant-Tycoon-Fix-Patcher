@@ -39,6 +39,7 @@ from __future__ import annotations
 import hashlib
 from itertools import combinations
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import struct
 import sys
@@ -181,7 +182,7 @@ def main() -> int:
             if any(settings[s].get("companion", {}).get("startup_loader") for s in enabled):
                 patched, _ = ds_fish_loader.append_startup_loader(patched, ds_fish_loader.plant_profile(enabled))
             pins[plant_patcher.settings_key(enabled, manifest)] = hashlib.sha256(patched).hexdigest().upper()
-    manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+    manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
     MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{len(records(vanilla))} patches, {2 ** len(byte_settings) - 1} checksum records, {len(pins)} pins")
     return 0

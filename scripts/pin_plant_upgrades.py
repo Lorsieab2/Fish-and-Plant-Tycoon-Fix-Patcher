@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pin_keys  # noqa: E402  (scripts/, beside this one)
 from pathlib import Path
 import sys
 
@@ -124,15 +125,16 @@ def main() -> int:
     setting["companion"] = {"source": SOURCE, "files": companion_files()}
     manifest["settings"] = [s for s in manifest["settings"] if s["id"] not in (SETTING_ID, "seed_boxes")] + [setting]
 
-    pins = {k: v for k, v in manifest["patched_sha256_by_settings"].items()
-            if not {SETTING_ID, "seed_boxes"} & set(k.split(","))}
+    source = {k: v for k, v in manifest["patched_sha256_by_settings"].items()
+              if not {SETTING_ID, "seed_boxes"} & set(k.split(","))}
+    pins = dict(manifest["patched_sha256_by_settings"])   # keep every pin (scripts/pin_keys.py)
     added = 0
-    for key, value in list(pins.items()):
+    for key, value in list(source.items()):
         enabled = set(key.split(","))
         if "new_flowers" in enabled:
             pins[",".join(sorted(enabled | {SETTING_ID}))] = value
             added += 1
-    manifest["patched_sha256_by_settings"] = dict(sorted(pins.items(), key=lambda kv: (len(kv[0].split(",")), kv[0])))
+    manifest["patched_sha256_by_settings"] = pin_keys.finish(manifest, pins)
     MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Pinned {len(setting['companion']['files'])} companion files and {added} executable combinations")
     return 0
