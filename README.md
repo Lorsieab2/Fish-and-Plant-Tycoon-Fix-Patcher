@@ -1226,7 +1226,13 @@ folder never fails with "path too long".
   untranslated only, progress, placeholders in colour, a preview in the
   game's own font with a too-long warning, autosave). "Add translation
   file..." (or drag a file onto the window) checks and adds one you were
-  sent; "Export translation..." saves a copy. Choices by number ("%d
+  sent; "Export translation..." saves a copy (several selected: one file
+  each into a folder). The list of translations selects several (Ctrl+click,
+  Shift+click, Ctrl+A, Select All); "Delete..." moves the selected files to
+  the Recycle Bin after one Yes/No (No by default), never deletes "English
+  (original)", and if the game used a deleted translation it goes back to
+  English. Ones that came with the patcher come back with the next patcher
+  update. Choices by number ("%d
   {%1: one=poisson | other=poissons}") use the language's CLDR plural rules.
   A missing or broken line stays English, and the game never stops for a
   translation. If you want to share your translation, consider going to the
