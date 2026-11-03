@@ -32,7 +32,7 @@
   Slots.dll, both Optimize Prices.dll, Extra Greenhouses.dll, Unused
   Flowers.dll (companion pins only; no executable byte changes).
 - **(TEST) - French AI Translation** for both games, in the repository's
-  `translations/fish/` and `translations/plant/` folders (not in the
+  `translations/fish/fr.tsv` and `translations/plant/fr.tsv` (not in the
   patcher's ZIP; get it with "Download from GitHub..."). Machine-made for
   testing, credited "(TEST) AI translation": every line of both templates
   (the games' own lines and every patch's text) in French, with French plural

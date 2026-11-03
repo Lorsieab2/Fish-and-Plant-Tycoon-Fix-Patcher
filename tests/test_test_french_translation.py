@@ -28,7 +28,7 @@ SAME_IN_FRENCH = {"OK", "Normal", "Options", "Menu", "Pollen", "Stats", "Version
 
 
 def path_of(game: str) -> Path:
-    return ROOT / "translations" / game / tfmt.file_name(tfmt.GAME_TITLES[game], LANGUAGE)
+    return ROOT / "translations" / game / "fr.tsv"
 
 
 class TestFrenchFiles(unittest.TestCase):
@@ -138,6 +138,22 @@ class TestFrenchFiles(unittest.TestCase):
                     "\n@language", "").replace("\n@code", "").replace("\n@translator", ""))
                 for row in self.parsed(game).rows:
                     row.translation.encode("cp1252")
+
+    def test_public_folder_accepts_it_and_the_release_never_ships_it(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import build_release  # noqa: E402
+        import translation_public as tp  # noqa: E402
+        shipped = build_release.shipped_translations()
+        for game in tfmt.GAME_TITLES:
+            with self.subTest(game=game):
+                path = path_of(game)
+                data = path.read_bytes()
+                check = tp.check_file(f"translations/{game}/{path.name}", data)
+                self.assertEqual(check.problems, [])
+                self.assertTrue(check.ok)
+                self.assertEqual(check.code, "fr")
+                self.assertTrue(tp.is_test_translation(path.name, data))
+                self.assertNotIn(f"translations/{game}/{path.name}", shipped)
 
     def test_new_player_is_never_translated(self):
         for game in tfmt.GAME_TITLES:
