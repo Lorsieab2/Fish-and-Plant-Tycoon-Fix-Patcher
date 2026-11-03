@@ -149,6 +149,7 @@ static const scene_fn stock_overlay = (scene_fn)0x0041ED00u;   /* thiscall, ecx 
 static const mouse_fn stock_mouse = (mouse_fn)0x00421F80u;
 static const getter_fn font_manager = (getter_fn)0x00418210u;
 static const font_fn font_get = (font_fn)0x004181F0u;          /* 0 = paddington_tt_18 (0x4180B0) */
+static const toggle_width_fn text_width = (toggle_width_fn)0x004023D0u;   /* the game's measure */
 static const text_fn draw_text = (text_fn)0x00408B80u;          /* (text, x, y, colour, font) */
 #define LANGUAGE (*(int *volatile *)0x0045B314u)               /* *LANGUAGE == 1: German */
 
@@ -337,7 +338,13 @@ static void draw_counts(char *impl) {
     if (tank_id < 0 || tank_id > 2) return;
     manager = font_manager();
     if (manager == NULL || (font = font_get(manager, 0, 0)) == NULL) return;
-    draw_at(graphics, font, toggle.shown ? w->on : w->off, BUTTON_X, BUTTON_Y, toggle.hovered ? WHITE : YELLOW);
+    {
+        char label[COUNT_LINE];
+        int shown_w, bx = toggle_label(label, (int)sizeof label, toggle.shown ? w->on : w->off, BUTTON_X,
+                                       text_width, font, &shown_w);
+        toggle.box.left = (bx < BUTTON_X ? bx : BUTTON_X) - 4;       /* the click area follows a label moved left */
+        draw_at(graphics, font, label, bx, BUTTON_Y, toggle.hovered ? WHITE : YELLOW);
+    }
     if (!toggle.shown) return;
     count_tank(state, tank_id, tank_room(), &tank);
     count_tank(state, ISOLATION_TANK, 1, &isolation);

@@ -225,9 +225,7 @@ census again when the games and Unicorn are there and compares.
   edge. Its room is the screen's edge as box_room gives a name its room (left: to the right edge; centred:
   twice the distance to the nearer edge; right: from the left edge), and inside a picture that holds the
   whole English line and does not move (a panel), that picture's sides; a button's label has its frame's
-  width; the next word or small picture drawn on the same row (a check box, a radio button, the cash
-  amount; not the dialog tiles or rope bars it sits on) ends the room 4 pixels before it, so a longer word
-  never runs into its neighbour; a text box that is built but not drawn gives its room from its own fields (box_room). A word
+  width; a text box that is built but not drawn gives its room from its own fields (box_room). A word
   placed on a Plant dialog whose place the run does not know (a third run moves the dialog and the word
   moves with it) gets no room from the screen's edge there. A line handed to a message, question or
   tooltip box has the widest (and tallest) text that box keeps on the screen, found by building the box
@@ -239,10 +237,12 @@ census again when the games and Unicorn are there and compares.
   goals, store items...; spots no run could show) and every patcher DLL text drawn by the DLL itself: the
   English's widest line plus a quarter (at least 16 pixels), never more than the screen's 800. It is an
   estimate, not a measurement. Exception: the Counts button ("Counts: On" / "Off", drawn by Tank Counts
-  and Greenhouse Counts from x 694, Plant's from 646 under the Extra Greenhouses arrows) has its room
-  from the DLL's own place, 105 and 98 pixels, checked by running the DLL's draw in
-  `tests/test_tank_greenhouse_counts.py`. A wider translation is cut there ("Compteurs : oui" shows
-  "Compteurs..."), so the On/Off word is lost: keep it short ("Compt. : oui").
+  and Greenhouse Counts from x 694, Plant's from 646 under the Extra Greenhouses arrows) has the
+  screen's edge as its room (796 pixels), checked by running the DLL's draw in
+  `tests/test_tank_greenhouse_counts.py`. A wider translation ("Compteurs : oui") is drawn whole: the DLL
+  measures it with the game's own measure and moves its start left so it ends at x 796 (its click area
+  follows); English is drawn exactly as before, and only a label wider than the whole screen is cut,
+  from its end.
 - **No limit.** A Windows popup's text (Time Warp's dialog, the store popups): Windows wraps it.
 
 The editor and the validator (`src/translation_fit.py`, `translation_format.validate(widths=...)`)

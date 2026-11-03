@@ -1,13 +1,15 @@
 """The first live check of v1.0.26 with the French (TEST) translation (translations/<game>/fr.tsv)
-found French text running off the screen or into its neighbours. Each case again, in Unicorn: the
-same French lines through Translations.dll (fitted with the game's measure answering the fonts' real
-widths) and drawn where the game (or the patcher DLL) draws them.
+found French text running off the screen. The owner's rule: "i dont care if things run out of boxes,
+they just need to not run off the screen" (the screen is 800 pixels wide). Each case again, in Unicorn:
+the same French lines through Translations.dll (fitted with the game's measure answering the fonts' real
+widths) and drawn where the game (or the patcher DLL) draws them. Every line's drawn right edge must be
+at most 800; staying clear of a neighbouring box, word or check box is NOT required.
 
 1. The Counts button: "Compteurs : oui" drawn by Tank Counts.dll / Greenhouse Counts.dll from x 694
-   (Plant: 646 under the Extra Greenhouses arrows) ran off the right edge (screenshots 18, 26, 27).
-2. Plant Options: "Morceaux de musique" under the check boxes, "Arreter le temps" into "Lente" (23).
-3. Plant greenhouse panel: "ARGENT" into "$250", "Poubelle" over its frame, "Pepiniere" off the right
-   edge (26, 27).
+   (Plant: 646 under the Extra Greenhouses arrows) ran off the right edge (screenshots 18, 26, 27): it is
+   now drawn whole, moved left to end at x 796.
+2. Plant Options: "Morceaux de musique", "Arreter le temps" draw whole (they fit before x 800).
+3. Plant greenhouse panel: "ARGENT", "Poubelle", "Pepiniere" draw whole (26, 27).
 """
 
 from __future__ import annotations
@@ -59,7 +61,7 @@ def overlaps(a, b) -> bool:
 class CountsButton(unittest.TestCase):
     """1. "Compteurs : oui" / "non" where the Counts DLL draws it."""
 
-    def check(self, game: str, places) -> None:
+    def check(self, game: str, starts) -> None:
         rt, fonts = french(game)
         name, path, slug = COUNTS[game]
         image = te.relocate(path.read_bytes(), BASE)
@@ -69,18 +71,22 @@ class CountsButton(unittest.TestCase):
             shown = rt.emu.cstring(rt.emu.read32(slots[0]))
             limit = tfit.limits(game)[f"mod/{slug}.{'counts_on' if b'On' in english else 'counts_off'}"]
             self.assertTrue(limit.proven)
+            self.assertEqual(limit.width, 796)                             # the room is the screen's edge
             w = fonts.size(0, shown)[0]
-            self.assertGreater(fonts.size(0, french_text.encode("cp1252"))[0], limit.width, "the French was too wide")
-            for x, right in places:
-                self.assertLessEqual(x + w + 1, right, (game, shown))      # with its shadow, inside the screen
-            self.assertTrue(shown.endswith(b"..."), shown)                 # cut: "oui" / "non" is not shown
-            self.assertTrue(french_text.encode("cp1252").startswith(shown[:-3].rstrip()))
+            self.assertEqual(shown.replace(bytes([0xA0]), b" "), french_text.encode("cp1252"))   # whole, not cut
+            self.assertLessEqual(w, limit.width)
+            for start in starts:
+                # count_toggle.h's toggle_label: from `start`, or moved left to end at 796
+                x = start if start + w <= 796 else 796 - w
+                self.assertGreaterEqual(x, 0)
+                self.assertLessEqual(x + w + 1, 800, (game, shown))        # with its shadow, on the screen
+                print(f"{game} {shown.decode('cp1252')!r} from {start}: drawn x {x} to {x + w}")
 
     def test_fish(self) -> None:
-        self.check("fish", ((694, 800),))
+        self.check("fish", (694,))
 
     def test_plant(self) -> None:
-        self.check("plant", ((694, 800), (646, 745)))
+        self.check("plant", (694, 646))
 
 
 @unittest.skipUnless(READY, "MSVC, Unicorn, capstone, the vanilla games and Translations.dll")
@@ -112,24 +118,16 @@ class PlantScreens(unittest.TestCase):
         return found[0]
 
     def test_options_dialog(self) -> None:
-        """2. 0x2F "Morceaux de musique" clear of the first check box; 0x37 "Arreter le temps" clear of
-        0x39 "Lente"."""
-        texts, r = self.draw(R.L._plant_options)
-        tracks = self.text(texts, 0x2F)
-        # the four check boxes: the small pictures on the line's row
-        boxes = [(x, y, x + w, y + h) for x, y, w, h in r.pictures
-                 if (x, y, w, h) not in r.backdrop and w <= 64 and h <= 64 and y < tracks[3] and y + h > tracks[1]]
-        self.assertEqual(len(boxes), 4, boxes)
-        for cell in boxes:
-            self.assertFalse(overlaps(tracks, cell), (self.strings[0x2F], tracks, cell))
-        self.assertFalse(overlaps(self.text(texts, 0x37), self.text(texts, 0x39)),
-                         (self.strings[0x37], self.strings[0x39]))
+        """2. 0x2F "Morceaux de musique", 0x37 "Arreter le temps": drawn whole, on the screen."""
+        texts, _r = self.draw(R.L._plant_options)
+        for ident in (0x2F, 0x37):
+            rect = self.text(texts, ident)
+            print(f"options {self.strings[ident]!r}: x {rect[0]} to {rect[2]}")
         for t, rect in texts:
             self.assertLessEqual(rect[2], 800, t)
 
     def test_greenhouse_panel(self) -> None:
-        """3. 0x3F "ARGENT" clear of the cash; 0x190 "Poubelle" inside its room; 0x180 "Pepiniere"
-        inside the screen."""
+        """3. 0x3F "ARGENT", 0x190 "Poubelle", 0x180 "Pepiniere": drawn whole, on the screen."""
         def greenhouse(r):
             d = r.d
             d.emu.write32(d.game_state + 0x63E58, 99)
@@ -138,16 +136,9 @@ class PlantScreens(unittest.TestCase):
             d.run(0x424BB0, this=screen)
             d.show(screen)
         texts, _r = self.draw(greenhouse)
-        cash_label = self.text(texts, 0x3F)
-        cash = [rect for t, rect in texts if t.startswith("$")]
-        self.assertTrue(cash)
-        self.assertFalse(any(overlaps(cash_label, c) for c in cash), (self.strings[0x3F], cash_label, cash))
-        trash = self.text(texts, 0x190)
-        self.assertLessEqual(trash[2] - trash[0], tfit.limits("plant")["strings/400"].width)
-        nursery = [rect for t, rect in texts if t == self.strings[0x180]]
-        self.assertTrue(nursery)
-        for rect in nursery:
-            self.assertLessEqual(rect[2], 800, self.strings[0x180])
+        for ident in (0x3F, 0x190, 0x180):
+            rect = self.text(texts, ident)
+            print(f"greenhouse {self.strings[ident]!r}: x {rect[0]} to {rect[2]}")
         for t, rect in texts:
             self.assertLessEqual(rect[2], 800, t)
 

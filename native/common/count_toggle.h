@@ -37,6 +37,43 @@ static int dll_folder(wchar_t *out, DWORD cap) {
     return wcslen(out) + 40 < cap;
 }
 
+/* The game's own text measure (Fish 0x4023D0, Plant 0x402380): thiscall (font, text, float scale), the
+   width in pixels. */
+typedef int (__fastcall *toggle_width_fn)(void *font, void *edx, const char *text, float scale);
+
+#define TOGGLE_SCREEN_RIGHT 796     /* the button's label ends here at the latest (its shadow is 1 pixel more) */
+
+/* The button's label, drawn from x: copied into out[0..cap), and the x to draw it at.  A label that fits
+   before the screen's right edge (every English one) stays at x; a wider (translated) one moves left so
+   it ends at the edge; only a label wider than the whole screen is cut, from its end.  *width gets the
+   drawn width.  A measure that fails leaves the label where it was. */
+static int toggle_label(char *out, int cap, const char *text, int x, toggle_width_fn measure, void *font,
+                        int *width) {
+    int n = 0, w = 0, at = x;
+    while (text[n] != '\0' && n < cap - 1) { out[n] = text[n]; ++n; }
+    out[n] = '\0';
+    __try {
+        w = measure(font, NULL, out, 1.0f);
+        if (x + w > TOGGLE_SCREEN_RIGHT) {
+            at = TOGGLE_SCREEN_RIGHT - w;
+            if (at < 0) {
+                at = 0;
+                while (n > 0 && w > TOGGLE_SCREEN_RIGHT) {
+                    --n;
+                    while (n > 0 && ((unsigned char)out[n] & 0xC0) == 0x80) --n;   /* never half a UTF-8 letter */
+                    out[n] = '\0';
+                    w = measure(font, NULL, out, 1.0f);
+                }
+            }
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        at = x;
+        w = 0;
+    }
+    *width = w;
+    return at;
+}
+
 /* Shown unless the .ini says Shown=0. */
 static void toggle_load(count_toggle *t, const wchar_t *ini_name) {
     t->shown = 1;

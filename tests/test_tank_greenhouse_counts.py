@@ -228,6 +228,16 @@ class _DllFixture:
         emu.hook_import("WritePrivateProfileStringW", self._ini_write, 16)
         emu.hook(self.STOCK_MOUSE, self._stock_mouse, 12)
         self.text_draws: list[tuple] = []
+        self.char_width = 8                   # the fake measure: pixels a letter
+        self.measured: list[str] = []
+        emu.hook(self.WIDTH, self._width, 8)
+
+    WIDTH = 0
+
+    def _width(self, e) -> int:
+        text = e.cstring(e.arg(0)).decode("latin-1")
+        self.measured.append(text)
+        return self.char_width * len(text)
 
     FOLDER = "C:\\Games\\Game\\Patcher DLLs\\"
 
@@ -431,7 +441,7 @@ FISH_BASE, TANK_STRIDE, SLOT_STRIDE = 0x390, 0x51EC, 0x288
 ORN_BASE, ORN_STRIDE = 0x5208, 0x2C
 FONT_MANAGER, FONT_GET, DRAW_TEXT, BACKGROUND = 0x418210, 0x4181F0, 0x408B80, 0x41D140
 OVERLAY_SLOT, STOCK_OVERLAY = 0x443A70, 0x41ED00          # the tank screen's table +0x1C: 0x41ED00 -> 0x41CF20
-GRAPHICS, MANAGER, FONT = 0x00C0FFEE, 0x0F0F0000, 0x0F0F1000
+GRAPHICS, MANAGER, FONT = 0x00C0F100, 0x0F0F0000, 0x0F0F1000
 # The tank screen's own click rectangles (left, top, right, bottom), set at 0x41CDD4-0x41CEAC.
 TANK_RECTS = {"Tank One": (513, 2, 598, 54), "Tank Two": (610, 2, 695, 54), "Sale Tank": (707, 2, 792, 54),
               "trash": (650, 541, 689, 600), "isolation": (500, 489, 639, 600), "magic fish": (212, 4, 480, 44)}
@@ -445,6 +455,7 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
     EXE = FISH_EXE
     NEXT = ("DS Exclusive Fish.dll", "Maximizable Window.dll")
     INI = "Tank Counts.ini"
+    WIDTH = 0x4023D0
     LABEL_X = 12
     STOCK_MOUSE = 0x421F80
     MOUSE_SLOT = 0x443A58
@@ -738,18 +749,41 @@ class FishCountsTests(_DllFixture, unittest.TestCase):
             (13, 83, 0xFF000000, FONT, GRAPHICS), (12, 82, 0xFFFFFFFF, FONT, GRAPHICS),
         ])
 
-    def test_the_buttons_translation_room(self) -> None:
-        """data/translation_limits.json's room for "Counts: On" / "Off" is what this draw leaves: from
-        the button's x, with its 1-pixel shadow, to the screen's right edge (the live check's
-        "Compteurs : oui" ran off it)."""
+    def button_at(self) -> tuple:
+        """(x, text) of the yellow button of the last frame (its shadow one pixel right and down)."""
+        [(text, x)] = [(t[0], t[1]) for t in self.text_draws if t[3] == 0xFF40D0FF]
+        return x, text
+
+    def test_a_wide_label_moves_left_to_end_at_the_screens_edge(self) -> None:
+        """The room for "Counts: On" / "Off" is the screen's edge (796). A label that fits before it
+        (English) stays at x 694; a wider (translated) one moves left so it ends at 796, never cut, never
+        off the screen; the click area follows."""
         import translation_fit as tfit
-        self.fish(0, 0, 25)
-        self.frame()
-        [(x, _y)] = [(t[1], t[2]) for t in self.text_draws if t[3] == 0xFF40D0FF]
         for key in ("mod/tank_counts.counts_on", "mod/tank_counts.counts_off"):
             limit = tfit.limits("fish")[key]
             self.assertTrue(limit.proven, key)
-            self.assertEqual(limit.width, 800 - x - 1, key)
+            self.assertEqual(limit.width, 796, key)
+        self.fish(0, 0, 25)
+        self.frame()
+        self.assertEqual(self.button_at(), (694, "Counts: On"))
+        self.assertEqual(self.box()[0], 690)
+        self.char_width = 10                                                   # 100 px: ends at 794, fits
+        self.frame()
+        self.assertEqual(self.button_at(), (694, "Counts: On"))
+        self.char_width = 12                                                   # 120 px: 796 - 120
+        self.frame()
+        self.assertEqual(self.button_at(), (676, "Counts: On"))
+        self.assertEqual(self.box()[0], 672)
+        self.assertEqual(self.box()[2], 796)
+
+    def test_a_label_wider_than_the_screen_is_cut_from_its_end(self) -> None:
+        self.fish(0, 0, 25)
+        self.char_width = 100                                                  # a letter is 100 px
+        self.frame()
+        x, text = self.button_at()
+        self.assertEqual(x, 0)
+        self.assertEqual(text, "Counts:")                                      # 7 letters = 700 <= 796
+        self.assertLessEqual(100 * len(text), 796)
 
     def test_the_screensaver_shows_nothing_and_its_clicks_are_the_games(self) -> None:
         self.fish(0, 0, 25)
@@ -828,6 +862,7 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
     EXE = PLANT_EXE
     NEXT = ("Unused Flowers.dll", "Sort Seeds.dll")
     INI = "Greenhouse Counts.ini"
+    WIDTH = 0x402380
     LABEL_X = 236
     STOCK_MOUSE = 0x4273D0
     MOUSE_SLOT = 0x469224
@@ -841,6 +876,9 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
         emu.uc.mem_write(self.scene, bytes(0x200))
         emu.write32(self.scene + 0x68, self.state)
         emu.hook(GREENHOUSE_DRAW, self._log("background", 0, 0))
+        emu.uc.mem_map(GRAPHICS & ~0xFFF, 0x1000)
+        emu.write32(GRAPHICS, GRAPHICS + 0x100)                    # the graphics: [0] its implementation, +0x5C its font
+        emu.write32(GRAPHICS + 0x100 + 0x5C, FONT)
         emu.hook(PLANT_GRAPHICS, lambda e: GRAPHICS)
         emu.hook(PLANT_TEXT, self._draw_text, 0x14)
 
@@ -975,24 +1013,30 @@ class PlantCountsTests(_DllFixture, unittest.TestCase):
         self.frame()
         self.assertEqual(self.counts(), [], "the moved button still toggles")
 
-    def test_the_buttons_translation_room(self) -> None:
-        """data/translation_limits.json's room for "Counts: On" / "Off" is the tighter of this draw's
-        two places: from x 694 (with the 1-pixel shadow) to the screen's edge, and, under the Extra
-        Greenhouses arrows, from its x to its click box's right (the live check's "Compteurs : oui")."""
+    def test_a_wide_label_moves_left_to_end_at_the_screens_edge(self) -> None:
+        """The room for "Counts: On" / "Off" is the screen's edge (796); a wider translation moves left so
+        it ends there (from x 694, or from 646 under the Extra Greenhouses arrows); English stays."""
         import translation_fit as tfit
-        owned = [0]
-        self.export("Extra Greenhouses.dll", "FtfpExtraGreenhousesOwned", lambda e: owned[0], 0)
-        self.pot(0, 25.0, infested=1)
-        rooms = []
-        for count in (0, 1):
-            owned[0] = count
-            self.frame()
-            [(x, _y)] = [(t[1], t[2]) for t in self.text_draws if t[3] == 0xFF40D0FF]
-            rooms.append(800 - x - 1 if count == 0 else self.box()[2] - x)
         for key in ("mod/greenhouse_counts.counts_on", "mod/greenhouse_counts.counts_off"):
             limit = tfit.limits("plant")[key]
             self.assertTrue(limit.proven, key)
-            self.assertEqual(limit.width, min(rooms), key)
+            self.assertEqual(limit.width, 796, key)
+        owned = [0]
+        self.export("Extra Greenhouses.dll", "FtfpExtraGreenhousesOwned", lambda e: owned[0], 0)
+        self.pot(0, 25.0, infested=1)
+        for count, start in ((0, 694), (1, 646)):
+            owned[0] = count
+            self.char_width = 8
+            self.frame()
+            [(x, _y)] = [(t[1], t[2]) for t in self.text_draws if t[3] == 0xFF40D0FF]
+            self.assertEqual(x, start)
+            self.assertEqual(self.box()[0], start - 4)
+            self.char_width = 16                                               # "Counts: On" 160 px: 796 - 160
+            self.frame()
+            [(x, _y)] = [(t[1], t[2]) for t in self.text_draws if t[3] == 0xFF40D0FF]
+            self.assertEqual(x, 636)
+            self.assertEqual(self.box()[0], 632)
+            self.assertGreaterEqual(self.box()[2], 797 if count else 798)
 
     def test_the_button_sits_on_the_wall_above_the_tables(self) -> None:
         self.startup()
