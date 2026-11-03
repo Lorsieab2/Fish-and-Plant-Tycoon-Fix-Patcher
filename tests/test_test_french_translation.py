@@ -19,7 +19,9 @@ sys.path.insert(0, str(ROOT / "tests"))
 import translation_format as tfmt  # noqa: E402
 import translation_strings as tstr  # noqa: E402
 import translations as tr  # noqa: E402
-from store_emulator import VANILLA  # noqa: E402
+# The vanilla games' folder (the same place tests/store_emulator.py looks), without importing the
+# emulator: CI has no Unicorn, and these tests only need the executables' text.
+VANILLA = Path.home() / "Downloads" / "Current Modded LDW Games and Dumps" / "Vanilla Games"
 
 LANGUAGE = "(TEST) - French AI Translation"
 CREDIT = "(TEST) AI translation"
