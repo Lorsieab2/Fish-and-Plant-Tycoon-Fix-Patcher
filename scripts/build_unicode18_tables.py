@@ -104,7 +104,7 @@ def render() -> str:
 def main() -> int:
     text = render()
     if sys.argv[1:] == ["--check"]:
-        current = HEADER.read_text(encoding="utf-8") if HEADER.is_file() else ""
+        current = HEADER.read_bytes().decode("utf-8").replace("\r\n", "\n") if HEADER.is_file() else ""
         if current != text:
             print(f"{HEADER} is not up to date: run scripts/build_unicode18_tables.py")
             return 1
