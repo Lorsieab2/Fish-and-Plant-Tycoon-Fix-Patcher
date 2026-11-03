@@ -52,6 +52,15 @@ built-in editor:
   message as soon as one is missing or wrong: such a line shows English in the game;
 - a preview in the game's own font (the Text Maker's renderer), with a warning when the line is wider
   than the English or longer than its limit;
+- **Wrap to fit** / **Wrap all** / **Undo wrap**: the games break a line only at a line break in the text,
+  so a longer translation, or a language with no spaces (Chinese, Japanese, Thai), needs the breaks put in.
+  Wrap to fit re-breaks the selected translation so no line is wider than the widest line of its English,
+  measured with the game's own font (the Text Maker's measuring). Wrap all does every line that is wider,
+  after showing how many. Breaks are at spaces, after hyphens and between CJK characters (kinsoku: no line
+  starts with `。、）」！？` and the like, or ends with `（「『【`); never inside a letter with its marks, an
+  emoji, a flag or a placeholder (`%d`, `%s`, `{name}`, a number choice); a word wider than the room is cut.
+  Thai has no word list, so it breaks only at spaces and a long Thai run is reported as "cannot wrap".
+  Only line breaks and spaces change, never the words; the warning under the preview uses the same rule;
 - it saves by itself; if the game uses this translation, its copy in the game folders follows.
 
 The file is plain UTF-8 text, so Notepad works too, and so does a spreadsheet (open it as tab-separated

@@ -1299,7 +1299,9 @@ folder never fails with "path too long".
   "Make a translation" writes every English line of the game and of the
   patcher's own texts into a file and opens a built-in editor (search,
   untranslated only, progress, placeholders in colour, a preview in the
-  game's own font with a too-long warning, autosave). "Add translation
+  game's own font with a too-long warning, Wrap to fit / Wrap all / Undo
+  wrap, which re-break a translation to the widest line of its English with
+  the game's font metrics, autosave). "Add translation
   file..." (or drag a file onto the window) checks and adds one you were
   sent; "Export translation..." saves a copy (several selected: one file
   each into a folder). The list of translations selects several (Ctrl+click,
