@@ -108,7 +108,8 @@ downloadable like any other translation. Credit: "(TEST) AI translation".
 Every line of both templates is translated (the games' own lines, read from the vanilla games, and
 every patch's text), with French plurals (`one` covers 0 and 1, `many` large round numbers,
 `other` the rest), the placeholders of the English, every length limit, and no-break spaces
-before `:` `;` `!` `?`. Kept in English on purpose: species-name words (the DS fish fin and body
-words and the new flowers' names, like the games' own species names, which are never translated)
-and words that are the same in French (OK, Normal, Options, Menu, Pollen, Stats, the version
-number). "NEW PLAYER" is never in a translation.
+before `:` `;` `!` `?`. The patch-only names are translated from their own English too: the DS fish
+fin and body words and the new flowers' and foliage names, chosen to read in the order the game
+joins them (the first word, then the last). Kept in English on purpose: only words that are the
+same in French (OK, Normal, Options, Menu, Pollen, Stats, Discus, Spotanus, the version number)
+and made-up names (Rosetta, Violetta, Stella...). "NEW PLAYER" is never in a translation.
