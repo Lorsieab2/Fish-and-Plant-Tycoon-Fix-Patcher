@@ -77,6 +77,9 @@
 #define GAME_BOX_DRAW_TARGET 0x00408B80u  /* the box's left draw (thiscall wrapper) */
 #define GAME_CARET_TICK_TARGET 0x00402090u  /* the time the caret blink reads */
 #define GAME_WIDTH_RESUME 0x004023D7u
+/* A box made edge to edge in its dialog (the new player's box, 0x417C15, rect 0..360, inside the
+   dialog's frame): beside the centred text the caret (paddington_tt_30's "_", 13 px) and 1 px clear. */
+#define GAME_DIALOG_BORDER 14
 
 #define CODE_ADDR(fn) ((const void *)(UINT_PTR)(fn))
 

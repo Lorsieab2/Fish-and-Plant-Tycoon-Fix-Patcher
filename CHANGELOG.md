@@ -10,6 +10,15 @@
   lacks, never uses a 1-pixel tilde or diaeresis, and draws the tilde in the font's style instead.
   The small Fish font's capitals with a diaeresis gain their full dots too. A test checks every
   patcher-made accent of all four fonts (tests/test_unicode_font_marks.py).
+- **Long names stay inside Plant Tycoon's sign and prompt.** The main menu's name sign drew a long
+  name whole, past the red sign on both sides and off the window, so its emoji and flag never
+  showed: the name is a label the game centres on the menu picture's sign, and the DLL gave it
+  the whole screen's room. It now gets the sign's own room and ends in "…" there, for a
+  player's long name and any long text. The nickname prompt's box spans the dialog edge to edge,
+  so the scrolled name was drawn over the dialog's frame on both sides; it now keeps inside the
+  frame with room for the caret. Fish Tycoon's nickname prompt keeps room for its caret the same
+  way (the "_" ran a few pixels over the rope frame). Tested with the games' own box code in
+  Unicorn and very long CJK, emoji, flag and Arabic names (tests/test_unicode_name_spots.py).
 
 ## v1.0.26
 
