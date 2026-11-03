@@ -9,6 +9,11 @@ with_tails; src/fish_patcher.py, build_executable): the startup loader loads it 
 companion and after "Unicode Text.dll", and the setting is left out of the executable pins (the
 executable without it must match its pin, then the loader gets Translations.dll added), so no
 combination needs a new pin.
+
+The same companion carries ICU's word lists (assets/translations/word-lists, copied unchanged into
+"<Game> Tycoon Fix Patcher DLLs/word-lists/", with ICU-LICENSE.txt and the README): Translations.dll
+reads them to break Thai, Lao, Khmer, Burmese, Chinese and Japanese lines between words when
+Windows' own icu.dll is missing. Pinned by size and SHA-256 like the DLL.
 """
 
 from __future__ import annotations
@@ -24,6 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import ds_fish_loader  # noqa: E402
 
 SOURCE = "assets/translations"
+WORD_LISTS = "word-lists"
 SETTING_ID = ds_fish_loader.TRANSLATIONS_SETTING
 DLL_NAME = ds_fish_loader.TRANSLATIONS_DLL
 FOLDERS = {"fish": "Fish Tycoon Fix Patcher DLLs", "plant": "Plant Tycoon Fix Patcher DLLs"}
@@ -58,8 +64,12 @@ def sha256(data: bytes) -> str:
 
 def companion(game: str) -> dict:
     data = (ROOT / SOURCE / DLL_NAME).read_bytes()
-    return {"source": SOURCE, "loader_tail": DLL_NAME, "files": [
-        {"path": DLL_NAME, "destination": f"{FOLDERS[game]}/{DLL_NAME}", "size": len(data), "sha256": sha256(data)}]}
+    files = [{"path": DLL_NAME, "destination": f"{FOLDERS[game]}/{DLL_NAME}", "size": len(data), "sha256": sha256(data)}]
+    for path in sorted((ROOT / SOURCE / WORD_LISTS).iterdir()):
+        data = path.read_bytes()
+        files.append({"path": f"{WORD_LISTS}/{path.name}", "destination": f"{FOLDERS[game]}/{WORD_LISTS}/{path.name}",
+                      "size": len(data), "sha256": sha256(data)})
+    return {"source": SOURCE, "loader_tail": DLL_NAME, "files": files}
 
 
 def pin(game: str) -> None:

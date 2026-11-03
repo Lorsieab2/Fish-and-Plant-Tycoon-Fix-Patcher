@@ -226,6 +226,8 @@ static int utf8_to_wide(const char *s, int n, wchar_t *out, int cap) {
     return 1;
 }
 
+#include "word_break.h"
+
 /* "<folder>\Translation.ini": the chosen file (file=...) and its language (language=...).
    Returns the translation's bytes, or NULL for English. */
 static unsigned char *chosen_file(int *size) {

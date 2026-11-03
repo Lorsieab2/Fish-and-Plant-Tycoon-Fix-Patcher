@@ -135,6 +135,7 @@ FILES = [
     "src/translations_github.py",
     "src/translation_strings.py",
     "src/text_wrap.py",
+    "src/word_break.py",
     "src/translations.py",
     "src/translations_window.py",
     "docs/translations.md",

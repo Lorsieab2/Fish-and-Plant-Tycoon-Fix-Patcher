@@ -1153,7 +1153,7 @@ class TranslationEditor:
         if cut:
             parts.append(f"{cut} word(s) wider than the room were cut")
         if cannot:
-            parts.append(f"cannot wrap (no spaces, no word list): {', '.join(cannot[:3])}")
+            parts.append(f"cannot wrap (one word wider than the room, or not in the word list): {', '.join(cannot[:3])}")
         return "; ".join(parts)
 
     def wrap_note(self, text: str) -> None:

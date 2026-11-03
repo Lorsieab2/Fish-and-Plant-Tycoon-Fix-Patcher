@@ -101,6 +101,7 @@ class Runtime:
         e.hook_import("GetCurrentProcess", lambda emu: 0xFFFFFFFF, 0)
         e.hook_import("GetModuleHandleW", self._module_handle, 4)
         e.hook_import("GetProcAddress", self._proc_address, 8)
+        e.hook_import("LoadLibraryExW", lambda emu: 0, 12)          # no icu.dll: the word lists are used
         self.unicode_active = unicode_active
         if unicode_active is not None:                      # "Unicode Text.dll" loaded before this DLL
             self.modules["unicode text.dll"] = 0x0C000000

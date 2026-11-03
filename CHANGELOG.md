@@ -2,6 +2,17 @@
 
 ## v1.0.27
 
+- **Thai, Lao, Khmer, Burmese, Chinese and Japanese wrap between words.**
+  These scripts have no spaces, so a line that must wrap now breaks between
+  words, not in the middle of one. Chinese and Japanese may still break between
+  any two characters when one word alone is too wide, and keep the kinsoku
+  rules (no line starts with `。、」）` or ends with `「（`). The Translations
+  window's Wrap to fit does it with ICU's dictionaries (longest match,
+  `src/word_break.py`); in the game, `Translations.dll` asks Windows' own
+  `icu.dll` break iterator first (Windows 10 1703 and later) and falls back to
+  the same dictionaries in a `word-lists` folder beside the DLL, read only when
+  such text needs breaking. The lists ship unchanged in
+  `assets/translations/word-lists` with ICU's licence (about 2.4 MB zipped).
 - **Translations fit the screen.** Every line a translation can replace now
   has a room in pixels where the game draws it, in
   `data/translation_limits.json` (numbers only, no game text). It is measured
