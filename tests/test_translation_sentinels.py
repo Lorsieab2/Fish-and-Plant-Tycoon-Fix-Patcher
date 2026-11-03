@@ -17,18 +17,17 @@ executable, and each sentinel is followed to the place the game draws it or a DL
   its own buffer), or it is a pointer table the DLL indexes;
 * a counted text: FtfpTranslateCounted, given the DLL's own copy of the English (the exact text
   the DLL passes), fills the caller's buffer with the sentinel, its choices made by the number;
-* real code paths, run in Unicorn: DS Exclusive Fish fills every DS species' name from the
-  translated parts, Unused Flowers builds every new species' name again, Store Upgrades and
-  Items' own texts come out of the game's lookup (chained to its stub), and the game's message
-  box texts of Optimize Prices, Sort Seeds and Extra Greenhouses are read from the string table
-  the way the game's box builder reads them.
-
-KNOWN_WRONG lists what a run shows still reaching the game as another key's text (with the place
-and what a fix needs); the test fails when one of them is fixed, so the list stays true.
+* real code paths, run in Unicorn: DS Exclusive Fish fills every DS species name from the
+  translated parts, Unused Flowers builds every new species name from its two words, and the
+  boxes a patch builds in a stock line's place (Optimize Prices, Sort Seeds, Extra Greenhouses)
+  come out of the game's lookup as the patch's OWN text (Sort Seeds' Yes / No as the Yes / No
+  lines): before Translations.dll looked at a line's +0xC override they showed the stock
+  line's translation (OK, Cancel, the restart question, "box full") instead.
 """
 
 from __future__ import annotations
 
+import gc
 from pathlib import Path
 import struct
 import sys
@@ -62,16 +61,6 @@ STARTUP_BUDGET = 400_000_000          # instructions: the whole sentinel file is
 # DLL text has a pointer the DLL hands on, every counted text is asked for by its DLL's copy.)
 UNREACHABLE: dict[str, str] = {}
 
-# What a run shows reaching the game as ANOTHER key's text: (game, what, the patch text's English)
-# -> where, and what a fix needs. The test asserts each is still so (and fails once fixed).
-_STOCK_ID = ("Translations.dll's lookup (native/ftfp_translations/ftfp_translations.c translate_game) "
-             "translates by the string id whenever the stock line has a translation, even when the "
-             "lookup's result is not that line's text: here the patch hands the game its own text "
-             "under a stock id, so the stock line's translation is drawn instead of the patch's. A fix: "
-             "translate by id only when the result is the game's text for the id (strcmp with the "
-             "entry's English or its +0xC override set by the game), and when the result is the text "
-             "of another id (Yes / No put in OK / Cancel's place) translate it as that id")
-KNOWN_WRONG: dict[tuple[str, str, str], str] = {}
 
 
 # ---------------------------------------------------------------------------------- the runtime
@@ -279,6 +268,8 @@ class GameLines(unittest.TestCase):
                         self.assertEqual(rt.lookup(ident), want, line.key)
                         if game == "fish":
                             self.assertEqual(rt.lookup(ident, german=True), want, line.key)
+                    del rt, _m
+                    gc.collect()               # each emulator maps tens of MB: free it before the next
 
 
 # ---------------------------------------------------------------------------------- DLL texts
@@ -320,7 +311,14 @@ def _instruction(rt, slot: int):
             if (insn.imm_offset and start + insn.imm_offset == slot) or \
                     (insn.disp_offset and start + insn.disp_offset == slot):
                 found.append(insn)
-    return max(found, key=lambda i: i.size) if found else None
+    # a slot's bytes also decode as the tail of other instructions: take the one that holds the
+    # pointer itself as a push or a mov (what a text's address is handed on by)
+    value = struct.unpack("<I", bytes(rt.emu.uc.mem_read(slot, 4)))[0]
+    own = [i for i in found if i.mnemonic in ("push", "mov") and
+           value in (i.operands[-1].imm & 0xFFFFFFFF if i.operands[-1].type == capstone.x86.X86_OP_IMM else -1,
+                     i.operands[-1].mem.disp & 0xFFFFFFFF if i.operands[-1].type == capstone.x86.X86_OP_MEM else -1)]
+    pool = own or found
+    return max(pool, key=lambda i: i.size) if pool else None
 
 
 def hand_over(rt, slot: int) -> tuple[str, int | None]:
@@ -341,6 +339,10 @@ def hand_over(rt, slot: int) -> tuple[str, int | None]:
     emu.uc.reg_write(X.UC_X86_REG_ESP, esp)
     emu.uc.mem_write(esp - 0x100, b"\0" * 0x200)
     pointer = emu.read32(slot)
+    for op in insn.operands:
+        # "mov cl, [eax + text]": the DLL reads the text's letters in place, one by one
+        if insn.mnemonic == "mov" and op.type == capstone.x86.X86_OP_MEM and                 op.mem.disp & 0xFFFFFFFF == pointer and (op.mem.base or op.mem.index):
+            return insn.mnemonic, pointer
     try:
         emu.uc.emu_start(insn.address, insn.address + insn.size, count=1)
     except Exception:                                   # noqa: BLE001 (a load of memory not mapped)
@@ -530,6 +532,98 @@ class DsFishNames(unittest.TestCase):
         self.assertEqual(len(seen_body), 28, sorted(names)[:5])
         for name in names:
             self.assertNotRegex(name, r"[A-Za-z]{3}", name)          # no English word left in a name
+
+
+@unittest.skipUnless(READY, SKIP)
+class UnusedFlowerNames(unittest.TestCase):
+    """Unused Flowers builds every new species' name "<flower> <foliage>" from its two translated words."""
+
+    def test_every_new_species_name_is_its_two_sentinels(self) -> None:
+        dll = "Unused Flowers.dll"
+        rt, mapped = started("plant")
+        data, base = mapped[dll]
+        syms = symbols("ftfp_new_flowers", ROOT / "assets" / tc.DLLS[("plant", dll)][0] / dll)
+        e = rt.emu
+        e.call(at(syms, "_FtfpTranslationApplied@0", base))
+        adjectives = [m for m in ts.MOD_STRINGS if m.dll == dll and "first word" in m.note]
+        nouns = [m for m in ts.MOD_STRINGS if m.dll == dll and "second word" in m.note]
+        self.assertEqual((len(adjectives), len(nouns)), (14, 23))
+        seen = set()
+        for foliage, noun in enumerate(nouns, start=1):
+            for k, adjective in enumerate(adjectives):
+                name = e.cstring(e.call(at(syms, "_species_name", base), foliage, 24 + k)).decode("cp1252")
+                want = (_line_for("plant", dll, adjective.english).translation + " " +
+                        _line_for("plant", dll, noun.english).translation)
+                self.assertEqual(name, want)
+                seen.add((adjective.english, noun.english))
+        self.assertEqual(len(seen), 14 * 23)
+
+
+# ---------------------------------------------------------------------------------- boxes
+
+def _put(emu, text: bytes) -> int:
+    at = emu.alloc(len(text) + 8)
+    emu.uc.mem_write(at, text + b"\0")
+    return at
+
+
+@unittest.skipUnless(READY, SKIP)
+class BoxTexts(unittest.TestCase):
+    """A patcher DLL's box: it puts its own text in a stock line's place for the game's box builder
+    (Fish: the line's English at +4; Plant: an override at +0xC). The game's lookup must give the
+    patch's OWN key's translation there, not the stock line's, and a stock line's own text put in
+    another line's place (Sort Seeds' Yes / No in OK / Cancel) must get that line's translation."""
+
+    def test_fish_optimize_prices_questions_in_the_games_box(self) -> None:
+        rt, _m = started("fish")
+        e = rt.emu
+        entry = 0x00457340 + 0xAC * 12
+        self.assertEqual(e.read32(entry), 0xAC)
+        saved = e.read32(entry + 4)
+        try:
+            for m in ts.MOD_STRINGS:
+                if (m.game, m.dll) != ("fish", "Optimize Prices.dll") or m.counted:
+                    continue
+                with self.subTest(english=m.english):
+                    e.write32(entry + 4, _put(e, S.encoded(m.english, False)[:-1]))
+                    want = in_game(_line_for("fish", m.dll, m.english)).encode("cp1252")
+                    self.assertEqual(rt.lookup(0xAC), want)
+        finally:
+            e.write32(entry + 4, saved)
+
+    def _override(self, rt, ident: int, text: bytes) -> bytes:
+        e = rt.emu
+        entry = e.read32(0x493CC0 + 4 * ident)
+        self.assertEqual(e.read32(entry), ident)
+        try:
+            e.write32(entry + 0xC, _put(e, text))
+            return rt.lookup(ident)
+        finally:
+            e.write32(entry + 0xC, 0)
+
+    def test_plant_sort_seeds_question_is_its_own_text(self) -> None:
+        rt, _m = started("plant")
+        m = next(x for x in ts.MOD_STRINGS if (x.game, x.dll) == ("plant", "Sort Seeds.dll"))
+        want = in_game(_line_for("plant", m.dll, m.english)).encode("cp1252")
+        self.assertEqual(self._override(rt, 0x3E, S.encoded(m.english, False)[:-1]), want)
+        # the stock line's own translation still shows with no override
+        self.assertEqual(rt.lookup(0x3E), in_game(_game_line("plant", 0x3E)).encode("cp1252"))
+
+    def test_plant_sort_seeds_yes_and_no_take_their_own_translation(self) -> None:
+        rt, _m = started("plant")
+        for yes_no, in_place_of in ((0x10, 0x12), (0x11, 0x13)):
+            english = _game_line("plant", yes_no).entry.english.encode("cp1252")
+            self.assertEqual(self._override(rt, in_place_of, english),
+                             in_game(_game_line("plant", yes_no)).encode("cp1252"), hex(in_place_of))
+
+    def test_plant_extra_greenhouses_box_keeps_the_translated_text_it_was_given(self) -> None:
+        """The DLL builds the text translated (counted path) and puts it at +0xC of "box full"."""
+        rt, _m = started("plant")
+        counted = _line_for("plant", "Extra Greenhouses.dll",
+                            "Your nursery is full!\n\nOnly %d plants can be for sale at once,\ncounting every greenhouse.")
+        text = counted.shown([15]).encode("cp1252")
+        self.assertEqual(self._override(rt, 0x77, text), text)
+        self.assertNotEqual(text, in_game(_game_line("plant", 0x77)).encode("cp1252"))
 
 
 if __name__ == "__main__":

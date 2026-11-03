@@ -70671,8 +70671,8 @@
           {
             "path": "Translations.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Translations.dll",
-            "size": 131072,
-            "sha256": "05F41E220D8FC4017A59B38F50E448B2572FCD86DC2F5225A17AF7A42E3D1B5C"
+            "size": 131584,
+            "sha256": "251B16FA912BFF88471818EAC7E7E2FAEED628F976FAA297C5020DD1727DD1A3"
           }
         ]
       }

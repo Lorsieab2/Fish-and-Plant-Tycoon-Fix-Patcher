@@ -2,6 +2,16 @@
 
 ## v1.0.27
 
+- **Patch boxes use the patch's own translation** (Translations.dll, Plant
+  Tycoon; checked in the emulator, not yet seen in a running game). Sort Seeds'
+  question, its Yes and No buttons, and Extra Greenhouses' "full" box put their
+  text in a stock line's place while the box is built, and the game showed that
+  stock line's translation instead (OK, Cancel, the restart question, the
+  "box full" line). Now the patch's own text is translated by its own line, and
+  Yes and No take the Yes and No lines. A new test gives every translation line
+  of both games a unique marker text and follows it to where the game draws it
+  (the game's lookup, each patch DLL's pointers, counted texts, DS fish and
+  Unused Flowers names, patch boxes).
 - **Mixed left-to-right and right-to-left lines in their true order**
   (Unicode Text.dll, both games, Render Unicode with In-Game Fonts and Use
   Unicode Font; not yet seen in a running game). A line that holds Hebrew,

@@ -132,12 +132,11 @@ def encoded(text: str, wide: bool) -> bytes:
 def string_starts(image: bytes, needle: bytes, wide: bool) -> list[int]:
     """Offsets where `needle` (terminator included) starts a whole string in a DLL image."""
     out, at = [], 0
-    unit = 2 if wide else 1
     while True:
         at = image.find(needle, at)
         if at < 0:
             return out
-        if (not wide or at % 2 == 0) and (at == 0 or image[at - unit:at] == b"\0" * unit):
+        if (not wide or at % 2 == 0) and (at == 0 or image[at - 1] == 0):
             out.append(at)
         at += 1
 

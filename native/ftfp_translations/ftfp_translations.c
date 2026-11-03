@@ -295,7 +295,9 @@ static const char *game_english(int id, const char **name) {
         char *entry = *(char **)(UINT_PTR)(PLANT_ENTRIES + (unsigned int)id * 4u);
         if (entry != NULL && AT(entry, 0, int) == id) {
             if (name != NULL) *name = AT(entry, 4, const char *);
-            return AT(entry, 8, const char *);
+            /* +0xC: a text a patcher DLL puts in the line's place while a box is built (Sort Seeds'
+               question, Extra Greenhouses' "full" box); the lookup returns it instead of +8 */
+            return AT(entry, 0xC, const char *) != NULL ? AT(entry, 0xC, const char *) : AT(entry, 8, const char *);
         }
     }
     return NULL;
@@ -678,6 +680,17 @@ static const char *translate_game(int id, const char *result) {
         int len = slen(result);
         for (r = mod_rows[fnv(result, len) & 63u]; r != NULL; r = r->next) {
             if (strcmp(r->english_game, result) == 0) return (const char *)r->out;
+        }
+    }
+    /* another line's text put in this line's place (Sort Seeds' box: Yes and No where OK and Cancel
+       are): it is that line's text, so it gets that line's translation */
+    if (id >= 0 && id < MAX_IDS && by_id[id] != NULL && game_english(id, NULL) != NULL) {
+        int other;
+        for (other = 0; other < MAX_IDS; ++other) {
+            if (other == id || never_translated(other)) continue;
+            for (r = by_id[other]; r != NULL; r = r->next) {
+                if (r->kind == 1 && strcmp(r->english_game, result) == 0) return (const char *)r->out;
+            }
         }
     }
     return result;
