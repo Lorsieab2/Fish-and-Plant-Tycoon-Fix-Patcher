@@ -186,7 +186,7 @@ class Window(unittest.TestCase):
         self.assertEqual(len(self.window.items), 2)
 
     def test_share_no_does_nothing(self) -> None:
-        self.window.listbox.selection_set(0)
+        self.window.listbox.selection_set(1)                                # row 0 is English (original)
         with mock.patch.object(tw.messagebox, "askyesno", return_value=False) as ask, \
                 mock.patch.object(tw.webbrowser, "open") as browser, \
                 mock.patch.object(tw.TranslationsWindow, "_show_in_folder") as shown:
@@ -198,7 +198,7 @@ class Window(unittest.TestCase):
         self.assertFalse((self.folder / "Shared").exists())
 
     def test_share_yes_credit_typed_then_export_and_github(self) -> None:
-        self.window.listbox.selection_set(0)
+        self.window.listbox.selection_set(1)                                # row 0 is English (original)
         seen = {}
 
         def answer(dialog):
@@ -264,6 +264,261 @@ class Window(unittest.TestCase):
         self.assertEqual([r.english for r in parsed.rows][-1], "Status: ")
         self.assertEqual(parsed.translations()[ENTRIES[0].key], "Âge : ")
         editor.close()
+
+
+def _buttons(widget: tk.Misc) -> dict[str, tk.Misc]:
+    found = {}
+    for child in widget.winfo_children():
+        try:
+            found[str(child.cget("text"))] = child
+        except tk.TclError:
+            pass
+        found.update(_buttons(child))
+    return found
+
+
+class Recycling(unittest.TestCase):
+    """translations.recycle: SHFileOperationW with the Recycle Bin flags, never a plain delete."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp())
+        self.a = self.tmp / "a.txt"
+        self.b = self.tmp / "b b.txt"
+        self.a.write_text("a", encoding="utf-8")
+        self.b.write_text("b", encoding="utf-8")
+
+    def test_one_call_with_every_file_and_the_recycle_flags(self) -> None:
+        calls = []
+        moved = tr.recycle([self.a, self.b], operation=lambda paths, flags: (calls.append((paths, flags)), (0, False))[1])
+        self.assertEqual(moved, [self.a.resolve(), self.b.resolve()])
+        self.assertEqual(calls, [([str(self.a.resolve()), str(self.b.resolve())], tr.RECYCLE_FLAGS)])
+        for flag in (tr.FOF_ALLOWUNDO, tr.FOF_NOCONFIRMATION, tr.FOF_SILENT):
+            self.assertTrue(tr.RECYCLE_FLAGS & flag)
+        self.assertEqual(tr.FO_DELETE, 3)
+
+    def test_a_failing_call_raises_and_nothing_else_is_tried(self) -> None:
+        for result in ((0x78, False), (0, True)):
+            with mock.patch.object(Path, "unlink") as unlink, mock.patch("os.remove") as remove, \
+                    mock.patch("shutil.rmtree") as rmtree, self.assertRaises(OSError):
+                tr.recycle([self.a], operation=lambda _p, _f, r=result: r)
+            for plain_delete in (unlink, remove, rmtree):
+                plain_delete.assert_not_called()
+        self.assertTrue(self.a.exists())
+        with self.assertRaises(OSError):
+            tr.recycle([self.tmp / "missing.txt"], operation=lambda _p, _f: self.fail("called"))
+
+
+class ManyTranslations(unittest.TestCase):
+    """The list selects several (Ctrl, Shift, Ctrl+A, Select All); Delete... and Export... act on them."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        try:
+            cls.root = tk.Tk()
+        except tk.TclError as exc:
+            raise unittest.SkipTest(f"no Tk: {exc}")
+        cls.root.withdraw()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.root.destroy()
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp())
+        self.folder = self.tmp / "translations"
+        (self.folder / "fish").mkdir(parents=True)
+        self.copy = self.tmp / "Fish Tycoon - Modded Upgrades"
+        self.dlls = self.copy / "Fish Tycoon Fix Patcher DLLs"
+        self.dlls.mkdir(parents=True)
+        (self.dlls / "Translations.dll").write_bytes(b"MZ")
+        self.choices = self.tmp / "choice.json"
+        self.shipped = write_translation(self.folder / "fish", "Deutsch", "Bob")      # row 1 (came with the patcher)
+        self.spanish = write_translation(self.folder, "Español")                       # row 2
+        self.french = write_translation(self.folder, "Français", "Ann")                # row 3
+        self.window = tw.TranslationsWindow(self.root, "fish", {"fish": [str(self.copy)], "plant": []},
+                                            folder=self.folder, choices_path=self.choices)
+        self.window.entries_cache["fish"] = ENTRIES
+        self.lb = self.window.listbox
+
+    def tearDown(self) -> None:
+        if self.window.window.winfo_exists():
+            self.window.close()
+
+    def click(self, row: int, state: int = 0) -> None:
+        self.window.window.update()
+        x, y, _w, h = self.lb.bbox(row)
+        self.lb.event_generate("<Button-1>", x=x + 2, y=y + h // 2, state=state)
+        self.lb.event_generate("<ButtonRelease-1>", x=x + 2, y=y + h // 2, state=state)
+        self.window.window.update()
+
+    def test_the_list(self) -> None:
+        self.assertEqual(self.lb.cget("selectmode"), "extended")
+        self.assertEqual(self.lb.get(0), tw.ENGLISH_ROW)
+        self.assertEqual([i.path for i in self.window.items], [self.shipped, self.spanish, self.french])
+        self.assertEqual(self.lb.size(), 4)
+        values = list(self.window.language_box.cget("values"))            # the language to use stays a dropdown
+        self.assertEqual(values[0], "English (original)")
+        self.assertEqual(len(values), 4)
+
+    def test_click_ctrl_click_and_shift_click(self) -> None:
+        self.click(1)
+        self.assertEqual(self.lb.curselection(), (1,))
+        self.click(3, state=0x0004)                                         # Ctrl+click adds
+        self.assertEqual(self.lb.curselection(), (1, 3))
+        self.click(1, state=0x0004)                                         # Ctrl+click again removes
+        self.assertEqual(self.lb.curselection(), (3,))
+        self.click(2)                                                       # a plain click selects one
+        self.assertEqual(self.lb.curselection(), (2,))
+        self.click(3)
+        self.assertEqual(self.lb.curselection(), (3,))
+        self.click(1, state=0x0001)                                         # Shift+click selects the range
+        self.assertEqual(self.lb.curselection(), (1, 2, 3))
+        self.assertEqual(self.window.selected_items(), [i for i in self.window.items])
+        self.assertIsNone(self.window.selected())                           # Edit, Check, Share need one
+        with mock.patch.object(tw.messagebox, "showinfo") as info, \
+                mock.patch.object(tw.TranslationsWindow, "open_editor") as editor:
+            self.window.edit()
+        editor.assert_not_called()
+        self.assertEqual(info.call_args[0][1], tw.CHOOSE_ONE)
+
+    def test_ctrl_a_and_select_all(self) -> None:
+        self.click(2)
+        self.lb.focus_force()
+        self.window.window.update()
+        self.lb.event_generate("<Control-a>")
+        self.assertEqual(self.lb.curselection(), (0, 1, 2, 3))
+        self.lb.selection_clear(0, "end")
+        _buttons(self.window.window)["Select All"].invoke()
+        self.assertEqual(self.lb.curselection(), (0, 1, 2, 3))
+        self.assertIn("Delete...", _buttons(self.window.window))
+
+    def test_delete_prompt_no_is_the_default_and_does_nothing(self) -> None:
+        self.window.select_all()
+        with mock.patch.object(tw.messagebox, "askyesno", return_value=False) as ask, \
+                mock.patch.object(tr, "recycle") as recycle:
+            self.assertEqual(self.window.delete(), [])
+        recycle.assert_not_called()
+        self.assertEqual(ask.call_args[1]["default"], "no")
+        text = ask.call_args[0][1]
+        self.assertIn("Move 3 translation file(s) for Fish Tycoon to the Recycle Bin?", text)
+        for path in (self.shipped, self.spanish, self.french):
+            self.assertIn(path.name, text)
+            self.assertTrue(path.exists())
+        self.assertIn("English (original) is built into the game and cannot be deleted: it is skipped.", text)
+        self.assertIn("come back with the next patcher update", text)
+        self.assertEqual(self.lb.size(), 4)
+
+    def test_yes_recycles_exactly_the_selected_files_without_english(self) -> None:
+        for row in (0, 1, 3):
+            self.lb.selection_set(row)
+        with mock.patch.object(tw.messagebox, "askyesno", return_value=True), \
+                mock.patch.object(tr, "recycle", side_effect=lambda paths: [Path(p).resolve() for p in paths]) as recycle:
+            removed = self.window.delete()
+        recycle.assert_called_once_with([self.shipped, self.french])
+        self.assertEqual(removed, [self.shipped.resolve(), self.french.resolve()])
+        self.assertTrue(self.spanish.exists())
+
+    def test_only_english_selected_deletes_nothing(self) -> None:
+        self.lb.selection_set(0)
+        with mock.patch.object(tw.messagebox, "showinfo") as info, \
+                mock.patch.object(tw.messagebox, "askyesno") as ask, mock.patch.object(tr, "recycle") as recycle:
+            self.assertEqual(self.window.delete(), [])
+        ask.assert_not_called()
+        recycle.assert_not_called()
+        self.assertIn("cannot be deleted", info.call_args[0][1])
+
+    def recycle_for_real_here(self, paths):
+        """Stands in for the Recycle Bin: the files leave the folder."""
+        for path in paths:
+            Path(path).unlink()
+        return [Path(p).resolve() for p in paths]
+
+    def test_deleting_the_active_one_goes_back_to_english(self) -> None:
+        self.window.language_var.set("Français (by Ann)")
+        self.assertEqual(self.window.choose(), [self.copy.resolve()])
+        self.assertTrue((self.dlls / "Translation.ini").exists())
+        self.assertTrue((self.dlls / "Translation.txt").exists())
+        editor = self.window.open_editor(self.french)
+        editor.dirty = True                                                 # unsaved work must not bring it back
+        self.lb.selection_set(3)
+        with mock.patch.object(tw.messagebox, "askyesno", return_value=True) as ask, \
+                mock.patch.object(tr, "recycle", side_effect=self.recycle_for_real_here):
+            self.window.delete()
+        self.assertIn("Fish Tycoon uses Français (by Ann) now: it goes back to English (original).", ask.call_args[0][1])
+        self.assertFalse(self.french.exists())
+        self.assertFalse(editor.window.winfo_exists())
+        self.assertNotIn(editor, self.window.editors)
+        self.assertFalse((self.dlls / "Translation.ini").exists())          # as choosing English does
+        self.assertFalse((self.dlls / "Translation.txt").exists())
+        self.assertEqual(tr.load_choices(self.choices)["fish"], "")
+        self.assertEqual(self.window.language_var.get(), "English (original)")
+        self.assertEqual(self.lb.size(), 3)
+
+    def test_deleting_another_one_keeps_the_choice(self) -> None:
+        self.window.language_var.set("Français (by Ann)")
+        self.window.choose()
+        self.lb.selection_set(2)
+        with mock.patch.object(tw.messagebox, "askyesno", return_value=True) as ask, \
+                mock.patch.object(tr, "recycle", side_effect=self.recycle_for_real_here):
+            self.window.delete()
+        self.assertNotIn("goes back", ask.call_args[0][1])
+        self.assertEqual(tr.load_choices(self.choices)["fish"], self.french.name)
+        self.assertTrue((self.dlls / "Translation.ini").exists())
+        self.assertEqual(self.window.language_var.get(), "Français (by Ann)")
+
+    def test_a_failing_recycle_bin_deletes_nothing(self) -> None:
+        self.window.language_var.set("Français (by Ann)")
+        self.window.choose()
+        self.window.select_all()
+        with mock.patch.object(tw.messagebox, "askyesno", return_value=True), \
+                mock.patch.object(tw.messagebox, "showerror") as error, \
+                mock.patch.object(tr, "_shell_file_operation", return_value=(0x78, False)) as operation:
+            self.assertEqual(self.window.delete(), [])
+        operation.assert_called_once()
+        self.assertIn("Nothing was deleted", error.call_args[0][1])
+        for path in (self.shipped, self.spanish, self.french):
+            self.assertTrue(path.exists())
+        self.assertEqual(tr.load_choices(self.choices)["fish"], self.french.name)
+        self.assertTrue((self.dlls / "Translation.ini").exists())
+        self.assertEqual(self.lb.size(), 4)
+
+    def test_export_several_one_file_each(self) -> None:
+        out = self.tmp / "out"
+        out.mkdir()
+        (out / self.spanish.name).write_bytes(b"old")
+        for row in (1, 2, 3):
+            self.lb.selection_set(row)
+        with mock.patch.object(tw.filedialog, "askdirectory", return_value=str(out)), \
+                mock.patch.object(tw.filedialog, "asksaveasfilename") as save_as, \
+                mock.patch.object(tw.messagebox, "askyesno", return_value=False) as ask, \
+                mock.patch.object(tw.messagebox, "showinfo") as info:
+            exported = self.window.export()
+        save_as.assert_not_called()
+        self.assertEqual(ask.call_args[1]["default"], "no")                # replacing asks first; No skips it
+        self.assertEqual(exported, [out / self.shipped.name, out / self.french.name])
+        self.assertEqual((out / self.spanish.name).read_bytes(), b"old")
+        self.assertEqual((out / self.french.name).read_bytes(), self.french.read_bytes())
+        self.assertIn("Exported 2 file(s)", info.call_args[0][1])
+        with mock.patch.object(tw.filedialog, "askdirectory", return_value=str(out)), \
+                mock.patch.object(tw.messagebox, "askyesno", return_value=True), \
+                mock.patch.object(tw.messagebox, "showinfo"):
+            self.assertEqual(len(self.window.export()), 3)
+        self.assertEqual((out / self.spanish.name).read_bytes(), self.spanish.read_bytes())
+
+    def test_export_one_keeps_the_save_as_dialog(self) -> None:
+        self.lb.selection_set(2)
+        target = self.tmp / "mine.txt"
+        with mock.patch.object(tw.filedialog, "asksaveasfilename", return_value=str(target)), \
+                mock.patch.object(tw.filedialog, "askdirectory") as folder:
+            self.assertEqual(self.window.export(), [target])
+        folder.assert_not_called()
+        self.assertEqual(target.read_bytes(), self.spanish.read_bytes())
+
+    def test_the_guide_explains_it(self) -> None:
+        text = " ".join(tw.HELP[1])
+        for words in ("Ctrl+click", "Shift+click", "Ctrl+A", "Select All", "Delete...", "Recycle Bin",
+                      "next patcher update", "goes back to English (original)"):
+            self.assertIn(words, text)
 
 
 class Setting(unittest.TestCase):
