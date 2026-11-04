@@ -196,10 +196,10 @@ class Fitting(unittest.TestCase):
     def test_a_single_line_spot_is_cut_with_an_ellipsis(self) -> None:
         english = self.english("plant", 0x9)                                  # "Options": a menu button
         limit = tfit.limits("plant")["strings/9"]
-        got = self.one("plant", 0x9, english, "Einstellungsmöglichkeiten des Spiels")
+        got = self.one("plant", 0x9, english, "Einstellungsmöglichkeiten des Spiels Einstellungsmöglichkeiten des Spiels Einstellungsmöglichkeiten des Spiels Einstellungsmöglichkeiten des Spiels ")
         self.assertTrue(got.endswith(b"..."), got)
         self.assertLessEqual(self.fonts.size(0, got)[0], limit.width)
-        self.assertTrue("Einstellungsmöglichkeiten des Spiels".encode("cp1252").startswith(got[:-3]))
+        self.assertTrue("Einstellungsmöglichkeiten des Spiels Einstellungsmöglichkeiten des Spiels Einstellungsmöglichkeiten des Spiels Einstellungsmöglichkeiten des Spiels ".encode("cp1252").startswith(got[:-3]))
 
     def test_a_short_line_is_left_alone(self) -> None:
         english = self.english("plant", 0x9)
@@ -294,7 +294,7 @@ class Fitting(unittest.TestCase):
 
     def test_a_cluster_is_never_cut(self) -> None:
         english = self.english("plant", 0x9)
-        text = "e\u0301" * 40                                                    # e + combining acute
+        text = "e\u0301" * 300                                                   # e + combining acute
         got = self.one("plant", 0x9, english, text, utf8=True).decode("utf-8")
         self.assertTrue(got.endswith("..."))
         body = got[:-3]

@@ -17,10 +17,9 @@ is centred, one that moved D is placed from its right edge, one whose box moved 
 box the game sizes from the text (a message box). Its room is then, as the Unicode DLL's box_room
 gives a name its room: the screen (left: from its left edge to the screen's right; centred: twice
 the nearer screen edge's distance from its centre; right: from the screen's left to its right
-edge), and, inside a picture that holds its whole English line and does not move, that picture's
-sides the same way (a button, a panel). A text box widget (Fish 0x40C110, Plant 0x40CBE0) that is
-built but not drawn gives its room from its own fields exactly as box_room reads them; a Plant
-button label (0x401570), its button frame's width. A line handed to a message or question box
+edge); a button or panel behind it is no limit (the owner: text may run out of a box, never off the
+screen). A text box widget (Fish 0x40C110, Plant 0x40CBE0) that is
+built but not drawn gives its room from its own fields exactly as box_room reads them. A line handed to a message or question box
 (Fish 0x4221A0; Plant 0x44D690, 0x42A700) or a tooltip (Plant 0x409870) has the widest text that
 box can hold on the screen, found the same way (the box built and drawn by the game with ever
 wider text until a piece of it leaves the screen).
@@ -274,8 +273,9 @@ class Run:
 
 # ------------------------------------------------------------------ rooms from the runs
 
-def text_room(x: int, w: int, shift: int, pictures_a: list, pictures_b: list, y: int, h: int) -> tuple:
-    """(room, kind) of a text drawn at x, w wide, that moved `shift` when every text grew by D."""
+def text_room(x: int, w: int, shift: int) -> tuple:
+    """(room, kind) of a text drawn at x, w wide, that moved `shift` when every text grew by D: the room runs to
+    the screen edge only (a button or panel behind it is no limit), by its alignment."""
     if shift == 0:
         kind = "left"
     elif shift == -D:
@@ -286,19 +286,6 @@ def text_room(x: int, w: int, shift: int, pictures_a: list, pictures_b: list, y:
         return 0, "grown"
     centre = x + w / 2
     room = {"left": SCREEN_W - x, "right": x + w, "centre": int(2 * min(centre, SCREEN_W - centre))}[kind]
-    fixed = set(pictures_a) & set(pictures_b)
-    best = None
-    for px, py, pw, ph in fixed:
-        if pw >= SCREEN_W or pw <= 0 or ph <= 0:
-            continue
-        if px <= x and x + w <= px + pw and py <= y + h // 2 <= py + ph:
-            if best is None or pw * ph < best[2] * best[3]:
-                best = (px, py, pw, ph)
-    if best is not None:
-        px, _py, pw, _ph = best
-        inside = {"left": px + pw - x, "right": x + w - px, "centre": int(2 * min(centre - px, px + pw - centre))}[kind]
-        if inside < room:
-            room, kind = inside, kind + " in a picture"
     return room, kind
 
 
@@ -359,19 +346,16 @@ class Census:
     def collect(self, a: "Run", b: "Run", where: str, moved: set | None = None) -> None:
         texts_b = list(b.texts)
         drawn = set()
-        buttons = {data for kind, data, _this in a.watched if kind == "button"}
         for data, x, y, font in a.texts:
             match = next((t for t in texts_b if t[0] == data and t[2] == y), None)
             if match is None:
                 continue
             texts_b.remove(match)
             w, h = composer(self.game).text_size(font, data)
-            # a button's label: the screen here, its frame below (never another picture under it)
-            pictures = ([], []) if data in buttons else (a.pictures, b.pictures)
-            room, kind = text_room(x, w, match[1] - x, *pictures, y, h)
+            room, kind = text_room(x, w, match[1] - x)
             if kind == "grown":
                 continue
-            if moved and (data, y) in moved and "picture" not in kind:
+            if moved and (data, y) in moved:
                 continue                    # its room from the screen's edge is not known here
             for ident, part in self.owners(data):
                 drawn.add(part)
@@ -391,10 +375,15 @@ class Census:
                     room, how = box_room(a.emu.read32, lambda p: a.emu.uc.mem_read(p, 1)[0], impl)
                     how = "text box, " + how
                 elif kind == "button" and self.game == "plant":
+                    # a button's label is centred on its button: twice the nearer screen edge's distance
+                    # from the centre (the button's own width is no limit)
                     impl = a.emu.read32(this + 0x10)
                     file, cols, _rows = a.d.describe(a.emu.read32(impl + 0x3C))
-                    room = a.sizes(file)[0] // max(1, cols)
-                    how = "button " + file
+                    frame = a.sizes(file)[0] // max(1, cols)
+                    # the button's place is not in its fields: every picture of that frame's width on this screen
+                    # is taken (the narrowest room wins); none drawn here: the frame's own width
+                    rooms = [int(2 * min(px + pw / 2, SCREEN_W - px - pw / 2)) for px, _py, pw, _ph in a.pictures if pw == frame]
+                    room, how = (min(rooms) if rooms else frame), "button label, centred"
                 elif kind in BOX_MAX[self.game]:
                     room, how = BOX_MAX[self.game][kind][0], kind + " box"
             except Exception:  # noqa: BLE001
@@ -643,6 +632,10 @@ def game_limits(game: str, verbose: bool = False) -> dict:
             if box is not None:
                 entry["height"] = max([box[1]] + [c.text_size(font, e.encode("cp1252", "replace"))[1]
                                                   for e in englishes])
+        elif ident in MESSAGE_IDS.get(game, ()) and "message" in BOX_MAX[game]:
+            box = BOX_MAX[game]["message"]
+            entry = {"font": 0, "width": box[0], "multiline": multiline, "kind": "message box", "proven": True,
+                     "where": "0x4221A0", "height": box[1]}
         else:
             english_w = max(_widest(c, 0, e) for e in englishes)
             entry = {"font": 0, "width": safe_limit(english_w), "multiline": multiline, "kind": "safe rule",
@@ -651,6 +644,10 @@ def game_limits(game: str, verbose: bool = False) -> dict:
         out[f"strings/{ident}"] = entry
     return out
 
+
+# Fish lines the game hands to its message box (0x4221A0) with the id chosen by a register, so the census cannot
+# reach them: the store's "Buy this item?" and the "Replace ... in slot #n?" questions (seen cut in the live check).
+MESSAGE_IDS = {"fish": {236, 237, 238, 239}}
 
 # The Counts button ("Counts: On" / "Off", drawn by Tank Counts and Greenhouse Counts) moves left to end
 # at x 796 when its translation is wide (native/common/count_toggle.h), so its room is the screen
