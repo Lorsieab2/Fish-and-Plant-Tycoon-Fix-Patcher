@@ -1409,6 +1409,13 @@ HIDDEN = (
         ),
     ),
     Fact(
+        "A click on the greenhouse's empty background does nothing: a selected plant stays selected.",
+        patched=(("greenhouse_click_deselect", "with nothing in your hand, a click on the empty floor (not a pot, "
+                  "the left panel, a tool or chemical, the faucet, a button or an arrow) clears the selection "
+                  "(the panel shows \"No plant selected\"); a click that did something before still does it "
+                  "(selection number 99 at state +0x63E58 = none)."),),
+    ),
+    Fact(
         "Hidden clicks in the nursery (each only if you own the item):",
         subs=(
             "Bird House: a sound and an animation. Wheelbarrow: a sound and 3-22 sparkles. Stone "

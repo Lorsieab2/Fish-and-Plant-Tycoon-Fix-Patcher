@@ -10698,6 +10698,27 @@
           }
         ]
       }
+    },
+    {
+      "id": "greenhouse_click_deselect",
+      "name": "Click the greenhouse to deselect",
+      "summary": "Click the greenhouse's empty background to go from a selected plant back to \"No plant selected\".",
+      "description": "In the greenhouse, a click on the empty background (the floor and the walls: not a plant or a pot, the left panel, the tools and chemicals, the tap and hose, the buttons, the counts button or the extra greenhouses' arrows) clears the selected plant, exactly as if nothing had been picked: the left panel shows \"No plant selected\" again. Nothing happens while you hold a tool, a seed, pollen or a pot, and every click that already did something does the same as before. Runs as a companion DLL the game loads at start, after the others; saves are unchanged.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/plant_tycoon_deselect",
+        "loader_tail": "Click to Deselect.dll",
+        "files": [
+          {
+            "path": "Click to Deselect.dll",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Click to Deselect.dll",
+            "size": 89088,
+            "sha256": "F44A23C9A6933E3A4D6B78766AA479AEFF9F4FD7027F7EFB32EF9AB01ACBF10F"
+          }
+        ]
+      }
     }
   ],
   "patches": [
