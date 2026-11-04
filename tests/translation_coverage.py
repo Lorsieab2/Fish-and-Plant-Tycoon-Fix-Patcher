@@ -32,6 +32,7 @@ DLLS = {
     ("plant", "Extra Greenhouses.dll"): ("plant_tycoon_greenhouses", "ftfp_extra_greenhouses"),
     ("plant", "Optimize Prices.dll"): ("plant_tycoon_optimize_prices", "ftfp_plant_prices"),
     ("plant", "Sort Seeds.dll"): ("plant_tycoon_sort_seeds", "ftfp_sort_seeds"),
+    ("plant", "Prune Zoom.dll"): ("plant_tycoon_prune_zoom", "ftfp_prune_zoom"),
     ("plant", "Unicode Text.dll"): ("plant_tycoon_unicode", "ftfp_plant_unicode"),
     ("plant", "Extra Seed Boxes.dll"): ("plant_tycoon_upgrades", "ftfp_seed_boxes"),
     ("plant", "Store Upgrades and Items.dll"): ("plant_tycoon_upgrades", "ftfp_plant_upgrades"),

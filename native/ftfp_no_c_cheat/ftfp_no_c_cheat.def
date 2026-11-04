@@ -1,0 +1,4 @@
+LIBRARY "No C Cheat"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpNoCCheatInstalled = _FtfpNoCCheatInstalled@0

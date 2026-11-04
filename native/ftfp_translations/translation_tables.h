@@ -179,6 +179,9 @@ static const tr_mod_text TR_MOD_TEXTS[] = {
     { 2, 0, 1000, 0, 0, 0x73107105u, "Extra Seed Boxes.dll", "extra_seed_boxes.boxes_1_3" },
     { 2, 0, 1000, 0, 0, 0x1ec83cd9u, "Extra Seed Boxes.dll", "extra_seed_boxes.boxes_4_6" },
     { 2, 0, 1000, 0, 0, 0x445449c2u, "Extra Seed Boxes.dll", "extra_seed_boxes.boxes_7_9" },
+    { 2, 0, 1000, 0, 0, 0xa8283adeu, "Prune Zoom.dll", "prune_zoom.undo" },
+    { 2, 0, 1000, 0, 0, 0x74273989u, "Prune Zoom.dll", "prune_zoom.redo" },
+    { 2, 0, 1000, 0, 0, 0x7d9eb7acu, "Prune Zoom.dll", "prune_zoom.close" },
     { 2, 0, 40, 0, 0, 0x1947d9aeu, "Store Upgrades and Items.dll", "store_upgrades_and_items.legendary_seeds" },
     { 2, 0, 40, 0, 0, 0xfd6533bau, "Store Upgrades and Items.dll", "store_upgrades_and_items.radioactive_plant_formula" },
     { 2, 0, 40, 0, 0, 0x7d851ec7u, "Store Upgrades and Items.dll", "store_upgrades_and_items.revival_potion" },
@@ -360,7 +363,7 @@ static const tr_mod_text TR_MOD_TEXTS[] = {
     { 2, 0, 20, 0, 0, 0x21f3c22cu, "Plant Tycoon.exe", "plant_tycoon_exe.change_scene" },
     { 2, 0, 54, 0, 0, 0xb003998au, "Plant Tycoon.exe", "plant_tycoon_exe.click_here_to_change_the_background" },
 };
-#define TR_MOD_TEXT_COUNT 325
+#define TR_MOD_TEXT_COUNT 328
 
 /* Texts the game pushes as plain literals (src/translation_strings.py EXE_LITERALS_PLANT): the `push imm32`
    at va (stock: the literal's address, holding `english`) is pointed at the translation of the mod text

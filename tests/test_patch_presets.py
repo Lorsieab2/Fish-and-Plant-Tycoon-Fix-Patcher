@@ -39,13 +39,13 @@ DEFAULTS = {
         "universal_supply_slots", "maximizable_window", "tank_greenhouse_counts",
         "ds_fish", "ds_store", "time_warp", "bigger_tanks", "extra_tanks", "extra_supply_slots",
         "multiple_ornaments", "unicode_ingame_fonts", "translations", "copy_paste_text_boxes",
-        "snail_curing_stack",
+        "snail_curing_stack", "disable_c_cheat",
     },
     "plant": {
         "fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets",
         "tank_greenhouse_counts", "new_flowers", "plant_upgrades", "sort_seeds", "time_warp",
         "extra_greenhouses", "extra_nurseries", "extra_chemical_slots", "unicode_ingame_fonts", "translations",
-        "copy_paste_text_boxes", "greenhouse_click_deselect",
+        "copy_paste_text_boxes", "greenhouse_click_deselect", "prune_zoom",
     },
 }
 EVERY = {game: set(patch_settings(game)) for game in ("fish", "plant")}

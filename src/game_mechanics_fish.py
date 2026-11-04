@@ -1577,7 +1577,7 @@ HIDDEN = (
         "them). They work in every game, with no setting or debug mode, while the tank screen is "
         "up and the screensaver is off (handler 0x41ED10):",
         subs=(
-            "c: +$1000 cash per press, no limit.",
+            "c: +$1000 cash per press, no limit. The patcher setting \"Disable Press C for Cash Cheat\" (on by default) turns this off.",
             "u: marks this copy as the full (registered) version for the session, which unlocks "
             "the store's full-version-only items. Whether it lasts after a restart was not "
             "checked.",

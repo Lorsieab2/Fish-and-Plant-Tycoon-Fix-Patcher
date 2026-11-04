@@ -938,7 +938,10 @@ static const tl_mod TL_MODS[] = {
     { 2, 1, 210, "store_upgrades_and_items.extra_chemical_slots_sold_out" },
     { 2, 5, 210, "store_upgrades_and_items.extra_chemical_slots_price_i" },
     { 2, 4, 143, "extra_chemical_slots.n_doses_left" },
+    { 2, 0, 59, "prune_zoom.undo" },
+    { 2, 0, 59, "prune_zoom.redo" },
+    { 2, 0, 60, "prune_zoom.close" },
 };
-#define TL_MODS_N 267
+#define TL_MODS_N 270
 
 #endif
