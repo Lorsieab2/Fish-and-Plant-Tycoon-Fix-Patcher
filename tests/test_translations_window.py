@@ -18,6 +18,7 @@ import urllib.parse
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+import text_wrap as twrap  # noqa: E402
 import translation_format as tfmt  # noqa: E402
 import translations as tr  # noqa: E402
 import translations_window as tw  # noqa: E402
@@ -263,6 +264,110 @@ class Window(unittest.TestCase):
         parsed = tfmt.parse_bytes(self.path.read_bytes(), "fish")
         self.assertEqual([r.english for r in parsed.rows][-1], "Status: ")
         self.assertEqual(parsed.translations()[ENTRIES[0].key], "Âge : ")
+        editor.close()
+
+    def _wrap_open(self, translations):
+        path = write_translation(self.folder, "Wrap", game="fish", translations=translations)
+        editor = self.window.open_editor(path)
+        editor.game_font = lambda: object()       # a fake font: 10 pixels a letter, 20 a CJK character
+        editor.measure_line = lambda text, font=0: sum(20 if ord(c) >= 0x3000 else 10 for c in tfmt.evaluate(text))
+        editor.limit = lambda row: None           # no recorded room: the English's widest line (the default)
+        return editor
+
+    def _wrap_select(self, editor, english: str) -> None:
+        iid = next(i for i, r in editor.visible.items() if r.english == english)
+        editor.tree.selection_set(iid)
+        editor.show_row()
+
+    def test_wrap_selected_and_undo(self) -> None:
+        editor = self._wrap_open(("Âge:", "", "Vous avez vendu beaucoup de poissons"))
+        self._wrap_select(editor, "You have sold %d fish!")
+        editor.wrap_selected()
+        text = editor.translation_text.get("1.0", "end-1c")
+        room = len("You have sold %d fish!") * 10
+        self.assertGreater(text.count("\n"), 0)
+        self.assertTrue(all(editor.measure_line(line) <= room for line in text.split("\n")))
+        self.assertEqual(text.split(), "Vous avez vendu beaucoup de poissons".split())
+        self.assertEqual(editor.current.translation, text)
+        self.assertEqual(editor.undo_wrap(), 1)
+        self.assertEqual(editor.current.translation, "Vous avez vendu beaucoup de poissons")
+        self.assertEqual(editor.translation_text.get("1.0", "end-1c"), "Vous avez vendu beaucoup de poissons")
+        editor.close()
+
+    def test_wrap_selected_is_a_no_op_when_it_fits(self) -> None:
+        editor = self._wrap_open(("Âge:", "", "Vendu %d !"))
+        self._wrap_select(editor, "You have sold %d fish!")
+        editor.wrap_selected()
+        self.assertEqual(editor.current.translation, "Vendu %d !")
+        self.assertIn("Already fits", editor.preview_note.get())
+        editor.close()
+
+    def test_wrap_all_counts_asks_first_and_keeps_placeholders(self) -> None:
+        editor = self._wrap_open(("Âge:", "Malade", "Vous avez vendu %d poissons aujourd hui"))
+        self.assertEqual([r.english for r in editor.wide_rows()], ["Sick", "You have sold %d fish!"])
+        with mock.patch.object(tw.messagebox, "askyesno", return_value=False) as ask:
+            self.assertEqual(editor.wrap_all(), 0)
+        self.assertIn("2 line(s)", ask.call_args[0][1])
+        self.assertEqual([r.translation for r in editor.file.rows if r.english == "Sick"], ["Malade"])
+        with mock.patch.object(tw.messagebox, "askyesno", return_value=True):
+            self.assertEqual(editor.wrap_all(), 2)
+        rows = {r.english: r.translation for r in editor.file.rows}
+        self.assertIn("%d", rows["You have sold %d fish!"])
+        self.assertEqual(rows["Sick"], "Mala\nde")
+        self.assertEqual(editor.wide_rows(), [])
+        self.assertEqual(editor.undo_wrap(), 2)
+        self.assertEqual({r.english: r.translation for r in editor.file.rows}["Sick"], "Malade")
+        editor.close()
+
+    def _with_room(self, translations, width: int, multiline: bool = False):
+        """The editor with every line given a recorded room (data/translation_limits.json's shape)."""
+        import translation_fit as tfit
+        editor = self._wrap_open(translations)
+        editor.limit = lambda row: tfit.Limit(width, 0, multiline, True, "left")
+        return editor
+
+    def test_too_wide_for_its_room_is_red_and_still_translated(self) -> None:
+        editor = self._with_room(("Âge:", "", "Vendu %d poissons"), 120)
+        self._wrap_select(editor, "You have sold %d fish!")
+        row = editor.current
+        self.assertEqual(editor.status(row), "wide")
+        self.assertEqual(editor.STATUS["wide"], "too wide")
+        message = editor.message.get()
+        self.assertIn("too wide for its spot", message)
+        self.assertIn("170 pixels", message)          # "Vendu %d poissons": 17 letters x 10
+        self.assertIn("room is 120 pixels", message)
+        self.assertIn(row.key, message)
+        self.assertEqual(str(editor.message_label.cget("foreground")), "#c00")
+        self.assertIn("2 of 3", editor.progress.get())   # counted as translated: never refused for width
+        editor.close()
+
+    def test_wrap_uses_the_recorded_room(self) -> None:
+        editor = self._with_room(("Âge:", "", "Vous avez vendu %d beaux poissons ce matin"), 130, True)
+        self._wrap_select(editor, "You have sold %d fish!")
+        editor.wrap_selected()
+        text = editor.current.translation
+        self.assertTrue(all(editor.measure_line(line) <= 130 for line in text.split("\n")), text)
+        self.assertGreater(max(editor.measure_line(line) for line in text.split("\n")), 100)
+        self.assertEqual(text.split(), "Vous avez vendu %d beaux poissons ce matin".split())
+        self.assertEqual(editor.status(editor.current), "done")
+        editor.close()
+
+    def test_a_windows_popup_has_no_room(self) -> None:
+        import translation_fit as tfit
+        editor = self._wrap_open(("Âge:", "", "Vous avez vendu beaucoup de poissons"))
+        editor.limit = lambda row: tfit.Limit(None, 0, True, True, "windows popup")
+        self._wrap_select(editor, "You have sold %d fish!")
+        self.assertIsNone(editor.too_wide(editor.current))
+        self.assertEqual(editor.wrap_selected(), "Vous avez vendu beaucoup de poissons")
+        self.assertEqual(editor.wide_rows(), [])
+        editor.close()
+
+    def test_warning_and_wrap_agree(self) -> None:
+        editor = self._wrap_open(("Âge:", "Malade", "Vous avez vendu %d poissons"))
+        for row in editor.file.rows:
+            if row.translation:
+                result = editor.wrap_row(row)
+                self.assertFalse(twrap.needs_wrap(result.text, row.english, editor.measure_line))
         editor.close()
 
 
@@ -551,8 +656,15 @@ class Setting(unittest.TestCase):
             companion = setting["companion"]
             self.assertNotIn("startup_loader", companion)
             self.assertEqual(companion["loader_tail"], "Translations.dll")
-            self.assertEqual(companion["files"], [{"path": "Translations.dll", "destination": f"{folder}/Translations.dll",
-                                                   "size": len(dll), "sha256": hashlib.sha256(dll).hexdigest().upper()}])
+            files = companion["files"]
+            self.assertEqual(files[0], {"path": "Translations.dll", "destination": f"{folder}/Translations.dll",
+                                        "size": len(dll), "sha256": hashlib.sha256(dll).hexdigest().upper()})
+            self.assertEqual(len(files) - 1, 7)       # the word lists beside it (Thai, Lao, Khmer, Burmese, CJ breaks)
+            for entry in files[1:]:
+                data = (ROOT / "assets" / "translations" / entry["path"]).read_bytes()
+                self.assertTrue(entry["path"].startswith("word-lists/"))
+                self.assertEqual(entry["destination"], folder + "/" + entry["path"])
+                self.assertEqual((entry["size"], entry["sha256"]), (len(data), hashlib.sha256(data).hexdigest().upper()))
             self.assertFalse(any("translations" in k.split(",") for k in manifest["patched_sha256_by_settings"]))
     def test_a_new_patch_gets_the_chosen_language(self) -> None:
         tmp = Path(tempfile.mkdtemp())

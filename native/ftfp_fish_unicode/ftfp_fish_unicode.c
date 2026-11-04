@@ -58,6 +58,7 @@
 #define GAME_NEW_NAME_RETURN 0x00417D77u  /* getText of the new player's box (the game copies it to row 1) */
 #define GAME_DEFAULT_FONT 0x34             /* the graphics' default font */
 #define GAME_SET_TEXT_RESUME 0x0040B976u
+#define GAME_SAVE_TARGET 0x00403520u  /* what the save's call at SITE_SAVE_VA goes to */
 #define GAME_SET_LIMIT_TARGET 0x0040B8B0u
 #define GAME_DRAW_FRAME 0x34
 #define GAME_DRAW_RESUME 0x004087E7u
@@ -77,6 +78,9 @@
 #define GAME_BOX_DRAW_TARGET 0x00408B80u  /* the box's left draw (thiscall wrapper) */
 #define GAME_CARET_TICK_TARGET 0x00402090u  /* the time the caret blink reads */
 #define GAME_WIDTH_RESUME 0x004023D7u
+/* A box made edge to edge in its dialog (the new player's box, 0x417C15, rect 0..360, inside the
+   dialog's frame): beside the centred text the caret (paddington_tt_30's "_", 13 px) and 1 px clear. */
+#define GAME_DIALOG_BORDER 14
 
 #define CODE_ADDR(fn) ((const void *)(UINT_PTR)(fn))
 
@@ -286,10 +290,6 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     if (reason == DLL_PROCESS_ATTACH) {
         self_module = instance;
         DisableThreadLibraryCalls(instance);
-    } else if (reason == DLL_PROCESS_DETACH && installed) {
-        /* the game quits: a name typed since the last draw, or a record whose write failed, still
-           goes beside the save */
-        names_sync_now(1);
     }
     return TRUE;
 }

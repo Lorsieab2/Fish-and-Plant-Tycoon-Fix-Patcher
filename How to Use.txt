@@ -466,7 +466,14 @@ the language under "Language in the game". It applies from the next game
 start; you do not need to patch again. "English (original)" changes
 nothing. To make your own: pick a language, press "Make a translation...",
 and type your translations in the editor (the English is on the left; it
-saves by itself and shows how much is done). Keep placeholders such as %d
+saves by itself and shows how much is done). A line too wide for its place
+on the game's screen is marked "too wide" in red; it is still used, and in
+the game it is broken again where the English has line breaks, cut with
+"..." otherwise, or shown in English if even that does not fit (not yet
+seen in a running game). "Wrap to fit" re-breaks the line to its room on the
+screen (the width of the English where the room is not known), "Wrap all"
+does every line that is wider (it shows the count first) and "Undo wrap"
+takes it back: the games break lines only where you do. Keep placeholders such as %d
 and %s; the editor says when one is missing. "Add translation file..." (or
 drag the file onto the window) adds one someone sent you; "Export
 translation..." saves a copy (with several selected, one file each into a

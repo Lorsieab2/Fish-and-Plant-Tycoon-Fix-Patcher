@@ -69787,8 +69787,8 @@
           {
             "path": "Tank Counts.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Tank Counts.dll",
-            "size": 95232,
-            "sha256": "D2BFB2C8B4914F6FABEA756E8AA566600392CCF150CA725D7252B3CECEED7622"
+            "size": 95744,
+            "sha256": "1CC935EAD3FD2E11DAF66EB456F74153514FF32EF0D34B1922A7F60D0F991A73"
           }
         ]
       }
@@ -69859,128 +69859,128 @@
           {
             "path": "Images/FISH_23_body_Grid.png",
             "destination": "Images/FISH_23_body_Grid.png",
-            "size": 79268,
-            "sha256": "D0A39A53723C8FD733474787F2D084738742EB5D28EB5ED9D3A15D045EC81A95"
+            "size": 82307,
+            "sha256": "64999BCFB4356D46FDC155C3E4D84A4EC5EE8C38BC1394529C2581EC53E43846"
           },
           {
             "path": "Images/FISH_23_bot_Grid.png",
             "destination": "Images/FISH_23_bot_Grid.png",
-            "size": 2958,
-            "sha256": "EB23370DF511DB3353D3C77B517E40458A78238256379C8DC398E59205BFF2AD"
+            "size": 6467,
+            "sha256": "B42ECDB41C5D6B84FD3F61E0EE66EE116A1C44B9243C9D0039B8B9453D148B0E"
           },
           {
             "path": "Images/FISH_23_top_Grid.png",
             "destination": "Images/FISH_23_top_Grid.png",
-            "size": 2815,
-            "sha256": "B87E98609FAAE76590F3D9AAE1B4802C61895CBE2E806111B333C3C3BF04E757"
+            "size": 6705,
+            "sha256": "CE24CE5F279149510599F1AEE34521D5EB89109DE9BBC14569E26B492C64A9A1"
           },
           {
             "path": "Images/FISH_24_body_Grid.png",
             "destination": "Images/FISH_24_body_Grid.png",
-            "size": 115111,
-            "sha256": "18CB6F458706C5A6C9F417D65A5C0DBB452B4BE0F0E73AD8A92F1B5B78B60D98"
+            "size": 114901,
+            "sha256": "4A9653E22E34C369DAD1F4266427551595E386D55D0B4764A3C4C152BCCC0A5A"
           },
           {
             "path": "Images/FISH_24_bot_Grid.png",
             "destination": "Images/FISH_24_bot_Grid.png",
-            "size": 12342,
-            "sha256": "7C1B8057BABBD3C1093C63B5996E3517F71595A3BB821C0FA88BC00968E9DF73"
+            "size": 30158,
+            "sha256": "90BFF08D90E8BE3842B7259B3E57219273FBA43A22FA65403E4A67AB0B62626B"
           },
           {
             "path": "Images/FISH_24_top_Grid.png",
             "destination": "Images/FISH_24_top_Grid.png",
-            "size": 16156,
-            "sha256": "1B2D94426B525E8CC3C4459386F5C716CE2C7160BB956DFCAFFF7F6F0419916D"
+            "size": 40253,
+            "sha256": "79822C9296BF36F870AA02328A2B173E0F301248D4500E9BEF2EF11E035D5218"
           },
           {
             "path": "Images/FISH_25_body_Grid.png",
             "destination": "Images/FISH_25_body_Grid.png",
-            "size": 115817,
-            "sha256": "DD37271939F390298E38F5656EE63F478A6328F99AF0CC28EB5E931861D41874"
+            "size": 118862,
+            "sha256": "DB1C9CB4B2DAE6780F1B39A80D375C930E9CD6F6AE23285997E2F96E067D9668"
           },
           {
             "path": "Images/FISH_25_bot_Grid.png",
             "destination": "Images/FISH_25_bot_Grid.png",
-            "size": 10517,
-            "sha256": "A6DB462C70C1CE3A2CEB53DC534FD1960CFABB39864B69AC534FD166B924C490"
+            "size": 25863,
+            "sha256": "36605A1AFFD5D0DC72B323D7B06A02060BB9B8A2BDC43529EFA5B6D1DFB0EF58"
           },
           {
             "path": "Images/FISH_25_top_Grid.png",
             "destination": "Images/FISH_25_top_Grid.png",
-            "size": 12367,
-            "sha256": "855EB8C131B93E5070510B99FF83738BC2D44ED103E8DD1CAD5ED14A866134B0"
+            "size": 30426,
+            "sha256": "6875F8F85575097390D87688BED63CA38EB7594FC959FFDFFFBD96F07258E6B2"
           },
           {
             "path": "Images/FISH_26_body_Grid.png",
             "destination": "Images/FISH_26_body_Grid.png",
-            "size": 188989,
-            "sha256": "37587D90BDF7315D0D09B1AE1BFFB5119723B2ACCC8B38511CFC0DF870673BFC"
+            "size": 188463,
+            "sha256": "F90352AD074DCEAD2BD733CC5D145A9D6EECB6E42B95EF352364284735C30BD6"
           },
           {
             "path": "Images/FISH_26_bot_Grid.png",
             "destination": "Images/FISH_26_bot_Grid.png",
-            "size": 10750,
-            "sha256": "68EEA403BC6F224B7427ADE09186D669C9C095C5D2B5AA8BBB5F8AB9D074D0A4"
+            "size": 25756,
+            "sha256": "6AB6D578F6C6D865BABA96D357E062A866EB0BC491374AF399A6CD7C109E40FA"
           },
           {
             "path": "Images/FISH_26_top_Grid.png",
             "destination": "Images/FISH_26_top_Grid.png",
-            "size": 11348,
-            "sha256": "904B43A46942C4A2E9BA82994F2D615513F292A06D369C6DB4363920B5BCB1AA"
+            "size": 28639,
+            "sha256": "498F1D9A090442BAD9DA1FCCDEA2EBF22F4D26CF48290C2EAD7E93CFB736FC45"
           },
           {
             "path": "Images/FISH_27_body_Grid.png",
             "destination": "Images/FISH_27_body_Grid.png",
-            "size": 70336,
-            "sha256": "948B947ACBB15ED7202FC4C2327F9DAD7386BDE24F693501A2F7F4784B6B79EE"
+            "size": 73149,
+            "sha256": "BCE51C0DB030E451345F7445B0EC098839D017582A689BA94F41D7536C5090A7"
           },
           {
             "path": "Images/FISH_27_bot_Grid.png",
             "destination": "Images/FISH_27_bot_Grid.png",
-            "size": 10300,
-            "sha256": "83B07868F41D2C42163C1807E7EDBC0F77974734E2C2CB3513DD34B2114004E0"
+            "size": 24828,
+            "sha256": "5E072DF3F9D6DF5DD8B70EBF5B1893E40C47CDB5774DAD166F9200B0BFBA2438"
           },
           {
             "path": "Images/FISH_27_top_Grid.png",
             "destination": "Images/FISH_27_top_Grid.png",
-            "size": 13001,
-            "sha256": "0A69290B680035137A1874334060BCB810B77C23A93AEB253ECF43BD8E48C00F"
+            "size": 32296,
+            "sha256": "9A10055B5A22BE66AE82F25A96BF509BBAD305BB69A8BCABBDE640AAD0CEE6AE"
           },
           {
             "path": "Images/FISH_28_body_Grid.png",
             "destination": "Images/FISH_28_body_Grid.png",
-            "size": 181464,
-            "sha256": "F1DBC97BB370A7AFBAFAD458DA6A3C4B5D645EB7FB89FB6BEF45449DF255E25F"
+            "size": 181368,
+            "sha256": "E78DC228F4F6C7A095EDD8DF043E10808BC21EB9E7C5A298DA82DD6275E806F0"
           },
           {
             "path": "Images/FISH_28_bot_Grid.png",
             "destination": "Images/FISH_28_bot_Grid.png",
-            "size": 14192,
-            "sha256": "386F7C9327B4011BFAC6E3AE8D7018B29EE7D5A8F03984EC1D5C28B1FC1A8BC4"
+            "size": 34276,
+            "sha256": "08C0F2704938A3EA262DD4CB0C52FB7E1DA7295E318AE81D14810A3DDEEF206B"
           },
           {
             "path": "Images/FISH_28_top_Grid.png",
             "destination": "Images/FISH_28_top_Grid.png",
-            "size": 19332,
-            "sha256": "25E1D983376BCC8A23C20AC6B0E876453124D4EF11ADD5DFEB410C06B356BC4C"
+            "size": 48322,
+            "sha256": "E87DA03B9375C49E25894CF50A77D010DD8AE2FD97E3565D1F8744679F96D638"
           },
           {
             "path": "Images/FISH_29_body_Grid.png",
             "destination": "Images/FISH_29_body_Grid.png",
-            "size": 101766,
-            "sha256": "12CC6ADA910326D1ED65B65021CC7659CC0CAFFB08FD33021EBA1C54543F7F41"
+            "size": 102137,
+            "sha256": "ADA1BA834A03B52D3980919C68D839D18AB76EED4898EC187B37F02CAD8DE76C"
           },
           {
             "path": "Images/FISH_29_bot_Grid.png",
             "destination": "Images/FISH_29_bot_Grid.png",
-            "size": 9374,
-            "sha256": "2FAB41BD606D78FD78DC245D73871190E522033B1249B9250EDE05ADAE5EBE23"
+            "size": 23239,
+            "sha256": "A9CDAA000577AA0F744ABE8AA50785FFAFFC815A2C7850F65AC3A929A239FE99"
           },
           {
             "path": "Images/FISH_29_top_Grid.png",
             "destination": "Images/FISH_29_top_Grid.png",
-            "size": 9554,
-            "sha256": "C2733745C7208D3170AA4AFD9F0D41058A3B1FEA24F917960CED9C83DFE1B994"
+            "size": 24154,
+            "sha256": "46953E639BEFB913E9106D3B5ED2D22EE988FD3C8B5943029E4EE51EBFEBBA97"
           },
           {
             "path": "Images/FISH_DS_adult_dead_Grid.png",
@@ -70552,7 +70552,7 @@
       "id": "unicode_ingame_fonts",
       "name": "Render Unicode with In-Game Fonts",
       "summary": "Type and show names in any script (é ñ ß, Ç ğ İ, 山田, emoji ...) up to 1,200 bytes, drawn in the game's own fonts; letters a font lacks are made for it in its style or drawn from Windows' fonts.",
-      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. Names can be up to 1,200 bytes as the save stores them, with no character limit (up to 1,200 plain letters, fewer when letters need more bytes; the same limit as the other Fun Patchers), counted in characters as you see them (a letter with its accents, an emoji with its skin tone or a flag is one), and Backspace removes one whole character. All three of the game's fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every Latin-1 letter and symbol they lack, and paddington's empty boxes for % * + < = > [ \\ ] ^ { | } ~ become real letters: accented letters are made from each font's own letters and accents, the rest drawn in the font's size, baseline and weight. They are added to copies of the fonts' pictures in the game's Images folder; the game's own pictures are not changed. Any other letter (Turkish, Japanese, Chinese, Korean, cuneiform, emoji ...) is drawn from Windows' fonts at the font's size and in the text's colour (colour emoji in their own colours). The save itself is not changed: a name that fits the game's 31-byte field is kept there as it is (one byte for a Windows-1252 character, UTF-8 for any other); a longer one is kept there as its short form (its start of whole characters and \"...\", or \"2...\", \"3...\" when two would start alike), so a copy of the game without the setting still loads and plays the save and shows the short form; the whole name is kept beside the save, in Fix Patcher Data\\Names <slot>.dat (the Names format the Fun Patchers share: one checked record a name, never removed). The patcher's tools (Rename Players, Copy Player Slot, Back Up and Restore Saves, the Breeding Guide and Picture Studio) read, write and carry such names too. A letter the game's fonts lack is drawn from Windows' fonts in that font's own style (its capital height, baseline, stroke weight, side bearings and shading), from the first font of the shared fallback chain that has every code point of it: Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships. A letter with a combining accent that has a precomposed form is that letter; Arabic, Hebrew, the Indic scripts, Thai and the other scripts that join or reorder are shaped and ordered by Windows a whole run at a time; a letter no font has is an empty box in the font's style, never \"?\". Each name is fitted to the room the game's layout gives it, with an ellipsis. In a box that is not a name (the registration boxes), a letter is refused when the text would be wider than the stock game allows there. The games have no word wrapper: text breaks only where it has a line break. Not yet seen in a running game. Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one. A copy of the game without this setting shows each such letter as a blank (its fonts have no letter for it) but loads and plays the save as always.",
+      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. Names can be up to 1,200 bytes as the save stores them, with no character limit (up to 1,200 plain letters, fewer when letters need more bytes; the same limit as the other Fun Patchers), counted in characters as you see them (a letter with its accents, an emoji with its skin tone or a flag is one), and Backspace removes one whole character. All three of the game's fonts (Paddington 18 and 30, Triplex Sans Bold 16) get every Latin-1 letter and symbol they lack, and paddington's empty boxes for % * + < = > [ \\ ] ^ { | } ~ become real letters: accented letters are made from each font's own letters and accents, the rest drawn in the font's size, baseline and weight. They are added to copies of the fonts' pictures in the game's Images folder; the game's own pictures are not changed. Any other letter (Turkish, Japanese, Chinese, Korean, cuneiform, emoji ...) is drawn from Windows' fonts at the font's size and in the text's colour (colour emoji in their own colours). The save itself is not changed: a name that fits the game's 31-byte field is kept there as it is (one byte for a Windows-1252 character, UTF-8 for any other); a longer one is kept there as its short form (its start of whole characters and \"...\", or \"2...\", \"3...\" when two would start alike), so a copy of the game without the setting still loads and plays the save and shows the short form; the whole name is kept beside the save, in Fix Patcher Data\\Names <slot>.dat (the Names format the Fun Patchers share: one checked record a name, never removed). The patcher's tools (Rename Players, Copy Player Slot, Back Up and Restore Saves, the Breeding Guide and Picture Studio) read, write and carry such names too. A letter the game's fonts lack is drawn from Windows' fonts in that font's own style (its capital height, baseline, stroke weight, side bearings and shading), from the first font of the shared fallback chain that has every code point of it: Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships. A letter with a combining accent that has a precomposed form is that letter; Arabic, Hebrew, the Indic scripts, Thai and the other scripts that join or reorder are shaped and ordered by Windows a whole run at a time, and a line that mixes left-to-right and right-to-left text is put in visual order as a whole (the Unicode bidi algorithm, by Windows), numbers in right-to-left text reading left to right; a letter no font has is an empty box in the font's style, never \"?\". Each name is fitted to the room the game's layout gives it, with an ellipsis. In a box that is not a name (the registration boxes), a letter is refused when the text would be wider than the stock game allows there. The games have no word wrapper: text breaks only where it has a line break. Not yet seen in a running game. Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one. A flag (Japan, the United States, England...) is drawn as a flag in colour, not as its two letters, from Twemoji Mozilla, also shipped beside the DLL and loaded for the game only (Twemoji artwork by Twitter, Inc and other contributors, CC-BY 4.0), which also draws the emoji Windows' own emoji font lacks. A copy of the game without this setting shows each such letter as a blank (its fonts have no letter for it) but loads and plays the save as always.",
       "category": "main",
       "default": true,
       "separate_output": true,
@@ -70566,8 +70566,8 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 173056,
-            "sha256": "547BB51301B1AB3B0AAFDEACD3F5FD261FBB795E9C3AEEE8453D3E5D6D251099"
+            "size": 179712,
+            "sha256": "42D76A89A4359F4A0CE472F4BF56754463A40C2BF39A53E588932890B2C4ED70"
           },
           {
             "path": "Images/FONT_TRIPLEX_SANSLIGHTLIN_BOLD_16PT_unicode.png",
@@ -70578,14 +70578,14 @@
           {
             "path": "Images/paddington_tt_18_unicode.png",
             "destination": "Images/paddington_tt_18_unicode.png",
-            "size": 13310,
-            "sha256": "F162EC3E0503263951629299FD619377D86E629D4279D62C4A95C6E43E444E5F"
+            "size": 13304,
+            "sha256": "1BBAD484069B10C11F0EFA085F0DB55B76C9FCCF0B8933D792B1E05F00FB32A5"
           },
           {
             "path": "Images/paddington_tt_30_unicode.png",
             "destination": "Images/paddington_tt_30_unicode.png",
-            "size": 23206,
-            "sha256": "02DD0B46A603C5CFE26523B3BC70A9B8CD228856F3E892EE5FA2084FE6010DA9"
+            "size": 23179,
+            "sha256": "83AC2F6F8B2458BDB2BC99DA92E541721E95504344BF252AA1F2CD24CB196E18"
           },
           {
             "path": "Fonts/unifont-18.0.01.otf",
@@ -70618,6 +70618,12 @@
             "sha256": "CA7DF8948CEC84240F19508A17A74DE037C98BA3A54E1AAA50EA6EDBBDC37F64"
           },
           {
+            "path": "Fonts/Twemoji.Mozilla.ttf",
+            "destination": "Fish Tycoon Fix Patcher DLLs/Fonts/Twemoji.Mozilla.ttf",
+            "size": 1474284,
+            "sha256": "6D90152EE0D29E82FE2A87793AF5AA4B7AD13E6538360889E141E81ED299EE8E"
+          },
+          {
             "path": "Fonts/LICENSE-LastResort.txt",
             "destination": "Fish Tycoon Fix Patcher DLLs/Fonts/LICENSE-LastResort.txt",
             "size": 4452,
@@ -70634,6 +70640,12 @@
             "destination": "Fish Tycoon Fix Patcher DLLs/Fonts/LICENSE-NotoSerifTangut.txt",
             "size": 4382,
             "sha256": "BD8B32C064BE2225D55F878A689063C6F169CCD9E2792D7051F0D74CF4816F1B"
+          },
+          {
+            "path": "Fonts/LICENSE-TwemojiMozilla.txt",
+            "destination": "Fish Tycoon Fix Patcher DLLs/Fonts/LICENSE-TwemojiMozilla.txt",
+            "size": 22316,
+            "sha256": "167BD60FAEFE6C78354B59782A0A9D0B6A37F159C8AA236FD43D4323CE97D75D"
           },
           {
             "path": "Fonts/LICENSE-Unifont.txt",
@@ -70659,8 +70671,50 @@
           {
             "path": "Translations.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Translations.dll",
-            "size": 131072,
-            "sha256": "05F41E220D8FC4017A59B38F50E448B2572FCD86DC2F5225A17AF7A42E3D1B5C"
+            "size": 156160,
+            "sha256": "12953C62E4E5521C7E4732C37AA6898619FF3919EF36A54ED2A4A7C188481390"
+          },
+          {
+            "path": "word-lists/burmesedict.txt",
+            "destination": "Fish Tycoon Fix Patcher DLLs/word-lists/burmesedict.txt",
+            "size": 1164408,
+            "sha256": "61D8ABC3D9102B2F9BF0C9F44DB0D7AB89B18172D8CD26832E4C83174BD8673B"
+          },
+          {
+            "path": "word-lists/cjdict.txt",
+            "destination": "Fish Tycoon Fix Patcher DLLs/word-lists/cjdict.txt",
+            "size": 4195904,
+            "sha256": "E73FD72048981D0CC13E9DC436A7EABA07FFB6EFF58C8A59DC75C1DF746663A0"
+          },
+          {
+            "path": "word-lists/ICU-LICENSE.txt",
+            "destination": "Fish Tycoon Fix Patcher DLLs/word-lists/ICU-LICENSE.txt",
+            "size": 26487,
+            "sha256": "451167C55C0FA447CC2D5632714F5E3C567FE4F1E1BADEFAB2C1333852198ACA"
+          },
+          {
+            "path": "word-lists/khmerdict.txt",
+            "destination": "Fish Tycoon Fix Patcher DLLs/word-lists/khmerdict.txt",
+            "size": 2031114,
+            "sha256": "87BEE2D17CD5148AA36957EB05409EEFC124DE8AD519B81B789298EF3E60B5D9"
+          },
+          {
+            "path": "word-lists/laodict.txt",
+            "destination": "Fish Tycoon Fix Patcher DLLs/word-lists/laodict.txt",
+            "size": 673894,
+            "sha256": "3C876934A3FA81031D2333525EAFACA6A7C9F842E3B98F18C38880420AFB5D36"
+          },
+          {
+            "path": "word-lists/README.md",
+            "destination": "Fish Tycoon Fix Patcher DLLs/word-lists/README.md",
+            "size": 3755,
+            "sha256": "074575A4A301B7D1FF2C149AE249D2C6B6A5BEF059D1BE46F1C51CAF66353AB2"
+          },
+          {
+            "path": "word-lists/thaidict.txt",
+            "destination": "Fish Tycoon Fix Patcher DLLs/word-lists/thaidict.txt",
+            "size": 493054,
+            "sha256": "3166ABDE40C0F44AB91C28F5CE96D7D1472CB7882E1C0BDA0A72F8F69DBA4274"
           }
         ]
       }
@@ -70669,7 +70723,7 @@
       "id": "unicode_system_font",
       "name": "Use Unicode Font (overrides in-game fonts)",
       "summary": "Draws all of the game's text with one Windows font you choose (Segoe UI unless you pick another), any script, at the game's sizes and colours, instead of the game's own fonts.",
-      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. Names can be up to 1,200 bytes as the save stores them, with no character limit (up to 1,200 plain letters, fewer when letters need more bytes; the same limit as the other Fun Patchers), counted in characters as you see them (a letter with its accents, an emoji with its skin tone or a flag is one), and Backspace removes one whole character. Every letter the game draws (names, menus, prices, a translation) is drawn with the font chosen in the patcher (the Tools tab's Unicode Font... window, with previews, or the Font box beside this setting; any installed font or a .ttf/.otf/.ttc file, copied beside the DLL and loaded for the game only; Segoe UI unless you pick another), then, for a letter it lacks, the shared fallback chain (Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships). Each game font keeps its line height, baseline, weight and shading; the size is fitted so \"The quick brown fox jumps over the lazy dog 0123456789\" is as wide as the game draws it (within 60%-130%), in the game's colours (colour emoji in their own colours). Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one. The game's own fonts and pictures are not changed. Not yet seen in a running game. Names are kept as with Render Unicode with In-Game Fonts (the name or its short form with \"...\" in the save, the whole name beside it in Names <slot>.dat), and the two settings cannot both be on. Runs as the same Unicode Text.dll, set by the \"Unicode Text.ini\" the patcher writes beside it.",
+      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (AltGr letters, the emoji panel and input methods too); the game took only plain ASCII. Names can be up to 1,200 bytes as the save stores them, with no character limit (up to 1,200 plain letters, fewer when letters need more bytes; the same limit as the other Fun Patchers), counted in characters as you see them (a letter with its accents, an emoji with its skin tone or a flag is one), and Backspace removes one whole character. Every letter the game draws (names, menus, prices, a translation) is drawn with the font chosen in the patcher (the Tools tab's Unicode Font... window, with previews, or the Font box beside this setting; any installed font or a .ttf/.otf/.ttc file, copied beside the DLL and loaded for the game only; Segoe UI unless you pick another), then, for a letter it lacks, the shared fallback chain (Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships). Each game font keeps its line height, baseline, weight and shading; the size is fitted so \"The quick brown fox jumps over the lazy dog 0123456789\" is as wide as the game draws it (within 60%-130%), in the game's colours (colour emoji in their own colours). Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one. A flag (Japan, the United States, England...) is drawn as a flag in colour, not as its two letters, from Twemoji Mozilla, also shipped beside the DLL and loaded for the game only (Twemoji artwork by Twitter, Inc and other contributors, CC-BY 4.0), which also draws the emoji Windows' own emoji font lacks. The game's own fonts and pictures are not changed. Not yet seen in a running game. Names are kept as with Render Unicode with In-Game Fonts (the name or its short form with \"...\" in the save, the whole name beside it in Names <slot>.dat), and the two settings cannot both be on. Runs as the same Unicode Text.dll, set by the \"Unicode Text.ini\" the patcher writes beside it.",
       "category": "main",
       "default": false,
       "separate_output": true,
@@ -70683,8 +70737,8 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 173056,
-            "sha256": "547BB51301B1AB3B0AAFDEACD3F5FD261FBB795E9C3AEEE8453D3E5D6D251099"
+            "size": 179712,
+            "sha256": "42D76A89A4359F4A0CE472F4BF56754463A40C2BF39A53E588932890B2C4ED70"
           },
           {
             "path": "Fonts/unifont-18.0.01.otf",
@@ -70717,6 +70771,12 @@
             "sha256": "CA7DF8948CEC84240F19508A17A74DE037C98BA3A54E1AAA50EA6EDBBDC37F64"
           },
           {
+            "path": "Fonts/Twemoji.Mozilla.ttf",
+            "destination": "Fish Tycoon Fix Patcher DLLs/Fonts/Twemoji.Mozilla.ttf",
+            "size": 1474284,
+            "sha256": "6D90152EE0D29E82FE2A87793AF5AA4B7AD13E6538360889E141E81ED299EE8E"
+          },
+          {
             "path": "Fonts/LICENSE-LastResort.txt",
             "destination": "Fish Tycoon Fix Patcher DLLs/Fonts/LICENSE-LastResort.txt",
             "size": 4452,
@@ -70733,6 +70793,12 @@
             "destination": "Fish Tycoon Fix Patcher DLLs/Fonts/LICENSE-NotoSerifTangut.txt",
             "size": 4382,
             "sha256": "BD8B32C064BE2225D55F878A689063C6F169CCD9E2792D7051F0D74CF4816F1B"
+          },
+          {
+            "path": "Fonts/LICENSE-TwemojiMozilla.txt",
+            "destination": "Fish Tycoon Fix Patcher DLLs/Fonts/LICENSE-TwemojiMozilla.txt",
+            "size": 22316,
+            "sha256": "167BD60FAEFE6C78354B59782A0A9D0B6A37F159C8AA236FD43D4323CE97D75D"
           },
           {
             "path": "Fonts/LICENSE-Unifont.txt",
@@ -70758,8 +70824,29 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 173056,
-            "sha256": "547BB51301B1AB3B0AAFDEACD3F5FD261FBB795E9C3AEEE8453D3E5D6D251099"
+            "size": 179712,
+            "sha256": "42D76A89A4359F4A0CE472F4BF56754463A40C2BF39A53E588932890B2C4ED70"
+          }
+        ]
+      }
+    },
+    {
+      "id": "snail_curing_stack",
+      "name": "Snail and Plant of Curing stack",
+      "summary": "The Cleaning Snail and the Plant of Curing both cut the odds of a fish getting sick, and together they quarter them about half the time.",
+      "description": "In the stock game the Cleaning Snail's 50% halving of a fish's sickness odds does nothing once you own the Plant of Curing, which halves them on its own. With this setting the snail's halving also works when you own the plant: the plant halves the odds, then half the time the snail halves them again, so owning both quarters the odds about half the time. With only one of them, or neither, nothing changes. The halving is applied before the extra odds for other sick fish and for age, which are never halved. This is not counted as a bug, so it is not part of Fix Vanilla Bugs. Runs as a companion DLL the game loads at start; saves are unchanged.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/fish_tycoon_snail_curing",
+        "loader_tail": "Snail and Curing.dll",
+        "files": [
+          {
+            "path": "Snail and Curing.dll",
+            "destination": "Fish Tycoon Fix Patcher DLLs/Snail and Curing.dll",
+            "size": 88576,
+            "sha256": "26BEB075CE766C4BA011424AAC2902D92989F6AF6EFDAC2CF4A70F7218521AB3"
           }
         ]
       }

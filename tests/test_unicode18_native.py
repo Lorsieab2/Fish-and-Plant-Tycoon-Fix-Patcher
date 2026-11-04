@@ -114,7 +114,8 @@ class NativeUnicode18Tests(unittest.TestCase):
     def test_graphemes_draw_whole(self) -> None:
         family = [0x1F468, 0x200D, 0x1F469, 0x200D, 0x1F467, 0x200D, 0x1F466]
         single = self.raster([0x1F468])
-        for cps, colour in ((family, 2), ([0x1F1EF, 0x1F1F5], 1), ([0x31, 0xFE0F, 0x20E3], 2),
+        # (a flag: one colour picture from Twemoji Mozilla, tests/test_unicode_flags.py)
+        for cps, colour in ((family, 2), ([0x1F1EF, 0x1F1F5], 2), ([0x31, 0xFE0F, 0x20E3], 2),
                             ([0x65, 0x301], 1), ([0x915, 0x94D, 0x937], 1)):
             with self.subTest(cps=[hex(c) for c in cps]):
                 kind, w, _xoff, adv = self.raster(cps)

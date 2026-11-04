@@ -83,7 +83,7 @@ def render() -> str:
     count = 0
     for game in ("fish", "plant"):
         seen = set()
-        for m in ts.MOD_STRINGS:
+        for m in ts.ALL_MOD_STRINGS:
             if m.game != game:
                 continue
             key = ts.mod_key(m)
@@ -97,6 +97,28 @@ def render() -> str:
     lines += [
         "};",
         f"#define TR_MOD_TEXT_COUNT {count}",
+        "",
+        "/* Texts the game pushes as plain literals (src/translation_strings.py EXE_LITERALS_PLANT): the `push imm32`",
+        "   at va (stock: the literal's address, holding `english`) is pointed at the translation of the mod text",
+        "   `id`.  Each va is a declared site of the DLL (SITE_EXE_n_VA, 5 bytes). */",
+        "typedef struct tr_exe_site {",
+        "    unsigned char game;",
+        "    unsigned int va;",
+        "    unsigned int stock;",
+        "    const char *id;",
+        "    const char *english;",
+        "} tr_exe_site;",
+        "",
+        "static const tr_exe_site TR_EXE_SITES[] = {",
+    ]
+    sites = list(ts.EXE_LITERALS_PLANT)
+    mods = {m.english: ts.mod_key(m)[len("mod/"):].rsplit("~", 1)[0] for m in ts.EXE_STRINGS}
+    for va, imm, eng in sites:
+        lines.append(f"    {{ 2, 0x{va:08X}u, 0x{imm:08X}u, {c_string(mods[eng])}, {c_string(eng)} }},")
+    lines += ["};", f"#define TR_EXE_SITE_N {len(sites)}"]
+    for n, (va, _imm, _eng) in enumerate(sites, start=1):
+        lines += [f"#define SITE_EXE_{n:03d}_VA 0x{va:08X}u", f"#define SITE_EXE_{n:03d}_LEN 5"]
+    lines += [
         "",
         "#endif /* FTFP_TRANSLATION_TABLES_H */",
         "",

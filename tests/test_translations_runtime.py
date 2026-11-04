@@ -387,5 +387,144 @@ class Agreement(unittest.TestCase):
                 self.assertEqual(rt.lookup(69), want, vector)
 
 
+
+@unittest.skipUnless(te.ready(), "needs MSVC, the vanilla games and assets/translations/Translations.dll")
+class MainMenuLabels(unittest.TestCase):
+    """With the French file installed, every text on each game's main menu is non-empty."""
+
+    MENU = {"fish": [(8, "Player: "), (10, "Change Player")],
+            "plant": [(3, "Player: "), (5, "Change"), (7, "Play"), (8, "Start Over"), (9, "Options"), (10, "Help"),
+                      (11, "Quit")]}
+
+    def _french(self, game: str) -> te.Runtime:
+        data = (ROOT / "translations" / game / "fr.tsv").read_bytes()
+        rt = runtime(game, data)
+        rt.emu.call_count = 400_000_000
+        self.assertEqual(rt.start(), 1, rt.log)
+        return rt
+
+    def test_every_main_menu_label_is_non_empty_in_french(self) -> None:
+        for game, labels in self.MENU.items():
+            rt = self._french(game)
+            for ident, english in labels:
+                with self.subTest(game=game, id=ident, english=english):
+                    text = rt.lookup(ident)
+                    self.assertTrue(text.strip(), "blank label")
+
+    def test_every_main_menu_label_is_non_empty_without_a_translation(self) -> None:
+        for game, labels in self.MENU.items():
+            rt = runtime(game, None)
+            rt.start()
+            for ident, english in labels:
+                with self.subTest(game=game, id=ident):
+                    self.assertEqual(rt.lookup(ident), english.encode("cp1252"))
+
+    def test_fish_change_player_literal_is_french_and_non_empty(self) -> None:
+        rt = self._french("fish")
+        self.assertEqual(ExeLiterals._pushed(rt, 0x0041C689), "Changer de joueur".encode("cp1252"))
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(te.ready(), "needs MSVC, the vanilla games and assets/translations/Translations.dll")
+class ExeLiterals(unittest.TestCase):
+    """Labels the exe pushes as a literal (not through the string table) get the same translation."""
+
+    @staticmethod
+    def _pushed(rt: te.Runtime, site: int) -> bytes:
+        code = bytes(rt.emu.uc.mem_read(site, 5))
+        assert code[0] == 0x68, code.hex()
+        at = struct.unpack_from("<I", code, 1)[0]
+        data = bytes(rt.emu.uc.mem_read(at, 64))
+        return data[:data.index(0)]
+
+    def test_fish_main_menu_change_player(self) -> None:
+        rt = runtime("fish", make("fish", [(10, "Change Player", "Changer de joueur")]))
+        self.assertEqual(self._pushed(rt, 0x0041C689), b"Change Player")
+        self.assertEqual(rt.start(), 1)
+        self.assertEqual(self._pushed(rt, 0x0041C689), b"Changer de joueur")
+        self.assertEqual(rt.lookup(10), b"Changer de joueur")
+
+    def _place_label(self, width: int) -> tuple[int, list]:
+        """Fish's "Change Player" label: the call at 0x41C68E (after the install) with a text `width` pixels wide,
+        the label at x = 670, y = 572.  Returns the x the label ends up at and the moves made."""
+        rt = runtime("fish", make("fish", [(10, "Change Player", "Changer de joueur")]))
+        self.assertEqual(rt.start(), 1)
+        e = rt.emu
+        code = bytes(e.uc.mem_read(0x0041C68E, 5))
+        self.assertEqual(code[0], 0xE8)
+        target = (0x0041C68E + 5 + struct.unpack_from("<i", code, 1)[0]) & 0xFFFFFFFF
+        self.assertNotEqual(target, 0x004015B0)                                # the call goes to the DLL's hook
+        label, inner = e.alloc(0x40), e.alloc(0x80)
+        e.write32(label + 0x10, inner)
+        e.write32(inner + 8, 670)
+        e.write32(inner + 12, 572)
+        moves: list = []
+        e.hook(0x004015B0, lambda emu: 0, 0x14)                               # the text setter
+        e.hook(0x004023D0, lambda emu: width, 8)                              # the game's text measure
+        e.hook(0x00401080, lambda emu: moves.append((emu.arg(0), emu.arg(1))) or 0, 8)
+        text = e.alloc(32)
+        e.uc.mem_write(text, b"Changer de joueur\0")
+        e.call(target, text, 0, 0, 0, 0x1234, ecx=label)
+        return (moves[-1][0] if moves else 670), moves
+
+    def test_fish_change_player_label_moves_left_when_wide(self) -> None:
+        x, moves = self._place_label(300)
+        self.assertEqual(x, 796 - 300)                                        # ends at the screen edge, whole
+        self.assertEqual(moves, [(496, 572)])
+
+    def test_fish_change_player_label_stays_when_it_fits(self) -> None:
+        x, moves = self._place_label(100)
+        self.assertEqual((x, moves), (670, []))
+
+    def test_fish_change_player_label_wider_than_the_screen_starts_at_zero(self) -> None:
+        x, _moves = self._place_label(900)
+        self.assertEqual(x, 0)
+
+    def test_fish_literal_stays_without_a_translation(self) -> None:
+        rt = runtime("fish", make("fish", [(1, "Age: ", "Âge : ")]))
+        self.assertEqual(rt.start(), 1)
+        self.assertEqual(bytes(rt.emu.uc.mem_read(0x0041C689, 5)), bytes.fromhex("68d4384400"))
+
+    def test_fish_literal_site_is_checked(self) -> None:
+        rt = runtime("fish", make("fish", [(10, "Change Player", "Changer de joueur")]))
+        rt.emu.uc.mem_write(0x0041C689, b"\x90")
+        self.assertEqual(rt.start(), 0)
+        self.assertIn("NOT installed; the code at 0x0041C689", rt.log)
+        self.assertEqual(rt.lookup(10), b"Change Player")                       # nothing was installed
+
+    def test_plant_tab_labels(self) -> None:
+        rows = [(384, "Nursery", "Pépinière"), (385, "Supplies", "Fournitures"), (381, "Collect", "Collection")]
+        rt = runtime("plant", make("plant", rows))
+        self.assertEqual(rt.start(), 1)
+        for site, want in ((0x419415, "Pépinière"), (0x4336F2, "Pépinière"), (0x4193AD, "Fournitures"),
+                           (0x433622, "Fournitures"), (0x43368A, "Collection")):
+            self.assertEqual(self._pushed(rt, site), want.encode("cp1252"), hex(site))
+        self.assertEqual(bytes(rt.emu.uc.mem_read(0x419250, 5)), bytes.fromhex("684c7b4600"))   # Stats: no line
+
+    def test_plant_exe_literals_with_their_own_keys(self) -> None:
+        def key(english: str) -> str:
+            return ts.mod_key(next(m for m in ts.EXE_STRINGS if m.english == english))
+        rows = [(key("Change Scene"), "Change Scene", "Changer de d\u00e9cor"),
+                (key("Mission Blue Butterfly"), "Mission Blue Butterfly", "Papillon bleu de la mission"),
+                (key("%s in %i Min."), "%s in %i Min.", "%s en %i min."),
+                (key("Collected: %i out of 48"), "Collected: %i out of 48", "Collect\u00e9s : %i sur 48")]
+        rt = runtime("plant", make("plant", rows))
+        self.assertEqual(rt.start(), 1)
+        self.assertEqual(self._pushed(rt, 0x4488AA), "Changer de d\u00e9cor".encode("cp1252"))
+        self.assertEqual(self._pushed(rt, 0x418971), b"Papillon bleu de la mission")
+        self.assertEqual(self._pushed(rt, 0x42383E), b"%s en %i min.")
+        self.assertEqual(self._pushed(rt, 0x4238C0), b"%s en %i min.")          # the same literal, both pushes
+        self.assertEqual(self._pushed(rt, 0x4185A6), "Collect\u00e9s : %i sur 48".encode("cp1252"))
+        self.assertEqual(bytes(rt.emu.uc.mem_read(0x41895A, 5)), bytes.fromhex("68207b4600"))   # Blue Butterfly: no line
+
+    def test_plant_exe_literal_site_is_checked(self) -> None:
+        english = "Change Scene"
+        m = next(m for m in ts.EXE_STRINGS if m.english == english)
+        rt = runtime("plant", make("plant", [(ts.mod_key(m), english, "Changer de d\u00e9cor")]))
+        rt.emu.uc.mem_write(0x4488AA, b"\x90")
+        self.assertEqual(rt.start(), 0)
+        self.assertIn("NOT installed; the code at 0x004488AA", rt.log)
+        self.assertEqual(bytes(rt.emu.uc.mem_read(0x419415, 5)), bytes.fromhex("68307b4600"))   # nothing was written

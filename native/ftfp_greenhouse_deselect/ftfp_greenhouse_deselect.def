@@ -1,0 +1,4 @@
+LIBRARY "Click to Deselect"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpDeselectInstalled = _FtfpDeselectInstalled@0

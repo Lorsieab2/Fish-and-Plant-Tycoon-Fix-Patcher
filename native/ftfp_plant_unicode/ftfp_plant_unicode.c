@@ -53,6 +53,7 @@
 #define GAME_NEW_NAME_RETURN 0x0041B01Du  /* getText of the new player's box (the game copies it to row 1) */
 #define GAME_DEFAULT_FONT 0x5C             /* the graphics' default font */
 #define GAME_SET_TEXT_RESUME 0x0040C386u
+#define GAME_SAVE_TARGET 0x00403690u  /* what the save's call at SITE_SAVE_VA goes to */
 #define GAME_SET_LIMIT_TARGET 0x0040C2C0u
 #define GAME_DRAW_FRAME 0x44
 #define GAME_DRAW_RESUME 0x00408E27u
@@ -72,6 +73,15 @@
 #define GAME_BOX_DRAW_TARGET 0x004092A0u  /* the box's left draw (thiscall wrapper) */
 #define GAME_CARET_TICK_TARGET 0x00402060u  /* the time the caret blink reads */
 #define GAME_WIDTH_RESUME 0x00402387u
+/* The main menu's name sign (0x42A39A: a centred label at x 0x29E, y 0x1B8 on the picture's sign,
+   which spans x 592..746 on the rows the text crosses): its room, 2 * (746 - 670 - 4). */
+#define GAME_NAME_SIGN_X 0x29E
+#define GAME_NAME_SIGN_Y 0x1B8
+#define GAME_NAME_SIGN_ROOM 144
+/* A box made edge to edge in its dialog (the new player's box, 0x41AEB3, rect 0..the dialog's
+   width): the dialog frame (OrangeDlgTileGrid.png's edge tiles, 10 px) each side, and beside the
+   centred text the caret (its "_", 7 px) and 3 px clear. */
+#define GAME_DIALOG_BORDER 20
 
 #define CODE_ADDR(fn) ((const void *)(UINT_PTR)(fn))
 
@@ -253,10 +263,6 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
     if (reason == DLL_PROCESS_ATTACH) {
         self_module = instance;
         DisableThreadLibraryCalls(instance);
-    } else if (reason == DLL_PROCESS_DETACH && installed) {
-        /* the game quits: a name typed since the last draw, or a record whose write failed, still
-           goes beside the save */
-        names_sync_now(1);
     }
     return TRUE;
 }

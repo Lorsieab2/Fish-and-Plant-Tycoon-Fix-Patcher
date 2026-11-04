@@ -66,4 +66,10 @@ static const unsigned char SITE_BOX_CHAR_EXPECT[SITE_BOX_CHAR_LEN] = {0x80, 0x79
 #define SITE_CARET_TICK_LEN 5
 static const unsigned char SITE_CARET_TICK_EXPECT[SITE_CARET_TICK_LEN] = {0xE8, 0xDB, 0x5D, 0xFF, 0xFF};
 
+/* 0x41D160: the game's save, its call that writes the state block out
+   (made a call to stub_save, which writes the pending long-name records first, then goes on to the game's writer) */
+#define SITE_SAVE_VA 0x0041D160u
+#define SITE_SAVE_LEN 5
+static const unsigned char SITE_SAVE_EXPECT[SITE_SAVE_LEN] = {0xE8, 0x2B, 0x65, 0xFE, 0xFF};
+
 #endif

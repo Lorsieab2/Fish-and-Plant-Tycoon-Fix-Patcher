@@ -591,9 +591,12 @@ static void write_pending(int now) {
 
 /* At a draw (every 64) and at the exit: the rows checked, the pending records written. */
 __declspec(noinline) static void names_sync_now(int now) {
-    if (slot_field(1) == NULL) return;
-    mark_rows();
-    write_pending(now);
+    __try {
+        if (slot_field(1) == NULL) return;
+        mark_rows();
+        write_pending(now);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
 }
 
 __declspec(noinline) static void names_sync(void) {

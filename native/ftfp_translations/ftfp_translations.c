@@ -32,12 +32,20 @@
 
    PLANT TYCOON'S LOOKUP.  "Store Upgrades and Items.dll" already jumps from 0x44CA70 to its own
    texts and back; this DLL is loaded after it (the startup loader loads it last) and chains:
-   its jump goes to this DLL, which calls the jump that was there (or the stock code). */
+   its jump goes to this DLL, which calls the jump that was there (or the stock code).
+
+   TEXT THE EXE PUSHES.  A few labels never go through the string table: the code pushes a pointer
+   to a literal in the exe ("Change Player" on Fish Tycoon's main menu: push 0x4438D4 at
+   0x41C689).  Each such `push imm32` (LIT_SITES) is pointed at its own copy of the translation
+   of the same English (the game line with that English), fitted to the room where it is drawn
+   (the screen's edge from the label's x); no translation: the push stays as it was. */
 #include <windows.h>
 #include <string.h>
 #include "../ftfp_ds_fish/install_sites.h"
 #include "translation_text.h"
 #include "translation_tables.h"
+#include "translation_limits.h"
+#include "translation_fit.h"
 
 #define AT(base, offset, type) (*(type *)((char *)(base) + (offset)))
 
@@ -96,6 +104,9 @@ typedef struct row {
     int translation_n;
     void *out;                       /* the translation as the game gets it (choices: o / other) */
     int has_select;
+    int fallback;                    /* too wide for its room even fitted: the English is shown */
+    int lit;                         /* 1: a copy for a literal the exe pushes (LIT_SITES), not in by_id */
+    int room;                        /* its pixels, or 0: the game line's own room */
     struct row *next;                /* the next line with the same id */
 } row;
 
@@ -198,6 +209,7 @@ static unsigned char *read_file(const wchar_t *path, int *size) {
     low = length.LowPart;
     data = (unsigned char *)tr_alloc(low + 4);
     if (data == NULL || (low > 0 && (!ReadFile(file, data, low, &got, NULL) || got != low))) {
+        if (data != NULL) HeapFree(GetProcessHeap(), 0, data);
         CloseHandle(file);
         return NULL;
     }
@@ -222,6 +234,8 @@ static int utf8_to_wide(const char *s, int n, wchar_t *out, int cap) {
     out[o.at] = 0;
     return 1;
 }
+
+#include "word_break.h"
 
 /* "<folder>\Translation.ini": the chosen file (file=...) and its language (language=...).
    Returns the translation's bytes, or NULL for English. */
@@ -295,7 +309,9 @@ static const char *game_english(int id, const char **name) {
         char *entry = *(char **)(UINT_PTR)(PLANT_ENTRIES + (unsigned int)id * 4u);
         if (entry != NULL && AT(entry, 0, int) == id) {
             if (name != NULL) *name = AT(entry, 4, const char *);
-            return AT(entry, 8, const char *);
+            /* +0xC: a text a patcher DLL puts in the line's place while a box is built (Sort Seeds'
+               question, Extra Greenhouses' "full" box); the lookup returns it instead of +8 */
+            return AT(entry, 0xC, const char *) != NULL ? AT(entry, 0xC, const char *) : AT(entry, 8, const char *);
         }
     }
     return NULL;
@@ -669,7 +685,7 @@ static const char *translate_game(int id, const char *result) {
         english = game_english(id, NULL);
         if (english != NULL) {
             for (r = by_id[id]; r != NULL; r = r->next) {
-                if (strcmp(r->english_game, english) == 0) return (const char *)r->out;
+                if (strcmp(r->english_game, english) == 0) return r->fallback ? result : (const char *)r->out;
             }
         }
     }
@@ -677,17 +693,193 @@ static const char *translate_game(int id, const char *result) {
     {
         int len = slen(result);
         for (r = mod_rows[fnv(result, len) & 63u]; r != NULL; r = r->next) {
-            if (strcmp(r->english_game, result) == 0) return (const char *)r->out;
+            if (strcmp(r->english_game, result) == 0) return r->fallback ? result : (const char *)r->out;
+        }
+    }
+    /* another line's text put in this line's place (Sort Seeds' box: Yes and No where OK and Cancel
+       are): it is that line's text, so it gets that line's translation */
+    if (id >= 0 && id < MAX_IDS && by_id[id] != NULL && game_english(id, NULL) != NULL) {
+        int other;
+        for (other = 0; other < MAX_IDS; ++other) {
+            if (other == id || never_translated(other)) continue;
+            for (r = by_id[other]; r != NULL; r = r->next) {
+                if (r->kind == 1 && strcmp(r->english_game, result) == 0) return r->fallback ? result : (const char *)r->out;
+            }
         }
     }
     return result;
 }
+
+/* ----------------------------------------------------------------- every line fitted to its room
+
+   Once the game's fonts are made (the first lookup after that), every used line is measured with
+   the game's own measure and, if wider than its room (translation_limits.h), fitted
+   (translation_fit.h): re-broken, cut with an ellipsis, or English.  In place: the line's own
+   block, never longer than the byte limit it was already held to. */
+#define FISH_WIDTH 0x004023D0u
+#define FISH_HEIGHT 0x004024A0u
+#define FISH_FONTS 0x0045B270u              /* the font manager: [0] the fonts, by number (0x4181F0) */
+#define PLANT_WIDTH 0x00402380u
+#define PLANT_HEIGHT 0x00402450u
+#define PLANT_GRAPHICS 0x00493948u          /* the graphics: [0] its implementation, +0x5C its font */
+#define PLANT_FONT 0x5C
+
+static int fitted = 0;
+
+/* ----------------------------------------------------------------- text the exe pushes
+
+   A `push imm32` (0x68) of a pointer to an English literal; `id` is the game line with the same
+   English (its translation is reused), `room` the label's pixels (the screen's 800 less its x),
+   or 0: that line's own room. */
+typedef struct lit_site {
+    unsigned char game;
+    unsigned int va;
+    unsigned int stock;
+    short id;
+    short room;
+    const char *english;
+} lit_site;
+
+#define FISH_LIT_PLAYER 0x0041C689u
+#define PLANT_LIT_1 0x00419250u
+#define PLANT_LIT_2 0x00419345u
+#define PLANT_LIT_3 0x004193ADu
+#define PLANT_LIT_4 0x00419415u
+#define PLANT_LIT_5 0x00433622u
+#define PLANT_LIT_6 0x0043368Au
+#define PLANT_LIT_7 0x004336F2u
+
+static const lit_site LIT_SITES[] = {
+    { GAME_FISH, FISH_LIT_PLAYER, 0x004438D4u, 10, 796, "Change Player" },     /* the button at x = 670: fitted to the screen, then moved left (lit_label_hook) */
+    { GAME_PLANT, PLANT_LIT_1, 0x00467B4Cu, 412, 0, "Stats" },
+    { GAME_PLANT, PLANT_LIT_2, 0x00467B44u, 378, 0, "Seeds" },
+    { GAME_PLANT, PLANT_LIT_3, 0x00467B38u, 385, 0, "Supplies" },
+    { GAME_PLANT, PLANT_LIT_4, 0x00467B30u, 384, 0, "Nursery" },
+    { GAME_PLANT, PLANT_LIT_5, 0x00467B38u, 385, 0, "Supplies" },
+    { GAME_PLANT, PLANT_LIT_6, 0x004696F4u, 381, 0, "Collect" },
+    { GAME_PLANT, PLANT_LIT_7, 0x00467B30u, 384, 0, "Nursery" },
+};
+#define LIT_SITE_N (sizeof LIT_SITES / sizeof LIT_SITES[0])
+static row lit_rows[LIT_SITE_N];
+static int lit_count = 0;
+static int fit_broken = 0, fit_cut = 0, fit_english = 0;
+
+static void *font_object(int n) {
+    if (game == GAME_FISH) {
+        char *manager = *(char **)(UINT_PTR)FISH_FONTS;
+        void **fonts;
+        if (manager == NULL || (fonts = *(void ***)manager) == NULL) return NULL;
+        return fonts[n >= 0 && n <= 2 ? n : 0];
+    } else {
+        char *graphics = *(char **)(UINT_PTR)PLANT_GRAPHICS, *impl;
+        if (graphics == NULL || (impl = *(char **)graphics) == NULL) return NULL;
+        return *(void **)(impl + PLANT_FONT);
+    }
+}
+
+static const tl_line *line_limit(int id) {
+    const tl_line *t = game == GAME_FISH ? TL_FISH : TL_PLANT;
+    int n = game == GAME_FISH ? TL_FISH_N : TL_PLANT_N, k;
+    for (k = 0; k < n; ++k) if (t[k].id == id) return &t[k];
+    return NULL;
+}
+
+static const tl_mod *mod_limit(const tr_mod_text *m) {
+    int k;
+    for (k = 0; k < TL_MODS_N; ++k) if (TL_MODS[k].game == m->game && strcmp(TL_MODS[k].id, m->id) == 0) return &TL_MODS[k];
+    return NULL;
+}
+
+static void fit_row(row *r) {
+    tf_ctx c;
+    int width, height = 0, flags, font = 0, limit, n, got;
+    if (r->out == NULL) return;
+    if (r->kind == 1) {
+        const tl_line *l = line_limit(r->id);
+        if (l == NULL) return;
+        width = r->lit && r->room > 0 ? r->room : l->width;
+        height = r->lit ? 0 : l->height;
+        flags = r->lit ? (l->flags & TL_FORMAT) : l->flags;
+        font = l->font;
+        limit = game_limit(r->id, r->english_n);
+    } else {
+        const tr_mod_text *m = &TR_MOD_TEXTS[r->id];
+        const tl_mod *l;
+        if (m->wide || m->counted || (l = mod_limit(m)) == NULL) return;   /* a popup wraps itself */
+        width = l->width; flags = l->flags;
+        limit = m->limit;
+    }
+    if (limit > TR_ABSOLUTE_MAX) limit = TR_ABSOLUTE_MAX;
+    c.width = (tf_width_fn)(UINT_PTR)(game == GAME_FISH ? FISH_WIDTH : PLANT_WIDTH);
+    c.height = (tf_height_fn)(UINT_PTR)(game == GAME_FISH ? FISH_HEIGHT : PLANT_HEIGHT);
+    c.font = font_object(font);
+    if (c.font == NULL) c.font = font_object(0);
+    if (c.font == NULL) return;
+    c.utf8 = text_mode == 1;
+    c.room = width;
+    c.format = (flags & TL_FORMAT) != 0;
+    c.cap = limit;
+    c.broke = c.cut = 0;
+    n = slen((const char *)r->out);
+    got = tf_fit(&c, (const char *)r->out, n, (flags & TL_MULTILINE) != 0, height);
+    if (got == TF_FITS) return;                                     /* fits as it is */
+    if (got < 0 || r->has_select) {
+        /* the English: a game line through the lookup; a DLL's text in its own block */
+        if (r->kind == 2 || r->lit) {
+            int e = slen(r->english_game);
+            if (e > TR_ABSOLUTE_MAX * 2) return;
+            memcpy(r->out, r->english_game, (size_t)e + 1);
+        }
+        r->fallback = 1;
+        ++fit_english;
+        return;
+    }
+    memcpy(r->out, fit_out, (size_t)got + 1);
+    if (c.broke) ++fit_broken;
+    if (c.cut) ++fit_cut;
+}
+
+static void fit_all(void) {
+    void *font = font_object(0);
+    int k;
+    if (font == NULL) return;
+    {
+        tf_width_fn width = (tf_width_fn)(UINT_PTR)(game == GAME_FISH ? FISH_WIDTH : PLANT_WIDTH);
+        if (width(font, NULL, "M", 1.0f) <= 0) return;                  /* not loaded yet */
+    }
+    fitted = 1;
+    for (k = 0; k < row_count; ++k) {
+        __try {
+            fit_row(&rows[k]);
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+        }
+    }
+    for (k = 0; k < lit_count; ++k) {
+        __try {
+            fit_row(&lit_rows[k]);
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+        }
+    }
+    if (fit_broken + fit_cut + fit_english > 0) {
+        log_add("Translations: fitted to their room on the screen: ");
+        log_int(fit_broken);
+        log_add(" re-broken, ");
+        log_int(fit_cut);
+        log_add(" cut with an ellipsis, ");
+        log_int(fit_english);
+        log_add(" too wide even then (English)\r\n");
+        write_log();
+    }
+}
+
+int __stdcall FtfpTranslationsFitted(void) { return fitted; }
 
 typedef const char *(__fastcall *lookup_fn)(void *self, int edx, int id);
 
 static const char *__cdecl tr_lookup(void *self, int id) {
     const char *result = ((lookup_fn)(UINT_PTR)next_lookup)(self, 0, id);
     __try {
+        if (!fitted) fit_all();
         result = translate_game(id, result);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
@@ -938,6 +1130,10 @@ static void patch_dlls(void) {
         if (TR_MOD_TEXTS[k].game != game) continue;
         for (j = 0; j < k; ++j) if (TR_MOD_TEXTS[j].game == game && strcmp(TR_MOD_TEXTS[j].dll, TR_MOD_TEXTS[k].dll) == 0) first = 0;
         if (!first) continue;
+        {
+            int n = slen(TR_MOD_TEXTS[k].dll);
+            if (n > 4 && strcmp(TR_MOD_TEXTS[k].dll + n - 4, ".exe") == 0) continue;     /* the game's own literals: install() */
+        }
         __try {
             patch_dll(TR_MOD_TEXTS[k].dll);
         } __except (EXCEPTION_EXECUTE_HANDLER) {
@@ -955,11 +1151,43 @@ static int unicode_text_active(void) {
     return active != NULL && active() != 0;
 }
 
+
+/* ------------------------------------------------- the "Change Player" label's place */
+
+#define FISH_LABEL_CALL 0x0041C68Eu         /* call 0x4015B0: sets the main menu label's text (thiscall, ret 0x14) */
+#define FISH_LABEL_SET 0x004015B0u
+#define FISH_LABEL_MOVE 0x00401080u         /* the label's inner object: thiscall (x, y), ret 8: moves it, recomputes its click area */
+#define LABEL_SCREEN_RIGHT 796              /* its text ends here at the latest (its shadow is 1 pixel more) */
+
+typedef void (__fastcall *label_set_fn)(void *self, void *edx, const char *text, int a2, int a3, int a4, void *font);
+typedef void (__fastcall *label_move_fn)(void *self, void *edx, int x, int y);
+
+/* The stock call, then: a text wider than the room from its x to the screen's edge moves the label left
+   so it ends at the edge, whole; the click area follows.  English fits and stays where it was. */
+static void __fastcall lit_label_hook(void *self, void *edx, const char *text, int a2, int a3, int a4, void *font) {
+    ((label_set_fn)(UINT_PTR)FISH_LABEL_SET)(self, edx, text, a2, a3, a4, font);
+    __try {
+        char *inner = *(char **)((char *)self + 0x10);
+        int x = AT(inner, 8, int), y = AT(inner, 12, int), w;
+        void *f = font != NULL ? font : font_object(0);
+        if (f == NULL) return;
+        w = ((tf_width_fn)(UINT_PTR)FISH_WIDTH)(f, NULL, text, 1.0f);
+        if (x + w > LABEL_SCREEN_RIGHT) {
+            x = LABEL_SCREEN_RIGHT - w;
+            if (x < 0) x = 0;
+            ((label_move_fn)(UINT_PTR)FISH_LABEL_MOVE)(inner, NULL, x, y);
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+}
+
 /* ----------------------------------------------------------------- installing */
 
-static ftfp_site_write writes[6];
+static ftfp_site_write writes[80];
+static unsigned char lit_expect[LIT_SITE_N][5];
 static unsigned char lookup_now[6];
 static unsigned char call_expect[5][5];
+static unsigned char label_expect[5];
 
 /* The lookup's first bytes as they are: the stock head, or an earlier hook's jump. */
 static int prepare_lookup(unsigned int va, const unsigned char *stock, int stock_len, const unsigned char *tail,
@@ -981,6 +1209,82 @@ static int prepare_lookup(unsigned int va, const unsigned char *stock, int stock
     return 1;
 }
 
+/* TR_EXE_SITES (translation_tables.h): literals with a key of their own ("mod/plant_tycoon_exe.<words>"). The push
+   is pointed at that text's translation itself (fitted in place with the text's own room); no translation: it stays.
+   Returns the number of writes so far, or -1 when a site is not the stock code. */
+static unsigned char exe_expect[TR_EXE_SITE_N][5];
+
+static int add_exe_literals(int count) {
+    int k, j;
+    for (k = 0; k < TR_EXE_SITE_N; ++k) {
+        const tr_exe_site *s = &TR_EXE_SITES[k];
+        unsigned int imm = s->stock;
+        if (s->game != game) continue;
+        exe_expect[k][0] = 0x68;
+        memcpy(exe_expect[k] + 1, &imm, 4);
+        if (!ftfp_site_holds(s->va, exe_expect[k], 5)
+            || !ftfp_site_holds(s->stock, (const unsigned char *)s->english, slen(s->english) + 1)) {
+            ftfp_failed_site = s->va;
+            return -1;
+        }
+        for (j = 0; j < row_count; ++j) {
+            const row *r = &rows[j];
+            if (r->kind == 2 && r->out != NULL && strcmp(TR_MOD_TEXTS[r->id].id, s->id) == 0) {
+                if (count >= (int)(sizeof writes / sizeof writes[0])) return -1;
+                ftfp_site_imm32(&writes[count++], s->va, 5, exe_expect[k], 1, (unsigned int)(UINT_PTR)r->out);
+                break;
+            }
+        }
+    }
+    return count;
+}
+
+/* Each literal the exe pushes whose English has a translation: the push gets a copy of it. Returns
+   the number of writes so far, or -1 when a site is not the stock code. */
+static int add_literals(int count) {
+    unsigned int k;
+    for (k = 0; k < LIT_SITE_N; ++k) {
+        const lit_site *s = &LIT_SITES[k];
+        row *source, *copy;
+        unsigned int imm = s->stock;
+        char *buf;
+        int n;
+        if (s->game != game) continue;
+        lit_expect[k][0] = 0x68;
+        memcpy(lit_expect[k] + 1, &imm, 4);
+        if (!ftfp_site_holds(s->va, lit_expect[k], 5)
+            || !ftfp_site_holds(s->stock, (const unsigned char *)s->english, slen(s->english) + 1)) {
+            ftfp_failed_site = s->va;
+            return -1;
+        }
+        for (source = by_id[s->id]; source != NULL && strcmp(source->english_game, s->english) != 0; source = source->next) {}
+        if (source == NULL || source->out == NULL) continue;                /* no translation: the push stays */
+        n = slen((const char *)source->out);
+        buf = (char *)tr_alloc((SIZE_T)(TR_ABSOLUTE_MAX + 4) * 4);
+        if (buf == NULL) continue;
+        memcpy(buf, source->out, (size_t)n + 1);
+        copy = &lit_rows[lit_count++];
+        *copy = *source;
+        copy->next = NULL;
+        copy->out = buf;
+        copy->lit = 1;
+        copy->room = s->room;
+        copy->fallback = 0;
+        ftfp_site_imm32(&writes[count++], s->va, 5, lit_expect[k], 1, (unsigned int)(UINT_PTR)buf);
+        if (s->va == FISH_LIT_PLAYER) {
+            DWORD rel = FISH_LABEL_SET - (FISH_LABEL_CALL + 5u);
+            label_expect[0] = 0xE8;
+            memcpy(label_expect + 1, &rel, 4);
+            if (!ftfp_site_holds(FISH_LABEL_CALL, label_expect, 5)) {
+                ftfp_failed_site = FISH_LABEL_CALL;
+                return -1;
+            }
+            ftfp_site_branch(&writes[count++], FISH_LABEL_CALL, 5, label_expect, 0xE8, (const void *)(UINT_PTR)lit_label_hook);
+        }
+    }
+    return add_exe_literals(count);
+}
+
 static int install(void) {
     int count = 1, k;
     if (game == GAME_FISH) {
@@ -994,6 +1298,8 @@ static int install(void) {
     } else {
         if (!prepare_lookup(PLANT_LOOKUP, PLANT_LOOKUP_STOCK, 6, PLANT_LOOKUP_TAIL, 7, (DWORD)(UINT_PTR)plant_stock_head)) return 0;
     }
+    count = add_literals(count);
+    if (count < 0) return 0;
     return ftfp_install_sites(writes, count);
 }
 

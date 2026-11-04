@@ -22,6 +22,8 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 import webbrowser
 
 import translation_format as tfmt
+import text_wrap as twrap
+import translation_fit as tfit
 import translation_strings as tstr
 import translations as tr
 import translations_github as tgh
@@ -43,7 +45,11 @@ HELP = (
         "Make a translation: choose a language and press Make a translation... The patcher writes a file with "
         "every English line of the game and of the patcher's own texts, and opens it in the built-in editor: "
         "the English on the left, your translation on the right, search, \"show untranslated only\", how much "
-        "is done, and a preview in the game's own font that warns when a line is too long. Placeholders such "
+        "is done, and a preview in the game's own font that warns when a line is too long. Wrap to fit "
+        "re-breaks the selected translation so no line is wider than the widest line of the English, and Wrap "
+        "all does every line that is wider (it shows the count first; Undo wrap takes the last one back): the "
+        "games break lines only where you do, so a longer translation, or Chinese, Japanese or Thai, needs it. "
+        "It only moves line breaks and spaces, never the words or a placeholder. Placeholders such "
         "as %d, %s and {name} must stay; the editor shows them in colour and says when one is missing. It "
         "saves by itself. The file is plain UTF-8 text, so Notepad or a spreadsheet (as tab-separated text) "
         "work too.",
@@ -440,7 +446,8 @@ class TranslationsWindow:
             messagebox.showinfo(TITLE, CHOOSE_ONE, parent=self.window)
             return ""
         parsed = tfmt.parse_bytes(item.path.read_bytes(), self.game)
-        summary = tfmt.validate(parsed, self.entries(self.game, ask=False)).summary()
+        summary = tfmt.validate(parsed, self.entries(self.game, ask=False),
+                                tfit.checker(self.game, self.game_folders(self.game))).summary()
         messagebox.showinfo(TITLE, summary[:6000], parent=self.window)
         return summary
 
@@ -773,7 +780,7 @@ PLACEHOLDER_RE = re.compile(tfmt.CONVERSION_RE.pattern + r"|\{[^{}]*\}")
 
 class TranslationEditor:
     STATUS = {"new": "untranslated", "done": "translated", "error": "check it", "changed": "English changed",
-              "old": "not in this version"}
+              "old": "not in this version", "wide": "too wide"}
 
     def __init__(self, master, game: str, path: Path, entries: list[tfmt.Entry] | None, folders: list[str],
                  on_save=None) -> None:
@@ -834,6 +841,7 @@ class TranslationEditor:
         self.tree.pack(side="left", fill="both", expand=True)
         bar.pack(side="right", fill="y")
         self.tree.tag_configure("error", foreground="#c00")
+        self.tree.tag_configure("wide", foreground="#c00")
         self.tree.tag_configure("changed", foreground="#a60")
         self.tree.tag_configure("old", foreground="#888")
         self.tree.tag_configure("group", foreground="#245a9a", font=("Segoe UI", 9, "bold"))
@@ -856,6 +864,10 @@ class TranslationEditor:
         tools = ttk.Frame(edit)
         tools.pack(fill="x", pady=(4, 0))
         ttk.Button(tools, text="Copy English", command=self.copy_english).pack(side="left")
+        ttk.Button(tools, text="Wrap to fit", command=self.wrap_selected).pack(side="left", padx=(12, 0))
+        ttk.Button(tools, text="Wrap all", command=self.wrap_all).pack(side="left", padx=(4, 0))
+        self.undo_button = ttk.Button(tools, text="Undo wrap", command=self.undo_wrap, state="disabled")
+        self.undo_button.pack(side="left", padx=(4, 0))
         self.insert_row = ttk.Frame(tools)
         self.insert_row.pack(side="left", padx=(12, 0))
         self.message = tk.StringVar(master=win, value="")
@@ -875,6 +887,7 @@ class TranslationEditor:
         win.protocol("WM_DELETE_WINDOW", self.close)
 
         self.current: tfmt.Row | None = None
+        self.wrap_undo: list[tuple[tfmt.Row, str]] = []
         self.fill()
         if self.dirty:
             self.save()
@@ -889,6 +902,8 @@ class TranslationEditor:
         entry = self.entries.get(row.key)
         if errors or (entry and entry.max_length and tfmt.too_long(row.translation, entry.max_length, entry.wide, entry.english, entry.is_format)):
             return "error"
+        if self.too_wide(row) is not None:
+            return "wide"
         return "done"
 
     def fill(self) -> None:
@@ -900,7 +915,7 @@ class TranslationEditor:
         shown: list[tuple[str, int, tfmt.Row, str]] = []
         for n, row in enumerate(self.file.rows):
             status = self.status(row)
-            if self.untranslated_only.get() and status not in ("new", "error"):
+            if self.untranslated_only.get() and status not in ("new", "error", "wide"):
                 continue
             if query and query not in row.english.casefold() and query not in row.translation.casefold() \
                     and query not in row.key.casefold():
@@ -926,7 +941,7 @@ class TranslationEditor:
 
     def update_progress(self) -> None:
         rows = [r for r in self.file.rows if not self.entries or r.key in self.entries]
-        done = sum(1 for r in rows if self.status(r) == "done")
+        done = sum(1 for r in rows if self.status(r) in ("done", "wide"))
         percent = 100.0 * done / len(rows) if rows else 0.0
         self.progress.set(f"{done} of {len(rows)} lines translated ({percent:.0f}%)")
 
@@ -1015,8 +1030,12 @@ class TranslationEditor:
                for c in row.translation):
             warnings.append("some letters are outside Latin-1: the game shows them with the patcher's Unicode font "
                             "setting on, and as ? without it")
+        wide = self.too_wide(row) if not errors else None
         if errors:
             self.message.set("This line will show English: " + "; ".join(errors))
+            self.message_label.configure(foreground="#c00")
+        elif wide is not None:
+            self.message.set("Warning: " + "; ".join([wide.message()] + warnings))
             self.message_label.configure(foreground="#c00")
         elif warnings:
             self.message.set("Note: " + "; ".join(warnings))
@@ -1030,30 +1049,187 @@ class TranslationEditor:
     def schedule_preview(self) -> None:
         self.window.after(150, self.render_preview)
 
+    def game_font(self):
+        """The game's first font, for measuring and the preview (None when no copy of the game is found)."""
+        import text_maker as tm
+        if self.fonts is None:
+            folder = tm.find_game_folder(self.game, self.font_candidates)
+            self.fonts = tfit.fonts_by_number(self.game, folder) if folder else []
+        return self.fonts[0] if self.fonts else None
+
+    def measure_line(self, text: str, font: int = 0) -> int:
+        """Pixels a line is wide as the game draws it in its font number `font` (the Text Maker's
+        layout, placeholders filled in)."""
+        import text_maker as tm
+        if self.game_font() is None:
+            return 0
+        f = self.fonts[font] if 0 <= font < len(self.fonts) and self.fonts[font] is not None else self.fonts[0]
+        return tm.layout(f, tfmt.evaluate(text))[1]
+
+    def limit(self, row: tfmt.Row) -> tfit.Limit | None:
+        """The line's room where the game draws it (data/translation_limits.json), or None."""
+        return tfit.limit_for(self.game, row.key)
+
+    def room(self, row: tfmt.Row) -> tuple[int, int] | None:
+        """(pixels, font) a line of the row may take: its recorded room, else the English's widest
+        line; None for a Windows popup's text (Windows wraps it)."""
+        limit = self.limit(row)
+        if limit is not None:
+            if limit.width is None:
+                return None
+            return limit.width, limit.font
+        return twrap.english_width(row.english, self.measure_line), 0
+
+    def too_wide(self, row: tfmt.Row) -> tfit.TooWide | None:
+        """The row's first line wider than its room (None without a game font or a recorded room)."""
+        if not row.translation or self.game_font() is None:
+            return None
+        limit = self.limit(row)
+        if limit is None:
+            return None
+        return tfit.too_wide(self.game, row.key, row.translation,
+                             lambda font, line: self.measure_line(line, font), limit)
+
     def render_preview(self) -> None:
         row = self.current
         if row is None or not self.window.winfo_exists():
             return
         try:
             import text_maker as tm
-            if self.fonts is None:
-                folder = tm.find_game_folder(self.game, self.font_candidates)
-                self.fonts = tm.load_fonts(self.game, folder) if folder else []
-            if not self.fonts:
+            font = self.game_font()
+            if font is None:
                 self.preview_note.set("Preview: no copy of the game with its fonts was found (the One Game tab's folders).")
                 return
-            font = self.fonts[0]
             text = tfmt.evaluate(row.translation or row.english)
             image = tm.render(font, text, 0xFFFFFF, "Shadow", 1, (24, 40, 72))
-            english = tm.render(font, tfmt.evaluate(row.english), 0xFFFFFF, "Shadow", 1, (24, 40, 72))
             self._photo = image.photo(tk, self.window, max_side=1000)
             self.preview.configure(image=self._photo)
             note = f"Preview in {font.label}"
-            if row.translation and image.width > english.width * 1.2 + 8:
-                note += f" -- wider than the English ({image.width} vs {english.width} pixels): it may not fit its space."
+            room = self.room(row)
+            if row.translation and room is not None:
+                width, font = room
+                have = twrap.english_width(row.translation, lambda line: self.measure_line(line, font))
+                if have > width:
+                    what = "its room in the game" if self.limit(row) is not None else "the English's widest"
+                    note += (f" -- a line is wider than {what} ({have} vs {width} pixels): "
+                             "it may not fit its space. Wrap to fit re-breaks it.")
             self.preview_note.set(note)
         except Exception as exc:  # the preview never stops the editor
             self.preview_note.set(f"Preview unavailable ({exc.__class__.__name__}).")
+
+    # ---------------------------------------------------------------- wrap to fit
+    def wrap_row(self, row: tfmt.Row) -> twrap.WrapResult | None:
+        """The row's translation re-broken to its room in the game (data/translation_limits.json; the
+        widest line of its English when none is recorded); None without a game font, or for a Windows
+        popup's text (Windows wraps it)."""
+        if self.game_font() is None:
+            return None
+        room = self.room(row)
+        if room is None:
+            return twrap.WrapResult(row.translation.replace("\r\n", "\n"))
+        width, font = room
+        return twrap.wrap(row.translation, width, lambda line: self.measure_line(line, font))
+
+    def _set_translation(self, row: tfmt.Row, text: str) -> None:
+        if row is self.current:
+            self.translation_text.edit_separator()
+            self.translation_text.delete("1.0", "end")
+            self.translation_text.insert("1.0", text)
+            self.translation_text.edit_separator()
+            self.changed()
+        else:
+            row.translation = text
+            self.dirty = True
+            self.saved.set("Unsaved changes...")
+            if self._after is not None:
+                self.window.after_cancel(self._after)
+            self._after = self.window.after(AUTOSAVE_MS, self.save)
+
+    @staticmethod
+    def _wrap_report(results: list[twrap.WrapResult]) -> str:
+        cannot = [run for r in results for run in r.cannot_wrap]
+        cut = sum(r.cut for r in results)
+        parts = []
+        if cut:
+            parts.append(f"{cut} word(s) wider than the room were cut")
+        if cannot:
+            parts.append(f"cannot wrap (one word wider than the room, or not in the word list): {', '.join(cannot[:3])}")
+        return "; ".join(parts)
+
+    def wrap_note(self, text: str) -> None:
+        self.preview_note.set(text)
+
+    def wrap_selected(self) -> str:
+        row = self.current
+        if row is None or not row.translation:
+            self.wrap_note("Select a translated line first.")
+            return ""
+        result = self.wrap_row(row)
+        if result is None:
+            self.wrap_note("Wrap needs a copy of the game with its fonts (the One Game tab's folders).")
+            return ""
+        if result.text == row.translation.replace("\r\n", "\n"):
+            self.wrap_note(("Already fits. " if not result.cannot_wrap else "") + self._wrap_report([result]))
+            return row.translation
+        self.wrap_undo = [(row, row.translation)]
+        self.undo_button.configure(state="normal")
+        self._set_translation(row, result.text)
+        self.wrap_note("Wrapped. " + self._wrap_report([result]))
+        return result.text
+
+    def wide_rows(self) -> list[tfmt.Row]:
+        """Rows (all of the file, not just the filter) with a line wider than its room (its recorded
+        room in the game, else the widest line of its English)."""
+        if self.game_font() is None:
+            return []
+        out = []
+        for r in self.file.rows:
+            if r.is_info or not r.translation or (self.entries and r.key not in self.entries):
+                continue
+            room = self.room(r)
+            if room is None:
+                continue
+            width, font = room
+            if twrap.english_width(r.translation, lambda line, f=font: self.measure_line(line, f)) > width:
+                out.append(r)
+        return out
+
+    def wrap_all(self) -> int:
+        if self.game_font() is None:
+            self.wrap_note("Wrap needs a copy of the game with its fonts (the One Game tab's folders).")
+            return 0
+        rows = self.wide_rows()
+        if not rows:
+            messagebox.showinfo("Wrap all", "No translation is wider than its room.", parent=self.window)
+            return 0
+        if not messagebox.askyesno("Wrap all", f"{len(rows)} line(s) are wider than their room. Re-break "
+                                   "them to fit? Only line breaks and spaces change; Undo wrap takes it back.",
+                                   parent=self.window):
+            return 0
+        undo, results = [], []
+        for row in rows:
+            result = self.wrap_row(row)
+            if result is not None and result.text != row.translation:
+                undo.append((row, row.translation))
+                results.append(result)
+                self._set_translation(row, result.text)
+        self.wrap_undo = undo
+        self.undo_button.configure(state="normal" if undo else "disabled")
+        self.fill()
+        self.update_progress()
+        self.wrap_note(f"Wrapped {len(undo)} line(s). " + self._wrap_report(results))
+        return len(undo)
+
+    def undo_wrap(self) -> int:
+        undo, self.wrap_undo = self.wrap_undo, []
+        for row, old in undo:
+            self._set_translation(row, old)
+        self.undo_button.configure(state="disabled")
+        if undo:
+            self.fill()
+            self.update_progress()
+            self.wrap_note(f"Undid the wrap of {len(undo)} line(s).")
+        return len(undo)
 
     # ---------------------------------------------------------------- saving
     def save(self) -> None:

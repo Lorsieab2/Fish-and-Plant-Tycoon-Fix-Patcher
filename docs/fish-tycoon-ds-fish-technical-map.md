@@ -225,6 +225,17 @@ rows, ...}`, bounded by `cmp ...,0xC4` in `0x41BB05`, `0x41BBD5`,
 - `FISH_teen_Grid.png` is 18x21: one row per body (`0x41472D`). Each row is
   that body's 18 adult body frames shrunk to 44x20 (checked for bodies 0 and
   13), so DS teen rows are generated from the new adult sheets.
+- Stock animation (traced): the fish record's body frame (`+0x2C`, written by
+  the swim code around `0x4128xx`, steps 0-3 and back, paced by `+0x30`) and
+  fin frame (`+0x34`, `0x414554`: 5% a tick to leave rest, then 0-5 and back,
+  three ticks a step) are passed to `0x4145F0` separately; the sprite id is
+  base + direction offset (0/10/20) + frame, so frames 0-5 left-facing, 6-11
+  mirrored and 12-17 head-on. Stock fin sheets flatten to about 70% height with
+  the tip sweeping back; stock bodies narrow and the tail curls up a few
+  pixels. `build_ds_fish_assets.py` generates the same six-step motion for the
+  DS bodies (rear-only tail flick and thinning, head and fin anchors fixed)
+  and fins (height and sweep medians of the PC sheets, attaching edge fixed).
+  Teen rows and dead fish stay the plain sprites.
 - Art decision (user): generate the PC turn frames from the DS sprites.
   Scale 110/64, then squash each frame to the PC widths (frames 0-5 100%
   down to 81%, 6-11 the same mirrored, 12-17 down to 52% head-on). Use the

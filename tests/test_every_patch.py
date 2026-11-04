@@ -65,6 +65,7 @@ import cheat  # noqa: E402
 import ds_fish_loader  # noqa: E402
 import fish_patcher  # noqa: E402
 import plant_patcher  # noqa: E402
+import translation_strings  # noqa: E402
 import tycoon_fix_patcher as combined  # noqa: E402
 
 try:
@@ -241,6 +242,7 @@ PROJECTS = {
         "Multiple Ornaments.dll": "ftfp_ornaments", "Optimize Prices.dll": "ftfp_fish_prices",
         "Tank Counts.dll": "ftfp_tank_counts", "Maximizable Window.dll": "ftfp_fish_window",
         "Unicode Text.dll": "ftfp_fish_unicode", "Translations.dll": "ftfp_translations",
+        "Snail and Curing.dll": "ftfp_snail_curing",
     },
     "plant": {
         "Unused Flowers.dll": "ftfp_new_flowers", "Store Upgrades and Items.dll": "ftfp_plant_upgrades",
@@ -248,6 +250,7 @@ PROJECTS = {
         "Optimize Prices.dll": "ftfp_plant_prices", "Greenhouse Counts.dll": "ftfp_greenhouse_counts",
         "Extra Greenhouses.dll": "ftfp_extra_greenhouses", "Extra Chemical Slots.dll": "ftfp_chem_slots",
         "Unicode Text.dll": "ftfp_plant_unicode", "Translations.dll": "ftfp_translations",
+        "Click to Deselect.dll": "ftfp_greenhouse_deselect",
     },
 }
 
@@ -255,7 +258,9 @@ PROJECTS = {
 # the code sites (with their length) their source defines, by the define's name.
 SOURCE_SITES = {
     "ftfp_tank_counts": (("OVERLAY_SLOT_VA", 4), ("MOUSE_SLOT_VA", 4)),
+    "ftfp_snail_curing": (("CURING_SITE_VA", 42),),
     "ftfp_greenhouse_counts": (("HELD_SITE_VA", 9), ("MOUSE_SLOT_VA", 4)),
+    "ftfp_greenhouse_deselect": (("PRESS_SITE_VA", 10), ("SELECT_SITE_VA", 5)),
     "ftfp_fish_window": (("SET_VIDEO_MODE_SLOT", 4), ("FLIP_SLOT", 4),
                          ("SCREENSAVER_FULLSCREEN_SITE", 5), ("SCREENSAVER_END_SITE", 5)),
     "ftfp_fish_prices": (("SPECIES_VT_COMMAND", 4), ("SPECIES_VT_ACTIVATE", 4),
@@ -266,9 +271,12 @@ SOURCE_SITES = {
     # DLL for both games, so declared_bytes keeps only the running game's (TRANSLATIONS_SITES).
     "ftfp_translations": (("FISH_LOOKUP", 5), ("FISH_COUNT_CALL_1", 5), ("FISH_COUNT_CALL_2", 5),
                           ("FISH_COUNT_CALL_3", 5), ("FISH_COUNT_CALL_4", 5), ("FISH_COUNT_CALL_5", 5),
-                          ("PLANT_LOOKUP", 5)),
+                          ("FISH_LIT_PLAYER", 5), ("PLANT_LOOKUP", 5),
+                          *((f"PLANT_LIT_{n}", 5) for n in range(1, 8))),
 }
-TRANSLATIONS_SITES = {"fish": {0x426FD0, 0x4247FF, 0x424820, 0x424841, 0x424883, 0x4248AF}, "plant": {0x44CA70}}
+TRANSLATIONS_SITES = {"fish": {0x426FD0, 0x4247FF, 0x424820, 0x424841, 0x424883, 0x4248AF, 0x41C689},
+                      "plant": {0x44CA70, 0x419250, 0x419345, 0x4193AD, 0x419415, 0x433622, 0x43368A, 0x4336F2,
+                *(va for va, _imm, _english in translation_strings.EXE_LITERALS_PLANT)}}
 
 
 def declared_sites(project: str) -> dict[int, tuple[int, str]]:
@@ -394,7 +402,7 @@ class Module:
                 at = hits[0]
                 while at > max(0, hits[0] - 0x40) and code[at - 1] != 0xCC:
                     at -= 1
-                if code[at - 1] == 0xCC:
+                if at == 0 or code[at - 1] == 0xCC:
                     starts = [preferred + text_rva + at]
             if not starts:
                 raise AssertionError(f"{self.name}: no DllMain found before 0x{call_at:X}")
@@ -1280,7 +1288,7 @@ class PlantScreen:
         emu = w.emu
         for address, name in self.PRIMITIVES.items():
             if address not in emu.hooks:
-                w.stand_in(address, name, w.pops(address), 0x00C0FFEE if address == 0x407A90 else 0)
+                w.stand_in(address, name, w.pops(address), self.graphics() if address == 0x407A90 else 0)
         if 0x44CA70 not in emu.hooks:
             w.stand_in(0x44CA70, "string", 4, lambda e: e.text("text"))
             w.stand_in(0x44F30B, "sprintf", 0, 0)
@@ -1298,6 +1306,15 @@ class PlantScreen:
         self.state = state
         self.scene = w.screen(self.TABLE, self.SIZE)
         emu.write32(self.scene + self.STATE_AT, state)
+
+    def graphics(self) -> int:
+        """The game's graphics, as the game lays it out: a pointer to the object (+0x5C: the default font) that
+        the draw calls read; the font has no glyph table (+4: 0), so the game's measure gives 0."""
+        w = self.w
+        impl, graphics = alloc_zero(w, 0x100), alloc_zero(w, 8)
+        w.emu.write32(graphics, impl)
+        w.emu.write32(impl + 0x5C, alloc_zero(w, 0x40))
+        return graphics
 
     def tick(self) -> None:
         self.w.call(self.UPDATE, ecx=self.scene, what=f"the {self.WHAT}'s update")
@@ -1439,6 +1456,7 @@ EVIDENCE = {
         "Maximizable Window.dll": (None, None),
         "Unicode Text.dll": ("Unicode Text: installed", None),
         "Translations.dll": ("\xef\xbb\xbfTranslations: installed (", "FtfpTranslationsInstalled"),
+        "Snail and Curing.dll": ("Snail and Curing: installed", "FtfpSnailCuringInstalled"),
     },
     "plant": {
         "Unused Flowers.dll": ("New Flowers: installed (all sites)", "FtfpNewFlowersInstalled"),
@@ -1451,6 +1469,7 @@ EVIDENCE = {
         "Extra Chemical Slots.dll": ("Extra Chemical Slots: installed (all sites)", "FtfpChemSlotsInstalled"),
         "Unicode Text.dll": ("Unicode Text: installed", None),
         "Translations.dll": ("\xef\xbb\xbfTranslations: installed (", "FtfpTranslationsInstalled"),
+        "Click to Deselect.dll": ("Click to Deselect: installed", "FtfpDeselectInstalled"),
     },
 }
 

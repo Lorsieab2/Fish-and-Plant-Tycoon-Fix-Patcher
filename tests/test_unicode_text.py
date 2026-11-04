@@ -747,7 +747,7 @@ class PatcherTests(unittest.TestCase):
             folder = ROOT / companion["source"]
             paths = {f["path"] for f in companion["files"]}
             fonts = {f"Fonts/{p.name}" for p in (folder / "Fonts").iterdir()}     # tests/test_unicode18.py
-            self.assertEqual(len(fonts), 9)
+            self.assertEqual(len(fonts), 11)        # and Twemoji Mozilla with its license (flags)
             self.assertEqual(paths, {"Unicode Text.dll"} | {f"Images/{n}" for n in picture_names(game)} | fonts)
             for entry in companion["files"]:
                 data = (folder / entry["path"]).read_bytes()
@@ -788,7 +788,7 @@ class PatcherTests(unittest.TestCase):
             key = patcher.settings_key if game == "fish" else (lambda core, m=manifest: plant_patcher.settings_key(core, m))
             # Translations is a loader tail too (loaded after this one), and Copy and Paste in Text Boxes
             # ships this same DLL: left out here.
-            tails = {SETTING, "translations", "copy_paste_text_boxes"}
+            tails = {SETTING, "translations", "copy_paste_text_boxes", "greenhouse_click_deselect", "snail_curing_stack"}
             for others in (defaults - tails, {"fix_vanilla_bugs"}, set()):
                 with self.subTest(game=game, others=sorted(others)):
                     enabled = others | {SETTING}

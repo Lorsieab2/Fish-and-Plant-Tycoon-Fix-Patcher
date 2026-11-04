@@ -1,5 +1,174 @@
 # Changelog
 
+## v1.0.27
+
+- **Translations: labels the games push as plain text are translated too.** Fish Tycoon's main menu button "Change Player" and Plant Tycoon's Stats, Seeds, Supplies, Nursery and Collect labels do not come from the string table, so a translation never reached them. Translations.dll now points each of those pushes at the translation of the same line, fitted to the room left up to the screen edge (Fish Tycoon's "Change Player" is moved left, with its click area, so a long translation ends inside the screen and is shown whole); with no translation (or any other code there) nothing changes. Plant Tycoon's other plain-text labels now have keys of their own (mod/plant_tycoon_exe.*): "Change Scene", the three snapshot tooltips, "Seedbox is upgradable from the shop", "Collected: %i out of 48", "%s in %i Min." and the 48 insect names, with French lines.
+
+- **Game Mechanics names every body, fin, flower and foliage.** Both games' pages have a new "Names and numbers" part listing each gene's number with its in-game name and rarity or seed tier (Fish Tycoon bodies and fins 0-20 and the DS 23-29, Plant Tycoon foliage 1-23 and flowers 1-37), and the gene numbers and (a, b) pairs written elsewhere on the pages now carry the names too. No facts changed.
+- **Plant Tycoon: click the greenhouse background to deselect.** New setting "Click the greenhouse to deselect" (on by default): with nothing in your hand, a click on the empty floor of the greenhouse goes from a selected plant back to "No plant selected", exactly as at the start of the screen. Pots, the left panel, tools, chemicals, the faucet, buttons and arrows work as before. It runs as the loader-tail companion `Click to Deselect.dll`, so no executable pin changes.
+- **New setting: Snail and Plant of Curing stack (Fish Tycoon, on by default).** The Cleaning Snail's 50% halving of sickness odds now also works when you own the Plant of Curing, so owning both quarters the odds about half the time. The stock game never stacks them; this is a choice, not a Fix Vanilla Bugs fix. It is a small companion DLL (`Snail and Curing.dll`) that checks the game's code and changes nothing if it is not the stock code.
+
+- **Long names are saved the moment the game saves.** A name that was still waiting to be written beside the save (its slot not known yet, or the first write failed) is now written when the game saves, so quitting right after setting a name can no longer lose it. This is in Unicode Text for both games.
+
+- **Game Mechanics explains the music.** Both games' pages have a new
+  "Music and sounds" part, read from each game's code. Fish Tycoon: its only
+  music, Tanked.xm, plays once when the first-time help question opens; the
+  sound that comes by itself on the tank screen is one of three long sound
+  clips (equal odds, every 3.5 minutes or so, skipped under Stop Time or when
+  you were away); the Sounds option is one switch for everything. Plant
+  Tycoon: the menu piece and four songs, which screens start them, the song
+  order, the Options check boxes and sliders, and the greenhouse wind-chimes.
+  All of it is cosmetic only: nothing in either game reads it back.
+- **Thai, Lao, Khmer, Burmese, Chinese and Japanese wrap between words.**
+  These scripts have no spaces, so a line that must wrap now breaks between
+  words, not in the middle of one. Chinese and Japanese may still break between
+  any two characters when one word alone is too wide, and keep the kinsoku
+  rules (no line starts with `。、」）` or ends with `「（`). The Translations
+  window's Wrap to fit does it with ICU's dictionaries (longest match,
+  `src/word_break.py`); in the game, `Translations.dll` asks Windows' own
+  `icu.dll` break iterator first (Windows 10 1703 and later) and falls back to
+  the same dictionaries in a `word-lists` folder beside the DLL, read only when
+  such text needs breaking. The lists ship unchanged in
+  `assets/translations/word-lists` with ICU's licence (about 2.4 MB zipped).
+  In the game too, a Chinese or Japanese word wider than the room now breaks
+  between characters instead of being cut with "...".
+- **Translations fit the screen.** Every line a translation can replace now
+  has a room in pixels where the game draws it, in
+  `data/translation_limits.json` (numbers only, no game text). It is measured
+  by running the games' own code in Unicorn
+  (`scripts/build_translation_limits.py`): every function that looks a line
+  up by a fixed id, the Help pages, the tutorial messages, the Plant Options
+  dialog and the Fish screens are run twice, the second time with every text
+  64 pixels wider. How a line moved gives its alignment, and its room is then
+  the screen's edge, the picture it sits in (a button frame, a panel), a text
+  box's own fields (the Unicode setting's `box_room` rule), or the widest text
+  the game's message, question or tooltip box keeps on the 800 x 600 screen
+  (Fish message 758 pixels; Plant message 696, question 708, tooltip 780).
+  A room runs to the screen's edge: a line may run past its box, over the
+  next word or a check box, but never off the screen. This gives a measured
+  room for 81 of Fish Tycoon's 248 lines and 121 of Plant Tycoon's 391. The
+  Counts button's label has the screen's edge as its room (796 pixels).
+  Every other line, and every other patcher DLL text, gets the
+  safe rule: the English's widest line plus a quarter (at least 16 pixels),
+  never past the screen. A Windows popup's text (Time Warp's dialog) has no
+  limit: Windows wraps it.
+- **The first live check's French lines.** In Unicorn, with the French test
+  translation, every line is drawn whole and none runs off the screen:
+  "Morceaux de musique", "Arrêter le temps", "ARGENT", "Poubelle" and
+  "Pépinière" may run past their boxes or over a neighbour (the owner's rule:
+  things may run out of boxes, they just must not run off the screen). The
+  Counts button's label ("Compteurs : oui") moves left to end at the screen's
+  edge instead of being cut; English is drawn exactly as before, and only a
+  label wider than the whole screen is cut, from its end.
+- **The editor and the validator warn.** A translated line wider than its
+  room, measured with the game's font the way Wrap to fit measures (the Text
+  Maker's layout, with the patcher-made and Windows-drawn letters), is shown
+  "too wide" in red, with the line, the key, its width and the room. It is a
+  warning only: the line is still used. Check names the same lines. Wrap to
+  fit and Wrap all now re-break to the recorded room (the widest English line
+  where none is recorded).
+- **The game fits it.** Translations.dll measures every used line with the
+  game's own measure (Fish 0x4023D0, Plant 0x402380; where Unicode Text.dll
+  draws wide letters its hook on that measure sees them) once the fonts are
+  made. A line wider than its room is re-broken where the English has line
+  breaks (at spaces, after hyphens, between Chinese and Japanese characters
+  with the kinsoku rules, never inside a letter with its marks or an emoji),
+  otherwise cut with "..." after the last whole letter that fits; if even
+  that does not fit, or the text is taller than its box, the English is
+  shown. Printf formats are never cut, lines with a number choice are left
+  alone (English if too wide), and nothing grows past a line's byte limit.
+  Translations.log says how many lines were re-broken, cut or shown in
+  English. Checked in Unicorn against both games: every game line at a long
+  German-like, Chinese, Thai, Arabic and emoji width, in Windows-1252 and
+  UTF-8, and the games' own screens (Plant main menu, Options, message and
+  question boxes; Fish Options and message box) drawn with what the DLL
+  returns. Not yet seen in a running game. Lines no run reaches use the safe
+  rule's room, which is an estimate, and patcher DLL texts drawn by the DLLs
+  themselves are checked against the safe rule only.
+- **DS fish bodies and fins now animate like the stock fish** (DS Exclusive
+  Fish, Fish Tycoon; art only, the game files are unchanged, and not yet seen
+  in a running game). The stock game wags each fish's tail and flaps each fin
+  on its own timer, but the seven DS bodies and fins only had one still pose,
+  so they slid along without moving. Their sheets now hold the same six-step
+  flap as the stock sheets: the fin flattens and its tip sweeps back and forth,
+  the tail flicks up and thins, and the fins stay attached through every step.
+  Teen and dead fish are unchanged. New tests check the frame counts, that
+  the frames really differ, and that the fins stay on their edge.
+
+- **Patch boxes use the patch's own translation** (Translations.dll, Plant
+  Tycoon; checked in the emulator, not yet seen in a running game). Sort Seeds'
+  question, its Yes and No buttons, and Extra Greenhouses' "full" box put their
+  text in a stock line's place while the box is built, and the game showed that
+  stock line's translation instead (OK, Cancel, the restart question, the
+  "box full" line). Now the patch's own text is translated by its own line, and
+  Yes and No take the Yes and No lines. A new test gives every translation line
+  of both games a unique marker text and follows it to where the game draws it
+  (the game's lookup, each patch DLL's pointers, counted texts, DS fish and
+  Unused Flowers names, patch boxes).
+- **Mixed left-to-right and right-to-left lines in their true order**
+  (Unicode Text.dll, both games, Render Unicode with In-Game Fonts and Use
+  Unicode Font; not yet seen in a running game). A line that holds Hebrew,
+  Arabic or another right-to-left script is put in visual order as a whole
+  by the Unicode bidi algorithm (UAX #9): Windows' Uniscribe gives every
+  character its level for the whole line (a left-to-right base, as the games
+  write), and the line's runs are ordered by ScriptLayout across all of them,
+  so "Fish مرحبا 123 שלום Tycoon" reads Fish, שלום, 123, مرحبا, Tycoon.
+  Numbers in right-to-left text read left to right in the game's own digits,
+  the spaces fall on the right side, each right-to-left run is shaped whole
+  with a right-to-left base (joined Arabic, mirrored brackets), and the width
+  the game lays a name or label out with is the drawn width. A line with no
+  right-to-left letter is drawn exactly as before (checked pixel for pixel
+  against v1.0.26).
+- **Flags are flags** (same DLL and settings; not yet seen in a running
+  game). Windows' Segoe UI Emoji draws a flag as its two letters ("JP");
+  a flag (🇯🇵 🇺🇸 🇫🇷, and the subdivision flags such as England's 🏴) is now
+  one picture in its own colours, from Twemoji Mozilla 0.7.0 (Mozilla's
+  COLR build of Twemoji, 1.4 MB, the same file Firefox ships), shipped beside
+  the DLL in its Fonts folder with its license and loaded for the game only.
+  The DLL draws its colour layers itself, as Direct2D does not see a font
+  loaded for one program. Other emoji still come from Segoe UI Emoji,
+  unchanged; Twemoji Mozilla also draws an emoji Windows lacks. Twemoji
+  artwork: Copyright 2019 Twitter, Inc and other contributors, CC-BY 4.0
+  (README credits).
+- Tests: `tests/test_unicode_bidi.py` (Uniscribe's levels and ScriptLayout
+  run natively, the games' own draw and measure in Unicorn) and
+  `tests/test_unicode_flags.py` (JP, US, FR and GB-ENG as one colour picture
+  each; other emoji the same picture as without the shipped fonts). The
+  preview sheet has rows for mixed lines and flags.
+- **Wrap to fit in the translation editor.** The games break a line only at
+  a line break the text itself has, so a translation longer than the English,
+  or Chinese, Japanese or Thai (no spaces), did not fit unless the translator
+  broke it by hand. The editor now has **Wrap to fit** (the selected line) and
+  **Wrap all** (every line wider than its English; it shows the count first),
+  and **Undo wrap**. Each line is re-broken so none is wider than the widest
+  line of the English, measured with the game's own font (the Text Maker's
+  measuring, including the patcher-made and Windows-drawn letters). Breaks
+  follow the Unicode line-breaking rules: at spaces and after hyphens, between
+  Chinese, Japanese and kana characters with the kinsoku rules (no line starts
+  with 。、）」！？ and the like or ends with （「『【), never inside a letter
+  with its accents, an emoji or flag, or a placeholder (%d, %s, {name}, a
+  number choice); a word wider than the room is cut. Thai has no word list
+  here: it breaks at spaces only, and a long Thai run is reported as "cannot
+  wrap". Only line breaks and spaces change, never the words. The preview's
+  too-wide warning now uses the same rule.
+- **Fish's big font: tildes and diaereses are whole again.** In Render Unicode with In-Game Fonts,
+  the Fish name prompt's font (paddington_tt_30) drew the tilde of N, A and O and the diaeresis of
+  capitals as a 1-pixel tick ("Núñez" looked like "Núnez" with a mark). The font's own ~ is a
+  1-pixel placeholder and its capital diaeresis sits beside the A's top, so only one row of it was
+  taken. The patcher now takes the accent as the ink the accented letter has and the plain letter
+  lacks, never uses a 1-pixel tilde or diaeresis, and draws the tilde in the font's style instead.
+  The small Fish font's capitals with a diaeresis gain their full dots too. A test checks every
+  patcher-made accent of all four fonts (tests/test_unicode_font_marks.py).
+- **Long names stay inside Plant Tycoon's sign and prompt.** The main menu's name sign drew a long
+  name whole, past the red sign on both sides and off the window, so its emoji and flag never
+  showed: the name is a label the game centres on the menu picture's sign, and the DLL gave it
+  the whole screen's room. It now gets the sign's own room and ends in "…" there, for a
+  player's long name and any long text. The nickname prompt's box spans the dialog edge to edge,
+  so the scrolled name was drawn over the dialog's frame on both sides; it now keeps inside the
+  frame with room for the caret. Fish Tycoon's nickname prompt keeps room for its caret the same
+  way (the "_" ran a few pixels over the rope frame). Tested with the games' own box code in
+  Unicorn and very long CJK, emoji, flag and Arabic names (tests/test_unicode_name_spots.py).
+
 ## v1.0.26
 
 - **Housekeeping: the pin scripts keep every pin.** The scripts that record which executables the

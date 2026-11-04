@@ -9,7 +9,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUTS = ROOT / "outputs"
-VERSION = "v1.0.26"
+VERSION = "v1.0.27"
 NAME = f"Fish-and-Plant-Tycoon-Fix-Patcher-{VERSION}.zip"
 FILES = [
     "LICENSE",
@@ -21,6 +21,7 @@ FILES = [
     "assets/plant.png",
     "data/fish_manifest.json",
     "data/plant_manifest.json",
+    "data/translation_limits.json",
     "data/unicode/Blocks.txt",
     "data/unicode/DerivedAge.txt",
     "data/unicode/DerivedCoreProperties.txt",
@@ -128,10 +129,13 @@ FILES = [
     "src/unicode_font_window.py",
     "src/text_raster.py",
     "src/unicode_data.py",
+    "src/translation_fit.py",
     "src/translation_format.py",
     "src/translation_public.py",
     "src/translations_github.py",
     "src/translation_strings.py",
+    "src/text_wrap.py",
+    "src/word_break.py",
     "src/translations.py",
     "src/translations_window.py",
     "docs/translations.md",

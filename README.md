@@ -8,7 +8,7 @@ An offline Windows patcher combining the current Fish Tycoon Fix Patcher and
 Plant Tycoon Fix Patcher in the same player-facing format as the Virtual
 Villagers Fun Patcher.
 
-Current release: **v1.0.26**. See [CHANGELOG.md](CHANGELOG.md) for what each
+Current release: **v1.0.27**. See [CHANGELOG.md](CHANGELOG.md) for what each
 version changed.
 
 ## Supported copies
@@ -481,8 +481,13 @@ never needs the internet.
   letter with a combining accent that has a precomposed form is that letter
   (the game's own é for e + U+0301); Arabic, Hebrew, the Indic scripts, Thai
   and the other scripts that join or reorder are shaped and ordered by Windows
-  a whole run at a time; a letter no font has is an empty box in the font's
-  style, never "?". A name is fitted to the room the game's layout gives it
+  a whole run at a time, and a line that mixes left-to-right and right-to-left
+  text ("Fish مرحبا 123 שלום") is put in visual order as a whole (the Unicode
+  bidi algorithm, by Windows' Uniscribe), numbers in right-to-left text
+  reading left to right and drawn in the game's own digits; a flag (🇯🇵, 🇺🇸,
+  England's 🏴) is drawn as a flag in colour, not as its two letters, from
+  Twemoji Mozilla (shipped beside the DLL, loaded for the game only); a letter
+  no font has is an empty box in the font's style, never "?". A name is fitted to the room the game's layout gives it
   (a player row's own width, the main menu label's side of the screen). In a
   box that is not a name (the registration boxes, Plant Tycoon's price box),
   a letter is refused when the text would be wider than the stock game allows
@@ -1294,7 +1299,11 @@ folder never fails with "path too long".
   "Make a translation" writes every English line of the game and of the
   patcher's own texts into a file and opens a built-in editor (search,
   untranslated only, progress, placeholders in colour, a preview in the
-  game's own font with a too-long warning, autosave). "Add translation
+  game's own font with a too-long warning, a red "too wide" warning when a
+  line is wider than its room on the screen, Wrap to fit / Wrap all / Undo
+  wrap, which re-break a translation to that room (the widest line of its
+  English where no room is recorded) with the game's font metrics,
+  autosave). "Add translation
   file..." (or drag a file onto the window) checks and adds one you were
   sent; "Export translation..." saves a copy (several selected: one file
   each into a folder). The list of translations selects several (Ctrl+click,
@@ -1326,6 +1335,17 @@ folder never fails with "path too long".
     translations through their relocations. Lines the games copy into fixed
     buffers have a length limit, so a translation can never overflow one.
     `tests/test_translations_runtime.py` runs it in Unicorn against both games.
+  - Translations fit the screen: `data/translation_limits.json` holds each
+    line's room in pixels, measured by running the games' own code in Unicorn
+    (`scripts/build_translation_limits.py`; 81 Fish and 121 Plant lines, the
+    message, question and tooltip boxes' widest text); the other lines and
+    the patcher DLLs' texts get a safe estimate (the English's widest line
+    plus a quarter, never past the screen). The editor warns (never refuses)
+    about a wider line; in the game `Translations.dll` measures each line with
+    the game's own measure and re-breaks it where the English has line
+    breaks, cuts it with "..." otherwise, or shows the English if even that
+    does not fit (`tests/test_translations_fit_runtime.py`). Not yet seen in a
+    running game.
   - Every patch's own text can be translated: every patcher DLL's visible text
     (store items, descriptions, counts, popups, Time Warp, the DS fish's and
     the unused flowers' species-name words...) and every text an executable
@@ -1370,6 +1390,19 @@ asset merge.
   Lorsieab2.
 - Plant Tycoon's new flower names (Add unused flowers): credit to
   **Virtual_Lady** and **Lorsieab2**.
+- Flags (and the emoji Windows' emoji font lacks) in Render Unicode with
+  In-Game Fonts and Use Unicode Font are drawn with **Twemoji Mozilla** 0.7.0
+  (https://github.com/mozilla/twemoji-colr), shipped unchanged: emoji artwork
+  from **Twemoji** (https://github.com/twitter/twemoji), Copyright 2019
+  Twitter, Inc and other contributors, licensed under CC-BY 4.0
+  (https://creativecommons.org/licenses/by/4.0/); the font built by Mozilla.
+  Its license is in `Fonts\LICENSE-TwemojiMozilla.txt` beside Unicode
+  Text.dll.
+- The Thai, Lao, Khmer, Burmese, Chinese and Japanese word lists used to wrap
+  translated lines are from **ICU** (https://github.com/unicode-org/icu,
+  release 77.1), shipped unchanged, including ICU's lists from Libtabe and
+  IPADIC; their licenses are in `word-lists\ICU-LICENSE.txt` beside
+  Translations.dll.
 
 ## Tests
 

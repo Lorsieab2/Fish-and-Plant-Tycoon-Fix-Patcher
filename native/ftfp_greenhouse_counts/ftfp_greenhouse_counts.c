@@ -109,6 +109,7 @@ typedef void (__fastcall *text_fn)(void *graphics, int edx, const char *text, in
 
 static const getter_fn graphics_get = (getter_fn)0x00407A90u;
 static const text_fn draw_text = (text_fn)0x004092A0u;          /* (text, x, y, colour, font 0 = PTfontsmall) */
+static const toggle_width_fn text_width = (toggle_width_fn)0x00402380u;   /* the game's measure */
 static const mouse_fn stock_mouse = (mouse_fn)0x004273D0u;
 
 static count_toggle toggle = { 1, 0, 0, { BUTTON_X - 4, BUTTON_Y - 2, 798, BUTTON_Y + LINE_H - 2 }, { 0 } };
@@ -207,7 +208,16 @@ static void draw_counts(char *scene) {
     int bx, by, y;
     if (state == NULL || graphics == NULL) return;
     y = place_button(&bx, &by);
-    draw_at(graphics, toggle.shown ? "Counts: On" : "Counts: Off", bx, by, toggle.hovered ? WHITE : YELLOW);
+    {
+        char label[COUNT_LINE];
+        int shown_w = 0, at, arrows = bx == BUTTON_X_ARROWS;
+        void *impl = *(void **)graphics, *font = impl != NULL ? *(void **)((char *)impl + 0x5C) : NULL;
+        at = toggle_label(label, (int)sizeof label, toggle.shown ? "Counts: On" : "Counts: Off", bx, text_width,
+                          font, &shown_w);
+        toggle.box.left = (at < bx ? at : bx) - 4;                   /* the click area follows the label, as the tank's does */
+        if (arrows && at + shown_w + 1 > toggle.box.right) toggle.box.right = at + shown_w + 1;
+        draw_at(graphics, label, at, by, toggle.hovered ? WHITE : YELLOW);
+    }
     if (!toggle.shown) return;
     count_greenhouse(state, &count);
     plant_line(&line, &count);

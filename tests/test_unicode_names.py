@@ -44,12 +44,12 @@ GAMES = {
                  state_global=0x45ABDC, rows=0x1E3D8, stride=0x2A, set_text=0x40B970, new=0x42A793,
                  free=0x42A6B1, draw=0x4087E0, width=0x4023D0, box_cut=0x40B7ED,
                  sites=((0x40B970, 6), (0x40BC90, 6), (0x40BC30, 8), (0x40B7A3, 5), (0x40B7ED, 2),
-                        (0x40B829, 5), (0x4087E0, 7), (0x4023D0, 7))),
+                        (0x40B829, 5), (0x4087E0, 7), (0x4023D0, 7), (0x41916A, 5)), save=0x41916A, save_end=0x403520),
     "plant": dict(new_call=0x41B018, new_dst=8, limit_call=0x415B6C, other_limit_call=0x4304C9, other_limit=6, text_call=0x416198,
                   state_global=0x49333C, rows=0x53FC2, stride=0x21, set_text=0x40C380, new=0x44E894,
                   free=0x44E7B3, draw=0x408E20, width=0x402380, box_cut=0x40C1FD,
                   sites=((0x40C380, 6), (0x40C740, 6), (0x40C6E0, 8), (0x40C1B3, 5), (0x40C1FD, 2),
-                         (0x40C239, 5), (0x408E20, 7), (0x402380, 7))),
+                         (0x40C239, 5), (0x408E20, 7), (0x402380, 7), (0x41D160, 5)), save=0x41D160, save_end=0x403690),
 }
 TITLE_OF = {"fish": "Fish Tycoon", "plant": "Plant Tycoon"}
 # The text the games make their name rows with (Fish 0x442220, Plant 0x467790), and their box makers:
@@ -414,6 +414,50 @@ class NamesCase:
         g.files["tick"] += 5000
         g.emu.call(g.symbols["_names_sync"])
         self.assertEqual(g.names_file(4), HEADER + record(short, name))
+
+    def run_save(self, g: Game) -> None:
+        """The game's own save path, from its patched site to the game's writer it calls (no draw)."""
+        emu = g.emu
+        esp = E.STACK + E.STACK_SIZE - 0x2000
+        emu.uc.reg_write(E.X.UC_X86_REG_ESP, esp)
+        emu.uc.reg_write(E.X.UC_X86_REG_ECX, g.state)
+        emu.uc.reg_write(E.X.UC_X86_REG_EAX, g.state + 8)
+        emu.uc.emu_start(GAMES[self.game]["save"], GAMES[self.game]["save_end"], count=2_000_000)
+        self.assertEqual(emu.uc.reg_read(E.X.UC_X86_REG_ECX), g.state)       # ecx survived the sync
+
+    def test_pending_records_are_written_by_the_games_save_path(self) -> None:
+        """A name whose slot is unknown, and one whose first write failed, are pending; the game's
+        save writes both at once (no draw, no exit); a normal name was already written."""
+        g = Game(self.game)
+        normal = "Normal Committed Name With Extra Letters"
+        short1 = g.type_name(normal, slot=3).rstrip(b"\0")
+        self.assertEqual(g.names_file(3), HEADER + record(short1, normal))   # at once
+        # unknown slot
+        name = "Nobody's Row Yet, A Name Too Long For Its Field"
+        dst = g.emu.alloc(0x20)
+        wrapper, _box = g.box(unicode_data.encode_game_text(name), limit=NAME_BOX_BYTES)
+        g.run_call(GAMES[self.game]["text_call"], wrapper, dst, 0x20)
+        short = bytes(g.emu.uc.mem_read(dst, 0x20)).split(b"\0", 1)[0]
+        g.set_row(4, short)
+        # a failed first write
+        real_create = g.emu.hooks[g.emu.imports["CreateFileW"]][0]
+        blocked = {"on": True}
+
+        def create(e) -> int:
+            if blocked["on"] and not e.arg(1) & 0x80000000 and "Names" in e.wstring(e.arg(0)):
+                return 0xFFFFFFFF
+            return real_create(e)
+
+        g.emu.hook_import("CreateFileW", create, 28)
+        other = "Pending Name That Is Longer Than Its Field"
+        short2 = g.type_name(other, 2).rstrip(b"\0")
+        self.assertIsNone(g.names_file(2))
+        self.assertIsNone(g.names_file(4))
+        blocked["on"] = False
+        self.run_save(g)
+        self.assertEqual(g.names_file(2), HEADER + record(short2, other))
+        self.assertEqual(g.names_file(4), HEADER + record(short, name))
+        self.assertEqual(g.names_file(3), HEADER + record(short1, normal))
 
     def test_viewing_a_long_name_never_shortens_it(self) -> None:
         """A box set up with the game's 32-byte limit (no name site's setLimit) shown a name of

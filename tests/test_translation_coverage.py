@@ -47,7 +47,7 @@ ALLOWED: dict[str, tuple[set[str], str]] = {
     "api": ({"SHGetSpecialFolderPathW", "SetWindowLongW", "CallWindowProcW", "TranslateMessage", "EnumThreadWindows",
              "IsWindowVisible", "PeekMessageW", "ImmGetContext", "ImmGetCompositionStringW", "ImmReleaseContext",
              "CreateCompatibleDC", "CreateDIBSection", "SelectObject", "CreateFontW", "SetTextColor", "SetBkMode",
-             "GdiFlush", "SetTextAlign", "ScriptItemize", "ScriptShape", "ScriptPlace",
+             "GdiFlush", "SetTextAlign", "ScriptItemize", "ScriptShape", "ScriptPlace", "ScriptShapeOpenType",
              "ScriptGetFontProperties", "GetFontData", "GetTextMetricsW", "D2D1CreateFactory", "DWriteCreateFactory",
              "ScreenToClient", "AddFontResourceExW", "GetTextExtentPoint32W", "GetTextFaceW", "ScriptGetCMap",
              "ScriptLayout", "ScriptTextOut"}, _API),
@@ -60,7 +60,7 @@ ALLOWED: dict[str, tuple[set[str], str]] = {
                "Unifont Upper", "Noto Sans Cuneiform", "Noto Serif Tangut", "Last Resort",
                # the spec's fallback chain (v1.0.26)
                "Microsoft JhengHei", "Noto Color Emoji", "Noto Sans", "Noto Sans CJK JP", "Noto Sans CJK SC",
-               "Noto Sans Math", "Noto Sans Symbols", "Noto Sans Symbols 2"}, _FONT),
+               "Noto Sans Math", "Noto Sans Symbols", "Noto Sans Symbols 2", "Twemoji Mozilla"}, _FONT),
     "locale": ({"en-us"}, "the locale DirectWrite measures text in"),
     "font pictures": ({"paddington_tt_18_unicode", "paddington_tt_30_unicode",
                        "FONT_TRIPLEX_SANSLIGHTLIN_BOLD_16PT_unicode", "PTfontsmall_unicode"},

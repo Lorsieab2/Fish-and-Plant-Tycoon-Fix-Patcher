@@ -8,6 +8,7 @@ assets/money_cheat/** -text
 assets/time_warp/** -text
 assets/fish_tycoon_window/** -text
 assets/fish_tycoon_counts/** -text
+assets/fish_tycoon_snail_curing/** -text
 assets/plant_tycoon_counts/** -text
 assets/fish_tycoon_ornaments/** -text
 assets/fish_tycoon_extra_tanks/** -text
@@ -20,3 +21,4 @@ assets/plant_tycoon_unicode/Fonts/** -text
 # Translation files are downloaded byte-for-byte ("Download from GitHub..."): keep their CRLF.
 translations/**/*.txt -text
 translations/**/*.tsv -text
+assets/translations/word-lists/** -text

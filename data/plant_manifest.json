@@ -10108,7 +10108,7 @@
             "path": "Greenhouse Counts.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Greenhouse Counts.dll",
             "size": 94208,
-            "sha256": "BBA1F54BC2E7278E518FCBB692EB7CBA58E29790731230B99E380842133A4E52"
+            "sha256": "5C0D5C7795152412D6A2D479D11150D3114C506FCFB3600673CA0051DA357AC3"
           }
         ]
       }
@@ -10433,7 +10433,7 @@
       "id": "unicode_ingame_fonts",
       "name": "Render Unicode with In-Game Fonts",
       "summary": "Type and show names in any script (é ñ ß, Ç ğ İ, 山田, emoji ...) up to 1,200 bytes, drawn in the game's own fonts; letters a font lacks are made for it in its style or drawn from Windows' fonts.",
-      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (an input method's text too); the game dropped everything but plain ASCII. Names can be up to 1,200 bytes as the save stores them, with no character limit (up to 1,200 plain letters, fewer when letters need more bytes; the same limit as the other Fun Patchers), counted in characters as you see them (a letter with its accents, an emoji with its skin tone or a flag is one), and Backspace removes one whole character. The game's font already has most of Latin-1; the no-break space and the inverted exclamation mark (¡) are made for it in its style, in a copy of its picture in the Images folder (the game's own picture is not changed). Any other letter (Turkish, Japanese, Chinese, Korean, cuneiform, emoji ...) is drawn from Windows' fonts at the font's size and in the text's colour (colour emoji in their own colours). The save itself is not changed: a name that fits the game's 31-byte field is kept there as it is (one byte for a Windows-1252 character, UTF-8 for any other); a longer one is kept there as its short form (its start of whole characters and \"...\", or \"2...\", \"3...\" when two would start alike), so a copy of the game without the setting still loads and plays the save and shows the short form; the whole name is kept beside the save, in Fix Patcher Data\\Names <slot>.dat (the Names format the Fun Patchers share: one checked record a name, never removed). The patcher's tools (Rename Players, Copy Player Slot, Back Up and Restore Saves, the Breeding Guide and Picture Studio) read, write and carry such names too. A letter the game's fonts lack is drawn from Windows' fonts in that font's own style (its capital height, baseline, stroke weight, side bearings and shading), from the first font of the shared fallback chain that has every code point of it: Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships. A letter with a combining accent that has a precomposed form is that letter; Arabic, Hebrew, the Indic scripts, Thai and the other scripts that join or reorder are shaped and ordered by Windows a whole run at a time; a letter no font has is an empty box in the font's style, never \"?\". Each name is fitted to the room the game's layout gives it, with an ellipsis. In a box that is not a name (the price box), a letter is refused when the text would be wider than the stock game allows there. The games have no word wrapper: text breaks only where it has a line break. Not yet seen in a running game. Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one. A copy of the game without this setting shows these letters as well (its font has them), except ¡, and loads and plays the save as always.",
+      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (an input method's text too); the game dropped everything but plain ASCII. Names can be up to 1,200 bytes as the save stores them, with no character limit (up to 1,200 plain letters, fewer when letters need more bytes; the same limit as the other Fun Patchers), counted in characters as you see them (a letter with its accents, an emoji with its skin tone or a flag is one), and Backspace removes one whole character. The game's font already has most of Latin-1; the no-break space and the inverted exclamation mark (¡) are made for it in its style, in a copy of its picture in the Images folder (the game's own picture is not changed). Any other letter (Turkish, Japanese, Chinese, Korean, cuneiform, emoji ...) is drawn from Windows' fonts at the font's size and in the text's colour (colour emoji in their own colours). The save itself is not changed: a name that fits the game's 31-byte field is kept there as it is (one byte for a Windows-1252 character, UTF-8 for any other); a longer one is kept there as its short form (its start of whole characters and \"...\", or \"2...\", \"3...\" when two would start alike), so a copy of the game without the setting still loads and plays the save and shows the short form; the whole name is kept beside the save, in Fix Patcher Data\\Names <slot>.dat (the Names format the Fun Patchers share: one checked record a name, never removed). The patcher's tools (Rename Players, Copy Player Slot, Back Up and Restore Saves, the Breeding Guide and Picture Studio) read, write and carry such names too. A letter the game's fonts lack is drawn from Windows' fonts in that font's own style (its capital height, baseline, stroke weight, side bearings and shading), from the first font of the shared fallback chain that has every code point of it: Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships. A letter with a combining accent that has a precomposed form is that letter; Arabic, Hebrew, the Indic scripts, Thai and the other scripts that join or reorder are shaped and ordered by Windows a whole run at a time, and a line that mixes left-to-right and right-to-left text is put in visual order as a whole (the Unicode bidi algorithm, by Windows), numbers in right-to-left text reading left to right; a letter no font has is an empty box in the font's style, never \"?\". Each name is fitted to the room the game's layout gives it, with an ellipsis. In a box that is not a name (the price box), a letter is refused when the text would be wider than the stock game allows there. The games have no word wrapper: text breaks only where it has a line break. Not yet seen in a running game. Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one. A flag (Japan, the United States, England...) is drawn as a flag in colour, not as its two letters, from Twemoji Mozilla, also shipped beside the DLL and loaded for the game only (Twemoji artwork by Twitter, Inc and other contributors, CC-BY 4.0), which also draws the emoji Windows' own emoji font lacks. A copy of the game without this setting shows these letters as well (its font has them), except ¡, and loads and plays the save as always.",
       "category": "main",
       "default": true,
       "separate_output": true,
@@ -10447,8 +10447,8 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 162304,
-            "sha256": "29CC5016146D784ABF8C644C020F3D84DA2457A41218B63436684211E8FB51BE"
+            "size": 168960,
+            "sha256": "8B67B3D3C03FB5A54D8F4890A96EB2624379C45A3BF1593C926B9DA40E1AD657"
           },
           {
             "path": "Images/PTfontsmall_unicode.png",
@@ -10487,6 +10487,12 @@
             "sha256": "CA7DF8948CEC84240F19508A17A74DE037C98BA3A54E1AAA50EA6EDBBDC37F64"
           },
           {
+            "path": "Fonts/Twemoji.Mozilla.ttf",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Fonts/Twemoji.Mozilla.ttf",
+            "size": 1474284,
+            "sha256": "6D90152EE0D29E82FE2A87793AF5AA4B7AD13E6538360889E141E81ED299EE8E"
+          },
+          {
             "path": "Fonts/LICENSE-LastResort.txt",
             "destination": "Plant Tycoon Fix Patcher DLLs/Fonts/LICENSE-LastResort.txt",
             "size": 4452,
@@ -10503,6 +10509,12 @@
             "destination": "Plant Tycoon Fix Patcher DLLs/Fonts/LICENSE-NotoSerifTangut.txt",
             "size": 4382,
             "sha256": "BD8B32C064BE2225D55F878A689063C6F169CCD9E2792D7051F0D74CF4816F1B"
+          },
+          {
+            "path": "Fonts/LICENSE-TwemojiMozilla.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Fonts/LICENSE-TwemojiMozilla.txt",
+            "size": 22316,
+            "sha256": "167BD60FAEFE6C78354B59782A0A9D0B6A37F159C8AA236FD43D4323CE97D75D"
           },
           {
             "path": "Fonts/LICENSE-Unifont.txt",
@@ -10528,8 +10540,50 @@
           {
             "path": "Translations.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Translations.dll",
-            "size": 131072,
-            "sha256": "05F41E220D8FC4017A59B38F50E448B2572FCD86DC2F5225A17AF7A42E3D1B5C"
+            "size": 156160,
+            "sha256": "12953C62E4E5521C7E4732C37AA6898619FF3919EF36A54ED2A4A7C188481390"
+          },
+          {
+            "path": "word-lists/burmesedict.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/burmesedict.txt",
+            "size": 1164408,
+            "sha256": "61D8ABC3D9102B2F9BF0C9F44DB0D7AB89B18172D8CD26832E4C83174BD8673B"
+          },
+          {
+            "path": "word-lists/cjdict.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/cjdict.txt",
+            "size": 4195904,
+            "sha256": "E73FD72048981D0CC13E9DC436A7EABA07FFB6EFF58C8A59DC75C1DF746663A0"
+          },
+          {
+            "path": "word-lists/ICU-LICENSE.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/ICU-LICENSE.txt",
+            "size": 26487,
+            "sha256": "451167C55C0FA447CC2D5632714F5E3C567FE4F1E1BADEFAB2C1333852198ACA"
+          },
+          {
+            "path": "word-lists/khmerdict.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/khmerdict.txt",
+            "size": 2031114,
+            "sha256": "87BEE2D17CD5148AA36957EB05409EEFC124DE8AD519B81B789298EF3E60B5D9"
+          },
+          {
+            "path": "word-lists/laodict.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/laodict.txt",
+            "size": 673894,
+            "sha256": "3C876934A3FA81031D2333525EAFACA6A7C9F842E3B98F18C38880420AFB5D36"
+          },
+          {
+            "path": "word-lists/README.md",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/README.md",
+            "size": 3755,
+            "sha256": "074575A4A301B7D1FF2C149AE249D2C6B6A5BEF059D1BE46F1C51CAF66353AB2"
+          },
+          {
+            "path": "word-lists/thaidict.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/word-lists/thaidict.txt",
+            "size": 493054,
+            "sha256": "3166ABDE40C0F44AB91C28F5CE96D7D1472CB7882E1C0BDA0A72F8F69DBA4274"
           }
         ]
       }
@@ -10538,7 +10592,7 @@
       "id": "unicode_system_font",
       "name": "Use Unicode Font (overrides in-game fonts)",
       "summary": "Draws all of the game's text with one Windows font you choose (Segoe UI unless you pick another), any script, at the game's sizes and colours, instead of the game's own fonts.",
-      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (an input method's text too); the game dropped everything but plain ASCII. Names can be up to 1,200 bytes as the save stores them, with no character limit (up to 1,200 plain letters, fewer when letters need more bytes; the same limit as the other Fun Patchers), counted in characters as you see them (a letter with its accents, an emoji with its skin tone or a flag is one), and Backspace removes one whole character. Every letter the game draws (names, menus, prices, a translation) is drawn with the font chosen in the patcher (the Tools tab's Unicode Font... window, with previews, or the Font box beside this setting; any installed font or a .ttf/.otf/.ttc file, copied beside the DLL and loaded for the game only; Segoe UI unless you pick another), then, for a letter it lacks, the shared fallback chain (Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships). Each game font keeps its line height, baseline, weight and shading; the size is fitted so \"The quick brown fox jumps over the lazy dog 0123456789\" is as wide as the game draws it (within 60%-130%), in the game's colours (colour emoji in their own colours). Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one. The game's own fonts and pictures are not changed. Not yet seen in a running game. Names are kept as with Render Unicode with In-Game Fonts (the name or its short form with \"...\" in the save, the whole name beside it in Names <slot>.dat), and the two settings cannot both be on. Runs as the same Unicode Text.dll, set by the \"Unicode Text.ini\" the patcher writes beside it.",
+      "description": "Typing in the game (a player's name, any text box), any letter of any script goes in (an input method's text too); the game dropped everything but plain ASCII. Names can be up to 1,200 bytes as the save stores them, with no character limit (up to 1,200 plain letters, fewer when letters need more bytes; the same limit as the other Fun Patchers), counted in characters as you see them (a letter with its accents, an emoji with its skin tone or a flag is one), and Backspace removes one whole character. Every letter the game draws (names, menus, prices, a translation) is drawn with the font chosen in the patcher (the Tools tab's Unicode Font... window, with previews, or the Font box beside this setting; any installed font or a .ttf/.otf/.ttc file, copied beside the DLL and loaded for the game only; Segoe UI unless you pick another), then, for a letter it lacks, the shared fallback chain (Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships). Each game font keeps its line height, baseline, weight and shading; the size is fitted so \"The quick brown fox jumps over the lazy dog 0123456789\" is as wide as the game draws it (within 60%-130%), in the game's colours (colour emoji in their own colours). Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one. A flag (Japan, the United States, England...) is drawn as a flag in colour, not as its two letters, from Twemoji Mozilla, also shipped beside the DLL and loaded for the game only (Twemoji artwork by Twitter, Inc and other contributors, CC-BY 4.0), which also draws the emoji Windows' own emoji font lacks. The game's own fonts and pictures are not changed. Not yet seen in a running game. Names are kept as with Render Unicode with In-Game Fonts (the name or its short form with \"...\" in the save, the whole name beside it in Names <slot>.dat), and the two settings cannot both be on. Runs as the same Unicode Text.dll, set by the \"Unicode Text.ini\" the patcher writes beside it.",
       "category": "main",
       "default": false,
       "separate_output": true,
@@ -10552,8 +10606,8 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 162304,
-            "sha256": "29CC5016146D784ABF8C644C020F3D84DA2457A41218B63436684211E8FB51BE"
+            "size": 168960,
+            "sha256": "8B67B3D3C03FB5A54D8F4890A96EB2624379C45A3BF1593C926B9DA40E1AD657"
           },
           {
             "path": "Fonts/unifont-18.0.01.otf",
@@ -10586,6 +10640,12 @@
             "sha256": "CA7DF8948CEC84240F19508A17A74DE037C98BA3A54E1AAA50EA6EDBBDC37F64"
           },
           {
+            "path": "Fonts/Twemoji.Mozilla.ttf",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Fonts/Twemoji.Mozilla.ttf",
+            "size": 1474284,
+            "sha256": "6D90152EE0D29E82FE2A87793AF5AA4B7AD13E6538360889E141E81ED299EE8E"
+          },
+          {
             "path": "Fonts/LICENSE-LastResort.txt",
             "destination": "Plant Tycoon Fix Patcher DLLs/Fonts/LICENSE-LastResort.txt",
             "size": 4452,
@@ -10602,6 +10662,12 @@
             "destination": "Plant Tycoon Fix Patcher DLLs/Fonts/LICENSE-NotoSerifTangut.txt",
             "size": 4382,
             "sha256": "BD8B32C064BE2225D55F878A689063C6F169CCD9E2792D7051F0D74CF4816F1B"
+          },
+          {
+            "path": "Fonts/LICENSE-TwemojiMozilla.txt",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Fonts/LICENSE-TwemojiMozilla.txt",
+            "size": 22316,
+            "sha256": "167BD60FAEFE6C78354B59782A0A9D0B6A37F159C8AA236FD43D4323CE97D75D"
           },
           {
             "path": "Fonts/LICENSE-Unifont.txt",
@@ -10627,8 +10693,29 @@
           {
             "path": "Unicode Text.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Unicode Text.dll",
-            "size": 162304,
-            "sha256": "29CC5016146D784ABF8C644C020F3D84DA2457A41218B63436684211E8FB51BE"
+            "size": 168960,
+            "sha256": "8B67B3D3C03FB5A54D8F4890A96EB2624379C45A3BF1593C926B9DA40E1AD657"
+          }
+        ]
+      }
+    },
+    {
+      "id": "greenhouse_click_deselect",
+      "name": "Click the greenhouse to deselect",
+      "summary": "Click the greenhouse's empty background to go from a selected plant back to \"No plant selected\".",
+      "description": "In the greenhouse, a click on the empty background (the floor and the walls: not a plant or a pot, the left panel, the tools and chemicals, the tap and hose, the buttons, the counts button or the extra greenhouses' arrows) clears the selected plant, exactly as if nothing had been picked: the left panel shows \"No plant selected\" again. Nothing happens while you hold a tool, a seed, pollen or a pot, and every click that already did something does the same as before. Runs as a companion DLL the game loads at start, after the others; saves are unchanged.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/plant_tycoon_deselect",
+        "loader_tail": "Click to Deselect.dll",
+        "files": [
+          {
+            "path": "Click to Deselect.dll",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Click to Deselect.dll",
+            "size": 89088,
+            "sha256": "F44A23C9A6933E3A4D6B78766AA479AEFF9F4FD7027F7EFB32EF9AB01ACBF10F"
           }
         ]
       }

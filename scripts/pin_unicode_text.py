@@ -28,12 +28,15 @@ DRAW_TEXT = ("A letter the game's fonts lack is drawn from Windows' fonts in tha
              "capital height, baseline, stroke weight, side bearings and shading), from the first font of the "
              "shared fallback chain that has every code point of it: Segoe UI, Segoe UI Historic, Segoe UI Symbol, Segoe UI Emoji (in colour), the CJK fonts (Yu Gothic, Meiryo, Microsoft YaHei, Microsoft JhengHei, Malgun Gothic, SimSun-ExtB), Nirmala UI, Ebrima, Gadugi, Leelawadee UI ... Cambria Math, Noto if installed, then the fonts the patcher ships. A letter with a combining accent "
              "that has a precomposed form is that letter; Arabic, Hebrew, the Indic scripts, Thai and the other "
-             "scripts that join or reorder are shaped and ordered by Windows a whole run at a time; a letter no "
+             "scripts that join or reorder are shaped and ordered by Windows a whole run at a time, and a line "
+             "that mixes left-to-right and right-to-left text is put in visual order as a whole (the Unicode bidi "
+             "algorithm, by Windows), numbers in right-to-left text reading left to right; a letter no "
              "font has is an empty box in the font's style, never \"?\". Each name is fitted to the room the "
              "game's layout gives it, with an ellipsis. In a box that is not a name (" + "{boxes}" + "), a "
              "letter is refused when the text would be wider than the stock game allows there. The games have "
              "no word wrapper: text breaks only where it has a line break. Not yet seen in a running game.")
-FONTS_TEXT = ("Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one.")
+FONTS_TEXT = ("Every letter of Unicode 18.0 draws: after Windows' fonts come the fonts the patcher ships beside the DLL (GNU Unifont and Unifont Upper, Noto Serif Tangut, Noto Sans Cuneiform, and Unicode's Last Resort font, whose block placeholder stands for a letter no font has yet; all under the SIL Open Font License, loaded for the game only, never installed in Windows), and a letter with its marks, an emoji sequence or a flag is drawn and cut as one. "
+              "A flag (Japan, the United States, England...) is drawn as a flag in colour, not as its two letters, from Twemoji Mozilla, also shipped beside the DLL and loaded for the game only (Twemoji artwork by Twitter, Inc and other contributors, CC-BY 4.0), which also draws the emoji Windows' own emoji font lacks.")
 
 GAMES = {
     "fish": {
@@ -99,7 +102,8 @@ def font_files(game: dict) -> list[dict]:
     """The fallback fonts and their licenses (data/unicode/fonts.json), into "<Game> Fix Patcher
     DLLs/Fonts" beside the DLL, which loads them for the game only (native/common/unicode_glyphs.h)."""
     source = ROOT / game["source"]
-    fonts = json.loads((ROOT / "data" / "unicode" / "fonts.json").read_text(encoding="utf-8"))["fonts"]
+    doc = json.loads((ROOT / "data" / "unicode" / "fonts.json").read_text(encoding="utf-8"))
+    fonts = doc["fonts"] + doc.get("colour_fonts", [])          # the chain's, then Twemoji Mozilla (flags)
     names = [f["file"] for f in fonts] + sorted(dict.fromkeys(f["license_file"] for f in fonts))
     files = []
     for name in names:

@@ -6,8 +6,9 @@ game's own test with its exact odds (game_mechanics.chance).
 
 from __future__ import annotations
 
-from game_mechanics import Fact, GamePage, Group, at_most, below, chance
+from game_mechanics import Fact, GamePage, Group, at_most, below, chance, each
 from unicode_data import NAME_BOX_BYTES
+from breeding_fish import BODY_NAMES, FIN_NAMES, ds_index, species_name
 
 STEP = "one age step (5, 10 or 15 real-time minutes at 2x speed, Normal and 1/2 speed)"
 
@@ -47,6 +48,9 @@ def page() -> GamePage:
             Group("Research", RESEARCH),
             Group("Everything together: a tank with every upgrade, research and creature", TOTALS),
             Group("Selling and customers", SELLING),
+            Group("Names and numbers: every body and fin", NAMES_AND_NUMBERS,
+                  note="The game shows names, the code uses numbers (genes). This table gives each gene "
+                       "its in-game body name, fin name and rarity."),
             Group("Species and prices", PRICES),
             Group("A new game", NEW_GAME),
             Group("Goals and popups", GOALS),
@@ -60,12 +64,48 @@ def page() -> GamePage:
                        "store's Upgrades screen they are sold on."),
             Group("Time Warp (patcher)", TIME_WARP, note="Only with the Time Warp setting (on by default), which also turns on the store's Upgrades screen it lives on."),
             Group("Names and letters", TEXT_ENTRY),
+            Group("Music and sounds", MUSIC),
             Group("Hidden keys, clicks and cheats", HIDDEN),
             Group("Plant Tycoon's topics here", OTHER_GAME),
             Group("Chance and timer index", INDEX),
         ),
     )
 
+
+
+def gn(gene: int) -> str:
+    """A gene with its in-game names, body then fin: "11 (Comet / Crimson)"."""
+    i = ds_index(gene)
+    return f"{gene} ({BODY_NAMES[i]} / {FIN_NAMES[i]})"
+
+
+def genes_named(genes) -> str:
+    return ", ".join(gn(g) for g in genes)
+
+
+def sp(body: int, fin: int) -> str:
+    """A species with its numbers: "Crimson Comet (11, 11)" (body, fin)."""
+    return f"{species_name(body, fin)} ({body}, {fin})"
+
+
+def _tier(gene: int) -> str:
+    if gene > 20:
+        return {23: "rare", 24: "half-rare", 25: "rare", 26: "common", 27: "rare", 28: "half-rare",
+                29: "rare"}[gene]
+    return "rare" if gene % 2 else ("common" if gene % 4 == 0 else "half-rare")
+
+
+NAMES_AND_NUMBERS = (
+    Fact("A fish is a body gene and a fin gene. A species is called its fin name then its body name, "
+         "so body 11 with fin 11 is the Crimson Comet. Below, each gene is listed as number, body "
+         "name, fin name and rarity (common / half-rare / rare)."),
+) + tuple(
+    Fact(f"Gene {g}: body {BODY_NAMES[ds_index(g)]}, fin {FIN_NAMES[ds_index(g)]}, {_tier(g)}.",
+         subs=(("Only with the DS Exclusive Fish setting.",) if g > 20 else ()))
+    for g in tuple(range(0, 21)) + tuple(range(23, 30))
+) + (
+    Fact("Genes 21 and 22 are not used by fish: 21 is the Golden Seahorse's sprite slot and 22 its body."),
+)
 
 CLOCKS = (
     Fact(
@@ -91,8 +131,9 @@ CLOCKS = (
             "while a message box is open.",
             "Thought bubbles and the shop's click texts stay 4-5 real-time seconds; tank hints 2 "
             "real-time seconds.",
-            "Ambient tank sounds: every 210 real-time seconds on the tank screen (the first 630 "
-            "real-time seconds after the intro); skipped under Stop Time.",
+            "Random tank sounds: due 210 real-time seconds after the last check, on the tank screen "
+            "only (the first 630 real-time seconds after the intro); skipped under Stop Time (see "
+            "Music and sounds).",
             "Tutorial waits (real-time): the next tip 25 seconds after a mating, 500 seconds (shown "
             "at the first fish update after that, so 500-801 seconds) after the \"basics\" tip, "
             "7 seconds after returning from the species screen. The three share one timer, so a "
@@ -218,10 +259,10 @@ HEALTH = (
         ),
     ),
     Fact(
-        "Common genes are 0, 4, 8, 12, 16 and 20; half-rare genes are 2, 6, 10, 14 and 18; every odd "
-        "gene is rare.",
-        patched=(("ds_fish", "the DS genes follow the DS game's rarity: 23, 25, 27 and 29 are rare, "
-                  "24 and 28 half-rare, 26 common. For health, though, every fish with a DS body or a "
+        f"Common genes are {genes_named((0, 4, 8, 12, 16, 20))}; half-rare genes are "
+        f"{genes_named((2, 6, 10, 14, 18))}; every odd gene is rare (see Names and numbers).",
+        patched=(("ds_fish", f"the DS genes follow the DS game's rarity: {genes_named((23, 25, 27, 29))} are rare, "
+                  f"{genes_named((24, 28))} half-rare, {gn(26)} common. For health, though, every fish with a DS body or a "
                   "DS fin is rare, whatever its other part: -19 / -6 / 0 a step at Fish Environment "
                   "level 1 / 2 / 3, exactly like the stock rare fish, so it keeps its health only at "
                   "level 3 (the DLL's tier at 0x41DF68). Sickness keeps the body's own DS tier."),),
@@ -248,7 +289,10 @@ SICKNESS = (
             "research does not change it.",
             "Easy: X - X/5. Hard: X + X/2.",
             "Plant of Curing owned: X halved, always. Otherwise the Cleaning Snail halves it on "
-            f"{at_most(100, 49)}. The two never stack.",
+            f"{at_most(100, 49)}. Stock, the two never stack. With the \"Snail and Plant of Curing "
+            "stack\" setting (on by default) they do: the plant halves X, then the snail halves it "
+            f"again on {at_most(100, 49)}. The halving comes before the +6 and +15 below, so those "
+            "are never halved.",
             "Each other sick fish in the same tank: +6 (not on Easy), dead fish that were sick "
             "included.",
             "Age above 600: +15.",
@@ -420,12 +464,12 @@ EGGS = (
         "Easy. Eggs hatch at age 1 in the tank you drop them in.",
     ),
     Fact(
-        "Common Fish Eggs ($120): body and fin each one of 0, 4, 8, 12, 16, 20 (1 in 6 each), so "
+        f"Common Fish Eggs ($120): body and fin each one of {genes_named((0, 4, 8, 12, 16, 20))} (1 in 6 each), so "
         "1 egg in 36 is the magic Greenfin Spotanus.",
     ),
-    Fact("Unusual Fish Eggs ($450): body and fin each one of 2, 6, 10, 14, 18 (1 in 5 each)."),
+    Fact(f"Unusual Fish Eggs ($450): body and fin each one of {genes_named((2, 6, 10, 14, 18))} (1 in 5 each)."),
     Fact(
-        "Rare Fish Eggs ($1200): body and fin each one of 0, 2, 4 ... 18 (1 in 10 each). Never a "
+        f"Rare Fish Eggs ($1200): body and fin each one of {genes_named(range(0, 19, 2))} (1 in 10 each). Never a "
         "rare (odd) gene and never 20.",
     ),
     Fact(
@@ -438,7 +482,7 @@ EGGS = (
         patched=(("ds_store", "Exotic Fish Eggs ($2300; slot #4, or any of slots 2-4 with Universal "
                   "supply slots, where they stack like the other eggs) hatch as many babies as the "
                   "other eggs, each with a random DS-only body and a random DS-only fin (genes "
-                  "23-29, 1 in 7 each)."),
+                  f"{genes_named(range(23, 30))}, 1 in 7 each)."),
                  ("free_upgrades", "Exotic Fish Eggs cost $0."),),
     ),
 )
@@ -513,85 +557,85 @@ MAGIC_HOW = (
             "particular way on about 6.5% (body +1 6.52%, body -1 6.51%, fin +1 6.51%, fin -1 "
             "6.49%), so a fish one step from a magic one becomes it on about 6.5% per dose.",
         ),
-        patched=(("ds_fish", "the DS genes add routes, never remove one: a DS gene 23 can step "
-                  "down to 20, and a DS x PC pair averages over the DS order (for example a DS "
+        patched=(("ds_fish", f"the DS genes add routes, never remove one: a DS gene {gn(23)} can step "
+                  f"down to {gn(20)}, and a DS x PC pair averages over the DS order (for example a DS "
                   "parent 21 with a PC 19 always gives 20). Exotic Fish Eggs hatch only DS genes, so "
                   "never a magic fish."),),
     ),
     Fact(
-        "Fertility, Greenfin Spotanus (body 20, fin 16), common genes, base price B = 48.",
+        "Fertility, Greenfin Spotanus (body 20 Spotanus, fin 16 Greenfin), common genes, base price B = 48.",
         subs=(
             "Every new game: the first starter egg is always one (see A new game).",
             "Common Fish Eggs: 2.777% per egg. Never from Unusual or Rare eggs.",
             "Breeding: both parents need body 20; for example Spined Spotanus (20, 12) x Twin-Fin "
             "Spotanus (20, 20), both from Common eggs, or two Greenfin Spotanus.",
-            "Unknown Chemical from (19, 16), (20, 15) or (20, 17).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(19, 16), (20, 15), (20, 17)]) + ".",
             "Effect: one more baby per litter in its tank.",
         ),
     ),
     Fact(
-        "Sustenance, Speckled Leaffish (14, 14), half-rare genes, B = 55.",
+        "Sustenance, Speckled Leaffish (14, 14: body Leaffish, fin Speckled), half-rare genes, B = 55.",
         subs=(
             "Unusual Fish Eggs: 3.999% per egg; Rare Fish Eggs: 1.000% per egg. Never from Common "
             "eggs.",
             "Breeding: Spined Stickfish (12, 12) x Greenfin Beta (16, 16), both Common; or Flagged "
             "Goldbulb (10, 18) x Golden Bananafish (18, 10), both Uncommon.",
-            "Unknown Chemical from (13, 14), (15, 14), (14, 13) or (14, 15).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(13, 14), (15, 14), (14, 13), (14, 15)]) + ".",
             "Effect: starving fish in its tank never lose health. Its message says you won't need "
             "to feed as often; food still drops at the normal rate.",
         ),
     ),
     Fact(
-        "Curing, Crimson Comet (11, 11), rare genes, B = 70.",
+        "Curing, Crimson Comet (11, 11: body Comet, fin Crimson), rare genes, B = 70.",
         subs=(
             "Never from eggs. Breeding a Common with an Uncommon: Orange Fruitfish (8, 8) x Speckled "
             "Leaffish (14, 14), Spined Stickfish (12, 12) x Golden Goldbulb (10, 10), or Pink "
             "Fatfish (4, 4) x Flagged Bananafish (18, 18).",
-            "Unknown Chemical from (10, 11), (12, 11), (11, 10) or (11, 12).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(10, 11), (12, 11), (11, 10), (11, 12)]) + ".",
             "Effect: none in the unpatched game (its cure can never happen; see Magic fish).",
         ),
         patched=(("crimson_comet_20_percent_cure", f"each sick fish in its tank is cured on "
                   f"{below(100, 20)} per age step."),),
     ),
     Fact(
-        "Growth, Oriental Goldbulb (10, 9), rare genes, B = 70.",
+        "Growth, Oriental Goldbulb (10, 9: body Goldbulb, fin Oriental), rare genes, B = 70.",
         subs=(
             "Never from eggs. Breeding needs a Rare-egg or bred parent: Golden Stickfish (12, 10) "
             "x Orange Fruitfish (8, 8), Orange Goldbulb (10, 8) x Golden Goldbulb (10, 10), or "
             "Spined Leaffish (14, 12) x Wasp Goldshark (6, 6).",
-            "Unknown Chemical from (9, 9), (11, 9), (10, 8) or (10, 10).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(9, 9), (11, 9), (10, 8), (10, 10)]) + ".",
             "Effect: fish in its tank sometimes gain an extra age step (see Magic fish).",
         ),
     ),
     Fact(
-        "Health, Orange Snooper (5, 8), rare genes, B = 70.",
+        "Health, Orange Snooper (5, 8: body Snooper, fin Orange), rare genes, B = 70.",
         subs=(
             "Never from eggs. Breeding: Orange Arrowfish (2, 8) x Orange Fruitfish (8, 8), Orange "
             "Goldshark (6, 8) x Orange Fatfish (4, 8), or Pink Shark (0, 4) x Spined Goldbulb (10, "
             "12).",
-            "Unknown Chemical from (4, 8), (6, 8), (5, 7) or (5, 9).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(4, 8), (6, 8), (5, 7), (5, 9)]) + ".",
             "Effect: +1 health per age step to every fish in its tank.",
         ),
     ),
     Fact(
-        "Mutation, Wasp Grouper (13, 6), rare genes, B = 95.",
+        "Mutation, Wasp Grouper (13, 6: body Grouper, fin Wasp), rare genes, B = 95.",
         subs=(
             "Never from eggs. Breeding: Pink Goldbulb (10, 4) x Orange Beta (16, 8), Wasp Leaffish "
             "(14, 6) x Wasp Stickfish (12, 6), or Hornet Bananafish (18, 2) x Golden Fruitfish (8, "
             "10).",
-            "Unknown Chemical from (12, 6), (14, 6), (13, 5) or (13, 7).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(12, 6), (14, 6), (13, 5), (13, 7)]) + ".",
             "Effect: a 16.02% chance per litter in its tank to move one of the father's genes one "
             "step. Its message says babies can be unrelated to either parent; the change is one "
             "step at most.",
         ),
     ),
     Fact(
-        "The Golden Guppy, Canary Fire-Arrow (7, 7), rare genes, B = 190, the highest base price.",
+        "The Golden Guppy, Canary Fire-Arrow (7, 7: body Fire-Arrow, fin Canary), rare genes, B = 190, the highest base price.",
         subs=(
             "Never from eggs. Breeding a Common with an Uncommon: Pink Fatfish (4, 4) x Golden "
             "Goldbulb (10, 10), Orange Fruitfish (8, 8) x Wasp Goldshark (6, 6), or Silky "
             "Stickfish (12, 0) x Speckled Arrowfish (2, 14).",
-            "Unknown Chemical from (6, 7), (8, 7), (7, 6) or (7, 8).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(6, 7), (8, 7), (7, 6), (7, 8)]) + ".",
             "Effect: none (its message says it will make you rich; only its high price does). It "
             "counts toward the seven.",
         ),
@@ -703,7 +747,7 @@ CONSUMABLES = (
         "without breeding.",
         patched=(
             ("unknown_chemical_three_uses", "one purchase gives 3 doses."),
-            ("ds_fish", "a body or fin at 20 can also step up into the DS genes (23-29), with the "
+            ("ds_fish", f"a body or fin at 20 can also step up into the DS genes ({genes_named(range(23, 30))}), with the "
              "same odds; 29 is the new end."),
         ),
     ),
@@ -775,7 +819,7 @@ CONSUMABLES = (
                   "as with the Unknown Chemical: by the game, once the fish is an adult (age 20, in age "
                   "steps). The dose is used whether or not any fish changed."),
                  ("ds_fish", "the step is DS Exclusive Fish's, as for the Unknown Chemical: 20 can step up "
-                  "into 23 and 23 down into 20, and 29 is the end (always down). Without it the DS genes "
+                  f"into {gn(23)} and 23 down into {gn(20)}, and {gn(29)} is the end (always down). Without it the DS genes "
                   "are never reached."),
                  ("free_upgrades", "Muta-Fin and Muta-Body cost $0."),),
     ),
@@ -801,8 +845,10 @@ PERMANENT_ITEMS = (
     ),
     Fact(
         f"Cleaning Snail ($80): an adult's sickness odds X are halved on {at_most(100, 49)} each step. "
-        "It does nothing once you own the Plant of Curing (the two never stack). It is drawn in the "
-        "tank you are looking at; that is only for show.",
+        "Stock, it does nothing once you own the Plant of Curing (the two never stack). It is drawn "
+        "in the tank you are looking at; that is only for show.",
+        patched=(("snail_curing_stack", "it still halves the odds when you own the Plant of Curing, "
+                  "so with both the odds are quartered on the snail roll."),),
     ),
     Fact(
         "Golden Seahorse ($1300): no effect on fish. It brings 2 more customers to the selling "
@@ -864,7 +910,9 @@ PERMANENT_ITEMS = (
     ),
     Fact(
         "Plant of Curing ($650): every adult's sickness odds X are halved, every step, in every tank. "
-        "It makes the Cleaning Snail useless. It does not cure a sick fish.",
+        "Stock, it makes the Cleaning Snail useless. It does not cure a sick fish.",
+        patched=(("snail_curing_stack", "the Cleaning Snail halves the odds again on top of it (half "
+                  "the time), so both together quarter them about half the time."),),
     ),
     Fact(
         "Plant of Fertility ($1250): every litter gets one more baby (1-3 with the Magic Fish of "
@@ -1028,8 +1076,10 @@ TOTALS = (
     ),
     Fact(
         "Sickness with Fish Food level 3 and the Plant of Curing: the base odds out of 10000 per "
-        "step are common 1, half-rare 3, rare 5, halved by the Plant of Curing (the Cleaning Snail "
-        "adds nothing on top). Medicines cure as usual; the Crimson Comet only cures with its "
+        "step are common 1, half-rare 3, rare 5, halved by the Plant of Curing (stock, the Cleaning Snail "
+        "adds nothing on top; with the \"Snail and Plant of Curing stack\" setting, on by default, it "
+        "halves it again half the time). The halving is before the +6 per other sick fish and the +15 "
+        "for age above 600, so those are never halved. Medicines cure as usual; the Crimson Comet only cures with its "
         "patch.",
     ),
     Fact(
@@ -1113,8 +1163,8 @@ PRICES = (
         "rows; 0x419253: 7 x 3 entries a row) and counts the ones with a price, so it tops out at "
         "441; no screen shows a total, and the tip \"Did you know there are over 400 species of "
         "fish?\" is the only other figure.",
-        patched=(("ds_fish", "784 species: 28 bodies x 28 fins (the DS version's 7 bodies and 7 fins, genes "
-                  "23-29), 343 more. The count of species discovered (0x419240) is replaced by one that "
+        patched=(("ds_fish", f"784 species: 28 bodies x 28 fins (the DS version's 7 bodies and 7 fins, genes "
+                  f"{genes_named(range(23, 30))}), 343 more. The count of species discovered (0x419240) is replaced by one that "
                   "also counts the 343 DS entries, so it tops out at 784."),),
     ),
     Fact(
@@ -1445,6 +1495,82 @@ EXTRA_TANKS = (
     ),
 )
 
+MUSIC = (
+    Fact(
+        "Everything the game plays is a file in its Sounds folder, played through the FMOD sound "
+        "library: one music file (Tanked.xm) and 21 sound effects. None of it changes the game: fish, "
+        "health, growth, breeding, customers, sales, money, research and the magic fish never read a "
+        "sound. The only things the sound code reads or writes are the Sounds option, an unsaved "
+        "timer for the random tank sound and \"is it still playing?\" checks that only decide "
+        "whether to start another sound (0x423E4B, 0x416453). All of it is cosmetic only.",
+    ),
+    Fact(
+        "The music: Tanked.xm is the game's only music. It plays once, at half volume, when the "
+        "\"Would you like HELP the first time?\" screen opens (0x41C1F0, started at 0x41C241), and "
+        "only if Sounds is Enabled. It does not loop, and nothing stops it when you answer, so it "
+        "keeps playing over the tank until it ends (or you set Sounds to Disabled, or quit). That "
+        "screen opens when you press Play on a game whose help question has not been answered yet "
+        "(a new game); a game that has answered goes straight to the tank (0x41CC04), so you hear "
+        "the music once per game, not at every start. No other code starts it.",
+    ),
+    Fact(
+        "Tanked.xm plays for about 3 minutes 20 real-time seconds, worked out from the file's own tempo and "
+        "pattern changes (an estimate; the file is a tracker module of 56 patterns that plays once).",
+        label="U",
+    ),
+    Fact(
+        "The sound that comes by itself while you play is not the music file. It is one of three "
+        "long sound effects, clip1.wav (15.1 seconds), clip3.wav (11.4 seconds) or clip5.wav (24.6 "
+        "seconds), played once at 30% volume, never looped (0x42211E-0x422168). The tank screen "
+        "checks every frame:",
+        subs=(
+            "It is due at a stored time (real-time seconds, not saved). The check runs when the "
+            "clock is later than that time (0x422105), so the real gap is 211 real-time seconds.",
+            "If the check is less than 180 real-time seconds late (so 1 to 179 seconds after the due "
+            "time, 0x422118) and Stop Time is not on (speed 9999, 0x422107), one clip plays: "
+            f"clip1.wav {each(3, 0)}, clip3.wav {each(3, 1)}, clip5.wav {each(3, 2)} "
+            "(Random(3), 0x42211E).",
+            "Either way the next due time is now + 210 real-time seconds (0x422171-0x422177). Under "
+            "Stop Time nothing plays but the time keeps being moved on.",
+            "It only runs on the tank screen. If you were anywhere else (the store, the selling "
+            "scene, the species screen, the menu) for 180 real-time seconds or more past the due "
+            "time, that clip is skipped and the next is 210 real-time seconds after you come back.",
+            "The first one: 630 real-time seconds after the help screen opened (0x41C24F), so 631 to "
+            "809 real-time seconds on the tank. A saved game that skips the help screen starts with "
+            "a due time of 0, which is more than 180 seconds late: nothing plays at once, and the "
+            "first clip is 210 real-time seconds after you first open the tank (0x41AFEE).",
+            "Nothing checks whether Tanked.xm is playing, so a clip can play over it. A closed game "
+            "forgets the timer; every launch starts it again.",
+        ),
+    ),
+    Fact(
+        "The selling scene has a background sound too: fishstorefullfx.wav (13.7 real-time seconds long) loops at "
+        "30% volume the whole time the scene is open. It starts when you enter (0x423E00 with arg "
+        "true), unless Tanked.xm is still playing or it is already playing (0x423E4B-0x423E78), "
+        "and stops when you leave (0x423FFF).",
+    ),
+    Fact(
+        "At launch the splash screen plays ldwintro1.wav (5.7 real-time seconds long) once, at full volume "
+        "(0x426033). The saved Sounds option is applied first (0x4185B7-0x4185D2), so Disabled "
+        "silences it.",
+    ),
+    Fact(
+        "Options has one sound setting, Sounds: Enabled or Disabled (Enabled is the default for a "
+        "new game, 0x418AF0). It controls the music and every sound effect together; there is no "
+        "volume control and no separate music setting. OK applies it at once (0x422F41-0x422F72): "
+        "Disabled stops every sound and song playing right now and every later one is refused "
+        "(0x40AE40, 0x40B220, 0x40AD69, 0x40B37F); Enabled starts nothing by itself. Cancel changes "
+        "nothing. The setting is part of the save (the game state's byte +0x10, inside the block "
+        "the save writes, 0x419161) and is applied when the game loads (0x4185B7).",
+    ),
+    Fact(
+        "While the game window is not the active window (another program in front, or minimised), "
+        "all sound is muted: the master sound volume and every playing track go to 0 and come back "
+        "when you return (0x418490, 0x40B310, 0x40B460). The sounds keep playing silently and the "
+        "random sound's timer keeps running; a change of mouse focus alone does not count (0x403E0A).",
+    ),
+)
+
 HIDDEN = (
     Fact(
         "Hidden typed cheats on the tank screen (lowercase letters only; Shift or Caps Lock stops "
@@ -1599,6 +1725,7 @@ HIDDEN = (
 )
 
 OTHER_GAME = (
+    Fact("Names and numbers: every foliage and flower: not in Fish Tycoon (see Names and numbers: every body and fin for its own table)."),
     Fact('Where things count: see Which tank counts.'),
     Fact('Names and letters: the same here, see Names and letters.'),
     Fact('Water: not in Fish Tycoon. Fish have food instead (see Food).'),
@@ -1610,6 +1737,7 @@ OTHER_GAME = (
     Fact('Mutation Liquid: see the Unknown Chemical (Medicines and chemicals) and the Mutation fish (Magic fish).'),
     Fact("Shop seeds: see Eggs. Fish Tycoon's store has no daily stock (see Hidden keys, clicks and cheats)."),
     Fact('Selling and visitors: see Selling and customers.'),
+    Fact("Music and sounds: Fish Tycoon has one music file and one Sounds setting (see Music and sounds); Plant Tycoon has five music files and volume sliders."),
     Fact('Prices: see Species and prices.'),
     Fact('Tools and shears (upgrades): not in Fish Tycoon; its permanent items and research take their place (see Permanent store items and Research).'),
     Fact('Chemicals: see Medicines and chemicals.'),
@@ -1758,6 +1886,9 @@ INDEX = (
             "Selling: one sale roll per real-time second; none for 5 real-time seconds after a "
             "sale; customers decide every quarter real-time second.",
             "Autosave: every 30 real-time minutes.",
+            "Random tank sound: checked every frame on the tank screen, due 210 real-time seconds "
+            "after the last check, played only if less than 180 real-time seconds late (see Music "
+            "and sounds).",
         ),
     ),
 )
