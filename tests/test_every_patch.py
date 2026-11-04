@@ -1450,6 +1450,7 @@ EVIDENCE = {
         "Maximizable Window.dll": (None, None),
         "Unicode Text.dll": ("Unicode Text: installed", None),
         "Translations.dll": ("\xef\xbb\xbfTranslations: installed (", "FtfpTranslationsInstalled"),
+        "Snail and Curing.dll": ("Snail and Curing: installed", "FtfpSnailCuringInstalled"),
     },
     "plant": {
         "Unused Flowers.dll": ("New Flowers: installed (all sites)", "FtfpNewFlowersInstalled"),
