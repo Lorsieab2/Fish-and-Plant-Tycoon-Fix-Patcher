@@ -788,7 +788,7 @@ class PatcherTests(unittest.TestCase):
             key = patcher.settings_key if game == "fish" else (lambda core, m=manifest: plant_patcher.settings_key(core, m))
             # Translations is a loader tail too (loaded after this one), and Copy and Paste in Text Boxes
             # ships this same DLL: left out here.
-            tails = {SETTING, "translations", "copy_paste_text_boxes", "greenhouse_click_deselect", "snail_curing_stack"}
+            tails = {SETTING, "translations", "copy_paste_text_boxes", "greenhouse_click_deselect", "snail_curing_stack", "disable_c_cheat"}
             for others in (defaults - tails, {"fix_vanilla_bugs"}, set()):
                 with self.subTest(game=game, others=sorted(others)):
                     enabled = others | {SETTING}

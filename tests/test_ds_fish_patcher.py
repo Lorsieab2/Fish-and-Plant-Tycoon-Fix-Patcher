@@ -127,7 +127,7 @@ class ManifestTests(unittest.TestCase):
         others = [s["id"] for s in self.manifest["settings"] if s["id"] not in (SETTING, "ds_store", "time_warp", "free_upgrades", "add_money",
                                                                                     "extra_tanks", "extra_supply_slots",
                                                                                     "unicode_ingame_fonts", "translations", "unicode_system_font",
-                                                                                    "copy_paste_text_boxes", "snail_curing_stack")]
+                                                                                    "copy_paste_text_boxes", "snail_curing_stack", "disable_c_cheat")]
         pins = self.manifest["patched_sha256_by_settings"]
         for count in range(len(others) + 1):
             for combo in itertools.combinations(others, count):

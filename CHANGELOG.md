@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.28
+
+- **New setting: Disable Press C for Cash Cheat (Fish Tycoon, on by default).** "No fair cheating." The hidden c key on the tank screen no longer adds $1000 (u and w are unchanged). It is a tiny companion DLL (`No C Cheat.dll`) that changes one byte, and only if the game's code is the stock code. It is also on in Owner's Defaults.
+
 ## v1.0.27
 
 - **Translations: labels the games push as plain text are translated too.** Fish Tycoon's main menu button "Change Player" and Plant Tycoon's Stats, Seeds, Supplies, Nursery and Collect labels do not come from the string table, so a translation never reached them. Translations.dll now points each of those pushes at the translation of the same line, fitted to the room left up to the screen edge (Fish Tycoon's "Change Player" is moved left, with its click area, so a long translation ends inside the screen and is shown whole); with no translation (or any other code there) nothing changes. Plant Tycoon's other plain-text labels now have keys of their own (mod/plant_tycoon_exe.*): "Change Scene", the three snapshot tooltips, "Seedbox is upgradable from the shop", "Collected: %i out of 48", "%s in %i Min." and the 48 insect names, with French lines.

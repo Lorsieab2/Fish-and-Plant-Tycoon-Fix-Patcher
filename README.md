@@ -49,6 +49,11 @@ never needs the internet.
   The fish food is a tool and stays.
 - Crimson Comet 20% curing fix.
 - Unknown Chemical: 3 uses.
+- Disable Press C for Cash Cheat (on by default). "No fair cheating." The hidden
+  lowercase c key on the tank screen no longer adds $1000; u and w work as
+  before. It runs as a companion DLL the game loads at start
+  (`Fish Tycoon Fix Patcher DLLs\No C Cheat.dll`), which changes one byte
+  only if the game's code is the stock code: `native/ftfp_no_c_cheat/ftfp_no_c_cheat.c`.
 - Universal supply slots 2-4 for the eight supported medicine, chemical, and
   egg types.
 - Buy Multiple Golden Seahorses (off by default). Allows purchasing of multiple Golden

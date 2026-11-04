@@ -70850,6 +70850,27 @@
           }
         ]
       }
+    },
+    {
+      "id": "disable_c_cheat",
+      "name": "Disable Press C for Cash Cheat",
+      "summary": "No fair cheating.",
+      "description": "No fair cheating. In the stock game, typing a lowercase c on the tank screen gives you $1000 per press. With this setting the hidden c key no longer adds the $1000. The other hidden keys (u and w) work as before, and the Add Money setting is separate. Runs as a companion DLL the game loads at start; saves are unchanged.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/fish_tycoon_no_c_cheat",
+        "loader_tail": "No C Cheat.dll",
+        "files": [
+          {
+            "path": "No C Cheat.dll",
+            "destination": "Fish Tycoon Fix Patcher DLLs/No C Cheat.dll",
+            "size": 88064,
+            "sha256": "90D9B0F928F04AECA9F05D985146847477781E2806EDB4EC478317E0F191F58A"
+          }
+        ]
+      }
     }
   ],
   "patches": [

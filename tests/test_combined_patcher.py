@@ -150,6 +150,7 @@ class CombinedPatcherTests(unittest.TestCase):
                 "unicode_system_font",
                 "copy_paste_text_boxes",
                 "snail_curing_stack",
+                "disable_c_cheat",
             ],
         )
         self.assertEqual(

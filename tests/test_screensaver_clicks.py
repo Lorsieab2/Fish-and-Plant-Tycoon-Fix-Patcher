@@ -67,13 +67,14 @@ class DeclaredSitesTests(unittest.TestCase):
             "DS Store Items.dll": {0x41F064},
             "Tank Counts.dll": {MOUSE_SLOT},
             "Maximizable Window.dll": {WINDOW_END_SITE},
+            "No C Cheat.dll": {0x41ED75},      # the 'c' case's jump distance, after the screensaver test
         })
 
     def test_only_tank_counts_wraps_the_mouse_slot_and_nobody_the_keys(self) -> None:
         sites = click_path_sites()
         self.assertEqual([d for d, s in sites.items() if MOUSE_SLOT in s], ["Tank Counts.dll"])
         self.assertEqual([d for d, s in sites.items() if KEY_SLOT in s or any(KEYS <= v < KEYS + 0x130 for v in s)],
-                         [])
+                         ["No C Cheat.dll"])     # one byte in the 'c' case; the screensaver test comes first
         source = (ROOT / "native" / "ftfp_tank_counts" / "ftfp_tank_counts.c").read_text(encoding="latin-1")
         self.assertIn("AT(state, S_SCREENSAVER, unsigned char) == 0", source)   # its click: only off
 

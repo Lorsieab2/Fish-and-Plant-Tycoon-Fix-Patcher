@@ -242,7 +242,7 @@ PROJECTS = {
         "Multiple Ornaments.dll": "ftfp_ornaments", "Optimize Prices.dll": "ftfp_fish_prices",
         "Tank Counts.dll": "ftfp_tank_counts", "Maximizable Window.dll": "ftfp_fish_window",
         "Unicode Text.dll": "ftfp_fish_unicode", "Translations.dll": "ftfp_translations",
-        "Snail and Curing.dll": "ftfp_snail_curing",
+        "Snail and Curing.dll": "ftfp_snail_curing", "No C Cheat.dll": "ftfp_no_c_cheat",
     },
     "plant": {
         "Unused Flowers.dll": "ftfp_new_flowers", "Store Upgrades and Items.dll": "ftfp_plant_upgrades",
@@ -259,6 +259,7 @@ PROJECTS = {
 SOURCE_SITES = {
     "ftfp_tank_counts": (("OVERLAY_SLOT_VA", 4), ("MOUSE_SLOT_VA", 4)),
     "ftfp_snail_curing": (("CURING_SITE_VA", 42),),
+    "ftfp_no_c_cheat": (("CHEAT_SITE_VA", 1),),
     "ftfp_greenhouse_counts": (("HELD_SITE_VA", 9), ("MOUSE_SLOT_VA", 4)),
     "ftfp_greenhouse_deselect": (("PRESS_SITE_VA", 10), ("SELECT_SITE_VA", 5)),
     "ftfp_fish_window": (("SET_VIDEO_MODE_SLOT", 4), ("FLIP_SLOT", 4),
@@ -1457,6 +1458,7 @@ EVIDENCE = {
         "Unicode Text.dll": ("Unicode Text: installed", None),
         "Translations.dll": ("\xef\xbb\xbfTranslations: installed (", "FtfpTranslationsInstalled"),
         "Snail and Curing.dll": ("Snail and Curing: installed", "FtfpSnailCuringInstalled"),
+        "No C Cheat.dll": ("No C Cheat: installed", "FtfpNoCCheatInstalled"),
     },
     "plant": {
         "Unused Flowers.dll": ("New Flowers: installed (all sites)", "FtfpNewFlowersInstalled"),
