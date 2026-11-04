@@ -115,15 +115,33 @@ def lookup_sites(game: str, exe: bytes) -> list[tuple[int, int]]:
     return out
 
 
+def dynamic_sites(game: str, exe: bytes) -> list[int]:
+    """The addresses of the lookup calls whose id is not a fixed number (a register, a table...)."""
+    fixed = {a for a, _i in lookup_sites(game, exe)}
+    ins = _code(game, exe)
+    return [i.address for i in ins if i.mnemonic == "call" and i.op_str.startswith("0x")
+            and int(i.op_str, 16) in LOOKUPS[game] and i.address not in fixed]
+
+
 def function_start(exe: bytes, va: int) -> int | None:
     """The start of the function holding `va`: the nearest 16-aligned address after int3 padding."""
     o = ts._offset(exe, va)
     p = o & ~0xF
     while p > o - 0x4000:
         if exe[p - 1] == 0xCC and exe[p] != 0xCC:
-            return va - (o - p)
+            break
         p -= 0x10
-    return None
+    else:
+        return None
+    # a function that follows another with no padding: a 16-aligned `ret` / `ret n`, then a constructor's
+    # SEH prologue (push -1; push handler), nearer than the padded start
+    start = p
+    for q in range(o & ~0xF, p, -0x10):
+        prev_ret = exe[q - 1] == 0xC3 or (exe[q - 3] == 0xC2 and exe[q - 1] == 0)
+        if prev_ret and exe[q:q + 3] == bytes.fromhex("6aff68"):
+            start = q
+            break
+    return va - (o - start)
 
 
 # ------------------------------------------------------------------ the games' code, run
@@ -197,6 +215,9 @@ class Run:
             self.sizes = de.picture_sizes("fish")
             self.d = de.FishScreens(self.sizes, measure)
         self.emu = self.d.emu
+        if game == "fish":
+            # 0x4190C0 asks the game's window manager (not built here) whether the screen may open: yes
+            self.emu.hook(0x4190C0, lambda e: 1, 0)
         self.watched: list[tuple[str, bytes, int]] = []
         self.texts: list[tuple[bytes, int, int, int]] = []
         self.pictures: list[tuple[int, int, int, int]] = []
@@ -407,12 +428,18 @@ class Census:
             self.run_scenario(name, scenario)
             if verbose:
                 print(f"  {self.game} {name}", file=sys.stderr)
+        for ident in hint_ids(self.game, self.exe):
+            self.run_scenario(f"hint {ident}", _plant_hint(ident))
         sites = lookup_sites(self.game, self.exe)
         functions: dict[int, set] = {}
         for address, ident in sites:
             f = function_start(self.exe, address)
             if f is not None:
                 functions.setdefault(f, set()).add(ident)
+        for address in dynamic_sites(self.game, self.exe):      # ids chosen by a register: the draws still show
+            f = function_start(self.exe, address)
+            if f is not None:
+                functions.setdefault(f, set())
         for n, f in enumerate(sorted(functions)):
             try:
                 self.run_function(f)
@@ -563,6 +590,38 @@ def _fish_screen(ctor: int, *args: int, size: int = 0x400, page: int | None = No
     return run
 
 
+# Plant Tycoon's hint line (under the greenhouse): 0x41B190 sets the line's id and how long it shows,
+# the line's draw 0x41B0A0 puts that text at the middle of the screen's foot.
+HINT_SETTER, HINT_DRAW = 0x41B190, 0x41B0A0
+
+
+def hint_ids(game: str, exe: bytes) -> list[int]:
+    """The fixed ids the game hands to the hint line."""
+    if game != "plant":
+        return []
+    ins = _code(game, exe)
+    out = set()
+    for k, i in enumerate(ins):
+        if i.mnemonic == "call" and i.op_str == hex(HINT_SETTER) and ins[k - 1].mnemonic == "push":
+            try:
+                out.add(int(ins[k - 1].op_str, 0))
+            except ValueError:
+                pass
+    return sorted(out)
+
+
+def _plant_hint(ident: int):
+    def run(r: "Run") -> None:
+        d = r.d
+        hint = d._zeroed(0x40)
+        d.emu.write32(hint, d._zeroed(0x100))
+        d.emu.write32(hint + 0x14, ident)
+        d.emu.write32(hint + 0x18, 3)
+        d.emu.write32(hint + 0x1C, 0x7FFFFFFF)
+        d.run(HINT_DRAW, this=hint)
+    return run
+
+
 PLACE = {"fish": (), "plant": (0x14, 0x18)}
 PLACE_SHIFT = 100
 
@@ -591,7 +650,8 @@ SCENARIOS = {
 # Lines the game picks by a number at one call (a register id): they share the spot found for one.
 # Fish 0x424690: the Sell screen's line, one of 0x45..0x73 (the counts with sprintf, the tips),
 # handed to 0x427050 for the screen's text box.
-SHARED = {"fish": {i: 0x45 for i in range(0x46, 0x74)}, "plant": {}}
+# Plant 0x422E70: the greenhouse's tip, one of 0xD5..0xD5 + 0x31 (the rand(0x32) it adds to 0xD5), a text box.
+SHARED = {"fish": {i: 0x45 for i in range(0x46, 0x74)}, "plant": {i: 251 for i in range(0xD5, 0xD5 + 0x32)}}
 
 
 # ------------------------------------------------------------------ the data file
