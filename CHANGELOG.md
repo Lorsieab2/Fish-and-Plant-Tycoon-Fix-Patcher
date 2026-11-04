@@ -3,6 +3,7 @@
 ## v1.0.28
 
 - **New setting: Disable Press C for Cash Cheat (Fish Tycoon, on by default).** "No fair cheating." The hidden c key on the tank screen no longer adds $1000 (u and w are unchanged). It is a tiny companion DLL (`No C Cheat.dll`) that changes one byte, and only if the game's code is the stock code. It is also on in Owner's Defaults.
+- **Plant Tycoon: zoom in when pruning, as in the iOS version.** New setting "Zoom in when pruning" (on by default, and in Owner's Defaults): with the shears, a click on a plant opens a grey, see-through box over that part of the greenhouse with the pot and plant drawn twice as large by the game's own drawing, the part the shears would cut flashing white as the game flashes it on the bench. Clicks in the box prune a working copy, with Undo and Redo (up to 20 steps); the real plant and everything behind the box stay unchanged until the X closes the zoom, which writes the prunes exactly as the game's own prunes would have. The zoom is modal; leaving the greenhouse or saving keeps the prunes first. The buttons' names are translatable (mod/prune_zoom.undo, .redo, .close; French: Annuler, Rétablir, Fermer). It runs as the loader-tail companion `Prune Zoom.dll` (one checked code site and three chained table slots, all or nothing), so no executable pin changes; Translations.dll is rebuilt for the new lines.
 
 ## v1.0.27
 

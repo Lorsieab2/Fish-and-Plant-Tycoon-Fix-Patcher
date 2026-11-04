@@ -250,7 +250,7 @@ PROJECTS = {
         "Optimize Prices.dll": "ftfp_plant_prices", "Greenhouse Counts.dll": "ftfp_greenhouse_counts",
         "Extra Greenhouses.dll": "ftfp_extra_greenhouses", "Extra Chemical Slots.dll": "ftfp_chem_slots",
         "Unicode Text.dll": "ftfp_plant_unicode", "Translations.dll": "ftfp_translations",
-        "Click to Deselect.dll": "ftfp_greenhouse_deselect",
+        "Click to Deselect.dll": "ftfp_greenhouse_deselect", "Prune Zoom.dll": "ftfp_prune_zoom",
     },
 }
 
@@ -262,6 +262,7 @@ SOURCE_SITES = {
     "ftfp_no_c_cheat": (("CHEAT_SITE_VA", 1),),
     "ftfp_greenhouse_counts": (("HELD_SITE_VA", 9), ("MOUSE_SLOT_VA", 4)),
     "ftfp_greenhouse_deselect": (("PRESS_SITE_VA", 10), ("SELECT_SITE_VA", 5)),
+    "ftfp_prune_zoom": (("DRAW_SITE_VA", 5), ("MOUSE_SLOT_VA", 4), ("ACTIVATE_SLOT_VA", 4), ("SAVE_SLOT_VA", 4)),
     "ftfp_fish_window": (("SET_VIDEO_MODE_SLOT", 4), ("FLIP_SLOT", 4),
                          ("SCREENSAVER_FULLSCREEN_SITE", 5), ("SCREENSAVER_END_SITE", 5)),
     "ftfp_fish_prices": (("SPECIES_VT_COMMAND", 4), ("SPECIES_VT_ACTIVATE", 4),
@@ -1423,11 +1424,13 @@ CHAINS = {
               "DS Store sends Exotic Eggs and its chemicals to their slots there and jumps on to it"),
     ),
     "plant": (
-        Chain(0x469224, 4, ("Greenhouse Counts.dll", "Extra Greenhouses.dll", "Extra Chemical Slots.dll"),
+        Chain(0x469224, 4, ("Greenhouse Counts.dll", "Extra Greenhouses.dll", "Extra Chemical Slots.dll",
+                            "Prune Zoom.dll"),
               "the greenhouse screen's mouse slot: the counts' button, the extra greenhouses' arrows, the "
-              "extra chemical slots' tray, each wrapping the one before"),
-        Chain(0x469244, 4, ("Extra Greenhouses.dll", "Extra Chemical Slots.dll"),
-              "the greenhouse screen's activation slot: Extra Greenhouses, then Extra Chemical Slots"),
+              "extra chemical slots' tray, the prune zoom (modal while open), each wrapping the one before"),
+        Chain(0x469244, 4, ("Extra Greenhouses.dll", "Extra Chemical Slots.dll", "Prune Zoom.dll"),
+              "the greenhouse screen's activation slot: Extra Greenhouses, then Extra Chemical Slots, then the "
+              "prune zoom (leaving saves its prunes)"),
         Chain(0x46973C, 4, ("Optimize Prices.dll", "Extra Greenhouses.dll"),
               "the Nursery's command slot: the Optimize Prices button, then the extra nurseries"),
         Chain(0x469754, 4, ("Optimize Prices.dll", "Extra Greenhouses.dll"),
@@ -1472,6 +1475,7 @@ EVIDENCE = {
         "Unicode Text.dll": ("Unicode Text: installed", None),
         "Translations.dll": ("\xef\xbb\xbfTranslations: installed (", "FtfpTranslationsInstalled"),
         "Click to Deselect.dll": ("Click to Deselect: installed", "FtfpDeselectInstalled"),
+        "Prune Zoom.dll": ("Prune Zoom: installed", "FtfpPruneZoomInstalled"),
     },
 }
 

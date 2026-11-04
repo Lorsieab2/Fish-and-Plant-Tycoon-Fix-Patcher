@@ -220,6 +220,7 @@ DLL_PATCH = {
     ("plant", "Extra Seed Boxes.dll"): "plant_upgrades",
     ("plant", "Store Upgrades and Items.dll"): "plant_upgrades",
     ("plant", "Unused Flowers.dll"): "new_flowers",
+    ("plant", "Prune Zoom.dll"): "prune_zoom",
     ("plant", "Plant Tycoon.exe"): "",
 }
 
@@ -501,6 +502,8 @@ MOD_STRINGS: tuple[ModString, ...] = (
     _m(_P, "Sort Seeds.dll", "Sort Seeds in Seed Boxes?\n\nThis will rearrange all seeds throughout\nyour available "
                              "seed boxes. Some may move\nto other pages.\nClick YES to Confirm, NO to Cancel."),
     *(_m(_P, "Extra Seed Boxes.dll", t) for t in ("Boxes 1-3", "Boxes 4-6", "Boxes 7-9")),
+    # Prune Zoom: the names of the zoom's buttons, drawn under the hovered one
+    *(_m(_P, "Prune Zoom.dll", t, note="a button's name in the pruning zoom") for t in ("Undo", "Redo", "Close")),
     # Store Upgrades and Items: titles (into 64-letter tooltips), names (the game's chemical
     # names), descriptions (drawn), the tooltips' formats
     *(_m(_P, _UP, t, 40, note="the store's title line") for t in (

@@ -503,6 +503,9 @@ mod/unused_flowers.ridgeball~b6d26a1a	Ridgeball	Boule-à-crêtes	Patch: Add unus
 mod/extra_seed_boxes.boxes_1_3~73107105	Boxes 1-3	Boîtes 1-3	Patch: Add new store upgrades and items; Extra Seed Boxes.dll
 mod/extra_seed_boxes.boxes_4_6~1ec83cd9	Boxes 4-6	Boîtes 4-6	Patch: Add new store upgrades and items; Extra Seed Boxes.dll
 mod/extra_seed_boxes.boxes_7_9~445449c2	Boxes 7-9	Boîtes 7-9	Patch: Add new store upgrades and items; Extra Seed Boxes.dll
+mod/prune_zoom.undo~a8283ade	Undo	Annuler	Patch: Zoom in when pruning; Prune Zoom.dll; a button's name in the pruning zoom
+mod/prune_zoom.redo~74273989	Redo	Rétablir	Patch: Zoom in when pruning; Prune Zoom.dll; a button's name in the pruning zoom
+mod/prune_zoom.close~7d9eb7ac	Close	Fermer	Patch: Zoom in when pruning; Prune Zoom.dll; a button's name in the pruning zoom
 mod/store_upgrades_and_items.legendary_seeds~1947d9ae	Legendary Seeds\n	Graines légendaires\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the store's title line; at most 40 letters (accented letters count 2)
 mod/store_upgrades_and_items.radioactive_plant_formula~fd6533ba	Radioactive Plant Formula\n	Formule radioactive\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the store's title line; at most 40 letters (accented letters count 2)
 mod/store_upgrades_and_items.revival_potion~7d851ec7	Revival Potion\n	Potion de résurrection\n	Patch: Add new store upgrades and items; Store Upgrades and Items.dll; the store's title line; at most 40 letters (accented letters count 2)

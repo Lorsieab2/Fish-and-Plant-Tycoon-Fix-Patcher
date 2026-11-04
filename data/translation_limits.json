@@ -974,7 +974,10 @@
         "mod/store_upgrades_and_items.w.you_can_t_afford_to_buy_this_yet_the_ext": {"font": 0, "format": false, "kind": "windows popup", "multiline": true, "proven": true, "width": null},
         "mod/store_upgrades_and_items.w.extra_chemical_slots": {"font": 0, "format": false, "kind": "windows popup", "multiline": true, "proven": true, "width": null},
         "mod/store_upgrades_and_items.w.buy_the_extra_chemical_slots_for_d_a_gol": {"font": 0, "format": true, "kind": "windows popup", "multiline": true, "proven": true, "width": null},
-        "mod/extra_chemical_slots.n_doses_left": {"font": 0, "format": true, "kind": "safe rule", "multiline": false, "proven": false, "width": 143}
+        "mod/extra_chemical_slots.n_doses_left": {"font": 0, "format": true, "kind": "safe rule", "multiline": false, "proven": false, "width": 143},
+        "mod/prune_zoom.undo": {"font": 0, "format": false, "kind": "safe rule", "multiline": false, "proven": false, "width": 59},
+        "mod/prune_zoom.redo": {"font": 0, "format": false, "kind": "safe rule", "multiline": false, "proven": false, "width": 59},
+        "mod/prune_zoom.close": {"font": 0, "format": false, "kind": "safe rule", "multiline": false, "proven": false, "width": 60}
       }
     }
   }

@@ -1,0 +1,5 @@
+LIBRARY "Prune Zoom"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpPruneZoomInstalled = _FtfpPruneZoomInstalled@0
+    FtfpPruneZoomState = _FtfpPruneZoomState@4
