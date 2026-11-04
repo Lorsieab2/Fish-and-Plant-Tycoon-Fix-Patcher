@@ -1461,6 +1461,13 @@ HIDDEN = (
                   "(selection number 99 at state +0x63E58 = none)."),),
     ),
     Fact(
+        "Pruning: the shears cut the branch (with everything that grows on it) or the flower under the "
+        "shears' tip, the one the game lights as you hover the plant (hit by the pixels each part draws).",
+        patched=(("prune_zoom", "a click on a plant with the shears opens a zoom instead (the plant 1.75 times "
+                  "larger in a light box, the part under the tip lit); a click in the box cuts that part of the "
+                  "real plant, the X or a click outside closes it without pruning."),),
+    ),
+    Fact(
         "Hidden clicks in the nursery (each only if you own the item):",
         subs=(
             "Bird House: a sound and an animation. Wheelbarrow: a sound and 3-22 sparkles. Stone "

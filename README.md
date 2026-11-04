@@ -832,6 +832,18 @@ never needs the internet.
   game's stock fonts draw and its box takes: printable ASCII. It runs as `Unicode Text.dll`
   (alone, `Unicode Text.ini` says Mode=none and it changes only the text
   box's draw, to know which box has the cursor).
+- Zoom in when pruning (on by default; in every preset), as in the iOS
+  version. With the shears in your hand, a click on a plant opens a zoom
+  instead of pruning: a light, half-see-through box three pots wide and three
+  rows tall over that plant (moved in at the edges so it stays on the
+  greenhouse), with the pot and plant drawn 1.75 times larger in the middle by
+  the game's own drawing. The part the shears would cut is lit the game's own
+  way, and a click in the box cuts exactly that part of the real plant. The X
+  in the box's top-right corner closes it, and so does a click outside the box
+  (a click there on a plant prunes nothing), putting the shears down or taking
+  anything else. Without the shears nothing changes. Runs as a companion DLL
+  the game loads at start (`Plant Tycoon Fix Patcher DLLs\Prune Zoom.dll`,
+  loaded after the other companions); saves are unchanged.
 - Use Unicode Font (overrides in-game fonts) (off by default; in the "Modded
   Upgrades" copy; Owner's Defaults leaves it off and keeps Render Unicode with
   In-Game Fonts, and the two cannot both be on). All of the game's text is
