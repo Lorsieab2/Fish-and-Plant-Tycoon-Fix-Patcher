@@ -389,3 +389,44 @@ class Agreement(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(te.ready(), "needs MSVC, the vanilla games and assets/translations/Translations.dll")
+class ExeLiterals(unittest.TestCase):
+    """Labels the exe pushes as a literal (not through the string table) get the same translation."""
+
+    @staticmethod
+    def _pushed(rt: te.Runtime, site: int) -> bytes:
+        code = bytes(rt.emu.uc.mem_read(site, 5))
+        assert code[0] == 0x68, code.hex()
+        at = struct.unpack_from("<I", code, 1)[0]
+        data = bytes(rt.emu.uc.mem_read(at, 64))
+        return data[:data.index(0)]
+
+    def test_fish_main_menu_change_player(self) -> None:
+        rt = runtime("fish", make("fish", [(10, "Change Player", "Changer de joueur")]))
+        self.assertEqual(self._pushed(rt, 0x0041C689), b"Change Player")
+        self.assertEqual(rt.start(), 1)
+        self.assertEqual(self._pushed(rt, 0x0041C689), b"Changer de joueur")
+        self.assertEqual(rt.lookup(10), b"Changer de joueur")
+
+    def test_fish_literal_stays_without_a_translation(self) -> None:
+        rt = runtime("fish", make("fish", [(1, "Age: ", "Âge : ")]))
+        self.assertEqual(rt.start(), 1)
+        self.assertEqual(bytes(rt.emu.uc.mem_read(0x0041C689, 5)), bytes.fromhex("68d4384400"))
+
+    def test_fish_literal_site_is_checked(self) -> None:
+        rt = runtime("fish", make("fish", [(10, "Change Player", "Changer de joueur")]))
+        rt.emu.uc.mem_write(0x0041C689, b"\x90")
+        self.assertEqual(rt.start(), 0)
+        self.assertIn("NOT installed; the code at 0x0041C689", rt.log)
+        self.assertEqual(rt.lookup(10), b"Change Player")                       # nothing was installed
+
+    def test_plant_tab_labels(self) -> None:
+        rows = [(384, "Nursery", "Pépinière"), (385, "Supplies", "Fournitures"), (381, "Collect", "Collection")]
+        rt = runtime("plant", make("plant", rows))
+        self.assertEqual(rt.start(), 1)
+        for site, want in ((0x419415, "Pépinière"), (0x4336F2, "Pépinière"), (0x4193AD, "Fournitures"),
+                           (0x433622, "Fournitures"), (0x43368A, "Collection")):
+            self.assertEqual(self._pushed(rt, site), want.encode("cp1252"), hex(site))
+        self.assertEqual(bytes(rt.emu.uc.mem_read(0x419250, 5)), bytes.fromhex("684c7b4600"))   # Stats: no line

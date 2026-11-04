@@ -270,9 +270,11 @@ SOURCE_SITES = {
     # DLL for both games, so declared_bytes keeps only the running game's (TRANSLATIONS_SITES).
     "ftfp_translations": (("FISH_LOOKUP", 5), ("FISH_COUNT_CALL_1", 5), ("FISH_COUNT_CALL_2", 5),
                           ("FISH_COUNT_CALL_3", 5), ("FISH_COUNT_CALL_4", 5), ("FISH_COUNT_CALL_5", 5),
-                          ("PLANT_LOOKUP", 5)),
+                          ("FISH_LIT_PLAYER", 5), ("PLANT_LOOKUP", 5),
+                          *((f"PLANT_LIT_{n}", 5) for n in range(1, 8))),
 }
-TRANSLATIONS_SITES = {"fish": {0x426FD0, 0x4247FF, 0x424820, 0x424841, 0x424883, 0x4248AF}, "plant": {0x44CA70}}
+TRANSLATIONS_SITES = {"fish": {0x426FD0, 0x4247FF, 0x424820, 0x424841, 0x424883, 0x4248AF, 0x41C689},
+                      "plant": {0x44CA70, 0x419250, 0x419345, 0x4193AD, 0x419415, 0x433622, 0x43368A, 0x4336F2}}
 
 
 def declared_sites(project: str) -> dict[int, tuple[int, str]]:

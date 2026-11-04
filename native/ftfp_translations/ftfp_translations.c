@@ -32,7 +32,13 @@
 
    PLANT TYCOON'S LOOKUP.  "Store Upgrades and Items.dll" already jumps from 0x44CA70 to its own
    texts and back; this DLL is loaded after it (the startup loader loads it last) and chains:
-   its jump goes to this DLL, which calls the jump that was there (or the stock code). */
+   its jump goes to this DLL, which calls the jump that was there (or the stock code).
+
+   TEXT THE EXE PUSHES.  A few labels never go through the string table: the code pushes a pointer
+   to a literal in the exe ("Change Player" on Fish Tycoon's main menu: push 0x4438D4 at
+   0x41C689).  Each such `push imm32` (LIT_SITES) is pointed at its own copy of the translation
+   of the same English (the game line with that English), fitted to the room where it is drawn
+   (the screen's edge from the label's x); no translation: the push stays as it was. */
 #include <windows.h>
 #include <string.h>
 #include "../ftfp_ds_fish/install_sites.h"
@@ -99,6 +105,8 @@ typedef struct row {
     void *out;                       /* the translation as the game gets it (choices: o / other) */
     int has_select;
     int fallback;                    /* too wide for its room even fitted: the English is shown */
+    int lit;                         /* 1: a copy for a literal the exe pushes (LIT_SITES), not in by_id */
+    int room;                        /* its pixels, or 0: the game line's own room */
     struct row *next;                /* the next line with the same id */
 } row;
 
@@ -717,6 +725,43 @@ static const char *translate_game(int id, const char *result) {
 #define PLANT_FONT 0x5C
 
 static int fitted = 0;
+
+/* ----------------------------------------------------------------- text the exe pushes
+
+   A `push imm32` (0x68) of a pointer to an English literal; `id` is the game line with the same
+   English (its translation is reused), `room` the label's pixels (the screen's 800 less its x),
+   or 0: that line's own room. */
+typedef struct lit_site {
+    unsigned char game;
+    unsigned int va;
+    unsigned int stock;
+    short id;
+    short room;
+    const char *english;
+} lit_site;
+
+#define FISH_LIT_PLAYER 0x0041C689u
+#define PLANT_LIT_1 0x00419250u
+#define PLANT_LIT_2 0x00419345u
+#define PLANT_LIT_3 0x004193ADu
+#define PLANT_LIT_4 0x00419415u
+#define PLANT_LIT_5 0x00433622u
+#define PLANT_LIT_6 0x0043368Au
+#define PLANT_LIT_7 0x004336F2u
+
+static const lit_site LIT_SITES[] = {
+    { GAME_FISH, FISH_LIT_PLAYER, 0x004438D4u, 10, 130, "Change Player" },     /* the button at x = 670 */
+    { GAME_PLANT, PLANT_LIT_1, 0x00467B4Cu, 412, 0, "Stats" },
+    { GAME_PLANT, PLANT_LIT_2, 0x00467B44u, 378, 0, "Seeds" },
+    { GAME_PLANT, PLANT_LIT_3, 0x00467B38u, 385, 0, "Supplies" },
+    { GAME_PLANT, PLANT_LIT_4, 0x00467B30u, 384, 0, "Nursery" },
+    { GAME_PLANT, PLANT_LIT_5, 0x00467B38u, 385, 0, "Supplies" },
+    { GAME_PLANT, PLANT_LIT_6, 0x004696F4u, 381, 0, "Collect" },
+    { GAME_PLANT, PLANT_LIT_7, 0x00467B30u, 384, 0, "Nursery" },
+};
+#define LIT_SITE_N (sizeof LIT_SITES / sizeof LIT_SITES[0])
+static row lit_rows[LIT_SITE_N];
+static int lit_count = 0;
 static int fit_broken = 0, fit_cut = 0, fit_english = 0;
 
 static void *font_object(int n) {
@@ -752,7 +797,10 @@ static void fit_row(row *r) {
     if (r->kind == 1) {
         const tl_line *l = line_limit(r->id);
         if (l == NULL) return;
-        width = l->width; height = l->height; flags = l->flags; font = l->font;
+        width = r->lit && r->room > 0 ? r->room : l->width;
+        height = r->lit ? 0 : l->height;
+        flags = r->lit ? (l->flags & TL_FORMAT) : l->flags;
+        font = l->font;
         limit = game_limit(r->id, r->english_n);
     } else {
         const tr_mod_text *m = &TR_MOD_TEXTS[r->id];
@@ -777,7 +825,7 @@ static void fit_row(row *r) {
     if (got == TF_FITS) return;                                     /* fits as it is */
     if (got < 0 || r->has_select) {
         /* the English: a game line through the lookup; a DLL's text in its own block */
-        if (r->kind == 2) {
+        if (r->kind == 2 || r->lit) {
             int e = slen(r->english_game);
             if (e > TR_ABSOLUTE_MAX * 2) return;
             memcpy(r->out, r->english_game, (size_t)e + 1);
@@ -803,6 +851,12 @@ static void fit_all(void) {
     for (k = 0; k < row_count; ++k) {
         __try {
             fit_row(&rows[k]);
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+        }
+    }
+    for (k = 0; k < lit_count; ++k) {
+        __try {
+            fit_row(&lit_rows[k]);
         } __except (EXCEPTION_EXECUTE_HANDLER) {
         }
     }
@@ -1095,7 +1149,8 @@ static int unicode_text_active(void) {
 
 /* ----------------------------------------------------------------- installing */
 
-static ftfp_site_write writes[6];
+static ftfp_site_write writes[16];
+static unsigned char lit_expect[LIT_SITE_N][5];
 static unsigned char lookup_now[6];
 static unsigned char call_expect[5][5];
 
@@ -1119,6 +1174,42 @@ static int prepare_lookup(unsigned int va, const unsigned char *stock, int stock
     return 1;
 }
 
+/* Each literal the exe pushes whose English has a translation: the push gets a copy of it. Returns
+   the number of writes so far, or -1 when a site is not the stock code. */
+static int add_literals(int count) {
+    unsigned int k;
+    for (k = 0; k < LIT_SITE_N; ++k) {
+        const lit_site *s = &LIT_SITES[k];
+        row *source, *copy;
+        unsigned int imm = s->stock;
+        char *buf;
+        int n;
+        if (s->game != game) continue;
+        lit_expect[k][0] = 0x68;
+        memcpy(lit_expect[k] + 1, &imm, 4);
+        if (!ftfp_site_holds(s->va, lit_expect[k], 5)
+            || !ftfp_site_holds(s->stock, (const unsigned char *)s->english, slen(s->english) + 1)) {
+            ftfp_failed_site = s->va;
+            return -1;
+        }
+        for (source = by_id[s->id]; source != NULL && strcmp(source->english_game, s->english) != 0; source = source->next) {}
+        if (source == NULL || source->out == NULL) continue;                /* no translation: the push stays */
+        n = slen((const char *)source->out);
+        buf = (char *)tr_alloc((SIZE_T)(TR_ABSOLUTE_MAX + 4) * 4);
+        if (buf == NULL) continue;
+        memcpy(buf, source->out, (size_t)n + 1);
+        copy = &lit_rows[lit_count++];
+        *copy = *source;
+        copy->next = NULL;
+        copy->out = buf;
+        copy->lit = 1;
+        copy->room = s->room;
+        copy->fallback = 0;
+        ftfp_site_imm32(&writes[count++], s->va, 5, lit_expect[k], 1, (unsigned int)(UINT_PTR)buf);
+    }
+    return count;
+}
+
 static int install(void) {
     int count = 1, k;
     if (game == GAME_FISH) {
@@ -1132,6 +1223,8 @@ static int install(void) {
     } else {
         if (!prepare_lookup(PLANT_LOOKUP, PLANT_LOOKUP_STOCK, 6, PLANT_LOOKUP_TAIL, 7, (DWORD)(UINT_PTR)plant_stock_head)) return 0;
     }
+    count = add_literals(count);
+    if (count < 0) return 0;
     return ftfp_install_sites(writes, count);
 }
 
