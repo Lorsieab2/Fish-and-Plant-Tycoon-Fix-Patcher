@@ -10541,7 +10541,7 @@
             "path": "Translations.dll",
             "destination": "Plant Tycoon Fix Patcher DLLs/Translations.dll",
             "size": 147456,
-            "sha256": "1373A465FD313DDB554846F8DC28542A377C8DA1DE085A48ED12BFF5807D1DE3"
+            "sha256": "E7286FBDC9FEC7690DFBA1120D2BA9CF8C85517254639426965B08D94B1E081C"
           },
           {
             "path": "word-lists/burmesedict.txt",
