@@ -25,16 +25,10 @@ FOLDER = "Plant Tycoon Fix Patcher DLLs"
 SETTING = {
     "id": SETTING_ID,
     "name": "Zoom in when pruning",
-    "summary": "With the shears, click a plant to see it larger, with the part the shears would cut lit, as in "
-               "the iOS version.",
+    "summary": ("With the shears, click a plant to see it larger with the part the shears would cut lit, prune it "
+                "there with Undo and Redo, and close the zoom to keep the prunes, as in the iOS version."),
     "description": (
-        "In the greenhouse, while you hold the shears, a click on a plant opens a zoom instead of pruning: a light "
-        "box over that part of the greenhouse with the pot and plant drawn larger in the middle, by the game's own "
-        "drawing. The part the shears would cut is lit, and a click in the box cuts exactly that part of the real "
-        "plant, so you never prune the wrong part by accident. The X in the box's corner closes it, as does a "
-        "click outside the box (that click prunes nothing), putting the shears down or taking anything else. "
-        "Without the shears nothing changes. Runs as a companion DLL the game loads at start, after the others; "
-        "saves are unchanged."
+        "In the greenhouse, while you hold the shears, a click on a plant opens a zoom instead of pruning: a grey, see-through box over that part of the greenhouse with the pot and plant drawn larger in the middle, by the game's own drawing. The part the shears would cut is lit, and a click in the box cuts exactly that part, on a working copy: the real plant stays as it is until you close the zoom with its X, which keeps the prunes exactly as the game's own prunes would have made them. Undo and Redo beside the X take prunes back and do them again (up to 20 steps). While the zoom is open nothing else can be clicked; leaving the greenhouse or saving keeps the prunes first. Without the shears nothing changes. Runs as a companion DLL the game loads at start, after the others; saves are unchanged."
     ),
     "category": "main",
     "default": True,

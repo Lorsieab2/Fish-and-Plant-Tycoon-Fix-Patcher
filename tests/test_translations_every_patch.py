@@ -52,6 +52,7 @@ CASES = [
     ("plant", "Extra Seed Boxes.dll", "plant_tycoon_upgrades", "Boxes 1-3", "Bo\xeetes 1-3", "B" * 1001),
     ("plant", "Store Upgrades and Items.dll", "plant_tycoon_upgrades", "Extra Seed Box", "Bo\xeete", "B" * 15),
     ("plant", "Unused Flowers.dll", "plant_tycoon_flowers", "Nightingale", "Rossignol", "R" * 25),
+    ("plant", "Prune Zoom.dll", "plant_tycoon_prune_zoom", "Undo", "Annuler", "A" * 1001),
 ]
 
 
