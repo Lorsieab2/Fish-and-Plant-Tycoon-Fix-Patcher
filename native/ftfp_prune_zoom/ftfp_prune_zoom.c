@@ -57,6 +57,8 @@
 #define POT_PLANT 0x38
 #define POT_FOLIAGE 0x4C
 #define POT_FOR_SALE 0x9D
+#define POT_BRANCHES 0xA8
+#define BRANCHES_SIZE (60 * 0x16C)
 
 /* the plant object */
 #define P_TESTING 0x19
@@ -129,7 +131,8 @@ static HMODULE self_module;
 /* The zoom, kept between frames. */
 static int open_pot = -1;             /* the plant zoomed (row * 5 + col), -1 when closed */
 static int box[4];                    /* left, top, right, bottom (inclusive) */
-static int zoom_part = -1, zoom_flower = -1;  /* the part under the tip in the zoom, last frame */
+static int zoom_part = -1, zoom_flower = -1;
+static char drawn_at[BRANCHES_SIZE];  /* the parts as the real plant was drawn (the zoom draw notes its own places) */  /* the part under the tip in the zoom, last frame */
 
 int __stdcall FtfpPruneZoomState(int *out) {
     if (out != NULL) {
@@ -215,7 +218,7 @@ static void draw_zoom(char *scene, int mx, int my) {
     char *plant = plant_in(scene, open_pot);
     void *graphics = game_graphics();
     char *inner = AT(graphics, 0, char *);
-    int clip[4], cx, cy, bx, by, ax, ay, k, testing;
+    int clip[4], cx, cy, bx, by, ax, ay, k, testing, saved = 0;
     float scale;
     if (plant == NULL) return;
     centres(open_pot, &cx, &cy, &bx, &by);
@@ -236,6 +239,10 @@ static void draw_zoom(char *scene, int mx, int my) {
             int frame = soil_level(state, 0) * 4 + (AT(pot, POT_WATER, int) > 500 ? 2 : 0) + (AT(pot, POT_FOLIAGE, int) != 0 ? 1 : 0);
             draw_sprite(sprites, 0, 0x37, frame, ax + round_f(ZOOM * -25.0f), ay + round_f(ZOOM * -12.0f), 1.0f, ZOOM_PERCENT, 0);
         }
+        /* each part draw notes in the pot where it drew the part, for a cut part's fall (0x42D974): the
+           real plant's places are put back after, so a cut part falls from the real plant as before */
+        memcpy(drawn_at, pot + POT_BRANCHES, BRANCHES_SIZE);
+        saved = 1;
         /* the plant: slot 7's hit test, armed at the tip, then its own draw at the zoom's scale */
         AT(plant, P_HOVER_PART, int) = zoom_part;
         AT(plant, P_HOVER_FLOWER, int) = zoom_flower;
@@ -260,6 +267,7 @@ static void draw_zoom(char *scene, int mx, int my) {
             draw_sprite(sprites, 0, 0x36, 0, ax + round_f(ZOOM * 20.0f), ay + round_f(ZOOM * 22.0f), 1.0f, ZOOM_PERCENT, 0);
         }
     } __finally {
+        if (saved) memcpy(pot + POT_BRANCHES, drawn_at, BRANCHES_SIZE);
         memcpy(inner + 0x60, clip, sizeof clip);
     }
     /* only the zoomed plant keeps a part under the shears */
