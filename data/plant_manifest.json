@@ -10719,6 +10719,27 @@
           }
         ]
       }
+    },
+    {
+      "id": "prune_zoom",
+      "name": "Zoom in when pruning",
+      "summary": "With the shears, click a plant to see it larger, with the part the shears would cut lit, as in the iOS version.",
+      "description": "In the greenhouse, while you hold the shears, a click on a plant opens a zoom instead of pruning: a light box over that part of the greenhouse with the pot and plant drawn larger in the middle, by the game's own drawing. The part the shears would cut is lit, and a click in the box cuts exactly that part of the real plant, so you never prune the wrong part by accident. The X in the box's corner closes it, as does a click outside the box (that click prunes nothing), putting the shears down or taking anything else. Without the shears nothing changes. Runs as a companion DLL the game loads at start, after the others; saves are unchanged.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/plant_tycoon_prune_zoom",
+        "loader_tail": "Prune Zoom.dll",
+        "files": [
+          {
+            "path": "Prune Zoom.dll",
+            "destination": "Plant Tycoon Fix Patcher DLLs/Prune Zoom.dll",
+            "size": 92160,
+            "sha256": "922ADAB8005B6D60DA990990D700D5A82416E93B95C81410621E781C3A35FA97"
+          }
+        ]
+      }
     }
   ],
   "patches": [

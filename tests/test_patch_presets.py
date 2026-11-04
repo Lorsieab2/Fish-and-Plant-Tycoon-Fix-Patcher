@@ -45,7 +45,7 @@ DEFAULTS = {
         "fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets",
         "tank_greenhouse_counts", "new_flowers", "plant_upgrades", "sort_seeds", "time_warp",
         "extra_greenhouses", "extra_nurseries", "extra_chemical_slots", "unicode_ingame_fonts", "translations",
-        "copy_paste_text_boxes", "greenhouse_click_deselect",
+        "copy_paste_text_boxes", "greenhouse_click_deselect", "prune_zoom",
     },
 }
 EVERY = {game: set(patch_settings(game)) for game in ("fish", "plant")}

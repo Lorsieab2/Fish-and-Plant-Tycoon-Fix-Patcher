@@ -158,7 +158,7 @@ class CombinedPatcherTests(unittest.TestCase):
              "plant_upgrades", "sort_seeds", "optimize_prices", "time_warp", "free_upgrades", "add_money",
              "everything_free", "extra_greenhouses", "extra_nurseries", "extra_chemical_slots",
              "unicode_ingame_fonts", "translations", "unicode_system_font", "copy_paste_text_boxes",
-             "greenhouse_click_deselect"],
+             "greenhouse_click_deselect", "prune_zoom"],
         )
 
     def test_unknown_chemical_text_is_corrected_in_both_languages(self) -> None:
