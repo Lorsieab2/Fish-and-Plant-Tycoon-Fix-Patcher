@@ -6,7 +6,8 @@ test with its exact odds (game_mechanics.chance).
 
 from __future__ import annotations
 
-from breeding_plant import part_word
+from breeding_plant import (COMMON_GENES, ENDANGERED_GENES, EXTINCT_GENES, NEW_FLOWERS, STOCK_FLOWERS,
+                            STOCK_FOLIAGES, part_word)
 from game_mechanics import RAND_PERIOD, Fact, GamePage, Group, at_least, at_most, below, chance, each, rand_count
 from unicode_data import NAME_BOX_BYTES
 
@@ -41,6 +42,9 @@ def page() -> GamePage:
             Group("Health and soil", HEALTH),
             Group("Pests", PESTS),
             Group("Size", SIZE),
+            Group("Names and numbers: every foliage and flower", NAMES_AND_NUMBERS,
+                  note="The game shows names, the code uses numbers (genes). This table gives each gene "
+                       "its in-game name and seed tier."),
             Group("Flowers", FLOWERS),
             Group("Pollination and seeds", SEEDS),
             Group("Mutation Liquid", MUTATION),
@@ -305,12 +309,54 @@ SIZE = (
     ),
 )
 
+
+def fo_(gene: int) -> str:
+    return part_word("foliage", gene)
+
+
+def gn_flower(gene: int) -> str:
+    """A flower gene with its in-game name: "17 Citrus"."""
+    return f"{gene} {part_word('flower', gene)}"
+
+
+def gg(gene: int) -> str:
+    """A gene used for both parts, foliage name then flower name: "13 (Maple / Fourpetal)"."""
+    return f"{gene} ({part_word('foliage', gene)} / {part_word('flower', gene)})"
+
+
+def gn_flowers(genes, sep: str = ", ") -> str:
+    return sep.join(gg(g) for g in genes)
+
+
+def _tier(gene: int, kind: str) -> str:
+    if kind == "flower" and gene in NEW_FLOWERS:
+        return "Legendary (Unused Flowers, only with that setting)"
+    if gene in COMMON_GENES:
+        return "Common"
+    if gene in ENDANGERED_GENES:
+        return "Endangered"
+    return "Extinct"
+
+
+NAMES_AND_NUMBERS = (
+    Fact("A plant is a foliage gene and a flower gene. A species is called its flower name then its "
+         "foliage name, so flower 13 on foliage 13 is the Fourpetal Maple. Below, each gene is listed "
+         "as number and name, with the shop seed tier it comes in (Common, Endangered, Extinct; the "
+         "Legendary tier holds the Unused Flowers)."),
+) + tuple(
+    Fact(f"Foliage {g}: {part_word('foliage', g)}, {_tier(g, 'foliage')}.") for g in STOCK_FOLIAGES
+) + tuple(
+    Fact(f"Flower {g}: {part_word('flower', g)}, {_tier(g, 'flower')}.")
+    for g in list(STOCK_FLOWERS) + list(NEW_FLOWERS)
+)
+
 FLOWERS = (
     Fact(
         "At age 21, a plant with no flowers grows them: a counted flowers and b extra ones.",
         subs=(
             "Start a = 1, b = 1. Size above 90: a = 2 or 3, b = 1 or 2 (50.00% each).",
-            "Flowers 1, 3, 4, 5, 6, 7, 8, 10, 15, 19 and 22: a + 1 or 2, b + 0 or 1 (50.00% each).",
+            "Flowers " + ", ".join(gn_flower(g) for g in (1, 3, 4, 5, 6, 7, 8, 10, 15, 19)) + " and "
+            + gn_flower(22) + ": a + 1 or 2, b + 0 or 1 (50.00% each).",
             "Fruit of Life: a + 2.",
             "Health below 50: a - 2 and b = 0; below 80: a - 1 and b - 1.",
             f"If a is 0 or less it becomes 1 on {at_least(100, 10)}, else 0. If b is 0 or less "
@@ -343,12 +389,12 @@ SEEDS = (
     Fact(
         "Breeding has no randomness: the seed's foliage is the parents' foliages averaged and "
         "rounded up, and the same for the flower. Every seed of one pollination is the same.",
-        patched=(("new_flowers", "if either parent has a new flower (24-37) and the flower sum is "
+        patched=(("new_flowers", f"if either parent has a new flower ({gn_flower(24)} to {gn_flower(37)}) and the flower sum is "
                   f"odd, the flower is rounded down or up ({chance(2, 1)} each), one roll per "
                   "pollination; every seed of that pollination is still the same."),),
     ),
     Fact(
-        "Throwing a seed away pays by its flower: above 17 $10, even $5, 3/7/11/15 $3, other odd $1. "
+        f"Throwing a seed away pays by its flower: above 17 $10, even $5, {gn_flowers((3, 7, 11, 15))} $3, other odd $1. "
         "The seed box holds 40, 80 or 120 seeds by level.",
     ),
 )
@@ -359,7 +405,7 @@ MUTATION = (
         f"{chance(2, 1)}: the flower moves one step up or down ({chance(2, 1)} each); otherwise "
         "the foliage does, and the plant regrows in its new shape. Above 23 becomes 22, 0 becomes 2.",
         patched=(("new_flowers", "the flower steps over 1-37: a Tilia flower (23) can step up into the "
-                  "new flowers (24), and 38 bounces back to 36. The foliage still stays within 1-23."),),
+                  f"new flowers ({gn_flower(24)}), and 38 bounces back to {gn_flower(36)}. The foliage still stays within 1-23."),),
     ),
     Fact("The new species counts as discovered at once, and becomes a magic plant at once if it is "
          "one. These are the only random gene changes in the game.",
@@ -380,22 +426,23 @@ SHOP_SEEDS = (
                   "at its usual time."),),
     ),
     Fact(
-        "Common ($50): each gene 1, 5, 9 (20.001% each), 13 or 17 (19.998% each), so a Common seed "
+        f"Common ($50): each gene {gn_flowers((1, 5, 9))} (20.001% each), {gn_flowers((13, 17), ' or ')} (19.998% each), so a Common seed "
         "is the magic Fourpetal Maple 3.999% of the time.",
     ),
-    Fact("Endangered ($200): each gene 3, 7, 11 or 15 (exactly 25% each). 1 seed in 16 is the magic "
+    Fact(f"Endangered ($200): each gene {gn_flowers((3, 7, 11), ', ')} or {gn_flower(15)} (exactly 25% each). 1 seed in 16 is the magic "
          "Rosaceae Fern."),
     Fact(
-        f"Extinct ($2000): each gene, separately, is 18 or 19 ({each(6, 0)} each) or 20-23 "
-        f"({each(6, 5)} each) on {below(100, 15)}, otherwise one of 2, 4 ... 16 (exactly 1 in 8 "
+        f"Extinct ($2000): each gene, separately, is {gn_flowers((18, 19), ' or ')} ({each(6, 0)} each) or "
+        f"{gn_flowers((20, 21, 22, 23))} ({each(6, 5)} each) on {below(100, 15)}, otherwise one of "
+        f"{gn_flowers(range(2, 17, 2))} (exactly 1 in 8 "
         "each).",
     ),
     Fact(
         "Legendary Seeds: not in the unpatched game.",
         patched=(("plant_upgrades", "three at a time on the store's Upgrades view, $5000 each, "
                   "rerolled with the stock seeds (once per 86401 real-time seconds): foliage "
-                  f"Random(23) + 1 (1-16 {each(23, 0)} each, 17-23 {each(23, 22)} each), flower one "
-                  f"of the 14 new flowers 24-37 (24-31 {each(14, 0)} each, 32-37 {each(14, 13)} "
+                  f"Random(23) + 1 (1-16 {each(23, 0)} each, 17-23 {each(23, 22)} each; foliage 1 is {fo_(1)} and 23 is {fo_(23)}), flower one "
+                  f"of the 14 new flowers {gn_flower(24)} to {gn_flower(37)} (24-31 {each(14, 0)} each, 32-37 {each(14, 13)} "
                   "each), so class D. Besides these, only Mutation Liquid and breeding from a "
                   "new-flower plant give the new flowers."),
                  ("free_upgrades", "they cost $0, still three per restock, each needing room in the "
@@ -405,14 +452,14 @@ SHOP_SEEDS = (
 
 NEW_GAME = (
     Fact(
-        "A new game starts with $250, four plants in the first row (genes from 1, 5, 9, 13, 17, "
+        f"A new game starts with $250, four plants in the first row (genes from {gn_flowers((1, 5, 9, 13, 17))}, "
         "never the magic Fourpetal Maple), aged as if 4799 real-time seconds had passed at the "
         "current speed (age 8 at most), with health 70-89 and water 400.",
     ),
     Fact(
         "Seed storage starts with a Citrus Maranta, a Jalapa Ball Cactus and two random Common-type "
-        "seeds; the seed tray with four Common-type seeds that include foliage 1 and 17 and flower "
-        "1 and 17.",
+        "seeds; the seed tray with four Common-type seeds that include foliage 1 (Reptans) and 17 (Ball Cactus) and flower "
+        "1 (Spotted) and 17 (Citrus).",
     ),
 )
 
@@ -504,7 +551,7 @@ PRICES = (
         "at 529; no screen shows a total, and the tip \"There are over 500 different species of "
         "Plants!\" is the only other figure.",
         patched=(("new_flowers", "851 species: 23 foliages x 37 flowers (the 14 unused flowers, genes "
-                  "24-37), 322 more. Species Discovered (from 0x44C5A1) adds the discovered new species, "
+                  "24-37, Nightingale to Prunus), 322 more. Species Discovered (from 0x44C5A1) adds the discovered new species, "
                   "so it tops out at 851."),),
     ),
     Fact(
@@ -836,7 +883,7 @@ MAGIC = (
             "score S and the stay score T (the Rose of Joy 4). The Statistics screen counts them.",
             "Breeding: a seed's gene is the parents' genes averaged and rounded up, so foliage f "
             "needs parent foliages adding up to 2f - 1 or 2f, and the same for the flower. Two "
-            "Common seeds (genes 1, 5, 9, 13, 17) or two Endangered (3, 7, 11, 15) give only odd "
+            f"Common seeds (genes {gn_flowers((1, 5, 9, 13, 17))}) or two Endangered ({gn_flowers((3, 7, 11, 15))}) give only odd "
             "genes; a Common with an Endangered gives only even genes 2-16. Averaging never leaves "
             "the parents' range.",
             "Mutation Liquid: each dose moves the flower (50%) or the foliage (50%) one step up or "
@@ -844,13 +891,13 @@ MAGIC = (
         ),
     ),
     Fact(
-        "Magic Tree of Fragrance, Fourpetal Maple (foliage 13, flower 13), class A, value V = 44.",
+        "Magic Tree of Fragrance, Fourpetal Maple (foliage 13 Maple, flower 13 Fourpetal), class A, value V = 44.",
         subs=(
             "Easiest of all: the two seeds every new game starts with in Seed Storage, the Citrus "
             "Maranta (9, 17) and the Jalapa Ball Cactus (17, 9), always breed it.",
             "Common shop seeds: 3.999% per seed (11.52% that at least one of the three on the "
-            "shelf is one). Also Common (9, 9) x (17, 17), or Endangered (11, 11) x (15, 15).",
-            "Mutation Liquid from Extinct (12, 12), (12, 14) or (14, 12): 1 in 8 within 2 doses.",
+            "shelf is one). Also Common seed Jalapa Maranta (9, 9) x Citrus Ball Cactus (17, 17), or Endangered seed Fragrant Lemonbush (11, 11) x Venomous Pipe Cactus (15, 15).",
+            "Mutation Liquid from Extinct seed Blazing Bamboo (12, 12), Aureus Bamboo (12, 14) or Blazing Rare Oak (14, 12): 1 in 8 within 2 doses.",
             "Effect: bugs appear 1 point more often (+1.001% per 3-real-time-second greenhouse "
             "check).",
         ),
@@ -859,9 +906,8 @@ MAGIC = (
         "Rose of Joy, Rosaceae Fern (7, 7), class B, V = 75.",
         subs=(
             "Endangered shop seeds: exactly 6.25% per seed (17.60% that one of the three is). Or "
-            "breed Common (5, 5) x (9, 9), Common (5, 9) x (9, 5), or Endangered (3, 3) x (11, "
-            "11).",
-            "Mutation Liquid from (6, 7), (8, 7), (7, 6) or (7, 8): 1 in 4 per dose.",
+            "breed Common seed Bluestar Astera (5, 5) x Jalapa Maranta (9, 9), Common seed Jalapa Astera (5, 9) x Bluestar Maranta (9, 5), or Endangered seed Daisy Grass (3, 3) x Fragrant Lemonbush (11, 11).",
+            "Mutation Liquid from Rosaceae Gladiatus (6, 7), Rosaceae Ananas (8, 7), Mystic Fern (7, 6) or Viola Fern (7, 8): 1 in 4 per dose.",
             "Effect: 4 points to the visitor score S and the stay score T instead of 2. Nothing "
             "else.",
         ),
@@ -869,9 +915,9 @@ MAGIC = (
     Fact(
         "Flower of Knowledge, Nox Orchid (4, 4), class C, V = 95.",
         subs=(
-            "Extinct shop seeds: 1.1285% per seed. Or breed Common (5, 5) x Endangered (3, 3), or "
-            "Common (1, 5) x Endangered (7, 3).",
-            "Mutation Liquid from (3, 4), (5, 4), (4, 3) or (4, 5): 1 in 4 per dose.",
+            "Extinct shop seeds: 1.1285% per seed. Or breed Common seed Bluestar Astera (5, 5) x Endangered seed Daisy Grass (3, 3), or "
+            "Common seed Bluestar Reptans (1, 5) x Endangered seed Daisy Fern (7, 3).",
+            "Mutation Liquid from Nox Grass (3, 4), Nox Astera (5, 4), Daisy Orchid (4, 3) or Bluestar Orchid (4, 5): 1 in 4 per dose.",
             "Effect: when it is found, every species' asking price is set once to V + 3 x (V/4 "
             "rounded down), overwriting prices you set. Its message says \"from now on\", but it "
             "is a one-time change: later prices you set stay.",
@@ -883,10 +929,10 @@ MAGIC = (
     Fact(
         "Golden Berries of Wealth, Aureus Scandens (2, 14), class C, V = 130.",
         subs=(
-            "Extinct shop seeds: 1.1285% per seed. Or breed Common (1, 13) x Endangered (3, 15), "
-            "or Common (1, 17) x Endangered (3, 11).",
-            "Mutation Liquid: from (1, 14) a foliage step always lands on 2 (0 bounces to 2), so 1 "
-            "dose in 2; from (3, 14), (2, 13) or (2, 15) 1 in 4.",
+            "Extinct shop seeds: 1.1285% per seed. Or breed Common seed Fourpetal Reptans (1, 13) x Endangered seed Venomous Grass (3, 15), "
+            "or Common seed Citrus Reptans (1, 17) x Endangered seed Fragrant Grass (3, 11).",
+            "Mutation Liquid: from Aureus Reptans (1, 14) a foliage step always lands on 2 (0 bounces to 2), so 1 "
+            "dose in 2; from Aureus Grass (3, 14), Fourpetal Scandens (2, 13) or Venomous Scandens (2, 15) 1 in 4.",
             "Effect: visitors see every asking price a quarter lower (P' - P'/4, rounded down), so "
             "plants sell more easily at the same price; you are still paid your full price.",
         ),
@@ -894,9 +940,9 @@ MAGIC = (
     Fact(
         "Fruit of Life, Mela Rare Oak (14, 16), class C, V = 110.",
         subs=(
-            "Extinct shop seeds: 1.1285% per seed. Or breed Common (13, 17) x Endangered (15, 15), "
-            "or Common (17, 17) x Endangered (11, 15).",
-            "Mutation Liquid from (13, 16), (15, 16), (14, 15) or (14, 17): 1 in 4 per dose.",
+            "Extinct shop seeds: 1.1285% per seed. Or breed Common seed Citrus Maple (13, 17) x Endangered seed Venomous Pipe Cactus (15, 15), "
+            "or Common seed Citrus Ball Cactus (17, 17) x Endangered seed Venomous Lemonbush (11, 15).",
+            "Mutation Liquid from Mela Maple (13, 16), Mela Pipe Cactus (15, 16), Venomous Rare Oak (14, 15) or Citrus Rare Oak (14, 17): 1 in 4 per dose.",
             "Effect, on every plant: +2 health and pests cured each age unit (if alive), the pest "
             "odds X divided by 3, and 2 more counted flowers when a plant flowers.",
             "Class C plants lose health on Common soil (-5 a unit), so grow it on Bio-organic or "
@@ -908,10 +954,9 @@ MAGIC = (
         "the game.",
         subs=(
             "Never from the shop. No pair of Common and Endangered seeds breeds it in one go. Two "
-            "ways: breed Common (9, 9) x Extinct (12, 10); or from Common seeds only, (9, 13) x "
-            "(13, 9) gives (11, 11), (9, 9) x (13, 9) gives (11, 9), then (11, 11) x (11, 9) gives "
+            "ways: breed Common seed Jalapa Maranta (9, 9) x Extinct seed Fabled Bamboo (12, 10); or from Common seeds only, Fourpetal Maranta (9, 13) x Jalapa Maple (13, 9) gives Fragrant Lemonbush (11, 11), Jalapa Maranta (9, 9) x Jalapa Maple (13, 9) gives Jalapa Lemonbush (11, 9), then Fragrant Lemonbush (11, 11) x Jalapa Lemonbush (11, 9) gives "
             "it.",
-            "Mutation Liquid from (10, 10), (12, 10), (11, 9) or (11, 11): 1 in 4 per dose, 32.81% "
+            "Mutation Liquid from Fabled Fanleaf (10, 10), Fabled Bamboo (12, 10), Jalapa Lemonbush (11, 9) or Fragrant Lemonbush (11, 11): 1 in 4 per dose, 32.81% "
             "within a 3-dose bottle.",
             "Effect: only the 2 visitor points every magic plant gives.",
         ),
@@ -921,8 +966,8 @@ MAGIC = (
         "Plants...\") when the last message shows. It gives no money or reward and the game "
         "goes on; the middle of the nursery opens it again (see Hidden keys, clicks and cheats).",
         patched=(("new_flowers", "the new flowers are never magic, but as parents they add routes: "
-                  "a flower 24 with a flower 8 gives 16 (Fruit of Life), with 4 gives 14 (Golden "
-                  "Berries), with 2 gives 13 (Fragrance)."),),
+                  "a flower 24 (Nightingale) with a flower 8 (Viola) gives 16 (Mela, the Fruit of Life), with 4 (Nox) gives 14 (Aureus, the Golden "
+                  "Berries), with 2 (Painted) gives 13 (Fourpetal, the Fragrance)."),),
     ),
 )
 
@@ -1507,6 +1552,7 @@ HIDDEN = (
 )
 
 OTHER_GAME = (
+    Fact("Names and numbers: every body and fin: not in Plant Tycoon (see Names and numbers: every foliage and flower for its own table)."),
     Fact('Which tank counts: see Where things count (plants have no tanks; position never matters).'),
     Fact('Health: see Health and soil.'),
     Fact('Names and letters: the same here, see Names and letters.'),

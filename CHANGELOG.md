@@ -2,6 +2,8 @@
 
 ## v1.0.27
 
+- **Game Mechanics names every body, fin, flower and foliage.** Both games' pages have a new "Names and numbers" part listing each gene's number with its in-game name and rarity or seed tier (Fish Tycoon bodies and fins 0-20 and the DS 23-29, Plant Tycoon foliage 1-23 and flowers 1-37), and the gene numbers and (a, b) pairs written elsewhere on the pages now carry the names too. No facts changed.
+
 - **Long names are saved the moment the game saves.** A name that was still waiting to be written beside the save (its slot not known yet, or the first write failed) is now written when the game saves, so quitting right after setting a name can no longer lose it. This is in Unicode Text for both games.
 
 - **Game Mechanics explains the music.** Both games' pages have a new

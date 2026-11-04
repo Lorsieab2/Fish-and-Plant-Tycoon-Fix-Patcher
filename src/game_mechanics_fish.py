@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from game_mechanics import Fact, GamePage, Group, at_most, below, chance, each
 from unicode_data import NAME_BOX_BYTES
+from breeding_fish import BODY_NAMES, FIN_NAMES, ds_index, species_name
 
 STEP = "one age step (5, 10 or 15 real-time minutes at 2x speed, Normal and 1/2 speed)"
 
@@ -47,6 +48,9 @@ def page() -> GamePage:
             Group("Research", RESEARCH),
             Group("Everything together: a tank with every upgrade, research and creature", TOTALS),
             Group("Selling and customers", SELLING),
+            Group("Names and numbers: every body and fin", NAMES_AND_NUMBERS,
+                  note="The game shows names, the code uses numbers (genes). This table gives each gene "
+                       "its in-game body name, fin name and rarity."),
             Group("Species and prices", PRICES),
             Group("A new game", NEW_GAME),
             Group("Goals and popups", GOALS),
@@ -67,6 +71,41 @@ def page() -> GamePage:
         ),
     )
 
+
+
+def gn(gene: int) -> str:
+    """A gene with its in-game names, body then fin: "11 (Comet / Crimson)"."""
+    i = ds_index(gene)
+    return f"{gene} ({BODY_NAMES[i]} / {FIN_NAMES[i]})"
+
+
+def genes_named(genes) -> str:
+    return ", ".join(gn(g) for g in genes)
+
+
+def sp(body: int, fin: int) -> str:
+    """A species with its numbers: "Crimson Comet (11, 11)" (body, fin)."""
+    return f"{species_name(body, fin)} ({body}, {fin})"
+
+
+def _tier(gene: int) -> str:
+    if gene > 20:
+        return {23: "rare", 24: "half-rare", 25: "rare", 26: "common", 27: "rare", 28: "half-rare",
+                29: "rare"}[gene]
+    return "rare" if gene % 2 else ("common" if gene % 4 == 0 else "half-rare")
+
+
+NAMES_AND_NUMBERS = (
+    Fact("A fish is a body gene and a fin gene. A species is called its fin name then its body name, "
+         "so body 11 with fin 11 is the Crimson Comet. Below, each gene is listed as number, body "
+         "name, fin name and rarity (common / half-rare / rare)."),
+) + tuple(
+    Fact(f"Gene {g}: body {BODY_NAMES[ds_index(g)]}, fin {FIN_NAMES[ds_index(g)]}, {_tier(g)}.",
+         subs=(("Only with the DS Exclusive Fish setting.",) if g > 20 else ()))
+    for g in tuple(range(0, 21)) + tuple(range(23, 30))
+) + (
+    Fact("Genes 21 and 22 are not used by fish: 21 is the Golden Seahorse's sprite slot and 22 its body."),
+)
 
 CLOCKS = (
     Fact(
@@ -220,10 +259,10 @@ HEALTH = (
         ),
     ),
     Fact(
-        "Common genes are 0, 4, 8, 12, 16 and 20; half-rare genes are 2, 6, 10, 14 and 18; every odd "
-        "gene is rare.",
-        patched=(("ds_fish", "the DS genes follow the DS game's rarity: 23, 25, 27 and 29 are rare, "
-                  "24 and 28 half-rare, 26 common. For health, though, every fish with a DS body or a "
+        f"Common genes are {genes_named((0, 4, 8, 12, 16, 20))}; half-rare genes are "
+        f"{genes_named((2, 6, 10, 14, 18))}; every odd gene is rare (see Names and numbers).",
+        patched=(("ds_fish", f"the DS genes follow the DS game's rarity: {genes_named((23, 25, 27, 29))} are rare, "
+                  f"{genes_named((24, 28))} half-rare, {gn(26)} common. For health, though, every fish with a DS body or a "
                   "DS fin is rare, whatever its other part: -19 / -6 / 0 a step at Fish Environment "
                   "level 1 / 2 / 3, exactly like the stock rare fish, so it keeps its health only at "
                   "level 3 (the DLL's tier at 0x41DF68). Sickness keeps the body's own DS tier."),),
@@ -422,12 +461,12 @@ EGGS = (
         "Easy. Eggs hatch at age 1 in the tank you drop them in.",
     ),
     Fact(
-        "Common Fish Eggs ($120): body and fin each one of 0, 4, 8, 12, 16, 20 (1 in 6 each), so "
+        f"Common Fish Eggs ($120): body and fin each one of {genes_named((0, 4, 8, 12, 16, 20))} (1 in 6 each), so "
         "1 egg in 36 is the magic Greenfin Spotanus.",
     ),
-    Fact("Unusual Fish Eggs ($450): body and fin each one of 2, 6, 10, 14, 18 (1 in 5 each)."),
+    Fact(f"Unusual Fish Eggs ($450): body and fin each one of {genes_named((2, 6, 10, 14, 18))} (1 in 5 each)."),
     Fact(
-        "Rare Fish Eggs ($1200): body and fin each one of 0, 2, 4 ... 18 (1 in 10 each). Never a "
+        f"Rare Fish Eggs ($1200): body and fin each one of {genes_named(range(0, 19, 2))} (1 in 10 each). Never a "
         "rare (odd) gene and never 20.",
     ),
     Fact(
@@ -440,7 +479,7 @@ EGGS = (
         patched=(("ds_store", "Exotic Fish Eggs ($2300; slot #4, or any of slots 2-4 with Universal "
                   "supply slots, where they stack like the other eggs) hatch as many babies as the "
                   "other eggs, each with a random DS-only body and a random DS-only fin (genes "
-                  "23-29, 1 in 7 each)."),
+                  f"{genes_named(range(23, 30))}, 1 in 7 each)."),
                  ("free_upgrades", "Exotic Fish Eggs cost $0."),),
     ),
 )
@@ -515,85 +554,85 @@ MAGIC_HOW = (
             "particular way on about 6.5% (body +1 6.52%, body -1 6.51%, fin +1 6.51%, fin -1 "
             "6.49%), so a fish one step from a magic one becomes it on about 6.5% per dose.",
         ),
-        patched=(("ds_fish", "the DS genes add routes, never remove one: a DS gene 23 can step "
-                  "down to 20, and a DS x PC pair averages over the DS order (for example a DS "
+        patched=(("ds_fish", f"the DS genes add routes, never remove one: a DS gene {gn(23)} can step "
+                  f"down to {gn(20)}, and a DS x PC pair averages over the DS order (for example a DS "
                   "parent 21 with a PC 19 always gives 20). Exotic Fish Eggs hatch only DS genes, so "
                   "never a magic fish."),),
     ),
     Fact(
-        "Fertility, Greenfin Spotanus (body 20, fin 16), common genes, base price B = 48.",
+        "Fertility, Greenfin Spotanus (body 20 Spotanus, fin 16 Greenfin), common genes, base price B = 48.",
         subs=(
             "Every new game: the first starter egg is always one (see A new game).",
             "Common Fish Eggs: 2.777% per egg. Never from Unusual or Rare eggs.",
             "Breeding: both parents need body 20; for example Spined Spotanus (20, 12) x Twin-Fin "
             "Spotanus (20, 20), both from Common eggs, or two Greenfin Spotanus.",
-            "Unknown Chemical from (19, 16), (20, 15) or (20, 17).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(19, 16), (20, 15), (20, 17)]) + ".",
             "Effect: one more baby per litter in its tank.",
         ),
     ),
     Fact(
-        "Sustenance, Speckled Leaffish (14, 14), half-rare genes, B = 55.",
+        "Sustenance, Speckled Leaffish (14, 14: body Leaffish, fin Speckled), half-rare genes, B = 55.",
         subs=(
             "Unusual Fish Eggs: 3.999% per egg; Rare Fish Eggs: 1.000% per egg. Never from Common "
             "eggs.",
             "Breeding: Spined Stickfish (12, 12) x Greenfin Beta (16, 16), both Common; or Flagged "
             "Goldbulb (10, 18) x Golden Bananafish (18, 10), both Uncommon.",
-            "Unknown Chemical from (13, 14), (15, 14), (14, 13) or (14, 15).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(13, 14), (15, 14), (14, 13), (14, 15)]) + ".",
             "Effect: starving fish in its tank never lose health. Its message says you won't need "
             "to feed as often; food still drops at the normal rate.",
         ),
     ),
     Fact(
-        "Curing, Crimson Comet (11, 11), rare genes, B = 70.",
+        "Curing, Crimson Comet (11, 11: body Comet, fin Crimson), rare genes, B = 70.",
         subs=(
             "Never from eggs. Breeding a Common with an Uncommon: Orange Fruitfish (8, 8) x Speckled "
             "Leaffish (14, 14), Spined Stickfish (12, 12) x Golden Goldbulb (10, 10), or Pink "
             "Fatfish (4, 4) x Flagged Bananafish (18, 18).",
-            "Unknown Chemical from (10, 11), (12, 11), (11, 10) or (11, 12).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(10, 11), (12, 11), (11, 10), (11, 12)]) + ".",
             "Effect: none in the unpatched game (its cure can never happen; see Magic fish).",
         ),
         patched=(("crimson_comet_20_percent_cure", f"each sick fish in its tank is cured on "
                   f"{below(100, 20)} per age step."),),
     ),
     Fact(
-        "Growth, Oriental Goldbulb (10, 9), rare genes, B = 70.",
+        "Growth, Oriental Goldbulb (10, 9: body Goldbulb, fin Oriental), rare genes, B = 70.",
         subs=(
             "Never from eggs. Breeding needs a Rare-egg or bred parent: Golden Stickfish (12, 10) "
             "x Orange Fruitfish (8, 8), Orange Goldbulb (10, 8) x Golden Goldbulb (10, 10), or "
             "Spined Leaffish (14, 12) x Wasp Goldshark (6, 6).",
-            "Unknown Chemical from (9, 9), (11, 9), (10, 8) or (10, 10).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(9, 9), (11, 9), (10, 8), (10, 10)]) + ".",
             "Effect: fish in its tank sometimes gain an extra age step (see Magic fish).",
         ),
     ),
     Fact(
-        "Health, Orange Snooper (5, 8), rare genes, B = 70.",
+        "Health, Orange Snooper (5, 8: body Snooper, fin Orange), rare genes, B = 70.",
         subs=(
             "Never from eggs. Breeding: Orange Arrowfish (2, 8) x Orange Fruitfish (8, 8), Orange "
             "Goldshark (6, 8) x Orange Fatfish (4, 8), or Pink Shark (0, 4) x Spined Goldbulb (10, "
             "12).",
-            "Unknown Chemical from (4, 8), (6, 8), (5, 7) or (5, 9).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(4, 8), (6, 8), (5, 7), (5, 9)]) + ".",
             "Effect: +1 health per age step to every fish in its tank.",
         ),
     ),
     Fact(
-        "Mutation, Wasp Grouper (13, 6), rare genes, B = 95.",
+        "Mutation, Wasp Grouper (13, 6: body Grouper, fin Wasp), rare genes, B = 95.",
         subs=(
             "Never from eggs. Breeding: Pink Goldbulb (10, 4) x Orange Beta (16, 8), Wasp Leaffish "
             "(14, 6) x Wasp Stickfish (12, 6), or Hornet Bananafish (18, 2) x Golden Fruitfish (8, "
             "10).",
-            "Unknown Chemical from (12, 6), (14, 6), (13, 5) or (13, 7).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(12, 6), (14, 6), (13, 5), (13, 7)]) + ".",
             "Effect: a 16.02% chance per litter in its tank to move one of the father's genes one "
             "step. Its message says babies can be unrelated to either parent; the change is one "
             "step at most.",
         ),
     ),
     Fact(
-        "The Golden Guppy, Canary Fire-Arrow (7, 7), rare genes, B = 190, the highest base price.",
+        "The Golden Guppy, Canary Fire-Arrow (7, 7: body Fire-Arrow, fin Canary), rare genes, B = 190, the highest base price.",
         subs=(
             "Never from eggs. Breeding a Common with an Uncommon: Pink Fatfish (4, 4) x Golden "
             "Goldbulb (10, 10), Orange Fruitfish (8, 8) x Wasp Goldshark (6, 6), or Silky "
             "Stickfish (12, 0) x Speckled Arrowfish (2, 14).",
-            "Unknown Chemical from (6, 7), (8, 7), (7, 6) or (7, 8).",
+            f"Unknown Chemical from " + ", ".join(sp(*p) for p in [(6, 7), (8, 7), (7, 6), (7, 8)]) + ".",
             "Effect: none (its message says it will make you rich; only its high price does). It "
             "counts toward the seven.",
         ),
@@ -705,7 +744,7 @@ CONSUMABLES = (
         "without breeding.",
         patched=(
             ("unknown_chemical_three_uses", "one purchase gives 3 doses."),
-            ("ds_fish", "a body or fin at 20 can also step up into the DS genes (23-29), with the "
+            ("ds_fish", f"a body or fin at 20 can also step up into the DS genes ({genes_named(range(23, 30))}), with the "
              "same odds; 29 is the new end."),
         ),
     ),
@@ -777,7 +816,7 @@ CONSUMABLES = (
                   "as with the Unknown Chemical: by the game, once the fish is an adult (age 20, in age "
                   "steps). The dose is used whether or not any fish changed."),
                  ("ds_fish", "the step is DS Exclusive Fish's, as for the Unknown Chemical: 20 can step up "
-                  "into 23 and 23 down into 20, and 29 is the end (always down). Without it the DS genes "
+                  f"into {gn(23)} and 23 down into {gn(20)}, and {gn(29)} is the end (always down). Without it the DS genes "
                   "are never reached."),
                  ("free_upgrades", "Muta-Fin and Muta-Body cost $0."),),
     ),
@@ -1115,8 +1154,8 @@ PRICES = (
         "rows; 0x419253: 7 x 3 entries a row) and counts the ones with a price, so it tops out at "
         "441; no screen shows a total, and the tip \"Did you know there are over 400 species of "
         "fish?\" is the only other figure.",
-        patched=(("ds_fish", "784 species: 28 bodies x 28 fins (the DS version's 7 bodies and 7 fins, genes "
-                  "23-29), 343 more. The count of species discovered (0x419240) is replaced by one that "
+        patched=(("ds_fish", f"784 species: 28 bodies x 28 fins (the DS version's 7 bodies and 7 fins, genes "
+                  f"{genes_named(range(23, 30))}), 343 more. The count of species discovered (0x419240) is replaced by one that "
                   "also counts the 343 DS entries, so it tops out at 784."),),
     ),
     Fact(
@@ -1677,6 +1716,7 @@ HIDDEN = (
 )
 
 OTHER_GAME = (
+    Fact("Names and numbers: every foliage and flower: not in Fish Tycoon (see Names and numbers: every body and fin for its own table)."),
     Fact('Where things count: see Which tank counts.'),
     Fact('Names and letters: the same here, see Names and letters.'),
     Fact('Water: not in Fish Tycoon. Fish have food instead (see Food).'),
