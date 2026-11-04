@@ -1,0 +1,4 @@
+LIBRARY "Snail and Curing"
+EXPORTS
+    FtfpStartup = _FtfpStartup@0
+    FtfpSnailCuringInstalled = _FtfpSnailCuringInstalled@0

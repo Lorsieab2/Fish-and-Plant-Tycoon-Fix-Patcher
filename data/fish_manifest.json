@@ -70829,6 +70829,27 @@
           }
         ]
       }
+    },
+    {
+      "id": "snail_curing_stack",
+      "name": "Snail and Plant of Curing stack",
+      "summary": "The Cleaning Snail and the Plant of Curing both cut the odds of a fish getting sick, and together they quarter them about half the time.",
+      "description": "In the stock game the Cleaning Snail's 50% halving of a fish's sickness odds does nothing once you own the Plant of Curing, which halves them on its own. With this setting the snail's halving also works when you own the plant: the plant halves the odds, then half the time the snail halves them again, so owning both quarters the odds about half the time. With only one of them, or neither, nothing changes. The halving is applied before the extra odds for other sick fish and for age, which are never halved. This is not counted as a bug, so it is not part of Fix Vanilla Bugs. Runs as a companion DLL the game loads at start; saves are unchanged.",
+      "category": "main",
+      "default": true,
+      "separate_output": true,
+      "companion": {
+        "source": "assets/fish_tycoon_snail_curing",
+        "loader_tail": "Snail and Curing.dll",
+        "files": [
+          {
+            "path": "Snail and Curing.dll",
+            "destination": "Fish Tycoon Fix Patcher DLLs/Snail and Curing.dll",
+            "size": 88576,
+            "sha256": "26BEB075CE766C4BA011424AAC2902D92989F6AF6EFDAC2CF4A70F7218521AB3"
+          }
+        ]
+      }
     }
   ],
   "patches": [

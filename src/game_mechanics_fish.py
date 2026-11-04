@@ -289,7 +289,10 @@ SICKNESS = (
             "research does not change it.",
             "Easy: X - X/5. Hard: X + X/2.",
             "Plant of Curing owned: X halved, always. Otherwise the Cleaning Snail halves it on "
-            f"{at_most(100, 49)}. The two never stack.",
+            f"{at_most(100, 49)}. Stock, the two never stack. With the \"Snail and Plant of Curing "
+            "stack\" setting (on by default) they do: the plant halves X, then the snail halves it "
+            f"again on {at_most(100, 49)}. The halving comes before the +6 and +15 below, so those "
+            "are never halved.",
             "Each other sick fish in the same tank: +6 (not on Easy), dead fish that were sick "
             "included.",
             "Age above 600: +15.",
@@ -842,8 +845,10 @@ PERMANENT_ITEMS = (
     ),
     Fact(
         f"Cleaning Snail ($80): an adult's sickness odds X are halved on {at_most(100, 49)} each step. "
-        "It does nothing once you own the Plant of Curing (the two never stack). It is drawn in the "
-        "tank you are looking at; that is only for show.",
+        "Stock, it does nothing once you own the Plant of Curing (the two never stack). It is drawn "
+        "in the tank you are looking at; that is only for show.",
+        patched=(("snail_curing_stack", "it still halves the odds when you own the Plant of Curing, "
+                  "so with both the odds are quartered on the snail roll."),),
     ),
     Fact(
         "Golden Seahorse ($1300): no effect on fish. It brings 2 more customers to the selling "
@@ -905,7 +910,9 @@ PERMANENT_ITEMS = (
     ),
     Fact(
         "Plant of Curing ($650): every adult's sickness odds X are halved, every step, in every tank. "
-        "It makes the Cleaning Snail useless. It does not cure a sick fish.",
+        "Stock, it makes the Cleaning Snail useless. It does not cure a sick fish.",
+        patched=(("snail_curing_stack", "the Cleaning Snail halves the odds again on top of it (half "
+                  "the time), so both together quarter them about half the time."),),
     ),
     Fact(
         "Plant of Fertility ($1250): every litter gets one more baby (1-3 with the Magic Fish of "
@@ -1069,8 +1076,10 @@ TOTALS = (
     ),
     Fact(
         "Sickness with Fish Food level 3 and the Plant of Curing: the base odds out of 10000 per "
-        "step are common 1, half-rare 3, rare 5, halved by the Plant of Curing (the Cleaning Snail "
-        "adds nothing on top). Medicines cure as usual; the Crimson Comet only cures with its "
+        "step are common 1, half-rare 3, rare 5, halved by the Plant of Curing (stock, the Cleaning Snail "
+        "adds nothing on top; with the \"Snail and Plant of Curing stack\" setting, on by default, it "
+        "halves it again half the time). The halving is before the +6 per other sick fish and the +15 "
+        "for age above 600, so those are never halved. Medicines cure as usual; the Crimson Comet only cures with its "
         "patch.",
     ),
     Fact(

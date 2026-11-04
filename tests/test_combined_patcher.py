@@ -149,6 +149,7 @@ class CombinedPatcherTests(unittest.TestCase):
                 "translations",
                 "unicode_system_font",
                 "copy_paste_text_boxes",
+                "snail_curing_stack",
             ],
         )
         self.assertEqual(

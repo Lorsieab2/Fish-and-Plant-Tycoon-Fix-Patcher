@@ -21,7 +21,9 @@
 #include <windows.h>
 #include <string.h>
 
+#ifndef FTFP_SITE_MAX_BYTES
 #define FTFP_SITE_MAX_BYTES 32
+#endif
 
 typedef struct ftfp_site_write {
     unsigned int va;
