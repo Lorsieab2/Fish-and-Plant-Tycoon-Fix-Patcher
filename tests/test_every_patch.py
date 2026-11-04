@@ -241,6 +241,7 @@ PROJECTS = {
         "Multiple Ornaments.dll": "ftfp_ornaments", "Optimize Prices.dll": "ftfp_fish_prices",
         "Tank Counts.dll": "ftfp_tank_counts", "Maximizable Window.dll": "ftfp_fish_window",
         "Unicode Text.dll": "ftfp_fish_unicode", "Translations.dll": "ftfp_translations",
+        "Snail and Curing.dll": "ftfp_snail_curing",
     },
     "plant": {
         "Unused Flowers.dll": "ftfp_new_flowers", "Store Upgrades and Items.dll": "ftfp_plant_upgrades",
@@ -255,6 +256,7 @@ PROJECTS = {
 # the code sites (with their length) their source defines, by the define's name.
 SOURCE_SITES = {
     "ftfp_tank_counts": (("OVERLAY_SLOT_VA", 4), ("MOUSE_SLOT_VA", 4)),
+    "ftfp_snail_curing": (("CURING_SITE_VA", 42),),
     "ftfp_greenhouse_counts": (("HELD_SITE_VA", 9), ("MOUSE_SLOT_VA", 4)),
     "ftfp_fish_window": (("SET_VIDEO_MODE_SLOT", 4), ("FLIP_SLOT", 4),
                          ("SCREENSAVER_FULLSCREEN_SITE", 5), ("SCREENSAVER_END_SITE", 5)),

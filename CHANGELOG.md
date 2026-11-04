@@ -2,6 +2,8 @@
 
 ## v1.0.27
 
+- **New setting: Snail and Plant of Curing stack (Fish Tycoon, on by default).** The Cleaning Snail's 50% halving of sickness odds now also works when you own the Plant of Curing, so owning both quarters the odds about half the time. The stock game never stacks them; this is a choice, not a Fix Vanilla Bugs fix. It is a small companion DLL (`Snail and Curing.dll`) that checks the game's code and changes nothing if it is not the stock code.
+
 - **Long names are saved the moment the game saves.** A name that was still waiting to be written beside the save (its slot not known yet, or the first write failed) is now written when the game saves, so quitting right after setting a name can no longer lose it. This is in Unicode Text for both games.
 
 - **Game Mechanics explains the music.** Both games' pages have a new

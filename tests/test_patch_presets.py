@@ -39,6 +39,7 @@ DEFAULTS = {
         "universal_supply_slots", "maximizable_window", "tank_greenhouse_counts",
         "ds_fish", "ds_store", "time_warp", "bigger_tanks", "extra_tanks", "extra_supply_slots",
         "multiple_ornaments", "unicode_ingame_fonts", "translations", "copy_paste_text_boxes",
+        "snail_curing_stack",
     },
     "plant": {
         "fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets",
