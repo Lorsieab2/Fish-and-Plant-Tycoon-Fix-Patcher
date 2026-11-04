@@ -1130,6 +1130,10 @@ static void patch_dlls(void) {
         if (TR_MOD_TEXTS[k].game != game) continue;
         for (j = 0; j < k; ++j) if (TR_MOD_TEXTS[j].game == game && strcmp(TR_MOD_TEXTS[j].dll, TR_MOD_TEXTS[k].dll) == 0) first = 0;
         if (!first) continue;
+        {
+            int n = slen(TR_MOD_TEXTS[k].dll);
+            if (n > 4 && strcmp(TR_MOD_TEXTS[k].dll + n - 4, ".exe") == 0) continue;     /* the game's own literals: install() */
+        }
         __try {
             patch_dll(TR_MOD_TEXTS[k].dll);
         } __except (EXCEPTION_EXECUTE_HANDLER) {
@@ -1149,7 +1153,7 @@ static int unicode_text_active(void) {
 
 /* ----------------------------------------------------------------- installing */
 
-static ftfp_site_write writes[16];
+static ftfp_site_write writes[80];
 static unsigned char lit_expect[LIT_SITE_N][5];
 static unsigned char lookup_now[6];
 static unsigned char call_expect[5][5];
@@ -1172,6 +1176,36 @@ static int prepare_lookup(unsigned int va, const unsigned char *stock, int stock
     }
     ftfp_site_branch(&writes[0], va, 5, lookup_now, 0xE9, (const void *)(UINT_PTR)lookup_hook);
     return 1;
+}
+
+/* TR_EXE_SITES (translation_tables.h): literals with a key of their own ("mod/plant_tycoon_exe.<words>"). The push
+   is pointed at that text's translation itself (fitted in place with the text's own room); no translation: it stays.
+   Returns the number of writes so far, or -1 when a site is not the stock code. */
+static unsigned char exe_expect[TR_EXE_SITE_N][5];
+
+static int add_exe_literals(int count) {
+    int k, j;
+    for (k = 0; k < TR_EXE_SITE_N; ++k) {
+        const tr_exe_site *s = &TR_EXE_SITES[k];
+        unsigned int imm = s->stock;
+        if (s->game != game) continue;
+        exe_expect[k][0] = 0x68;
+        memcpy(exe_expect[k] + 1, &imm, 4);
+        if (!ftfp_site_holds(s->va, exe_expect[k], 5)
+            || !ftfp_site_holds(s->stock, (const unsigned char *)s->english, slen(s->english) + 1)) {
+            ftfp_failed_site = s->va;
+            return -1;
+        }
+        for (j = 0; j < row_count; ++j) {
+            const row *r = &rows[j];
+            if (r->kind == 2 && r->out != NULL && strcmp(TR_MOD_TEXTS[r->id].id, s->id) == 0) {
+                if (count >= (int)(sizeof writes / sizeof writes[0])) return -1;
+                ftfp_site_imm32(&writes[count++], s->va, 5, exe_expect[k], 1, (unsigned int)(UINT_PTR)r->out);
+                break;
+            }
+        }
+    }
+    return count;
 }
 
 /* Each literal the exe pushes whose English has a translation: the push gets a copy of it. Returns
@@ -1207,7 +1241,7 @@ static int add_literals(int count) {
         copy->fallback = 0;
         ftfp_site_imm32(&writes[count++], s->va, 5, lit_expect[k], 1, (unsigned int)(UINT_PTR)buf);
     }
-    return count;
+    return add_exe_literals(count);
 }
 
 static int install(void) {

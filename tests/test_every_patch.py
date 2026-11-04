@@ -65,6 +65,7 @@ import cheat  # noqa: E402
 import ds_fish_loader  # noqa: E402
 import fish_patcher  # noqa: E402
 import plant_patcher  # noqa: E402
+import translation_strings  # noqa: E402
 import tycoon_fix_patcher as combined  # noqa: E402
 
 try:
@@ -274,7 +275,8 @@ SOURCE_SITES = {
                           *((f"PLANT_LIT_{n}", 5) for n in range(1, 8))),
 }
 TRANSLATIONS_SITES = {"fish": {0x426FD0, 0x4247FF, 0x424820, 0x424841, 0x424883, 0x4248AF, 0x41C689},
-                      "plant": {0x44CA70, 0x419250, 0x419345, 0x4193AD, 0x419415, 0x433622, 0x43368A, 0x4336F2}}
+                      "plant": {0x44CA70, 0x419250, 0x419345, 0x4193AD, 0x419415, 0x433622, 0x43368A, 0x4336F2,
+                *(va for va, _imm, _english in translation_strings.EXE_LITERALS_PLANT)}}
 
 
 def declared_sites(project: str) -> dict[int, tuple[int, str]]:

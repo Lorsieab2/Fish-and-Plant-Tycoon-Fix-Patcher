@@ -304,7 +304,248 @@ static const tr_mod_text TR_MOD_TEXTS[] = {
     { 2, 1, 125, 1, 1, 0xe9c48809u, "Store Upgrades and Items.dll", "store_upgrades_and_items.w.time_warp_done_n_hours_played_n_age_unit" },
     { 2, 1, 240, 1, 1, 0x548cd71du, "Store Upgrades and Items.dll", "store_upgrades_and_items.w.this_plant_was_for_sale_when_it_died_but" },
     { 2, 1, 240, 1, 1, 0xd2fb3a24u, "Store Upgrades and Items.dll", "store_upgrades_and_items.w.this_plant_was_for_sale_when_it_died_but_2" },
+    { 2, 0, 34, 0, 1, 0x45d67bcfu, "Plant Tycoon.exe", "plant_tycoon_exe.collected_i_out_of_48" },
+    { 2, 0, 22, 0, 1, 0x99c47b52u, "Plant Tycoon.exe", "plant_tycoon_exe.blue_butterfly" },
+    { 2, 0, 33, 0, 1, 0x64ac5636u, "Plant Tycoon.exe", "plant_tycoon_exe.mission_blue_butterfly" },
+    { 2, 0, 22, 0, 1, 0x463d22edu, "Plant Tycoon.exe", "plant_tycoon_exe.fern_butterfly" },
+    { 2, 0, 18, 0, 1, 0x4572aa22u, "Plant Tycoon.exe", "plant_tycoon_exe.black_moth" },
+    { 2, 0, 17, 0, 1, 0x3cd46a01u, "Plant Tycoon.exe", "plant_tycoon_exe.pale_moth" },
+    { 2, 0, 23, 0, 1, 0x5104529eu, "Plant Tycoon.exe", "plant_tycoon_exe.lapis_butterfly" },
+    { 2, 0, 18, 0, 1, 0x45d091a4u, "Plant Tycoon.exe", "plant_tycoon_exe.lemon_moth" },
+    { 2, 0, 23, 0, 1, 0x3c58f118u, "Plant Tycoon.exe", "plant_tycoon_exe.amber_butterfly" },
+    { 2, 0, 22, 0, 1, 0xf882e05eu, "Plant Tycoon.exe", "plant_tycoon_exe.plum_butterfly" },
+    { 2, 0, 24, 0, 1, 0xa1a91f84u, "Plant Tycoon.exe", "plant_tycoon_exe.cherry_butterfly" },
+    { 2, 0, 16, 0, 1, 0xe351fa81u, "Plant Tycoon.exe", "plant_tycoon_exe.jet_moth" },
+    { 2, 0, 24, 0, 1, 0xb0f26491u, "Plant Tycoon.exe", "plant_tycoon_exe.golden_butterfly" },
+    { 2, 0, 20, 0, 1, 0x75a29246u, "Plant Tycoon.exe", "plant_tycoon_exe.green_beetle" },
+    { 2, 0, 17, 0, 1, 0xba41eecau, "Plant Tycoon.exe", "plant_tycoon_exe.brown_bug" },
+    { 2, 0, 15, 0, 1, 0x3e48ea39u, "Plant Tycoon.exe", "plant_tycoon_exe.ladybug" },
+    { 2, 0, 25, 0, 1, 0xc44063ddu, "Plant Tycoon.exe", "plant_tycoon_exe.shiny_blue_beetle" },
+    { 2, 0, 21, 0, 1, 0x3260f349u, "Plant Tycoon.exe", "plant_tycoon_exe.hiding_beetle" },
+    { 2, 0, 20, 0, 1, 0xe0862440u, "Plant Tycoon.exe", "plant_tycoon_exe.zebra_beetle" },
+    { 2, 0, 17, 0, 1, 0xd7653c8cu, "Plant Tycoon.exe", "plant_tycoon_exe.cockroach" },
+    { 2, 0, 21, 0, 1, 0xf0398328u, "Plant Tycoon.exe", "plant_tycoon_exe.mystic_scarab" },
+    { 2, 0, 20, 0, 1, 0x12612f63u, "Plant Tycoon.exe", "plant_tycoon_exe.ebony_scarab" },
+    { 2, 0, 19, 0, 1, 0x309e8de1u, "Plant Tycoon.exe", "plant_tycoon_exe.fire_scarab" },
+    { 2, 0, 28, 0, 1, 0x5016bfbdu, "Plant Tycoon.exe", "plant_tycoon_exe.shiny_flower_beetle" },
+    { 2, 0, 21, 0, 1, 0x16710a5fu, "Plant Tycoon.exe", "plant_tycoon_exe.golden_beetle" },
+    { 2, 0, 22, 0, 1, 0x5a5d1a6bu, "Plant Tycoon.exe", "plant_tycoon_exe.blue_dragonfly" },
+    { 2, 0, 22, 0, 1, 0x7b96980cu, "Plant Tycoon.exe", "plant_tycoon_exe.pink_dragonfly" },
+    { 2, 0, 23, 0, 1, 0xe388643du, "Plant Tycoon.exe", "plant_tycoon_exe.tiger_dragonfly" },
+    { 2, 0, 25, 0, 1, 0xd2584a55u, "Plant Tycoon.exe", "plant_tycoon_exe.emerald_dragonfly" },
+    { 2, 0, 22, 0, 1, 0x50a328f6u, "Plant Tycoon.exe", "plant_tycoon_exe.dart_dragonfly" },
+    { 2, 0, 25, 0, 1, 0x66265b78u, "Plant Tycoon.exe", "plant_tycoon_exe.fragile_dragonfly" },
+    { 2, 0, 23, 0, 1, 0xa0cba61bu, "Plant Tycoon.exe", "plant_tycoon_exe.ghost_dragonfly" },
+    { 2, 0, 24, 0, 1, 0x998a0c00u, "Plant Tycoon.exe", "plant_tycoon_exe.glassy_dragonfly" },
+    { 2, 0, 22, 0, 1, 0x384ec6f1u, "Plant Tycoon.exe", "plant_tycoon_exe.fire_dragonfly" },
+    { 2, 0, 23, 0, 1, 0x8db27691u, "Plant Tycoon.exe", "plant_tycoon_exe.black_dragonfly" },
+    { 2, 0, 23, 0, 1, 0xb7d33a6eu, "Plant Tycoon.exe", "plant_tycoon_exe.earth_dragonfly" },
+    { 2, 0, 24, 0, 1, 0xf5bfd4b1u, "Plant Tycoon.exe", "plant_tycoon_exe.golden_dragonfly" },
+    { 2, 0, 21, 0, 1, 0xbd830d78u, "Plant Tycoon.exe", "plant_tycoon_exe.cactus_spider" },
+    { 2, 0, 21, 0, 1, 0x4b5c77d3u, "Plant Tycoon.exe", "plant_tycoon_exe.yellow_spider" },
+    { 2, 0, 20, 0, 1, 0xe1b48019u, "Plant Tycoon.exe", "plant_tycoon_exe.brown_spider" },
+    { 2, 0, 22, 0, 1, 0x6272a2a2u, "Plant Tycoon.exe", "plant_tycoon_exe.spotted_spider" },
+    { 2, 0, 21, 0, 1, 0x5156f160u, "Plant Tycoon.exe", "plant_tycoon_exe.pearly_spider" },
+    { 2, 0, 23, 0, 1, 0xd100ddd6u, "Plant Tycoon.exe", "plant_tycoon_exe.limelike_spider" },
+    { 2, 0, 21, 0, 1, 0x1869c08du, "Plant Tycoon.exe", "plant_tycoon_exe.bamboo_spider" },
+    { 2, 0, 22, 0, 1, 0xc5be768cu, "Plant Tycoon.exe", "plant_tycoon_exe.cricket_spider" },
+    { 2, 0, 20, 0, 1, 0x1bd5b6f9u, "Plant Tycoon.exe", "plant_tycoon_exe.bumpy_spider" },
+    { 2, 0, 19, 0, 1, 0x5815feecu, "Plant Tycoon.exe", "plant_tycoon_exe.jade_spider" },
+    { 2, 0, 23, 0, 1, 0xd2f2eb4du, "Plant Tycoon.exe", "plant_tycoon_exe.tahitian_spider" },
+    { 2, 0, 21, 0, 1, 0xd2c37b5eu, "Plant Tycoon.exe", "plant_tycoon_exe.golden_spider" },
+    { 2, 0, 21, 0, 1, 0x0bc999a9u, "Plant Tycoon.exe", "plant_tycoon_exe.s_in_i_min" },
+    { 2, 0, 73, 0, 0, 0x571c880eu, "Plant Tycoon.exe", "plant_tycoon_exe.click_this_to_arrange_plants_and_make_a" },
+    { 2, 0, 52, 0, 0, 0x4bce61f2u, "Plant Tycoon.exe", "plant_tycoon_exe.seedbox_is_upgradable_from_the_shop" },
+    { 2, 0, 51, 0, 0, 0xda7b6938u, "Plant Tycoon.exe", "plant_tycoon_exe.send_a_screenshot_to_your_desktop" },
+    { 2, 0, 20, 0, 0, 0x21f3c22cu, "Plant Tycoon.exe", "plant_tycoon_exe.change_scene" },
+    { 2, 0, 54, 0, 0, 0xb003998au, "Plant Tycoon.exe", "plant_tycoon_exe.click_here_to_change_the_background" },
 };
-#define TR_MOD_TEXT_COUNT 270
+#define TR_MOD_TEXT_COUNT 325
+
+/* Texts the game pushes as plain literals (src/translation_strings.py EXE_LITERALS_PLANT): the `push imm32`
+   at va (stock: the literal's address, holding `english`) is pointed at the translation of the mod text
+   `id`.  Each va is a declared site of the DLL (SITE_EXE_n_VA, 5 bytes). */
+typedef struct tr_exe_site {
+    unsigned char game;
+    unsigned int va;
+    unsigned int stock;
+    const char *id;
+    const char *english;
+} tr_exe_site;
+
+static const tr_exe_site TR_EXE_SITES[] = {
+    { 2, 0x004185A6u, 0x00467818u, "plant_tycoon_exe.collected_i_out_of_48", "Collected: %i out of 48" },
+    { 2, 0x0041895Au, 0x00467B20u, "plant_tycoon_exe.blue_butterfly", "Blue Butterfly" },
+    { 2, 0x00418971u, 0x00467B08u, "plant_tycoon_exe.mission_blue_butterfly", "Mission Blue Butterfly" },
+    { 2, 0x00418988u, 0x00467AF8u, "plant_tycoon_exe.fern_butterfly", "Fern Butterfly" },
+    { 2, 0x0041899Fu, 0x00467AECu, "plant_tycoon_exe.black_moth", "Black Moth" },
+    { 2, 0x004189B6u, 0x00467AE0u, "plant_tycoon_exe.pale_moth", "Pale Moth" },
+    { 2, 0x004189CDu, 0x00467AD0u, "plant_tycoon_exe.lapis_butterfly", "Lapis Butterfly" },
+    { 2, 0x004189E4u, 0x00467AC4u, "plant_tycoon_exe.lemon_moth", "Lemon Moth" },
+    { 2, 0x004189FBu, 0x00467AB4u, "plant_tycoon_exe.amber_butterfly", "Amber Butterfly" },
+    { 2, 0x00418A12u, 0x00467AA4u, "plant_tycoon_exe.plum_butterfly", "Plum Butterfly" },
+    { 2, 0x00418A29u, 0x00467A90u, "plant_tycoon_exe.cherry_butterfly", "Cherry Butterfly" },
+    { 2, 0x00418A40u, 0x00467A84u, "plant_tycoon_exe.jet_moth", "Jet Moth" },
+    { 2, 0x00418A57u, 0x00467A70u, "plant_tycoon_exe.golden_butterfly", "Golden Butterfly" },
+    { 2, 0x00418A6Eu, 0x00467A60u, "plant_tycoon_exe.green_beetle", "Green Beetle" },
+    { 2, 0x00418A85u, 0x00467A54u, "plant_tycoon_exe.brown_bug", "Brown Bug" },
+    { 2, 0x00418A9Cu, 0x00467A4Cu, "plant_tycoon_exe.ladybug", "Ladybug" },
+    { 2, 0x00418AB3u, 0x00467A38u, "plant_tycoon_exe.shiny_blue_beetle", "Shiny Blue Beetle" },
+    { 2, 0x00418ACAu, 0x00467A28u, "plant_tycoon_exe.hiding_beetle", "Hiding Beetle" },
+    { 2, 0x00418AE1u, 0x00467A18u, "plant_tycoon_exe.zebra_beetle", "Zebra Beetle" },
+    { 2, 0x00418AF8u, 0x00467A0Cu, "plant_tycoon_exe.cockroach", "Cockroach" },
+    { 2, 0x00418B0Fu, 0x004679FCu, "plant_tycoon_exe.mystic_scarab", "Mystic Scarab" },
+    { 2, 0x00418B26u, 0x004679ECu, "plant_tycoon_exe.ebony_scarab", "Ebony Scarab" },
+    { 2, 0x00418B3Du, 0x004679E0u, "plant_tycoon_exe.fire_scarab", "Fire Scarab" },
+    { 2, 0x00418B54u, 0x004679CCu, "plant_tycoon_exe.shiny_flower_beetle", "Shiny Flower Beetle" },
+    { 2, 0x00418B6Bu, 0x004679BCu, "plant_tycoon_exe.golden_beetle", "Golden Beetle" },
+    { 2, 0x00418B82u, 0x004679ACu, "plant_tycoon_exe.blue_dragonfly", "Blue Dragonfly" },
+    { 2, 0x00418B99u, 0x0046799Cu, "plant_tycoon_exe.pink_dragonfly", "Pink Dragonfly" },
+    { 2, 0x00418BB0u, 0x0046798Cu, "plant_tycoon_exe.tiger_dragonfly", "Tiger Dragonfly" },
+    { 2, 0x00418BC7u, 0x00467978u, "plant_tycoon_exe.emerald_dragonfly", "Emerald Dragonfly" },
+    { 2, 0x00418BDEu, 0x00467968u, "plant_tycoon_exe.dart_dragonfly", "Dart Dragonfly" },
+    { 2, 0x00418BF5u, 0x00467954u, "plant_tycoon_exe.fragile_dragonfly", "Fragile Dragonfly" },
+    { 2, 0x00418C0Cu, 0x00467944u, "plant_tycoon_exe.ghost_dragonfly", "Ghost Dragonfly" },
+    { 2, 0x00418C23u, 0x00467930u, "plant_tycoon_exe.glassy_dragonfly", "Glassy Dragonfly" },
+    { 2, 0x00418C3Au, 0x00467920u, "plant_tycoon_exe.fire_dragonfly", "Fire Dragonfly" },
+    { 2, 0x00418C51u, 0x00467910u, "plant_tycoon_exe.black_dragonfly", "Black Dragonfly" },
+    { 2, 0x00418C68u, 0x00467900u, "plant_tycoon_exe.earth_dragonfly", "Earth Dragonfly" },
+    { 2, 0x00418C7Fu, 0x004678ECu, "plant_tycoon_exe.golden_dragonfly", "Golden Dragonfly" },
+    { 2, 0x00418C96u, 0x004678DCu, "plant_tycoon_exe.cactus_spider", "Cactus Spider" },
+    { 2, 0x00418CADu, 0x004678CCu, "plant_tycoon_exe.yellow_spider", "Yellow Spider" },
+    { 2, 0x00418CC4u, 0x004678BCu, "plant_tycoon_exe.brown_spider", "Brown Spider" },
+    { 2, 0x00418CDBu, 0x004678ACu, "plant_tycoon_exe.spotted_spider", "Spotted Spider" },
+    { 2, 0x00418CF2u, 0x0046789Cu, "plant_tycoon_exe.pearly_spider", "Pearly Spider" },
+    { 2, 0x00418D09u, 0x0046788Cu, "plant_tycoon_exe.limelike_spider", "Limelike Spider" },
+    { 2, 0x00418D20u, 0x0046787Cu, "plant_tycoon_exe.bamboo_spider", "Bamboo Spider" },
+    { 2, 0x00418D37u, 0x0046786Cu, "plant_tycoon_exe.cricket_spider", "Cricket Spider" },
+    { 2, 0x00418D4Eu, 0x0046785Cu, "plant_tycoon_exe.bumpy_spider", "Bumpy Spider" },
+    { 2, 0x00418D65u, 0x00467850u, "plant_tycoon_exe.jade_spider", "Jade Spider" },
+    { 2, 0x00418D7Cu, 0x00467840u, "plant_tycoon_exe.tahitian_spider", "Tahitian Spider" },
+    { 2, 0x00418D93u, 0x00467830u, "plant_tycoon_exe.golden_spider", "Golden Spider" },
+    { 2, 0x0042383Eu, 0x004691BCu, "plant_tycoon_exe.s_in_i_min", "%s in %i Min." },
+    { 2, 0x004238C0u, 0x004691BCu, "plant_tycoon_exe.s_in_i_min", "%s in %i Min." },
+    { 2, 0x00425359u, 0x004691E0u, "plant_tycoon_exe.click_this_to_arrange_plants_and_make_a", "Click this to arrange plants and make a snapshot!" },
+    { 2, 0x004337BEu, 0x004696D0u, "plant_tycoon_exe.seedbox_is_upgradable_from_the_shop", "Seedbox is upgradable from the shop" },
+    { 2, 0x00433829u, 0x004696D0u, "plant_tycoon_exe.seedbox_is_upgradable_from_the_shop", "Seedbox is upgradable from the shop" },
+    { 2, 0x0044881Cu, 0x00469860u, "plant_tycoon_exe.send_a_screenshot_to_your_desktop", "Send a screenshot to your desktop!" },
+    { 2, 0x004488AAu, 0x00469850u, "plant_tycoon_exe.change_scene", "Change Scene" },
+    { 2, 0x004488CAu, 0x00469828u, "plant_tycoon_exe.click_here_to_change_the_background", "Click here to change the background." },
+};
+#define TR_EXE_SITE_N 57
+#define SITE_EXE_001_VA 0x004185A6u
+#define SITE_EXE_001_LEN 5
+#define SITE_EXE_002_VA 0x0041895Au
+#define SITE_EXE_002_LEN 5
+#define SITE_EXE_003_VA 0x00418971u
+#define SITE_EXE_003_LEN 5
+#define SITE_EXE_004_VA 0x00418988u
+#define SITE_EXE_004_LEN 5
+#define SITE_EXE_005_VA 0x0041899Fu
+#define SITE_EXE_005_LEN 5
+#define SITE_EXE_006_VA 0x004189B6u
+#define SITE_EXE_006_LEN 5
+#define SITE_EXE_007_VA 0x004189CDu
+#define SITE_EXE_007_LEN 5
+#define SITE_EXE_008_VA 0x004189E4u
+#define SITE_EXE_008_LEN 5
+#define SITE_EXE_009_VA 0x004189FBu
+#define SITE_EXE_009_LEN 5
+#define SITE_EXE_010_VA 0x00418A12u
+#define SITE_EXE_010_LEN 5
+#define SITE_EXE_011_VA 0x00418A29u
+#define SITE_EXE_011_LEN 5
+#define SITE_EXE_012_VA 0x00418A40u
+#define SITE_EXE_012_LEN 5
+#define SITE_EXE_013_VA 0x00418A57u
+#define SITE_EXE_013_LEN 5
+#define SITE_EXE_014_VA 0x00418A6Eu
+#define SITE_EXE_014_LEN 5
+#define SITE_EXE_015_VA 0x00418A85u
+#define SITE_EXE_015_LEN 5
+#define SITE_EXE_016_VA 0x00418A9Cu
+#define SITE_EXE_016_LEN 5
+#define SITE_EXE_017_VA 0x00418AB3u
+#define SITE_EXE_017_LEN 5
+#define SITE_EXE_018_VA 0x00418ACAu
+#define SITE_EXE_018_LEN 5
+#define SITE_EXE_019_VA 0x00418AE1u
+#define SITE_EXE_019_LEN 5
+#define SITE_EXE_020_VA 0x00418AF8u
+#define SITE_EXE_020_LEN 5
+#define SITE_EXE_021_VA 0x00418B0Fu
+#define SITE_EXE_021_LEN 5
+#define SITE_EXE_022_VA 0x00418B26u
+#define SITE_EXE_022_LEN 5
+#define SITE_EXE_023_VA 0x00418B3Du
+#define SITE_EXE_023_LEN 5
+#define SITE_EXE_024_VA 0x00418B54u
+#define SITE_EXE_024_LEN 5
+#define SITE_EXE_025_VA 0x00418B6Bu
+#define SITE_EXE_025_LEN 5
+#define SITE_EXE_026_VA 0x00418B82u
+#define SITE_EXE_026_LEN 5
+#define SITE_EXE_027_VA 0x00418B99u
+#define SITE_EXE_027_LEN 5
+#define SITE_EXE_028_VA 0x00418BB0u
+#define SITE_EXE_028_LEN 5
+#define SITE_EXE_029_VA 0x00418BC7u
+#define SITE_EXE_029_LEN 5
+#define SITE_EXE_030_VA 0x00418BDEu
+#define SITE_EXE_030_LEN 5
+#define SITE_EXE_031_VA 0x00418BF5u
+#define SITE_EXE_031_LEN 5
+#define SITE_EXE_032_VA 0x00418C0Cu
+#define SITE_EXE_032_LEN 5
+#define SITE_EXE_033_VA 0x00418C23u
+#define SITE_EXE_033_LEN 5
+#define SITE_EXE_034_VA 0x00418C3Au
+#define SITE_EXE_034_LEN 5
+#define SITE_EXE_035_VA 0x00418C51u
+#define SITE_EXE_035_LEN 5
+#define SITE_EXE_036_VA 0x00418C68u
+#define SITE_EXE_036_LEN 5
+#define SITE_EXE_037_VA 0x00418C7Fu
+#define SITE_EXE_037_LEN 5
+#define SITE_EXE_038_VA 0x00418C96u
+#define SITE_EXE_038_LEN 5
+#define SITE_EXE_039_VA 0x00418CADu
+#define SITE_EXE_039_LEN 5
+#define SITE_EXE_040_VA 0x00418CC4u
+#define SITE_EXE_040_LEN 5
+#define SITE_EXE_041_VA 0x00418CDBu
+#define SITE_EXE_041_LEN 5
+#define SITE_EXE_042_VA 0x00418CF2u
+#define SITE_EXE_042_LEN 5
+#define SITE_EXE_043_VA 0x00418D09u
+#define SITE_EXE_043_LEN 5
+#define SITE_EXE_044_VA 0x00418D20u
+#define SITE_EXE_044_LEN 5
+#define SITE_EXE_045_VA 0x00418D37u
+#define SITE_EXE_045_LEN 5
+#define SITE_EXE_046_VA 0x00418D4Eu
+#define SITE_EXE_046_LEN 5
+#define SITE_EXE_047_VA 0x00418D65u
+#define SITE_EXE_047_LEN 5
+#define SITE_EXE_048_VA 0x00418D7Cu
+#define SITE_EXE_048_LEN 5
+#define SITE_EXE_049_VA 0x00418D93u
+#define SITE_EXE_049_LEN 5
+#define SITE_EXE_050_VA 0x0042383Eu
+#define SITE_EXE_050_LEN 5
+#define SITE_EXE_051_VA 0x004238C0u
+#define SITE_EXE_051_LEN 5
+#define SITE_EXE_052_VA 0x00425359u
+#define SITE_EXE_052_LEN 5
+#define SITE_EXE_053_VA 0x004337BEu
+#define SITE_EXE_053_LEN 5
+#define SITE_EXE_054_VA 0x00433829u
+#define SITE_EXE_054_LEN 5
+#define SITE_EXE_055_VA 0x0044881Cu
+#define SITE_EXE_055_LEN 5
+#define SITE_EXE_056_VA 0x004488AAu
+#define SITE_EXE_056_LEN 5
+#define SITE_EXE_057_VA 0x004488CAu
+#define SITE_EXE_057_LEN 5
 
 #endif /* FTFP_TRANSLATION_TABLES_H */

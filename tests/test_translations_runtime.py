@@ -430,3 +430,28 @@ class ExeLiterals(unittest.TestCase):
                            (0x433622, "Fournitures"), (0x43368A, "Collection")):
             self.assertEqual(self._pushed(rt, site), want.encode("cp1252"), hex(site))
         self.assertEqual(bytes(rt.emu.uc.mem_read(0x419250, 5)), bytes.fromhex("684c7b4600"))   # Stats: no line
+
+    def test_plant_exe_literals_with_their_own_keys(self) -> None:
+        def key(english: str) -> str:
+            return ts.mod_key(next(m for m in ts.EXE_STRINGS if m.english == english))
+        rows = [(key("Change Scene"), "Change Scene", "Changer de d\u00e9cor"),
+                (key("Mission Blue Butterfly"), "Mission Blue Butterfly", "Papillon bleu de la mission"),
+                (key("%s in %i Min."), "%s in %i Min.", "%s en %i min."),
+                (key("Collected: %i out of 48"), "Collected: %i out of 48", "Collect\u00e9s : %i sur 48")]
+        rt = runtime("plant", make("plant", rows))
+        self.assertEqual(rt.start(), 1)
+        self.assertEqual(self._pushed(rt, 0x4488AA), "Changer de d\u00e9cor".encode("cp1252"))
+        self.assertEqual(self._pushed(rt, 0x418971), b"Papillon bleu de la mission")
+        self.assertEqual(self._pushed(rt, 0x42383E), b"%s en %i min.")
+        self.assertEqual(self._pushed(rt, 0x4238C0), b"%s en %i min.")          # the same literal, both pushes
+        self.assertEqual(self._pushed(rt, 0x4185A6), "Collect\u00e9s : %i sur 48".encode("cp1252"))
+        self.assertEqual(bytes(rt.emu.uc.mem_read(0x41895A, 5)), bytes.fromhex("68207b4600"))   # Blue Butterfly: no line
+
+    def test_plant_exe_literal_site_is_checked(self) -> None:
+        english = "Change Scene"
+        m = next(m for m in ts.EXE_STRINGS if m.english == english)
+        rt = runtime("plant", make("plant", [(ts.mod_key(m), english, "Changer de d\u00e9cor")]))
+        rt.emu.uc.mem_write(0x4488AA, b"\x90")
+        self.assertEqual(rt.start(), 0)
+        self.assertIn("NOT installed; the code at 0x004488AA", rt.log)
+        self.assertEqual(bytes(rt.emu.uc.mem_read(0x419415, 5)), bytes.fromhex("68307b4600"))   # nothing was written

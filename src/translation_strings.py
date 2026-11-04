@@ -220,6 +220,7 @@ DLL_PATCH = {
     ("plant", "Extra Seed Boxes.dll"): "plant_upgrades",
     ("plant", "Store Upgrades and Items.dll"): "plant_upgrades",
     ("plant", "Unused Flowers.dll"): "new_flowers",
+    ("plant", "Plant Tycoon.exe"): "",
 }
 
 PATCH_OF: dict[tuple[str, str, str], str] = {}
@@ -353,6 +354,88 @@ _fallback(_P, _UP, _NURSERY.replace("{which}", "nursery is"), "This plant was fo
           "full: only %d plants can be for sale at once, counting every greenhouse.\n\nIt is alive again, not for "
           "sale. Make room in the nursery, then put it on sale again.", "nursery is")
 _fallback(_P, _UP, _NURSERY.replace("{which}", "nurseries are"), "nurseries are")
+
+
+# Texts the game's code pushes as plain literals instead of asking the string table (so the lookup hook
+# never sees them): (the address of the `push imm32`, the literal's address, its English).  Translations.dll
+# points each push at the translation of its English ("mod/plant_tycoon.<words>" keys, dll "Plant Tycoon.exe").
+# The insect names and the two "%" lines go through the game's sprintf (a buffer), the rest through
+# the game's label and tooltip setters; all of them keep to the game's buffer rule.  Found by scripts of
+# the disassembly (a `push <.rdata text>` before a call to a text setter); file names, URLs, fonts and
+# debug text are not here.  "Version 1.6.2" and the copyright line are left alone.
+EXE_LITERALS_PLANT = (
+    (0x4185A6, 0x467818, 'Collected: %i out of 48'),
+    (0x41895A, 0x467B20, 'Blue Butterfly'),
+    (0x418971, 0x467B08, 'Mission Blue Butterfly'),
+    (0x418988, 0x467AF8, 'Fern Butterfly'),
+    (0x41899F, 0x467AEC, 'Black Moth'),
+    (0x4189B6, 0x467AE0, 'Pale Moth'),
+    (0x4189CD, 0x467AD0, 'Lapis Butterfly'),
+    (0x4189E4, 0x467AC4, 'Lemon Moth'),
+    (0x4189FB, 0x467AB4, 'Amber Butterfly'),
+    (0x418A12, 0x467AA4, 'Plum Butterfly'),
+    (0x418A29, 0x467A90, 'Cherry Butterfly'),
+    (0x418A40, 0x467A84, 'Jet Moth'),
+    (0x418A57, 0x467A70, 'Golden Butterfly'),
+    (0x418A6E, 0x467A60, 'Green Beetle'),
+    (0x418A85, 0x467A54, 'Brown Bug'),
+    (0x418A9C, 0x467A4C, 'Ladybug'),
+    (0x418AB3, 0x467A38, 'Shiny Blue Beetle'),
+    (0x418ACA, 0x467A28, 'Hiding Beetle'),
+    (0x418AE1, 0x467A18, 'Zebra Beetle'),
+    (0x418AF8, 0x467A0C, 'Cockroach'),
+    (0x418B0F, 0x4679FC, 'Mystic Scarab'),
+    (0x418B26, 0x4679EC, 'Ebony Scarab'),
+    (0x418B3D, 0x4679E0, 'Fire Scarab'),
+    (0x418B54, 0x4679CC, 'Shiny Flower Beetle'),
+    (0x418B6B, 0x4679BC, 'Golden Beetle'),
+    (0x418B82, 0x4679AC, 'Blue Dragonfly'),
+    (0x418B99, 0x46799C, 'Pink Dragonfly'),
+    (0x418BB0, 0x46798C, 'Tiger Dragonfly'),
+    (0x418BC7, 0x467978, 'Emerald Dragonfly'),
+    (0x418BDE, 0x467968, 'Dart Dragonfly'),
+    (0x418BF5, 0x467954, 'Fragile Dragonfly'),
+    (0x418C0C, 0x467944, 'Ghost Dragonfly'),
+    (0x418C23, 0x467930, 'Glassy Dragonfly'),
+    (0x418C3A, 0x467920, 'Fire Dragonfly'),
+    (0x418C51, 0x467910, 'Black Dragonfly'),
+    (0x418C68, 0x467900, 'Earth Dragonfly'),
+    (0x418C7F, 0x4678EC, 'Golden Dragonfly'),
+    (0x418C96, 0x4678DC, 'Cactus Spider'),
+    (0x418CAD, 0x4678CC, 'Yellow Spider'),
+    (0x418CC4, 0x4678BC, 'Brown Spider'),
+    (0x418CDB, 0x4678AC, 'Spotted Spider'),
+    (0x418CF2, 0x46789C, 'Pearly Spider'),
+    (0x418D09, 0x46788C, 'Limelike Spider'),
+    (0x418D20, 0x46787C, 'Bamboo Spider'),
+    (0x418D37, 0x46786C, 'Cricket Spider'),
+    (0x418D4E, 0x46785C, 'Bumpy Spider'),
+    (0x418D65, 0x467850, 'Jade Spider'),
+    (0x418D7C, 0x467840, 'Tahitian Spider'),
+    (0x418D93, 0x467830, 'Golden Spider'),
+    (0x42383E, 0x4691BC, '%s in %i Min.'),
+    (0x4238C0, 0x4691BC, '%s in %i Min.'),
+    (0x425359, 0x4691E0, 'Click this to arrange plants and make a snapshot!'),
+    (0x4337BE, 0x4696D0, 'Seedbox is upgradable from the shop'),
+    (0x433829, 0x4696D0, 'Seedbox is upgradable from the shop'),
+    (0x44881C, 0x469860, 'Send a screenshot to your desktop!'),
+    (0x4488AA, 0x469850, 'Change Scene'),
+    (0x4488CA, 0x469828, 'Click here to change the background.'),
+)
+
+PLANT_EXE_DLL = "Plant Tycoon.exe"
+_EXE_SPRINTF = {e for va, _imm, e in EXE_LITERALS_PLANT if 0x418000 <= va < 0x419000 or e.startswith("%s in")}
+
+
+def exe_texts(game: str) -> list[str]:
+    """The English of each exe literal (once), in address order."""
+    if game != "plant":
+        return []
+    seen: list[str] = []
+    for _va, _imm, english in EXE_LITERALS_PLANT:
+        if english not in seen:
+            seen.append(english)
+    return seen
 
 
 MOD_STRINGS: tuple[ModString, ...] = (
@@ -514,6 +597,14 @@ MOD_STRINGS: tuple[ModString, ...] = (
     *COUNTED_STRINGS,
 )
 
+# Plant Tycoon.exe's own literals (EXE_LITERALS_PLANT): keys "mod/plant_tycoon_exe.<words>".  Kept apart from
+# MOD_STRINGS, whose texts each live in a patcher DLL.
+EXE_STRINGS: tuple[ModString, ...] = tuple(
+    _m(_P, PLANT_EXE_DLL, t, GAME_RULE,
+       note=("an insect's name in the Collection" if t in _EXE_SPRINTF and "%" not in t else
+             "a label, tooltip or message the game draws from the exe itself")) for t in exe_texts("plant"))
+ALL_MOD_STRINGS: tuple[ModString, ...] = MOD_STRINGS + EXE_STRINGS
+
 
 def is_format(english: str) -> bool:
     """Whether a line reaches the game as a printf FORMAT: every line with a conversion in its
@@ -521,7 +612,7 @@ def is_format(english: str) -> bool:
     sprintf's, every counted text). A translation's plain '%' ("50 % de") is then written "%%"
     for it (translation_format.escape_percents; Translations.dll does the same); a line without
     conversions is drawn as it is and never escaped."""
-    return bool(tfmt.parse_template(english).conversions)
+    return bool(tfmt.parse_template(english).conversions) or english in _EXE_SPRINTF
 
 
 def mod_limit(m: ModString) -> int:
@@ -541,7 +632,7 @@ def _mod_ids() -> dict[tuple[str, str, str, bool], str]:
     "_2", "_3"... when two texts of one DLL start with the same words (in MOD_STRINGS order)."""
     ids: dict[tuple[str, str, str, bool], str] = {}
     taken: set[tuple[str, str]] = set()
-    for m in MOD_STRINGS:
+    for m in ALL_MOD_STRINGS:
         ident = (m.game, m.dll, m.english, m.wide)
         if ident in ids:
             continue
@@ -595,7 +686,7 @@ def mod_entries(game: str) -> list[tfmt.Entry]:
     """The patcher DLLs' lines, grouped by patch (the settings' order in the manifest)."""
     entries = []
     seen = set()
-    for m in MOD_STRINGS:
+    for m in ALL_MOD_STRINGS:
         if m.game != game:
             continue
         key = mod_key(m)
@@ -603,7 +694,9 @@ def mod_entries(game: str) -> list[tfmt.Entry]:
             continue
         seen.add(key)
         limit = mod_limit(m)
-        note = [PATCH_NOTE + setting_name(game, patch_of(m)), f"{m.dll}" + (" (Windows popup)" if m.wide else "")]
+        patch = patch_of(m)
+        note = ([PATCH_NOTE + setting_name(game, patch)] if patch else []) + [
+            f"{m.dll}" + (" (Windows popup)" if m.wide else "")]
         template = tfmt.parse_template(m.english)
         for n, conv in enumerate(template.conversions, start=1):
             note.append(f"%{n} ({conv.text}) = {'number' if conv.is_number else 'text'}")
@@ -618,7 +711,7 @@ def mod_entries(game: str) -> list[tfmt.Entry]:
         entries.append(tfmt.Entry(key, m.english, "; ".join(note), limit, m.wide, is_format(m.english)))
     order = list(_setting_order(game))
     rank = {name: k for k, name in enumerate(order)}
-    entries.sort(key=lambda e: rank.get(group_of(e.notes), len(order)))
+    entries.sort(key=lambda e: rank.get(group_of(e.notes), len(order)) if group_of(e.notes) else -1)
     return entries
 
 
