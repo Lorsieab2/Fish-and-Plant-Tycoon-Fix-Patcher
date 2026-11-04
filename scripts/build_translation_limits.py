@@ -24,13 +24,15 @@ built but not drawn gives its room from its own fields exactly as box_room reads
 box can hold on the screen, found the same way (the box built and drawn by the game with ever
 wider text until a piece of it leaves the screen).
 
-Lines that no fixed-id call reaches (ids chosen by a register: species, goals, Help pages...)
+Lines the game picks from its own tables are shown one by one with the game's own setter or table
+(table_scenarios, hint_ids: Fish's tutorial pop-ups, hint line and Supplies items, Plant's store
+items). Lines that no fixed-id call reaches (ids chosen by a register: species, goals, Help pages...)
 and lines whose spot the run could not show get the SAFE rule: the English's widest line plus a
 quarter (at least 16 pixels), never more than the screen. They are marked "proven": false.
 
 The patcher DLLs' texts ("mod/..."): where the DLL draws them the room is its own layout's
-(MOD_SPOTS below, from the DLL sources); a Windows popup's text wraps itself (no limit); the rest
-get the safe rule.
+(MOD_SPOTS and COUNT_LINES below, from the DLL sources); a Windows popup's text wraps itself (no
+limit); the rest get the safe rule.
 
 The JSON holds numbers only (no game text): per key base ("strings/<id>", "mod/<id>"), the font,
 the pixel limit, whether the spot breaks lines ("multiline": the English has "\\n"), the kind of
@@ -115,15 +117,33 @@ def lookup_sites(game: str, exe: bytes) -> list[tuple[int, int]]:
     return out
 
 
+def dynamic_sites(game: str, exe: bytes) -> list[int]:
+    """The addresses of the lookup calls whose id is not a fixed number (a register, a table...)."""
+    fixed = {a for a, _i in lookup_sites(game, exe)}
+    ins = _code(game, exe)
+    return [i.address for i in ins if i.mnemonic == "call" and i.op_str.startswith("0x")
+            and int(i.op_str, 16) in LOOKUPS[game] and i.address not in fixed]
+
+
 def function_start(exe: bytes, va: int) -> int | None:
     """The start of the function holding `va`: the nearest 16-aligned address after int3 padding."""
     o = ts._offset(exe, va)
     p = o & ~0xF
     while p > o - 0x4000:
         if exe[p - 1] == 0xCC and exe[p] != 0xCC:
-            return va - (o - p)
+            break
         p -= 0x10
-    return None
+    else:
+        return None
+    # a function that follows another with no padding: a 16-aligned `ret` / `ret n`, then a constructor's
+    # SEH prologue (push -1; push handler), nearer than the padded start
+    start = p
+    for q in range(o & ~0xF, p, -0x10):
+        prev_ret = exe[q - 1] == 0xC3 or (exe[q - 3] == 0xC2 and exe[q - 1] == 0)
+        if prev_ret and exe[q:q + 3] == bytes.fromhex("6aff68"):
+            start = q
+            break
+    return va - (o - start)
 
 
 # ------------------------------------------------------------------ the games' code, run
@@ -197,6 +217,9 @@ class Run:
             self.sizes = de.picture_sizes("fish")
             self.d = de.FishScreens(self.sizes, measure)
         self.emu = self.d.emu
+        if game == "fish":
+            # 0x4190C0 asks the game's window manager (not built here) whether the screen may open: yes
+            self.emu.hook(0x4190C0, lambda e: 1, 0)
         self.watched: list[tuple[str, bytes, int]] = []
         self.texts: list[tuple[bytes, int, int, int]] = []
         self.pictures: list[tuple[int, int, int, int]] = []
@@ -407,12 +430,20 @@ class Census:
             self.run_scenario(name, scenario)
             if verbose:
                 print(f"  {self.game} {name}", file=sys.stderr)
+        for ident in hint_ids(self.game, self.exe):
+            self.run_scenario(f"hint {ident}", _plant_hint(ident) if self.game == "plant" else _fish_hint(ident))
+        for name, scenario in table_scenarios(self.game, self.exe):
+            self.run_scenario(name, scenario)
         sites = lookup_sites(self.game, self.exe)
         functions: dict[int, set] = {}
         for address, ident in sites:
             f = function_start(self.exe, address)
             if f is not None:
                 functions.setdefault(f, set()).add(ident)
+        for address in dynamic_sites(self.game, self.exe):      # ids chosen by a register: the draws still show
+            f = function_start(self.exe, address)
+            if f is not None:
+                functions.setdefault(f, set())
         for n, f in enumerate(sorted(functions)):
             try:
                 self.run_function(f)
@@ -563,6 +594,123 @@ def _fish_screen(ctor: int, *args: int, size: int = 0x400, page: int | None = No
     return run
 
 
+# Plant Tycoon's hint line (under the greenhouse): 0x41B190 sets the line's id and how long it shows,
+# the line's draw 0x41B0A0 puts that text at the middle of the screen's foot.
+HINT_SETTER, HINT_DRAW = 0x41B190, 0x41B0A0
+# Fish Tycoon's hint line: 0x417FA0 (on the holder 0x417F20 makes) sets the line's number n and its end
+# time; 0x417FD0 -> 0x417E90, the only reader of n, draws string 0x83 + n centred in its own fixed rectangle
+# (0x408C30) while the clock (0x4020D0) is before the end.
+FISH_HINT_SETTER, FISH_HINT_BASE, FISH_HINT_HOLDER = 0x417FA0, 0x83, 0x417FE0   # the holder's getter: no arguments
+
+
+def hint_ids(game: str, exe: bytes) -> list[int]:
+    """The ids the game hands to the hint line: each fixed number pushed for the setter (Fish: also
+    both numbers of a `push a; jmp; push b` choice just before it), as string ids."""
+    setter, base = (HINT_SETTER, 0) if game == "plant" else (FISH_HINT_SETTER, FISH_HINT_BASE)
+    ins = _code(game, exe)
+    out = set()
+    for k, i in enumerate(ins):
+        if i.mnemonic != "call" or i.op_str != hex(setter):
+            continue
+        for j in range(k - 1, max(0, k - 6), -1):
+            p = ins[j]
+            if p.mnemonic == "push":
+                try:
+                    out.add(base + int(p.op_str, 0))
+                except ValueError:
+                    break
+                if game == "plant" or not (ins[j - 1].mnemonic == "jmp" and ins[j - 2].mnemonic == "push"):
+                    break
+            elif game == "plant" or not (p.mnemonic in ("mov", "jmp") or p.op_str == hex(FISH_HINT_HOLDER)):
+                break
+    return sorted(out)
+
+
+def _fish_hint(ident: int):
+    def run(r: "Run") -> None:
+        f = r.d
+        f.emu.hook(0x4020D0, lambda e: 1000, 0)          # the clock, still: the line shows
+        holder = f._zeroed(0x10)
+        f.emu.call(0x417F20, ecx=holder)
+        f.emu.call(FISH_HINT_SETTER, ident - FISH_HINT_BASE, ecx=holder)
+        f.emu.call(0x417FD0, ecx=holder)
+    return run
+
+
+# ------------------------------------------------------------------ lines the game picks from its tables
+#
+# Fish Tycoon's tutorial pop-up (0x41B100, the step): the step's row of the table at 0x454EF8 (step, id,
+# arrow, x, y; 0x334 bytes) gives the id, put in a text box on a panel the constructor centres (0x401D90).
+# Every step of the table is shown.
+# Plant Tycoon's purchase dialog (0x432E90 -> 0x430950, the item): an item's name and description ids are
+# in the store's item table on the game's state (+0x6F4 / +0x6F8 a row of 0xA0 bytes, set by the new game's
+# 0x41DE80), each put in a text box at the dialog's centre; the dialog centres itself (0x40D160). Every item
+# of the three tables (items 10-24, 27-35, 37-51) is shown. The seeds' dialog (items 0-8) is left out: the
+# seeds' names are also drawn by other screens no run here shows. The store's own screen (0x446D40, its
+# state at +0x1BC, its strings at +0x1C8) hands every item's name to a tooltip, shown too.
+# Fish Tycoon's Supplies screen (0x427830; its part at +8, 0x427120): the item under the mouse (part +0) has its
+# record in the table at 0x457EF0 (0x34 bytes each, ended by -1; +0x10 the item, +0x2C / +0x30 the name and
+# description ids), drawn by 0x4271E0 at x 0x39 (0x408B80, from the left). Every record is shown.
+FISH_TUTORIAL_TABLE, FISH_TUTORIAL_ROWS = 0x454EF8, 0x334 // 0x14
+FISH_SUPPLY_RECORDS, FISH_SUPPLY_STRIDE = 0x457EF0, 0x34
+
+
+def _fish_supply(item: int):
+    def run(r: "Run") -> None:
+        f = r.d
+        screen = f.make(0x427830)
+        part = f.emu.read32(screen + 8)
+        f.emu.write32(part, item)
+        f.emu.write32(part + 4, item)
+        f.draws.clear()
+        f.emu.call(0x4271E0, ecx=part)
+    return run
+PLANT_STORE_ITEMS = list(range(10, 25)) + list(range(27, 36)) + list(range(37, 52))
+
+
+def _plant_store(item: int | None):
+    def run(r: "Run") -> None:
+        d = r.d
+        d.run(0x41DE80, this=d.game_state)
+        if item is None:
+            screen = d._zeroed(0x2000)
+            d.emu.write32(screen + 0x1BC, d.game_state)
+            d.emu.write32(screen + 0x1C8, d.run(0x44D0B0))
+            d.run(0x446D40, 1, 0, 0, 0, this=screen)
+            return
+        dialog = d._zeroed(0x400)
+        d.run(0x432E90, item, this=dialog)
+        r.collect()
+        d.show(dialog)
+    return run
+
+
+def table_scenarios(game: str, exe: bytes) -> list:
+    if game == "fish":
+        steps = [struct.unpack_from("<I", exe, ts._offset(exe, FISH_TUTORIAL_TABLE) + 0x14 * k)[0]
+                 for k in range(FISH_TUTORIAL_ROWS)]
+        at, items = ts._offset(exe, FISH_SUPPLY_RECORDS), []
+        while struct.unpack_from("<i", exe, at)[0] != -1:
+            items.append(struct.unpack_from("<I", exe, at + 0x10)[0])
+            at += FISH_SUPPLY_STRIDE
+        return ([(f"tutorial step {s}", _fish_screen(0x41B100, s)) for s in steps]
+                + [(f"supplies item {i}", _fish_supply(i)) for i in items])
+    return ([(f"store item {i}", _plant_store(i)) for i in PLANT_STORE_ITEMS]
+            + [("store tooltips", _plant_store(None))])
+
+
+def _plant_hint(ident: int):
+    def run(r: "Run") -> None:
+        d = r.d
+        hint = d._zeroed(0x40)
+        d.emu.write32(hint, d._zeroed(0x100))
+        d.emu.write32(hint + 0x14, ident)
+        d.emu.write32(hint + 0x18, 3)
+        d.emu.write32(hint + 0x1C, 0x7FFFFFFF)
+        d.run(HINT_DRAW, this=hint)
+    return run
+
+
 PLACE = {"fish": (), "plant": (0x14, 0x18)}
 PLACE_SHIFT = 100
 
@@ -581,7 +729,8 @@ def _plant_options(r: "Run") -> None:
 
 SCENARIOS = {
     "plant": [("options", _plant_options)] + [(f"help page {k + 1}", _plant_help(k)) for k in range(6)]
-    + [(f"tutorial {i:#x}", _plant_tutorial(i)) for i in range(0xA0, 0xC8)],
+    # the tutorial box's ids: 0xA0-0xC7, and the ids pushed for it as fixed numbers above (0xC9-0xCE)
+    + [(f"tutorial {i:#x}", _plant_tutorial(i)) for i in list(range(0xA0, 0xC8)) + list(range(0xC9, 0xCF))],
     "fish": [("tank", _fish_screen(0x41EB00)), ("menu", _fish_screen(0x41C380)), ("trophy", _fish_screen(0x428340)),
              ("help", _fish_screen(0x41B810)), ("intro", _fish_screen(0x41BFD0)), ("supplies", _fish_screen(0x427830)),
              ("sell", _fish_screen(0x4244F0)), ("options", _fish_screen(0x422530))],
@@ -591,7 +740,8 @@ SCENARIOS = {
 # Lines the game picks by a number at one call (a register id): they share the spot found for one.
 # Fish 0x424690: the Sell screen's line, one of 0x45..0x73 (the counts with sprintf, the tips),
 # handed to 0x427050 for the screen's text box.
-SHARED = {"fish": {i: 0x45 for i in range(0x46, 0x74)}, "plant": {}}
+# Plant 0x422E70: the greenhouse's tip, one of 0xD5..0xD5 + 0x31 (the rand(0x32) it adds to 0xD5), a text box.
+SHARED = {"fish": {i: 0x45 for i in range(0x46, 0x74)}, "plant": {i: 251 for i in range(0xD5, 0xD5 + 0x32)}}
 
 
 # ------------------------------------------------------------------ the data file
@@ -660,11 +810,57 @@ MOD_SPOTS = {
 }
 
 
+# The Counts DLLs' lines (native/ftfp_tank_counts, native/ftfp_greenhouse_counts: count_text.h builds them,
+# draw_at puts them at LABEL_X with a 1-pixel shadow, the game's font 0): each line as its parts, a "mod/" id
+# ("id=sample": a counted format, at its widest) or the text the DLL adds itself, the numbers at their widest
+# (Fish: 30 slots a tank, 1 in the isolation tank; Plant: 15 pots). A part's room is the screen right of
+# LABEL_X less the shadow and the rest of the line in English; its smallest over the lines that hold it.
+COUNT_LINES = {
+    "fish": (12, [
+        ["fish", "30", "of", "30", " (", "n_adults=30 adults", ", ", "n_teens=30 teens", ", ", "n_babies=30 babies",
+         ")", "  ", "dead", "30"],
+        ["sick", "30", " ", "fungus", ", ", "30", " ", "ick", "  ", "low_health", "30"],
+        ["creatures", "golden_seahorse", " x30", ", ", "magic_pufferfish", " x30", ", ", "blue_spotted_stingray",
+         " x30", ", ", "moray_eel", " x30"],
+        ["isolation_tank", "1", "of", "1", " (", "n_adults=1 adult", ")", "  ", "dead", "1", "  ", "sick", "1", " ",
+         "fungus", ", ", "1", " ", "ick", "  ", "low_health", "1"],
+    ]),
+    "plant": (236, [
+        ["plants", "15", "of", "15", " (", "n_mature=15 mature", ", ", "n_with_buds=15 with buds", ", ",
+         "n_seedlings=15 seedlings", ")", "  ", "dead", "15"],
+        ["infested", "15", "  ", "unhealthy", "15"],
+    ]),
+}
+COUNT_SOURCE = {"fish": "tank_counts", "plant": "greenhouse_counts"}
+
+
+def count_rooms(game: str) -> dict:
+    """{"<source>.<id>": room} for the Counts DLL's line parts."""
+    c = composer(game)
+    english = {tfmt.split_key(e.key)[1]: e.english for e in ts.mod_entries(game)}
+    x, lines = COUNT_LINES[game]
+    out: dict = {}
+    for line in lines:
+        texts = []
+        for part in line:
+            name, _, sample = part.partition("=")
+            key = f"{COUNT_SOURCE[game]}.{name}"
+            texts.append((key if key in english else None, sample or english.get(key, part)))
+        for k, (key, _t) in enumerate(texts):
+            if key is None:
+                continue
+            rest = b"".join(t.encode("cp1252") for j, (_k, t) in enumerate(texts) if j != k)
+            room = SCREEN_W - x - 1 - c.text_size(0, rest)[0]
+            out[key] = min(out.get(key, room), room)
+    return out
+
+
 def mod_limits(game: str) -> dict:
-    """{"mod/<id>": {...}}: a Windows popup's text wraps itself (no limit); the rest the safe rule
-    (the patcher DLLs place their texts in their own layouts, which no run here measures)."""
+    """{"mod/<id>": {...}}: a Windows popup's text wraps itself (no limit); the Counts button and the Counts
+    lines' parts their DLL's layout (MOD_SPOTS, COUNT_LINES); the rest the safe rule."""
     c = composer(game)
     out = {}
+    counts = count_rooms(game)
     for e in ts.mod_entries(game):
         _source, ident, _h = tfmt.split_key(e.key)
         if e.wide:
@@ -676,6 +872,11 @@ def mod_limits(game: str) -> dict:
             out[f"mod/{ident}"] = {"font": 0, "width": max(COUNTS_BUTTON_ROOM, w), "multiline": False,
                                    "kind": "Counts button, moved left to the screen's edge", "proven": True,
                                    "where": "DLL source", "format": e.is_format}
+            continue
+        if ident in counts:
+            out[f"mod/{ident}"] = {"font": 0, "width": max(counts[ident], w), "multiline": False,
+                                   "kind": "Counts line part, left", "proven": True, "where": "DLL source",
+                                   "format": e.is_format}
             continue
         out[f"mod/{ident}"] = {"font": 0, "width": safe_limit(w), "multiline": "\n" in e.english,
                                "kind": "safe rule", "proven": False, "format": e.is_format}
