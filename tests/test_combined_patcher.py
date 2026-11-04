@@ -156,7 +156,8 @@ class CombinedPatcherTests(unittest.TestCase):
             ["fix_vanilla_bugs", "no_old_age_plant_deaths", "seed_refresh_key", "add_missing_ldw_assets", "tank_greenhouse_counts", "new_flowers",
              "plant_upgrades", "sort_seeds", "optimize_prices", "time_warp", "free_upgrades", "add_money",
              "everything_free", "extra_greenhouses", "extra_nurseries", "extra_chemical_slots",
-             "unicode_ingame_fonts", "translations", "unicode_system_font", "copy_paste_text_boxes"],
+             "unicode_ingame_fonts", "translations", "unicode_system_font", "copy_paste_text_boxes",
+             "greenhouse_click_deselect"],
         )
 
     def test_unknown_chemical_text_is_corrected_in_both_languages(self) -> None:

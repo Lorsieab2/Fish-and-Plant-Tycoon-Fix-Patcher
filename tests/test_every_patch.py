@@ -248,6 +248,7 @@ PROJECTS = {
         "Optimize Prices.dll": "ftfp_plant_prices", "Greenhouse Counts.dll": "ftfp_greenhouse_counts",
         "Extra Greenhouses.dll": "ftfp_extra_greenhouses", "Extra Chemical Slots.dll": "ftfp_chem_slots",
         "Unicode Text.dll": "ftfp_plant_unicode", "Translations.dll": "ftfp_translations",
+        "Click to Deselect.dll": "ftfp_greenhouse_deselect",
     },
 }
 
@@ -256,6 +257,7 @@ PROJECTS = {
 SOURCE_SITES = {
     "ftfp_tank_counts": (("OVERLAY_SLOT_VA", 4), ("MOUSE_SLOT_VA", 4)),
     "ftfp_greenhouse_counts": (("HELD_SITE_VA", 9), ("MOUSE_SLOT_VA", 4)),
+    "ftfp_greenhouse_deselect": (("PRESS_SITE_VA", 10), ("SELECT_SITE_VA", 5)),
     "ftfp_fish_window": (("SET_VIDEO_MODE_SLOT", 4), ("FLIP_SLOT", 4),
                          ("SCREENSAVER_FULLSCREEN_SITE", 5), ("SCREENSAVER_END_SITE", 5)),
     "ftfp_fish_prices": (("SPECIES_VT_COMMAND", 4), ("SPECIES_VT_ACTIVATE", 4),
@@ -1460,6 +1462,7 @@ EVIDENCE = {
         "Extra Chemical Slots.dll": ("Extra Chemical Slots: installed (all sites)", "FtfpChemSlotsInstalled"),
         "Unicode Text.dll": ("Unicode Text: installed", None),
         "Translations.dll": ("\xef\xbb\xbfTranslations: installed (", "FtfpTranslationsInstalled"),
+        "Click to Deselect.dll": ("Click to Deselect: installed", "FtfpDeselectInstalled"),
     },
 }
 
