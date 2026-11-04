@@ -882,5 +882,242 @@ class PreviewTests(unittest.TestCase):
             gc.collect()
 
 
+
+# ------------------------------------------------------------------ pixel accuracy, densely
+
+PART_CALL, PART_BACK, FLOWER_CALL, FLOWER_BACK = 0x42E7E7, 0x42E7E9, 0x42EB3D, 0x42EB42
+
+
+def bushy_fern() -> "pp.Plant":
+    return pp.grow_custom(7, 3, 4, "max")
+
+
+def budding_maple() -> "pp.Plant":
+    return pp.grow_custom(13, 5, 2, "budding")
+
+
+# Every kind of part the stock shears cut (0x42D880 on the part the hit test found): a branch the branch
+# draw (0x42E690) draws (type 1 alive: leaves and stems; type 4 dead: brown leaves and stems) and a flower
+# the flower draw (0x42D9C0) draws on a living plant (state 1: a bud from age 21, a flower head from 24).
+KINDS = ("live branch", "dead branch", "bud", "flower head")
+ACCURACY_PLANTS = {"Grass with dead leaves": dead_grass, "Reptans": grown_reptans, "Fern in bloom": bushy_fern,
+                   "Maple in bud": budding_maple}
+
+
+class HitMaps:
+    """Every pixel's part, as the game's own hit test sees it: each part draw (slot 11, called at 0x42E7E7)
+    and flower draw (0x42D9C0, called at 0x42EB3D) makes the part under the tip the last one whose drawing
+    changes the tip's pixel (0x42CFE0 reads it before and after), so one draw, with the screen taken before
+    and after each part, gives the part for every pixel at once. A frame has three plant draws (slot 10),
+    told apart by what the object reads (+8) and the scale: the benches' (the real plant), the zoom's hit
+    test (the working copy at its real size), the zoom's picture (the copy at twice the size)."""
+
+    def __init__(self, game: "Greenhouse", k: int) -> None:
+        self.game, self.k = game, k
+        self.maps: dict[str, dict] = {"real": {}, "find": {}, "zoom": {}}
+        self.every: dict[str, dict] = {"real": {}, "find": {}, "zoom": {}}     # every part drawn on a pixel
+        self.phase = "real"
+        self._before = None
+
+    def _screen(self):
+        g = self.game
+        return np.frombuffer(bytes(g.uc.mem_read(g.pixels, W * H * 4)), np.uint32).reshape(H, W)
+
+    def _draw(self, uc, address, size, data):
+        g = self.game
+        obj = uc.reg_read(T.X.UC_X86_REG_ECX)
+        if obj != self.obj:                          # (no emulated calls in a hook: all read beforehand)
+            return
+        scale = struct.unpack("<f", struct.pack("<I", g.emu.read32(uc.reg_read(T.X.UC_X86_REG_ESP) + 12)))[0]
+        self.phase = "zoom" if scale > 1.5 else "find" if g.emu.read32(obj + 8) == self.work else "real"
+
+    def _call(self, uc, address, size, data):
+        self._before = self._screen()
+
+    def _back(self, uc, address, size, data):
+        g = self.game
+        esp = uc.reg_read(T.X.UC_X86_REG_ESP)
+        branch = g.emu.read32(esp + 0x40, signed=True)
+        flower = g.emu.read32(esp + 0x54, signed=True) if address == FLOWER_BACK else -1
+        ys, xs = np.nonzero(self._screen() != self._before)
+        target, every = self.maps[self.phase], self.every[self.phase]
+        for x, y in zip(xs.tolist(), ys.tolist()):
+            target[(x, y)] = (branch, flower)
+            every.setdefault((x, y), set()).add((branch, flower))
+
+    def take(self, mouse: tuple[int, int]) -> None:
+        g = self.game
+        self.obj, self.work = g.plant(self.k), g.zoom()["work"]
+        draw = g.emu.read32(g.emu.read32(self.obj) + 0x28)
+        hooks = [g.uc.hook_add(UC_HOOK_CODE, self._draw, begin=draw, end=draw)]
+        hooks += [g.uc.hook_add(UC_HOOK_CODE, self._call, begin=a, end=a) for a in (PART_CALL, FLOWER_CALL)]
+        hooks += [g.uc.hook_add(UC_HOOK_CODE, self._back, begin=a, end=a) for a in (PART_BACK, FLOWER_BACK)]
+        try:
+            g.frame(mouse)
+        finally:
+            for h in hooks:
+                g.uc.hook_del(h)
+
+
+@_needs()
+class PixelAccuracyTests(unittest.TestCase):
+    """The part the zoom lights and cuts is the part the game's own prune hit test picks at the shears' cut
+    point mapped back to the real plant (the cut point is the cursor less (4, 16), the stock hotspot; the
+    zoom maps it back through its scale and offset). For every second zoomed pixel over the zoomed plant
+    (every pixel of the real plant) of four plants, which between them have every kind of part the shears
+    cut: the zoom's hit test (the working copy at its real size, in a frame) against the bench's stock hit
+    test, whole maps from one frame each; then through the DLL at samples of every kind: the part found,
+    its flash on exactly that part's pixels in the zoom, and a click there cutting what the stock prune at
+    the real point cuts."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.game = Greenhouse({SETTING})
+        cls.game.background = bytes(cls.game.picture("main_bg.png").data[:W * H * 4])
+        for k in PLANTS:
+            if k != 7:
+                cls.game.uc.mem_write(cls.game.pot(k), bytes(POT_STRIDE))
+        cls.counts: dict = {}
+        cls.clicked: set = set()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        for name, (agree, total, kinds, samples) in cls.counts.items():
+            print(f"\nprune zoom pixel accuracy, {name}: {agree} of {total} points agree; kinds: "
+                  f"{', '.join(f'{kind} {n}' for kind, n in kinds.items())}; {samples} DLL samples pass")
+        del cls.game
+        gc.collect()
+
+    def setUp(self) -> None:
+        self.game.hold(SHEARS)
+
+    def kind(self, part: tuple[int, int]) -> str:
+        game = self.game
+        record = game.pot(7) + 0xA8 + part[0] * 0x16C
+        if part[1] < 0:
+            return "dead branch" if game.emu.read32(record + 4) == 4 else "live branch"
+        age = struct.unpack("<f", game.uc.mem_read(game.pot(7) + 0x10, 4))[0]
+        return "bud" if age < 24.0 else "flower head"
+
+    def check(self, name: str, make) -> set:
+        game, k = self.game, 7
+        game.close()
+        game.uc.mem_write(game.pot(k), make().to_record())
+        game.emu.write32(game.manager + 8 + k * 4, 0)
+        game.objects = [game.plant(j) for j in PLANTS]
+        game.frame((0, 0), patched=False)
+        box = game.open(k)
+        cx, cy = 270 + 92 * (k % 5) + 46, 43 + 144 * (k // 5) + 72
+        bx, by = box[0] + BOX_W // 2, box[1] + BOX_H // 2
+        corner = (box[0] + 2, box[3] - 2)
+        game.frame(corner)
+        maps = HitMaps(game, k)
+        maps.take(corner)                     # the tip off the plant: nothing lit, the whole maps drawn
+        real, zoom, zoom_every = maps.maps["real"], maps.maps["zoom"], maps.every["zoom"]
+        self.assertTrue(real and zoom, name)
+        # the zoom's hit test at every real pixel the zoom can reach: the copy's draw at its real size over
+        # a plain region (the DLL's find_part), one frame with the tip at each mapped point is what it gives;
+        # its map is the same draw's, so compare the stock map with a map of the DLL's draw at real size
+        found = HitMaps(game, k)
+        reach = [(x, y) for (x, y) in real
+                 if box[0] + 2 <= bx + 2 * (x - cx) <= box[2] - 2 and box[1] + 30 <= by + 2 * (y - cy) <= box[3] - 2]
+        self.assertTrue(reach, name)
+        probe = sorted(reach)[len(reach) // 2]
+        found.take((bx + 2 * (probe[0] - cx) + 4, by + 2 * (probe[1] - cy) + 16))
+        dll = found.maps["find"]
+        self.assertTrue(dll, f"{name}: the zoom's hit test ran")
+        points = sorted(set(reach) | {p for p in dll
+                                      if box[0] + 2 <= bx + 2 * (p[0] - cx) <= box[2] - 2
+                                      and box[1] + 30 <= by + 2 * (p[1] - cy) <= box[3] - 2})
+        agree = sum(1 for p in points if real.get(p, (-1, -1)) == dll.get(p, (-1, -1)))
+        wrong = [(p, real.get(p), dll.get(p)) for p in points if real.get(p, (-1, -1)) != dll.get(p, (-1, -1))]
+        self.assertEqual(wrong, [], f"{name}: the zoom's part differs from the stock hit test's")
+        kinds: dict = {}
+        by_kind: dict = {}
+        for p in points:
+            part = real.get(p, (-1, -1))
+            if part[0] >= 0:
+                kind = self.kind(part)
+                kinds[kind] = kinds.get(kind, 0) + 1
+                by_kind.setdefault(kind, []).append(p)
+        # through the DLL: samples of every kind found, at the zoomed cut point
+        samples = 0
+        for kind, where in by_kind.items():
+            inner = [p for p in where if all(real.get((p[0] + dx, p[1] + dy)) == real[p] for dx in (-1, 0, 1)
+                                             for dy in (-1, 0, 1))] or where
+            for p in inner[:: max(1, len(inner) // 2)][:2]:
+                cursor = (bx + 2 * (p[0] - cx) + 4, by + 2 * (p[1] - cy) + 16)
+                game.frame(cursor)
+                self.assertEqual(game.zoom_part(), real[p], f"{name}: {kind} at {cursor}")
+                obj = game.plant(k)
+                game.emu.write32(obj + 0x30, 80)               # the flash at its whitest (sin 90)
+                lit = game.frame(cursor)
+                game.emu.write32(obj + 0x30, 260)              # and at its faintest (sin 270)
+                dim = game.frame(cursor)
+                changed = {(i // 4 % W, i // 4 // W) for i in range(0, len(lit), 4) if lit[i:i + 3] != dim[i:i + 3]}
+                cut = {q for q, part in zoom.items() if part == real[p] or self.grows_on(part, real[p])}
+                under = {q for q, parts in zoom_every.items()          # where the lit part lies under others
+                         if any(part == real[p] or self.grows_on(part, real[p]) for part in parts)}
+                near = {(q[0] + dx, q[1] + dy) for q in under for dx in range(-1, 2) for dy in range(-1, 2)}
+                self.assertGreater(len(changed & cut), len(cut) // 2, f"{name}: the {kind} flashes white")
+                # nothing else of the zoomed plant flashes (the real plant's own stock flash, under the box,
+                # may show through it faded where the real plant is)
+                others = {q for q in zoom if q not in near and q not in real} & changed
+                # (the game draws the flash from the part's mask sheet; a dead part keeps its living mask)
+                self.assertLess(len(others), max(3, len(changed) // 20), f"{name}: lit {real[p]}: the flash is on it")
+                samples += 1
+        for kind, where in by_kind.items():
+            if kind in self.clicked:                 # each kind clicked once, on the first plant that has it
+                continue
+            self.clicked.add(kind)
+            p = where[len(where) // 2]
+            cursor = (bx + 2 * (p[0] - cx) + 4, by + 2 * (p[1] - cy) + 16)
+            snap = game.snapshot()
+            game.frame(cursor)
+            game.press(*cursor)
+            game.press(*button_point(box, CLOSE))
+            zoomed_result = game.records(), game.pruned()
+            game.restore(snap)
+            game.close()
+            game.restore(snap)
+            real_cursor = (p[0] + 4, p[1] + 16)
+            game.frame(real_cursor, patched=False)
+            self.assertEqual(game.hover(k), real[p], f"{name}: the stock hover at {real_cursor}")
+            game.stock_prune(*real_cursor)
+            stock_result = game.records(), game.pruned()
+            game.restore(snap)
+            self.assertEqual(zoomed_result, stock_result, f"{name}: {kind}, zoom {cursor} / real {real_cursor}")
+            game.open(k)
+        self.counts[name] = (agree, len(points), kinds, samples)
+        return set(kinds)
+
+    def grows_on(self, part: tuple, lit: tuple) -> bool:
+        """`part` is drawn lit with `lit` (the branch draw lights a lit branch's children and flowers too)."""
+        if lit[1] >= 0:
+            return False
+        game, record = self.game, self.game.pot(7) + 0xA8
+        branch, seen = part[0], set()
+        while branch >= 0 and branch not in seen:
+            if branch == lit[0]:
+                return True
+            seen.add(branch)
+            parent = -1
+            for i in range(60):
+                at = record + i * 0x16C
+                for j in range(game.emu.read32(at + 0x1C)):
+                    if game.emu.read32(at + 0x20 + j * 0x10 + 4, signed=True) == branch:
+                        parent = i
+            branch = parent
+        return False
+
+
+    def test_every_kind_of_prunable_part(self) -> None:
+        covered = set()
+        for name, make in ACCURACY_PLANTS.items():
+            with self.subTest(plant=name):
+                covered |= self.check(name, make)
+        self.assertEqual(covered, set(KINDS))
+
+
 if __name__ == "__main__":
     unittest.main()

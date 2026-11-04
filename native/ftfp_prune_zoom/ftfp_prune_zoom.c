@@ -35,11 +35,14 @@
 
    THE HOOKS.  Four sites, all checked and written, or none:
      * 0x428FC0, the overlay's call of 0x423580: a call of on_draw here, which calls 0x423580 (the benches
-       exactly as the game draws them) and then, with the zoom open, the box (the game's FillRect 0x407B80,
-       grey at alpha 0.5), the pot and soil and tag (0x4208F0 at 200%), and the working copy by the plant's
-       own slot 10 at 2 x its scale with the hit test armed at the tip as slot 7 arms it, all clipped to
-       the box (the graphics' clip rectangle, +0x60..+0x6C); for that draw the object's +8 points at the
-       copy and its +0x18..+0x57 are put back after it, so no plant changes;
+       exactly as the game draws them; the screen under the zoomed pot is taken just before) and then,
+       with the zoom open: the part under the shears, found by the game's own hit test exactly as on the
+       bench (find_part: the working copy drawn at its real size and place, over that screen and its pot
+       and soil, with slot 7's test armed at the shears' tip mapped back to the real plant; the screen put
+       back after); the box (the game's FillRect 0x407B80, grey at alpha 0.5); the pot and soil and tag
+       (0x4208F0 at 200%) and the working copy by the plant's own slot 10 at 2 x its scale with that part
+       flashing, all clipped to the box (the graphics' clip rectangle, +0x60..+0x6C).  For the draws the
+       object's +8 points at the copy and its +0x18..+0x57 are put back after them, so no plant changes;
      * 0x469224, the greenhouse's mouse slot (chained after Greenhouse Counts', Extra Greenhouses' and
        Extra Chemical Slots' wrappers): with the shears and the zoom closed, a press on a plant opens it.
        With it open every press and release is taken here: a button does what it says; a press in the box
@@ -384,6 +387,109 @@ static void draw_label(void *graphics, int which) {
     draw_text(graphics, 0, text, x, r[3] + 3, 0xFFFFFFFFu, 0);
 }
 
+/* The part under the shears, found exactly as the game finds it on the bench: the working copy drawn at
+   its real size and place by its own draw (slot 10) with slot 7's hit test armed at the tip's point of the
+   real plant (the zoom's tip, back through its scale and offset), over what the bench drew it over (the
+   screen as it was before the benches, taken in on_draw, and the pot and soil as 0x42F740 draws them);
+   the screen is put back after, pixel for pixel.  -1 when the tip is off the plant. */
+typedef int (__cdecl *surface_fn)(void *surface);
+typedef unsigned int (__cdecl *map_rgb_fn)(void *format, unsigned char r, unsigned char g, unsigned char b);
+static const surface_fn lock_surface = (surface_fn)0x0044E660u;
+static const surface_fn unlock_surface = (surface_fn)0x0044E654u;
+static const map_rgb_fn map_rgb = (map_rgb_fn)0x0044E678u;
+#define HIT_LEFT 170                   /* the region around the real plant's anchor */
+#define HIT_RIGHT 170
+#define HIT_UP 300
+#define HIT_DOWN 130
+#define HIT_W (HIT_LEFT + HIT_RIGHT)
+static unsigned int under_plant[HIT_W * (HIT_UP + HIT_DOWN)];   /* the screen, put back after */
+static unsigned int before_benches[HIT_W * (HIT_UP + HIT_DOWN)];
+static int before_rect[4], before_taken = 0;
+
+static int hit_region(char *surface, int k, int *r) {
+    int ax = POT_X + (k % COLS) * POT_STEP_X, ay = POT_Y + (k / COLS) * POT_STEP_Y, w, h;
+    char *format;
+    if (surface == NULL || (format = AT(surface, 4, char *)) == NULL || AT(format, 9, unsigned char) != 4) return 0;
+    w = AT(surface, 8, int);
+    h = AT(surface, 0xC, int);
+    r[0] = ax - HIT_LEFT < 0 ? 0 : ax - HIT_LEFT;
+    r[1] = ay - HIT_UP < 0 ? 0 : ay - HIT_UP;
+    r[2] = ax + HIT_RIGHT > w ? w : ax + HIT_RIGHT;
+    r[3] = ay + HIT_DOWN > h ? h : ay + HIT_DOWN;
+    return r[2] > r[0] && r[3] > r[1];
+}
+
+/* Region r of the surface into (or, back, from) buf. */
+static int copy_region(char *surface, const int *r, unsigned int *buf, int back) {
+    char *pixels;
+    int y, pitch = AT(surface, 0x10, int);
+    if (lock_surface(surface) != 0) return 0;
+    pixels = AT(surface, 0x14, char *);
+    for (y = r[1]; y < r[3]; ++y) {
+        unsigned int *row = (unsigned int *)(pixels + y * pitch) + r[0], *at = &buf[(y - r[1]) * HIT_W];
+        if (back) memcpy(row, at, (size_t)(r[2] - r[0]) * 4);
+        else memcpy(at, row, (size_t)(r[2] - r[0]) * 4);
+    }
+    unlock_surface(surface);
+    return 1;
+}
+
+/* on_draw, before the benches: the screen the zoomed plant's pot and plant are drawn over. */
+static void take_before_benches(void) {
+    char *inner = AT(game_graphics(), 0, char *);
+    char *surface = inner != NULL ? AT(inner, 0x30, char *) : NULL;
+    before_taken = surface != NULL && hit_region(surface, open_pot, before_rect)
+                && copy_region(surface, before_rect, before_benches, 0);
+}
+
+static int floor_half(int v) { return v >= 0 ? v / 2 : -((-v + 1) / 2); }
+
+NOINLINE static void find_part(char *scene, char *plant, char *work, char *inner, int k, int tip_x, int tip_y) {
+    char *state = AT(scene, SCENE_STATE, char *), *pot = real_pot(state, k);
+    void *sprites = AT(AT(scene, SCENE_POTS, char *), 4, void *);
+    char *surface = AT(inner, 0x30, char *);
+    int cx, cy, bx, by, ax = POT_X + (k % COLS) * POT_STEP_X, ay = POT_Y + (k / COLS) * POT_STEP_Y;
+    int rx, ry, r[4], clip[4], saved = 0;
+    zoom_part = -1;
+    zoom_flower = -1;
+    if (!before_taken || !hit_region(surface, k, r) || memcmp(r, before_rect, sizeof r) != 0) return;
+    centres(k, &cx, &cy, &bx, &by);
+    rx = cx + floor_half(tip_x - bx);
+    ry = cy + floor_half(tip_y - by);
+    if (rx < r[0] || rx >= r[2] || ry < r[1] || ry >= r[3]) return;
+    memcpy(clip, inner + 0x60, sizeof clip);
+    __try {
+        if (!copy_region(surface, r, under_plant, 0)) return;
+        saved = 1;
+        copy_region(surface, r, before_benches, 1);
+        AT(inner, 0x60, int) = r[0];
+        AT(inner, 0x64, int) = r[1];
+        AT(inner, 0x68, int) = r[2];
+        AT(inner, 0x6C, int) = r[3];
+        /* the pot and soil, as 0x42F740 draws them before the plant */
+        draw_sprite(sprites, 0, 0x38, AT(pot, POT_STYLE, int), ax - 28, ay - 15, 1.0f, 100, 1);
+        if (AT(pot, POT_SOIL, int) != 0) {
+            int frame = soil_level(state, 0) * 4 + (AT(pot, POT_WATER, int) > 500 ? 2 : 0) + (AT(pot, POT_FOLIAGE, int) != 0 ? 1 : 0);
+            draw_sprite(sprites, 0, 0x37, frame, ax - 25, ay - 12, 1.0f, 100, 1);
+        }
+        AT(plant, P_POT, char *) = work;
+        AT(plant, P_HOVER_PART, int) = -1;
+        AT(plant, P_HOVER_FLOWER, int) = -1;
+        AT(plant, P_HIT_PART, int) = -1;
+        AT(plant, P_HIT_FLOWER, int) = -1;
+        AT(plant, P_TIP_X, int) = rx;
+        AT(plant, P_TIP_Y, int) = ry;
+        AT(plant, P_TESTING, char) = 1;
+        ((plant_draw_fn)AT(AT(plant, 0, char *), SLOT_DRAW, void *))(plant, 0, ax, ay,
+                                                                      AT(work, POT_HEALTH, int) != 0 ? 1.0f : DEAD_SCALE);
+        zoom_part = AT(plant, P_HIT_PART, int);
+        zoom_flower = AT(plant, P_HIT_FLOWER, int);
+    } __finally {
+        memcpy(inner + 0x60, clip, sizeof clip);
+        if (saved) copy_region(surface, r, under_plant, 1);
+    }
+}
+
 static void draw_zoom(char *scene, int mx, int my) {
     char *state = AT(scene, SCENE_STATE, char *);
     void *pots = AT(scene, SCENE_POTS, void *);
@@ -392,20 +498,28 @@ static void draw_zoom(char *scene, int mx, int my) {
     char *plant = plant_in(scene, open_pot);
     void *graphics = game_graphics();
     char *inner = AT(graphics, 0, char *);
-    int clip[4], cx, cy, bx, by, ax, ay, testing, swapped = 0, hovered;
+    int clip[4], cx, cy, bx, by, ax, ay, swapped = 0, hovered = button_at(mx, my);
     float scale;
     if (plant == NULL) return;
     centres(open_pot, &cx, &cy, &bx, &by);
     ax = bx + round_f(ZOOM * (float)(POT_X + (open_pot % COLS) * POT_STEP_X - cx));
     ay = by + round_f(ZOOM * (float)(POT_Y + (open_pot / COLS) * POT_STEP_Y - cy));
-
-    fill(graphics, box[0], box[1], box[2] + 1, box[3] + 1, 0.5f, 0.5f, 0.5f, 0.5f);
+    memcpy(object_fields, plant + OBJECT_FIELDS, OBJECT_FIELDS_SIZE);
     memcpy(clip, inner + 0x60, sizeof clip);
-    AT(inner, 0x60, int) = box[0] > clip[0] ? box[0] : clip[0];
-    AT(inner, 0x64, int) = box[1] > clip[1] ? box[1] : clip[1];
-    AT(inner, 0x68, int) = box[2] + 1 < clip[2] ? box[2] + 1 : clip[2];
-    AT(inner, 0x6C, int) = box[3] + 1 < clip[3] ? box[3] + 1 : clip[3];
     __try {
+        /* the part under the tip, as slot 7 finds it (not while the button is held, as slot 7 does not) */
+        swapped = 1;
+        if (hovered >= 0 || !inside(box, mx, my)) {
+            zoom_part = -1;
+            zoom_flower = -1;
+        } else if (!mouse_down()) {
+            find_part(scene, plant, work, inner, open_pot, mx - TIP_DX, my - TIP_DY);
+        }
+        fill(graphics, box[0], box[1], box[2] + 1, box[3] + 1, 0.5f, 0.5f, 0.5f, 0.5f);
+        AT(inner, 0x60, int) = box[0] > clip[0] ? box[0] : clip[0];
+        AT(inner, 0x64, int) = box[1] > clip[1] ? box[1] : clip[1];
+        AT(inner, 0x68, int) = box[2] + 1 < clip[2] ? box[2] + 1 : clip[2];
+        AT(inner, 0x6C, int) = box[3] + 1 < clip[3] ? box[3] + 1 : clip[3];
         /* the pot draw 0x42F740, at the zoom */
         draw_sprite(sprites, 0, 0x38, AT(pot, POT_STYLE, int), ax + round_f(ZOOM * -28.0f), ay + round_f(ZOOM * -15.0f),
                     1.0f, ZOOM_PERCENT, 0);
@@ -413,28 +527,15 @@ static void draw_zoom(char *scene, int mx, int my) {
             int frame = soil_level(state, 0) * 4 + (AT(pot, POT_WATER, int) > 500 ? 2 : 0) + (AT(pot, POT_FOLIAGE, int) != 0 ? 1 : 0);
             draw_sprite(sprites, 0, 0x37, frame, ax + round_f(ZOOM * -25.0f), ay + round_f(ZOOM * -12.0f), 1.0f, ZOOM_PERCENT, 0);
         }
-        /* the working copy: the plant's own draw at the zoom's scale, with slot 7's hit test armed at the
-           tip and the part under it flashing as on the bench; the object reads the copy through +8, and its
-           fields are put back after */
-        memcpy(object_fields, plant + OBJECT_FIELDS, OBJECT_FIELDS_SIZE);
+        /* the working copy at the zoom's scale, the part found flashing as on the bench (the object's own
+           flash, +0x2C) */
+        memcpy(plant + OBJECT_FIELDS, object_fields, OBJECT_FIELDS_SIZE);
         AT(plant, P_POT, char *) = work;
-        swapped = 1;
         AT(plant, P_HOVER_PART, int) = zoom_part;
         AT(plant, P_HOVER_FLOWER, int) = zoom_flower;
-        testing = !mouse_down();
-        if (testing) {
-            AT(plant, P_HIT_PART, int) = -1;
-            AT(plant, P_HIT_FLOWER, int) = -1;
-            AT(plant, P_TIP_X, int) = mx - TIP_DX;
-            AT(plant, P_TIP_Y, int) = my - TIP_DY;
-        }
-        AT(plant, P_TESTING, char) = (char)testing;
+        AT(plant, P_TESTING, char) = 0;
         scale = AT(work, POT_HEALTH, int) != 0 ? ZOOM : ZOOM * DEAD_SCALE;
         ((plant_draw_fn)AT(AT(plant, 0, char *), SLOT_DRAW, void *))(plant, 0, ax, ay, scale);
-        if (testing) {
-            zoom_part = AT(plant, P_HIT_PART, int);
-            zoom_flower = AT(plant, P_HIT_FLOWER, int);
-        }
         if (AT(pot, POT_FOR_SALE, char) != 0) {
             draw_sprite(sprites, 0, 0x36, 0, ax + round_f(ZOOM * 20.0f), ay + round_f(ZOOM * 22.0f), 1.0f, ZOOM_PERCENT, 0);
         }
@@ -445,11 +546,6 @@ static void draw_zoom(char *scene, int mx, int my) {
         }
         memcpy(inner + 0x60, clip, sizeof clip);
     }
-    hovered = button_at(mx, my);
-    if (hovered >= 0 || !inside(box, mx, my)) {      /* no part under the shears off the plant's box or on a button */
-        zoom_part = -1;
-        zoom_flower = -1;
-    }
     draw_button(graphics, BUTTON_UNDO, can_undo());
     draw_button(graphics, BUTTON_REDO, can_redo());
     draw_button(graphics, BUTTON_CLOSE, 1);
@@ -458,6 +554,12 @@ static void draw_zoom(char *scene, int mx, int my) {
 
 /* 0x428FC0 in the overlay: the stock call of the benches' plants (thiscall scene), then the zoom. */
 static void __fastcall on_draw(char *scene, int edx) {
+    before_taken = 0;
+    __try {
+        if (open_pot >= 0) take_before_benches();
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        before_taken = 0;
+    }
     stock_benches(scene, edx);
     __try {
         int mouse[2];

@@ -70672,7 +70672,7 @@
             "path": "Translations.dll",
             "destination": "Fish Tycoon Fix Patcher DLLs/Translations.dll",
             "size": 156160,
-            "sha256": "EC73019DA386A1F4DC911761AB8230B7D93B3200919924BC7C70874A0EF30184"
+            "sha256": "935E71DFAC79A9BAF62758AD43186939D77220E436A2AB48C761954A2845E065"
           },
           {
             "path": "word-lists/burmesedict.txt",
