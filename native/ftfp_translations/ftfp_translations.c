@@ -750,7 +750,7 @@ typedef struct lit_site {
 #define PLANT_LIT_7 0x004336F2u
 
 static const lit_site LIT_SITES[] = {
-    { GAME_FISH, FISH_LIT_PLAYER, 0x004438D4u, 10, 130, "Change Player" },     /* the button at x = 670 */
+    { GAME_FISH, FISH_LIT_PLAYER, 0x004438D4u, 10, 796, "Change Player" },     /* the button at x = 670: fitted to the screen, then moved left (lit_label_hook) */
     { GAME_PLANT, PLANT_LIT_1, 0x00467B4Cu, 412, 0, "Stats" },
     { GAME_PLANT, PLANT_LIT_2, 0x00467B44u, 378, 0, "Seeds" },
     { GAME_PLANT, PLANT_LIT_3, 0x00467B38u, 385, 0, "Supplies" },
@@ -1151,12 +1151,43 @@ static int unicode_text_active(void) {
     return active != NULL && active() != 0;
 }
 
+
+/* ------------------------------------------------- the "Change Player" label's place */
+
+#define FISH_LABEL_CALL 0x0041C68Eu         /* call 0x4015B0: sets the main menu label's text (thiscall, ret 0x14) */
+#define FISH_LABEL_SET 0x004015B0u
+#define FISH_LABEL_MOVE 0x00401080u         /* the label's inner object: thiscall (x, y), ret 8: moves it, recomputes its click area */
+#define LABEL_SCREEN_RIGHT 796              /* its text ends here at the latest (its shadow is 1 pixel more) */
+
+typedef void (__fastcall *label_set_fn)(void *self, void *edx, const char *text, int a2, int a3, int a4, void *font);
+typedef void (__fastcall *label_move_fn)(void *self, void *edx, int x, int y);
+
+/* The stock call, then: a text wider than the room from its x to the screen's edge moves the label left
+   so it ends at the edge, whole; the click area follows.  English fits and stays where it was. */
+static void __fastcall lit_label_hook(void *self, void *edx, const char *text, int a2, int a3, int a4, void *font) {
+    ((label_set_fn)(UINT_PTR)FISH_LABEL_SET)(self, edx, text, a2, a3, a4, font);
+    __try {
+        char *inner = *(char **)((char *)self + 0x10);
+        int x = AT(inner, 8, int), y = AT(inner, 12, int), w;
+        void *f = font != NULL ? font : font_object(0);
+        if (f == NULL) return;
+        w = ((tf_width_fn)(UINT_PTR)FISH_WIDTH)(f, NULL, text, 1.0f);
+        if (x + w > LABEL_SCREEN_RIGHT) {
+            x = LABEL_SCREEN_RIGHT - w;
+            if (x < 0) x = 0;
+            ((label_move_fn)(UINT_PTR)FISH_LABEL_MOVE)(inner, NULL, x, y);
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+}
+
 /* ----------------------------------------------------------------- installing */
 
 static ftfp_site_write writes[80];
 static unsigned char lit_expect[LIT_SITE_N][5];
 static unsigned char lookup_now[6];
 static unsigned char call_expect[5][5];
+static unsigned char label_expect[5];
 
 /* The lookup's first bytes as they are: the stock head, or an earlier hook's jump. */
 static int prepare_lookup(unsigned int va, const unsigned char *stock, int stock_len, const unsigned char *tail,
@@ -1240,6 +1271,16 @@ static int add_literals(int count) {
         copy->room = s->room;
         copy->fallback = 0;
         ftfp_site_imm32(&writes[count++], s->va, 5, lit_expect[k], 1, (unsigned int)(UINT_PTR)buf);
+        if (s->va == FISH_LIT_PLAYER) {
+            DWORD rel = FISH_LABEL_SET - (FISH_LABEL_CALL + 5u);
+            label_expect[0] = 0xE8;
+            memcpy(label_expect + 1, &rel, 4);
+            if (!ftfp_site_holds(FISH_LABEL_CALL, label_expect, 5)) {
+                ftfp_failed_site = FISH_LABEL_CALL;
+                return -1;
+            }
+            ftfp_site_branch(&writes[count++], FISH_LABEL_CALL, 5, label_expect, 0xE8, (const void *)(UINT_PTR)lit_label_hook);
+        }
     }
     return add_exe_literals(count);
 }

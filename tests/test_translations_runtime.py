@@ -387,6 +387,43 @@ class Agreement(unittest.TestCase):
                 self.assertEqual(rt.lookup(69), want, vector)
 
 
+
+@unittest.skipUnless(te.ready(), "needs MSVC, the vanilla games and assets/translations/Translations.dll")
+class MainMenuLabels(unittest.TestCase):
+    """With the French file installed, every text on each game's main menu is non-empty."""
+
+    MENU = {"fish": [(8, "Player: "), (10, "Change Player")],
+            "plant": [(3, "Player: "), (5, "Change"), (7, "Play"), (8, "Start Over"), (9, "Options"), (10, "Help"),
+                      (11, "Quit")]}
+
+    def _french(self, game: str) -> te.Runtime:
+        data = (ROOT / "translations" / game / "fr.tsv").read_bytes()
+        rt = runtime(game, data)
+        rt.emu.call_count = 400_000_000
+        self.assertEqual(rt.start(), 1, rt.log)
+        return rt
+
+    def test_every_main_menu_label_is_non_empty_in_french(self) -> None:
+        for game, labels in self.MENU.items():
+            rt = self._french(game)
+            for ident, english in labels:
+                with self.subTest(game=game, id=ident, english=english):
+                    text = rt.lookup(ident)
+                    self.assertTrue(text.strip(), "blank label")
+
+    def test_every_main_menu_label_is_non_empty_without_a_translation(self) -> None:
+        for game, labels in self.MENU.items():
+            rt = runtime(game, None)
+            rt.start()
+            for ident, english in labels:
+                with self.subTest(game=game, id=ident):
+                    self.assertEqual(rt.lookup(ident), english.encode("cp1252"))
+
+    def test_fish_change_player_literal_is_french_and_non_empty(self) -> None:
+        rt = self._french("fish")
+        self.assertEqual(ExeLiterals._pushed(rt, 0x0041C689), "Changer de joueur".encode("cp1252"))
+
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -409,6 +446,42 @@ class ExeLiterals(unittest.TestCase):
         self.assertEqual(rt.start(), 1)
         self.assertEqual(self._pushed(rt, 0x0041C689), b"Changer de joueur")
         self.assertEqual(rt.lookup(10), b"Changer de joueur")
+
+    def _place_label(self, width: int) -> tuple[int, list]:
+        """Fish's "Change Player" label: the call at 0x41C68E (after the install) with a text `width` pixels wide,
+        the label at x = 670, y = 572.  Returns the x the label ends up at and the moves made."""
+        rt = runtime("fish", make("fish", [(10, "Change Player", "Changer de joueur")]))
+        self.assertEqual(rt.start(), 1)
+        e = rt.emu
+        code = bytes(e.uc.mem_read(0x0041C68E, 5))
+        self.assertEqual(code[0], 0xE8)
+        target = (0x0041C68E + 5 + struct.unpack_from("<i", code, 1)[0]) & 0xFFFFFFFF
+        self.assertNotEqual(target, 0x004015B0)                                # the call goes to the DLL's hook
+        label, inner = e.alloc(0x40), e.alloc(0x80)
+        e.write32(label + 0x10, inner)
+        e.write32(inner + 8, 670)
+        e.write32(inner + 12, 572)
+        moves: list = []
+        e.hook(0x004015B0, lambda emu: 0, 0x14)                               # the text setter
+        e.hook(0x004023D0, lambda emu: width, 8)                              # the game's text measure
+        e.hook(0x00401080, lambda emu: moves.append((emu.arg(0), emu.arg(1))) or 0, 8)
+        text = e.alloc(32)
+        e.uc.mem_write(text, b"Changer de joueur\0")
+        e.call(target, text, 0, 0, 0, 0x1234, ecx=label)
+        return (moves[-1][0] if moves else 670), moves
+
+    def test_fish_change_player_label_moves_left_when_wide(self) -> None:
+        x, moves = self._place_label(300)
+        self.assertEqual(x, 796 - 300)                                        # ends at the screen edge, whole
+        self.assertEqual(moves, [(496, 572)])
+
+    def test_fish_change_player_label_stays_when_it_fits(self) -> None:
+        x, moves = self._place_label(100)
+        self.assertEqual((x, moves), (670, []))
+
+    def test_fish_change_player_label_wider_than_the_screen_starts_at_zero(self) -> None:
+        x, _moves = self._place_label(900)
+        self.assertEqual(x, 0)
 
     def test_fish_literal_stays_without_a_translation(self) -> None:
         rt = runtime("fish", make("fish", [(1, "Age: ", "Âge : ")]))
