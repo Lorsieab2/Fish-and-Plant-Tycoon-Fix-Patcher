@@ -244,8 +244,10 @@ static int clampi(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v;
 
 static int round_f(float v) { return v >= 0.0f ? (int)(v + 0.5f) : -(int)(-v + 0.5f); }
 
+/* The box is always in the same place, centred on the benches (as in the iOS version), whichever pot is open. */
 static void place_box(int k) {
-    int cx = CELL_X + (k % COLS) * CELL_W + CELL_W / 2, cy = CELL_Y + (k / COLS) * CELL_H + CELL_H / 2;
+    int cx = CELL_X + COLS * CELL_W / 2, cy = CELL_Y + ROWS * CELL_H / 2;
+    (void)k;
     box[0] = clampi(cx - BOX_W / 2, AREA_LEFT, AREA_RIGHT - BOX_W);
     box[1] = clampi(cy - BOX_H / 2, AREA_TOP, AREA_BOTTOM - BOX_H);
     box[2] = box[0] + BOX_W - 1;
