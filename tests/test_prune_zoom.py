@@ -73,7 +73,8 @@ def anchor(k: int) -> tuple[int, int]:
 
 
 def expected_box(k: int) -> tuple[int, int, int, int]:
-    cx, cy = 270 + 92 * (k % 5) + 46, 43 + 144 * (k // 5) + 72
+    """The same box for every pot: centred on the benches (k is the pot, which no longer moves it)."""
+    cx, cy = 270 + 92 * 5 // 2, 43 + 144 * 3 // 2
     left = min(max(cx - BOX_W // 2, 240), 800 - BOX_W)
     top = min(max(cy - BOX_H // 2, 0), 506 - BOX_H)
     return left, top, left + BOX_W - 1, top + BOX_H - 1
@@ -630,6 +631,7 @@ class PruneZoomTests(Zoomed):
             box = game.open(k)
             self.assertEqual(box, expected_box(k), k)
             self.assertTrue(240 <= box[0] and box[2] < 800 and 0 <= box[1] and box[3] < 506, (k, box))
+        self.assertEqual(len({game.open(k) for k in PLANTS}), 1, "the box moves with the pot")
 
     def test_no_plant_changes_while_the_zoom_is_open(self) -> None:
         """Every pot record and the prune count stay byte for byte as without the zoom while it draws, is
