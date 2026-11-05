@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.29
+
+- **The pruning zoom always opens in the same place,** centred on the greenhouse benches (as in the iOS version), whichever pot is clicked. The zoomed plant is centred in it as before, and cuts map to the real plant exactly as before.
+
 ## v1.0.28
 
 - **New setting: Disable Press C for Cash Cheat (Fish Tycoon, on by default).** "No fair cheating." The hidden c key on the tank screen no longer adds $1000 (u and w are unchanged). It is a tiny companion DLL (`No C Cheat.dll`) that changes one byte, and only if the game's code is the stock code. It is also on in Owner's Defaults.
